@@ -140,6 +140,17 @@ WIDTH_SPECS = {
     ),
 }
 
+WEIGHT_FIELDS = (
+    None,
+    'density',
+    ('gas', 'density'),
+)
+
+PROJECTION_METHODS = (
+    'integrate',
+    'sum',
+    'mip'
+)
 
 @requires_ds(M7)
 def test_attributes():
@@ -233,7 +244,9 @@ class TestPlotWindowSave(unittest.TestCase):
         projections = []
         projections_ds = []
         projections_c = []
+        projections_wf = []
         projections_w = {}
+        projections_m = []
         for dim in range(3):
             projections.append(ProjectionPlot(test_ds, dim, "density"))
             projections_ds.append(ProjectionPlot(test_ds, dim, "density",
@@ -244,12 +257,20 @@ class TestPlotWindowSave(unittest.TestCase):
         for width in WIDTH_SPECS:
             projections_w[width] = ProjectionPlot(test_ds, dim, 'density',
                                                   width=width)
+        for wf in WEIGHT_FIELDS:
+            projections_wf.append(ProjectionPlot(test_ds, dim, "density",
+                                                 weight_field=wf))
+        for m in PROJECTION_METHODS:
+            projections_m.append(ProjectionPlot(test_ds, dim, "density",
+                                                 method=m))
 
         cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
         cls.projections_c = projections_c
+        cls.projections_wf = projections_wf
         cls.projections_w = projections_w
+        cls.projections_m = projections_m
         cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
 
@@ -282,6 +303,14 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_projection_plot_c(self, dim):
         self.projections_c[dim].save()
 
+    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
+    def test_projection_plot_wf(self, dim):
+        self.projections_wf[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
+    def test_projection_plot_m(self, dim):
+        self.projections_m[dim].save()
+
     @parameterized.expand(
         param.explicit((fname, ))
         for fname in TEST_FLNMS)
@@ -293,6 +322,9 @@ class TestPlotWindowSave(unittest.TestCase):
         for fname in TEST_FLNMS)
     def test_offaxis_projection_plot(self, fname):
         assert assert_fname(self.offaxis_proj.save(fname)[0])
+
+    def test_ipython_repr(self):
+        self.slices[0]._repr_html_()
 
     @parameterized.expand(
         param.explicit((width, ))

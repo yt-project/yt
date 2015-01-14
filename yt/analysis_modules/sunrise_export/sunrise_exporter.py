@@ -129,7 +129,6 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
     if fni.endswith('.fits'):
         fni = fni.replace('.fits','')
 
-    ndomains_finished = 0
     for (num_halos, domain, halos) in domains_list:
         dle,dre = domain
         print('exporting: ')
@@ -155,7 +154,6 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
             fh.write("%6.6e \n"%(halo.Rvir*ds['kpc']))
         fh.close()
         export_to_sunrise(ds, fnf, star_particle_type, dle*1.0/dn, dre*1.0/dn)
-        ndomains_finished +=1
 
 def domains_from_halos(ds,halo_list,frvir=0.15):
     domains = {}
@@ -173,8 +171,6 @@ def domains_from_halos(ds,halo_list,frvir=0.15):
     domains_list = [(len(v),k,v) for k,v in domains.iteritems()]
     domains_list.sort() 
     domains_list.reverse() #we want the most populated domains first
-    domains_limits = [d[1] for d in domains_list]
-    domains_halos  = [d[2] for d in domains_list]
     return domains_list
 
 def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
@@ -246,10 +242,6 @@ def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
     hs       = hilbert_state()
     start_time = time.time()
     if debug:
-        if center is not None: 
-            c = center*ds['kpc']
-        else:
-            c = ile*1.0/ds.domain_dimensions*ds['kpc']
         printing = lambda x: print_oct(x)
     else:
         printing = None
@@ -333,7 +325,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
         #then translate onto the subgrid integer index 
         parent_fle  = grid.left_edges + cell_index*grid.dx
         subgrid_ile = np.floor((parent_fle - subgrid.left_edges)/subgrid.dx)
-        for i, (vertex,hilbert_child) in enumerate(hilbert):
+        for (vertex, hilbert_child) in hilbert:
             #vertex is a combination of three 0s and 1s to 
             #denote each of the 8 octs
             if level < 0:

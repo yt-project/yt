@@ -350,3 +350,35 @@ defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 ``Temperature`` of the ``Gas`` particle type would be ``("deposit",
 "Gas_smoothed_Temperature")``, which in most cases would be aliased to the
 field ``("gas", "temperature")`` for convenience.
+
+Computing the Nth Nearest Neighbor
+----------------------------------
+
+One particularly useful field that can be created is that of the distance to
+the Nth-nearest neighbor.  This field can then be used as input to smoothing
+operations, in the case when a particular particle type does not have an
+associated smoothing length or other length estimate.
+
+yt defines this field as a plugin, and it can be added like so:
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import \
+     add_nearest_neighbor_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   fn, = add_nearest_neighbor_field("all", "particle_position", ds)
+
+   dd = ds.all_data()
+   print dd[fn]
+
+Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
+``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By
+default this is 64, but it can be supplied as the final argument to
+``add_nearest_neighbor_field``.  For the example above, it would be
+``nearest_neighbor_64``.
+
+This can then be used as input to the function
+``add_volume_weighted_smoothed_field``, which can enable smoothing particle
+types that would normally not be smoothed.

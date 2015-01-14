@@ -158,6 +158,9 @@ class FieldDetector(defaultdict):
     def smooth(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def particle_operation(self, *args, **kwargs):
+        return None
+
     def _read_data(self, field_name):
         self.requested.append(field_name)
         if hasattr(self.ds, "field_info"):
@@ -183,10 +186,12 @@ class FieldDetector(defaultdict):
         'z_hat': '',
         }
 
-    def get_field_parameter(self, param, default = None):
+    def get_field_parameter(self, param, default = 0.0):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])
+        elif param in ['surface_height']:
+            return self.ds.quan(0.0, 'code_length')
         elif param in ['axis']:
             return 0
         elif param.startswith("cp_"):
@@ -204,7 +209,7 @@ class FieldDetector(defaultdict):
         elif param == "mu":
             return 1.0
         else:
-            return 0.0
+            return default
 
     _num_ghost_zones = 0
     id = 1

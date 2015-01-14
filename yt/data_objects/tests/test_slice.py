@@ -34,6 +34,7 @@ def teardown_func(fns):
 
 def test_slice():
     fns = []
+    grid_eps = np.finfo(np.float64).eps
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
@@ -52,6 +53,7 @@ def test_slice():
             yax = ds.coordinates.y_axis[ax]
             for wf in ["density", None]:
                 slc = ds.slice(ax, slc_pos)
+                shifted_slc = ds.slice(ax, slc_pos + grid_eps)
                 yield assert_equal, slc["ones"].sum(), slc["ones"].size
                 yield assert_equal, slc["ones"].min(), 1.0
                 yield assert_equal, slc["ones"].max(), 1.0
@@ -66,6 +68,7 @@ def test_slice():
                     p.save(name=tmpname)
                     fns.append(tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
+                shifted_frb = shifted_slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['ones', 'density']:
                     fi = ds._get_field_info(slc_field)
                     yield assert_equal, frb[slc_field].info['data_source'], \
@@ -84,6 +87,8 @@ def test_slice():
                         slc.center
                     yield assert_equal, frb[slc_field].info['coord'], \
                         slc_pos
+                    yield assert_equal, frb[slc_field], \
+                        shifted_frb[slc_field]
             # wf == None
             yield assert_equal, wf, None
     teardown_func(fns)

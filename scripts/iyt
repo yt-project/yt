@@ -90,6 +90,7 @@ elif api_version in ("0.11", "1.0"):
     kwargs = dict()
 
 ip.ex("from yt.mods import *")
+ip.ex("import yt")
 
 # Now we add some tab completers, in the vein of:
 # http://pymel.googlecode.com/svn/trunk/tools/ipymel.py

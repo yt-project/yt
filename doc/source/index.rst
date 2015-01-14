@@ -7,21 +7,38 @@ but it can be applied to many different types of data including seismology,
 radio telescope data, weather simulations, and nuclear engineering simulations.
 yt is developed in Python under the open-source model. 
 
-We provide sample data for *many* of the different codes supported by yt.
-See :ref:`getting-sample-data` for more information, or just stop by our `data
-page <http://yt-project.org/data/>`_.
-
-If you're coming to yt 3.0 from previous versions of yt, be sure to
-check out :ref:`yt3differences`.
+yt supports :ref:`many different code formats <code-support>`, and we provide 
+:ref:`sample data for each format <getting-sample-data>` with 
+:ref:`instructions on how to load and examine each data type <examining-data>`.
 
 Table of Contents
 -----------------
 
 .. raw:: html
 
-   <table class="contentstable" align="center">
+   <table class="contentstable" align="left">
 
      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="intro/index.html">Introduction to yt</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">What does yt offer? How can I use it? How to think in yt?</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="yt3differences.html">yt 3.0</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">How yt-3.0 differs from past versions</p>
+       </td>
+     </tr>
+      <tr valign="top">
        <td width="25%">
          <p>
            <a href="installing.html">Installation</a>
@@ -34,7 +51,7 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="bootcamp/index.html">yt Bootcamp</a>
+           <a href="quickstart/index.html">yt Quickstart</a>
          </p>
        </td>
        <td width="75%">
@@ -44,14 +61,14 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="yt3differences.html">yt 3.0</a>
+           <a href="examining/index.html">Loading and Examining Data</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Differences from past versions</p>
+         <p class="linkdescr">How to load all dataset types in yt and examine raw data</p>
        </td>
      </tr>
-     <tr valign="top">
+    <tr valign="top">
        <td width="25%">
          <p>
            <a href="cookbook/index.html">The Cookbook</a>
@@ -74,27 +91,27 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="analyzing/index.html">Analyzing Data</a>
+           <a href="analyzing/index.html">General Data Analysis</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Use analysis  tools to extract results from your data</p>
+         <p class="linkdescr">The nuts and bolts of manipulating yt datasets</p>
        </td>
      </tr>
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="examining/index.html">Examining Data</a>
+           <a href="analyzing/analysis_modules/index.html">Topic-Specific Analysis Modules</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Load data and directly access raw values for low-level analysis</p>
+         <p class="linkdescr">Track halos, make synthetic observations, find clumps, and more</p>
        </td>
      </tr>
-     <tr valign="top">
+      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="developing/index.html">Developing in yt</a>
+           <a href="developing/index.html">Developer Guide</a>
          </p>
        </td>
        <td width="75%">
@@ -114,11 +131,31 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="faq/index.html">Frequently Asked Questions</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">Solutions for common questions and problems</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="help/index.html">Getting help</a>
          </p>
        </td>
        <td width="75%">
          <p class="linkdescr">What to do if you run into problems</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="about/index.html">About yt</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">What is yt?</p>
        </td>
      </tr>
    </table>
@@ -127,12 +164,15 @@ Table of Contents
    :hidden:
 
    installing
-   yt Bootcamp <bootcamp/index>
+   yt Quickstart <quickstart/index>
    yt3differences
    cookbook/index
    visualizing/index
    analyzing/index
+   analyzing/analysis_modules/index
    examining/index
    developing/index
    reference/index
+   faq/index
    Getting Help <help/index>
+   about/index

@@ -42,3 +42,22 @@ def test_radtube():
     for test in small_patch_amr(rt, _fields):
         test_radtube.__name__ = test.description
         yield test
+
+star = "StarParticles/plrd01000"
+@requires_ds(star)
+def test_star():
+    ds = data_dir_load(star)
+    yield assert_equal, str(ds), "plrd01000"
+    for test in small_patch_amr(star, _fields):
+        test_star.__name__ = test.description
+        yield test
+
+@requires_file(rt)
+def test_OrionDataset():
+    assert isinstance(data_dir_load(rt), OrionDataset)
+
+@requires_file(rt)
+def test_units_override():
+    for test in units_override_check(rt):
+        yield test
+

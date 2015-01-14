@@ -92,8 +92,7 @@ class RegressionTestRunner(object):
         self.plot_tests = plot_tests
 
     def run_all_tests(self):
-        plot_list = []
-        for i,name in enumerate(sorted(test_registry)):
+        for name in sorted(test_registry):
             self.run_test(name)
         return self.passed_tests
 
@@ -101,7 +100,6 @@ class RegressionTestRunner(object):
         # We'll also need to call the "compare" operation,
         # but for that we'll need a data store.
         test = test_registry[name]
-        plot_list = []
         if test.output_type == 'single':
             mot = MultipleOutputTest(self.io_log)
             for i,fn in enumerate(mot):

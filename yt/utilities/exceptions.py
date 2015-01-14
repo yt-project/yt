@@ -94,7 +94,7 @@ class YTCannotParseFieldDisplayName(YTException):
 
     def __str__(self):
         return ("The display name \"%s\" "
-                "of the derived field %s " 
+                "of the derived field %s "
                 "contains the following LaTeX parser errors:\n" ) \
                 % (self.display_name, self.field_name) + self.mathtext_error
 
@@ -106,7 +106,7 @@ class YTCannotParseUnitDisplayName(YTException):
 
     def __str__(self):
         return ("The unit display name \"%s\" "
-                "of the derived field %s " 
+                "of the derived field %s "
                 "contains the following LaTeX parser errors:\n" ) \
             % (self.unit_name, self.field_name) + self.mathtext_error
 
@@ -116,7 +116,7 @@ class InvalidSimulationTimeSeries(YTException):
 
     def __str__(self):
         return self.message
-            
+
 class MissingParameter(YTException):
     def __init__(self, ds, parameter):
         YTException.__init__(self, ds=ds)
@@ -313,6 +313,15 @@ class YTDomainOverflow(YTException):
         return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
             self.mi, self.ma, self.dle, self.dre)
 
+class YTIntDomainOverflow(YTException):
+    def __init__(self, dims, dd):
+        self.dims = dims
+        self.dd = dd
+
+    def __str__(self):
+        return "Integer domain overflow: %s in %s" % (
+            self.dims, self.dd)
+
 class YTIllDefinedFilter(YTException):
     def __init__(self, filter, s1, s2):
         self.filter = filter
@@ -416,3 +425,23 @@ class YTGDFAlreadyExists(Exception):
 
     def __str__(self):
         return "A file already exists at %s and clobber=False." % self.filename
+
+class YTGDFUnknownGeometry(Exception):
+    def __init__(self, geometry):
+        self.geometry = geometry
+
+    def __str__(self):
+        return '''Unknown geometry %i. Please refer to GDF standard
+                  for more information''' % self.geometry
+
+class YTInvalidUnitEquivalence(Exception):
+    def __init__(self, equiv, unit1, unit2):
+        self.equiv = equiv
+        self.unit1 = unit1
+        self.unit2 = unit2
+
+    def __str__(self):
+        return "The unit equivalence '%s' does not exist for the units '%s' and '%s.'" % (self.equiv,
+                                                                                          self.unit1,
+                                                                                          self.unit2)
+

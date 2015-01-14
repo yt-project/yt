@@ -32,6 +32,7 @@ from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
+from yt.data_objects.time_series import SimulationTimeSeries
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -259,6 +260,22 @@ def can_run_ds(ds_fn, file_check = False):
             return False
     return AnswerTestingTest.result_storage is not None
 
+def can_run_sim(sim_fn, sim_type, file_check = False):
+    if isinstance(sim_fn, SimulationTimeSeries):
+        return AnswerTestingTest.result_storage is not None
+    path = ytcfg.get("yt", "test_data_dir")
+    if not os.path.isdir(path):
+        return False
+    with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(sim_fn) and \
+                AnswerTestingTest.result_storage is not None
+        try:
+            simulation(sim_fn, sim_type)
+        except YTOutputNotIdentified:
+            return False
+    return AnswerTestingTest.result_storage is not None
+
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset): return ds_fn
@@ -289,7 +306,10 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        self.ds = data_dir_load(ds_fn)
+        if isinstance(ds_fn, Dataset):
+            self.ds = ds_fn
+        else:
+            self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
         nv = self.run()
@@ -360,16 +380,21 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, ds_fn, field, obj_type = None,
-                 decimals = 10):
+                 particle_type=False, decimals = 10):
         super(FieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
+        self.particle_type = particle_type
         self.decimals = decimals
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        if self.particle_type:
+            weight_field = "particle_ones"
+        else:
+            weight_field = "ones"
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight="ones")
+            self.field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
@@ -466,7 +491,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
 
     def run(self):
@@ -479,7 +504,8 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
-        frb[self.weight_field]
+        if self.weight_field is not None:
+            frb[self.weight_field]
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
@@ -574,7 +600,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newp, oldp in zip(new_result["parents"], old_result["parents"]):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
-            assert(newp == oldp)
+            assert(newc == oldc)
 
 class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     _type_name = "SimulatedHaloMassFunction"
@@ -727,7 +753,18 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-
+def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if run_big_data == False and big_data == True:
+        return ffalse
+    elif not can_run_sim(sim_fn, sim_type, file_check):
+        return ffalse
+    else:
+        return ftrue
+        
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None

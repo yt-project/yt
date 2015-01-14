@@ -27,6 +27,8 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_allclose, assert_raises
 from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
+from yt.convenience import load
+
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -34,8 +36,15 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     if isinstance(a1, np.ndarray):
         assert(a1.size == a2.size)
         # Mask out NaNs
+        assert((np.isnan(a1) == np.isnan(a2)).all())
         a1[np.isnan(a1)] = 1.0
         a2[np.isnan(a2)] = 1.0
+        # Mask out 0
+        ind1 = np.array(np.abs(a1) < np.finfo(a1.dtype).eps)
+        ind2 = np.array(np.abs(a2) < np.finfo(a2.dtype).eps)
+        assert((ind1 == ind2).all())
+        a1[ind1] = 1.0
+        a2[ind2] = 1.0
     elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
         return True
     return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
@@ -179,11 +188,25 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_amr_ds(fields = ("Density",)):
+_geom_transforms = {
+    # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
+    'cartesian'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
+    'spherical'  : ( (0.0, 0.0, 0.0), (1.0, np.pi, 2*np.pi) ),
+    'cylindrical': ( (0.0, 0.0, 0.0), (1.0, 1.0, 2.0*np.pi) ), # rzt
+    'polar'      : ( (0.0, 0.0, 0.0), (1.0, 2.0*np.pi, 1.0) ), # rtz
+    'geographic' : ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlonalt
+}
+
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
     from yt.frontends.stream.api import load_amr_grids
+    LE, RE = _geom_transforms[geometry]
+    LE = np.array(LE)
+    RE = np.array(RE)
     data = []
     for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
+        left_edge = left_edge * (RE - LE) + LE
+        right_edge = right_edge * (RE - LE) + LE
         gdata = dict(level = level,
                      left_edge = left_edge,
                      right_edge = right_edge,
@@ -191,7 +214,40 @@ def fake_amr_ds(fields = ("Density",)):
         for f in fields:
             gdata[f] = np.random.random(dims)
         data.append(gdata)
-    return load_amr_grids(data, [32, 32, 32], 1.0)
+    bbox = np.array([LE, RE]).T
+    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
+
+def fake_particle_ds(
+        fields = ("particle_position_x",
+                  "particle_position_y",
+                  "particle_position_z",
+                  "particle_mass",
+                  "particle_velocity_x",
+                  "particle_velocity_y",
+                  "particle_velocity_z"),
+        units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
+        negative = (False, False, False, False, True, True, True),
+        npart = 16**3, length_unit=1.0):
+    from yt.frontends.stream.api import load_particles
+    if not iterable(negative):
+        negative = [negative for f in fields]
+    assert(len(fields) == len(negative))
+    offsets = []
+    for n in negative:
+        if n:
+            offsets.append(0.5)
+        else:
+            offsets.append(0.0)
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        if "position" in field:
+            v = np.random.normal(npart, 0.5, 0.25)
+            np.clip(v, 0.0, 1.0, v)
+        v = (np.random.random(npart) - offset)
+        data[field] = (v, u)
+    bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+    ds = load_particles(data, 1.0, bbox=bbox)
+    return ds
 
 def expand_keywords(keywords, full=False):
     """
@@ -202,12 +258,12 @@ def expand_keywords(keywords, full=False):
 
     It will return a list of kwargs dicts containing combinations of
     the various kwarg values you passed it.  These can then be passed
-    to the appropriate function in nosetests. 
+    to the appropriate function in nosetests.
 
     If full=True, then every possible combination of keywords is produced,
     otherwise, every keyword option is included at least once in the output
     list.  Be careful, by using full=True, you may be in for an exponentially
-    larger number of tests! 
+    larger number of tests!
 
     keywords : dict
         a dictionary where the keys are the keywords for the function,
@@ -215,7 +271,7 @@ def expand_keywords(keywords, full=False):
         can take in the function
 
    full : bool
-        if set to True, every possible combination of given keywords is 
+        if set to True, every possible combination of given keywords is
         returned
 
     Returns
@@ -232,18 +288,18 @@ def expand_keywords(keywords, full=False):
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50}, 
+    array([{'cmap': 'algae', 'dpi': 50},
            {'cmap': 'jet', 'dpi': 100},
            {'cmap': 'algae', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50}, 
+    array([{'cmap': 'algae', 'dpi': 50},
            {'cmap': 'algae', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200}, 
+           {'cmap': 'algae', 'dpi': 200},
            {'cmap': 'jet', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100}, 
+           {'cmap': 'jet', 'dpi': 100},
            {'cmap': 'jet', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
@@ -255,8 +311,8 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array([dict(zip(keys, prod)) for prod in \
                               it.product(*(keywords[key] for key in keys))])
-            
-    # if we just want to probe each keyword, but not necessarily every 
+
+    # if we just want to probe each keyword, but not necessarily every
     # combination
     else:
         # Determine the maximum number of values any of the keywords has
@@ -266,14 +322,14 @@ def expand_keywords(keywords, full=False):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
-    
+
         # Construct array of kwargs dicts, each element of the list is a different
         # **kwargs dict.  each kwargs dict gives a different combination of
         # the possible values of the kwargs
-    
+
         # initialize array
         list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
-    
+
         # fill in array
         for i in np.arange(num_lists):
             list_of_kwarg_dicts[i] = {}
@@ -293,7 +349,7 @@ def expand_keywords(keywords, full=False):
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
-    If the module imports without issue, the function is returned, but if not, 
+    If the module imports without issue, the function is returned, but if not,
     a null function is returned. This is so tests that depend on certain modules
     being imported will not fail if the module is not installed on the testing
     platform.
@@ -308,7 +364,7 @@ def requires_module(module):
         return ffalse
     else:
         return ftrue
-    
+
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
@@ -322,7 +378,30 @@ def requires_file(req_file):
             return ftrue
         else:
             return ffalse
-                                        
+
+def units_override_check(fn):
+    ytcfg["yt","skip_dataset_cache"] = "True"
+    units_list = ["length","time","mass","velocity",
+                  "magnetic","temperature"]
+    ds1 = load(fn)
+    units_override = {}
+    attrs1 = []
+    attrs2 = []
+    for u in units_list:
+        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs1.append(unit_attr)
+            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+    del ds1
+    ds2 = load(fn, units_override=units_override)
+    ytcfg["yt","skip_dataset_cache"] = "False"
+    assert(len(ds2.units_override) > 0)
+    for u in units_list:
+        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs2.append(unit_attr)
+    yield assert_equal, attrs1, attrs2
+
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
@@ -592,7 +671,7 @@ def check_results(func):
     from yt.mods import unparsed_args
     if "--answer-reference" in unparsed_args:
         return compute_results(func)
-    
+
     def compare_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
@@ -624,6 +703,18 @@ def check_results(func):
             return rv
         return _func
     return compare_results(func)
+
+def periodicity_cases(ds):
+    # This is a generator that yields things near the corners.  It's good for
+    # getting different places to check periodicity.
+    yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
+    dx = ds.domain_width / ds.domain_dimensions
+    # We start one dx in, and only go to one in as well.
+    for i in (1, ds.domain_dimensions[0] - 2):
+        for j in (1, ds.domain_dimensions[1] - 2):
+            for k in (1, ds.domain_dimensions[2] - 2):
+                center = dx * np.array([i,j,k]) + ds.domain_left_edge
+                yield center
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys, yt

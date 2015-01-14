@@ -45,17 +45,12 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-from yt.geometry.cartesian_coordinates import \
-    CartesianCoordinateHandler
-from yt.geometry.polar_coordinates import \
-    PolarCoordinateHandler
-from yt.geometry.cylindrical_coordinates import \
-    CylindricalCoordinateHandler
-from yt.geometry.spherical_coordinates import \
-    SphericalCoordinateHandler
-from yt.geometry.geographic_coordinates import \
-    GeographicCoordinateHandler
-from yt.geometry.spec_cube_coordinates import \
+from yt.geometry.coordinates.api import \
+    CartesianCoordinateHandler, \
+    PolarCoordinateHandler, \
+    CylindricalCoordinateHandler, \
+    SphericalCoordinateHandler, \
+    GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
@@ -139,7 +134,9 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_datasets:
+        if ytcfg.getboolean("yt","skip_dataset_cache"):
+            obj = object.__new__(cls)
+        elif apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
                 _cached_datasets[apath] = obj
@@ -147,7 +144,7 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -162,6 +159,9 @@ class Dataset(object):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        if units_override is None:
+            units_override = {}
+        self.units_override = units_override
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -252,13 +252,12 @@ class Dataset(object):
       for i in self.parameters: yield i
 
     def get_smallest_appropriate_unit(self, v):
-        max_nu = 1e30
         good_u = None
         for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-            vv = v * self.length_unit.in_units(unit)
-            if vv < max_nu and vv > 1.0:
+            uq = self.quan(1.0, unit)
+            if uq < v:
                 good_u = unit
-                max_nu = v * self.length_unit.in_units(unit)
+                break
         if good_u is None : good_u = 'cm'
         return good_u
 
@@ -333,10 +332,10 @@ class Dataset(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        deps, unloaded = self.field_info.check_derived_fields()
-        self.field_dependencies.update(deps)
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -459,8 +458,6 @@ class Dataset(object):
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo
-        if fname == self._last_freq[1]:
             return self._last_finfo
         if fname in self.field_info:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -621,9 +618,11 @@ class Dataset(object):
         import yt.units.dimensions as dimensions
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
+        self.unit_registry.add("code_density", 1.0, dimensions.density)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
@@ -674,17 +673,46 @@ class Dataset(object):
 
     def set_code_units(self):
         self._set_code_unit_attributes()
+        # here we override units, if overrides have been provided.
+        self._override_code_units()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        vel_unit = getattr(self, "velocity_unit",
-                    self.length_unit / self.time_unit)
+        vel_unit = getattr(
+            self, "velocity_unit", self.length_unit / self.time_unit)
+        pressure_unit = getattr(
+            self, "pressure_unit",
+            self.mass_unit / (self.length_unit * self.time_unit)**2)
+        temperature_unit = getattr(self, "temperature_unit", 1.0)
+        density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
         self.unit_registry.modify("code_velocity", vel_unit)
+        self.unit_registry.modify("code_temperature", temperature_unit)
+        self.unit_registry.modify("code_pressure", pressure_unit)
+        self.unit_registry.modify("code_density", density_unit)
         # domain_width does not yet exist
-        if None not in (self.domain_left_edge, self.domain_right_edge):
+        if (self.domain_left_edge is not None and
+            self.domain_right_edge is not None):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
             self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                    DW.units.dimensions)
+
+    def _override_code_units(self):
+        if len(self.units_override) == 0:
+            return
+        mylog.warning("Overriding code units. This is an experimental and potentially "+
+                      "dangerous option that may yield inconsistent results, and must be used "+
+                      "very carefully, and only if you know what you want from it.")
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
+                          ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
+            val = self.units_override.get("%s_unit" % unit, None)
+            if val is not None:
+                if isinstance(val, YTQuantity):
+                    val = (val.v, str(val.units))
+                elif not isinstance(val, tuple):
+                    val = (val, cgs)
+                u = getattr(self, "%s_unit" % unit)
+                mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])
+                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None
     @property

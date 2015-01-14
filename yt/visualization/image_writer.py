@@ -25,6 +25,12 @@ from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
+try:
+    import brewer2mpl
+    has_brewer = True
+except:
+    has_brewer = False
+
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -250,7 +256,14 @@ def map_to_colors(buff, cmap_name):
         lut = cmd.color_map_luts[cmap_name]
     except KeyError:
         try:
-            cmap = mcm.get_cmap(cmap_name)
+            if isinstance(cmap_name, tuple):
+                if has_brewer:
+                    bmap = brewer2mpl.get_map(*cmap_name)
+                    cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+                else:
+                    raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
+            else:
+                cmap = mcm.get_cmap(cmap_name)
             dummy = cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
@@ -258,10 +271,19 @@ def map_to_colors(buff, cmap_name):
                 " colormap file or matplotlib colormaps")
             raise KeyError(cmap_name)
 
-    x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
-    shape = buff.shape
-    mapped = np.dstack(
-            [(np.interp(buff, x, v)*255) for v in lut ]).astype("uint8")
+    if isinstance(cmap_name, tuple) and has_brewer:
+        # If we are using the colorbrewer maps, don't interpolate
+        shape = buff.shape
+        # We add float_eps so that digitize doesn't go out of bounds
+        x = np.mgrid[0.0:1.0+np.finfo(np.float32).eps:lut[0].shape[0]*1j]
+        inds = np.digitize(buff.ravel(), x)
+        inds.shape = (shape[0], shape[1])
+        mapped = np.dstack([(v[inds]*255).astype('uint8') for v in lut])
+        del inds
+    else:
+        x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+        mapped = np.dstack(
+                [(np.interp(buff, x, v)*255).astype('uint8') for v in lut ])
     return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",

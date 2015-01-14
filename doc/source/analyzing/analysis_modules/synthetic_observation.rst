@@ -1,3 +1,5 @@
+.. _synthetic-observations:
+
 Synthetic Observation
 =====================
 

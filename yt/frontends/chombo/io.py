@@ -12,24 +12,60 @@ The data-file handling functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import h5py
-import os
+
 import re
 import numpy as np
 from yt.utilities.logger import ytLogger as mylog
 
 from yt.utilities.io_handler import \
-           BaseIOHandler
+    BaseIOHandler
+
 
 class IOHandlerChomboHDF5(BaseIOHandler):
     _dataset_type = "chombo_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
+    _offsets = None
 
     def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
         self.ds = ds
         self._handle = ds._handle
+        self.dim = self._handle['Chombo_global/'].attrs['SpaceDim']
+        self._read_ghost_info()
+        if self._offset_string not in self._handle['level_0']:
+            self._calculate_offsets()
+
+    def _calculate_offsets(self):
+        def box_size(corners):
+            size = 1
+            for idim in range(self.dim):
+                size *= (corners[idim+self.dim] - corners[idim] + 1)
+            return size
+
+        self._offsets = {}
+        num_comp = self._handle.attrs['num_components']
+        level = 0
+        while 1:
+            lname = 'level_%i' % level
+            if lname not in self._handle: break
+            boxes = self._handle['level_0']['boxes'].value
+            box_sizes = np.array([box_size(box) for box in boxes])
+
+            offsets = np.cumsum(box_sizes*num_comp, dtype='int64') 
+            offsets -= offsets[0]
+            self._offsets[level] = offsets
+            level += 1
+
+    def _read_ghost_info(self):
+        try:
+            self.ghost = tuple(self._handle['level_0/data_attributes'].attrs['outputGhost'])
+            # pad with zeros if the dataset is low-dimensional
+            self.ghost += (3 - self.dim)*(0,)
+            self.ghost = np.array(self.ghost)
+        except KeyError:
+            # assume zero ghosts if outputGhosts not present
+            self.ghost = np.zeros(self.dim, 'int64')
 
     _field_dict = None
     @property
@@ -55,25 +91,30 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                 comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
         self._particle_field_index = field_dict
-        return self._particle_field_index        
-        
-    def _read_field_names(self,grid):
+        return self._particle_field_index
+
+    def _read_field_names(self, grid):
         ncomp = int(self._handle.attrs['num_components'])
         fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
-    
-    def _read_data(self,grid,field):
 
+    def _read_data(self, grid, field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
-        boxsize = dims.prod()
-        
-        grid_offset = lev[self._offset_string][grid._level_id]
+        shape = grid.ActiveDimensions + 2*self.ghost
+        boxsize = shape.prod()
+
+        if self._offsets is not None:
+            grid_offset = self._offsets[grid.Level][grid._level_id]
+        else:
+            grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
-        
-        return data.reshape(dims, order='F')
+        data_no_ghost = data.reshape(shape, order='F')
+        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, grid.ActiveDimensions)]
+        ghost_slice = ghost_slice[0:self.dim]
+        return data_no_ghost[ghost_slice]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -124,7 +165,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
             return rv
 
-        rv = {f:np.array([]) for f in fields}
+        rv = {f: np.array([]) for f in fields}
         for chunk in chunks:
             for grid in chunk.objs:
                 for ftype, fname in fields:
@@ -147,7 +188,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         # convert between the global grid id and the id on this level            
         grid_levels = np.array([g.Level for g in self.ds.index.grids])
-        grid_ids    = np.array([g.id    for g in self.ds.index.grids])
+        grid_ids = np.array([g.id    for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
@@ -159,6 +200,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
         return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
 
+
 class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo2d_hdf5"
     _offset_string = 'data:offsets=0'
@@ -168,6 +210,9 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
         self.ds = ds
         self._handle = ds._handle
+        self.dim = 2
+        self._read_ghost_info()
+
 
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo1d_hdf5"
@@ -177,78 +222,128 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
         self.ds = ds
-        self._handle = ds._handle   
+        self.dim = 1
+        self._handle = ds._handle
+        self._read_ghost_info()
+
+
+class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
+    _dataset_type = "pluto_chombo_native"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
+
+
+def parse_orion_sinks(fn):
+    '''
+
+    Orion sink particles are stored in text files. This function
+    is for figuring what particle fields are present based on the
+    number of entries per line in the *.sink file.
+
+    '''
+
+    # Figure out the format of the particle file
+    with open(fn, 'r') as f:
+        lines = f.readlines()
+
+    try:
+        line = lines[1]
+    except IndexError:
+        # a particle file exists, but there is only one line,
+        # so no sinks have been created yet.
+        index = {}
+        return index
+
+    # The basic fields that all sink particles have
+    index = {'particle_mass': 0,
+             'particle_position_x': 1,
+             'particle_position_y': 2,
+             'particle_position_z': 3,
+             'particle_momentum_x': 4,
+             'particle_momentum_y': 5,
+             'particle_momentum_z': 6,
+             'particle_angmomen_x': 7,
+             'particle_angmomen_y': 8,
+             'particle_angmomen_z': 9,
+             'particle_id': -1}
+
+    if len(line.strip().split()) == 11:
+        # these are vanilla sinks, do nothing
+        pass
+
+    elif len(line.strip().split()) == 17:
+        # these are old-style stars, add stellar model parameters
+        index['particle_mlast']     = 10
+        index['particle_r']         = 11
+        index['particle_mdeut']     = 12
+        index['particle_n']         = 13
+        index['particle_mdot']      = 14,
+        index['particle_burnstate'] = 15
+
+    elif len(line.strip().split()) == 18:
+        # these are the newer style, add luminosity as well
+        index['particle_mlast']     = 10
+        index['particle_r']         = 11
+        index['particle_mdeut']     = 12
+        index['particle_n']         = 13
+        index['particle_mdot']      = 14,
+        index['particle_burnstate'] = 15,
+        index['particle_luminosity']= 16
+
+    else:
+        # give a warning if none of the above apply:
+        mylog.warning('Warning - could not figure out particle output file')
+        mylog.warning('These results could be nonsense!')
+
+    return index
+
 
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
 
+    _particle_field_index = None
+    @property
+    def particle_field_index(self):
+
+        fn = self.ds.fullplotdir[:-4] + "sink"
+
+        index = parse_orion_sinks(fn)
+
+        self._particle_field_index = index
+        return self._particle_field_index
+
     def _read_particles(self, grid, field):
         """
         parses the Orion Star Particle text files
-             
+
         """
 
-        fn = grid.ds.fullplotdir[:-4] + "sink"
+        particles = []
 
-        # Figure out the format of the particle file
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-        line = lines[1]
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
 
-        # The basic fields that all sink particles have
-        index = {'particle_mass': 0,
-                 'particle_position_x': 1,
-                 'particle_position_y': 2,
-                 'particle_position_z': 3,
-                 'particle_momentum_x': 4,
-                 'particle_momentum_y': 5,
-                 'particle_momentum_z': 6,
-                 'particle_angmomen_x': 7,
-                 'particle_angmomen_y': 8,
-                 'particle_angmomen_z': 9,
-                 'particle_id': -1}
-
-        if len(line.strip().split()) == 11:
-            # these are vanilla sinks, do nothing
-            pass  
-
-        elif len(line.strip().split()) == 17:
-            # these are old-style stars, add stellar model parameters
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15
-
-        elif len(line.strip().split()) == 18:
-            # these are the newer style, add luminosity as well
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15,
-            index['particle_luminosity']= 16
-
-        else:
-            # give a warning if none of the above apply:
-            mylog.warning('Warning - could not figure out particle output file')
-            mylog.warning('These results could be nonsense!')
-            
         def read(line, field):
-            return float(line.strip().split(' ')[index[field]])
+            entry = line.strip().split(' ')[self.particle_field_index[field]]
+            return np.float(entry)
 
-        fn = grid.ds.fullplotdir[:-4] + "sink"
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            particles = []
-            for line in lines[1:]:
-                if grid.NumberOfParticles > 0:
-                    coord = read(line, "particle_position_x"), \
-                            read(line, "particle_position_y"), \
-                            read(line, "particle_position_z")
-                    if ( (grid.LeftEdge < coord).all() and
-                         (coord <= grid.RightEdge).all() ):
-                        particles.append(read(line, field))
-        return np.array(particles)
+        try:
+            lines = self._cached_lines
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
+            return np.array(particles)
+        except AttributeError:
+            fn = grid.ds.fullplotdir[:-4] + "sink"
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)

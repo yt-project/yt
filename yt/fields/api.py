@@ -26,6 +26,11 @@ from . import geometric_fields
 from . import particle_fields
 #from . import species_fields
 from . import vector_operations
+from . import local_fields
+from . import my_plugin_fields
+
+from .local_fields import add_field, derived_field
+
 
 from .derived_field import \
     DerivedField, \
@@ -38,6 +43,3 @@ from .field_detector import \
     FieldDetector
 from .field_info_container import \
     FieldInfoContainer
-
-from . import local_fields
-from .local_fields import add_field, derived_field

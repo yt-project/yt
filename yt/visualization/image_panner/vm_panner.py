@@ -215,8 +215,8 @@ class WindowedVariableMeshPanner(VariableMeshPanner):
         dy = (self.ylim[1] - self.ylim[0])/self.size[1]
         my_lim = (self.xlim[0] + dx*self.start_indices[0],
                   self.xlim[0] + dx*(self.start_indices[0] + self.my_size[0]),
-                  self.ylim[0] + dx*self.start_indices[1],
-                  self.ylim[0] + dx*(self.start_indices[1] + self.my_size[1]))
+                  self.ylim[0] + dy*self.start_indices[1],
+                  self.ylim[0] + dy*(self.start_indices[1] + self.my_size[1]))
         new_buffer = FixedResolutionBuffer(self.source, my_lim, self.my_size)
         self._buffer = new_buffer
 

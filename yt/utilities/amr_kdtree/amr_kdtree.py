@@ -83,8 +83,6 @@ class Tree(object):
         for lvl in lvl_range:
             #grids = self.data_source.select_grids(lvl)
             grids = np.array([b for b, mask in self.data_source.blocks if b.Level == lvl])
-            gids = np.array([g.id for g in grids if g.Level == lvl],
-                            dtype="int64")
             if len(grids) == 0: continue
             self.add_grids(grids)
 
@@ -95,7 +93,6 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            gre = grid.RightEdge
             nle = self.ds.arr(get_left_edge(node), input_units="code_length")
             nre = self.ds.arr(get_right_edge(node), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')

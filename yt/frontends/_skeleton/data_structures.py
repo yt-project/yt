@@ -13,18 +13,13 @@ Skeleton data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
+from .fields import SkeletonFieldInfo
 
 class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
@@ -41,20 +36,15 @@ class SkeletonGrid(AMRGridPatch):
     def __repr__(self):
         return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class SkeletonHierarchy(AMRHierarchy):
-
+class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
     
     def __init__(self, ds, dataset_type='skeleton'):
         self.dataset_type = dataset_type
-        self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        AMRHierarchy.__init__(self, ds, dataset_type)
-
-    def _initialize_data_storage(self):
-        pass
+        GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -95,9 +85,12 @@ class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
     
-    def __init__(self, filename, dataset_type='skeleton'):
+    def __init__(self, filename, dataset_type='skeleton',
+                 storage_filename=None,
+                 units_override=None):
         self.fluid_types += ('skeleton',)
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

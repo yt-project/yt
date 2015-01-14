@@ -1,5 +1,5 @@
 """
-ARTIO frontend tests 
+ARTIO frontend tests
 
 
 
@@ -24,7 +24,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.artio.api import ARTIODataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
-           ("deposit", "all_density"), ("deposit", "all_count")) 
+           ("deposit", "all_density"), ("deposit", "all_count"))
 
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art"
 @requires_ds(sizmbhloz)
@@ -45,3 +45,13 @@ def test_sizmbhloz():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+
+
+@requires_file(sizmbhloz)
+def test_ARTIODataset():
+    assert isinstance(data_dir_load(sizmbhloz), ARTIODataset)
+
+@requires_file(sizmbhloz)
+def test_units_override():
+    for test in units_override_check(sizmbhloz):
+        yield test

@@ -25,6 +25,7 @@ from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt import units
+from yt.utilities.on_demand_imports import _astropy
 
 import numpy as np
 
@@ -114,13 +115,22 @@ class SZProjection(object):
         ----------
         axis : integer or string
             The axis of the simulation domain along which to make the SZprojection.
-        center : array_like or string, optional
-            The center of the projection.
-        width : float or tuple
-            The width of the projection.
+        center : A sequence of floats, a string, or a tuple.
+            The coordinate of the center of the image. If set to 'c', 'center' or
+            left blank, the plot is centered on the middle of the domain. If set to
+            'max' or 'm', the center will be located at the maximum of the
+            ('gas', 'density') field. Centering on the max or min of a specific
+            field is supported by providing a tuple such as ("min","temperature") or
+            ("max","dark_matter_density"). Units can be specified by passing in *center*
+            as a tuple containing a coordinate and string unit name or by passing
+            in a YTArray. If a list or unitless array is supplied, code units are
+            assumed.
+        width : float, tuple, or YTQuantity.
+            The width of the projection. A float will assume the width is in code units.
+            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
         nx : integer, optional
             The dimensions on a side of the projection image.
-        source : yt.data_objects.api.AMRData, optional
+        source : yt.data_objects.data_containers.YTSelectionContainer, optional
             If specified, this will be the data source used for selecting regions to project.
 
         Examples
@@ -128,13 +138,8 @@ class SZProjection(object):
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
         axis = fix_axis(axis, self.ds)
-
-        if center == "c":
-            ctr = self.ds.domain_center
-        elif center == "max":
-            v, ctr = self.ds.find_max("density")
-        else:
-            ctr = center
+        ctr, dctr = self.ds.coordinates.sanitize_center(center, axis)
+        width = self.ds.coordinates.sanitize_width(axis, width, None)
 
         L = np.zeros((3))
         L[axis] = 1.0
@@ -143,7 +148,7 @@ class SZProjection(object):
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
         proj = self.ds.proj("density", axis, center=ctr, data_source=source)
-        frb = proj.to_frb(width, nx)
+        frb = proj.to_frb(width[0], nx, height=width[1])
         dens = frb["density"]
         Te = frb["t_sz"]/dens
         bpar = frb["beta_par"]/dens
@@ -176,13 +181,22 @@ class SZProjection(object):
         ----------
         L : array_like
             The normal vector of the projection.
-        center : array_like or string, optional
-            The center of the projection.
-        width : float or tuple
-            The width of the projection.
+        center : A sequence of floats, a string, or a tuple.
+            The coordinate of the center of the image. If set to 'c', 'center' or
+            left blank, the plot is centered on the middle of the domain. If set to
+            'max' or 'm', the center will be located at the maximum of the
+            ('gas', 'density') field. Centering on the max or min of a specific
+            field is supported by providing a tuple such as ("min","temperature") or
+            ("max","dark_matter_density"). Units can be specified by passing in *center*
+            as a tuple containing a coordinate and string unit name or by passing
+            in a YTArray. If a list or unitless array is supplied, code units are
+            assumed.
+        width : float, tuple, or YTQuantity.
+            The width of the projection. A float will assume the width is in code units.
+            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
         nx : integer, optional
             The dimensions on a side of the projection image.
-        source : yt.data_objects.api.AMRData, optional
+        source : yt.data_objects.data_containers.YTSelectionContainer, optional
             If specified, this will be the data source used for selecting regions to project.
             Currently unsupported in yt 2.x.
 
@@ -197,12 +211,7 @@ class SZProjection(object):
             w = width.in_units("code_length").value
         else:
             w = width
-        if center == "c":
-            ctr = self.ds.domain_center
-        elif center == "max":
-            v, ctr = self.ds.find_max("density")
-        else:
-            ctr = center
+        ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
 
         if source is not None:
             mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
@@ -279,8 +288,7 @@ class SZProjection(object):
         self.data["TeSZ"] = self.ds.arr(Te, "keV")
 
     @parallel_root_only
-    def write_fits(self, filename, units="kpc", sky_center=None, sky_scale=None,
-                   time_units="Gyr", clobber=True):
+    def write_fits(self, filename, sky_scale=None, sky_center=None, clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc, unless *sky_center*
@@ -290,12 +298,12 @@ class SZProjection(object):
         ----------
         filename : string
             The name of the FITS file to be written. 
-        sky_center : tuple of floats, optional
-            The center of the observation in (RA, Dec) in degrees. Only used if
-            converting to sky coordinates.          
-        sky_scale : float, optional
-            Scale between degrees and kpc. Only used if
-            converting to sky coordinates.
+        sky_scale : tuple
+            Conversion between an angle unit and a length unit, if sky
+            coordinates are desired, e.g. (1.0, "arcsec/kpc")
+        sky_center : tuple, optional
+            The (RA, Dec) coordinate in degrees of the central pixel. Must
+            be specified with *sky_scale*.
         clobber : boolean, optional
             If the file already exists, do we overwrite?
 
@@ -304,27 +312,26 @@ class SZProjection(object):
         >>> # This example just writes out a FITS file with kpc coords
         >>> szprj.write_fits("SZbullet.fits", clobber=False)
         >>> # This example uses sky coords
-        >>> sky_scale = 1./3600. # One arcsec per kpc
-        >>> sky_center = (30., 45.) # In degrees
+        >>> sky_scale = (1., "arcsec/kpc") # One arcsec per kpc
+        >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
+        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
 
-        deltas = np.array([self.dx.in_units(units),
-                           self.dy.in_units(units)])
+        dx = self.dx.in_units("kpc")
+        dy = dx
 
-        if sky_center is None:
-            center = [0.0]*2
-        else:
-            center = sky_center
-            units = "deg"
-            deltas *= sky_scale
-            deltas[0] *= -1.
+        w = _astropy.pywcs.WCS(naxis=2)
+        w.wcs.crpix = [0.5*(self.nx+1)]*2
+        w.wcs.cdelt = [dx.v,dy.v]
+        w.wcs.crval = [0.0,0.0]
+        w.wcs.cunit = ["kpc"]*2
+        w.wcs.ctype = ["LINEAR"]*2
 
-        from yt.utilities.fits_image import FITSImageBuffer
-        fib = FITSImageBuffer(self.data, fields=self.data.keys(),
-                              center=center, units=units,
-                              scale=deltas)
-        fib.update_all_headers("Time", float(self.ds.current_time.in_units(time_units).value))
+        if sky_scale is not None and sky_center is not None:
+            w = create_sky_wcs(w, sky_center, sky_scale)
+
+        fib = FITSImageBuffer(self.data, fields=self.data.keys(), wcs=w)
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only

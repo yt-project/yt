@@ -292,8 +292,8 @@ class StreamDataset(Dataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = 'stream'
 
-    def __init__(self, stream_handler, storage_filename = None,
-                 geometry = "cartesian"):
+    def __init__(self, stream_handler, storage_filename=None,
+                 geometry="cartesian"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -364,8 +364,10 @@ class StreamDictFieldHandler(dict):
     _additional_fields = ()
 
     @property
-    def all_fields(self): 
-        fields = list(self._additional_fields) + self[0].keys()
+    def all_fields(self):
+        self_fields = chain.from_iterable(s.keys() for s in self.values())
+        self_fields = list(set(self_fields))
+        fields = list(self._additional_fields) + self_fields
         fields = list(set(fields))
         return fields
 
@@ -471,9 +473,8 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([isinstance(val, np.ndarray) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-    elif all([(len(val) == 2) for val in data.values()]):
+    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
+             for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
             try:
@@ -489,6 +490,9 @@ def unitify_data(data):
                 raise RuntimeError("The data dict appears to be invalid.\n" +
                                    str(e))
         data = new_data
+    elif all([iterable(val) for val in data.values()]):
+        field_units = {field:'' for field in data.keys()}
+        data = dict((field, np.asarray(val)) for field, val in data.iteritems())
     else:
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
@@ -697,7 +701,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian"):
+                   geometry = "cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -747,6 +751,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         each axis
     geometry : string
         "cartesian", "cylindrical" or "polar"
+    refine_by : integer
+        Specifies the refinement ratio between levels.  Defaults to 2.
 
     Examples
     --------
@@ -763,12 +769,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...          dimensions = [32, 32, 32],
     ...          number_of_particles = 0)
     ... ]
-    ... 
-    >>> for g in grid_data:
-    ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
-    >>> units = dict(Density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+    >>> for g in grid_data:
+    ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...
+    >>> units = dict(density='g/cm**3')
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
+    ...                     length_unit=1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -822,6 +829,11 @@ def load_amr_grids(grid_data, domain_dimensions,
     if magnetic_unit is None:
         magnetic_unit = 'code_magnetic'
 
+    particle_types = {}
+
+    for grid in grid_data:
+        particle_types.update(set_particle_types(grid))
+
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
@@ -833,13 +845,13 @@ def load_amr_grids(grid_data, domain_dimensions,
         sfh,
         field_units,
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
-        particle_types=set_particle_types(grid_data[0])
+        particle_types=particle_types
     )
 
     handler.name = "AMRGridData"
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
+    handler.refine_by = refine_by
     handler.dimensionality = 3
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
@@ -1018,7 +1030,7 @@ def load_particles(data, length_unit = None, bbox=None,
     magnetic_unit : float
         Conversion factor from simulation magnetic units to gauss
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length_unit
     sim_time : float, optional
         The simulation time in seconds
     periodicity : tuple of booleans
@@ -1191,12 +1203,18 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     coordinates : array_like
         This should be of size (M,3) where M is the number of vertices
         indicated in the connectivity matrix.
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -1274,7 +1292,6 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
-        self.index = self.ds.index
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
@@ -1369,8 +1386,11 @@ class StreamOctreeDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_octree"
 
-def load_octree(octree_mask, data, sim_unit_to_cm,
-                bbox=None, sim_time=0.0, periodicity=(True, True, True),
+def load_octree(octree_mask, data,
+                bbox=None, sim_time=0.0, length_unit=None,
+                mass_unit=None, time_unit=None,
+                velocity_unit=None, magnetic_unit=None,
+                periodicity=(True, True, True),
                 over_refine_factor = 1, partial_coverage = 1):
     r"""Load an octree mask into yt.
 
@@ -1390,12 +1410,20 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of length
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for lengths.  Defaults to unitless.
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -1404,6 +1432,9 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
         refined.
 
     """
+
+    if not isinstance(octree_mask, np.ndarray) or octree_mask.dtype != np.uint8:
+        raise TypeError("octree_mask should be a Numpy array with type uint8")
 
     nz = (1 << (over_refine_factor))
     domain_dimensions = np.array([nz, nz, nz])
@@ -1415,6 +1446,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
     update_field_names(data)
 
+    field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
     
     particle_types = set_particle_types(data)
@@ -1423,6 +1455,17 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    if length_unit is None:
+        length_unit = 'code_length'
+    if mass_unit is None:
+        mass_unit = 'code_mass'
+    if time_unit is None:
+        time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1434,6 +1477,8 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
+        field_units,
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -1450,12 +1495,6 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     sds = StreamOctreeDataset(handler)
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
-    sds.units["cm"] = sim_unit_to_cm
-    sds.units['1'] = 1.0
-    sds.units["unitary"] = 1.0
-    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
     sds.over_refine_factor = over_refine_factor
-    for unit in mpc_conversion.keys():
-        sds.units[unit] = mpc_conversion[unit] * box_in_mpc
 
     return sds

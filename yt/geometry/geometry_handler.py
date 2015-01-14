@@ -214,47 +214,43 @@ class Index(ParallelAnalysisInterface):
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
-            else:
+            elif fname in self.ds.derived_field_list or (ftype, fname) in self.ds.derived_field_list:
                 fields_to_generate.append((ftype, fname))
+            else:
+                raise YTFieldNotFound((ftype,fname), self.ds)
         return fields_to_read, fields_to_generate
 
     def _read_particle_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
-        selector = dobj.selector
-        if chunk is None:
-            self._identify_base_chunk(dobj)
-        fields_to_return = {}
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
+        selector = dobj.selector
+        if chunk is None:
+            self._identify_base_chunk(dobj)
         fields_to_return = self.io._read_particle_selection(
             self._chunk_io(dobj, cache = False),
             selector,
             fields_to_read)
-        for field in fields_to_read:
-            ftype, fname = field
-            finfo = self.ds._get_field_info(*field)
         return fields_to_return, fields_to_generate
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
             chunk_size = dobj.size
         else:
             chunk_size = chunk.data_size
-        fields_to_return = {}
-        fields_to_read, fields_to_generate = self._split_fields(fields)
-        if len(fields_to_read) == 0:
-            return {}, fields_to_generate
         fields_to_return = self.io._read_fluid_selection(
             self._chunk_io(dobj),
             selector,
             fields_to_read,
             chunk_size)
         return fields_to_return, fields_to_generate
-
 
     def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
         # A chunk is either None or (grids, size)

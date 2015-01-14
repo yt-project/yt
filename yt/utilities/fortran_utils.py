@@ -209,7 +209,6 @@ def skip(f, n=1, endian='='):
     >>> skip(f, 3)
     """
     skipped = []
-    pos = f.tell()
     for i in range(n):
         fmt = endian+"I"
         size = f.read(struct.calcsize(fmt))

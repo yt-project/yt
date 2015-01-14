@@ -22,3 +22,5 @@ from .fields import \
 
 from .io import \
       IOHandlerAthena
+
+from . import tests

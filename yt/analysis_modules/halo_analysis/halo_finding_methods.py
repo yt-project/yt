@@ -17,7 +17,7 @@ import numpy as np
 
 from yt.analysis_modules.halo_finding.halo_objects import \
     FOFHaloFinder, HOPHaloFinder
-from yt.frontends.halo_catalogs.halo_catalog.data_structures import \
+from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogDataset
 from yt.frontends.stream.data_structures import \
     load_particles
@@ -70,7 +70,7 @@ def _rockstar_method(ds, **finder_kwargs):
     Run the Rockstar halo finding method.
     """
 
-    from yt.frontends.halo_catalogs.rockstar.data_structures import \
+    from yt.frontends.rockstar.data_structures import \
      RockstarDataset
     from yt.analysis_modules.halo_finding.rockstar.api import \
      RockstarHaloFinder

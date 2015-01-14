@@ -20,6 +20,12 @@ from ._mpl_imports import \
 from yt.funcs import \
     get_image_suffix, mylog, iterable
 import numpy as np
+try:
+    import brewer2mpl
+    has_brewer = True
+except:
+    has_brewer = False
+
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field):
@@ -67,6 +73,8 @@ class PlotMPL(object):
         """Choose backend and save image to disk"""
         if mpl_kwargs is None:
             mpl_kwargs = {}
+        if 'papertype' not in mpl_kwargs:
+            mpl_kwargs['papertype'] = 'auto'
 
         suffix = get_image_suffix(name)
         if suffix == '':
@@ -104,17 +112,37 @@ class ImagePlotMPL(PlotMPL):
             cax.set_position(caxrect)
             self.cax = cax
 
-    def _init_image(self, data, cbnorm, cmap, extent, aspect):
+    def _init_image(self, data, cbnorm, cblinthresh, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
+        elif (cbnorm == 'symlog'):
+            if cblinthresh is None:
+                cblinthresh = (data.max()-data.min())/10.
+            norm = matplotlib.colors.SymLogNorm(cblinthresh,vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
+        if isinstance(cmap, tuple):
+            if has_brewer:
+                bmap = brewer2mpl.get_map(*cmap)
+                cmap = bmap.get_mpl_colormap(N=cmap[2])
+            else:
+                raise RuntimeError(
+                    "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap)
-        self.cb = self.figure.colorbar(self.image, self.cax)
+        if (cbnorm == 'symlog'):
+            formatter = matplotlib.ticker.LogFormatterMathtext()
+            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
+            yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
+                          np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
+                     list(10**np.arange(np.rint(np.log10(cblinthresh)),\
+                          np.ceil(np.log10(data.max()))+1))
+            self.cb.set_ticks(yticks)
+        else:
+            self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)

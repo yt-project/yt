@@ -26,15 +26,17 @@ categories of:
 
 * Visualizing
 * Analyzing
+* Analysis Modules
 * Examining
 * Cookbook
-* Bootcamp
+* Quickstart
 * Developing
 * Reference
+* FAQ
 * Help
 
 You will have to figure out where your new/modified doc fits into this, but
-browsing through the pre-built documentation is a good way to sort that out.
+browsing through the existing documentation is a good way to sort that out.
 
 All the source for the documentation is written in
 `Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.  ReST is very
@@ -83,6 +85,14 @@ cross-referencing with API documentation that is automatically generated at
 build time by sphinx.  We also use sphinx to run code snippets (e.g. the 
 cookbook and the notebooks) and embed resulting images and example data.
 
+You will want to make sure you have both Sphinx and the sphinx bootstrap theme
+installed.  This installation is easily performed by running this at the 
+command line:
+
+.. code-block:: bash
+
+   pip install sphinx sphinx_bootstrap_theme
+
 Quick versus Full Documentation Builds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -105,7 +115,10 @@ Building the Docs (Quick)
 
 You will need to have the yt repository available on your computer, which
 is done by default if you have yt installed.  In addition, you need a 
-current version of Sphinx_ (1.1.3) documentation software installed.
+current version of Sphinx_ (1.1.3) documentation software installed, as
+well as the Sphinx
+`Bootstrap theme <https://pypi.python.org/pypi/sphinx-bootstrap-theme/>`_,
+which can be installed via ``pip install sphinx_bootstrap_theme``.
 
 In order to tell sphinx not to do all of the dynamical building, you must
 set the ``$READTHEDOCS`` environment variable to be True by typing this at 

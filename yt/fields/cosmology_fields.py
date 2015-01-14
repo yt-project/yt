@@ -82,9 +82,9 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
             raise NeedsParameter("omega_baryon")
         co = data.ds.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
-        # mean density(z) ~ omega_matter * (1 + z)^3
+        # mean matter density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
-          (1.0 + data.ds.hubble_constant)**3
+          (1.0 + data.ds.current_redshift)**3
 
     registry.add_field((ftype, "baryon_overdensity"),
                        function=_baryon_overdensity,
@@ -99,12 +99,22 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         co = data.ds.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
-        return data[ftype, "density"] / data.ds.omega_matter / \
+        return data[ftype, "matter_density"] / data.ds.omega_matter / \
           co.critical_density(0.0) / \
-          (1.0 + data.ds.hubble_constant)**3
+          (1.0 + data.ds.current_redshift)**3
 
     registry.add_field((ftype, "matter_overdensity"),
                        function=_matter_overdensity,
+                       units="")
+
+    # r / r_vir
+    def _virial_radius_fraction(field, data):
+        virial_radius = data.get_field_parameter("virial_radius")
+        return data["radius"] / virial_radius
+
+    registry.add_field(("index", "virial_radius_fraction"),
+                       function=_virial_radius_fraction,
+                       validators=[ValidateParameter("virial_radius")],
                        units="")
     
     # Weak lensing convergence.

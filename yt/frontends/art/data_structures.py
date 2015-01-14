@@ -1,8 +1,5 @@
 """
 ART-specific data structures
-
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -13,7 +10,7 @@ ART-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-import os.path
+import os
 import stat
 import weakref
 from yt.extern.six.moves import cStringIO
@@ -26,7 +23,7 @@ from yt.geometry.oct_geometry_handler import \
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk
 from yt.data_objects.static_output import \
-    Dataset
+    Dataset, ParticleFile
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
@@ -41,6 +38,9 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.data_objects.particle_unions import \
     ParticleUnion
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
+from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
@@ -48,6 +48,7 @@ from .io import _read_art_level_info
 from .io import _read_child_level
 from .io import _read_root_level
 from .io import b2t
+from .io import a2b
 
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -93,7 +94,9 @@ class ARTIndex(OctreeIndex):
         # The 1 here refers to domain_id == 1 always for ARTIO.
         self.domains = [ARTDomainFile(self.dataset, nv, 
                                       self.oct_handler, 1)]
-        self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
+        self.octs_per_domain = [dom.level_count.sum() for dom in
+        self.domains]
+        
         self.total_octs = sum(self.octs_per_domain)
         mylog.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
@@ -166,7 +169,8 @@ class ARTDataset(Dataset):
                  skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
-                 file_particle_data=None, file_particle_stars=None):
+                 file_particle_data=None, file_particle_stars=None,
+                 units_override=None):
         self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
@@ -186,7 +190,8 @@ class ARTDataset(Dataset):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):
@@ -196,7 +201,7 @@ class ARTDataset(Dataset):
         """
         base_prefix, base_suffix = filename_pattern['amr']
         aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
-        possibles = glob.glob(os.path.dirname(file_amr)+"/*")
+        possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
@@ -376,7 +381,10 @@ class ARTDataset(Dataset):
         """
         f = ("%s" % args[0])
         prefix, suffix = filename_pattern['amr']
-        if not os.path.isfile(f): return False
+        if not os.path.isfile(f):
+            return False
+        if not f.endswith(suffix):
+            return False
         with open(f, 'rb') as fh:
             try:
                 amr_header_vals = fpu.read_attrs(fh, amr_header_struct, '>')
@@ -384,6 +392,282 @@ class ARTDataset(Dataset):
             except:
                 return False
         return False
+
+class ARTParticleFile(ParticleFile):
+    def __init__(self, ds, io, filename, file_id):
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id)
+        self.total_particles = {}
+        for ptype, count in zip(ds.particle_types_raw, 
+                                ds.parameters['total_particles']):
+            self.total_particles[ptype] = count
+        with open(filename, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            self._file_size = f.tell()
+
+
+class DarkMatterARTDataset(ARTDataset):
+    _index_class = ParticleIndex
+    _file_class = ARTParticleFile
+    filter_bbox = False
+
+    def __init__(self, filename, dataset_type='art',
+                          fields=None, storage_filename=None,
+                          skip_particles=False, skip_stars=False,
+                 limit_level=None, spread_age=True,
+                 force_max_level=None, file_particle_header=None,
+                 file_particle_stars=None):
+        self.over_refine_factor = 1
+        self.n_ref = 64
+        self.particle_types += ("all",)
+        if fields is None:
+            fields = particle_fields
+            filename = os.path.abspath(filename)
+        self._fields_in_file = fields
+        self._file_particle = filename
+        self._file_particle_header = file_particle_header
+        self._find_files(filename)
+        self.parameter_filename = filename
+        self.skip_stars = skip_stars
+        self.spread_age = spread_age
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
+        Dataset.__init__(self, filename, dataset_type)
+        self.storage_filename = storage_filename
+
+    def _find_files(self, file_particle):
+        """
+        Given the particle base filename, attempt to find the
+        particle header and star files.
+        """
+        base_prefix, base_suffix = filename_pattern['particle_data']
+        aexpstr = file_particle.rsplit('s0',1)[1].replace(base_suffix,'')
+        possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle))+"/*")
+        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+            # if this attribute is already set skip it
+            if getattr(self, "_file_"+filetype, None) is not None:
+                continue
+            match = None
+            for possible in possibles:
+                if possible.endswith(aexpstr+suffix):
+                    if os.path.basename(possible).startswith(prefix):
+                        match = possible
+            if match is not None:
+                mylog.info('discovered %s:%s', filetype, match)
+                setattr(self, "_file_"+filetype, match)
+            else:
+                setattr(self, "_file_"+filetype, None)
+
+    def __repr__(self):
+        return self._file_particle.split('/')[-1]
+
+    def _set_code_unit_attributes(self):
+        """
+        Generates the conversion to various physical units based
+                on the parameters from the header
+        """
+        # spatial units
+        z = self.current_redshift
+        h = self.hubble_constant
+        boxcm_cal = self.parameters["boxh"]
+        boxcm_uncal = boxcm_cal / h
+        box_proper = boxcm_uncal/(1+z)
+        aexpn = self.parameters["aexpn"]
+
+        # all other units
+        wmu = self.parameters["wmu"]
+        Om0 = self.parameters['Om0']
+        ng = self.parameters['ng']
+        boxh = self.parameters['boxh']
+        aexpn = self.parameters["aexpn"]
+        hubble = self.parameters['hubble']
+
+        r0 = boxh/ng
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
+        velocity = 100.0*r0/aexpn*1.0e5  # proper cm/s
+        mass = aM0 * 1.98892e33
+
+        self.cosmological_simulation = True
+        self.mass_unit = self.quan(mass, "g*%s" % ng**3)
+        self.length_unit = self.quan(box_proper, "Mpc")
+        self.velocity_unit = self.quan(velocity, "cm/s")
+        self.time_unit = self.length_unit / self.velocity_unit
+
+
+    def _parse_parameter_file(self):
+        """
+        Get the various simulation parameters & constants.
+        """
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.periodicity = (True, True, True)
+        self.cosmological_simulation = True
+        self.parameters = {}
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        self.parameters.update(constants)
+        self.parameters['Time'] = 1.0
+        self.file_count = 1
+        self.filename_template = self.parameter_filename
+
+        # read the particle header
+        self.particle_types = []
+        self.particle_types_raw = ()
+        assert self._file_particle_header
+        with open(self._file_particle_header, "rb") as fh:
+            seek = 4
+            fh.seek(seek)
+            headerstr = np.fromfile(fh, count=1, dtype=(str,45))
+            aexpn = np.fromfile(fh, count=1, dtype='>f4')
+            aexp0 = np.fromfile(fh, count=1, dtype='>f4')
+            amplt = np.fromfile(fh, count=1, dtype='>f4')
+            astep = np.fromfile(fh, count=1, dtype='>f4')
+            istep = np.fromfile(fh, count=1, dtype='>i4')
+            partw = np.fromfile(fh, count=1, dtype='>f4')
+            tintg = np.fromfile(fh, count=1, dtype='>f4')
+            ekin = np.fromfile(fh, count=1, dtype='>f4')
+            ekin1 = np.fromfile(fh, count=1, dtype='>f4')
+            ekin2 = np.fromfile(fh, count=1, dtype='>f4')
+            au0 = np.fromfile(fh, count=1, dtype='>f4')
+            aeu0 = np.fromfile(fh, count=1, dtype='>f4')
+            nrowc = np.fromfile(fh, count=1, dtype='>i4')
+            ngridc = np.fromfile(fh, count=1, dtype='>i4')
+            nspecs = np.fromfile(fh, count=1, dtype='>i4')
+            nseed = np.fromfile(fh, count=1, dtype='>i4')
+            Om0 = np.fromfile(fh, count=1, dtype='>f4')
+            Oml0 = np.fromfile(fh, count=1, dtype='>f4')
+            hubble = np.fromfile(fh, count=1, dtype='>f4')
+            Wp5 = np.fromfile(fh, count=1, dtype='>f4')
+            Ocurv = np.fromfile(fh, count=1, dtype='>f4')
+            wspecies = np.fromfile(fh, count=10, dtype='>f4')
+            lspecies = np.fromfile(fh, count=10, dtype='>i4')
+            extras = np.fromfile(fh, count=79, dtype='>f4')
+            boxsize = np.fromfile(fh, count=1, dtype='>f4')
+        n = nspecs
+        particle_header_vals = {}
+        tmp = np.array([headerstr, aexpn, aexp0, amplt, astep, istep,
+            partw, tintg, ekin, ekin1, ekin2, au0, aeu0, nrowc, ngridc,
+            nspecs, nseed, Om0, Oml0, hubble, Wp5, Ocurv, wspecies,
+            lspecies, extras, boxsize])
+        for i in range(len(tmp)):
+            a1 = dmparticle_header_struct[0][i]
+            a2 = dmparticle_header_struct[1][i]
+            if a2 == 1:
+                particle_header_vals[a1] = tmp[i][0]
+            else:
+                particle_header_vals[a1] = tmp[i][:a2]
+        for specie in range(n):
+            self.particle_types.append("specie%i" % specie)
+        self.particle_types_raw = tuple(
+            self.particle_types)
+        ls_nonzero = np.diff(lspecies)[:n-1]
+        ls_nonzero = np.append(lspecies[0], ls_nonzero)
+        self.star_type = len(ls_nonzero)
+        mylog.info("Discovered %i species of particles", len(ls_nonzero))
+        mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
+                   *ls_nonzero)
+        for k, v in particle_header_vals.items():
+            if k in self.parameters.keys():
+                if not self.parameters[k] == v:
+                    mylog.info(
+                        "Inconsistent parameter %s %1.1e  %1.1e", k, v,
+                        self.parameters[k])
+            else:
+                self.parameters[k] = v
+        self.parameters_particles = particle_header_vals
+        self.parameters.update(particle_header_vals)
+        self.parameters['wspecies'] = wspecies[:n]
+        self.parameters['lspecies'] = lspecies[:n]
+        self.parameters['ng'] = self.parameters['Ngridc']
+        self.parameters['ncell0'] = self.parameters['ng']**3
+        self.parameters['boxh'] = self.parameters['boxsize']
+        self.parameters['total_particles'] = ls_nonzero
+        self.domain_dimensions = np.ones(3,
+                        dtype='int64')*2 # NOT ng
+
+        # setup standard simulation params yt expects to see
+        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
+        self.omega_lambda = particle_header_vals['Oml0']
+        self.omega_matter = particle_header_vals['Om0']
+        self.hubble_constant = particle_header_vals['hubble']
+        self.min_level = 0
+        self.max_level = 0
+#        self.min_level = particle_header_vals['min_level']
+#        self.max_level = particle_header_vals['max_level']
+#        if self.limit_level is not None:
+#            self.max_level = min(
+#                self.limit_level, particle_header_vals['max_level'])
+#        if self.force_max_level is not None:
+#            self.max_level = self.force_max_level
+        self.hubble_time = 1.0/(self.hubble_constant*100/3.08568025e19)
+        self.parameters['t'] = a2b(self.parameters['aexpn'])
+        self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
+        self.gamma = self.parameters["gamma"]
+        mylog.info("Max level is %02i", self.max_level)
+
+    def create_field_info(self):
+        super(ARTDataset, self).create_field_info()
+        ptr = self.particle_types_raw
+        pu = ParticleUnion("darkmatter", list(ptr))
+        self.add_particle_union(pu)
+        pass
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        """
+        Defined for the NMSU file naming scheme.
+        This could differ for other formats.
+        """
+        f = ("%s" % args[0])
+        prefix, suffix = filename_pattern['particle_data']
+        if not os.path.isfile(f):
+            return False
+        if not f.endswith(suffix):
+            return False
+        with open(f, 'rb') as fh:
+            try:
+                amr_prefix, amr_suffix = filename_pattern['amr']
+                possibles = glob.glob(os.path.dirname(os.path.abspath(f))+"/*")
+                for possible in possibles:
+                    if possible.endswith(amr_suffix):
+                        if os.path.basename(possible).startswith(amr_prefix):
+                            return False
+            except:
+                pass
+            try:
+                seek = 4
+                fh.seek(seek)
+                headerstr = np.fromfile(fh, count=1, dtype=(str,45))
+                aexpn = np.fromfile(fh, count=1, dtype='>f4')
+                aexp0 = np.fromfile(fh, count=1, dtype='>f4')
+                amplt = np.fromfile(fh, count=1, dtype='>f4')
+                astep = np.fromfile(fh, count=1, dtype='>f4')
+                istep = np.fromfile(fh, count=1, dtype='>i4')
+                partw = np.fromfile(fh, count=1, dtype='>f4')
+                tintg = np.fromfile(fh, count=1, dtype='>f4')
+                ekin = np.fromfile(fh, count=1, dtype='>f4')
+                ekin1 = np.fromfile(fh, count=1, dtype='>f4')
+                ekin2 = np.fromfile(fh, count=1, dtype='>f4')
+                au0 = np.fromfile(fh, count=1, dtype='>f4')
+                aeu0 = np.fromfile(fh, count=1, dtype='>f4')
+                nrowc = np.fromfile(fh, count=1, dtype='>i4')
+                ngridc = np.fromfile(fh, count=1, dtype='>i4')
+                nspecs = np.fromfile(fh, count=1, dtype='>i4')
+                nseed = np.fromfile(fh, count=1, dtype='>i4')
+                Om0 = np.fromfile(fh, count=1, dtype='>f4')
+                Oml0 = np.fromfile(fh, count=1, dtype='>f4')
+                hubble = np.fromfile(fh, count=1, dtype='>f4')
+                Wp5 = np.fromfile(fh, count=1, dtype='>f4')
+                Ocurv = np.fromfile(fh, count=1, dtype='>f4')
+                wspecies = np.fromfile(fh, count=10, dtype='>f4')
+                lspecies = np.fromfile(fh, count=10, dtype='>i4')
+                extras = np.fromfile(fh, count=79, dtype='>f4')
+                boxsize = np.fromfile(fh, count=1, dtype='>f4')
+                return True
+            except:
+                return False
+        return False
+
 
 class ARTDomainSubset(OctreeSubset):
 

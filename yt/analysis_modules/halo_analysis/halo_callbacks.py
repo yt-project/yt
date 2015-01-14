@@ -18,7 +18,7 @@ import numpy as np
 import os
 
 from yt.data_objects.profiles import \
-     Profile1D
+     create_profile
 from yt.units.yt_array import \
      YTArray, YTQuantity
 from yt.utilities.exceptions import \
@@ -80,7 +80,6 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     """
 
     dds = halo.halo_catalog.data_ds
-    hds = halo.halo_catalog.halos_ds
     center = dds.arr([halo.quantities["particle_position_%s" % axis] \
                       for axis in "xyz"])
     radius = factor * halo.quantities[radius_field]
@@ -148,11 +147,11 @@ def sphere_bulk_velocity(halo):
 
 add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
 
-def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
-            weight_field="cell_mass", accumulation=False, storage="profiles",
-            output_dir="."):
+def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None,
+            weight_field="cell_mass", accumulation=False, fractional=False,
+            storage="profiles", output_dir="."):
     r"""
-    Create 1d profiles.
+    Create 1, 2, or 3D profiles of a halo.
 
     Store profile data in a dictionary associated with the halo object.
 
@@ -160,26 +159,37 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     ----------
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
-    x_field : string
-        The binning field for the profile.
-    y_fields : string or list of strings
+    bin_fields : list of strings
+        The binning fields for the profile.
+    profile_fields : string or list of strings
         The fields to be propython
         filed.
-    x_bins : int
-        The number of bins in the profile.
-        Default: 32
-    x_range : (float, float)
-        The range of the x_field.  If None, the extrema are used.
-        Default: None
-    x_log : bool
-        Flag for logarithmmic binning.
-        Default: True
+    n_bins : int or list of ints
+        The number of bins in each dimension.  If None, 32 bins for
+        each bin are used for each bin field.
+        Default: 32.
+    extrema : dict of min, max tuples
+        Minimum and maximum values of the bin_fields for the profiles.
+        The keys correspond to the field names. Defaults to the extrema
+        of the bin_fields of the dataset. If a units dict is provided, extrema
+        are understood to be in the units specified in the dictionary.
+    logs : dict of boolean values
+        Whether or not to log the bin_fields for the profiles.
+        The keys correspond to the field names. Defaults to the take_log
+        attribute of the field.
     weight_field : string
         Weight field for profiling.
         Default : "cell_mass"
-    accumulation : bool
-        If True, profile data is a cumulative sum.
-        Default : False
+    accumulation : bool or list of bools
+        If True, the profile values for a bin n are the cumulative sum of
+        all the values from bin 0 to n.  If -True, the sum is reversed so
+        that the value for bin n is the cumulative sum from bin N (total bins)
+        to n.  If the profile is 2D or 3D, a list of values can be given to
+        control the summation in each dimension independently.
+        Default: False.
+    fractional : If True the profile values are divided by the sum of all
+        the profile data such that the profile represents a probability
+        distribution function.
     storage : string
         Name of the dictionary to store profiles.
         Default: "profiles"
@@ -210,37 +220,18 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
         output_dir = storage
     output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
     
-    if x_range is None:
-        x_range = list(halo.data_object.quantities.extrema(x_field, non_zero=True))
-
-    my_profile = Profile1D(halo.data_object, x_field, x_bins, 
-                           x_range[0], x_range[1], x_log, 
-                           weight_field=weight_field)
-    my_profile.add_fields(ensure_list(y_fields))
-
-    # temporary fix since profiles do not have units at the moment
-    for field in my_profile.field_data:
-        my_profile.field_data[field] = dds.arr(my_profile[field],
-                                               dds.field_info[field].units)
-
-    # accumulate, if necessary
-    if accumulation:
-        used = my_profile.used
-        for field in my_profile.field_data:
-            if weight_field is None:
-                my_profile.field_data[field][used] = \
-                    np.cumsum(my_profile.field_data[field][used])
-            else:
-                my_weight = my_profile.weight
-                my_profile.field_data[field][used] = \
-                  np.cumsum(my_profile.field_data[field][used] * my_weight[used]) / \
-                  np.cumsum(my_weight[used])
+    bin_fields = ensure_list(bin_fields)
+    my_profile = create_profile(halo.data_object, bin_fields, profile_fields, n_bins=n_bins,
+                                extrema=extrema, logs=logs, weight_field=weight_field,
+                                accumulation=accumulation, fractional=fractional)
                   
-    # create storage dictionary
     prof_store = dict([(field, my_profile[field]) \
                        for field in my_profile.field_data])
     prof_store[my_profile.x_field] = my_profile.x
-
+    if len(bin_fields) > 1:
+        prof_store[my_profile.y_field] = my_profile.y
+    if len(bin_fields) > 2:
+        prof_store[my_profile.z_field] = my_profile.z
     if hasattr(halo, storage):
         halo_store = getattr(halo, storage)
         if "used" in halo_store:
@@ -249,6 +240,17 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
         halo_store = {"used": my_profile.used}
         setattr(halo, storage, halo_store)
     halo_store.update(prof_store)
+
+    if hasattr(my_profile, "variance"):
+        variance_store = dict([(field, my_profile.variance[field]) \
+                           for field in my_profile.variance])
+        variance_storage = "%s_variance" % storage
+        if hasattr(halo, variance_storage):
+            halo_variance_store = getattr(halo, variance_storage)
+        else:
+            halo_variance_store = {}
+            setattr(halo, variance_storage, halo_variance_store)
+        halo_variance_store.update(variance_store)
 
 add_callback("profile", profile)
 
@@ -288,18 +290,24 @@ def save_profiles(halo, storage="profiles", filename=None,
     mylog.info("Saving halo %d profile data to %s." %
                (halo.quantities["particle_identifier"], output_file))
 
-    out_file = h5py.File(output_file, "w")
+    fh = h5py.File(output_file, "w")
     my_profile = getattr(halo, storage)
+    profile_group = fh.create_group("profiles")
     for field in my_profile:
         # Don't write code units because we might not know those later.
         if isinstance(my_profile[field], YTArray):
             my_profile[field].convert_to_cgs()
-        dataset = out_file.create_dataset(str(field), data=my_profile[field])
-        units = ""
-        if isinstance(my_profile[field], YTArray):
-            units = str(my_profile[field].units)
-        dataset.attrs["units"] = units
-    out_file.close()
+        _yt_array_hdf5(profile_group, str(field), my_profile[field])
+    variance_storage = "%s_variance" % storage
+    if hasattr(halo, variance_storage):
+        my_profile = getattr(halo, variance_storage)
+        variance_group = fh.create_group("variance")
+        for field in my_profile:
+            # Don't write code units because we might not know those later.
+            if isinstance(my_profile[field], YTArray):
+                my_profile[field].convert_to_cgs()
+            _yt_array_hdf5(variance_group, str(field), my_profile[field])
+    fh.close()
 
 add_callback("save_profiles", save_profiles)
 
@@ -340,20 +348,33 @@ def load_profiles(halo, storage="profiles", fields=None,
     mylog.info("Loading halo %d profile data from %s." %
                (halo.quantities["particle_identifier"], output_file))
 
-    out_file = h5py.File(output_file, "r")
-    my_profile = {}
+    fh = h5py.File(output_file, "r")
     if fields is None:
-        fields = out_file.keys()
-    for field in fields:
-        if field not in out_file:
+        profile_fields = fh["profiles"].keys()
+    else:
+        profile_fields = fields
+    my_profile = {}
+    my_group = fh["profiles"]
+    for field in profile_fields:
+        if field not in my_group:
             raise RuntimeError("%s field not present in %s." % (field, output_file))
-        units = ""
-        if "units" in out_file[field].attrs:
-            units = out_file[field].attrs["units"]
-        if units == "dimensionless": units = ""
-        my_profile[field] = halo.halo_catalog.halos_ds.arr(out_file[field].value, units)
-    out_file.close()
+        my_profile[field] = _hdf5_yt_array(my_group, field,
+                                           ds=halo.halo_catalog.halos_ds)
     setattr(halo, storage, my_profile)
+    
+    if "variance" in fh:
+        my_variance = {}
+        my_group = fh["variance"]
+        if fields is None:
+            profile_fields = my_group.keys()
+        for field in profile_fields:
+            if field not in my_group:
+                raise RuntimeError("%s field not present in %s." % (field, output_file))
+            my_variance[field] = _hdf5_yt_array(my_group, field,
+                                                ds=halo.halo_catalog.halos_ds)
+        setattr(halo, "%s_variance" % storage, my_variance)
+        
+    fh.close()
 
 add_callback("load_profiles", load_profiles)
 
@@ -383,6 +404,8 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                halo.quantities["particle_identifier"])
 
     fields = ensure_list(fields)
+    fields = [halo.data_object._determine_fields(field)[0]
+              for field in fields]
     
     dds = halo.halo_catalog.data_ds
     profile_data = getattr(halo, profile_storage)
@@ -498,3 +521,74 @@ def delete_attribute(halo, attribute):
         delattr(halo, attribute)
 
 add_callback("delete_attribute", delete_attribute)
+
+def iterative_center_of_mass(halo, radius_field="virial_radius", inner_ratio=0.1, step_ratio=0.9,
+                             units="pc"):
+    r"""
+    Adjust halo position by iteratively recalculating the center of mass while 
+    decreasing the radius.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    radius_field : string
+        The halo quantity to be used as the radius for the sphere.
+        Default: "virial_radius"
+    inner_ratio : float
+        The ratio of the smallest sphere radius used for calculating the center of 
+        mass to the initial radius.  The sphere radius is reduced and center of mass 
+        recalculated until the sphere has reached this size.
+        Default: 0.1
+    step_ratio : float
+        The multiplicative factor used to reduce the radius of the sphere after the 
+        center of mass is calculated.
+        Default: 0.9
+    units : str
+        The units for printing out the distance between the initial and final centers.
+        Default : "pc"
+        
+    """
+    if inner_ratio <= 0.0 or inner_ratio >= 1.0:
+        raise RuntimeError("iterative_center_of_mass: inner_ratio must be between 0 and 1.")
+    if step_ratio <= 0.0 or step_ratio >= 1.0:
+        raise RuntimeError("iterative_center_of_mass: step_ratio must be between 0 and 1.")
+
+    center_orig = halo.halo_catalog.data_ds.arr([halo.quantities["particle_position_%s" % axis]
+                                                 for axis in "xyz"])
+    sphere = halo.halo_catalog.data_ds.sphere(center_orig, halo.quantities[radius_field])
+
+    while sphere.radius > inner_ratio * halo.quantities[radius_field]:
+        new_center = sphere.quantities.center_of_mass(use_gas=True, use_particles=True)
+        sphere = sphere.ds.sphere(new_center, step_ratio * sphere.radius)
+
+    distance = periodic_distance(center_orig.in_units("code_length").to_ndarray(),
+                                 new_center.in_units("code_length").to_ndarray())
+    distance = halo.halo_catalog.data_ds.quan(distance, "code_length")
+    mylog.info("Recentering halo %d %f %s away." %
+               (halo.quantities["particle_identifier"],
+                distance.in_units(units), units))
+
+    for i, axis in enumerate("xyz"):
+        halo.quantities["particle_position_%s" % axis] = sphere.center[i]
+    del sphere
+    
+add_callback("iterative_center_of_mass", iterative_center_of_mass)
+
+def _yt_array_hdf5(fh, fieldname, data):
+    dataset = fh.create_dataset(fieldname, data=data)
+    units = ""
+    if isinstance(data, YTArray):
+        units = str(data.units)
+    dataset.attrs["units"] = units
+
+def _hdf5_yt_array(fh, fieldname, ds=None):
+    if ds is None:
+        new_arr = YTArray
+    else:
+        new_arr = ds.arr
+    units = ""
+    if "units" in fh[fieldname].attrs:
+        units = fh[fieldname].attrs["units"]
+    if units == "dimensionless": units = ""
+    return new_arr(fh[fieldname].value, units)

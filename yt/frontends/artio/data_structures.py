@@ -26,8 +26,7 @@ from . import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
-    ARTIOFieldInfo, \
-    b2t
+    ARTIOFieldInfo
 from yt.fields.particle_fields import \
     standard_particle_fields
 
@@ -315,7 +314,8 @@ class ARTIODataset(Dataset):
     _field_info_class = ARTIOFieldInfo
 
     def __init__(self, filename, dataset_type='artio',
-                 storage_filename=None, max_range = 1024):
+                 storage_filename=None, max_range = 1024,
+                 units_override=None):
         if self._handle is not None:
             return
         self.max_range = max_range
@@ -325,7 +325,8 @@ class ARTIODataset(Dataset):
         self._handle = artio_fileset(self._fileset_prefix)
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -387,37 +388,40 @@ class ARTIODataset(Dataset):
             self.particle_types = ()
         self.particle_types_raw = self.particle_types
 
-        self.current_time = b2t(self.artio_parameters["tl"][0])
+        self.current_time = self.quan(self._handle.tphys_from_tcode(self.artio_parameters["tl"][0]),"yr")
 
         # detect cosmology
         if "abox" in self.artio_parameters:
-            abox = self.artio_parameters["abox"][0]
             self.cosmological_simulation = True
+
+            abox = self.artio_parameters["abox"][0]
             self.omega_lambda = self.artio_parameters["OmegaL"][0]
             self.omega_matter = self.artio_parameters["OmegaM"][0]
             self.hubble_constant = self.artio_parameters["hubble"][0]
-            self.current_redshift = 1.0/self.artio_parameters["abox"][0] - 1.0
+            self.current_redshift = 1.0/self.artio_parameters["auni"][0] - 1.0
+            self.current_redshift_box = 1.0/abox - 1.0
 
             self.parameters["initial_redshift"] =\
                 1.0 / self.artio_parameters["auni_init"][0] - 1.0
             self.parameters["CosmologyInitialRedshift"] =\
                 self.parameters["initial_redshift"]
-        else:
-            self.cosmological_simulation = False
 
-        #units
-        if self.cosmological_simulation:
             self.parameters['unit_m'] = self.artio_parameters["mass_unit"][0]
             self.parameters['unit_t'] =\
                 self.artio_parameters["time_unit"][0] * abox**2
             self.parameters['unit_l'] =\
                 self.artio_parameters["length_unit"][0] * abox
+
+            if self.artio_parameters["DeltaDC"][0] != 0:
+                mylog.warn("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
         else:
+            self.cosmological_simulation = False
+
             self.parameters['unit_l'] = self.artio_parameters["length_unit"][0]
             self.parameters['unit_t'] = self.artio_parameters["time_unit"][0]
             self.parameters['unit_m'] = self.artio_parameters["mass_unit"][0]
 
-        # hard coded assumption of 3D periodicity (add to dataset)
+        # hard coded assumption of 3D periodicity
         self.periodicity = (True, True, True)
 
     @classmethod

@@ -49,9 +49,9 @@ from .plot_window import \
     OffAxisProjectionPlot
 
 from .profile_plotter import \
-     ProfilePlot, \
-     PhasePlot
-    
+    ProfilePlot, \
+    PhasePlot
+
 from .base_plot_types import \
     get_multi_plot
 

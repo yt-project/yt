@@ -25,7 +25,7 @@ import types
 from functools import wraps
 
 from yt.funcs import \
-    ensure_list, iterable, traceback_writer_hook
+    ensure_list, iterable
 
 from yt.config import ytcfg
 import yt.utilities.logger
@@ -54,9 +54,53 @@ op_names = dict(
         max = "MPI.MAX"
 )
 
+class FilterAllMessages(logging.Filter):
+    """
+    This is a simple filter for logging.Logger's that won't let any
+    messages pass.
+    """
+    def filter(self, record):
+        return 0
+
 # Set up translation table and import things
 
-def enable_parallelism():
+
+def traceback_writer_hook(file_suffix=""):
+    def write_to_file(exc_type, exc, tb):
+        sys.__excepthook__(exc_type, exc, tb)
+        fn = "yt_traceback%s" % file_suffix
+        with open(fn, "w") as fhandle:
+            traceback.print_exception(exc_type, exc, tb, file=fhandle)
+            print("Wrote traceback to %s" % fn)
+        MPI.COMM_WORLD.Abort(1)
+    return write_to_file
+
+
+def default_mpi_excepthook(exception_type, exception_value, tb):
+    traceback.print_tb(tb)
+    mylog.error('%s: %s' % (exception_type.__name__, exception_value))
+    comm = yt.communication_system.communicators[-1]
+    if comm.size > 1:
+        mylog.error('Error occured on rank %d.' % comm.rank)
+    MPI.COMM_WORLD.Abort(1)
+
+
+def enable_parallelism(suppress_logging=False, communicator=None):
+    """
+    This method is used inside a script to turn on MPI parallelism, via
+    mpi4py.  More information about running yt in parallel can be found
+    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+
+    Parameters
+    ----------
+    suppress_logging : bool
+       If set to True, only rank 0 will log information after the initial
+       setup of MPI.
+
+    communicator : mpi4py.MPI.Comm
+        The MPI communicator to use. This controls which processes yt can see.
+        If not specified, will be set to COMM_WORLD.
+    """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
@@ -66,30 +110,39 @@ def enable_parallelism():
         return
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
+
+    # if no communicator specified, set to COMM_WORLD
+    if communicator is None:
+        communicator = MPI.COMM_WORLD
+
+    parallel_capable = (communicator.size > 1)
     if not parallel_capable: return False
     mylog.info("Global parallel computation enabled: %s / %s",
-               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-    communication_system.push(MPI.COMM_WORLD)
-    ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-    ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
+               communicator.rank, communicator.size)
+    communication_system.push(communicator)
+    ytcfg["yt","__global_parallel_rank"] = str(communicator.rank)
+    ytcfg["yt","__global_parallel_size"] = str(communicator.size)
     ytcfg["yt","__parallel"] = "True"
     if exe_name == "embed_enzo" or \
         ("_parallel" in dir(sys) and sys._parallel == True):
         ytcfg["yt","inline"] = "True"
-    if MPI.COMM_WORLD.rank > 0:
+    if communicator.rank > 0:
         if ytcfg.getboolean("yt","LogFile"):
             ytcfg["yt","LogFile"] = "False"
             yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
-    f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+    f = logging.Formatter("P%03i %s" % (communicator.rank,
                                         yt.utilities.logger.ufstring))
-    if len(yt.utilities.logger.rootLogger.handlers) > 0:
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if len(yt.utilities.logger.ytLogger.handlers) > 0:
+        yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
+
     if ytcfg.getboolean("yt", "parallel_traceback"):
-        sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
+        sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
+    else:
+        sys.excepthook = default_mpi_excepthook
+
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
@@ -105,6 +158,10 @@ def enable_parallelism():
         min = MPI.MIN,
         max = MPI.MAX
     ))
+    # Turn off logging on all but the root rank, if specified.
+    if suppress_logging:
+        if communicator.rank > 0:
+            mylog.addFilter(FilterAllMessages())
     return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
@@ -195,7 +252,6 @@ def parallel_simple_proxy(func):
         # attribute, which must be an instance of MPI.Intracomm, and call bcast
         # on that.
         retval = comm.comm.bcast(retval, root=self._owner)
-        #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
 
@@ -599,7 +655,7 @@ class CommunicationSystem(object):
         from yt.config import ytcfg
         ytcfg["yt","__topcomm_parallel_size"] = str(new_comm.size)
         ytcfg["yt","__topcomm_parallel_rank"] = str(new_comm.rank)
-        if MPI.COMM_WORLD.rank > 0 and ytcfg.getboolean("yt","serialize"):
+        if new_comm.rank > 0 and ytcfg.getboolean("yt","serialize"):
             ytcfg["yt","onlydeserialize"] = "True"
 
     def pop(self):
@@ -759,12 +815,8 @@ class Communicator(object):
             return data
 
     def preload(self, grids, fields, io_handler):
-        # This will preload if it detects we are parallel capable and
-        # if so, we load *everything* that we need.  Use with some care.
-        if len(fields) == 0: return
-        mylog.debug("Preloading %s from %s grids", fields, len(grids))
-        if not self._distributed: return
-        io_handler.preload(grids, fields)
+        # This is non-functional.
+        return
 
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op='sum'):

@@ -598,7 +598,7 @@ class RockstarHalo(Halo):
         # 1. From saved_fields, e.g. we've already got it.
         # 2. From the halo binary files off disk.
         # 3. Use the unique particle indexes of the halo to select a missing
-        # field from an AMR Sphere.
+        # field from a Sphere.
         if key in self._saved_fields:
             # We've already got it.
             return self._saved_fields[key]
@@ -675,7 +675,7 @@ class RockstarHalo(Halo):
         
         Returns
         -------
-        ellipsoid : `yt.data_objects.api.AMREllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
             The ellipsoidal data object.
         
         Examples
@@ -754,7 +754,7 @@ class LoadedHalo(Halo):
         # 1. From saved_fields, e.g. we've already got it.
         # 2. From the halo h5 files off disk.
         # 3. Use the unique particle indexes of the halo to select a missing
-        # field from an AMR Sphere.
+        # field from a Sphere.
         if key in self._saved_fields:
             # We've already got it.
             return self._saved_fields[key]
@@ -868,7 +868,7 @@ class LoadedHalo(Halo):
         
         Returns
         -------
-        ellipsoid : `yt.data_objects.api.AMREllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
             The ellipsoidal data object.
         
         Examples
@@ -1670,7 +1670,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     ----------
     ds : `Dataset`
         The dataset on which halo finding will be conducted.
-    subvolume : `yt.data_objects.api.AMRData`, optional
+    subvolume : `yt.data_objects.data_containers.YTSelectionContainer`, optional
         A region over which HOP will be run, which can be used to run HOP
         on a subvolume of the full volume. Default = None, which defaults
         to the full volume automatically.
@@ -1772,7 +1772,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     ----------
     ds : `Dataset`
         The dataset on which halo finding will be conducted.
-    subvolume : `yt.data_objects.api.AMRData`, optional
+    subvolume : `yt.data_objects.data_containers.YTSelectionContainer`, optional
         A region over which HOP will be run, which can be used to run HOP
         on a subvolume of the full volume. Default = None, which defaults
         to the full volume automatically.

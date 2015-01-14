@@ -32,8 +32,9 @@ from yt.units.yt_array import \
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
-rho_units = "code_mass / code_length**3"
-vel_units = "code_length / code_time"
+rho_units = "code_density"
+vel_units = "code_velocity"
+pressure_units = "code_pressure"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -70,7 +71,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("Pressure", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
+        ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
     )
     known_particle_fields = (
@@ -94,8 +95,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
             return rv
         self.add_field(("gas", "temperature"), function=_temperature,
                         units="K")
+        self.create_cooling_fields()
 
-    def create_cooling_fields(self, filename):
+    def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
                 )[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
@@ -104,7 +106,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         if not os.path.exists(filename): return
         def _create_field(name, interp_object):
             def _func(field, data):
-                shape = data["Temperature"].shape
+                shape = data["temperature"].shape
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
@@ -131,4 +133,4 @@ class RAMSESFieldInfo(FieldInfoContainer):
             interp = BilinearFieldInterpolator(tvals[n],
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
-            _create_field(n, interp)
+            _create_field(("gas", n), interp)

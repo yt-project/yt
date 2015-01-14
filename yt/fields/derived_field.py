@@ -195,7 +195,7 @@ class DerivedField(object):
 
     def get_label(self, projected=False):
         """
-        Return a data label for the given field, inluding units.
+        Return a data label for the given field, including units.
         """
         name = self.name[1]
         if self.display_name is not None:

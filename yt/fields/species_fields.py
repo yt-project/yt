@@ -178,3 +178,4 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
             # Skip it
             continue
         func(registry, ftype, species, particle_type)
+    add_nuclei_density_fields(registry, ftype, particle_type=particle_type)

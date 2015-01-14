@@ -761,6 +761,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
+            weight_field = self.data_source._determine_fields(weight_field)[0]
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
@@ -774,7 +775,7 @@ class ProfileND(ParallelAnalysisInterface):
             A list of fields to create profile histograms for
         
         """
-        fields = ensure_list(fields)
+        fields = self.data_source._determine_fields(fields)
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         cfields = fields + list(self.bin_fields)
         citer = self.data_source.chunks(cfields, "io")
@@ -907,9 +908,11 @@ class ProfileND(ParallelAnalysisInterface):
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            arr[:,i] = chunk[field][filter]
+            units = chunk.ds.field_info[field].units
+            arr[:,i] = chunk[field][filter].in_units(units)
         if self.weight_field is not None:
-            weight_data = chunk[self.weight_field]
+            units = chunk.ds.field_info[self.weight_field].units
+            weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(filter.size, dtype="float64")
         weight_data = weight_data[filter]
@@ -955,7 +958,7 @@ class Profile1D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -1230,6 +1233,16 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
+
+def sanitize_field_tuple_keys(input_dict, data_source):
+    if input_dict is not None:
+        dummy = {}
+        for item in input_dict:
+            dummy[data_source._determine_fields(item)[0]] = input_dict[item]
+        return dummy
+    else:
+        return input_dict
+
 def create_profile(data_source, bin_fields, fields, n_bins=64,
                    extrema=None, logs=None, units=None,
                    weight_field="cell_mass",
@@ -1242,7 +1255,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     Parameters
     ----------
-    data_source : AMR3DData Object
+    data_source : YTSelectionContainer Object
         The data object to be profiled.
     bin_fields : list of strings
         List of the binning fields for profiling.
@@ -1293,7 +1306,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     >>> print profile["gas", "temperature"]
 
     """
-    bin_fields = ensure_list(bin_fields)
+    bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
     if len(bin_fields) == 1:
         cls = Profile1D
@@ -1305,16 +1318,9 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         raise NotImplementedError
     bin_fields = data_source._determine_fields(bin_fields)
     fields = data_source._determine_fields(fields)
-    if units is not None:
-        dummy = {}
-        for item in units:
-            dummy[data_source._determine_fields(item)[0]] = units[item]
-        units.update(dummy)
-    if extrema is not None:
-        dummy = {}
-        for item in extrema:
-            dummy[data_source._determine_fields(item)[0]] = extrema[item]
-        extrema.update(dummy)
+    units = sanitize_field_tuple_keys(units, data_source)
+    extrema = sanitize_field_tuple_keys(extrema, data_source)
+    logs = sanitize_field_tuple_keys(logs, data_source)
     if weight_field is not None:
         weight_field, = data_source._determine_fields([weight_field])
     if not iterable(n_bins):
@@ -1322,18 +1328,21 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
-                for f in bin_fields]
-    else:
-        logs = [logs[bin_field[-1]] for bin_field in bin_fields]
+        logs = {}
+    logs_list = []
+    for bin_field in bin_fields:
+        if bin_field in logs:
+            logs_list.append(logs[bin_field])
+        else:
+            logs_list.append(data_source.ds.field_info[bin_field].take_log)
+    logs = logs_list
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.ds._get_field_info(
-                bin_field[0], bin_field[1]).units
+            bf_units = data_source.ds.field_info[bin_field].units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:

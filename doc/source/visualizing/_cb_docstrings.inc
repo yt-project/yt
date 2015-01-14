@@ -58,8 +58,9 @@ Clump Finder Callback
 Overplot Contours
 ~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,
-                               clim=None, plot_args=None):
+.. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,\
+                               clim=None, plot_args=None, label=False, \
+                               label_args=None, data_source=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)
@@ -128,14 +129,16 @@ Off-axis Data Sources
 Overplot grids
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_grids(self, alpha=1.0, min_pix=1, annotate=False, \
-                             periodic=True):
+.. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+                             draw_ids=False, periodic=True, min_level=None, 
+                             max_level=None, cmap='B-W Linear_r', 
+                             edgecolors=None, linewidth=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.GridBoundaryCallback`.)
 
    Adds grid boundaries to a plot, optionally with alpha-blending via the
-   ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``annotate``
+   ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``draw_ids``
    puts the grid id in the corner of the grid.  (Not so great in projections...)
 
 .. python-script::
@@ -151,19 +154,28 @@ Overplot grids
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_halos(self, halo_catalog, col='white', alpha=1, \
-                             width=None):
+.. function:: annotate_halos(self, halo_catalog, circle_kwargs=None, width=None, \ 
+                             annotate_field=None, font_kwargs=None, factor=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
    Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
-   and plots a circle at the location of each
-   halo with the radius of the circle corresponding to the virial radius of the
-   halo.  If ``width`` is set to None (default) all halos are plotted.
-   Otherwise, only halos that fall within a slab with width ``width`` centered
-   on the center of the plot data. The color and transparency of the circles can
-   be controlled with ``col`` and ``alpha`` respectively.
+   and plots a circle at the location of each halo with the radius of the 
+   circle corresponding to the virial radius of the halo.  If ``width`` is set 
+   to None (default) all halos are plotted, otherwise it accepts a tuple in 
+   the form (1.0, ‘Mpc’) to only display halos that fall within a slab with 
+   width ``width`` centered on the center of the plot data.  The appearance of 
+   the circles can be changed with the circle_kwargs dictionary, which is 
+   supplied to the Matplotlib patch Circle.  One can label each of the halos 
+   with the annotate_field, which accepts a field contained in the halo catalog 
+   to add text to the plot near the halo (example: ``annotate_field=
+   'particle_mass'`` will write the halo mass next to each halo, whereas 
+   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the 
+   arguments controlling the text appearance of the annotated field.
+   Factor is the number the virial radius is multiplied by for plotting the 
+   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each 
+   halo virial radius.
 
 .. python-script::
 
@@ -177,7 +189,7 @@ Overplot Halo Annotations
    hc.create()
 
    prj = yt.ProjectionPlot(data_ds, 'z', 'density')
-   prj.annotate_halos(hc)
+   prj.annotate_halos(hc, annotate_field='particle_identifier')
    prj.save()
 
 Overplot a Straight Line
@@ -189,7 +201,7 @@ Overplot a Straight Line
    :class:`~yt.visualization.plot_modifications.ImageLineCallback`.)
 
    Plot from ``p1`` to ``p2`` (normalized image plane coordinates) with
-  ``plot_args`` fed into the plot.
+   ``plot_args`` fed into the plot.
 
 .. python-script::
 
@@ -273,7 +285,8 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o', \
-                                 stride=1.0, ptype=None, minimum_mass=None):
+                                 stride=1.0, ptype=None, minimum_mass=None, \
+                                 alpha=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -336,10 +349,8 @@ Overplot a circle on a plot
 Overplot streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_streamlines(self, field_x, field_y, factor=6.0, nx=16, \
-                                   ny=16, xstart=(0, 1), ystart=(0, 1), \
-                                   nsample=256, start_at_xedge=False, \
-                                   start_at_yedge=False, plot_args=None):
+.. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
+                                   density = 1, plot_args=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)

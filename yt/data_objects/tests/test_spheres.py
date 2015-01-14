@@ -6,10 +6,11 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
-def test_domain_sphere():
-    ds = fake_random_ds(16, fields = ("density"))
-    sp = ds.sphere(ds.domain_center, ds.domain_width[0])
+_fields_to_compare = ("spherical_r", "cylindrical_r",
+                      "spherical_theta", "cylindrical_theta",
+                      "spherical_phi", "cylindrical_z")
 
+def test_domain_sphere():
     # Now we test that we can get different radial velocities based on field
     # parameters.
 
@@ -51,3 +52,12 @@ def test_domain_sphere():
     yield assert_equal, np.any(rp0["radial_velocity"][rp0.used] ==
                                rp1["radial_velocity"][rp1.used]), \
                                False
+
+    ref_sp = ds.sphere("c", 0.25)
+    for f in _fields_to_compare:
+        ref_sp[f].sort()
+    for center in periodicity_cases(ds):
+        sp = ds.sphere(center, 0.25)
+        for f in _fields_to_compare:
+            sp[f].sort()
+            yield assert_equal, sp[f], ref_sp[f]

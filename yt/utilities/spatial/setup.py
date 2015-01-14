@@ -4,8 +4,8 @@ from os.path import join
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
-    from numpy.distutils.system_info import get_info
-    from distutils.sysconfig import get_python_inc
+#    from numpy.distutils.system_info import get_info
+#    from distutils.sysconfig import get_python_inc
 
     config = Configuration('spatial', parent_package, top_path)
 

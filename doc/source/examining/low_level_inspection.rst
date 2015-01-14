@@ -1,18 +1,18 @@
 .. _low-level-data-inspection:
 
-Low-Level Data Inspection
-=========================
+Low-Level Data Inspection: Accessing Raw Data
+=============================================
 
 yt can not only provide high-level access to data, such as through slices,
 projections, object queries and the like, but it can also provide low-level
-access to data.
+access to the raw data.
 
 .. note:: This section is tuned for patch- or block-based simulations.  Future
           versions of yt will enable more direct access to particle and oct
           based simulations.  For now, these are represented as patches, with
           the attendant properties.
 
-For a more basic introduction, see :ref:`bootcamp` and more specifically
+For a more basic introduction, see :ref:`quickstart` and more specifically
 :ref:`data_inspection`.
 
 .. _examining-grid-hierarchies:

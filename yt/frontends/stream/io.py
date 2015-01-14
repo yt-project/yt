@@ -243,7 +243,9 @@ class IOHandlerStreamOctree(BaseIOHandler):
         for chunk in chunks:
             assert(len(chunk.objs) == 1)
             for subset in chunk.objs:
-                field_vals = self.fields[subset.domain_id -
-                                    subset._domain_offset]
+                field_vals = {}
+                for field in fields:
+                    field_vals[field] = self.fields[
+                        subset.domain_id - subset._domain_offset][field]
                 subset.fill(field_vals, rv, selector, ind)
         return rv

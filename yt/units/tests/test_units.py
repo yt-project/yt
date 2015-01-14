@@ -205,14 +205,14 @@ def test_create_new_symbol():
     yield assert_true, u1.cgs_value == 42
     yield assert_true,  u1.dimensions == length**2*mass
 
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length**length}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length**(length*length)}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length-mass}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length+mass}
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length**length)
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length**(length*length))
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length-mass)
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length+mass)
 
 def test_create_fail_on_unknown_symbol():
     """

@@ -524,6 +524,19 @@ def load_sdf(filename, header=None):
     return sdf
 
 
+def _shift_periodic(pos, left, right, domain_width):
+    """
+    Periodically shift positions that are right of left+domain_width to
+    the left, and those left of right-domain_width to the right.
+    """
+    for i in range(3):
+        mask = pos[:,i] >= left[i] + domain_width[i]
+        pos[mask, i] -= domain_width[i]
+        mask = pos[:,i] < right[i] - domain_width[i]
+        pos[mask, i] += domain_width[i]
+    return
+
+
 class SDFIndex(object):
 
     """docstring for SDFIndex
@@ -914,14 +927,7 @@ class SDFIndex(object):
             DW = self.true_domain_width
             # This hurts, but is useful for periodicity. Probably should check first
             # if it is even needed for a given left/right
-            for i in range(3):
-                #pos[:,i] = np.mod(pos[:,i] - left[i],
-                #                  self.true_domain_width[i]) + left[i]
-                mask = pos[:,i] >= left[i] + DW[i]
-                pos[mask, i] -= DW[i]
-                mask = pos[:,i] < right[i] - DW[i]
-                pos[mask, i] += DW[i]
-                #del mask
+            _shift_periodic(pos, left, right, DW)
 
             # Now get all particles that are within the bbox
             mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
@@ -945,6 +951,39 @@ class SDFIndex(object):
 
             yield filtered
 
+    def filter_sphere(self, center, radius, myiter):
+        """
+        Filter data by masking out data outside of a sphere defined
+        by a center and radius. Account for periodicity of data, allowing
+        left/right to be outside of the domain.
+        """
+
+        # Get left/right for periodicity considerations
+        left = center - radius
+        right = center + radius
+        for data in myiter:
+            pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
+
+            DW = self.true_domain_width
+            _shift_periodic(pos, left, right, DW)
+
+            # Now get all particles that are within the sphere 
+            mask = ((pos-center)**2).sum(axis=1)**0.5 < radius
+
+            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+
+            if not np.any(mask):
+                continue
+
+            filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
+            for f in data.keys():
+                if f in 'xyz':
+                    continue
+                filtered[f] = data[f][mask]
+
+            yield filtered
+
+
     def iter_filtered_bbox_fields(self, left, right, data,
                                   pos_fields, fields):
         """
@@ -964,11 +1003,7 @@ class SDFIndex(object):
 
         # This hurts, but is useful for periodicity. Probably should check first
         # if it is even needed for a given left/right
-        for i in range(3):
-            mask = pos[:,i] >= DW[i] + left[i]
-            pos[mask, i] -= DW[i]
-            mask = pos[:,i] < right[i] - DW[i]
-            pos[mask, i] += DW[i]
+        _shift_periodic(pos, left, right, DW)
 
         mylog.debug("Periodic filtering, %s %s %s %s" % (left, right, pos.min(axis=0), pos.max(axis=0)))
         # Now get all particles that are within the bbox
@@ -987,6 +1022,10 @@ class SDFIndex(object):
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
+        """
+        Iterate over all data within a bounding box defined by a left
+        and a right.
+        """
         _ensure_xyz_fields(fields)
         mylog.debug('MIDX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
@@ -1007,15 +1046,17 @@ class SDFIndex(object):
         #    yield dd
 
     def iter_sphere_data(self, center, radius, fields):
+        """
+        Iterate over all data within some sphere defined by a center and
+        a radius.
+        """
         _ensure_xyz_fields(fields)
         mylog.debug('MIDX Loading spherical region %s to %s' %(center, radius))
         inds = self.get_bbox(center-radius, center+radius)
 
-        my_filter = sphere_filter(center, radius, self.true_domain_width)
-
-        for dd in self.filter_particles(
-            self.iter_data(inds, fields),
-            my_filter):
+        for dd in self.filter_sphere(
+            center, radius,
+            self.iter_data(inds, fields)):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):

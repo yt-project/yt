@@ -404,7 +404,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        alpha = height[3]
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
 
@@ -552,7 +551,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             label = ''
         alpha = self.alpha.y 
         max_alpha = alpha.max()
-        norm = max_alpha
         i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))

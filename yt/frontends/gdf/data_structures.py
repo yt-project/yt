@@ -26,12 +26,20 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.exceptions import \
+    YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-from yt.units.yt_array import \
-    uconcatenate, YTArray
-
 from .fields import GDFFieldInfo
+
+
+GEOMETRY_TRANS = {
+    0: "cartesian",
+    1: "polar",
+    2: "cylindrical",
+    3: "spherical",
+}
+
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -64,6 +72,7 @@ class GDFGrid(AMRGridPatch):
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = \
             self.dds
         self.dds = self.ds.arr(self.dds, "code_length")
+
 
 class GDFHierarchy(GridIndex):
 
@@ -145,8 +154,9 @@ class GDFHierarchy(GridIndex):
         Gets back all the grids between a left edge and right edge
         """
         eps = np.finfo(np.float64).eps
-        grid_i = np.where(np.all((self.grid_right_edge - left_edge) > eps, axis=1) &
-                          np.all((right_edge - self.grid_left_edge) > eps, axis=1))
+        grid_i = np.where(
+            np.all((self.grid_right_edge - left_edge) > eps, axis=1) &
+            np.all((right_edge - self.grid_left_edge) > eps, axis=1))
 
         return self.grids[grid_i], grid_i
 
@@ -162,10 +172,11 @@ class GDFDataset(Dataset):
     _field_info_class = GDFFieldInfo
 
     def __init__(self, filename, dataset_type='grid_data_format',
-                 storage_filename=None, geometry = 'cartesian'):
+                 storage_filename=None, geometry=None,
+                 units_override=None):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -198,7 +209,7 @@ class GDFDataset(Dataset):
                 current_unit = h5f["/dataset_units/%s" % unit_name]
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
-                setattr(self, unit_name, self.quan(value,unit))
+                setattr(self, unit_name, self.quan(value, unit))
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")
@@ -214,6 +225,12 @@ class GDFDataset(Dataset):
         else:
             self.data_software = "unknown"
         sp = self._handle["/simulation_parameters"].attrs
+        if self.geometry is None:
+            geometry = just_one(sp.get("geometry", 0))
+            try:
+                self.geometry = GEOMETRY_TRANS[geometry]
+            except KeyError:
+                raise YTGDFUnknownGeometry(geometry)
         self.parameters.update(sp)
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]

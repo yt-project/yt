@@ -433,6 +433,12 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
+        # sorts the three arrays in order of ascending level - this makes images look nicer
+        new_indices = np.argsort(levels)
+        levels = levels[new_indices]
+        GLE = GLE[new_indices]
+        GRE = GRE[new_indices]
+        
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
@@ -551,17 +557,6 @@ class LabelCallback(PlotCallback):
                                      left=0.0, right=1.0)
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
-
-def get_smallest_appropriate_unit(v, ds):
-    max_nu = 1e30
-    good_u = None
-    for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-        uq = YTQuantity(1.0, unit)
-        if uq < v:
-            good_u = unit
-            break
-    if good_u is None : good_u = 'cm'
-    return good_u
 
 class LinePlotCallback(PlotCallback):
     """
@@ -703,10 +698,6 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        DomainRight = plot.data.ds.domain_right_edge
-        DomainLeft = plot.data.ds.domain_left_edge
-        DomainWidth = DomainRight - DomainLeft
-
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
@@ -785,7 +776,6 @@ class PointAnnotateCallback(PlotCallback):
                         plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
-        width,height = plot.image._A.shape
         x,y = self.convert_to_plot(plot, pos)
         
         plot._axes.text(x, y, self.text, **self.text_args)
@@ -902,8 +892,8 @@ class TextLabelCallback(PlotCallback):
 class HaloCatalogCallback(PlotCallback):
     """
     annotate_halos(halo_catalog, circle_kwargs=None,
-        width = None, annotate_field=False,
-        font_kwargs = None, factor = 1.0)
+        width=None, annotate_field=None,
+        font_kwargs=None, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
@@ -930,14 +920,16 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs = None, 
-            width = None, annotate_field = False,
-            font_kwargs = None, factor = 1.0):
+    def __init__(self, halo_catalog, circle_kwargs=None, 
+            width=None, annotate_field=None,
+            font_kwargs=None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
+        if font_kwargs is None:
+            font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
         if circle_kwargs is None:
@@ -1000,7 +992,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             for pos_x, pos_y, t in zip(px, py, texts): 
                 plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
  

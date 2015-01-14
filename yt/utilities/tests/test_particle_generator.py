@@ -5,7 +5,6 @@ from yt.utilities.particle_generator import *
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
-from IPython import embed
 from yt.units.yt_array import uconcatenate
 
 def setup() :

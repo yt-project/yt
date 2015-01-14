@@ -1,5 +1,5 @@
 """
-RAMSES frontend tests 
+RAMSES frontend tests
 
 
 
@@ -21,10 +21,10 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
-from yt.frontends.artio.api import ARTIODataset
+from yt.frontends.ramses.api import RAMSESDataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
-           ("deposit", "all_density"), ("deposit", "all_count")) 
+           ("deposit", "all_density"), ("deposit", "all_count"))
 
 output_00080 = "output_00080/info_00080.txt"
 @requires_ds(output_00080)
@@ -44,3 +44,13 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+
+
+@requires_file(output_00080)
+def test_RAMSESDataset():
+    assert isinstance(data_dir_load(output_00080), RAMSESDataset)
+
+@requires_file(output_00080)
+def test_units_override():
+    for test in units_override_check(output_00080):
+        yield test

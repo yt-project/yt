@@ -62,6 +62,21 @@ Universal Fields
           return data.apply_units(ids, "")
   
 
+('all', 'particle_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum(field, data):
+          return data[ptype, "particle_mass"] \
+              * data[ptype, "particle_specific_angular_momentum"]
+  
+
 ('all', 'particle_angular_momentum_magnitude')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -73,9 +88,11 @@ Universal Fields
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -124,6 +141,16 @@ Universal Fields
                  data[ptype, "particle_specific_angular_momentum_z"]
   
 
+('all', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
 ('all', 'particle_ones')
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -154,6 +181,36 @@ Universal Fields
               c = np.column_stack(v)
               return data.apply_units(c, field.units)
   
+
+('all', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
 
 ('all', 'particle_radial_velocity')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -242,9 +299,11 @@ Universal Fields
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -526,6 +585,36 @@ Universal Fields
                        + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
   
 
+('all', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
 ('deposit', 'all_cic')
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -542,6 +631,87 @@ Universal Fields
           d = data.apply_units(d, data[ptype, mass_name].units)
           d /= data["index", "cell_volume"]
           return d
+  
+
+('deposit', 'all_cic_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_cic_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_cic_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
   
 
 ('deposit', 'all_count')
@@ -598,6 +768,87 @@ Universal Fields
           return data.apply_units(d, field.units)
   
 
+('deposit', 'all_nn_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_nn_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_nn_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
 ('deposit', 'io_cic')
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -614,6 +865,87 @@ Universal Fields
           d = data.apply_units(d, data[ptype, mass_name].units)
           d /= data["index", "cell_volume"]
           return d
+  
+
+('deposit', 'io_cic_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_cic_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_cic_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
   
 
 ('deposit', 'io_count')
@@ -670,6 +1002,137 @@ Universal Fields
           return data.apply_units(d, field.units)
   
 
+('deposit', 'io_nn_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_nn_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_nn_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('gas', 'H_nuclei_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{1}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+  def _default_nuclei_density(field, data):
+      element = field.name[1][:field.name[1].find("_")]
+      return data["gas", "density"] * _primordial_mass_fraction[element] / \
+        ChemicalFormula(element).weight / amu_cgs
+  
+
+('gas', 'He_nuclei_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{1}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+  def _default_nuclei_density(field, data):
+      element = field.name[1][:field.name[1].find("_")]
+      return data["gas", "density"] * _primordial_mass_fraction[element] / \
+        ChemicalFormula(element).weight / amu_cgs
+  
+
+('gas', 'alfven_speed')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _alfven_speed(field,data):
+          """This assumes that your front end has provided Bx, By, Bz in
+          units of Gauss. If you use MKS, make sure to write your own
+          alfven_speed field to deal with non-unitary \mu_0.
+          """
+          return data[ftype,'magnetic_field_strength']/np.sqrt(4.*np.pi*data[ftype,'density'])
+  
+
 ('gas', 'angular_momentum_magnitude')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -681,9 +1144,11 @@ Universal Fields
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -775,9 +1240,11 @@ Universal Fields
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -853,9 +1320,9 @@ Universal Fields
               raise NeedsParameter("omega_baryon")
           co = data.ds.cosmology
           # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
-          # mean density(z) ~ omega_matter * (1 + z)^3
+          # mean matter density(z) ~ omega_matter * (1 + z)^3
           return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
-            (1.0 + data.ds.hubble_constant)**3
+            (1.0 + data.ds.current_redshift)**3
   
 
 ('gas', 'cell_mass')
@@ -1078,9 +1545,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -1341,6 +1810,20 @@ No source available.
                                                 + data[ftype, "velocity_z"]**2.0 )
   
 
+('gas', 'mach_alfven')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _mach_alfven(field,data):
+          return data[ftype,'velocity_magnitude']/data[ftype,'alfven_speed']
+  
+
 ('gas', 'mach_number')
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1411,6 +1894,10 @@ No source available.
 .. code-block:: python
 
       def _magnetic_field_strength(field,data):
+          """This assumes that your front end has provided Bx, By, Bz in
+          units of Gauss. If you use MKS, make sure to write your own
+          PlasmaBeta field to deal with non-unitary \mu_0.
+          """
           return np.sqrt(8.*np.pi*data[ftype,"magnetic_energy"])
   
 
@@ -1526,9 +2013,25 @@ No source available.
           co = data.ds.cosmology
           # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
           # mean density(z) ~ omega_matter * (1 + z)^3
-          return data[ftype, "density"] / data.ds.omega_matter / \
+          return data[ftype, "matter_density"] / data.ds.omega_matter / \
             co.critical_density(0.0) / \
-            (1.0 + data.ds.hubble_constant)**3
+            (1.0 + data.ds.current_redshift)**3
+  
+
+('gas', 'mazzotta_weighting')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{s}^{0.5}}{\rm{cm}^{6.5} \cdot \rm{g}^{0.25}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _mazzotta_weighting(field, data):
+          # Spectroscopic-like weighting field for galaxy clusters
+          # Only useful as a weight_field for temperature, metallicity, velocity
+          return data["density"]*data["density"]*data["kT"]**-0.25/mh/mh
   
 
 ('gas', 'mean_molecular_weight')
@@ -1624,7 +2127,7 @@ No source available.
       def _plasma_beta(field,data):
           """This assumes that your front end has provided Bx, By, Bz in
           units of Gauss. If you use MKS, make sure to write your own
-          PlasmaBeta field to deal with non-unitary \mu_0.
+          plasma_beta field to deal with non-unitary \mu_0.
           """
           return data[ftype,'pressure']/data[ftype,'magnetic_energy']
   
@@ -1650,9 +2153,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -1747,7 +2252,11 @@ No source available.
                                   "bulk_%s" % basename)
           theta = data['index', 'spherical_theta']
           phi   = data['index', 'spherical_phi']
-          return get_sph_r_component(vectors, theta, phi, normal)
+          rv = get_sph_r_component(vectors, theta, phi, normal)
+          # Now, anywhere that radius is in fact zero, we want to zero out our
+          # return values.
+          rv[np.isnan(theta)] = 0.0
+          return rv
   
 
 ('gas', 'radial_velocity_absolute')
@@ -1760,13 +2269,8 @@ No source available.
 
 .. code-block:: python
 
-      def _radial(field, data):
-          normal = data.get_field_parameter("normal")
-          vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                  "bulk_%s" % basename)
-          theta = data['index', 'spherical_theta']
-          phi   = data['index', 'spherical_phi']
-          return get_sph_r_component(vectors, theta, phi, normal)
+      def _radial_absolute(field, data):
+          return np.abs(data[ftype, "radial_%s" % basename])
   
 
 ('gas', 'radiation_acceleration_x')
@@ -1954,9 +2458,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -2149,9 +2655,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -2296,9 +2804,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -2419,9 +2929,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -2490,9 +3002,11 @@ No source available.
 .. code-block:: python
 
       def _squared(field, data):
-          squared  = data[xn] * data[xn]
-          squared += data[yn] * data[yn]
-          squared += data[zn] * data[zn]
+          fn = field_components[0]
+          squared  = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              squared += data[fn] * data[fn]
           return squared
   
 
@@ -2507,9 +3021,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -2702,12 +3218,8 @@ No source available.
 .. code-block:: python
 
       def _cylindrical_r(field, data):
-          center = data.get_field_parameter("center")
           normal = data.get_field_parameter("normal")
-          coords = obtain_rvec(data)
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
+          coords = get_periodic_rvec(data)
           return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
   
 
@@ -2721,12 +3233,8 @@ No source available.
 .. code-block:: python
 
       def _cylindrical_theta(field, data):
-          center = data.get_field_parameter("center")
           normal = data.get_field_parameter("normal")
-          coords = obtain_rvec(data)
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
+          coords = get_periodic_rvec(data)
           return get_cyl_theta(coords, normal)
   
 
@@ -2741,13 +3249,9 @@ No source available.
 .. code-block:: python
 
       def _cylindrical_z(field, data):
-          center = data.get_field_parameter("center")
           normal = data.get_field_parameter("normal")
-          coords = data.ds.arr(obtain_rvec(data), "code_length")
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
-          return get_cyl_z(coords, normal).in_cgs()
+          coords = get_periodic_rvec(data)
+          return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_cgs()
   
 
 ('index', 'disk_angle')
@@ -2903,12 +3407,8 @@ No source available.
 .. code-block:: python
 
       def _spherical_phi(field, data):
-          center = data.get_field_parameter("center")
           normal = data.get_field_parameter("normal")
-          coords = obtain_rvec(data)
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
+          coords = get_periodic_rvec(data)
           return get_sph_phi(coords, normal)
   
 
@@ -2923,12 +3423,8 @@ No source available.
 .. code-block:: python
 
       def _spherical_r(field, data):
-          center = data.get_field_parameter("center")
-          coords = data.ds.arr(obtain_rvec(data), "code_length")
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
-          return get_sph_r(coords).in_cgs()
+          coords = get_periodic_rvec(data)
+          return data.ds.arr(get_sph_r(coords), "code_length").in_cgs()
   
 
 ('index', 'spherical_theta')
@@ -2941,13 +3437,23 @@ No source available.
 .. code-block:: python
 
       def _spherical_theta(field, data):
-          center = data.get_field_parameter("center")
           normal = data.get_field_parameter("normal")
-          coords = obtain_rvec(data)
-          coords[0,...] -= center[0]
-          coords[1,...] -= center[1]
-          coords[2,...] -= center[2]
+          coords = get_periodic_rvec(data)
           return get_sph_theta(coords, normal)
+  
+
+('index', 'virial_radius_fraction')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _virial_radius_fraction(field, data):
+          virial_radius = data.get_field_parameter("virial_radius")
+          return data["radius"] / virial_radius
   
 
 ('index', 'x')
@@ -3028,6 +3534,21 @@ No source available.
           return data.apply_units(ids, "")
   
 
+('io', 'particle_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum(field, data):
+          return data[ptype, "particle_mass"] \
+              * data[ptype, "particle_specific_angular_momentum"]
+  
+
 ('io', 'particle_angular_momentum_magnitude')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3039,9 +3560,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -3090,6 +3613,16 @@ No source available.
                  data[ptype, "particle_specific_angular_momentum_z"]
   
 
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
 ('io', 'particle_ones')
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3120,6 +3653,36 @@ No source available.
               c = np.column_stack(v)
               return data.apply_units(c, field.units)
   
+
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
 
 ('io', 'particle_radial_velocity')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3208,9 +3771,11 @@ No source available.
 .. code-block:: python
 
       def _magnitude(field, data):
-          mag  = data[xn] * data[xn]
-          mag += data[yn] * data[yn]
-          mag += data[zn] * data[zn]
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
           return np.sqrt(mag)
   
 
@@ -3492,2665 +4057,800 @@ No source available.
                        + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
   
 
+('io', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
 .. _ART_specific_fields:
 
 ART-Specific Fields
 -------------------
 
-('art', 'Density')
-^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('art', 'TotalEnergy')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``total_energy``
-   * Particle Type: False
-
-('art', 'XMomentumDensity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_x``
-   * Particle Type: False
-
-('art', 'YMomentumDensity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_y``
-   * Particle Type: False
-
-('art', 'ZMomentumDensity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_z``
-   * Particle Type: False
-
-('art', 'Pressure')
-^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``pressure``
-   * Particle Type: False
-
-('art', 'Gamma')
-^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``g`` ``a`` ``m`` ``m`` ``a``
-   * Particle Type: False
-
-('art', 'GasEnergy')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``thermal_energy``
-   * Particle Type: False
-
-('art', 'MetalDensitySNII')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``metal_ii_density``
-   * Particle Type: False
-
-('art', 'MetalDensitySNIa')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``metal_ia_density``
-   * Particle Type: False
-
-('art', 'PotentialNew')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``potential``
-   * Particle Type: False
-
-('art', 'PotentialOld')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``gas_potential``
-   * Particle Type: False
-
-('io', 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Particle Type: True
-
-('io', 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-('io', 'particle_index')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_species')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_type``
-   * Particle Type: True
-
-('io', 'particle_creation_time')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_mass_initial')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-('io', 'particle_metallicity1')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_metallicity2')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
+================================  ========================================================================================================  ====================  =========  ============
+field name                        units                                                                                                     aliases               particle?  display name
+================================  ========================================================================================================  ====================  =========  ============
+('art', 'Density')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``density``                   0              
+('art', 'TotalEnergy')            :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`  ``total_energy``              0              
+('art', 'XMomentumDensity')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_x``                0              
+('art', 'YMomentumDensity')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_y``                0              
+('art', 'ZMomentumDensity')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_z``                0              
+('art', 'Pressure')                                                                                                                         ``pressure``                  0              
+('art', 'Gamma')                                                                                                                            ``gamma``                     0              
+('art', 'GasEnergy')              :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`  ``thermal_energy``            0              
+('art', 'MetalDensitySNII')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``metal_ii_density``          0              
+('art', 'MetalDensitySNIa')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``metal_ia_density``          0              
+('art', 'PotentialNew')                                                                                                                     ``potential``                 0              
+('art', 'PotentialOld')                                                                                                                     ``gas_potential``             0              
+('io', 'particle_position_x')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_y')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_z')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_velocity_x')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                                                1              
+('io', 'particle_velocity_y')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                                                1              
+('io', 'particle_velocity_z')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                                                1              
+('io', 'particle_mass')           :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_index')                                                                                                                                                  1              
+('io', 'particle_species')                                                                                                                  ``particle_type``             1              
+('io', 'particle_creation_time')  :math:`\mathrm{\rm{code}~\rm{time}}`                                                                                                    1              
+('io', 'particle_mass_initial')   :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_metallicity1')                                                                                                                                           1              
+('io', 'particle_metallicity2')                                                                                                                                           1              
+================================  ========================================================================================================  ====================  =========  ============
 
 .. _ARTIO_specific_fields:
 
 ARTIO-Specific Fields
 ---------------------
 
-('artio', 'HVAR_GAS_DENSITY')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('artio', 'HVAR_GAS_ENERGY')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``total_energy``
-   * Particle Type: False
-
-('artio', 'HVAR_INTERNAL_ENERGY')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``thermal_energy``
-   * Particle Type: False
-
-('artio', 'HVAR_PRESSURE')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``pressure``
-   * Particle Type: False
-
-('artio', 'HVAR_MOMENTUM_X')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_x``
-   * Particle Type: False
-
-('artio', 'HVAR_MOMENTUM_Y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_y``
-   * Particle Type: False
-
-('artio', 'HVAR_MOMENTUM_Z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_z``
-   * Particle Type: False
-
-('artio', 'HVAR_GAMMA')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``gamma``
-   * Particle Type: False
-
-('artio', 'HVAR_METAL_DENSITY_Ia')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``metal_ia_density``
-   * Particle Type: False
-
-('artio', 'HVAR_METAL_DENSITY_II')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``metal_ii_density``
-   * Particle Type: False
-
-('artio', 'VAR_POTENTIAL')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``potential``
-   * Particle Type: False
-
-('artio', 'VAR_POTENTIAL_HYDRO')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``gas_potential``
-   * Particle Type: False
-
-('io', 'POSITION_X')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_x``
-   * Particle Type: True
-
-('io', 'POSITION_Y')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_y``
-   * Particle Type: True
-
-('io', 'POSITION_Z')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_z``
-   * Particle Type: True
-
-('io', 'VELOCITY_X')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_x``
-   * Particle Type: True
-
-('io', 'VELOCITY_Y')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_y``
-   * Particle Type: True
-
-('io', 'VELOCITY_Z')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_z``
-   * Particle Type: True
-
-('io', 'MASS')
-^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-('io', 'PID')
-^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-('io', 'SPECIES')
-^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_type``
-   * Particle Type: True
-
-('io', 'BIRTH_TIME')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``creation_time``
-   * Particle Type: True
-
-('io', 'INITIAL_MASS')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``initial_mass``
-   * Particle Type: True
-
-('io', 'METALLICITY_SNIa')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity_snia``
-   * Particle Type: True
-
-('io', 'METALLICITY_SNII')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity_snii``
-   * Particle Type: True
+==================================  ========================================================================================================  =======================  =========  ============
+field name                          units                                                                                                     aliases                  particle?  display name
+==================================  ========================================================================================================  =======================  =========  ============
+('artio', 'HVAR_GAS_DENSITY')       :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``density``                      0              
+('artio', 'HVAR_GAS_ENERGY')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`  ``total_energy``                 0              
+('artio', 'HVAR_INTERNAL_ENERGY')   :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`  ``thermal_energy``               0              
+('artio', 'HVAR_PRESSURE')                                                                                                                    ``pressure``                     0              
+('artio', 'HVAR_MOMENTUM_X')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_x``                   0              
+('artio', 'HVAR_MOMENTUM_Y')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_y``                   0              
+('artio', 'HVAR_MOMENTUM_Z')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`          ``momentum_z``                   0              
+('artio', 'HVAR_GAMMA')                                                                                                                       ``gamma``                        0              
+('artio', 'HVAR_METAL_DENSITY_Ia')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``metal_ia_density``             0              
+('artio', 'HVAR_METAL_DENSITY_II')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                    ``metal_ii_density``             0              
+('artio', 'VAR_POTENTIAL')                                                                                                                    ``potential``                    0              
+('artio', 'VAR_POTENTIAL_HYDRO')                                                                                                              ``gas_potential``                0              
+('io', 'POSITION_X')                :math:`\mathrm{\rm{code}~\rm{length}}`                                                                    ``particle_position_x``          1              
+('io', 'POSITION_Y')                :math:`\mathrm{\rm{code}~\rm{length}}`                                                                    ``particle_position_y``          1              
+('io', 'POSITION_Z')                :math:`\mathrm{\rm{code}~\rm{length}}`                                                                    ``particle_position_z``          1              
+('io', 'VELOCITY_X')                :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                  ``particle_velocity_x``          1              
+('io', 'VELOCITY_Y')                :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                  ``particle_velocity_y``          1              
+('io', 'VELOCITY_Z')                :math:`\mathrm{\rm{code}~\rm{velocity}}`                                                                  ``particle_velocity_z``          1              
+('io', 'MASS')                      :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                      ``particle_mass``                1              
+('io', 'PID')                                                                                                                                 ``particle_index``               1              
+('io', 'SPECIES')                                                                                                                             ``particle_type``                1              
+('io', 'BIRTH_TIME')                                                                                                                                                           1              
+('io', 'INITIAL_MASS')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                      ``initial_mass``                 1              
+('io', 'METALLICITY_SNIa')                                                                                                                    ``metallicity_snia``             1              
+('io', 'METALLICITY_SNII')                                                                                                                    ``metallicity_snii``             1              
+==================================  ========================================================================================================  =======================  =========  ============
 
 .. _Athena_specific_fields:
 
 Athena-Specific Fields
 ----------------------
 
-('athena', 'density')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('athena', 'cell_centered_B_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_x``
-   * Particle Type: False
-
-('athena', 'cell_centered_B_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_y``
-   * Particle Type: False
-
-('athena', 'cell_centered_B_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_z``
-   * Particle Type: False
+===============================  ======================================================================  ====================  =========  ============
+field name                       units                                                                   aliases               particle?  display name
+===============================  ======================================================================  ====================  =========  ============
+('athena', 'density')            :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                   0              
+('athena', 'cell_centered_B_x')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_x``          0              
+('athena', 'cell_centered_B_y')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_y``          0              
+('athena', 'cell_centered_B_z')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_z``          0              
+===============================  ======================================================================  ====================  =========  ============
 
 .. _Boxlib_specific_fields:
 
 Boxlib-Specific Fields
 ----------------------
 
-('boxlib', 'density')
-^^^^^^^^^^^^^^^^^^^^^
+=============================  ================================================================================================  ==================  =========  ============
+field name                     units                                                                                             aliases             particle?  display name
+=============================  ================================================================================================  ==================  =========  ============
+('boxlib', 'density')          :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                 0              
+('boxlib', 'eden')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``energy_density``          0              
+('boxlib', 'xmom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_x``              0              
+('boxlib', 'ymom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_y``              0              
+('boxlib', 'zmom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_z``              0              
+('boxlib', 'temperature')      :math:`\mathrm{\rm{K}}`                                                                           ``temperature``             0              
+('boxlib', 'Temp')             :math:`\mathrm{\rm{K}}`                                                                           ``temperature``             0              
+('boxlib', 'x_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_x``              0              
+('boxlib', 'y_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_y``              0              
+('boxlib', 'z_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_z``              0              
+('boxlib', 'xvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_x``              0              
+('boxlib', 'yvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_y``              0              
+('boxlib', 'zvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_z``              0              
+('io', 'particle_mass')        :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                          1              
+('io', 'particle_position_x')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_position_y')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_position_z')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_momentum_x')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_momentum_y')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_momentum_z')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_angmomen_x')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_angmomen_y')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_angmomen_z')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_id')                                                                                                            ``particle_index``          1              
+('io', 'particle_mdot')        :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                    1              
+=============================  ================================================================================================  ==================  =========  ============
 
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
+.. _Castro_specific_fields:
 
-('boxlib', 'eden')
-^^^^^^^^^^^^^^^^^^
+Castro-Specific Fields
+----------------------
 
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``energy_density``
-   * Particle Type: False
+========================  ========================================================  =======================  =========  =====================================
+field name                units                                                     aliases                  particle?  display name                         
+========================  ========================================================  =======================  =========  =====================================
+('boxlib', 'density')     :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`               ``density``                      0  :math:`\rho`                         
+('boxlib', 'xmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_x``                   0  :math:`\rho u`                       
+('boxlib', 'ymom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_y``                   0  :math:`\rho v`                       
+('boxlib', 'zmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_z``                   0  :math:`\rho w`                       
+('boxlib', 'x_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_x``                   0  :math:`u`                            
+('boxlib', 'y_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_y``                   0  :math:`v`                            
+('boxlib', 'z_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_z``                   0  :math:`w`                            
+('boxlib', 'rho_E')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``energy_density``               0  :math:`\rho E`                       
+('boxlib', 'rho_e')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\rho e`                       
+('boxlib', 'Temp')        :math:`\mathrm{\rm{K}}`                                   ``temperature``                  0  :math:`T`                            
+('boxlib', 'grav_x')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_x`
+('boxlib', 'grav_y')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_y`
+('boxlib', 'grav_z')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_z`
+('boxlib', 'pressure')    :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`                                             0  :math:`p`                            
+('boxlib', 'kineng')      :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``kinetic_energy``               0  :math:`\frac{1}{2}\rho|\mathbf{U}|^2`
+('boxlib', 'soundspeed')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``sound_speed``                  0  :math:`Sound Speed`                  
+('boxlib', 'Machnumber')                                                            ``mach_number``                  0  :math:`Mach Number`                  
+('boxlib', 'entropy')     :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`     ``entropy``                      0  :math:`s`                            
+('boxlib', 'magvort')     :math:`\mathrm{1 / \rm{s}}`                               ``vorticity_magnitude``          0  :math:`|\nabla \times \mathbf{U}|`   
+('boxlib', 'divu')        :math:`\mathrm{1 / \rm{s}}`                               ``velocity_divergence``          0  :math:`\nabla \cdot \mathbf{U}`      
+('boxlib', 'eint_E')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e(E,U)`                       
+('boxlib', 'eint_e')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e`                            
+('boxlib', 'magvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_magnitude``           0  :math:`|\mathbf{U}|`                 
+('boxlib', 'radvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``radial_velocity``              0  :math:`\mathbf{U} \cdot \mathbf{e}_r`
+('boxlib', 'magmom')      :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`            ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`            
+('boxlib', 'maggrav')     :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`|\mathbf{g}|`                 
+('boxlib', 'phiGrav')     :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`\Phi`                         
+========================  ========================================================  =======================  =========  =====================================
 
-('boxlib', 'xmom')
-^^^^^^^^^^^^^^^^^^
+.. _Maestro_specific_fields:
 
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_x``
-   * Particle Type: False
+Maestro-Specific Fields
+-----------------------
 
-('boxlib', 'ymom')
-^^^^^^^^^^^^^^^^^^
+=============================  =====================================================  =======================  =========  ===============================================
+field name                     units                                                  aliases                  particle?  display name                                   
+=============================  =====================================================  =======================  =========  ===============================================
+('boxlib', 'density')          :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`            ``density``                      0                                                 
+('boxlib', 'x_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_x``                   0  :math:`\tilde{u}`                              
+('boxlib', 'y_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_y``                   0  :math:`\tilde{v}`                              
+('boxlib', 'z_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_z``                   0  :math:`\tilde{w}`                              
+('boxlib', 'magvel')           :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_magnitude``           0  :math:`|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|`
+('boxlib', 'radial_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``radial_velocity``              0  :math:`\mathbf{U}\cdot \mathbf{e}_r`           
+('boxlib', 'circum_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``tangential_velocity``          0  :math:`U - U\cdot e_r`                         
+('boxlib', 'tfromp')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,p,X)`                            
+('boxlib', 'tfromh')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,h,X)`                            
+('boxlib', 'Machnumber')                                                              ``mach_number``                  0  :math:`M`                                      
+('boxlib', 'S')                :math:`\mathrm{1 / \rm{s}}`                                                             0                                                 
+('boxlib', 'ad_excess')                                                                                                0  :math:`\nabla - \nabla_\mathrm{ad}`            
+('boxlib', 'deltaT')                                                                                                   0  :math:`[T(\rho,h,X) - T(\rho,p,X)]/T(\rho,h,X)`
+('boxlib', 'deltagamma')                                                                                               0  :math:`\Gamma_1 - \overline{\Gamma_1}`         
+('boxlib', 'deltap')                                                                                                   0  :math:`[p(\rho,h,X) - p_0] / p_0`              
+('boxlib', 'divw0')            :math:`\mathrm{1 / \rm{s}}`                                                             0  :math:`\nabla \cdot \mathbf{w}_0`              
+('boxlib', 'entropy')          :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`  ``entropy``                      0  :math:`s`                                      
+('boxlib', 'entropypert')                                                                                              0  :math:`[s - \overline{s}] / \overline{s}`      
+('boxlib', 'enucdot')          :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`\dot{\epsilon}_{nuc}`                   
+('boxlib', 'Hext')             :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`H_{ext}`                                
+('boxlib', 'gpi_x')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_x`               
+('boxlib', 'gpi_y')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_y`               
+('boxlib', 'gpi_z')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_z`               
+('boxlib', 'h')                :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h`                                      
+('boxlib', 'h0')               :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h_0`                                    
+('boxlib', 'momentum')         :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`         ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`                      
+('boxlib', 'p0')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0`                                    
+('boxlib', 'p0pluspi')         :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0 + \pi`                              
+('boxlib', 'pi')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`\pi`                                    
+('boxlib', 'pioverp0')                                                                                                 0  :math:`\pi/p_0`                                
+('boxlib', 'rho0')             :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`                                             0  :math:`\rho_0`                                 
+('boxlib', 'rhoh')             :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`          ``enthalpy_density``             0  :math:`(\rho h)`                               
+('boxlib', 'rhoh0')            :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`(\rho h)_0`                             
+('boxlib', 'rhohpert')         :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`(\rho h)^\prime`                        
+('boxlib', 'rhopert')          :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`                                             0  :math:`\rho^\prime`                            
+('boxlib', 'soundspeed')       :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``sound_speed``                  0                                                 
+('boxlib', 'sponge')                                                                                                   0                                                 
+('boxlib', 'tpert')            :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T - \overline{T}`                       
+('boxlib', 'vort')             :math:`\mathrm{1 / \rm{s}}`                            ``vorticity_magnitude``          0  :math:`|\nabla\times\tilde{U}|`                
+('boxlib', 'w0_x')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_x`                                
+('boxlib', 'w0_y')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_y`                                
+('boxlib', 'w0_z')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_z`                                
+=============================  =====================================================  =======================  =========  ===============================================
 
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_y``
-   * Particle Type: False
+.. _Orion_specific_fields:
 
-('boxlib', 'zmom')
-^^^^^^^^^^^^^^^^^^
+Orion-Specific Fields
+---------------------
 
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Aliased to: ``momentum_z``
-   * Particle Type: False
+=============================  ================================================================================================  ==================  =========  ============
+field name                     units                                                                                             aliases             particle?  display name
+=============================  ================================================================================================  ==================  =========  ============
+('boxlib', 'density')          :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                 0              
+('boxlib', 'eden')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``energy_density``          0              
+('boxlib', 'xmom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_x``              0              
+('boxlib', 'ymom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_y``              0              
+('boxlib', 'zmom')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_z``              0              
+('boxlib', 'temperature')      :math:`\mathrm{\rm{K}}`                                                                           ``temperature``             0              
+('boxlib', 'Temp')             :math:`\mathrm{\rm{K}}`                                                                           ``temperature``             0              
+('boxlib', 'x_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_x``              0              
+('boxlib', 'y_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_y``              0              
+('boxlib', 'z_velocity')       :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_z``              0              
+('boxlib', 'xvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_x``              0              
+('boxlib', 'yvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_y``              0              
+('boxlib', 'zvel')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                                 ``velocity_z``              0              
+('io', 'particle_mass')        :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                          1              
+('io', 'particle_position_x')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_position_y')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_position_z')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
+('io', 'particle_momentum_x')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_momentum_y')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_momentum_z')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                              1              
+('io', 'particle_angmomen_x')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_angmomen_y')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_angmomen_z')  :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                              1              
+('io', 'particle_id')                                                                                                            ``particle_index``          1              
+('io', 'particle_mdot')        :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                    1              
+=============================  ================================================================================================  ==================  =========  ============
 
-('boxlib', 'temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _ChomboPIC_specific_fields:
 
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: False
+ChomboPIC-Specific Fields
+-------------------------
 
-('boxlib', 'Temp')
-^^^^^^^^^^^^^^^^^^
+===================================  ==========================================================================  ===========================  =========  ============
+field name                           units                                                                       aliases                      particle?  display name
+===================================  ==========================================================================  ===========================  =========  ============
+('chombo', 'density')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`      ``density`` ``Density``              0              
+('chombo', 'potential')              :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`  ``potential`` ``Potential``          0              
+('chombo', 'gravitational_field_x')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
+('chombo', 'gravitational_field_y')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
+('chombo', 'gravitational_field_z')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
+('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                             1              
+('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
+('io', 'particle_position_y')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
+('io', 'particle_position_z')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
+('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
+('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
+('io', 'particle_velocity_z')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
+===================================  ==========================================================================  ===========================  =========  ============
 
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: False
+.. _Orion2_specific_fields:
 
-('boxlib', 'x_velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
+Orion2-Specific Fields
+----------------------
 
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
+======================================  ================================================================================================  ============================  =========  ============
+field name                              units                                                                                             aliases                       particle?  display name
+======================================  ================================================================================================  ============================  =========  ============
+('chombo', 'density')                   :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                           0              
+('chombo', 'energy-density')            :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``energy_density``                    0              
+('chombo', 'radiation-energy-density')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``radiation_energy_density``          0              
+('chombo', 'X-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_x``                        0              
+('chombo', 'Y-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_y``                        0              
+('chombo', 'Z-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_z``                        0              
+('chombo', 'temperature')               :math:`\mathrm{\rm{K}}`                                                                           ``temperature``                       0              
+('chombo', 'X-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_x``                  0              
+('chombo', 'Y-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_y``                  0              
+('chombo', 'Z-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_z``                  0              
+('io', 'particle_mass')                 :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_position_x')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_y')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_z')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_momentum_x')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_momentum_y')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_momentum_z')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_angmomen_x')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_angmomen_y')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_angmomen_z')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_mlast')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_r')                    :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_mdeut')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_n')                                                                                                                                                            1              
+('io', 'particle_mdot')                 :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                              1              
+('io', 'particle_burnstate')                                                                                                                                                    1              
+('io', 'particle_luminosity')                                                                                                                                                   1              
+('io', 'particle_id')                                                                                                                     ``particle_index``                    1              
+======================================  ================================================================================================  ============================  =========  ============
 
-('boxlib', 'y_velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
+.. _Pluto_specific_fields:
 
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
+Pluto-Specific Fields
+---------------------
 
-('boxlib', 'z_velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
+=================  ================================================================================================  ====================  =========  ============
+field name         units                                                                                             aliases               particle?  display name
+=================  ================================================================================================  ====================  =========  ============
+('chombo', 'rho')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                   0              
+('chombo', 'prs')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``pressure``                  0              
+('chombo', 'vx1')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_x``                0              
+('chombo', 'vx2')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_y``                0              
+('chombo', 'vx3')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_z``                0              
+('chombo', 'bx1')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_x``          0              
+('chombo', 'bx2')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_y``          0              
+('chombo', 'bx3')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_z``          0              
+=================  ================================================================================================  ====================  =========  ============
 
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
+.. _Eagle_specific_fields:
 
-('boxlib', 'xvel')
-^^^^^^^^^^^^^^^^^^
+Eagle-Specific Fields
+---------------------
 
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
-
-('boxlib', 'yvel')
-^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
-
-('boxlib', 'zvel')
-^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
-
-('io', 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-('io', 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_momentum_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Particle Type: True
-
-('io', 'particle_momentum_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Particle Type: True
-
-('io', 'particle_momentum_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
-   * Particle Type: True
-
-('io', 'particle_angmomen_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_angmomen_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_angmomen_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_id')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-('io', 'particle_mdot')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
-   * Particle Type: True
+============================  ======================================================================  =====================  =========  ============
+field name                    units                                                                   aliases                particle?  display name
+============================  ======================================================================  =====================  =========  ============
+('io', 'Mass')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Masses')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Coordinates')         :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``particle_position``          1              
+('io', 'Velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'Velocities')          :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'ParticleIDs')                                                                                 ``particle_index``             1              
+('io', 'InternalEnergy')                                                                              ``thermal_energy``             1              
+('io', 'SmoothingLength')     :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``smoothing_length``           1              
+('io', 'Density')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                    1              
+('io', 'MaximumTemperature')  :math:`\mathrm{\rm{K}}`                                                                                1              
+('io', 'Temperature')         :math:`\mathrm{\rm{K}}`                                                 ``temperature``                1              
+('io', 'Epsilon')             :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'Metals')              :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Metallicity')         :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Phi')                 :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'FormationTime')       :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``creation_time``              1              
+('io', 'Metallicity_00')                                                                              ``metallicity``                1              
+('io', 'Metallicity_01')                                                                              ``He_fraction``                1              
+('io', 'Metallicity_02')                                                                              ``C_fraction``                 1              
+('io', 'Metallicity_03')                                                                              ``N_fraction``                 1              
+('io', 'Metallicity_04')                                                                              ``O_fraction``                 1              
+('io', 'Metallicity_05')                                                                              ``Ne_fraction``                1              
+('io', 'Metallicity_06')                                                                              ``Mg_fraction``                1              
+('io', 'Metallicity_07')                                                                              ``Si_fraction``                1              
+('io', 'Metallicity_08')                                                                              ``S_fraction``                 1              
+('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
+('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
+============================  ======================================================================  =====================  =========  ============
 
 .. _Enzo_specific_fields:
 
 Enzo-Specific Fields
 --------------------
 
-('enzo', 'Cooling_Time')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{s}}`
-   * Aliased to: ``cooling_time``
-   * Particle Type: False
-
-('enzo', 'Dengo_Cooling_Rate')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`
-   * Particle Type: False
-
-('enzo', 'Grackle_Cooling_Rate')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3} \cdot \rm{s}}}`
-   * Particle Type: False
-
-('enzo', 'HI_kph')
-^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
-   * Particle Type: False
-
-('enzo', 'HeI_kph')
-^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
-   * Particle Type: False
-
-('enzo', 'HeII_kph')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
-   * Particle Type: False
-
-('enzo', 'H2I_kdiss')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
-   * Particle Type: False
-
-('enzo', 'Bx')
-^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_x``
-   * Particle Type: False
-
-('enzo', 'By')
-^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_y``
-   * Particle Type: False
-
-('enzo', 'Bz')
-^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_z``
-   * Particle Type: False
-
-('enzo', 'RadAccel1')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``radiation_acceleration_x``
-   * Particle Type: False
-
-('enzo', 'RadAccel2')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``radiation_acceleration_y``
-   * Particle Type: False
-
-('enzo', 'RadAccel3')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``radiation_acceleration_z``
-   * Particle Type: False
-
-('enzo', 'Dark_Matter_Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``dark_matter_density``
-   * Particle Type: False
-
-('enzo', 'Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: False
-
-('enzo', 'Dust_Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``dust_temperature``
-   * Particle Type: False
-
-('enzo', 'x-velocity')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
-
-('enzo', 'y-velocity')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
-
-('enzo', 'z-velocity')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
-
-('enzo', 'RaySegments')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``ray_segments``
-   * Particle Type: False
-
-('enzo', 'PhotoGamma')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``photo_gamma``
-   * Particle Type: False
-
-('enzo', 'PotentialField')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``gravitational_potential``
-   * Particle Type: False
-
-('enzo', 'Density')
-^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('enzo', 'Metal_Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``metal_density``
-   * Particle Type: False
-
-('enzo', 'SN_Colour')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Particle Type: False
-
-('enzo', 'Electron_Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Particle Type: False
-
-('io', 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_x``
-   * Particle Type: True
-
-('io', 'particle_velocity_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_y``
-   * Particle Type: True
-
-('io', 'particle_velocity_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity_z``
-   * Particle Type: True
-
-('io', 'creation_time')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'dynamical_time')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'metallicity_fraction')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Particle Type: True
-
-('io', 'metallicity')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_type')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_index')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-('io', 'GridID')
-^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'identifier')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-('io', 'level')
-^^^^^^^^^^^^^^^
-
-   * Particle Type: True
+================================  ======================================================================  ============================  =========  ============
+field name                        units                                                                   aliases                       particle?  display name
+================================  ======================================================================  ============================  =========  ============
+('enzo', 'Cooling_Time')          :math:`\mathrm{\rm{s}}`                                                 ``cooling_time``                      0              
+('enzo', 'Dengo_Cooling_Rate')    :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                                         0              
+('enzo', 'Grackle_Cooling_Rate')  :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3} \cdot \rm{s}}}`                                                    0              
+('enzo', 'HI_kph')                :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
+('enzo', 'HeI_kph')               :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
+('enzo', 'HeII_kph')              :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
+('enzo', 'H2I_kdiss')             :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
+('enzo', 'Bx')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_x``                  0              
+('enzo', 'By')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_y``                  0              
+('enzo', 'Bz')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_z``                  0              
+('enzo', 'RadAccel1')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_x``          0              
+('enzo', 'RadAccel2')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_y``          0              
+('enzo', 'RadAccel3')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_z``          0              
+('enzo', 'Dark_Matter_Density')   :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``dark_matter_density``               0              
+('enzo', 'Temperature')           :math:`\mathrm{\rm{K}}`                                                 ``temperature``                       0              
+('enzo', 'Dust_Temperature')      :math:`\mathrm{\rm{K}}`                                                 ``dust_temperature``                  0              
+('enzo', 'x-velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``velocity_x``                        0              
+('enzo', 'y-velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``velocity_y``                        0              
+('enzo', 'z-velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``velocity_z``                        0              
+('enzo', 'RaySegments')                                                                                   ``ray_segments``                      0              
+('enzo', 'PhotoGamma')            :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``photo_gamma``                       0              
+('enzo', 'PotentialField')        :math:`\mathrm{\rm{code}~\rm{velocity}^{2}}`                            ``gravitational_potential``           0              
+('enzo', 'Density')               :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                           0              
+('enzo', 'Metal_Density')         :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``metal_density``                     0              
+('enzo', 'SN_Colour')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                        0              
+('enzo', 'Electron_Density')      :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                        0              
+('io', 'particle_position_x')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                        1              
+('io', 'particle_position_y')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                        1              
+('io', 'particle_position_z')     :math:`\mathrm{\rm{code}~\rm{length}}`                                                                        1              
+('io', 'particle_velocity_x')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity_x``               1              
+('io', 'particle_velocity_y')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity_y``               1              
+('io', 'particle_velocity_z')     :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity_z``               1              
+('io', 'creation_time')           :math:`\mathrm{\rm{code}~\rm{time}}`                                                                          1              
+('io', 'dynamical_time')          :math:`\mathrm{\rm{code}~\rm{time}}`                                                                          1              
+('io', 'metallicity_fraction')    :math:`\mathrm{\rm{code}~\rm{metallicity}}`                                                                   1              
+('io', 'metallicity')                                                                                                                           1              
+('io', 'particle_type')                                                                                                                         1              
+('io', 'particle_index')                                                                                                                        1              
+('io', 'particle_mass')           :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``                     1              
+('io', 'GridID')                                                                                                                                1              
+('io', 'identifier')                                                                                      ``particle_index``                    1              
+('io', 'level')                                                                                                                                 1              
+================================  ======================================================================  ============================  =========  ============
 
 .. _FLASH_specific_fields:
 
 FLASH-Specific Fields
 ---------------------
 
-('flash', 'velx')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
-
-('flash', 'vely')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
-
-('flash', 'velz')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
-
-('flash', 'dens')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('flash', 'temp')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
-   * Aliased to: ``temperature``
-   * Particle Type: False
-
-('flash', 'pres')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``pressure``
-   * Particle Type: False
-
-('flash', 'gpot')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``gravitational_potential``
-   * Particle Type: False
-
-('flash', 'gpol')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'tion')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
-   * Particle Type: False
-
-('flash', 'tele')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
-   * Particle Type: False
-
-('flash', 'trad')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
-   * Particle Type: False
-
-('flash', 'pion')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'pele')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'prad')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'eion')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
-   * Particle Type: False
-
-('flash', 'eele')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
-   * Particle Type: False
-
-('flash', 'erad')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
-   * Particle Type: False
-
-('flash', 'pden')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Particle Type: False
-
-('flash', 'depo')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'ye')
-^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'magp')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Particle Type: False
-
-('flash', 'divb')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} \cdot \rm{code_magnetic}}`
-   * Particle Type: False
-
-('flash', 'game')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'gamc')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'flam')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'absr')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'emis')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'cond')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'dfcf')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'fllm')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'pipe')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'tite')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'dbgs')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'cham')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'targ')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'sumy')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'mgdc')
-^^^^^^^^^^^^^^^^^
-
-   * Particle Type: False
-
-('flash', 'magx')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_x``
-   * Particle Type: False
-
-('flash', 'magy')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_y``
-   * Particle Type: False
-
-('flash', 'magz')
-^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code_magnetic}}`
-   * Aliased to: ``magnetic_field_z``
-   * Particle Type: False
-
-('io', 'particle_posx')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_x``
-   * Particle Type: True
-
-('io', 'particle_posy')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_y``
-   * Particle Type: True
-
-('io', 'particle_posz')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position_z``
-   * Particle Type: True
-
-('io', 'particle_velx')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``particle_velocity_x``
-   * Particle Type: True
-
-('io', 'particle_vely')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``particle_velocity_y``
-   * Particle Type: True
-
-('io', 'particle_velz')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``particle_velocity_z``
-   * Particle Type: True
-
-('io', 'particle_tag')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-('io', 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-.. _GDF_specific_fields:
-
-GDF-Specific Fields
--------------------
-
-('gdf', 'density')
-^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('gdf', 'specific_energy')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
-   * Aliased to: ``thermal_energy``
-   * Particle Type: False
-
-('gdf', 'pressure')
-^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
-   * Aliased to: ``pressure``
-   * Particle Type: False
-
-('gdf', 'temperature')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: False
-
-('gdf', 'velocity_x')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
-
-('gdf', 'velocity_y')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
-
-('gdf', 'velocity_z')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
-
-('gdf', 'mag_field_x')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{gauss}}`
-   * Aliased to: ``magnetic_field_x``
-   * Particle Type: False
-
-('gdf', 'mag_field_y')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{gauss}}`
-   * Aliased to: ``magnetic_field_y``
-   * Particle Type: False
-
-('gdf', 'mag_field_z')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{gauss}}`
-   * Aliased to: ``magnetic_field_z``
-   * Particle Type: False
-
-.. _HaloCatalog_specific_fields:
-
-HaloCatalog-Specific Fields
----------------------------
-
-(particle_type, 'particle_identifier')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm}}`
-   * Particle Type: True
-
-(particle_type, 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm}}`
-   * Particle Type: True
-
-(particle_type, 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{g}}`
-   * Particle Type: True
-
-(particle_type, 'virial_radius')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{cm}}`
-   * Particle Type: True
-
-.. _OWLSSubfind_specific_fields:
-
-OWLSSubfind-Specific Fields
----------------------------
-
-(particle_type, 'CenterOfMass_0')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Aliased to: ``particle_position_x``
-   * Particle Type: True
-
-(particle_type, 'CenterOfMass_1')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Aliased to: ``particle_position_y``
-   * Particle Type: True
-
-(particle_type, 'CenterOfMass_2')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Aliased to: ``particle_position_z``
-   * Particle Type: True
-
-(particle_type, 'CenterOfMassVelocity_0')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
-   * Aliased to: ``particle_velocity_x``
-   * Particle Type: True
-
-(particle_type, 'CenterOfMassVelocity_1')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
-   * Aliased to: ``particle_velocity_y``
-   * Particle Type: True
-
-(particle_type, 'CenterOfMassVelocity_2')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
-   * Aliased to: ``particle_velocity_z``
-   * Particle Type: True
-
-(particle_type, 'Mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Crit200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``Virial Mass``
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Crit2500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Crit500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Mean200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Mean2500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_M_Mean500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_M_TopHat200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Crit200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Aliased to: ``Virial Radius``
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Crit2500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Crit500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Mean200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Mean2500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_Mean500')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Halo_R_TopHat200')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'BH_Mass')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'Stars/Mass')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-(particle_type, 'BH_Mdot')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-(particle_type, 'StarFormationRate')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-.. _Rockstar_specific_fields:
-
-Rockstar-Specific Fields
-------------------------
-
-(particle_type, 'particle_identifier')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_velocity_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_corevel_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_corevel_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_corevel_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_bulkvel_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_bulkvel_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_bulkvel_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'virial_radius')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'child_r')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'vmax_r')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'mgrav')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'vmax')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'rvmax')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'rs')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'klypin_rs')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'vrms')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
-   * Particle Type: True
-
-(particle_type, 'Jx')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Jy')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Jz')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'energy')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'spin')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'alt_m1')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'alt_m2')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'alt_m3')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'alt_m4')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
-   * Particle Type: True
-
-(particle_type, 'Xoff')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Voff')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'b_to_a')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'c_to_a')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Ax')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Ay')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'Az')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'b_to_a2')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'c_to_a2')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'A2x')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'A2y')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'A2z')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'bullock_spin')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'kin_to_pot')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'm_pe_b')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'm_pe_d')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'num_p')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'num_child_particles')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'p_start')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'desc')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'flags')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'n_core')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'min_pos_err')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'min_vel_err')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-(particle_type, 'min_bulkvel_err')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-.. _RAMSES_specific_fields:
-
-RAMSES-Specific Fields
-----------------------
-
-('ramses', 'Density')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: False
-
-('ramses', 'x-velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_x``
-   * Particle Type: False
-
-('ramses', 'y-velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_y``
-   * Particle Type: False
-
-('ramses', 'z-velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Aliased to: ``velocity_z``
-   * Particle Type: False
-
-('ramses', 'Pressure')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
-   * Aliased to: ``pressure``
-   * Particle Type: False
-
-('ramses', 'Metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity``
-   * Particle Type: False
-
-('io', 'particle_position_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_position_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_x')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_y')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_velocity_z')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Particle Type: True
-
-('io', 'particle_identifier')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-('io', 'particle_refinement_level')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
-
-('io', 'particle_age')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Particle Type: True
-
-('io', 'particle_metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Particle Type: True
+=======================  ====================================================================================================  ===========================  =========  ===================================================
+field name               units                                                                                                 aliases                      particle?  display name                                       
+=======================  ====================================================================================================  ===========================  =========  ===================================================
+('flash', 'velx')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``velocity_x``                       0                                                     
+('flash', 'vely')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``velocity_y``                       0                                                     
+('flash', 'velz')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``velocity_z``                       0                                                     
+('flash', 'dens')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                ``density``                          0                                                     
+('flash', 'temp')        :math:`\mathrm{\rm{code}~\rm{temperature}}`                                                           ``temperature``                      0                                                     
+('flash', 'pres')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`      ``pressure``                         0                                                     
+('flash', 'gpot')        :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`                            ``gravitational_potential``          0                                                     
+('flash', 'gpol')        :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`                                                                 0                                                     
+('flash', 'tion')        :math:`\mathrm{\rm{code}~\rm{temperature}}`                                                                                                0                                                     
+('flash', 'tele')        :math:`\mathrm{\rm{code}~\rm{temperature}}`                                                                                                0                                                     
+('flash', 'trad')        :math:`\mathrm{\rm{code}~\rm{temperature}}`                                                                                                0                                                     
+('flash', 'pion')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`                                           0                                                     
+('flash', 'pele')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`                                           0  :math:`Electron Pressure, P_e`                     
+('flash', 'prad')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`                                           0  :math:`Radiation Pressure`                         
+('flash', 'eion')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`                                       0  :math:`Ion Internal Energy`                        
+('flash', 'eele')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`                                       0  :math:`Electron Internal Energy`                   
+('flash', 'erad')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`                                       0  :math:`Radiation Internal Energy`                  
+('flash', 'pden')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                                                                     0                                                     
+('flash', 'depo')        :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`                                                                 0                                                     
+('flash', 'ye')                                                                                                                                                     0  :math:`Y_e`                                        
+('flash', 'magp')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`                                           0                                                     
+('flash', 'divb')        :math:`\mathrm{\rm{code}~\rm{length} \cdot \rm{code}~\rm{magnetic}}`                                                                       0                                                     
+('flash', 'game')                                                                                                                                                   0  :math:`\gamma_e\/\rm{(ratio\/of\/specific\/heats)}`
+('flash', 'gamc')                                                                                                                                                   0  :math:`\gamma_c\/\rm{(ratio\/of\/specific\/heats)}`
+('flash', 'flam')                                                                                                                                                   0                                                     
+('flash', 'absr')                                                                                                                                                   0  :math:`Absorption Coefficient`                     
+('flash', 'emis')                                                                                                                                                   0  :math:`Emissivity`                                 
+('flash', 'cond')                                                                                                                                                   0  :math:`Conductivity`                               
+('flash', 'dfcf')                                                                                                                                                   0  :math:`Diffusion Equation Scalar`                  
+('flash', 'fllm')                                                                                                                                                   0  :math:`Flux Limit`                                 
+('flash', 'pipe')                                                                                                                                                   0  :math:`P_i/P_e`                                    
+('flash', 'tite')                                                                                                                                                   0  :math:`T_i/T_e`                                    
+('flash', 'dbgs')                                                                                                                                                   0  :math:`Debug for Shocks`                           
+('flash', 'cham')                                                                                                                                                   0  :math:`Chamber Material Fraction`                  
+('flash', 'targ')                                                                                                                                                   0  :math:`Target Material Fraction`                   
+('flash', 'sumy')                                                                                                                                                   0                                                     
+('flash', 'mgdc')                                                                                                                                                   0  :math:`Emission Minus Absorption Diffusion Terms`  
+('flash', 'magx')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_x``                 0  :math:`B_x`                                        
+('flash', 'magy')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_y``                 0  :math:`B_y`                                        
+('flash', 'magz')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_z``                 0  :math:`B_z`                                        
+('io', 'particle_posx')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_x``              1                                                     
+('io', 'particle_posy')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_y``              1                                                     
+('io', 'particle_posz')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_z``              1                                                     
+('io', 'particle_velx')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``particle_velocity_x``              1                                                     
+('io', 'particle_vely')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``particle_velocity_y``              1                                                     
+('io', 'particle_velz')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                          ``particle_velocity_z``              1                                                     
+('io', 'particle_tag')                                                                                                         ``particle_index``                   1                                                     
+('io', 'particle_mass')  :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                  ``particle_mass``                    1                                                     
+=======================  ====================================================================================================  ===========================  =========  ===================================================
 
 .. _Gadget_specific_fields:
 
 Gadget-Specific Fields
 ----------------------
 
-(particle_type, 'Mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Masses')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Coordinates')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position``
-   * Particle Type: True
-
-(particle_type, 'Velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'Velocities')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'ParticleIDs')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-(particle_type, 'InternalEnergy')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``thermal_energy``
-   * Particle Type: True
-
-(particle_type, 'SmoothingLength')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``smoothing_length``
-   * Particle Type: True
-
-(particle_type, 'Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: True
-
-(particle_type, 'MaximumTemperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Particle Type: True
-
-(particle_type, 'Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: True
-
-(particle_type, 'Epsilon')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'Metals')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Phi')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'FormationTime')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``creation_time``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_00')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_01')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``He_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_02')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``C_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_03')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``N_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_04')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``O_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_05')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ne_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_06')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Mg_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_07')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Si_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_08')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``S_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_09')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ca_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_10')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Fe_fraction``
-   * Particle Type: True
-
-.. _GadgetHDF5_specific_fields:
-
-GadgetHDF5-Specific Fields
---------------------------
-
-(particle_type, 'Mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Masses')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Coordinates')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position``
-   * Particle Type: True
-
-(particle_type, 'Velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'Velocities')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'ParticleIDs')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-(particle_type, 'InternalEnergy')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``thermal_energy``
-   * Particle Type: True
-
-(particle_type, 'SmoothingLength')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``smoothing_length``
-   * Particle Type: True
-
-(particle_type, 'Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: True
-
-(particle_type, 'MaximumTemperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Particle Type: True
-
-(particle_type, 'Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: True
-
-(particle_type, 'Epsilon')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'Metals')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Phi')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'FormationTime')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``creation_time``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_00')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_01')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``He_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_02')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``C_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_03')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``N_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_04')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``O_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_05')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ne_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_06')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Mg_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_07')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Si_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_08')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``S_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_09')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ca_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_10')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Fe_fraction``
-   * Particle Type: True
+============================  ======================================================================  =====================  =========  ============
+field name                    units                                                                   aliases                particle?  display name
+============================  ======================================================================  =====================  =========  ============
+('io', 'Mass')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Masses')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Coordinates')         :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``particle_position``          1              
+('io', 'Velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'Velocities')          :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'ParticleIDs')                                                                                 ``particle_index``             1              
+('io', 'InternalEnergy')                                                                              ``thermal_energy``             1              
+('io', 'SmoothingLength')     :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``smoothing_length``           1              
+('io', 'Density')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                    1              
+('io', 'MaximumTemperature')  :math:`\mathrm{\rm{K}}`                                                                                1              
+('io', 'Temperature')         :math:`\mathrm{\rm{K}}`                                                 ``temperature``                1              
+('io', 'Epsilon')             :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'Metals')              :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Metallicity')         :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Phi')                 :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'FormationTime')       :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``creation_time``              1              
+('io', 'Metallicity_00')                                                                              ``metallicity``                1              
+('io', 'Metallicity_01')                                                                              ``He_fraction``                1              
+('io', 'Metallicity_02')                                                                              ``C_fraction``                 1              
+('io', 'Metallicity_03')                                                                              ``N_fraction``                 1              
+('io', 'Metallicity_04')                                                                              ``O_fraction``                 1              
+('io', 'Metallicity_05')                                                                              ``Ne_fraction``                1              
+('io', 'Metallicity_06')                                                                              ``Mg_fraction``                1              
+('io', 'Metallicity_07')                                                                              ``Si_fraction``                1              
+('io', 'Metallicity_08')                                                                              ``S_fraction``                 1              
+('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
+('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
+============================  ======================================================================  =====================  =========  ============
+
+.. _GDF_specific_fields:
+
+GDF-Specific Fields
+-------------------
+
+==========================  =============================================  ====================  =========  ============
+field name                  units                                          aliases               particle?  display name
+==========================  =============================================  ====================  =========  ============
+('gdf', 'density')          :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`    ``density``                   0              
+('gdf', 'specific_energy')  :math:`\mathrm{\rm{erg} / \rm{g}}`             ``thermal_energy``            0              
+('gdf', 'pressure')         :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`  ``pressure``                  0              
+('gdf', 'temperature')      :math:`\mathrm{\rm{K}}`                        ``temperature``               0              
+('gdf', 'velocity_x')       :math:`\mathrm{\rm{cm} / \rm{s}}`              ``velocity_x``                0              
+('gdf', 'velocity_y')       :math:`\mathrm{\rm{cm} / \rm{s}}`              ``velocity_y``                0              
+('gdf', 'velocity_z')       :math:`\mathrm{\rm{cm} / \rm{s}}`              ``velocity_z``                0              
+('gdf', 'mag_field_x')      :math:`\mathrm{\rm{gauss}}`                    ``magnetic_field_x``          0              
+('gdf', 'mag_field_y')      :math:`\mathrm{\rm{gauss}}`                    ``magnetic_field_y``          0              
+('gdf', 'mag_field_z')      :math:`\mathrm{\rm{gauss}}`                    ``magnetic_field_z``          0              
+==========================  =============================================  ====================  =========  ============
+
+.. _HaloCatalog_specific_fields:
+
+HaloCatalog-Specific Fields
+---------------------------
+
+=============================  =================================  =======  =========  =====================
+field name                     units                              aliases  particle?  display name         
+=============================  =================================  =======  =========  =====================
+('io', 'particle_identifier')                                                      1                       
+('io', 'particle_position_x')  :math:`\mathrm{\rm{cm}}`                            1                       
+('io', 'particle_position_y')  :math:`\mathrm{\rm{cm}}`                            1                       
+('io', 'particle_position_z')  :math:`\mathrm{\rm{cm}}`                            1                       
+('io', 'particle_velocity_x')  :math:`\mathrm{\rm{cm} / \rm{s}}`                   1                       
+('io', 'particle_velocity_y')  :math:`\mathrm{\rm{cm} / \rm{s}}`                   1                       
+('io', 'particle_velocity_z')  :math:`\mathrm{\rm{cm} / \rm{s}}`                   1                       
+('io', 'particle_mass')        :math:`\mathrm{\rm{g}}`                             1  :math:`Virial Mass`  
+('io', 'virial_radius')        :math:`\mathrm{\rm{cm}}`                            1  :math:`Virial Radius`
+=============================  =================================  =======  =========  =====================
 
 .. _OWLS_specific_fields:
 
 OWLS-Specific Fields
 --------------------
 
-(particle_type, 'Mass')
-^^^^^^^^^^^^^^^^^^^^^^^
+============================  ======================================================================  =====================  =========  ============
+field name                    units                                                                   aliases                particle?  display name
+============================  ======================================================================  =====================  =========  ============
+('io', 'Mass')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Masses')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Coordinates')         :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``particle_position``          1              
+('io', 'Velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'Velocities')          :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'ParticleIDs')                                                                                 ``particle_index``             1              
+('io', 'InternalEnergy')                                                                              ``thermal_energy``             1              
+('io', 'SmoothingLength')     :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``smoothing_length``           1              
+('io', 'Density')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                    1              
+('io', 'MaximumTemperature')  :math:`\mathrm{\rm{K}}`                                                                                1              
+('io', 'Temperature')         :math:`\mathrm{\rm{K}}`                                                 ``temperature``                1              
+('io', 'Epsilon')             :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'Metals')              :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Metallicity')         :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Phi')                 :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'FormationTime')       :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``creation_time``              1              
+('io', 'Metallicity_00')                                                                              ``metallicity``                1              
+('io', 'Metallicity_01')                                                                              ``He_fraction``                1              
+('io', 'Metallicity_02')                                                                              ``C_fraction``                 1              
+('io', 'Metallicity_03')                                                                              ``N_fraction``                 1              
+('io', 'Metallicity_04')                                                                              ``O_fraction``                 1              
+('io', 'Metallicity_05')                                                                              ``Ne_fraction``                1              
+('io', 'Metallicity_06')                                                                              ``Mg_fraction``                1              
+('io', 'Metallicity_07')                                                                              ``Si_fraction``                1              
+('io', 'Metallicity_08')                                                                              ``S_fraction``                 1              
+('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
+('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
+============================  ======================================================================  =====================  =========  ============
 
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
+.. _OWLSSubfind_specific_fields:
 
-(particle_type, 'Masses')
-^^^^^^^^^^^^^^^^^^^^^^^^^
+OWLSSubfind-Specific Fields
+---------------------------
 
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
+================================  ==========================================================  =======================  =========  ============
+field name                        units                                                       aliases                  particle?  display name
+================================  ==========================================================  =======================  =========  ============
+('io', 'CenterOfMass_0')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                     ``particle_position_x``          1              
+('io', 'CenterOfMass_1')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                     ``particle_position_y``          1              
+('io', 'CenterOfMass_2')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                     ``particle_position_z``          1              
+('io', 'CenterOfMassVelocity_0')  :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`       ``particle_velocity_x``          1              
+('io', 'CenterOfMassVelocity_1')  :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`       ``particle_velocity_y``          1              
+('io', 'CenterOfMassVelocity_2')  :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`       ``particle_velocity_z``          1              
+('io', 'Mass')                    :math:`\mathrm{\rm{code}~\rm{mass}}`                        ``particle_mass``                1              
+('io', 'Halo_M_Crit200')          :math:`\mathrm{\rm{code}~\rm{mass}}`                        ``Virial Mass``                  1              
+('io', 'Halo_M_Crit2500')         :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_M_Crit500')          :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_M_Mean200')          :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_M_Mean2500')         :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_M_Mean500')          :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_M_TopHat200')        :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Halo_R_Crit200')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                     ``Virial Radius``                1              
+('io', 'Halo_R_Crit2500')         :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'Halo_R_Crit500')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'Halo_R_Mean200')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'Halo_R_Mean2500')         :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'Halo_R_Mean500')          :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'Halo_R_TopHat200')        :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                                                      1              
+('io', 'BH_Mass')                 :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'Stars/Mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                         1              
+('io', 'BH_Mdot')                 :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                   1              
+('io', 'StarFormationRate')       :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                   1              
+================================  ==========================================================  =======================  =========  ============
 
-(particle_type, 'Coordinates')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _RAMSES_specific_fields:
 
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position``
-   * Particle Type: True
+RAMSES-Specific Fields
+----------------------
 
-(particle_type, 'Velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===================================  ========================================  ==================  =========  ============
+field name                           units                                     aliases             particle?  display name
+===================================  ========================================  ==================  =========  ============
+('ramses', 'Density')                :math:`\mathrm{\rm{code_density}}`        ``density``                 0              
+('ramses', 'x-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_x``              0              
+('ramses', 'y-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_y``              0              
+('ramses', 'z-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_z``              0              
+('ramses', 'Pressure')               :math:`\mathrm{\rm{code_pressure}}`       ``pressure``                0              
+('ramses', 'Metallicity')                                                      ``metallicity``             0              
+('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_position_y')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_position_z')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_velocity_z')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                  1              
+('io', 'particle_identifier')                                                  ``particle_index``          1              
+('io', 'particle_refinement_level')                                                                        1              
+('io', 'particle_age')               :math:`\mathrm{\rm{code}~\rm{time}}`                                  1              
+('io', 'particle_metallicity')                                                                             1              
+===================================  ========================================  ==================  =========  ============
 
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
+.. _Rockstar_specific_fields:
 
-(particle_type, 'Velocities')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Rockstar-Specific Fields
+------------------------
 
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'ParticleIDs')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-(particle_type, 'InternalEnergy')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``thermal_energy``
-   * Particle Type: True
-
-(particle_type, 'SmoothingLength')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``smoothing_length``
-   * Particle Type: True
-
-(particle_type, 'Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: True
-
-(particle_type, 'MaximumTemperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Particle Type: True
-
-(particle_type, 'Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: True
-
-(particle_type, 'Epsilon')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'Metals')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Phi')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'FormationTime')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``creation_time``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_00')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_01')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``He_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_02')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``C_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_03')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``N_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_04')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``O_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_05')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ne_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_06')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Mg_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_07')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Si_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_08')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``S_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_09')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ca_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_10')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Fe_fraction``
-   * Particle Type: True
+=============================  =======================================  =======  =========  =================================
+field name                     units                                    aliases  particle?  display name                     
+=============================  =======================================  =======  =========  =================================
+('io', 'particle_identifier')                                                            1                                   
+('io', 'particle_position_x')  :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1                                   
+('io', 'particle_position_y')  :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1                                   
+('io', 'particle_position_z')  :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1                                   
+('io', 'particle_velocity_x')  :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_velocity_y')  :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_velocity_z')  :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_corevel_x')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_corevel_y')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_corevel_z')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_bulkvel_x')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_bulkvel_y')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_bulkvel_z')   :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'particle_mass')        :math:`\mathrm{\rm{M}_\odot / \rm{h}}`                    1  :math:`Mass`                     
+('io', 'virial_radius')        :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1  :math:`Radius`                   
+('io', 'child_r')              :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1                                   
+('io', 'vmax_r')               :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'mgrav')                                                                          1                                   
+('io', 'vmax')                 :math:`\mathrm{\rm{km} / \rm{s}}`                         1  :math:`V_{max}`                  
+('io', 'rvmax')                :math:`\mathrm{\rm{km} / \rm{s}}`                         1                                   
+('io', 'rs')                   :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1  :math:`R_s`                      
+('io', 'klypin_rs')            :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`                   1  :math:`Klypin R_s`               
+('io', 'vrms')                 :math:`\mathrm{\rm{km} / \rm{s}}`                         1  :math:`V_{rms}`                  
+('io', 'Jx')                                                                             1  :math:`J_x`                      
+('io', 'Jy')                                                                             1  :math:`J_y`                      
+('io', 'Jz')                                                                             1  :math:`J_z`                      
+('io', 'energy')                                                                         1                                   
+('io', 'spin')                                                                           1  :math:`Spin Parameter`           
+('io', 'alt_m1')               :math:`\mathrm{\rm{M}_\odot / \rm{h}}`                    1                                   
+('io', 'alt_m2')               :math:`\mathrm{\rm{M}_\odot / \rm{h}}`                    1                                   
+('io', 'alt_m3')               :math:`\mathrm{\rm{M}_\odot / \rm{h}}`                    1                                   
+('io', 'alt_m4')               :math:`\mathrm{\rm{M}_\odot / \rm{h}}`                    1                                   
+('io', 'Xoff')                                                                           1                                   
+('io', 'Voff')                                                                           1                                   
+('io', 'b_to_a')                                                                         1  :math:`Ellipsoidal b to a`       
+('io', 'c_to_a')                                                                         1  :math:`Ellipsoidal c to a`       
+('io', 'Ax')                                                                             1  :math:`A_x`                      
+('io', 'Ay')                                                                             1  :math:`A_y`                      
+('io', 'Az')                                                                             1  :math:`A_z`                      
+('io', 'b_to_a2')                                                                        1                                   
+('io', 'c_to_a2')                                                                        1                                   
+('io', 'A2x')                                                                            1  :math:`A2_x`                     
+('io', 'A2y')                                                                            1  :math:`A2_y`                     
+('io', 'A2z')                                                                            1  :math:`A2_z`                     
+('io', 'bullock_spin')                                                                   1  :math:`Bullock Spin Parameter`   
+('io', 'kin_to_pot')                                                                     1  :math:`Kinetic to Potential`     
+('io', 'm_pe_b')                                                                         1                                   
+('io', 'm_pe_d')                                                                         1                                   
+('io', 'num_p')                                                                          1  :math:`Number of Particles`      
+('io', 'num_child_particles')                                                            1  :math:`Number of Child Particles`
+('io', 'p_start')                                                                        1                                   
+('io', 'desc')                                                                           1                                   
+('io', 'flags')                                                                          1                                   
+('io', 'n_core')                                                                         1                                   
+('io', 'min_pos_err')                                                                    1                                   
+('io', 'min_vel_err')                                                                    1                                   
+('io', 'min_bulkvel_err')                                                                1                                   
+=============================  =======================================  =======  =========  =================================
 
 .. _Tipsy_specific_fields:
 
 Tipsy-Specific Fields
 ---------------------
 
-(particle_type, 'Mass')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Masses')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``particle_mass``
-   * Particle Type: True
-
-(particle_type, 'Coordinates')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``particle_position``
-   * Particle Type: True
-
-(particle_type, 'Velocity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'Velocities')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``particle_velocity``
-   * Particle Type: True
-
-(particle_type, 'ParticleIDs')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``particle_index``
-   * Particle Type: True
-
-(particle_type, 'InternalEnergy')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``thermal_energy``
-   * Particle Type: True
-
-(particle_type, 'SmoothingLength')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Aliased to: ``smoothing_length``
-   * Particle Type: True
-
-(particle_type, 'Density')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
-   * Aliased to: ``density``
-   * Particle Type: True
-
-(particle_type, 'MaximumTemperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Particle Type: True
-
-(particle_type, 'Temperature')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{K}}`
-   * Aliased to: ``temperature``
-   * Particle Type: True
-
-(particle_type, 'Epsilon')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'Metals')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Phi')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
-   * Particle Type: True
-
-(particle_type, 'FormationTime')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``creation_time``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_00')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``metallicity``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_01')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``He_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_02')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``C_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_03')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``N_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_04')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``O_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_05')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ne_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_06')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Mg_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_07')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Si_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_08')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``S_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_09')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Ca_fraction``
-   * Particle Type: True
-
-(particle_type, 'Metallicity_10')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Aliased to: ``Fe_fraction``
-   * Particle Type: True
-
-(particle_type, 'uDotFB')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDotFB``
-   * Particle Type: True
-
-(particle_type, 'acc')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`
-   * Aliased to: ``acc``
-   * Particle Type: True
-
-(particle_type, 'c')
-^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
-   * Aliased to: ``c``
-   * Particle Type: True
-
-(particle_type, 'uDotDiff')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDotDiff``
-   * Particle Type: True
-
-(particle_type, 'FeMassFrac')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``FeMassFrac``
-   * Particle Type: True
-
-(particle_type, 'timeform')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``timeform``
-   * Particle Type: True
-
-(particle_type, 'uDot')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDot``
-   * Particle Type: True
-
-(particle_type, 'accg')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`
-   * Aliased to: ``accg``
-   * Particle Type: True
-
-(particle_type, 'uDotHydro')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDotHydro``
-   * Particle Type: True
-
-(particle_type, 'uDotPdV')
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDotPdV``
-   * Particle Type: True
-
-(particle_type, 'uDotAV')
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
-   * Aliased to: ``uDotAV``
-   * Particle Type: True
-
-(particle_type, 'HI')
-^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``HI``
-   * Particle Type: True
-
-(particle_type, 'coolontime')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
-   * Aliased to: ``coolontime``
-   * Particle Type: True
-
-(particle_type, 'HeII')
-^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``HeII``
-   * Particle Type: True
-
-(particle_type, 'HII')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``HII``
-   * Particle Type: True
-
-(particle_type, 'massform')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
-   * Aliased to: ``massform``
-   * Particle Type: True
-
-(particle_type, 'OxMassFrac')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``OxMassFrac``
-   * Particle Type: True
-
-(particle_type, 'HeI')
-^^^^^^^^^^^^^^^^^^^^^^
-
-   * Units: :math:`\mathrm{}`
-   * Aliased to: ``HeI``
-   * Particle Type: True
+============================  ======================================================================  =====================  =========  ============
+field name                    units                                                                   aliases                particle?  display name
+============================  ======================================================================  =====================  =========  ============
+('io', 'Mass')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Masses')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Coordinates')         :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``particle_position``          1              
+('io', 'Velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'Velocities')          :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'ParticleIDs')                                                                                 ``particle_index``             1              
+('io', 'InternalEnergy')                                                                              ``thermal_energy``             1              
+('io', 'SmoothingLength')     :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``smoothing_length``           1              
+('io', 'Density')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                    1              
+('io', 'MaximumTemperature')  :math:`\mathrm{\rm{K}}`                                                                                1              
+('io', 'Temperature')         :math:`\mathrm{\rm{K}}`                                                 ``temperature``                1              
+('io', 'Epsilon')             :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'Metals')              :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Metallicity')         :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Phi')                 :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'FormationTime')       :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``creation_time``              1              
+('io', 'Metallicity_00')                                                                              ``metallicity``                1              
+('io', 'Metallicity_01')                                                                              ``He_fraction``                1              
+('io', 'Metallicity_02')                                                                              ``C_fraction``                 1              
+('io', 'Metallicity_03')                                                                              ``N_fraction``                 1              
+('io', 'Metallicity_04')                                                                              ``O_fraction``                 1              
+('io', 'Metallicity_05')                                                                              ``Ne_fraction``                1              
+('io', 'Metallicity_06')                                                                              ``Mg_fraction``                1              
+('io', 'Metallicity_07')                                                                              ``Si_fraction``                1              
+('io', 'Metallicity_08')                                                                              ``S_fraction``                 1              
+('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
+('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
+('io', 'uDotFB')              :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDotFB``                     1              
+('io', 'acc')                 :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`          ``acc``                        1              
+('io', 'c')                   :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``c``                          1              
+('io', 'uDotDiff')            :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDotDiff``                   1              
+('io', 'FeMassFrac')          :math:`\mathrm{}`                                                       ``FeMassFrac``                 1              
+('io', 'timeform')            :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``timeform``                   1              
+('io', 'uDot')                :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDot``                       1              
+('io', 'accg')                :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`          ``accg``                       1              
+('io', 'uDotHydro')           :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDotHydro``                  1              
+('io', 'uDotPdV')             :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDotPdV``                    1              
+('io', 'uDotAV')              :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`  ``uDotAV``                     1              
+('io', 'HI')                  :math:`\mathrm{}`                                                       ``HI``                         1              
+('io', 'coolontime')          :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``coolontime``                 1              
+('io', 'HeII')                :math:`\mathrm{}`                                                       ``HeII``                       1              
+('io', 'HII')                 :math:`\mathrm{}`                                                       ``HII``                        1              
+('io', 'massform')            :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``massform``                   1              
+('io', 'OxMassFrac')          :math:`\mathrm{}`                                                       ``OxMassFrac``                 1              
+('io', 'HeI')                 :math:`\mathrm{}`                                                       ``HeI``                        1              
+============================  ======================================================================  =====================  =========  ============
 
 
 

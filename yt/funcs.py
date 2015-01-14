@@ -15,7 +15,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import time, types, signal, inspect, traceback, sys, pdb, os, re
-import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
@@ -271,7 +270,6 @@ def insert_ipython(num_up=1):
 
     api_version = get_ipython_api_version()
 
-    stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
@@ -387,7 +385,7 @@ def is_root():
     cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.getboolean("yt","__parallel"):
         return True
-    if ytcfg.getint("yt", cfg_option) > 0: 
+    if ytcfg.getint("yt", cfg_option) > 0:
         return False
     return True
 
@@ -442,15 +440,6 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print()
     print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
     print()
-
-def traceback_writer_hook(file_suffix = ""):
-    def write_to_file(exc_type, exc, tb):
-        sys.__excepthook__(exc_type, exc, tb)
-        fn = "yt_traceback%s" % file_suffix
-        f = open(fn, "w")
-        traceback.print_exception(exc_type, exc, tb, file=f)
-        print("Wrote traceback to %s" % fn)
-    return write_to_file
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
@@ -537,7 +526,6 @@ def get_version_stack():
     return version_info
 
 def get_script_contents():
-    stack = inspect.stack()
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
     if finfo[2] != "<module>": return None
@@ -733,8 +721,11 @@ def memory_checker(interval = 15, dest = None):
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
-    yield
-    e.set()
+    try:
+        yield
+    finally:
+        e.set()
+
 
 def deprecated_class(cls):
     @wraps(cls)
@@ -746,8 +737,10 @@ def deprecated_class(cls):
             SyntaxWarning, stacklevel=2)
         return cls(*args, **kwargs)
     return _func
-    
+
 def enable_plugins():
+    import yt
+    from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -757,4 +750,12 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+        execdict = yt.__dict__.copy()
+        execdict['add_field'] = my_plugins_fields.add_field
+        execfile(_fn, execdict)
+
+def fix_unitary(u):
+    if u == '1':
+        return 'unitary'
+    else:
+        return u
