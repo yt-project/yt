@@ -123,7 +123,7 @@ def split_array(gle, gre, shape, psize):
         for j in range(psize[1]):
             for k in range(psize[2]):
                 piece = np.array((i, j, k), dtype=np.int64)
-                lei = np.rint(n_d * piece / psize)
+                lei = n_d * piece / psize
                 rei = np.rint(n_d * (piece + np.ones(3, dtype=np.int64))
                                     / psize)
                 lle = gle + lei*dds

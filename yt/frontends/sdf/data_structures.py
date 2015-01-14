@@ -201,7 +201,10 @@ class SDFDataset(Dataset):
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
             with open(sdf_header, "rt") as f:
-                line = f.read(10).strip()
+                try:
+                    line = f.read(10).strip()
+                except UnicodeDecodeError:
+                    line = ""
         else:
             return False
         return line.startswith("# SDF")

@@ -181,7 +181,7 @@ def read_vector(f, d, endian='='):
         print("fmt = '%s' ; length = %s ; size= %s"
               % (vec_fmt, vec_len, vec_size))
         raise RuntimeError
-    vec_num = vec_len / vec_size
+    vec_num = int(vec_len / vec_size)
     if isinstance(f, file): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)
     else:
