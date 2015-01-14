@@ -292,13 +292,13 @@ class FLASHDataset(Dataset):
                                         self._handle[hn][:,'value']):
                     vn = varname.strip()
                     if hn.startswith("string") :
-                        pval = val.strip()
+                        pval = val.strip().decode("utf-8")
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    self.parameters[vn.decode("utf-8")] = pval
         if self._flash_version == 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -310,13 +310,13 @@ class FLASHDataset(Dataset):
                 for varname, val in zipover:
                     vn = varname.strip()
                     if hn.startswith("string"):
-                        pval = val.strip()
+                        pval = val.strip().decode("utf-8")
                     else:
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    self.parameters[vn.decode("utf-8")] = pval
         
         # Determine block size
         try:
