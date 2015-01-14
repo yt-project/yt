@@ -46,7 +46,7 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
         a2[ind2] = 1.0
     elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
         return True
-    if a1 == a2 == 0.0:
+    if not isinstance(a1, np.ndarray) and a1 == a2 == 0.0:
         # NANS!
         a1 = a2 = 1.0
     return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
