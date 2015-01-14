@@ -36,13 +36,11 @@ class HDF5FileHandler(object):
     def attrs(self):
         return self.handle.attrs
 
-    @property
     def keys(self):
-        return self.handle.keys
+        return list(self.handle.keys())
 
-    @property
     def items(self):
-        return self.handle.items
+        return list(self.handle.items())
 
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
@@ -57,5 +55,10 @@ class FITSFileHandler(HDF5FileHandler):
     def __del__(self):
         for f in self._fits_files:
             f.close()
-            del f
+        del self._fits_files
+        del self.handle
+        self.handle = None
         super(FITSFileHandler, self).__del__()
+
+    def close(self):
+        pass
