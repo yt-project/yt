@@ -41,7 +41,6 @@ def assert_fname(fname):
 
     with open(fname, 'rb') as fimg:
         data = fimg.read()
-    data_str = str(data)
     image_type = ''
 
     # see http://www.w3.org/TR/PNG/#5PNG-file-signature
@@ -51,11 +50,12 @@ def assert_fname(fname):
     elif data.startswith(b'\377\330'):
         image_type = '.jpeg'
     elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
         if 'EPSF' in data_str[:data_str.index('\n')]:
             image_type = '.eps'
         else:
             image_type = '.ps'
-    elif data_str.startswith('%PDF'):
+    elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
     return image_type == os.path.splitext(fname)[1]
