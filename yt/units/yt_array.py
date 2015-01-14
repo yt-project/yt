@@ -611,7 +611,7 @@ class YTArray(np.ndarray):
             d = f.create_dataset(dataset_name, data=self)
 
         for k, v in info.iteritems():
-            d.attrs.create(k, v)
+            d.attrs[k] = v
         f.close()
 
     @classmethod
@@ -638,7 +638,7 @@ class YTArray(np.ndarray):
         dataset = f[dataset_name]
         data = dataset[:]
         units = dataset.attrs.get('units', '')
-        if 'unit_registry' in dataset.attrs.keys():
+        if 'unit_registry' in dataset.attrs:
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
