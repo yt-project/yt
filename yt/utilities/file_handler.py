@@ -59,4 +59,6 @@ class FITSFileHandler(HDF5FileHandler):
         for f in self._fits_files:
             f.close()
             del f
+        del self.handle
+        self.handle = None
         super(FITSFileHandler, self).__del__()

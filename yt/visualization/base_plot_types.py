@@ -13,8 +13,8 @@ from __future__ import absolute_import
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from io import BytesIO
 import matplotlib
-from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -146,7 +146,7 @@ class ImagePlotMPL(PlotMPL):
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = StringIO()
+        f = BytesIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()

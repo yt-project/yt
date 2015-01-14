@@ -4,7 +4,8 @@ RAMSES-specific data structures
 
 
 """
-from __future__ import print_function
+# BytesIO needs absolute import
+from __future__ import print_function, absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -18,7 +19,7 @@ import os
 import numpy as np
 import stat
 import weakref
-from yt.extern.six.moves import cStringIO
+from io import BytesIO
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
@@ -214,7 +215,7 @@ class RAMSESDomainFile(object):
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = cStringIO()
+        f = ByesIO()
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
