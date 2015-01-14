@@ -304,7 +304,7 @@ class FLASHDataset(Dataset):
                                    "scalar of the same name".format(hn[:-1],vn))
                     if hasattr(pval, 'decode'):
                         pval = pval.decode("ascii", "ignore")
-                    self.parameters[vn.decode("utf-8")] = pval
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         if self._flash_version == 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -324,7 +324,7 @@ class FLASHDataset(Dataset):
                                    "scalar of the same name".format(hn[:-1],vn))
                     if hasattr(pval, 'decode'):
                         pval = pval.decode("ascii", "ignore")
-                    self.parameters[vn.decode("utf-8")] = pval
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         
         # Determine block size
         try:
