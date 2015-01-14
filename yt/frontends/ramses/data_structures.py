@@ -214,7 +214,7 @@ class RAMSESDomainFile(object):
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = cStringIO.StringIO()
+        f = cStringIO()
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
