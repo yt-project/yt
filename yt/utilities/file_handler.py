@@ -28,7 +28,7 @@ class HDF5FileHandler(object):
         return self.handle[key]
 
     def __contains__(self, item):
-        return item in self.keys()
+        return item in self.handle
 
     def __len__(self):
         return len(self.handle)

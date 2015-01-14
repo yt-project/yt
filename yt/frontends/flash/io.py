@@ -47,7 +47,8 @@ class IOHandlerFLASH(BaseIOHandler):
         self._particle_handle = ds._particle_handle
         
         try :
-            particle_fields = [s[0].strip() for s in
+            particle_fields = [s[0].decode("ascii","ignore").strip()
+                               for s in
                                self._particle_handle["/particle names"][:]]
             self._particle_fields = dict([("particle_" + s, i) for i, s in
                                           enumerate(particle_fields)])
