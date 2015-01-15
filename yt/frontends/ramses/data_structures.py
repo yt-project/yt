@@ -304,6 +304,7 @@ class RAMSESDomainFile(object):
 class RAMSESDomainSubset(OctreeSubset):
 
     _domain_offset = 1
+    _block_reorder = "F"
 
     def fill(self, content, fields, selector):
         # Here we get a copy of the file, which we skip through and read the
