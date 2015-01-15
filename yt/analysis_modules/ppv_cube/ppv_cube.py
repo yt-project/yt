@@ -44,10 +44,10 @@ def create_vlos(normal, no_shifting):
             return -vz
     return _v_los
 
-fits_info = {"velocity":("m/s","VELOCITY","v"),
-             "frequency":("Hz","FREQUENCY","f"),
-             "energy":("eV","ENERGY","E"),
-             "wavelength":("angstrom","WAVELENG","lambda")}
+fits_info = {"velocity":("m/s","VOPT","v"),
+             "frequency":("Hz","FREQ","f"),
+             "energy":("eV","ENER","E"),
+             "wavelength":("angstrom","WAVE","lambda")}
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, velocity_bounds, center="c", 
