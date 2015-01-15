@@ -53,7 +53,7 @@ class PPVCube(object):
     def __init__(self, ds, normal, field, velocity_bounds, center="c", 
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
-                 method="integrate", no_shifting=False,
+                 method="integrate", weight_field=None, no_shifting=False,
                  north_vector=None, no_ghost=True):
         r""" Initialize a PPVCube object.
 
@@ -101,6 +101,8 @@ class PPVCube(object):
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
             "sum" : straight summation over the line of sight.
+        weight_field : string, optional
+            The name of the weighting field.  Set to None for no weight.
         no_shifting : boolean, optional
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
@@ -172,7 +174,7 @@ class PPVCube(object):
         _intensity = self.create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
-        if method == "integrate":
+        if method == "integrate" and weight_field is None:
             self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
         elif method == "sum":
             self.proj_units = self.field_units
@@ -182,13 +184,14 @@ class PPVCube(object):
         for sto, i in parallel_objects(xrange(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, basestring):
-                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)
+                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method,
+                              weight_field=weight_field)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny, depth_res), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
-                                          method=method).swapaxes(0,1)
+                                          method=method, weight=weight_field).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
