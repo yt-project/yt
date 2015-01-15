@@ -940,25 +940,37 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._grids = None
         self.quantities = DerivedQuantityCollection(self)
 
-    def cut_region(self, field_cuts, field_parameters = None):
+    def cut_region(self, field_cuts, field_parameters=None):
         """
-        Return an InLineExtractedRegion, where the object cells are cut on the
-        fly with a set of field_cuts.  It is very useful for applying
-        conditions to the fields in your data object.  Note that in previous
-        versions of yt, this accepted 'grid' as a variable, but presently it
-        requires 'obj'.
-        
+        Return an YTCutRegionBase, where the a cell is identified as being inside
+        the cut region based on the value of one or more fields.  Note that in
+        previous versions of yt the name 'grid' was used to represent the data
+        object used to construct the field cut, as of yt 3.0, this has been
+        changed to 'obj'.
+
+        Parameters
+        ----------
+        field_cuts : list of strings
+           A list of conditionals that will be evaluated. In the namespace
+           available, these conditionals will have access to 'obj' which is a
+           data object of unknown shape, and they must generate a boolean array.
+           For instance, conditionals = ["obj['temperature'] < 1e3"]
+        field_parameters : dictionary
+           A dictionary of field parameters to be used when applying the field
+           cuts.
+
         Examples
         --------
-        To find the total mass of gas above 10^6 K in your volume:
+        To find the total mass of hot gas with temperature greater than 10^6 K
+        in your volume:
 
-        >>> ds = load("RedshiftOutput0005")
+        >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
-        >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
+        >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         cr = self.ds.cut_region(self, field_cuts,
-                                  field_parameters = field_parameters)
+                                field_parameters=field_parameters)
         return cr
 
     def extract_isocontours(self, field, value, filename = None,
