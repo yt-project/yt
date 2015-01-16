@@ -259,7 +259,7 @@ class BoxlibHierarchy(GridIndex):
         """
         # open the test file & grab the header
         with open(os.path.expanduser(test_grid.filename), 'rb') as f:
-            header = f.readline()
+            header = f.readline().decode("ascii", "ignore")
 
         bpr, endian, start, stop, centering, nc = \
             _header_pattern[self.dimensionality-1].search(header).groups()

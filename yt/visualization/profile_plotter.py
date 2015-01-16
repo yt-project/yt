@@ -24,7 +24,7 @@ from functools import wraps
 from itertools import izip
 import matplotlib
 import numpy as np
-from yt.extern.six.moves import cStringIO
+from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
@@ -310,7 +310,7 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
-            f = cStringIO()
+            f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())

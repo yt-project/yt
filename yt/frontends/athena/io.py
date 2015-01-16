@@ -43,9 +43,9 @@ class IOHandlerAthena(BaseIOHandler):
             f = open(grid.filename, "rb")
             data[grid.id] = {}
             grid_dims = grid.ActiveDimensions
-            read_dims = grid.read_dims
-            grid_ncells = np.int(np.prod(read_dims))
-            grid0_ncells = np.int(np.prod(grid.index.grids[0].read_dims))
+            read_dims = grid.read_dims.astype("int64")
+            grid_ncells = np.prod(read_dims)
+            grid0_ncells = np.prod(grid.index.grids[0].read_dims)
             read_table_offset = get_read_table_offset(f)
             for field in fields:
                 dtype, offsetr = grid.index._field_map[field]
