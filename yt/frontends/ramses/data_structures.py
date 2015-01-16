@@ -240,6 +240,8 @@ class RAMSESDomainFile(object):
                 #ng is the number of octs on this level on this domain
                 ng = _ng(cpu, level)
                 if ng == 0: continue
+                print(fpu)
+                print(fpu.read_vector(f, b"I"))
                 ind = fpu.read_vector(f, "I").astype("int64")
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')

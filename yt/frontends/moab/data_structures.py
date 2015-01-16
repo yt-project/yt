@@ -50,6 +50,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
         self._fhandle.close()
 
     def _initialize_mesh(self):
+        print(self._fhandle)
         con = self._fhandle["/tstt/elements/Hex8/connectivity"][:]
         con = np.asarray(con, dtype="int64")
         coords = self._fhandle["/tstt/nodes/coordinates"][:]

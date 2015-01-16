@@ -23,7 +23,7 @@
 import functools
 import operator
 import sys
-import types
+import types 
 
 __author__ = "Benjamin Peterson <benjamin@python.org>"
 __version__ = "1.7.3"
@@ -32,6 +32,7 @@ __version__ = "1.7.3"
 # Useful for very coarse version differentiation.
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
+stringIOReplace = ''
 
 if PY3:
     string_types = str,
@@ -41,6 +42,9 @@ if PY3:
     binary_type = bytes
 
     MAXSIZE = sys.maxsize
+
+    from io import StringIO
+    stringIOReplace = StringIO
 else:
     string_types = basestring,
     integer_types = (int, long)

@@ -241,13 +241,18 @@ cdef class artio_fileset :
 
         # particle detection
         if ( artio_fileset_has_particles(self.handle) ):
+            from sys import version
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
-
+	    
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
-                if not self.parameters.has_key(v):
-                    raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
+                if version < '3':
+                    if not self.parameters.has_key(v):
+                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
+                else:
+                    if v not in self.parameters:
+                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
 
             self.num_species = self.parameters['num_particle_species'][0]
             self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
@@ -255,8 +260,12 @@ cdef class artio_fileset :
                 raise MemoryError
             for ispec in range(self.num_species) :
                 species_labels = "species_%02d_primary_variable_labels"% (ispec,)
-                if not self.parameters.has_key(species_labels):
-                    raise RuntimeError("Unable to locate variable labels for species",ispec)
+                if version < '3':
+                    if not self.parameters.has_key(species_labels):
+                        raise RuntimeError("Unable to locate variable labels for species",ispec)
+                else:
+                    if species_labels not in self.parameters:
+                        raise RuntimeError("Unable to locate variable labels for species",ispec)
 
                 labels = self.parameters[species_labels]
                 try :
@@ -288,6 +297,7 @@ cdef class artio_fileset :
         if self.handle : artio_fileset_close(self.handle)
 
     def read_parameters(self) :
+        from sys import version
         cdef char key[64]
         cdef int type
         cdef int length
@@ -300,6 +310,7 @@ cdef class artio_fileset :
         self.parameters = {}
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
+	    
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
@@ -309,6 +320,9 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
+                if version >= '3':
+                    for i in range(0,len(parameter)):
+                        parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
                 int_values = <int32_t *>malloc(length*sizeof(int32_t))
                 artio_parameter_get_int_array( self.handle, key, length, int_values )
@@ -332,7 +346,10 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            self.parameters[key] = parameter
+            if version >= '3':
+                self.parameters[key.decode('utf-8')] = parameter
+            else:
+                self.parameters[key] = parameter
 
     def abox_from_auni(self, np.float64_t a):
         if self.cosmology:

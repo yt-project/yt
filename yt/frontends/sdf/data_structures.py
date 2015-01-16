@@ -14,6 +14,7 @@ Data structures for a generic SDF frontend
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
 import h5py
 import numpy as np
 import stat
@@ -200,11 +201,8 @@ class SDFDataset(Dataset):
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with open(sdf_header, "rt") as f:
-                try:
-                    line = f.read(10).strip()
-                except UnicodeDecodeError:
-                    line = ""
+            with open(sdf_header, "r", encoding = 'ISO-8859-1') as f:
+                line = f.read(10).strip()
         else:
             return False
         return line.startswith("# SDF")
