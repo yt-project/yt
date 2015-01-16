@@ -53,6 +53,7 @@ class IOHandlerAthena(BaseIOHandler):
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
+                offset = int(offset) # Casting to be certain.
                 file_offset = grid.file_offset[2]*read_dims[0]*read_dims[1]*float_size
                 xread = slice(grid.file_offset[0],grid.file_offset[0]+grid_dims[0])
                 yread = slice(grid.file_offset[1],grid.file_offset[1]+grid_dims[1])
