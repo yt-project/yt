@@ -24,6 +24,8 @@ import glob
 import time
 import os
 import types
+import sys
+import contextlib
 
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
@@ -48,7 +50,12 @@ try:
 except ImportError:
     requests = None
 
-
+@contextlib.contextmanager
+def safeopen(*args, **kwargs):
+    if sys.version[0] != '3':
+        kwargs.pop("encoding")
+    with open(*args, **kwargs) as f:
+        yield f
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -201,7 +208,7 @@ class SDFDataset(Dataset):
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with open(sdf_header, "r", encoding = 'ISO-8859-1') as f:
+            with safeopen(sdf_header, "r", encoding = 'ISO-8859-1') as f:
                 line = f.read(10).strip()
         else:
             return False
