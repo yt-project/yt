@@ -210,7 +210,7 @@ cdef class artio_fileset :
         self.sfc_max = self.num_root_cells-1
 
         # initialize cosmology module
-        if self.parameters.has_key("abox"):
+        if "abox" in self.parameters:
             self.cosmology = cosmology_allocate()
             cosmology_set_OmegaM(self.cosmology, self.parameters['OmegaM'][0])
             cosmology_set_OmegaL(self.cosmology, self.parameters['OmegaL'][0])
@@ -248,7 +248,7 @@ cdef class artio_fileset :
 	    
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
                 if version < '3':
-                    if not self.parameters.has_key(v):
+                    if v not in self.parameters:
                         raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
                 else:
                     if v not in self.parameters:
@@ -261,7 +261,7 @@ cdef class artio_fileset :
             for ispec in range(self.num_species) :
                 species_labels = "species_%02d_primary_variable_labels"% (ispec,)
                 if version < '3':
-                    if not self.parameters.has_key(species_labels):
+                    if species_labels not in self.parameters:
                         raise RuntimeError("Unable to locate variable labels for species",ispec)
                 else:
                     if species_labels not in self.parameters:
