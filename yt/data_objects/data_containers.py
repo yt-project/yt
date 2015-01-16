@@ -487,8 +487,8 @@ class YTDataContainer(object):
                 continue
             if isinstance(field, tuple):
                 if len(field) != 2 or \
-                   not isinstance(field[0], str) or \
-                   not isinstance(field[1], str):
+                   not isinstance(field[0], types.StringTypes) or \
+                   not isinstance(field[1], types.StringTypes):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
