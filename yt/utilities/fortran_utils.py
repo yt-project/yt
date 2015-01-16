@@ -23,8 +23,10 @@ import os
 try:
   file
 except NameError:
-  import io
-  file = io.IOBase
+  # What we're doing here is making it always fail, so we read things in and
+  # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
+  # an object is an actual file, reliably.
+  file = None
 
 def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
