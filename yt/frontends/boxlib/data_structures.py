@@ -98,15 +98,14 @@ class BoxlibGrid(AMRGridPatch):
         return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
-    def _seek(self, f):
+    def _get_offset(self, f):
         # This will either seek to the _offset or figure out the correct
         # _offset.
         if self._offset == -1:
             f.seek(self._base_offset, os.SEEK_SET)
             f.readline()
             self._offset = f.tell()
-        else:
-            f.seek(self._offset)
+        return self._offset
 
     # We override here because we can have varying refinement levels
     def select_ires(self, dobj):
