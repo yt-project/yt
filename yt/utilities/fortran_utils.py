@@ -21,12 +21,13 @@ import os
 # This may not be the correct way to do this.  We should investigate what NumPy
 # does.
 try:
-  file
+    file
 except NameError:
-  # What we're doing here is making it always fail, so we read things in and
-  # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
-  # an object is an actual file, reliably.
-  file = None
+    # What we're doing here is making it always fail, so we read things in and
+    # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
+    # an object is an actual file, reliably.
+    class file:
+        pass
 
 def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
