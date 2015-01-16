@@ -256,7 +256,6 @@ class FLASHDataset(Dataset):
                                   self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
-        from sys import version
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
         if nn not in self._handle: raise KeyError(nn)
@@ -272,7 +271,6 @@ class FLASHDataset(Dataset):
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
-        from sys import version
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if "file format version" in self._handle:
@@ -284,7 +282,7 @@ class FLASHDataset(Dataset):
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters
-        hns = [u"simulation parameters"]
+        hns = ["simulation parameters"]
         # note the ordering here is important: runtime parameters should
         # ovewrite scalars with the same name.
         for ptype in ['scalars', 'runtime parameters']:
@@ -296,15 +294,9 @@ class FLASHDataset(Dataset):
                     continue
                 for varname, val in zip(self._handle[hn][:,'name'],
                                         self._handle[hn][:,'value']):
-                    if version < '3':
-                        vn = varname.strip()
-                    else:
-                        vn = varname.strip().decode('utf-8') # JPN
+                    vn = varname.strip()
                     if hn.startswith("string") :
-                        if version < '3':
-                            pval = val.strip()
-                        else:
-                            pval = val.strip().decode('utf-8') # JPN
+                        pval = val.strip()
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
@@ -370,6 +362,7 @@ class FLASHDataset(Dataset):
         if self.dimensionality <= 2: nblockz = 1
         if self.dimensionality == 1: nblocky = 1
 
+        # Determine domain boundaries
         self.domain_left_edge = np.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = np.array(
