@@ -332,52 +332,6 @@ def _update_yt_stack(path):
         print "The yt stack has been updated successfully."
         print "Now get back to work!"
 
-def _update_hg(path, skip_rebuild = False):
-    from mercurial import hg, ui, commands
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    u = ui.ui()
-    u.pushbuffer()
-    config_fn = os.path.join(path, ".hg", "hgrc")
-    print "Reading configuration from ", config_fn
-    u.readconfig(config_fn)
-    repo = hg.repository(u, path)
-    commands.pull(u, repo)
-    f.write(u.popbuffer())
-    f.write("\n\n")
-    u.pushbuffer()
-    commands.identify(u, repo)
-    if "+" in u.popbuffer():
-        print "Can't rebuild modules by myself."
-        print "You will have to do this yourself.  Here's a sample commands:"
-        print
-        print "    $ cd %s" % (path)
-        print "    $ hg up"
-        print "    $ %s setup.py develop" % (sys.executable)
-        return 1
-    print "Updating the repository"
-    f.write("Updating the repository\n\n")
-    commands.update(u, repo, check=True)
-    if skip_rebuild: return
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
-        sys.exit(1)
-    f.write("Successful!\n")
-    print "Updated successfully."
-
-def _get_hg_version(path):
-    from mercurial import hg, ui, commands
-    u = ui.ui()
-    u.pushbuffer()
-    repo = hg.repository(u, path)
-    commands.identify(u, repo)
-    return u.popbuffer()
-
 def get_yt_version():
     try:
         from yt.__hg_version__ import hg_version
@@ -388,7 +342,7 @@ def get_yt_version():
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
     if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = _get_hg_version(path)
+    version = get_hg_version(path)
     return version
 
 # This code snippet is modified from Georg Brandl
@@ -406,37 +360,6 @@ def bb_apicall(endpoint, data, use_pass = True):
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib2.urlopen(req).read()
-
-def _get_yt_supp(uu):
-    supp_path = os.path.join(os.environ["YT_DEST"], "src",
-                             "yt-supplemental")
-    # Now we check that the supplemental repository is checked out.
-    from mercurial import hg, ui, commands
-    if not os.path.isdir(supp_path):
-        print
-        print "*** The yt-supplemental repository is not checked ***"
-        print "*** out.  I can do this for you, but because this ***"
-        print "*** is a delicate act, I require you to respond   ***"
-        print "*** to the prompt with the word 'yes'.            ***"
-        print
-        response = raw_input("Do you want me to try to check it out? ")
-        if response != "yes":
-            print
-            print "Okay, I understand.  You can check it out yourself."
-            print "This command will do it:"
-            print
-            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
-            print "%s" % (supp_path)
-            print
-            sys.exit(1)
-        rv = commands.clone(uu,
-                "http://hg.yt-project.org/yt-supplemental/", supp_path)
-        if rv:
-            print "Something has gone wrong.  Quitting."
-            sys.exit(1)
-    # Now we think we have our supplemental repository.
-    return supp_path
-
 
 class YTBugreportCmd(YTCommand):
     name = "bugreport"
@@ -633,178 +556,6 @@ class YTHubRegisterCmd(YTCommand):
         print "SUCCESS!"
         print
 
-
-class YTHubSubmitCmd(YTCommand):
-    name = "hub_submit"
-    args = (
-            dict(longname="--repo", action="store", type=str,
-                 dest="repo", default=".", help="Repository to upload"),
-           )
-    description = \
-        """
-        Submit a mercurial repository to the yt Hub
-        (http://hub.yt-project.org/), creating a BitBucket repo in the process
-        if necessary.
-        """
-
-    def __call__(self, args):
-        import imp
-        api_key = ytcfg.get("yt","hub_api_key")
-        url = ytcfg.get("yt","hub_url")
-        if api_key == '':
-            print
-            print "You must create an API key before uploading."
-            print "https://data.yt-project.org/getting_started.html"
-            print
-            sys.exit(1)
-        from mercurial import hg, ui, commands, error, config
-        uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        uu = ui.ui()
-        supp_path = _get_yt_supp(uu)
-        try:
-            result = imp.find_module("cedit", [supp_path])
-        except ImportError:
-            print "I was unable to find the 'cedit' module in %s" % (supp_path)
-            print "This may be due to a broken checkout."
-            print "Sorry, but I'm going to bail."
-            sys.exit(1)
-        cedit = imp.load_module("cedit", *result)
-        try:
-            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
-        except ImportError:
-            print "I was unable to find the 'hgbb' module in %s" % (supp_path)
-            print "This may be due to a broken checkout."
-            print "Sorry, but I'm going to bail."
-            sys.exit(1)
-        hgbb = imp.load_module("hgbb", *result)
-        try:
-            repo = hg.repository(uu, args.repo)
-            conf = config.config()
-            if os.path.exists(os.path.join(args.repo,".hg","hgrc")):
-                conf.read(os.path.join(args.repo, ".hg", "hgrc"))
-            needs_bb = True
-            if "paths" in conf.sections():
-                default = conf['paths'].get("default", "")
-                if default.startswith("bb://") or "bitbucket.org" in default:
-                    needs_bb = False
-                    bb_url = default
-                else:
-                    for alias, value in conf["paths"].items():
-                        if value.startswith("bb://") or "bitbucket.org" in value:
-                            needs_bb = False
-                            bb_url = value
-                            break
-        except error.RepoError:
-            print "Unable to find repo at:"
-            print "   %s" % (os.path.abspath(args.repo))
-            print
-            print "Would you like to initialize one?  If this message"
-            print "surprises you, you should perhaps press Ctrl-C to quit."
-            print "Otherwise, type 'yes' at the prompt."
-            print
-            loki = raw_input("Create repo? ")
-            if loki.upper().strip() != "YES":
-                print "Okay, rad -- we'll let you handle it and get back to",
-                print " us."
-                return 1
-            commands.init(uu, dest=args.repo)
-            repo = hg.repository(uu, args.repo)
-            commands.add(uu, repo)
-            commands.commit(uu, repo, message="Initial automated import by yt")
-            needs_bb = True
-        if needs_bb:
-            print
-            print "Your repository is not yet on BitBucket, as near as I can tell."
-            print "Would you like to create a repository there and upload to it?"
-            print "Without this, I don't know what URL to submit!"
-            print
-            print "Type 'yes' to accept."
-            print
-            loki = raw_input("Upload to BitBucket? ")
-            if loki.upper().strip() != "YES": return 1
-            hgrc_path = [cedit.config.defaultpath("user", uu)]
-            hgrc_path = cedit.config.verifypaths(hgrc_path)
-            uu.readconfig(hgrc_path[0])
-            bb_username = uu.config("bb", "username", None)
-            if bb_username is None:
-                print "Can't find your Bitbucket username.  Run the command:"
-                print
-                print "$ yt bootstrap_dev"
-                print
-                print "to get set up and ready to go."
-                return 1
-            bb_repo_name = os.path.basename(os.path.abspath(args.repo))
-            print
-            print "I am now going to create the repository:"
-            print "    ", bb_repo_name
-            print "on BitBucket.org and upload this repository to that."
-            print "If that is not okay, please press Ctrl-C to quit."
-            print
-            loki = raw_input("Press Enter to continue.")
-            data = dict(name=bb_repo_name)
-            hgbb._bb_apicall(uu, 'repositories', data)
-            print
-            print "Created repository!  Now I will set this as the default path."
-            print
-            bb_url = "https://%s@bitbucket.org/%s/%s" % (
-                        bb_username, bb_username, bb_repo_name)
-            cedit.config.addsource(uu, repo, "default", bb_url)
-            commands.push(uu, repo, bb_url)
-            # Now we reset
-            bb_url = "https://bitbucket.org/%s/%s" % (
-                        bb_username, bb_repo_name)
-        if bb_url.startswith("bb://"):
-            bb_username, bb_repo_name = bb_url.split("/")[-2:]
-            bb_url = "https://bitbucket.org/%s/%s" % (
-                bb_username, bb_repo_name)
-        # Now we can submit
-        print
-        print "Okay.  Now we're ready to submit to the Hub."
-        print "Remember, you can go to the Hub at any time at"
-        print " http://hub.yt-project.org/"
-        print
-        print "(Especially if you don't have a user yet!  We can wait.)"
-        print
-
-        categories = {
-            1: "News",
-            2: "Documents",
-            3: "Simulation Management",
-            4: "Data Management",
-            5: "Analysis and Visualization",
-            6: "Paper Repositories",
-            7: "Astrophysical Utilities",
-            8: "yt Scripts"
-        }
-        cat_id = -1
-        while cat_id not in categories:
-            print
-            for i, n in sorted(categories.items()):
-                print "%i. %s" % (i, n)
-            print
-            cat_id = int(raw_input("Which category number does your script fit into? "))
-        print
-        print "What is the title of your submission? (Usually a repository name) "
-        title = raw_input("Title? ")
-        print
-        print "Give us a very brief summary of the project -- enough to get someone"
-        print "interested enough to click the link and see what it's about.  This"
-        print "should be a few sentences at most."
-        print
-        summary = raw_input("Summary? ")
-        print
-        print "Is there a URL that you'd like to point the image to?  Just hit"
-        print "enter if no."
-        print
-        image_url = raw_input("Image URL? ").strip()
-        print
-        print "Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out."
-        print
-        loki = raw_input()
-
-        mpd = MinimalProjectDescription(title, bb_url, summary,
-                categories[cat_id], image_url)
-        mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
