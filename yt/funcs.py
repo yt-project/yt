@@ -459,20 +459,17 @@ class YTEmptyClass(object):
     pass
 
 def update_hg(path, skip_rebuild = False):
-    from mercurial import hg, ui, commands
+    try:
+        import hglib
+    except ImportError:
+        print "Updating requires python-hglib to be installed."
+        print "Try: pip install python-hglib"
+        return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
-    u = ui.ui()
-    u.pushbuffer()
-    config_fn = os.path.join(path, ".hg", "hgrc")
-    print "Reading configuration from ", config_fn
-    u.readconfig(config_fn)
-    repo = hg.repository(u, path)
-    commands.pull(u, repo)
-    f.write(u.popbuffer())
-    f.write("\n\n")
-    u.pushbuffer()
-    commands.identify(u, repo)
-    if "+" in u.popbuffer():
+    repo = hglib.open(path)
+    repo.pull()
+    ident = repo.identify()
+    if "+" in ident:
         print "Can't rebuild modules by myself."
         print "You will have to do this yourself.  Here's a sample commands:"
         print
@@ -482,7 +479,8 @@ def update_hg(path, skip_rebuild = False):
         return 1
     print "Updating the repository"
     f.write("Updating the repository\n\n")
-    commands.update(u, repo, check=True)
+    repo.update(check=True)
+    f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
     if skip_rebuild: return
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
@@ -497,12 +495,14 @@ def update_hg(path, skip_rebuild = False):
     print "Updated successfully."
 
 def get_hg_version(path):
-    from mercurial import hg, ui, commands
-    u = ui.ui()
-    u.pushbuffer()
-    repo = hg.repository(u, path)
-    commands.identify(u, repo)
-    return u.popbuffer()
+    try:
+        import hglib
+    except ImportError:
+        print "Updating requires python-hglib to be installed."
+        print "Try: pip install python-hglib"
+        return -1
+    repo = hglib.open(path)
+    return repo.identify()
 
 def get_yt_version():
     try:
