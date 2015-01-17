@@ -452,16 +452,16 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.level = level
 
         if not iterable(left_edge):
-            left_edge = [left_edge]*self.ds.domensionality
-        if len(left_edge) != data.ds.dimensionality:
+            left_edge = [left_edge]*self.ds.dimensionality
+        if len(left_edge) != self.ds.dimensionality:
             raise RuntimeError(
                 "Length of left_edge must match the dimensionality of the "
                 "dataset")
         self.left_edge = self.ds.arr(left_edge, 'code_length')
 
         if not iterable(dims):
-            dims = [dims]*data.ds.dimensionality
-        if len(dims) != data.ds.dimensionality:
+            dims = [dims]*self.ds.dimensionality
+        if len(dims) != self.ds.dimensionality:
             raise RuntimeError(
                 "Length of dims must match the dimensionality of the dataset")
         self.ActiveDimensions = np.array(dims, dtype='int32')
