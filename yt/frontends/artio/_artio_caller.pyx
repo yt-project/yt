@@ -311,7 +311,7 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
-                if version == '3':
+                if version[0] == '3':
                     for i in range(0,len(parameter)):
                         parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
@@ -337,7 +337,7 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            if version == '3':
+            if version[0] == '3':
                 self.parameters[key.decode('utf-8')] = parameter
             else:
                 self.parameters[key] = parameter
