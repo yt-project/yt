@@ -241,18 +241,13 @@ cdef class artio_fileset :
 
         # particle detection
         if ( artio_fileset_has_particles(self.handle) ):
-            from sys import version
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
 	    
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
-                if version < '3':
-                    if v not in self.parameters:
-                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
-                else:
-                    if v not in self.parameters:
-                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
+                if v not in self.parameters:
+                    raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
 
             self.num_species = self.parameters['num_particle_species'][0]
             self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
@@ -260,12 +255,8 @@ cdef class artio_fileset :
                 raise MemoryError
             for ispec in range(self.num_species) :
                 species_labels = "species_%02d_primary_variable_labels"% (ispec,)
-                if version < '3':
-                    if species_labels not in self.parameters:
-                        raise RuntimeError("Unable to locate variable labels for species",ispec)
-                else:
-                    if species_labels not in self.parameters:
-                        raise RuntimeError("Unable to locate variable labels for species",ispec)
+                if species_labels not in self.parameters:
+                    raise RuntimeError("Unable to locate variable labels for species",ispec)
 
                 labels = self.parameters[species_labels]
                 try :
@@ -320,7 +311,7 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
-                if version >= '3':
+                if version == '3':
                     for i in range(0,len(parameter)):
                         parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
@@ -346,7 +337,7 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            if version >= '3':
+            if version == '3':
                 self.parameters[key.decode('utf-8')] = parameter
             else:
                 self.parameters[key] = parameter
