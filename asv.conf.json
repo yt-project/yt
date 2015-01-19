@@ -11,7 +11,7 @@
 
     // The URL of the source code repository for the project being
     // benchmarked
-    "repo": "ssh://hg@bitbucket.org/yt_analysis/yt/",
+    "repo": "hg+https://bitbucket.org/yt_analysis/yt/",
 
     // The tool to use to create environments.  May be "conda",
     // "virtualenv" or other value depending on the plugins in use.
