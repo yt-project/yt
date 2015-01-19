@@ -20,10 +20,11 @@ class Suite:
             self.field_name = "Density"
         # Warmup hdd
         self.ad[self.field_name]
-        mi, ma = self.ad.quantities['Extrema'](self.field_name)
         if yt.__version__.startswith('3'):
+            mi, ma = self.ad.quantities['Extrema'](self.field_name)
             self.tf = yt.ColorTransferFunction((np.log10(mi)+1, np.log10(ma)))
         else:
+            mi, ma = self.ad.quantities['Extrema'](self.field_name)[0]
             self.tf = ColorTransferFunction((np.log10(mi)+1, np.log10(ma)))
         self.tf.add_layers(5, w=0.02, colormap="spectral")
         self.c = [0.5, 0.5, 0.5]
