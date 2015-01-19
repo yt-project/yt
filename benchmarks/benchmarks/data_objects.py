@@ -8,10 +8,12 @@ class TimeSuite:
         self.time_projection()
 
     def time_slice(self):
-        self.ds.slice(2, 0.5)
+        sl = self.ds.slice(2, 0.5)
+        sl["density"]
 
     def time_projection(self):
         self.ds.proj("density", "z")
 
     def time_sphere(self):
-        self.ds.sphere([0.5, 0.5, 0.5], (2, 'kpc'))
+        sp = self.ds.sphere([0.5, 0.5, 0.5], (2, 'kpc'))
+        sp["density"]
