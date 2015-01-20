@@ -180,8 +180,14 @@ class BaseIOHandler(object):
                 my_ind = ind[field_f]
                 #mylog.debug("Filling %s from %s to %s with %s",
                 #    field_f, my_ind, my_ind+vals.shape[0], field_r)
-                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
-                ind[field_f] += vals.shape[0]
+                try:
+                    rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                    ind[field_f] += vals.shape[0]
+                except ValueError:
+                    # This is raised if there are no particles inside 
+                    # the data object
+                    rv[field_f] = []
+                    return rv
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
         for field_f in ind:
