@@ -89,7 +89,20 @@ def load(*args ,**kwargs):
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
+
+    if len(candidates) == 2:
+        # Check to see if one of the candidates is a subclass of the other, if
+        # so return the subclass.
+        c0 = output_type_registry[candidates[0]]
+        c1 = output_type_registry[candidates[1]]
+
+        if issubclass(c0, c1):
+            return output_type_registry[candidates[0]](*args, **kwargs)
+        if issubclass(c1, c0):
+            return output_type_registry[candidates[1]](*args, **kwargs)
+
         raise YTOutputNotIdentified(args, kwargs)
+
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
@@ -139,11 +152,11 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
         valid_file = True
     else:
         valid_file = False
-        
+
     if not valid_file:
-        raise YTOutputNotIdentified((parameter_filename, simulation_type), 
+        raise YTOutputNotIdentified((parameter_filename, simulation_type),
                                     dict(find_outputs=find_outputs))
-    
-    return simulation_time_series_registry[simulation_type](parameter_filename, 
+
+    return simulation_time_series_registry[simulation_type](parameter_filename,
                                                             find_outputs=find_outputs)
 
