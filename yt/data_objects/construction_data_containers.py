@@ -421,8 +421,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         The left edge of the region to be extracted
     dims : array_like
         Number of cells along each axis of resulting covering_grid
-    fields : array_like, optional
-        A list of fields that you'd like pre-generated for your object
+    fields : deprecated
+        This keyword argument is non-functional and deprecated. It is maintained
+        for API backward compatibility.
 
     Examples
     --------
