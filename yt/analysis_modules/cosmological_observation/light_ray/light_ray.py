@@ -20,14 +20,16 @@ import numpy as np
 from yt.funcs import *
 
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
-     CosmologySplice
+    CosmologySplice
 from yt.convenience import load
+from yt.utilities.cosmology import \
+    Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
 from yt.utilities.physical_constants import \
-     speed_of_light_cgs, \
-     cm_per_km
+    speed_of_light_cgs, \
+    cm_per_km
 
 class LightRay(CosmologySplice):
     """
@@ -86,8 +88,8 @@ class LightRay(CosmologySplice):
         Default: False.
 
     """
-    def __init__(self, parameter_filename, simulation_type,
-                 near_redshift, far_redshift,
+    def __init__(self, dataset,
+                 near_redshift=None, far_redshift=None,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
@@ -102,15 +104,41 @@ class LightRay(CosmologySplice):
         self.light_ray_solution = []
         self._data = {}
 
-        # Get list of datasets for light ray solution.
-        CosmologySplice.__init__(self, parameter_filename, simulation_type,
-                                 find_outputs=find_outputs)
-        self.light_ray_solution = \
-          self.create_cosmology_splice(self.near_redshift, self.far_redshift,
-                                       minimal=self.use_minimum_datasets,
-                                       deltaz_min=self.deltaz_min,
-                                       time_data=time_data,
-                                       redshift_data=redshift_data)
+        # If the datasets should come from a simulation time-series,
+        # instantiate as such and figure out which datasets are required.
+        if isinstance(dataset, (list, tuple)):
+            if len(dataset) == 2:
+                parameter_filename, simulation_type = tuple(dataset)
+            else:
+                raise RuntimeError("ERROR: dataset argument must only have " +
+                                   "2 values if given as a tuple or list.")
+
+            self.parameter_filename = parameter_filename
+            # Get list of datasets for light ray solution.
+            CosmologySplice.__init__(self, parameter_filename, simulation_type,
+                                     find_outputs=find_outputs)
+            self.light_ray_solution = \
+              self.create_cosmology_splice(self.near_redshift, self.far_redshift,
+                                           minimal=self.use_minimum_datasets,
+                                           deltaz_min=self.deltaz_min,
+                                           time_data=time_data,
+                                           redshift_data=redshift_data)
+
+        # Make a light ray from a single, given dataset.
+        else:
+            ds = load(dataset)
+            if ds.cosmological_simulation:
+                redshift = ds.current_redshift
+                self.cosmology = Cosmology(
+                    hubble_constant=ds.hubble_constant,
+                    omega_matter=ds.omega_matter,
+                    omega_lambda=ds.omega_lambda,
+                    unit_registry=ds.unit_registry)
+            else:
+                redshift = 0.
+            self.parameter_filename = dataset
+            self.light_ray_solution.append({"filename": dataset,
+                                            "redshift": redshift})
 
     def _calculate_light_ray_solution(self, seed=None, 
                                       start_position=None, end_position=None,
@@ -212,7 +240,7 @@ class LightRay(CosmologySplice):
                        trajectory=None,
                        fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       get_los_velocity=True,
+                       get_los_velocity=True, redshift=None,
                        njobs=-1):
         """
         Create a light ray and get field values for each lixel.  A light
@@ -305,6 +333,12 @@ class LightRay(CosmologySplice):
             # Load dataset for segment.
             ds = load(my_segment['filename'])
 
+            if redshift is not None:
+                if ds.cosmological_simulation and redshift != ds.current_redshift:
+                    mylog.warn("Generating light ray with different redshift than " +
+                               "the dataset itself.")
+                my_segment["redshift"] = redshift
+
             if setup_function is not None:
                 setup_function(ds)
             
@@ -313,12 +347,14 @@ class LightRay(CosmologySplice):
             my_segment["end"] = ds.domain_width * my_segment["end"] + \
                 ds.domain_left_edge
 
-            if self.near_redshift == self.far_redshift:
+            if not ds.cosmological_simulation:
+                next_redshift = my_segment["redshift"]
+            elif self.near_redshift == self.far_redshift:
                 next_redshift = my_segment["redshift"] - \
                   self._deltaz_forward(my_segment["redshift"], 
                                        ds.domain_width[0].in_units("Mpccm / h") *
                                        my_segment["traversal_box_fraction"])
-            elif my_segment['next'] is None:
+            elif my_segment.get("next") is None:
                 next_redshift = self.near_redshift
             else:
                 next_redshift = my_segment['next']['redshift']
