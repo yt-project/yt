@@ -108,15 +108,14 @@ class LightRay(CosmologySplice):
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
+        self.parameter_filename = parameter_filename
 
         self.light_ray_solution = []
         self._data = {}
 
-        self.parameter_filename = parameter_filename
-
         # Make a light ray from a single, given dataset.        
         if simulation_type is None:
-            ds = load(dataset)
+            ds = load(parameter_filename)
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
                 self.cosmology = Cosmology(
@@ -126,8 +125,7 @@ class LightRay(CosmologySplice):
                     unit_registry=ds.unit_registry)
             else:
                 redshift = 0.
-            self.parameter_filename = dataset
-            self.light_ray_solution.append({"filename": dataset,
+            self.light_ray_solution.append({"filename": parameter_filename,
                                             "redshift": redshift})
 
         # Make a light ray from a simulation time-series.
@@ -304,9 +302,9 @@ class LightRay(CosmologySplice):
         Make a light ray from multiple datasets:
         
         >>> import yt
-        >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import \
+        >>> from yt.analysis_modules.cosmological_observation.light_ray.api import \
         ...     LightRay
-        >>> my_ray = LightRay("enzo_tiny_simulation/32Mpc_32.enzo", "Enzo",
+        >>> my_ray = LightRay("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo",
         ...                   0., 0.1, time_data=False)
         ...
         >>> my_ray.make_light_ray(seed=12345,
@@ -318,9 +316,9 @@ class LightRay(CosmologySplice):
         Make a light ray from a single dataset:
 
         >>> import yt
-        >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import \
+        >>> from yt.analysis_modules.cosmological_observation.light_ray.api import \
         ...     LightRay
-        >>> my_ray = LightRay("enzo_tiny_simulation/DD0040/DD0040")
+        >>> my_ray = LightRay("enzo_tiny_cosmology/DD0040/DD0040")
         ...
         >>> my_ray.make_light_ray(start_position=[0., 0., 0.],
         ...                       end_position=[1., 1., 1.],
