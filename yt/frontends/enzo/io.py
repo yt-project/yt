@@ -265,6 +265,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             rv.update(self._read_particle_selection(
               [chunk], selector, particle_fields))
         if len(fluid_fields) == 0: return rv
+        h5_type = self._field_dtype
         for g in chunk.objs:
             rv[g.id] = gf = {}
             if g.id in self._cached_fields:
@@ -276,7 +277,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if fid is None:
                 fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
                 fn = g.filename
-            data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+            data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
             data_view = data.swapaxes(0,2)
             for field in fluid_fields:
                 if field in gf:
