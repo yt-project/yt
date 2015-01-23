@@ -40,6 +40,8 @@ class LightRay(CosmologySplice):
     randomly oriented single rays.  The purpose of these is to create
     synthetic QSO lines of sight.
 
+    Light rays can also be made from single datasets.
+    
     Once the LightRay object is set up, use LightRay.make_light_ray to
     begin making rays.  Different randomizations can be created with a
     single object by providing different random seeds to make_light_ray.
@@ -47,26 +49,32 @@ class LightRay(CosmologySplice):
     Parameters
     ----------
     parameter_filename : string
-        The simulation dataset.
-    simulation_type : string
-        The simulation type.
-    near_redshift : float
-        The near (lowest) redshift for the light ray.
-    far_redshift : float
-        The far (highest) redshift for the light ray.  NOTE: in order 
-        to use only a single dataset in a light ray, set the 
-        near_redshift and far_redshift to be the same.
-    use_minimum_datasets : bool
+        The path to the simulation parameter file or dataset.
+    simulation_type : optional, string
+        The simulation type.  If None, the first argument is assumed to 
+        refer to a single dataset.
+        Default: None
+    near_redshift : optional, float
+        The near (lowest) redshift for a light ray containing multiple 
+        datasets.  Do not use is making a light ray from a single 
+        dataset.
+        Default: None
+    far_redshift : optional, float
+        The far (highest) redshift for a light ray containing multiple 
+        datasets.  Do not use is making a light ray from a single 
+        dataset.
+        Default: None
+    use_minimum_datasets : optional, bool
         If True, the minimum number of datasets is used to connect the
         initial and final redshift.  If false, the light ray solution
         will contain as many entries as possible within the redshift
         interval.
         Default: True.
-    deltaz_min : float
+    deltaz_min : optional, float
         Specifies the minimum :math:`\Delta z` between consecutive
         datasets in the returned list.
         Default: 0.0.
-    minimum_coherent_box_fraction : float
+    minimum_coherent_box_fraction : optional, float
         Used with use_minimum_datasets set to False, this parameter
         specifies the fraction of the total box size to be traversed
         before rerandomizing the projection axis and center.  This
@@ -74,15 +82,15 @@ class LightRay(CosmologySplice):
         coherent large scale structure, but in practice does not work
         so well.  Try setting this parameter to 1 and see what happens.
         Default: 0.0.
-    time_data : bool
+    time_data : optional, bool
         Whether or not to include time outputs when gathering
         datasets for time series.
         Default: True.
-    redshift_data : bool
+    redshift_data : optional, bool
         Whether or not to include redshift outputs when gathering
         datasets for time series.
         Default: True.
-    find_outputs : bool
+    find_outputs : optional, bool
         Whether or not to search for datasets in the current 
         directory.
         Default: False.
@@ -244,42 +252,48 @@ class LightRay(CosmologySplice):
 
         Parameters
         ----------
-        seed : int
+        seed : optional, int
             Seed for the random number generator.
             Default: None.
-        start_position : list of floats
+        start_position : optional, list of floats
             Used only if creating a light ray from a single dataset.
             The coordinates of the starting position of the ray.
             Default: None.
-        end_position : list of floats
+        end_position : optional, list of floats
             Used only if creating a light ray from a single dataset.
             The coordinates of the ending position of the ray.
             Default: None.
-        trajectory : list of floats
+        trajectory : optional, list of floats
             Used only if creating a light ray from a single dataset.
             The (r, theta, phi) direction of the light ray.  Use either 
             end_position or trajectory, not both.
             Default: None.
-        fields : list
+        fields : optional, list
             A list of fields for which to get data.
             Default: None.
-        setup_function : callable, accepts a ds
+        setup_function : optional, callable, accepts a ds
             This function will be called on each dataset that is loaded 
             to create the light ray.  For, example, this can be used to 
             add new derived fields.
             Default: None.
-        solution_filename : string
+        solution_filename : optional, string
             Path to a text file where the trajectories of each
             subray is written out.
             Default: None.
-        data_filename : string
+        data_filename : optional, string
             Path to output file for ray data.
             Default: None.
-        get_los_velocity : bool
+        get_los_velocity : optional, bool
             If True, the line of sight velocity is calculated for
             each point in the ray.
             Default: True.
-        njobs : int
+        redshift : optional, float
+            Used with light rays made from single datasets to specify a 
+            starting redshift for the ray.  If not used, the starting 
+            redshift will be 0 for a non-cosmological dataset and 
+            the dataset redshift for a cosmological dataset.
+            Default: None.
+        njobs : optional, int
             The number of parallel jobs over which the segments will 
             be split.  Choose -1 for one processor per segment.
             Default: -1.
@@ -287,16 +301,32 @@ class LightRay(CosmologySplice):
         Examples
         --------
 
-        >>> from yt.mods import *
+        Make a light ray from multiple datasets:
+        
+        >>> import yt
         >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import \
         ...     LightRay
-        >>> my_ray = LightRay('enzo_tiny_simulation/32Mpc_32.enzo', 'Enzo',
+        >>> my_ray = LightRay("enzo_tiny_simulation/32Mpc_32.enzo", "Enzo",
         ...                   0., 0.1, time_data=False)
         ...
         >>> my_ray.make_light_ray(seed=12345,
-        ...                       solution_filename='solution.txt',
-        ...                       data_filename='my_ray.h5',
-        ...                       fields=['temperature', 'density'],
+        ...                       solution_filename="solution.txt",
+        ...                       data_filename="my_ray.h5",
+        ...                       fields=["temperature", "density"],
+        ...                       get_los_velocity=True)
+
+        Make a light ray from a single dataset:
+
+        >>> import yt
+        >>> from yt.analysis_modules.cosmological_analysis.light_ray.api import \
+        ...     LightRay
+        >>> my_ray = LightRay("enzo_tiny_simulation/DD0040/DD0040")
+        ...
+        >>> my_ray.make_light_ray(start_position=[0., 0., 0.],
+        ...                       end_position=[1., 1., 1.],
+        ...                       solution_filename="solution.txt",
+        ...                       data_filename="my_ray.h5",
+        ...                       fields=["temperature", "density"],
         ...                       get_los_velocity=True)
         
         """
