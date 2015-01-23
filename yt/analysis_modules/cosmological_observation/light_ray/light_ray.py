@@ -17,19 +17,19 @@ import copy
 import h5py
 import numpy as np
 
-from yt.funcs import *
-
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
     CosmologySplice
-from yt.convenience import load
+from yt.convenience import \
+    load
+from yt.funcs import \
+    mylog
+from yt.units.yt_array import \
+    YTArray
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
-from yt.utilities.physical_constants import \
-    speed_of_light_cgs, \
-    cm_per_km
 
 class LightRay(CosmologySplice):
     """
@@ -88,7 +88,7 @@ class LightRay(CosmologySplice):
         Default: False.
 
     """
-    def __init__(self, dataset,
+    def __init__(self, parameter_filename, simulation_type=None,
                  near_redshift=None, far_redshift=None,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
@@ -104,28 +104,10 @@ class LightRay(CosmologySplice):
         self.light_ray_solution = []
         self._data = {}
 
-        # If the datasets should come from a simulation time-series,
-        # instantiate as such and figure out which datasets are required.
-        if isinstance(dataset, (list, tuple)):
-            if len(dataset) == 2:
-                parameter_filename, simulation_type = tuple(dataset)
-            else:
-                raise RuntimeError("ERROR: dataset argument must only have " +
-                                   "2 values if given as a tuple or list.")
+        self.parameter_filename = parameter_filename
 
-            self.parameter_filename = parameter_filename
-            # Get list of datasets for light ray solution.
-            CosmologySplice.__init__(self, parameter_filename, simulation_type,
-                                     find_outputs=find_outputs)
-            self.light_ray_solution = \
-              self.create_cosmology_splice(self.near_redshift, self.far_redshift,
-                                           minimal=self.use_minimum_datasets,
-                                           deltaz_min=self.deltaz_min,
-                                           time_data=time_data,
-                                           redshift_data=redshift_data)
-
-        # Make a light ray from a single, given dataset.
-        else:
+        # Make a light ray from a single, given dataset.        
+        if simulation_type is None:
             ds = load(dataset)
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
@@ -139,6 +121,18 @@ class LightRay(CosmologySplice):
             self.parameter_filename = dataset
             self.light_ray_solution.append({"filename": dataset,
                                             "redshift": redshift})
+
+        # Make a light ray from a simulation time-series.
+        else:
+            # Get list of datasets for light ray solution.
+            CosmologySplice.__init__(self, parameter_filename, simulation_type,
+                                     find_outputs=find_outputs)
+            self.light_ray_solution = \
+              self.create_cosmology_splice(self.near_redshift, self.far_redshift,
+                                           minimal=self.use_minimum_datasets,
+                                           deltaz_min=self.deltaz_min,
+                                           time_data=time_data,
+                                           redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None, 
                                       start_position=None, end_position=None,
