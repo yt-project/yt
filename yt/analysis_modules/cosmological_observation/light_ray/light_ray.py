@@ -318,7 +318,7 @@ class LightRay(CosmologySplice):
         >>> import yt
         >>> from yt.analysis_modules.cosmological_observation.light_ray.api import \
         ...     LightRay
-        >>> my_ray = LightRay("enzo_tiny_cosmology/DD0040/DD0040")
+        >>> my_ray = LightRay("IsolatedGalaxy/galaxy0030/galaxy0030")
         ...
         >>> my_ray.make_light_ray(start_position=[0., 0., 0.],
         ...                       end_position=[1., 1., 1.],
