@@ -319,7 +319,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(nim, px, py, colors, 24, flip=1)
+        lines(nim.d, px.d, py.d, colors, 24, flip=1)
 
         return nim
 
