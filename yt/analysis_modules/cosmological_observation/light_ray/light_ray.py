@@ -376,7 +376,7 @@ class LightRay(CosmologySplice):
                   self._deltaz_forward(my_segment["redshift"], 
                                        ds.domain_width[0].in_units("Mpccm / h") *
                                        my_segment["traversal_box_fraction"])
-            elif my_segment.get("next") is None:
+            elif my_segment.get("next", None) is None:
                 next_redshift = self.near_redshift
             else:
                 next_redshift = my_segment['next']['redshift']
