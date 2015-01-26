@@ -27,9 +27,9 @@ def prep_dirs():
         os.symlink(directory, os.path.basename(directory))
 
 
-def run_receipe((receipe,)):
-    module_name, ext = os.path.splitext(os.path.basename(receipe))
-    dest = os.path.join(os.path.dirname(receipe), '_static', module_name)
+def run_recipe((recipe,)):
+    module_name, ext = os.path.splitext(os.path.basename(recipe))
+    dest = os.path.join(os.path.dirname(recipe), '_static', module_name)
     if module_name in BLACKLIST:
         return 0
     if not os.path.exists("%s/_temp/%s.done" % (CWD, module_name)):
@@ -39,15 +39,15 @@ def run_receipe((receipe,)):
         prep_dirs()
         if module_name in PARALLEL_TEST:
             cmd = ["mpiexec", "-n", PARALLEL_TEST[module_name],
-                   "python", receipe]
+                   "python", recipe]
         else:
-            cmd = ["python", receipe]
+            cmd = ["python", recipe]
         try:
             subprocess.check_call(cmd)
         except:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
             trace += " in module: %s\n" % module_name
-            trace += " receipe: %s\n" % receipe
+            trace += " recipe: %s\n" % recipe
             raise Exception(trace)
         open("%s/_temp/%s.done" % (CWD, module_name), 'wb').close()
         for pattern in FPATTERNS:
@@ -70,12 +70,12 @@ for path in ['_temp', 'source/cookbook/_static',
     os.makedirs(fpath)
 
 os.chdir('_temp')
-receipes = []
+recipes = []
 for rpath in ['source/cookbook', 'source/visualizing/colormaps']:
     fpath = os.path.join(CWD, rpath)
     sys.path.append(fpath)
-    receipes += glob.glob('%s/*.py' % fpath)
+    recipes += glob.glob('%s/*.py' % fpath)
 WPOOL = Pool(processes=6)
-RES = WPOOL.map_async(run_receipe, ((receipe,) for receipe in receipes))
+RES = WPOOL.map_async(run_recipe, ((recipe,) for recipe in recipes))
 RES.get()
 os.chdir(CWD)
