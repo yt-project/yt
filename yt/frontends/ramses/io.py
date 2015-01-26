@@ -78,6 +78,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                     x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8")
                                for ax in 'xyz')
                     mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None:
+                       mask = []
                     for field in field_list:
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
