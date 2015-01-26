@@ -117,22 +117,6 @@ class OWLSFieldInfo(SPHFieldInfo):
         #-----------------------------------------------------
         if ptype == 'PartType0':
 
-            loaded = []
-            for s in self._elements:
-                for sfx in smoothed_suffixes:
-                    fname = s + sfx
-                    fn = add_volume_weighted_smoothed_field( 
-                        ptype, "particle_position", "particle_mass",
-                        "smoothing_length", "density", fname, self,
-                        self._num_neighbors)
-                    loaded += fn
-
-                    self.alias(("gas", fname), fn[0])
-
-            self._show_field_errors += loaded
-            self.find_dependencies(loaded)
-
-
             # we only add ion fields for gas.  this takes some 
             # time as the ion abundances have to be interpolated
             # from cloudy tables (optically thin)
