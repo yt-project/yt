@@ -317,7 +317,11 @@ class GadgetHDF5Dataset(GadgetDataset):
                          os.path.basename(self.parameter_filename).split(".", 1)[0]))
 
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        if self.parameters["NumFiles"] > 1:
+            self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        else:
+            self.filename_template = self.parameter_filename
+
         self.file_count = self.parameters["NumFilesPerSnapshot"]
 
     def _set_owls_eagle_units(self):
