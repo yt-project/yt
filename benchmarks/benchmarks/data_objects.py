@@ -34,10 +34,12 @@ class Suite:
 
     if yt.__version__.startswith('3'):
         def time_load_all_data(self):
-            self.ds.all_data()
+            dd = self.ds.all_data()
+            dd[self.field_name]
     else:
         def time_load_all_data(self):
             self.ds.h.all_data()
+            dd[self.field_name]
 
     def time_extrema_quantities(self):
         self.ad.quantities['Extrema'](self.field_name)
