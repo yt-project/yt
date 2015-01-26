@@ -17,7 +17,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 from yt.funcs import mylog
-import cPickle
+from yt.extern.six.moves import cPickle
 import os
 import h5py
 import numpy as np

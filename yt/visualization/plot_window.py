@@ -4,6 +4,7 @@ A plotting mechanism based on the idea of a "window" into the data.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -882,7 +883,7 @@ class PWViewerMPL(PlotWindow):
             parser = MathTextParser('Agg')
             try:
                 parser.parse(colorbar_label)
-            except ParseFatalException, err:
+            except ParseFatalException as err:
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
 
             self.plots[f].cb.set_label(colorbar_label)
@@ -1594,7 +1595,7 @@ class PWViewerExtJS(PlotWindow):
         nn = ((px**2.0 + py**2.0)**0.5).max()
         px /= nn
         py /= nn
-        print scale, px.min(), px.max(), py.min(), py.max()
+        print(scale, px.min(), px.max(), py.min(), py.max())
         ax.quiver(x, y, px, py, scale=float(vi)/skip)
 
     def get_ticks(self, field, height = 400):
@@ -1635,7 +1636,7 @@ class PWViewerExtJS(PlotWindow):
         dy = (self.ylim[1] - self.ylim[0]) / img_size_y
         new_x = img_x * dx + self.xlim[0]
         new_y = img_y * dy + self.ylim[0]
-        print img_x, img_y, dx, dy, new_x, new_y
+        print(img_x, img_y, dx, dy, new_x, new_y)
         self.set_center((new_x, new_y))
 
     def get_field_units(self, field, strip_mathml = True):

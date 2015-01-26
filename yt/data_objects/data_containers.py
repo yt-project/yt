@@ -168,7 +168,7 @@ class YTDataContainer(object):
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
             self.center.convert_to_units('code_length')
-        elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
+        elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
                 self.center = self.ds.arr([c.in_cgs() for c in center])
                 self.center.convert_to_units('code_length')
@@ -191,7 +191,7 @@ class YTDataContainer(object):
         This is typically only used by derived field functions, but
         it returns parameters used to generate fields.
         """
-        if self.field_parameters.has_key(name):
+        if name in self.field_parameters:
             return self.field_parameters[name]
         else:
             return default
@@ -207,7 +207,7 @@ class YTDataContainer(object):
         """
         Checks if a field parameter is set.
         """
-        return self.field_parameters.has_key(name)
+        return name in self.field_parameters
 
     def convert(self, datatype):
         """
@@ -226,7 +226,7 @@ class YTDataContainer(object):
         """
         Checks if a data field already exists.
         """
-        return self.field_data.has_key(key)
+        return key in self.field_data
 
     def keys(self):
         return self.field_data.keys()
@@ -252,9 +252,9 @@ class YTDataContainer(object):
         # when there are, for example, no elements in the object.
         rv = self.field_data.get(f, None)
         if rv is None:
-            if isinstance(f, types.TupleType):
+            if isinstance(f, tuple):
                 fi = self.ds._get_field_info(*f)
-            elif isinstance(f, types.StringType):
+            elif isinstance(f, bytes):
                 fi = self.ds._get_field_info("unknown", f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
@@ -485,7 +485,7 @@ class YTDataContainer(object):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
-            if isinstance(field, types.TupleType):
+            if isinstance(field, tuple):
                 if len(field) != 2 or \
                    not isinstance(field[0], types.StringTypes) or \
                    not isinstance(field[1], types.StringTypes):
@@ -1317,7 +1317,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
         for item in self.regions:
-            if isinstance(item, types.StringType): continue
+            if isinstance(item, bytes): continue
             self._all_regions.append(item)
             # So cut_masks don't get messed up.
             item._boolean_touched = True

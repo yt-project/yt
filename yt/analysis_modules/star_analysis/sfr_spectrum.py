@@ -4,6 +4,7 @@ StarAnalysis - Functions to analyze stars.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -108,7 +109,7 @@ class StarFormationRate(object):
           if self.mode == 'data_source':
             ct = self._data_source['creation_time']
             if ct == None :
-                print 'data source must have particle_age!'
+                print('data source must have particle_age!')
                 sys.exit(1)
             #type = self._data_source['particle_type']
             ct_stars = ct[ct>0]

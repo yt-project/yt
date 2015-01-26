@@ -4,6 +4,7 @@ This is a place for base classes of the various plot types.
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -12,8 +13,8 @@ This is a place for base classes of the various plot types.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from io import BytesIO
 import matplotlib
-from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -145,7 +146,7 @@ class ImagePlotMPL(PlotMPL):
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = StringIO()
+        f = BytesIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
@@ -290,7 +291,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
         fudge_x = 1.0
         fudge_y = ny/(cbar_padding+ny)
     fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    from _mpl_imports import FigureCanvasAgg
+    from ._mpl_imports import FigureCanvasAgg
     fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,

@@ -575,7 +575,7 @@ class ImagePlotContainer(object):
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType):
+            if isinstance(k, tuple):
                 k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))

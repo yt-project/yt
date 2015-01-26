@@ -50,7 +50,7 @@ def _get_data_file(data_file=None):
                    (data_url, data_dir))
         fn = download_file(os.path.join(data_url, data_file), data_path)
         if fn != data_path:
-            raise RuntimeError, "Failed to download supplementary data."
+            raise RuntimeError("Failed to download supplementary data.")
     return data_path
 
 class EnergyBoundsException(YTException):

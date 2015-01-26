@@ -5,6 +5,7 @@ Data structures for Gadget frontend
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -42,7 +43,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], types.StringTypes):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -108,7 +109,7 @@ class GadgetDataset(ParticleDataset):
         super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
-        if isinstance(spec, types.StringTypes):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]

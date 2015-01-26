@@ -15,7 +15,7 @@ Geometry container base class.
 #-----------------------------------------------------------------------------
 
 import os
-import cPickle
+from yt.extern.six.moves import cPickle
 import weakref
 import h5py
 import numpy as np
@@ -268,7 +268,7 @@ class Index(ParallelAnalysisInterface):
             raise NotImplementedError
 
 def cached_property(func):
-    n = '_%s' % func.func_name
+    n = '_%s' % func.__name__
     def cached_func(self):
         if self._cache and getattr(self, n, None) is not None:
             return getattr(self, n)
@@ -402,7 +402,7 @@ class ChunkDataCache(object):
         if len(self.queue) == 0:
             for i in range(self.max_length):
                 try:
-                    self.queue.append(self.base_iter.next())
+                    self.queue.append(next(self.base_iter))
                 except StopIteration:
                     break
             # If it's still zero ...

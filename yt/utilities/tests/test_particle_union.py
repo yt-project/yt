@@ -1,3 +1,4 @@
+from __future__ import print_function
 import yt
 from yt.testing import *
 from yt.data_objects.particle_filters import add_particle_filter
@@ -22,4 +23,4 @@ def test_particle_filter() :
     ds = yt.load(iso_galaxy)
     ds.add_particle_filter('stars')
     ad = ds.all_data()
-    print ad['deposit', 'stars_cic']
+    print(ad['deposit', 'stars_cic'])

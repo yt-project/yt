@@ -166,7 +166,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, types.StringTypes) and args[0] != "":
+            if not isinstance(units, str) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:
@@ -282,7 +282,7 @@ class FieldInfoContainer(dict):
         # This gets used a lot
         if key in self: return True
         if self.fallback is None: return False
-        return self.fallback.has_key(key)
+        return key in self.fallback
 
     def __missing__(self, key):
         if self.fallback is None:

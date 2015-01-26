@@ -364,7 +364,7 @@ class SZProjection(object):
             if vmin < 0 and vmax < 0:
                 data *= -1
                 negative = True                                        
-            if log_fields.has_key(field):
+            if field in log_fields:
                 log_field = log_fields[field]
             else:
                 log_field = True

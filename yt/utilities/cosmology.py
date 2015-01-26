@@ -4,6 +4,7 @@ Cosmology calculator based originally on http://www.kempner.net/cosmic.php
 and featuring time and redshift conversion functions from Enzo..
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013-2014, yt Development Team.
@@ -434,7 +435,7 @@ class Cosmology(object):
                 if (np.fabs(eta-eta_old) < ETA_TOLERANCE): 
                     break
                 if (i == 39):
-                    print "No convergence after %d iterations." % i
+                    print("No convergence after %d iterations." % i)
  
             # Now use eta to compute the expansion factor (eq. 13-10, part 2).
  
@@ -446,7 +447,7 @@ class Cosmology(object):
  
         if ((self.omega_matter > 1) and 
             (self.omega_lambda < OMEGA_TOLERANCE)):
-            print "Never implemented in Enzo, not implemented here."
+            print("Never implemented in Enzo, not implemented here.")
             return 0
  
         # 4) For flat universe, with non-zero omega_lambda, see eq. 13-20.

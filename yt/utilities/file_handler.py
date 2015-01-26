@@ -16,11 +16,12 @@ A wrapper class for h5py file objects.
 import h5py
 
 class HDF5FileHandler(object):
+    handle = None
     def __init__(self, filename):
         self.handle = h5py.File(filename, 'r')
 
     def __del__(self):
-        if hasattr(self, 'handle'):
+        if self.handle is not None:
             self.handle.close()
 
     def __getitem__(self, key):

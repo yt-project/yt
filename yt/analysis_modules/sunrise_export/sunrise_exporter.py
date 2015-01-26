@@ -4,6 +4,7 @@ Code to export from yt to Sunrise
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -130,10 +131,10 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
 
     for (num_halos, domain, halos) in domains_list:
         dle,dre = domain
-        print 'exporting: '
-        print "[%03i %03i %03i] -"%tuple(dle),
-        print "[%03i %03i %03i] "%tuple(dre),
-        print " with %i halos"%num_halos
+        print('exporting: ')
+        print("[%03i %03i %03i] -"%tuple(dle), end=' ')
+        print("[%03i %03i %03i] "%tuple(dre), end=' ')
+        print(" with %i halos"%num_halos)
         dle,dre = domain
         dle, dre = np.array(dle),np.array(dre)
         fn = fni 
@@ -259,9 +260,9 @@ def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
     pbar.finish()
     #by time we get it here the 'current' position is actually 
     #for the next spot, so we're off by 1
-    print 'took %1.2e seconds'%(time.time()-start_time)
-    print 'refinement tree # of cells %i, # of leaves %i'%(pos.refined_pos,pos.output_pos) 
-    print 'first few entries :',refined[:12]
+    print('took %1.2e seconds'%(time.time()-start_time))
+    print('refinement tree # of cells %i, # of leaves %i'%(pos.refined_pos,pos.output_pos)) 
+    print('first few entries :',refined[:12])
     output  = output[:pos.output_pos]
     refined = refined[:pos.refined_pos] 
     levels = levels[:pos.refined_pos] 
@@ -285,7 +286,7 @@ def print_oct(data,nd=None,nc=None):
     txt += '%+1.3f '*3+'- '
     txt += '%+1.3f '*3
     if l<2:
-        print txt%((l,)+(o,)+tuple(fle)+tuple(fre))
+        print(txt%((l,)+(o,)+tuple(fle)+tuple(fre)))
 
 def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the [grid_index]
                             pos, #the output hydro data position and refinement position

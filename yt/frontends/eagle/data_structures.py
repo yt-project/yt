@@ -5,6 +5,7 @@ Data structures for EAGLE frontend.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
