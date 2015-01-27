@@ -418,7 +418,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
     left_edge : array_like
-        The left edge of the region to be extracted
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
     dims : array_like
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
@@ -457,7 +458,11 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             raise RuntimeError(
                 "Length of left_edge must match the dimensionality of the "
                 "dataset")
-        self.left_edge = self.ds.arr(left_edge, 'code_length')
+        if hasattr(left_edge, 'units'):
+            le_units = left_edge.units
+        else:
+            le_units = 'code_length'
+        self.left_edge = self.ds.arr(left_edge, le_units)
 
         if not iterable(dims):
             dims = [dims]*self.ds.dimensionality
