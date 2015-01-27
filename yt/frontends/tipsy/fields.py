@@ -5,6 +5,7 @@ Tipsy fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -14,8 +15,7 @@ Tipsy fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.frontends.sph.fields import SPHFieldInfo
 
 class TipsyFieldInfo(SPHFieldInfo):
     aux_particle_fields = {

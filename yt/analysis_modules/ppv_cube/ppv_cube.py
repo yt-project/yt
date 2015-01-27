@@ -24,7 +24,7 @@ from yt.funcs import iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only, parallel_objects
 import re
-import ppv_utils
+from . import ppv_utils
 from yt.funcs import is_root
 
 def create_vlos(normal, no_shifting):

@@ -196,7 +196,7 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = just_one(field_conv)
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
-                if isinstance(field_units, types.StringTypes):
+                if isinstance(field_units, str):
                     current_field_units = current_field.attrs['field_units']
                 else:
                     current_field_units = \

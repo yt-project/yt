@@ -6,6 +6,7 @@ compare parent/child relationships.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -36,7 +37,7 @@ import numpy as np
 import h5py
 import time
 import pdb
-import cPickle
+from yt.extern.six.moves import cPickle
 import glob
 
 from yt.funcs import *
@@ -471,15 +472,15 @@ class EnzoFOFMergerTree(object):
         """
         for lvl in sorted(self.levels, reverse=True):
             if lvl not in self.redshifts: continue
-            print "========== Cycle %5.5d (z=%f) ==========" % \
-                  (lvl, self.redshifts[lvl])
+            print("========== Cycle %5.5d (z=%f) ==========" % \
+                  (lvl, self.redshifts[lvl]))
             for br in self.levels[lvl]:
-                print "Parent halo = %d" % br.halo_id
-                print "--> Most massive progenitor == Halo %d" % \
-                      (br.progenitor)
+                print("Parent halo = %d" % br.halo_id)
+                print("--> Most massive progenitor == Halo %d" % \
+                      (br.progenitor))
                 for i,c in enumerate(br.children):
                     if i > self.max_children: break
-                    print "-->    Halo %8.8d :: fraction = %g" % (c[0], c[1])
+                    print("-->    Halo %8.8d :: fraction = %g" % (c[0], c[1]))
 
     def save_halo_evolution(self, filename):
         """

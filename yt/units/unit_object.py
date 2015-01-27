@@ -145,7 +145,10 @@ class Unit(Expr):
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         unit_key = None
-        if isinstance(unit_expr, basestring):
+        if isinstance(unit_expr, (str, bytes, unicode)):
+            if isinstance(unit_expr, bytes):
+                unit_expr = unit_expr.decode("utf-8")
+
             if registry and unit_expr in registry.unit_objs:
                 return registry.unit_objs[unit_expr]
             else:
@@ -550,7 +553,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
 
             if symbol_str not in latex_symbol_lut:
                 if possible_prefix in latex_prefixes:
-                    sstr = symbol_str.replace(possible_prefix, 
+                    sstr = symbol_str.replace(possible_prefix,
                                               '{'+latex_prefixes[possible_prefix]+'}')
                 else:
                     sstr = symbol_str
