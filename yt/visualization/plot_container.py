@@ -663,7 +663,7 @@ class ImagePlotContainer(object):
         x_title: str
               The new string for the x-axis.
 
-        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -680,7 +680,7 @@ class ImagePlotContainer(object):
         label: str
           The new string for the y-axis.
 
-        >>>  plot.set_ytitle("Temperature (K)")
+        >>>  plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -698,7 +698,7 @@ class ImagePlotContainer(object):
         label: str
           The new label
 
-        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label
