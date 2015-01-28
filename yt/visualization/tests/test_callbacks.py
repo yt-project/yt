@@ -4,6 +4,7 @@ Tests for callbacks
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +17,7 @@ import os, tempfile, shutil
 from yt.testing import \
     fake_amr_ds
 import yt.units as u
-from test_plotwindow import assert_fname
+from .test_plotwindow import assert_fname
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 import contextlib

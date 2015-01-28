@@ -155,10 +155,10 @@ class TestFieldAccess(object):
 
 def test_all_fields():
     for field in sorted(base_ds.field_info):
-        if not isinstance(field, types.TupleType):
+        if not isinstance(field, tuple):
             field = ("unknown", field)
         finfo = base_ds._get_field_info(*field)
-        if isinstance(field, types.TupleType):
+        if isinstance(field, tuple):
             fname = field[0]
         else:
             fname = field

@@ -36,21 +36,22 @@ def load(*args ,**kwargs):
     """
     if len(args) == 0:
         try:
-            import Tkinter, tkFileDialog
+            from yt.extern.six.moves import tkinter
+            import tkinter, tkFileDialog
         except ImportError:
             raise YTOutputNotIdentified(args, kwargs)
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
         if filename != None:
             return load(filename)
         else:
             raise YTOutputNotIdentified(args, kwargs)
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
+    args = [os.path.expanduser(arg) if isinstance(arg, str)
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
-        if isinstance(arg, types.StringTypes):
+        if isinstance(arg, str):
             if os.path.exists(arg):
                 valid_file.append(True)
             elif arg.startswith("http"):
@@ -81,7 +82,7 @@ def load(*args ,**kwargs):
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
-           and isinstance(args[0], types.StringTypes):
+           and isinstance(args[0], str):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"

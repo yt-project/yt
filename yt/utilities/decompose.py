@@ -47,7 +47,7 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
     nd_arr = np.array(n_d, dtype=np.float64)[mask]
     bsize = int(np.sum(ldom[mask] / nd_arr * np.product(nd_arr)))
     load_balance = float(np.product(n_d)) / \
-        (float(pieces) * np.product((n_d - 1) / ldom + 1))
+        (float(pieces) * np.product((n_d - 1) // ldom + 1))
 
     # 0.25 is magic number
     quality = load_balance / (1 + 0.25 * (bsize / ideal_bsize - 1.0))
@@ -123,8 +123,8 @@ def split_array(gle, gre, shape, psize):
         for j in range(psize[1]):
             for k in range(psize[2]):
                 piece = np.array((i, j, k), dtype=np.int64)
-                lei = n_d * piece / psize
-                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
+                lei = n_d * piece // psize
+                rei = n_d * (piece + np.ones(3, dtype=np.int64)) // psize
                 lle = gle + lei*dds
                 lre = gle + rei*dds
                 left_edges.append(lle)

@@ -1,4 +1,4 @@
-import cStringIO
+from yt.extern.six.moves import cStringIO
 import re
 import os
 import numpy as np

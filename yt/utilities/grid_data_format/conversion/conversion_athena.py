@@ -1,8 +1,10 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import os
 import weakref
 import numpy as np
 import h5py as h5
-from conversion_abc import *
+from .conversion_abc import *
 from glob import glob
 from collections import \
     defaultdict
@@ -104,7 +106,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
 
-            print 'Reading file %s' % fn
+            print('Reading file %s' % fn)
             f = open(fn,'rb')
             grid = {}
             grid['read_field'] = None
@@ -129,8 +131,8 @@ class AthenaDistributedConverter(Converter):
                 grid['dimensions'] -= 1
                 grid['dimensions'][grid['dimensions']==0]=1
             if np.prod(grid['dimensions']) != grid['ncells']:
-                print 'product of dimensions %i not equal to number of cells %i' % \
-                      (np.prod(grid['dimensions']), grid['ncells'])
+                print('product of dimensions %i not equal to number of cells %i' % \
+                      (np.prod(grid['dimensions']), grid['ncells']))
                 raise TypeError
 
             # Append all hierachy info before reading this grid's data
@@ -231,8 +233,8 @@ class AthenaDistributedConverter(Converter):
                         grid_dims -= 1
                         grid_dims[grid_dims==0]=1
                     if np.prod(grid_dims) != grid_ncells:
-                        print 'product of dimensions %i not equal to number of cells %i' % \
-                              (np.prod(grid_dims), grid_ncells)
+                        print('product of dimensions %i not equal to number of cells %i' % \
+                              (np.prod(grid_dims), grid_ncells))
                         raise TypeError
                     break
                 else:
@@ -365,8 +367,8 @@ class AthenaConverter(Converter):
             if np.prod(grid['dimensions']) != grid['ncells']:
                 grid['dimensions'] -= 1
             if np.prod(grid['dimensions']) != grid['ncells']:
-                print 'product of dimensions %i not equal to number of cells %i' % \
-                      (np.prod(grid['dimensions']), grid['ncells'])
+                print('product of dimensions %i not equal to number of cells %i' % \
+                      (np.prod(grid['dimensions']), grid['ncells']))
                 raise TypeError
 
             if grid['read_type'] is 'scalar':

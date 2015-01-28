@@ -13,7 +13,7 @@ import numpy as np
 import os
 import stat
 import weakref
-import cStringIO
+from yt.extern.six.moves import cStringIO
 import difflib
 import glob
 
