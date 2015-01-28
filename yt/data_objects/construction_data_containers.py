@@ -418,7 +418,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
     left_edge : array_like
-        The left edge of the region to be extracted
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
     dims : array_like
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
@@ -448,10 +449,28 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self,
             center, ds, field_parameters)
-        self.left_edge = self.ds.arr(left_edge, 'code_length')
+
         self.level = level
 
+        if not iterable(left_edge):
+            left_edge = [left_edge]*self.ds.dimensionality
+        if len(left_edge) != self.ds.dimensionality:
+            raise RuntimeError(
+                "Length of left_edge must match the dimensionality of the "
+                "dataset")
+        if hasattr(left_edge, 'units'):
+            le_units = left_edge.units
+        else:
+            le_units = 'code_length'
+        self.left_edge = self.ds.arr(left_edge, le_units)
+
+        if not iterable(dims):
+            dims = [dims]*self.ds.dimensionality
+        if len(dims) != self.ds.dimensionality:
+            raise RuntimeError(
+                "Length of dims must match the dimensionality of the dataset")
         self.ActiveDimensions = np.array(dims, dtype='int32')
+
         rdx = self.ds.domain_dimensions*self.ds.relative_refinement(0, level)
         rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.base_dds = self.ds.domain_width / self.ds.domain_dimensions
@@ -459,10 +478,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = np.rint((self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
+        self.global_startindex = np.rint(
+            (self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
         self.domain_width = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
+        self.get_data(fields)
 
     @property
     def icoords(self):
