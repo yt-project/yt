@@ -46,6 +46,11 @@ def test_d9p():
                         dobj_name)
 
 
+    ad = ds.all_data()
+    ANANStars = 6255
+    yield assert_equal, ad[('stars','particle_type')].size, ANANStars
+    yield assert_equal, ad[('specie4', 'particle_type')].size, ANANStars
+
 @requires_file(d9p)
 def test_ARTDataset():
     assert isinstance(data_dir_load(d9p), ARTDataset)
