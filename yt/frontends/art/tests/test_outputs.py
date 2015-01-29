@@ -69,6 +69,17 @@ def test_d9p():
     ANANCells = 4087490
     yield assert_equal, ds.ncell, ANANCells
 
+    ANATotDMMass = yt.units.yt_array.YTQuantity(1.01191786811e+14,'Msun')
+    ANATotStarMass = yt.units.yt_array.YTQuantity(1.776251e+6,'Msun')
+    ANATotGasMass = yt.units.yt_array.YTQuantity(1.781994e+13,'Msun')
+    yield assert_almost_equal, ad[('darkmatter','particle_mass')].sum()\
+        .in_units('Msun'), ANATotDMMass
+    yield assert_almost_equal, ad[('stars','particle_mass')].sum()\
+        .in_units('Msun'), ANATotStarMass
+    yield assert_almost_equal, ad[('art','Density')].sum()\
+        .in_units('Msun/Mpc**3') * Volume, ANATotGasMass
+
+
 
 @requires_file(d9p)
 def test_ARTDataset():
