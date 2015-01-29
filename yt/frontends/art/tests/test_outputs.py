@@ -58,6 +58,14 @@ def test_d9p():
         ad[('specie2', 'particle_type')].size + \
         ad[('specie3', 'particle_type')].size, ANANDM
 
+    ANABoxSize = yt.units.yt_array.YTQuantity(7.1442196564,'Mpc')
+    ANAVolume = yt.units.yt_array.YTQuantity(364.640074656,'Mpc**3')
+    Volume = 1
+    for i in ds.domain_width.in_units('Mpc'):
+        yield assert_equal, i, ANABoxSize
+        Volume *= i
+    yield assert_almost_equal, Volume, ANAVolume
+
 @requires_file(d9p)
 def test_ARTDataset():
     assert isinstance(data_dir_load(d9p), ARTDataset)
