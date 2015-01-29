@@ -62,9 +62,13 @@ def test_d9p():
     ANAVolume = yt.units.yt_array.YTQuantity(364.640074656,'Mpc**3')
     Volume = 1
     for i in ds.domain_width.in_units('Mpc'):
-        yield assert_equal, i, ANABoxSize
+        yield assert_almost_equal, i, ANABoxSize
         Volume *= i
     yield assert_almost_equal, Volume, ANAVolume
+
+    ANANCells = 4087490
+    yield assert_equal, ds.ncell, ANANCells
+
 
 @requires_file(d9p)
 def test_ARTDataset():
