@@ -50,6 +50,13 @@ def test_d9p():
     ANANStars = 6255
     yield assert_equal, ad[('stars','particle_type')].size, ANANStars
     yield assert_equal, ad[('specie4', 'particle_type')].size, ANANStars
+    ANANDM = 2833405
+    yield assert_equal, ad[('darkmatter','particle_type')].size, ANANDM
+    yield assert_equal, ad[('darkmatter','particle_type')].size, ANANDM
+    yield assert_equal, ad[('specie0', 'particle_type')].size + \
+        ad[('specie1', 'particle_type')].size + \
+        ad[('specie2', 'particle_type')].size + \
+        ad[('specie3', 'particle_type')].size, ANANDM
 
 @requires_file(d9p)
 def test_ARTDataset():
