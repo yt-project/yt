@@ -300,7 +300,7 @@ function host_specific
         echo "  * patch"
         echo 
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
