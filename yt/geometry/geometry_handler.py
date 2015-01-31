@@ -18,8 +18,6 @@ import os
 import cPickle
 import weakref
 import h5py
-from exceptions import IOError, TypeError
-from types import ClassType
 import numpy as np
 import abc
 import copy
@@ -40,14 +38,15 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
+    """The base index class"""
     _global_mesh = True
     _unsupported_objects = ()
     _index_properties = ()
 
-    def __init__(self, pf, dataset_type):
+    def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
-        self.parameter_file = weakref.proxy(pf)
-        self.pf = self.parameter_file
+        self.dataset = weakref.proxy(ds)
+        self.ds = self.dataset
 
         self._initialize_state_variables()
 
@@ -73,19 +72,18 @@ class Index(ParallelAnalysisInterface):
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
-        self._max_locations = {}
         self.num_grids = None
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('yt','serialize'): return
-        fn = self.pf.storage_filename
+        fn = self.ds.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.pf.unique_identifier)):
-                fn = os.path.join(self.directory,"%s.yt" % self.pf.unique_identifier)
+                                "%s.yt" % self.ds.unique_identifier)):
+                fn = os.path.join(self.directory,"%s.yt" % self.ds.unique_identifier)
             else:
                 fn = os.path.join(self.directory,
-                        "%s.yt" % self.parameter_file.basename)
+                        "%s.yt" % self.dataset.basename)
         dir_to_check = os.path.dirname(fn)
         if dir_to_check == '':
             dir_to_check = '.'
@@ -124,7 +122,7 @@ class Index(ParallelAnalysisInterface):
 
     def _setup_data_io(self):
         if getattr(self, "io", None) is not None: return
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
     @parallel_root_only
     def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
@@ -176,7 +174,7 @@ class Index(ParallelAnalysisInterface):
             return
         obj = cPickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the pf
+            obj = obj[1] # Just the object, not the ds
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
         return obj
 
@@ -216,40 +214,37 @@ class Index(ParallelAnalysisInterface):
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
-            else:
+            elif fname in self.ds.derived_field_list or (ftype, fname) in self.ds.derived_field_list:
                 fields_to_generate.append((ftype, fname))
+            else:
+                raise YTFieldNotFound((ftype,fname), self.ds)
         return fields_to_read, fields_to_generate
 
     def _read_particle_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
-        selector = dobj.selector
-        if chunk is None:
-            self._identify_base_chunk(dobj)
-        fields_to_return = {}
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
+        selector = dobj.selector
+        if chunk is None:
+            self._identify_base_chunk(dobj)
         fields_to_return = self.io._read_particle_selection(
             self._chunk_io(dobj, cache = False),
             selector,
             fields_to_read)
-        for field in fields_to_read:
-            ftype, fname = field
-            finfo = self.pf._get_field_info(*field)
         return fields_to_return, fields_to_generate
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
             chunk_size = dobj.size
         else:
             chunk_size = chunk.data_size
-        fields_to_return = {}
-        fields_to_read, fields_to_generate = self._split_fields(fields)
-        if len(fields_to_read) == 0:
-            return {}, fields_to_generate
         fields_to_return = self.io._read_fluid_selection(
             self._chunk_io(dobj),
             selector,
@@ -319,7 +314,7 @@ class YTDataChunk(object):
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -345,7 +340,7 @@ class YTDataChunk(object):
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:

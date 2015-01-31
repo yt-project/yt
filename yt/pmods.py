@@ -119,8 +119,8 @@ The import hook provides a way to test whether we're using this
 importer, which can be used to disable rank-asymmetric behavior in a
 module import:
 
-import __builtin__
-hasattr(__builtin__.__import__,"mpi_import")
+from yt.extern.six.moves import builtins
+hasattr(builtins.__import__,"mpi_import")
 
 This evaluates to True only when we're in an mpi_import() context
 manager.
@@ -141,8 +141,8 @@ def f():
 
 # Either importer is None (standard import) or it's a reference to
 # the mpi_import object that owns the current importer.
-import __builtin__
-importer = getattr(__builtin__.__import__,"mpi_import",None)
+from yt.extern.six.moves import builtins
+importer = getattr(builtins.__import__,"mpi_import",None)
 if importer:
     importer.callAfterImport(f)
 else:
@@ -192,7 +192,8 @@ class mpi(object):
  more information about the level parameter, run 'help(__import__)'.
 """
 
-import sys, imp, __builtin__,types
+import sys, imp, types
+from yt.extern.six.moves import builtins
 from mpi4py import MPI
 class mpi(object):
     rank = MPI.COMM_WORLD.Get_rank()
@@ -205,11 +206,11 @@ class mpi_import(object):
         imp.acquire_lock()
         __import_hook__.mpi_import = self
         self.__funcs = []
-        self.original_import = __builtin__.__import__
-        __builtin__.__import__ = __import_hook__
+        self.original_import = builtins.__import__
+        builtins.__import__ = __import_hook__
 
     def __exit__(self,type,value,traceback):
-        __builtin__.__import__ = self.original_import
+        builtins.__import__ = self.original_import
         __import_hook__.mpi_import = None
         imp.release_lock()
         for f in self.__funcs:

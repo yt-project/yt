@@ -1,8 +1,5 @@
 """
 Test for Volume Rendering Lenses.
-
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -12,48 +9,57 @@ Test for Volume Rendering Lenses.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.mods import *
-from yt.testing import \
-    fake_random_pf
-from yt.visualization.volume_rendering.scene import Scene
-from yt.visualization.volume_rendering.camera import Camera
-from yt.visualization.volume_rendering.render_source import VolumeSource
+import yt
+from yt.testing import fake_random_ds
+from yt.visualization.volume_rendering.api import Scene, Camera, VolumeSource
 from time import time
+field = ("gas", "density")
 
-#pf = fake_random_pf(8)
-#w = (pf.domain_width[0]*30).in_units('code_length')
-#sc = Scene()
-#cam = Camera(pf, lens_type='perspective')
-#print "WIDTH: ", w
-#cam.set_width(w)
-#vol = VolumeSource(pf, field=('gas', 'density'))
-#sc.set_default_camera(cam)
-#sc.add_source(vol)
-#
-#t = -time()
-#sc.render('test_perspective.png', clip_ratio=None)
-#t += time()
-#print 'Total time: %e' % t
+def test_prospective_lens():
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    w = (ds.domain_width*30).in_units('code_length')
+    w = ds.arr(w, 'code_length')
+    sc = Scene()
+    cam = Camera(ds, lens_type='perspective')
+    cam.set_width(w)
+    vol = VolumeSource(ds, field=field)
+    tf = vol.transfer_function
+    tf.grey_opacity = True
+    sc.set_default_camera(cam)
+    sc.add_source(vol)
+    sc.render('test_perspective_%s.png' % field[1], clip_ratio=6.0)
 
-pf = load('/home/skillman/kipac/data/IsolatedGalaxy/galaxy0030/galaxy0030')
-ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 100)
-sc = Scene()
-cam = Camera(pf, lens_type='fisheye')
-cam.lens.fov=180.0
-cam.resolution=(512,512)
-cam.set_width(1.0)
-v,c = pf.find_max('density')
-p = pf.domain_center.copy()
-cam.set_position(c)
-#pf.field_info[('gas','density')].take_log=False
-vol = VolumeSource(pf, field=('gas', 'density'))
-tf = vol.transfer_function
-tf.grey_opacity=True
-#tf.map_to_colormap(tf.x_bounds[0], tf.x_bounds[1], scale=3000.0, colormap='RdBu')
-sc.set_default_camera(cam)
-sc.add_source(vol)
+def test_fisheye_lens():
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    dd = ds.sphere(ds.domain_center, ds.domain_width[0] / 10)
+    sc = Scene()
+    cam = Camera(dd, lens_type='fisheye')
+    cam.lens.fov = 360.0
+    cam.set_width(ds.domain_width)
+    v, c = ds.find_max('density')
+    p = ds.domain_center.copy()
+    cam.set_position(c-0.0005*ds.domain_width)
+    vol = VolumeSource(dd, field=field)
+    tf = vol.transfer_function
+    tf.grey_opacity = True
+    sc.set_default_camera(cam)
+    sc.add_source(vol)
+    sc.render('test_fisheye_%s.png' % field[1], clip_ratio=6.0)
 
-t = -time()
-sc.render('test_fisheye.png', clip_ratio=6.0)
-t += time()
-print 'Total time: %e' % t
+def test_plane_lens():
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    dd = ds.sphere(ds.domain_center, ds.domain_width[0] / 10)
+    sc = Scene()
+    cam = Camera(dd, lens_type='plane-parallel')
+    cam.set_width(ds.domain_width*1e-2)
+    v, c = ds.find_max('density')
+    p = ds.domain_center.copy()
+    vol = VolumeSource(dd, field=field)
+    tf = vol.transfer_function
+    tf.grey_opacity = True
+    sc.set_default_camera(cam)
+    sc.add_source(vol)
+    sc.render('test_plane_%s.png' % field[1], clip_ratio=6.0)

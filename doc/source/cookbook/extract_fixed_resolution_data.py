@@ -1,28 +1,33 @@
-from yt.mods import *
+import yt
 
 # For this example we will use h5py to write to our output file.
 import h5py
 
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 level = 2
-dims = pf.domain_dimensions * pf.refine_by**level
+dims = ds.domain_dimensions * ds.refine_by**level
 
-# Now, we construct an object that describes the data region and structure we
-# want
-cube = pf.covering_grid(2, # The level we are willing to extract to; higher
-                             # levels than this will not contribute to the data!
-                          left_edge=[0.0, 0.0, 0.0], 
-                          # And any fields to preload (this is optional!)
-                          dims = dims,
-                          fields=["density"])
+# We construct an object that describes the data region and structure we want
+# In this case, we want all data up to the maximum "level" of refinement 
+# across the entire simulation volume.  Higher levels than this will not 
+# contribute to our covering grid.
+cube = ds.covering_grid(level,  
+                        left_edge=[0.0, 0.0, 0.0],
+                        dims=dims,
+                        # And any fields to preload (this is optional!)
+                        fields=["density"])
 
 # Now we open our output file using h5py
-# Note that we open with 'w' which will overwrite existing files!
-f = h5py.File("my_data.h5", "w") 
+# Note that we open with 'w' (write), which will overwrite existing files!
+f = h5py.File("my_data.h5", "w")
 
-# We create a dataset at the root note, calling it density...
+# We create a dataset at the root, calling it "density"
 f.create_dataset("/density", data=cube["density"])
 
 # We close our file
 f.close()
+
+# If we want to then access this datacube in the h5 file, we can now...
+f = h5py.File("my_data.h5", "r")
+print f["density"].value

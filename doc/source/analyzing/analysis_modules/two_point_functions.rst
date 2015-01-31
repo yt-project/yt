@@ -5,6 +5,14 @@ Two Point Functions
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.7
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the two point function analysis module is not
+    currently functional.  This functionality is still available in
+    :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`,
+    help is needed to port them over.  Contact the yt-users mailing list if you
+    are interested in doing this.
+
 The Two Point Functions framework (TPF) is capable of running several
 multi-dimensional two point functions simultaneously on a dataset using
 memory and workload parallelism.
@@ -19,8 +27,7 @@ Requirements
 
 The TPF relies on the Fortran kD-tree that is used
 by the parallel HOP halo finder. The kD-tree is not built by default with yt
-so it must be built by hand. Please follow the instructions on how to build it,
-see :ref:`fkd_setup`.
+so it must be built by hand.
 
 Quick Example
 -------------
@@ -35,7 +42,7 @@ step.
     from yt.mods import *
     from yt.analysis_modules.two_point_functions.api import *
     
-    pf = load("data0005")
+    ds = load("data0005")
     
     # Calculate the S in RMS velocity difference between the two points.
     # All functions have five inputs. The first two are containers
@@ -55,7 +62,7 @@ step.
     # the number of pairs of points to calculate, how big a data queue to
     # use, the range of pair separations and how many lengths to use, 
     # and how to divide that range (linear or log).
-    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z"],
+    tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -90,7 +97,7 @@ Here is an abbreviated example:
 
     from yt.mods import *
     ...
-    tpf = amods.two_point_functions.TwoPointFunctions(pf, ...)
+    tpf = amods.two_point_functions.TwoPointFunctions(ds, ...)
 
 
 Probability Distribution Function
@@ -261,12 +268,12 @@ Create the Two Point Function Generator Object
 Before any functions can be added, the ``TwoPointFunctions`` object needs
 to be created. It has these inputs:
 
-  * ``pf`` (the only required input and is always the first term).
+  * ``ds`` (the only required input and is always the first term).
   * Field list, required, an ordered list of field names used by the
     functions. The order in this list will need to be referenced when writing
     functions. Derived fields may be used here if they are defined first.
   * ``left_edge``, ``right_edge``, three-element lists of floats:
-    Used to define a sub-region of the full volume in which to run the TPF.
+    Used to define a sub-region of the full volume in which to run the TDS.
     Default=None, which is equivalent to running on the full volume. Both must
     be set to have any effect.
   * ``total_values``, integer: The number of random points to generate globally
@@ -298,7 +305,7 @@ to be created. It has these inputs:
     guarantees that the point pairs will be in different cells for the most 
     refined regions.
     If the first term of the list is -1, the minimum length will be automatically
-    set to sqrt(3)*dx, ex: ``length_range = [-1, 10/pf['kpc']]``.
+    set to sqrt(3)*dx, ex: ``length_range = [-1, 10/ds['kpc']]``.
   * ``vol_ratio``, integer: How to multiply-assign subvolumes to the parallel
     tasks. This number must be an integer factor of the total number of tasks or
     very bad things will happen. The default value of 1 will assign one task
@@ -639,7 +646,7 @@ requires a gas density of at least 1e-26 g cm^-3 at each point:
       return vdiff
     
     ...
-    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z", "density"],
+    tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -667,7 +674,7 @@ the same time as the velocity differences.
     from yt.mods import *
     from yt.analysis_modules.two_point_functions.api import *
     
-    pf = load("data0005")
+    ds = load("data0005")
     
     # Calculate the S in RMS velocity difference between the two points.
     # Also store the ratio of densities (keeping them >= 1).
@@ -688,7 +695,7 @@ the same time as the velocity differences.
     # Set the number of pairs of points to calculate, how big a data queue to
     # use, the range of pair separations and how many lengths to use, 
     # and how to divide that range (linear or log).
-    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z", "density"],
+    tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -765,7 +772,7 @@ This script can be run in parallel.
     from yt.analysis_modules.two_point_functions.api import *
     
     # Specify the dataset on which we want to base our work.
-    pf = load('data0005')
+    ds = load('data0005')
     
     # Read in the halo centers of masses.
     CoM = []
@@ -787,7 +794,7 @@ This script can be run in parallel.
     # For technical reasons (hopefully to be fixed someday) `vol_ratio`
     # needs to be equal to the number of tasks used if this is run
     # in parallel. A value of -1 automatically does this.
-    tpf = TwoPointFunctions(pf, ['x'],
+    tpf = TwoPointFunctions(ds, ['x'],
         total_values=1e7, comm_size=10000, 
         length_number=11, length_range=[2*radius, .5],
         length_type="lin", vol_ratio=-1)
@@ -868,11 +875,11 @@ the volume of the cells.
     from yt.analysis_modules.two_point_functions.api import *
     
     # Specify the dataset on which we want to base our work.
-    pf = load('data0005')
+    ds = load('data0005')
     
     # We work in simulation's units, these are for conversion.
-    vol_conv = pf['cm'] ** 3
-    sm = pf.index.get_smallest_dx()**3
+    vol_conv = ds['cm'] ** 3
+    sm = ds.index.get_smallest_dx()**3
     
     # Our density limit, in gm/cm**3
     dens = 2e-31
@@ -887,13 +894,13 @@ the volume of the cells.
         return d.sum()
     add_quantity("TotalNumDens", function=_NumDens,
         combine_function=_combNumDens, n_ret=1)
-    all = pf.h.all_data()
+    all = ds.all_data()
     n = all.quantities["TotalNumDens"]()
     
     print n,'n'
     
     # Instantiate our TPF object.
-    tpf = TwoPointFunctions(pf, ['density', 'cell_volume'],
+    tpf = TwoPointFunctions(ds, ['density', 'cell_volume'],
         total_values=1e5, comm_size=10000, 
         length_number=11, length_range=[-1, .5],
         length_type="lin", vol_ratio=1)

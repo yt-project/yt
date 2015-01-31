@@ -13,7 +13,7 @@ Import the components of the volume rendering extension
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
+from yt.extern.six.moves import builtins
 import numpy as np
 
 from yt.funcs import *
@@ -98,9 +98,9 @@ class Camera(ParallelAnalysisInterface):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    pf : `~yt.data_objects.api.Dataset`
+    ds : `~yt.data_objects.api.Dataset`
         For now, this is a require parameter!  But in the future it will become
-        optional.  This is the parameter file to volume render.
+        optional.  This is the dataset to volume render.
     use_kd: bool, optional
         Specifies whether or not to use a kd-Tree framework for
         the Homogenized Volume and ray-casting.  Default to True.
@@ -120,25 +120,22 @@ class Camera(ParallelAnalysisInterface):
     data_source: data container, optional
         Optionally specify an arbitrary data source to the volume rendering.
         All cells not included in the data source will be ignored during ray
-        casting. By default this will get set to pf.h.all_data().
+        casting. By default this will get set to ds.all_data().
 
     Examples
     --------
 
-    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
-    >>> image = cam.snapshot()
-
     >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
-    
-    >>> pf = EnzoDataset('DD1701') # Load pf
+
+    >>> ds = load('DD1701') # Load a dataset
     >>> c = [0.5]*3 # Center
     >>> L = [1.0,1.0,1.0] # Viewpoint
     >>> W = np.sqrt(3) # Width
     >>> N = 1024 # Pixels (1024^2)
 
     # Get density min, max
-    >>> mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+    >>> mi, ma = ds.all_data().quantities['Extrema']('Density')[0]
     >>> mi, ma = np.log10(mi), np.log10(ma)
 
     # Construct transfer function
@@ -147,7 +144,7 @@ class Camera(ParallelAnalysisInterface):
     >>> tf.add_layers(5,w=0.05, col_bounds = (mi+1,ma), colormap='spectral')
     
     # Create the camera object
-    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function=tf, pf=pf) 
+    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function=tf, ds=ds)
     
     # Ray cast, and save the image.
     >>> image = cam.snapshot(fn='my_rendering.png')
@@ -162,27 +159,27 @@ class Camera(ParallelAnalysisInterface):
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
                  log_fields = None,
-                 sub_samples = 5, pf = None,
+                 sub_samples = 5, ds = None,
                  min_level=None, max_level=None, no_ghost=True,
                  data_source=None,
                  use_light=False):
         ParallelAnalysisInterface.__init__(self)
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         if not iterable(resolution):
             resolution = (resolution, resolution)
         self.resolution = resolution
         self.sub_samples = sub_samples
         self.rotation_vector = north_vector
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = self.pf.quan(width[0], input_units=width[1])
+            width = self.ds.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length").value
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         if not isinstance(width, YTArray):
-            width = self.pf.arr(width, input_units="code_length")
+            width = self.ds.arr(width, input_units="code_length")
         if not isinstance(center, YTArray):
-            center = self.pf.arr(center, input_units="code_length")
+            center = self.ds.arr(center, input_units="code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
@@ -193,10 +190,10 @@ class Camera(ParallelAnalysisInterface):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self.log_fields = log_fields
-        dd = self.pf.h.all_data()
+        dd = self.ds.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
+            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
@@ -205,11 +202,11 @@ class Camera(ParallelAnalysisInterface):
             mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
 
         if data_source is None:
-            data_source = self.pf.h.all_data()
+            data_source = self.ds.all_data()
         self.data_source = data_source
 
         if volume is None:
-            volume = AMRKDTree(self.pf, min_level=min_level, 
+            volume = AMRKDTree(self.ds, min_level=min_level, 
                                max_level=max_level, data_source=self.data_source)
         self.volume = volume        
 
@@ -270,10 +267,24 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        region = self.pf.region((self.re + self.le) / 2.0,
-                                  self.le, self.re)
-        corners = region.grid_corners
-        levels = region.grid_levels[:,0]
+        region = self.data_source
+        corners = []
+        levels = []
+        for block, mask in region.blocks:
+            block_corners = np.array([
+                    [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                ], dtype='float64')
+            corners.append(block_corners)
+            levels.append(block.Level)
+        corners = np.dstack(corners)
+        levels = np.array(levels)
 
         if max_level is not None:
             subset = levels <= max_level
@@ -285,7 +296,7 @@ class Camera(ParallelAnalysisInterface):
             corners = corners[:,:,subset]
             
         colors = apply_colormap(levels*1.0,
-                                color_bounds=[0,self.pf.h.max_level],
+                                color_bounds=[0,self.ds.index.max_level],
                                 cmap_name=cmap)[0,:,:]*1.0/255.
         colors[:,3] = alpha
 
@@ -295,7 +306,7 @@ class Camera(ParallelAnalysisInterface):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         
         vertices = np.empty([corners.shape[2]*2*12,3])
-        vertices = self.pf.arr(vertices, "code_length")
+        vertices = self.ds.arr(vertices, "code_length")
         for i in xrange(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
@@ -305,8 +316,11 @@ class Camera(ParallelAnalysisInterface):
         nim = im.rescale(inline=False)
         enhance_rgba(nim)
         nim.add_background_color('black', inline=True)
-       
-        lines(nim, px, py, colors, 24)
+
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(nim, px, py, colors, 24, flip=1)
+
         return nim
 
     def draw_coordinate_vectors(self, im, length=0.05, thickness=1):
@@ -359,11 +373,13 @@ class Camera(ParallelAnalysisInterface):
                   np.array([0.0, 1.0, 0.0, alpha]),
                   np.array([0.0, 0.0, 1.0, alpha])]
 
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
             lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
-                  np.array([color, color]), 1, thickness)
+                  np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -404,7 +420,10 @@ class Camera(ParallelAnalysisInterface):
         py1 = int(self.resolution[0]*(dx1/self.width[0]))
         px0 = int(self.resolution[1]*(dy0/self.width[1]))
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
-        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]))
+
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]),flip=1)
 
     def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
@@ -423,13 +442,14 @@ class Camera(ParallelAnalysisInterface):
         
         Returns
         -------
-        None
+        nim: Numpy ndarray
+            A new image with the domain lines drawn
 
         Examples
         --------
         >>> im = cam.snapshot() 
-        >>> cam.draw_domain(im)
-        >>> write_bitmap(im, 'render_with_domain_boundary.png')
+        >>> nim = cam.draw_domain(im)
+        >>> write_bitmap(nim, 'render_with_domain_boundary.png')
 
         """
         # Must normalize the image
@@ -437,7 +457,7 @@ class Camera(ParallelAnalysisInterface):
         enhance_rgba(nim)
         nim.add_background_color('black', inline=True)
  
-        self.draw_box(nim, self.pf.domain_left_edge, self.pf.domain_right_edge,
+        self.draw_box(nim, self.ds.domain_left_edge, self.ds.domain_right_edge,
                         color=np.array([1.0,1.0,1.0,alpha]))
         return nim
 
@@ -479,13 +499,15 @@ class Camera(ParallelAnalysisInterface):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         
         vertices = np.empty([24,3])
-        vertices = self.pf.arr(vertices, "code_length")
+        vertices = self.ds.arr(vertices, "code_length")
         for i in xrange(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
        
-        lines(im, px, py, color.reshape(1,4), 24)
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, px, py, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -556,7 +578,6 @@ class Camera(ParallelAnalysisInterface):
     star_trees = None
     def get_sampler(self, args):
         kwargs = {}
-        kwargs['zbuffer'] = np.ones((self.resolution[0], self.resolution[1]))
         if self.star_trees is not None:
             kwargs = {'star_list': self.star_trees}
         if self.use_light:
@@ -575,14 +596,15 @@ class Camera(ParallelAnalysisInterface):
         return sampler
 
     def finalize_image(self, image):
-        view_pos = self.front_center - self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
         return image
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting", ncells)
         total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
@@ -593,7 +615,7 @@ class Camera(ParallelAnalysisInterface):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
+            total_cells += brick.source_mask.size
             pbar.update(total_cells)
 
         pbar.finish()
@@ -610,24 +632,24 @@ class Camera(ParallelAnalysisInterface):
             self.transfer_function.show(ax=self._tf_figure.axes)
         self._pylab.draw()
 
-    def annotate(self, ax, enhance=True):
+    def annotate(self, ax, enhance=True, label_fmt=None):
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
         ax.get_yaxis().set_ticks([])
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
-        label = self.pf._get_field_info(self.fields[0]).get_label()
+        label = self.ds._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
             label = '$\\rm{log}\\/ $' + label
-        self.transfer_function.vert_cbar(ax=cb.ax, label=label)
+        self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
-    def show_mpl(self, im, enhance=True):
+    def show_mpl(self, im, enhance=True, clear_fig=True):
         if self._pylab is None:
             import pylab
             self._pylab = pylab
         if self._render_figure is None:
             self._render_figure = self._pylab.figure(1)
-        self._render_figure.clf()
+        if clear_fig: self._render_figure.clf()
 
         if enhance:
             nz = im[im > 0.0]
@@ -643,10 +665,33 @@ class Camera(ParallelAnalysisInterface):
     def draw(self):
         self._pylab.draw()
     
-    def save_annotated(self, fn, image, enhance=True, dpi=100):
+    def save_annotated(self, fn, image, enhance=True, dpi=100, clear_fig=True, 
+                       label_fmt=None):
+        """
+        Save an image with the transfer function represented as a colorbar.
+
+        Parameters
+        ----------
+        fn : str
+           The output filename
+        image : ImageArray
+           The image to annotate
+        enhance : bool, optional
+           Enhance the contrast (default: True)
+        dpi : int, optional
+           Dots per inch in the output image (default: 100)
+        clear_fig : bool, optional
+           Reset the figure (through pylab.clf()) before drawing.  Setting 
+           this to false can allow us to overlay the image onto an 
+           existing figure
+        label_fmt : str, optional
+           A format specifier (e.g., label_fmt="%.2g") to use in formatting 
+           the data values that label the transfer function colorbar. 
+        
+        """
         image = image.swapaxes(0,1) 
-        ax = self.show_mpl(image, enhance=enhance)
-        self.annotate(ax.axes, enhance)
+        ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
+        self.annotate(ax.axes, enhance, label_fmt=label_fmt)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
@@ -669,7 +714,7 @@ class Camera(ParallelAnalysisInterface):
                      'north_vector':self.orienter.unit_vectors[1],
                      'normal_vector':self.orienter.unit_vectors[2],
                      'width':self.width,
-                     'dataset':self.pf.fullpath}
+                     'dataset':self.ds.fullpath}
         return info_dict
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
@@ -712,6 +757,9 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
+
+        # flip it up/down to handle how the png orientation is done
+        image = image[:,::-1,:]
         self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
                        transparent=transparent)
         return image
@@ -739,14 +787,14 @@ class Camera(ParallelAnalysisInterface):
         >>> cam.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             from IPython.core.displaypub import publish_display_data
             image = self.snapshot()[:,:,:3]
             if clip_ratio is not None: clip_ratio *= image.std()
             data = write_bitmap(image, None, clip_ratio)
             publish_display_data(
-                'yt.visualization.volume_rendering.camera.Camera',
-                {'image/png' : data}
+                data={'image/png': data},
+                source='yt.visualization.volume_rendering.camera.Camera',
             )
         else:
             raise YTNotInsideNotebook
@@ -840,20 +888,20 @@ class Camera(ParallelAnalysisInterface):
         dW = None
         old_center = self.center.copy()
         if not isinstance(final, YTArray):
-            final = self.pf.arr(final, input_units = "code_length")
+            final = self.ds.arr(final, input_units = "code_length")
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = self.pf.arr(final_width, input_units="code_length")
+                    final_width = self.ds.arr(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
                     self.center += (final - self.center) / (10. * n_steps)
                 final_zoom = final_width/self.width
                 dW = final_zoom**(1.0/n_steps)
             else:
-                dW = self.pf.arr([1.0,1.0,1.0], "code_length")
+                dW = self.ds.arr([1.0,1.0,1.0], "code_length")
             position_diff = final/self.center
             dx = position_diff**(1.0/n_steps)
         else:
@@ -861,11 +909,11 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = self.pf.arr(final_width, input_units="code_length")
+                    final_width = self.ds.arr(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back
                 dW = (1.0*final_width-self.width)/n_steps
             else:
-                dW = self.pf.arr([0.0,0.0,0.0], "code_length")
+                dW = self.ds.arr([0.0,0.0,0.0], "code_length")
             dx = (final-self.center)*1.0/n_steps
         for i in xrange(n_steps):
             if exponential:
@@ -1058,51 +1106,127 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
-    expand_factor = 1.0
+    r"""A viewpoint into a volume, for perspective volume rendering.
+
+    The camera represents the eye of an observer, which will be used to
+    generate ray-cast volume renderings of the domain. The rays start from
+    the camera and end on the image plane, which generates a perspective
+    view.
+
+    Parameters
+    ----------
+    center : array_like
+        The location of the camera
+    normal_vector : array_like
+        The vector from the camera position to the center of the image plane
+    width : float or list of floats
+        width[0] and width[1] give the width and height of the image plane, and
+        width[2] gives the depth of the image plane (distance between the camera
+        and the center of the image plane).
+        The view angles thus become:
+        2 * arctan(0.5 * width[0] / width[2]) in horizontal direction
+        2 * arctan(0.5 * width[1] / width[2]) in vertical direction
+    (The following parameters are identical with the definitions in Camera class)
+    resolution : int or list of ints
+        The number of pixels in each direction.
+    transfer_function : `yt.visualization.volume_rendering.TransferFunction`
+        The transfer function used to map values to colors in an image.  If
+        not specified, defaults to a ProjectionTransferFunction.
+    north_vector : array_like, optional
+        The 'up' direction for the plane of rays.  If not specific, calculated
+        automatically.
+    steady_north : bool, optional
+        Boolean to control whether to normalize the north_vector
+        by subtracting off the dot product of it and the normal
+        vector.  Makes it easier to do rotations along a single
+        axis.  If north_vector is specified, is switched to
+        True. Default: False
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
+    fields : list of fields, optional
+        This is the list of fields we want to volume render; defaults to
+        Density.
+    log_fields : list of bool, optional
+        Whether we should take the log of the fields before supplying them to
+        the volume rendering mechanism.
+    sub_samples : int, optional
+        The number of samples to take inside every cell per ray.
+    ds : `~yt.data_objects.api.Dataset`
+        For now, this is a require parameter!  But in the future it will become
+        optional.  This is the dataset to volume render.
+    use_kd: bool, optional
+        Specifies whether or not to use a kd-Tree framework for
+        the Homogenized Volume and ray-casting.  Default to True.
+    max_level: int, optional
+        Specifies the maximum level to be rendered.  Also
+        specifies the maximum level used in the kd-Tree
+        construction.  Defaults to None (all levels), and only
+        applies if use_kd=True.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: True
+    data_source: data container, optional
+        Optionally specify an arbitrary data source to the volume rendering.
+        All cells not included in the data source will be ignored during ray
+        casting. By default this will get set to ds.all_data().
+
+    """
     def __init__(self, *args, **kwargs):
-        self.expand_factor = kwargs.pop('expand_factor', 1.0)
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
-        # We should move away from pre-generation of vectors like this and into
-        # the usage of on-the-fly generation in the VolumeIntegrator module
-        # We might have a different width and back_center
-        dl = (self.back_center - self.front_center)
-        self.front_center += self.expand_factor*dl
-        self.back_center -= dl
+        east_vec = -self.orienter.unit_vectors[0].reshape(3,1)
+        north_vec = self.orienter.unit_vectors[1].reshape(3,1)
 
-        px = np.linspace(-self.width[0]/2.0, self.width[0]/2.0,
-                         self.resolution[0])[:,None]
-        py = np.linspace(-self.width[1]/2.0, self.width[1]/2.0,
-                         self.resolution[1])[None,:]
-        inv_mat = self.orienter.inv_mat
+        px = np.mat(np.linspace(-.5, .5, self.resolution[0]))
+        py = np.mat(np.linspace(-.5, .5, self.resolution[1]))
+
+        sample_x = self.width[0] * np.array(east_vec * px).transpose()
+        sample_y = self.width[1] * np.array(north_vec * py).transpose()
+
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
+    
+        sample_x = np.repeat(sample_x.reshape(self.resolution[0],1,3), \
+                             self.resolution[1], axis=1)
+        sample_y = np.repeat(sample_y.reshape(1,self.resolution[1],3), \
+                             self.resolution[0], axis=0)
+
+        normal_vec = np.zeros((self.resolution[0], self.resolution[1], 3),
+                              dtype='float64', order='C')
+        normal_vec[:,:,0] = self.orienter.unit_vectors[2,0]
+        normal_vec[:,:,1] = self.orienter.unit_vectors[2,1]
+        normal_vec[:,:,2] = self.orienter.unit_vectors[2,2]
+
+        vectors = sample_x + sample_y + normal_vec * self.width[2]
+
         positions = np.zeros((self.resolution[0], self.resolution[1], 3),
-                          dtype='float64', order='C')
-        positions = self.pf.arr(positions, "code_length")
-        positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
-        positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
-        positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
-        bounds = (px.min(), px.max(), py.min(), py.max())
+                             dtype='float64', order='C')
+        positions[:,:,0] = self.center[0]
+        positions[:,:,1] = self.center[1]
+        positions[:,:,2] = self.center[2]
 
-        # We are likely adding on an odd cutting condition here
-        vectors = self.front_center - positions
-        vectors = vectors / (vectors**2).sum()**0.5
-        positions = self.front_center - 1.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
-        vectors = (self.front_center - positions)
+        positions = self.ds.arr(positions, input_units="code_length")
 
-        uv = np.ones(3, dtype='float64')
-        image.shape = (self.resolution[0]**2,1,4)
-        vectors.shape = (self.resolution[0]**2,1,3)
-        positions.shape = (self.resolution[0]**2,1,3)
-        args = (positions, vectors, self.back_center, 
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+
+        args = (positions, vectors, self.back_center,
                 (0.0,1.0,0.0,1.0),
-                image, uv, uv,
-                np.zeros(3, dtype='float64'), 
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
         return args
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting", ncells)
         total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
@@ -1112,7 +1236,7 @@ class PerspectiveCamera(Camera):
 
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
+            total_cells += brick.source_mask.size
             pbar.update(total_cells)
 
         pbar.finish()
@@ -1121,11 +1245,13 @@ class PerspectiveCamera(Camera):
 
     def finalize_image(self, image):
         view_pos = self.front_center
-        image.shape = self.resolution[0], self.resolution[0], 4
+        image.shape = self.resolution[0], self.resolution[1], 4
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
         return image
+
+data_object_registry["perspective_camera"] = PerspectiveCamera
 
 def corners(left_edge, right_edge):
     return np.array([
@@ -1146,12 +1272,12 @@ class HEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, use_kd=True, no_ghost=False, use_light=False,
+                 ds = None, use_kd=True, no_ghost=False, use_light=False,
                  inner_radius = 10):
         mylog.error('I am sorry, HEALpix Camera does not work yet in 3.0')
         raise NotImplementedError
         ParallelAnalysisInterface.__init__(self)
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.inner_radius = inner_radius
@@ -1172,15 +1298,15 @@ class HEALpixCamera(Camera):
         self.fields = fields
         self.sub_samples = sub_samples
         self.log_fields = log_fields
-        dd = pf.h.all_data()
+        dd = ds.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
+            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
         if volume is None:
-            volume = AMRKDTree(self.pf, min_level=min_level,
+            volume = AMRKDTree(self.ds, min_level=min_level,
                                max_level=max_level, data_source=self.data_source)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
@@ -1196,7 +1322,7 @@ class HEALpixCamera(Camera):
         vs += 1e-8
         uv = np.ones(3, dtype='float64')
         positions = np.ones((nv, 1, 3), dtype='float64') * self.center
-        dx = min(g.dds.min() for g in self.pf.h.find_point(self.center)[0])
+        dx = min(g.dds.min() for g in self.ds.index.find_point(self.center)[0])
         positions += self.inner_radius * dx * vs
         vs *= self.radius
         args = (positions, vs, self.center,
@@ -1240,7 +1366,7 @@ class HEALpixCamera(Camera):
                      'type':self.__class__.__name__,
                      'center':self.center,
                      'radius':self.radius,
-                     'dataset':self.pf.fullpath}
+                     'dataset':self.ds.fullpath}
         return info_dict
 
 
@@ -1293,10 +1419,10 @@ class AdaptiveHEALpixCamera(Camera):
     def __init__(self, center, radius, nside,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, use_kd=True, no_ghost=False,
+                 ds = None, use_kd=True, no_ghost=False,
                  rays_per_cell = 0.1, max_nside = 8192):
         ParallelAnalysisInterface.__init__(self)
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.use_kd = use_kd
@@ -1308,7 +1434,7 @@ class AdaptiveHEALpixCamera(Camera):
         self.sub_samples = sub_samples
         self.log_fields = log_fields
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
@@ -1364,29 +1490,28 @@ class StereoPairCamera(Camera):
         left_camera = Camera(c, left_normal, oc.width,
                              oc.resolution, oc.transfer_function, north_vector=uv[0],
                              volume=oc.volume, fields=oc.fields, log_fields=oc.log_fields,
-                             sub_samples=oc.sub_samples, pf=oc.pf)
+                             sub_samples=oc.sub_samples, ds=oc.ds)
         right_camera = Camera(c, right_normal, oc.width,
                              oc.resolution, oc.transfer_function, north_vector=uv[0],
                              volume=oc.volume, fields=oc.fields, log_fields=oc.log_fields,
-                             sub_samples=oc.sub_samples, pf=oc.pf)
+                             sub_samples=oc.sub_samples, ds=oc.ds)
         return (left_camera, right_camera)
 
 class FisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution,
                  transfer_function = None, fields = None,
                  sub_samples = 5, log_fields = None, volume = None,
-                 pf = None, no_ghost=False, rotation = None, use_light=False):
+                 ds = None, no_ghost=False, rotation = None, use_light=False):
         ParallelAnalysisInterface.__init__(self)
         self.use_light = use_light
         self.light_dir = None
         self.light_rgba = None
         if rotation is None: rotation = np.eye(3)
         self.rotation_matrix = rotation
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.fov = fov
-        self.no_ghost = no_ghost
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
@@ -1396,16 +1521,11 @@ class FisheyeCamera(Camera):
         if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
-        dd = self.pf.h.all_data()
-        efields = dd._determine_fields(self.fields)
         self.log_fields = log_fields
-        if self.log_fields is None:
-            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
         if volume is None:
-            volume = AMRKDTree(self.pf)
+            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
         self.volume = volume
-
-        self.initialize_source()
 
     def get_information(self):
         return {}
@@ -1464,7 +1584,7 @@ class MosaicCamera(Camera):
                  north_vector = None, steady_north=False,
                  volume = None, fields = None,
                  log_fields = None,
-                 sub_samples = 5, pf = None,
+                 sub_samples = 5, ds = None,
                  use_kd=True, l_max=None, no_ghost=True,
                  tree_type='domain',expand_factor=1.0,
                  le=None, re=None, nimx=1, nimy=1, procs_per_wg=None,
@@ -1473,7 +1593,7 @@ class MosaicCamera(Camera):
         ParallelAnalysisInterface.__init__(self)
 
         self.procs_per_wg = procs_per_wg
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         if not iterable(resolution):
             resolution = (int(resolution/nimx), int(resolution/nimy))
         self.resolution = resolution
@@ -1523,7 +1643,7 @@ class MosaicCamera(Camera):
     def build_volume(self, volume, fields, log_fields, l_max, no_ghost, tree_type, le, re):
         if volume is None:
             if self.use_kd: raise NotImplementedError
-            volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
+            volume = AMRKDTree(self.ds, l_max=l_max, fields=self.fields, 
                                no_ghost=no_ghost, tree_type=tree_type, 
                                log_fields=log_fields, le=le, re=re)
         else:
@@ -1630,9 +1750,9 @@ class MosaicFisheyeCamera(Camera):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    pf : `~yt.data_objects.api.Dataset`
+    ds : `~yt.data_objects.api.Dataset`
         For now, this is a require parameter!  But in the future it will become
-        optional.  This is the parameter file to volume render.
+        optional.  This is the dataset to volume render.
     l_max: int, optional
         Specifies the maximum level to be rendered.  Also
         specifies the maximum level used in the AMRKDTree
@@ -1672,15 +1792,15 @@ class MosaicFisheyeCamera(Camera):
 
     >>> from yt.mods import *
     
-    >>> pf = load('DD1717')
+    >>> ds = load('DD1717')
     
     >>> N = 512 # Pixels (1024^2)
-    >>> c = (pf.domain_right_edge + pf.domain_left_edge)/2. # Center
-    >>> radius = (pf.domain_right_edge - pf.domain_left_edge)/2.
+    >>> c = (ds.domain_right_edge + ds.domain_left_edge)/2. # Center
+    >>> radius = (ds.domain_right_edge - ds.domain_left_edge)/2.
     >>> fov = 180.0
     
     >>> field='Density'
-    >>> mi,ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+    >>> mi,ma = ds.all_data().quantities['Extrema']('Density')[0]
     >>> mi,ma = np.log10(mi), np.log10(ma)
     
     # You may want to comment out the above lines and manually set the min and max
@@ -1688,7 +1808,7 @@ class MosaicFisheyeCamera(Camera):
     # mi,ma = -30.5,-26.5
     
     # Another good place to center the camera is close to the maximum density.
-    # v,c = pf.h.find_max('Density')
+    # v,c = ds.find_max('Density')
     # c -= 0.1*radius
     
    
@@ -1709,7 +1829,7 @@ class MosaicFisheyeCamera(Camera):
     >>> cam = MosaicFisheyeCamera(c, radius, fov, N,
     >>>         transfer_function = tf, 
     >>>         sub_samples = 5, 
-    >>>         pf=pf, 
+    >>>         ds=ds, 
     >>>         nimx=2,nimy=2,procs_per_wg=2)
     
     # Take a snapshot
@@ -1722,7 +1842,7 @@ class MosaicFisheyeCamera(Camera):
     def __init__(self, center, radius, fov, resolution, focal_center=None,
                  transfer_function=None, fields=None,
                  sub_samples=5, log_fields=None, volume=None,
-                 pf=None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
+                 ds=None, l_max=None, no_ghost=False,nimx=1, nimy=1, procs_per_wg=None,
                  rotation=None):
 
         ParallelAnalysisInterface.__init__(self)
@@ -1760,7 +1880,7 @@ class MosaicFisheyeCamera(Camera):
             self.imj = 0
             self.nimx = 1
             self.nimy = 1
-        if pf is not None: self.pf = pf
+        if ds is not None: self.ds = ds
         
         if rotation is None: rotation = np.eye(3)
         self.rotation_matrix = rotation
@@ -1785,7 +1905,7 @@ class MosaicFisheyeCamera(Camera):
         self.sub_samples = sub_samples
         self.log_fields = log_fields
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
+            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
                                log_fields=log_fields,l_max=l_max)
         self.volume = volume
         self.vp = None
@@ -1991,9 +2111,9 @@ class MosaicFisheyeCamera(Camera):
                 self.center += dx
             yield self.snapshot()
 
-def allsky_projection(pf, center, radius, nside, field, weight = None,
+def allsky_projection(ds, center, radius, nside, field, weight = None,
                       inner_radius = 10, rotation = None, data_source = None):
-    r"""Project through a parameter file, through an allsky-method
+    r"""Project through a dataset, through an allsky-method
     decomposition from HEALpix, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -2003,8 +2123,8 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
 
     Parameters
     ----------
-    pf : `~yt.data_objects.api.Dataset`
-        This is the parameter file to volume render.
+    ds : `~yt.data_objects.api.Dataset`
+        This is the dataset to volume render.
     center : array_like
         The current "center" of the view port -- the focal point for the
         camera.
@@ -2039,7 +2159,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     Examples
     --------
 
-    >>> image = allsky_projection(pf, [0.5, 0.5, 0.5], 1.0/pf['mpc'],
+    >>> image = allsky_projection(ds, [0.5, 0.5, 0.5], 1.0/ds['mpc'],
                       32, "temperature", "density")
     >>> plot_allsky_healpix(image, 32, "healpix.png")
 
@@ -2050,19 +2170,20 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     center = np.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        weightfield = ("index", "temp_weightfield")
         def _make_wf(f, w):
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
                 return tr
             return temp_weightfield
-        pf.field_info.add_field("temp_weightfield",
+        ds.field_info.add_field(weightfield,
             function=_make_wf(field, weight))
-        # Now we have to tell the parameter file to add it and to calculate
+        # Now we have to tell the dataset to add it and to calculate
         # its dependencies..
-        deps, _ = pf.field_info.check_derived_fields(["temp_weightfield"])
-        pf.field_dependencies.update(deps)
-        fields = ["temp_weightfield", weight]
+        deps, _ = ds.field_info.check_derived_fields([weightfield])
+        ds.field_dependencies.update(deps)
+        fields = [weightfield, weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
@@ -2074,12 +2195,12 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     else:
         vs += 1e-8
     positions = np.ones((nv, 1, 3), dtype='float64', order='C') * center
-    dx = min(g.dds.min() for g in pf.h.find_point(center)[0])
+    dx = min(g.dds.min() for g in ds.index.find_point(center)[0])
     positions += inner_radius * dx * vs
     vs *= radius
     uv = np.ones(3, dtype='float64')
     if data_source is None:
-        data_source = pf.sphere(center, radius)
+        data_source = ds.sphere(center, radius)
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     for i, (grid, mask) in enumerate(data_source.blocks):
@@ -2090,17 +2211,17 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
             grid.ActiveDimensions.astype("int64"))
         sampler(pg)
     image = sampler.aimage
-    dd = self.pf.h.all_data()
+    dd = self.ds.all_data()
     field = dd._determine_fields([field])[0]
-    finfo = self.pf._get_field_info(*field)
+    finfo = self.ds._get_field_info(*field)
     if weight is None:
-        dl = radius * pf.units[finfo.projection_conversion]
+        dl = radius * ds.units[finfo.projection_conversion]
         image *= dl
     else:
         image[:,:,0] /= image[:,:,1]
-        image = pf.arr(image, finfo.units)
-        pf.field_info.pop("temp_weightfield")
-        pf.field_dependencies.pop("temp_weightfield")
+        image = ds.arr(image, finfo.units)
+        ds.field_info.pop(weightfield)
+        ds.field_dependencies.pop(weightfield)
     return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
@@ -2128,7 +2249,8 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
 class ProjectionCamera(Camera):
     def __init__(self, center, normal_vector, width, resolution,
             field, weight=None, volume=None, no_ghost = False, 
-            north_vector=None, pf=None, interpolated=False):
+            north_vector=None, ds=None, interpolated=False,
+            method="integrate"):
 
         if not interpolated:
             volume = 1
@@ -2137,31 +2259,49 @@ class ProjectionCamera(Camera):
         self.field = field
         self.weight = weight
         self.resolution = resolution
+        self.method = method
 
         fields = [field]
         if self.weight is not None:
-            # This is a temporary field, which we will remove at the end.
+            # This is a temporary field, which we will remove at the end
+            # it is given a unique name to avoid conflicting with other 
+            # class instances
+            self.weightfield = ("index", "temp_weightfield_%u"%(id(self),))
             def _make_wf(f, w):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
                     return tr
                 return temp_weightfield
-            pf.field_info.add_field("temp_weightfield",
+            ds.field_info.add_field(self.weightfield,
                 function=_make_wf(self.field, self.weight))
-            # Now we have to tell the parameter file to add it and to calculate
+            # Now we have to tell the dataset to add it and to calculate
             # its dependencies..
-            deps, _ = pf.field_info.check_derived_fields(["temp_weightfield"])
-            pf.field_dependencies.update(deps)
-            fields = ["temp_weightfield", self.weight]
+            deps, _ = ds.field_info.check_derived_fields([self.weightfield])
+            ds.field_dependencies.update(deps)
+            fields = [self.weightfield, self.weight]
         
         self.fields = fields
         self.log_fields = [False]*len(self.fields)
         Camera.__init__(self, center, normal_vector, width, resolution, None,
-                fields = fields, pf=pf, volume=volume,
+                fields = fields, ds=ds, volume=volume,
                 log_fields=self.log_fields, 
                 north_vector=north_vector,
                 no_ghost=no_ghost)
+
+    # this would be better in an __exit__ function, but that would require
+    # changes in code that uses this class
+    def __del__(self):
+        if hasattr(self,"weightfield") and hasattr(self,"ds"):
+            try:
+                self.ds.field_info.pop(self.weightfield)
+                self.ds.field_dependencies.pop(self.weightfield)
+            except KeyError:
+                pass
+        try:
+            Camera.__del__(self)
+        except AttributeError:
+            pass
 
     def get_sampler(self, args):
         if self.interpolated:
@@ -2177,8 +2317,8 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.front_center.ravel()])
-        args = (rotp, -self.box_vectors[2], self.front_center,
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        args = (rotp, self.box_vectors[2], self.back_center,
             (-self.width[0]/2., self.width[0]/2.,
              -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
@@ -2186,17 +2326,18 @@ class ProjectionCamera(Camera):
         return args
 
     def finalize_image(self,image):
-        pf = self.pf
-        dd = pf.h.all_data()
+        ds = self.ds
+        dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = pf._get_field_info(*field)
-        if self.weight is None:
-            dl = self.width[2]
-            image *= dl
-        else:
-            image[:,:,0] /= image[:,:,1]
+        finfo = ds._get_field_info(*field)
+        dl = 1.0
+        if self.method == "integrate":
+            if self.weight is None:
+                dl = self.width[2].in_units("cm")
+            else:
+                image[:,:,0] /= image[:,:,1]
 
-        return image[:,:,0]
+        return ImageArray(image[:,:,0], finfo.units)*dl
 
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -2205,15 +2346,15 @@ class ProjectionCamera(Camera):
         if self.interpolated:
             return Camera._render(self, double_check, num_threads, image,
                     sampler)
-        pf = self.pf
+        ds = self.ds
         width = self.width[2]
         north_vector = self.orienter.unit_vectors[0]
         east_vector = self.orienter.unit_vectors[1]
         normal_vector = self.orienter.unit_vectors[2]
         fields = self.fields
 
-        mi = pf.domain_right_edge.copy()
-        ma = pf.domain_left_edge.copy()
+        mi = ds.domain_right_edge.copy()
+        ma = ds.domain_left_edge.copy()
         for off1 in [-1, 1]:
             for off2 in [-1, 1]:
                 for off3 in [-1, 1]:
@@ -2223,7 +2364,7 @@ class ProjectionCamera(Camera):
                     np.minimum(mi, this_point, mi)
                     np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
-        data_source = pf.region(self.center, mi, ma)
+        data_source = ds.region(self.center, mi, ma)
 
         for i, (grid, mask) in enumerate(data_source.blocks):
             data = [(grid[field] * mask).astype("float64") for field in fields]
@@ -2238,9 +2379,9 @@ class ProjectionCamera(Camera):
         return image
 
     def save_image(self, image, fn=None, clip_ratio=None):
-        dd = self.pf.h.all_data()
+        dd = self.ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = self.pf._get_field_info(*field)
+        finfo = self.ds._get_field_info(*field)
         if finfo.take_log:
             im = np.log10(image)
         else:
@@ -2279,11 +2420,184 @@ class ProjectionCamera(Camera):
 
 data_object_registry["projection_camera"] = ProjectionCamera
 
-def off_axis_projection(pf, center, normal_vector, width, resolution,
+class SphericalCamera(Camera):
+    def __init__(self, *args, **kwargs):
+        Camera.__init__(self, *args, **kwargs)
+        if(self.resolution[0]/self.resolution[1] != 2):
+            mylog.info('Warning: It\'s recommended to set the aspect ratio to 2:1')
+        self.resolution = np.asarray(self.resolution) + 2
+
+    def get_sampler_args(self, image):
+        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
+        
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+
+        vectors = vectors * self.width[0]
+        positions = self.center + vectors * 0
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, self.orienter.unit_vectors)
+        uv = np.dot(R2, uv)
+        vectors.reshape((self.resolution[0]*self.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        vectors.reshape((self.resolution[0], self.resolution[1], 3))
+
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+        vectors.shape = (self.resolution[0]*self.resolution[1],1,3)
+        positions.shape = (self.resolution[0]*self.resolution[1],1,3)
+        args = (positions, vectors, self.back_center,
+                (0.0,1.0,0.0,1.0),
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+
+    def _render(self, double_check, num_threads, image, sampler):
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting", ncells)
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        for brick in self.volume.traverse(self.front_center):
+            sampler(brick, num_threads=num_threads)
+            total_cells += brick.source_mask.size
+            pbar.update(total_cells)
+
+        pbar.finish()
+        image = self.finalize_image(sampler.aimage)
+        return image
+
+    def finalize_image(self, image):
+        view_pos = self.front_center
+        image.shape = self.resolution[0], self.resolution[1], 4
+        image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        image = image[1:-1,1:-1,:]
+        return image
+
+data_object_registry["spherical_camera"] = SphericalCamera
+
+class StereoSphericalCamera(Camera):
+    def __init__(self, *args, **kwargs):
+        self.disparity = kwargs.pop('disparity', 0.)
+        Camera.__init__(self, *args, **kwargs)
+        self.disparity = self.ds.arr(self.disparity, input_units="code_length")
+        self.disparity_s = self.ds.arr(0., input_units="code_length")
+        if(self.resolution[0]/self.resolution[1] != 2):
+            mylog.info('Warning: It\'s recommended to set the aspect ratio to be 2:1')
+        self.resolution = np.asarray(self.resolution) + 2
+        if(self.disparity<=0.):
+            self.disparity = self.width[0]/1000.
+            mylog.info('Warning: Invalid value of disparity; ' \
+                       'now reset it to %f' % self.disparity)
+
+    def get_sampler_args(self, image):
+        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
+
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+        vectors2 = np.zeros((self.resolution[0], self.resolution[1], 3), 
+                            dtype='float64', order='C')
+        vectors2[:,:,0] = -np.sin(px) * np.ones((1, self.resolution[1]))
+        vectors2[:,:,1] = np.cos(px) * np.ones((1, self.resolution[1]))
+        vectors2[:,:,2] = 0
+
+        positions = self.center + vectors2 * self.disparity_s
+        vectors = vectors * self.width[0]
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, self.orienter.unit_vectors)
+        uv = np.dot(R2, uv)
+        vectors.reshape((self.resolution[0]*self.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        vectors.reshape((self.resolution[0], self.resolution[1], 3))
+
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+        vectors.shape = (self.resolution[0]*self.resolution[1],1,3)
+        positions.shape = (self.resolution[0]*self.resolution[1],1,3)
+        args = (positions, vectors, self.back_center,
+                (0.0,1.0,0.0,1.0),
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0, transparent=False):
+        
+        if num_threads is None:
+            num_threads=get_num_threads()
+
+        self.disparity_s = self.disparity
+        image1 = self.new_image()
+        args1 = self.get_sampler_args(image1)
+        sampler1 = self.get_sampler(args1)
+        self.initialize_source()
+        image1 = self._render(double_check, num_threads,
+                              image1, sampler1, '(Left) ')
+
+        self.disparity_s = -self.disparity
+        image2 = self.new_image()
+        args2 = self.get_sampler_args(image2)
+        sampler2 = self.get_sampler(args2)
+        self.initialize_source()
+        image2 = self._render(double_check, num_threads,
+                              image2, sampler2, '(Right)')
+
+        image = np.hstack([image1, image2])
+        image = self.volume.reduce_tree_images(image, self.center)
+        image = ImageArray(image, info = self.get_information())
+        self.save_image(image, fn=fn, clip_ratio=clip_ratio,
+                        transparent=transparent)
+        return image
+
+    def _render(self, double_check, num_threads, image, sampler, msg):
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting "+msg, ncells)
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        for brick in self.volume.traverse(self.front_center):
+            sampler(brick, num_threads=num_threads)
+            total_cells += brick.source_mask.size 
+            pbar.update(total_cells)
+
+        pbar.finish()
+
+        image = sampler.aimage.copy()
+        image.shape = self.resolution[0], self.resolution[1], 4
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        image = image[1:-1,1:-1,:]
+        return image
+
+data_object_registry["stereospherical_camera"] = StereoSphericalCamera
+
+def off_axis_projection(ds, center, normal_vector, width, resolution,
                         field, weight = None, 
                         volume = None, no_ghost = False, interpolated = False,
-                        north_vector = None):
-    r"""Project through a parameter file, off-axis, and return the image plane.
+                        north_vector = None, method = "integrate"):
+    r"""Project through a dataset, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
     at an arbitrary angle and return the integrated field of view to the user.
@@ -2293,8 +2607,8 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     Parameters
     ----------
-    pf : `~yt.data_objects.api.Dataset`
-        This is the parameter file to volume render.
+    ds : `~yt.data_objects.api.Dataset`
+        This is the dataset to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
         camera.
@@ -2326,6 +2640,20 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         If True, the data is first interpolated to vertex-centered data, 
         then tri-linearly interpolated along the ray. Not suggested for 
         quantitative studies.
+    method : string
+         The method of projection.  Valid methods are:
+
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
 
     Returns
     -------
@@ -2335,19 +2663,15 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
     Examples
     --------
 
-    >>> image = off_axis_projection(pf, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
+    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
                       0.2, N, "temperature", "density")
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
-                               field, weight=weight, pf=pf, volume=volume,
+                               field, weight=weight, ds=ds, volume=volume,
                                no_ghost=no_ghost, interpolated=interpolated, 
-                               north_vector=north_vector)
+                               north_vector=north_vector, method=method)
     image = projcam.snapshot()
-    if weight is not None:
-        pf.field_info.pop("temp_weightfield")
-        pf.field_dependencies.pop("temp_weightfield")
-    del projcam
     return image[:,:]
 

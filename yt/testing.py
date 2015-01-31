@@ -1,5 +1,5 @@
 """
-
+Utilities to aid testing.
 
 
 """
@@ -12,7 +12,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import md5
+import hashlib
 import cPickle
 import itertools as it
 import numpy as np
@@ -26,6 +26,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_allclose, assert_raises
 from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
+from yt.convenience import load
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -141,7 +142,7 @@ def amrspace(extent, levels=7, cells=8):
 
     return left, right, level
 
-def fake_random_pf(
+def fake_random_ds(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
@@ -178,7 +179,7 @@ def fake_random_pf(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_amr_pf(fields = ("Density",)):
+def fake_amr_ds(fields = ("Density",)):
     from yt.frontends.stream.api import load_amr_grids
     data = []
     for gspec in _amr_grid_index:
@@ -191,6 +192,40 @@ def fake_amr_pf(fields = ("Density",)):
             gdata[f] = np.random.random(dims)
         data.append(gdata)
     return load_amr_grids(data, [32, 32, 32], 1.0)
+
+def fake_particle_ds(
+        fields = ("particle_position_x",
+                  "particle_position_y",
+                  "particle_position_z",
+                  "particle_mass", 
+                  "particle_velocity_x",
+                  "particle_velocity_y",
+                  "particle_velocity_z"),
+        units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
+        negative = (False, False, False, False, True, True, True),
+        npart = 16**3, length_unit=1.0):
+    from yt.frontends.stream.api import load_particles
+    if not iterable(negative):
+        negative = [negative for f in fields]
+    assert(len(fields) == len(negative))
+    offsets = []
+    for n in negative:
+        if n:
+            offsets.append(0.5)
+        else:
+            offsets.append(0.0)
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        if "position" in field:
+            v = np.random.normal(npart, 0.5, 0.25)
+            np.clip(v, 0.0, 1.0, v)
+        v = (np.random.random(npart) - offset)
+        data[field] = (v, u)
+    bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+    ds = load_particles(data, 1.0, bbox=bbox)
+    return ds
+
+
 
 def expand_keywords(keywords, full=False):
     """
@@ -321,7 +356,30 @@ def requires_file(req_file):
             return ftrue
         else:
             return ffalse
-                                        
+
+def units_override_check(fn):
+    ytcfg["yt","skip_dataset_cache"] = "True"
+    units_list = ["length","time","mass","velocity",
+                  "magnetic","temperature"]
+    ds1 = load(fn)
+    units_override = {}
+    attrs1 = []
+    attrs2 = []
+    for u in units_list:
+        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs1.append(unit_attr)
+            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+    del ds1
+    ds2 = load(fn, units_override=units_override)
+    ytcfg["yt","skip_dataset_cache"] = "False"
+    assert(len(ds2.units_override) > 0)
+    for u in units_list:
+        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs2.append(unit_attr)
+    yield assert_equal, attrs1, attrs2
+
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
@@ -556,16 +614,16 @@ def check_results(func):
     --------
 
     @check_results
-    def my_func(pf):
-        return pf.domain_width
+    def my_func(ds):
+        return ds.domain_width
 
-    my_func(pf)
+    my_func(ds)
 
     @check_results
     def field_checker(dd, field_name):
         return dd[field_name]
 
-    field_cheker(pf.h.all_data(), 'density', result_basename='density')
+    field_cheker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -582,7 +640,7 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             si = _rv.size
-            ha = md5.md5(_rv.tostring()).hexdigest()
+            ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
                 cPickle.dump( (mi, ma, st, su, si, ha), f)
@@ -606,7 +664,7 @@ def check_results(func):
                     _rv.std(dtype="float64"),
                     _rv.sum(dtype="float64"),
                     _rv.size,
-                    md5.md5(_rv.tostring()).hexdigest() )
+                    hashlib.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print "Answers need to be created with --answer-reference ."
@@ -624,13 +682,25 @@ def check_results(func):
         return _func
     return compare_results(func)
 
+def periodicity_cases(ds):
+    # This is a generator that yields things near the corners.  It's good for
+    # getting different places to check periodicity.
+    yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
+    dx = ds.domain_width / ds.domain_dimensions
+    # We start one dx in, and only go to one in as well.
+    for i in (1, ds.domain_dimensions[0] - 2):
+        for j in (1, ds.domain_dimensions[1] - 2):
+            for k in (1, ds.domain_dimensions[2] - 2):
+                center = dx * np.array([i,j,k]) + ds.domain_left_edge
+                yield center
+
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys, yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:

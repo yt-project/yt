@@ -2,185 +2,135 @@
 
 Clump Finding
 =============
-.. sectionauthor:: Britton Smith <britton.smith@colorado.edu>
 
-``yt`` has the ability to identify topologically disconnected structures based in a dataset using 
-any field available.  This is powered by a contouring algorithm that runs in a recursive 
-fashion.  The user specifies the initial data object in which the clump-finding will occur, 
-the field over which the contouring will be done, the upper and lower limits of the 
-initial contour, and the contour increment.
+The clump finder uses a contouring algorithm to identified topologically 
+disconnected structures within a dataset.  This works by first creating a 
+single contour over the full range of the contouring field, then continually 
+increasing the lower value of the contour until it reaches the maximum value 
+of the field.  As disconnected structures are identified as separate contoures, 
+the routine continues recursively through each object, creating a hierarchy of 
+clumps.  Individual clumps can be kept or removed from the hierarchy based on 
+the result of user-specified functions, such as checking for gravitational 
+boundedness.  A sample recipe can be found in :ref:`cookbook-find_clumps`.
 
-The clump finder begins by creating a single contour of the specified field over the entire 
-range given.  For every isolated contour identified in the initial iteration, contouring is 
-repeated with the same upper limit as before, but with the lower limit increased by the 
-specified increment.  This repeated for every isolated group until the lower limit is equal 
-to the upper limit.
+The clump finder requires a data object (see :ref:`data-objects`) and a field 
+over which the contouring is to be performed.
 
-Often very tiny clumps can appear as groups of only a few cells that happen to be slightly 
-overdense (if contouring over density) with respect to the surrounding gas.  The user may 
-specify criteria that clumps must meet in order to be kept.  The most obvious example is 
-selecting only those clumps that are gravitationally bound.
+.. code:: python
 
-Once the clump-finder has finished, the user can write out a set of quantities for each clump in the 
-index.  Additional info items can also be added.  We also provide a recipe
-for finding clumps in :ref:`cookbook-find_clumps`.
+   import yt
+   from yt.analysis_modules.level_sets.api import *
 
-Treecode Optimization
----------------------
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-.. sectionauthor:: Stephen Skory <s@skory.us>
-.. versionadded:: 2.1
+   data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
+                         (8, 'kpc'), (1, 'kpc'))
 
-As mentioned above, the user has the option to limit clumps to those that are
-gravitationally bound.
-The correct and accurate way to calculate if a clump is gravitationally
-bound is to do the full double sum:
+   master_clump = Clump(data_source, ("gas", "density"))
 
-.. math::
+At this point, every isolated contour will be considered a clump, 
+whether this is physical or not.  Validator functions can be added to 
+determine if an individual contour should be considered a real clump.  
+These functions are specified with the ``Clump.add_validator`` function.  
+Current, two validators exist: a minimum number of cells and gravitational 
+boundedness.
 
-  PE = \Sigma_{i=1}^N \Sigma_{j=i}^N \frac{G M_i M_j}{r_{ij}}
+.. code:: python
 
-where :math:`PE` is the gravitational potential energy of :math:`N` cells,
-:math:`G` is the
-gravitational constant, :math:`M_i` is the mass of cell :math:`i`, 
-and :math:`r_{ij}` is the distance
-between cell :math:`i` and :math:`j`.
-The number of calculations required for this calculation
-grows with the square of :math:`N`. Therefore, for large clumps with many cells, the
-test for boundedness can take a significant amount of time.
+   master_clump.add_validator("min_cells", 20)
 
-An effective way to greatly speed up this calculation with minimal error
-is to use the treecode approximation pioneered by
-`Barnes and Hut (1986) <http://adsabs.harvard.edu/abs/1986Natur.324..446B>`_.
-This method of calculating gravitational potentials works by
-grouping individual masses that are located close together into a larger conglomerated
-mass with a geometric size equal to the distribution of the individual masses.
-For a mass cell that is sufficiently distant from the conglomerated mass,
-the gravitational calculation can be made using the conglomerate, rather than
-each individual mass, which saves time.
+   master_clump.add_validator("gravitationally_bound", use_particles=False)
 
-The decision whether or not to use a conglomerate depends on the accuracy control
-parameter ``opening_angle``. Using the small-angle approximation, a conglomerate
-may be used if its geometric size subtends an angle no greater than the
-``opening_angle`` upon the remote mass. The default value is
-``opening_angle = 1``, which gives errors well under 1%. A value of 
-``opening_angle = 0`` is identical to the full O(N^2) method, and larger values
-will speed up the calculation and sacrifice accuracy (see the figures below).
+As many validators as desired can be added, and a clump is only kept if all 
+return True.  If not, a clump is remerged into its parent.  Custom validators 
+can easily be added.  A validator function must only accept a ``Clump`` object 
+and either return True or False.
 
-The treecode method is iterative. Conglomerates may themselves form larger
-conglomerates. And if a larger conglomerate does not meet the ``opening_angle``
-criterion, the smaller conglomerates are tested as well. This iteration of 
-conglomerates will
-cease once the level of the original masses is reached (this is what happens
-for all pair calculations if ``opening_angle = 0``).
+.. code:: python
 
-Below are some examples of how to control the usage of the treecode.
+   def _minimum_gas_mass(clump, min_mass):
+       return (clump["gas", "cell_mass"].sum() >= min_mass)
+   add_validator("minimum_gas_mass", _minimum_gas_mass)
 
-This example will calculate the ratio of the potential energy to kinetic energy
-for a spherical clump using the treecode method with an opening angle of 2.
-The default opening angle is 1.0:
+The ``add_validator`` function adds the validator to a registry that can 
+be accessed by the clump finder.  Then, the validator can be added to the 
+clump finding just like the others.
 
-.. code-block:: python
-  
-  from yt.mods import *
-  
-  pf = load("DD0000")
-  sp = pf.sphere([0.5, 0.5, 0.5], radius=0.1)
-  
-  ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
-      treecode=True, opening_angle=2.0)
+.. code:: python
 
-This example will accomplish the same as the above, but will use the full
-N^2 method.
+   master_clump.add_validator("minimum_gas_mass", ds.quan(1.0, "Msun"))
 
-.. code-block:: python
-  
-  from yt.mods import *
-  
-  pf = load("DD0000")
-  sp = pf.sphere([0.5, 0.5, 0.5], radius=0.1)
-  
-  ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
-      treecode=False)
+The clump finding algorithm accepts the ``Clump`` object, the initial minimum 
+and maximum of the contouring field, and the step size.  The lower value of the 
+contour finder will be continually multiplied by the step size.
 
-Here the treecode method is specified for clump finding (this is default).
-Please see the link above for the full example of how to find clumps (the
-trailing backslash is important!):
+.. code:: python
 
-.. code-block:: python
-  
-  function_name = 'self.data.quantities["IsBound"](truncate=True, \
-      include_thermal_energy=True, treecode=True, opening_angle=2.0) > 1.0'
-  master_clump = amods.level_sets.Clump(data_source, None, field,
-      function=function_name)
+   c_min = data_source["gas", "density"].min()
+   c_max = data_source["gas", "density"].max()
+   step = 2.0
+   find_clumps(master_clump, c_min, c_max, step)
 
-To turn off the treecode, of course one should turn treecode=False in the
-example above.
+After the clump finding has finished, the master clump will represent the top 
+of a hierarchy of clumps.  The ``children`` attribute within a ``Clump`` object 
+contains a list of all sub-clumps.  Each sub-clump is also a ``Clump`` object 
+with its own ``children`` attribute, and so on.
 
-Treecode Speedup and Accuracy Figures
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A number of helper routines exist for examining the clump hierarchy.
 
-Two datasets are used to make the three figures below. Each is a zoom-in
-simulation with high resolution in the middle with AMR, and then lower
-resolution static grids on the periphery. In this way they are very similar to
-a clump in a full-AMR simulation, where there are many AMR levels stacked
-around a density peak. One dataset has a total of 3 levels of AMR, and
-the other has 10 levels, but in other ways are very similar.
+.. code:: python
 
-The first figure shows the effect of varying the opening angle on the speed
-and accuracy of the treecode. The tests were performed using the L=10 
-dataset on a clump with approximately 118,000 cells. The speedup of up the
-treecode is in green, and the accuracy in blue, with the opening angle
-on the x-axis.
+   # Write a text file of the full hierarchy.
+   write_clump_index(master_clump, 0, "%s_clump_hierarchy.txt" % ds)
 
-With an ``opening_angle`` = 0, the accuracy is perfect, but the treecode is
-less than half as fast as the brute-force method. However, by an
-``opening_angle`` of 1, the treecode is now nearly twice as fast, with
-about 0.2% error. This trend continues to an ``opening_angle`` 8, where
-large opening angles have no effect due to geometry.
+   # Write a text file of only the leaf nodes.
+   write_clumps(master_clump,0, "%s_clumps.txt" % ds)
 
-.. image:: _images/TreecodeOpeningAngleBig.png
-   :width: 450
-   :height: 400
+   # Get a list of just the leaf nodes.
+   leaf_clumps = get_lowest_clumps(master_clump)
 
-Note that the accuracy is always below 1. The treecode will always underestimate
-the gravitational binding energy of a clump.
+``Clump`` objects can be used like all other data containers.
 
-In this next figure, the ``opening_angle`` is kept constant at 1, but the
-number of cells is varied on the L=3 dataset by slowly expanding a spherical
-region of analysis. Up to about 100,000 cells,
-the treecode is actually slower than the brute-force method. This is due to
-the fact that with fewer cells, smaller geometric distances,
-and a shallow AMR index, the treecode
-method has very little chance to be applied. The calculation is overall
-slower due to the overhead of the treecode method & startup costs. This
-explanation is further strengthened by the fact that the accuracy of the
-treecode method stay perfect for the first couple thousand cells, indicating
-that the treecode method is not being applied over that range.
+.. code:: python
 
-Once the number of cells gets high enough, and the size of the region becomes
-large enough, the treecode method can work its magic and the treecode method
-becomes advantageous.
+   print leaf_clumps[0]["gas", "density"]
+   print leaf_clumps[0].quantities.total_mass()
 
-.. image:: _images/TreecodeCellsSmall.png
-   :width: 450
-   :height: 400
+The writing functions will write out a series or properties about each 
+clump by default.  Additional properties can be appended with the 
+``Clump.add_info_item`` function.
 
-The saving grace to the figure above is that for small clumps, a difference of
-50% in calculation time is on the order of a second or less, which is tiny
-compared to the minutes saved for the larger clumps where the speedup can
-be greater than 3.
+.. code:: python
 
-The final figure is identical to the one above, but for the L=10 dataset.
-Due to the higher number of AMR levels, which translates into more opportunities
-for the treecode method to be applied, the treecode becomes faster than the
-brute-force method at only about 30,000 cells. The accuracy shows a different
-behavior, with a dip and a rise, and overall lower accuracy. However, at all
-times the error is still well under 1%, and the time savings are significant.
+   master_clump.add_info_item("total_cells")
 
-.. image:: _images/TreecodeCellsBig.png
-   :width: 450
-   :height: 400
+Just like the validators, custom info items can be added by defining functions 
+that minimally accept a ``Clump`` object and return a string to be printed.
 
-The figures above show that the treecode method is generally very advantageous,
-and that the error introduced is minimal.
+.. code:: python
+
+   def _mass_weighted_jeans_mass(clump):
+       jeans_mass = clump.data.quantities.weighted_average_quantity(
+           "jeans_mass", ("gas", "cell_mass")).in_units("Msun")
+       return "Jeans Mass (mass-weighted): %.6e Msolar." % jeans_mass
+   add_clump_info("mass_weighted_jeans_mass", _mass_weighted_jeans_mass)
+
+Then, add it to the list:
+
+.. code:: python
+
+   master_clump.add_info_item("mass_weighted_jeans_mass")
+
+By default, the following info items are activated: **total_cells**, 
+**cell_mass**, **mass_weighted_jeans_mass**, **volume_weighted_jeans_mass**, 
+**max_grid_level**, **min_number_density**, **max_number_density**, and 
+**distance_to_main_clump**.
+
+Clumps can be visualized using the ``annotate_clumps`` callback.
+
+.. code:: python
+
+   prj = yt.ProjectionPlot(ds, 2, ("gas", "density"), 
+                           center='c', width=(20,'kpc'))
+   prj.annotate_clumps(leaf_clumps)
+   prj.save('clumps')

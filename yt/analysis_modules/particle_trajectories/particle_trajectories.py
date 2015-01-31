@@ -13,23 +13,28 @@ Particle trajectories
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.CICDeposit import CICSample_3
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
 from yt.funcs import *
+from yt.units.yt_array import array_like_field
+from yt.config import ytcfg
+from collections import OrderedDict
 
 import numpy as np
 import h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
-    parameter files. 
+    datasets. 
 
     The ParticleTrajectories object contains a collection of
     particle trajectories for a specified set of particle indices. 
     
     Parameters
     ----------
-    filenames : list of strings
-        A time-sorted list of filenames to construct the DatasetSeries
-        object.
+    outputs : `yt.data_objects.time_series.DatasetSeries` or list of strings
+        DatasetSeries object, or a time-sorted list of filenames to
+        construct a new DatasetSeries object.
     indices : array_like
         An integer array of particle indices whose trajectories we
         want to track. If they are not sorted they will be sorted.
@@ -38,6 +43,10 @@ class ParticleTrajectories(object):
         collection is instantiated.
         Default : None (will default to the fields 'particle_position_x',
         'particle_position_y', 'particle_position_z')
+    suppress_logging : boolean
+        Suppress yt's logging when iterating over the simulation time
+        series.
+        Default : False
 
     Examples
     ________
@@ -47,86 +56,73 @@ class ParticleTrajectories(object):
     >>> fields = ["particle_position_x", "particle_position_y",
     >>>           "particle_position_z", "particle_velocity_x",
     >>>           "particle_velocity_y", "particle_velocity_z"]
-    >>> pf = load(my_fns[0])
-    >>> init_sphere = pf.sphere(pf.domain_center, (.5, "unitary"))
+    >>> ds = load(my_fns[0])
+    >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
     >>> indices = init_sphere["particle_index"].astype("int")
     >>> trajs = ParticleTrajectories(my_fns, indices, fields=fields)
     >>> for t in trajs :
     >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
-
-    Notes
-    -----
-    As of this time only particle trajectories that are complete over the
-    set of specified parameter files are supported. If any particle's history
-    ends for some reason (e.g. leaving the simulation domain or being actively
-    destroyed), the whole trajectory collection of which it is a set must end
-    at or before the particle's last timestep. This is a limitation we hope to
-    lift at some point in the future.     
     """
-    def __init__(self, filenames, indices, fields=None) :
+    def __init__(self, outputs, indices, fields=None, suppress_logging=False):
 
         indices.sort() # Just in case the caller wasn't careful
-        
         self.field_data = YTFieldData()
-        self.pfs = DatasetSeries.from_filenames(filenames)
+        if isinstance(outputs, DatasetSeries):
+            self.data_series = outputs
+        else:
+            self.data_series = DatasetSeries(outputs)
         self.masks = []
         self.sorts = []
+        self.array_indices = []
         self.indices = indices
         self.num_indices = len(indices)
-        self.num_steps = len(filenames)
+        self.num_steps = len(outputs)
         self.times = []
+        self.suppress_logging = suppress_logging
 
         # Default fields 
         
         if fields is None: fields = []
+        fields.append("particle_position_x")
+        fields.append("particle_position_y")
+        fields.append("particle_position_z")
+        fields = list(OrderedDict.fromkeys(fields))
 
-        # Must ALWAYS have these fields
-        
-        fields = fields + ["particle_position_x",
-                           "particle_position_y",
-                           "particle_position_z"]
-
-        # Set up the derived field list and the particle field list
-        # so that if the requested field is a particle field, we'll
-        # just copy the field over, but if the field is a grid field,
-        # we will first interpolate the field to the particle positions
-        # and then return the field. 
-
-        pf = self.pfs[0]
-        self.derived_field_list = pf.derived_field_list
-        self.particle_fields = [field for field in self.derived_field_list
-                                if pf.field_info[field].particle_type]
-
-        """
-        The following loops through the parameter files
-        and performs two tasks. The first is to isolate
-        the particles with the correct indices, and the
-        second is to create a sorted list of these particles.
-        We also make a list of the current time from each file. 
-        Right now, the code assumes (and checks for) the
-        particle indices existing in each dataset, a limitation I
-        would like to lift at some point since some codes
-        (e.g., FLASH) destroy particles leaving the domain.
-        """
-        
-        for pf in self.pfs:
-            dd = pf.h.all_data()
-            newtags = dd["particle_index"].astype("int")
-            if not np.all(np.in1d(indices, newtags, assume_unique=True)):
-                print "Not all requested particle ids contained in this dataset!"
-                raise IndexError
+        if self.suppress_logging:
+            old_level = int(ytcfg.get("yt","loglevel"))
+            mylog.setLevel(40)
+        my_storage = {}
+        pbar = get_pbar("Constructing trajectory information", len(self.data_series))
+        for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
+            dd = ds.all_data()
+            idx_field = dd._determine_fields("particle_index")[0]
+            newtags = dd[idx_field].ndarray_view().astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
             sorts = np.argsort(newtags[mask])
-            self.masks.append(mask)            
+            self.array_indices.append(np.where(np.in1d(indices, newtags, assume_unique=True))[0])
+            self.masks.append(mask)
             self.sorts.append(sorts)
-            self.times.append(pf.current_time)
+            sto.result_id = ds.parameter_filename
+            sto.result = ds.current_time
+            pbar.update(i)
+        pbar.finish()
 
-        self.times = np.array(self.times)
+        if self.suppress_logging:
+            mylog.setLevel(old_level)
 
-        # Now instantiate the requested fields 
+        times = []
+        for fn, time in sorted(my_storage.items()):
+            times.append(time)
+
+        self.times = self.data_series[0].arr([time for time in times], times[0].units)
+
+        self.particle_fields = []
+
+        # Instantiate fields the caller requested
+
         for field in fields:
             self._get_data(field)
-            
+
     def has_key(self, key):
         return (key in self.field_data)
     
@@ -135,8 +131,7 @@ class ParticleTrajectories(object):
 
     def __getitem__(self, key):
         """
-        Get the field associated with key,
-        checking to make sure it is a particle field.
+        Get the field associated with key.
         """
         if key == "particle_time":
             return self.times
@@ -203,33 +198,53 @@ class ParticleTrajectories(object):
         with shape (num_indices, num_steps)
         """
         if not self.field_data.has_key(field):
-            particles = np.empty((0))
+            if self.suppress_logging:
+                old_level = int(ytcfg.get("yt","loglevel"))
+                mylog.setLevel(40)
+            ds_first = self.data_series[0]
+            dd_first = ds_first.all_data()
+            fd = dd_first._determine_fields(field)[0]
+            if field not in self.particle_fields:
+                if self.data_series[0].field_info[fd].particle_type:
+                    self.particle_fields.append(field)
+            particles = np.empty((self.num_indices,self.num_steps))
+            particles[:] = np.nan
             step = int(0)
-            for pf, mask, sort in zip(self.pfs, self.masks, self.sorts):
+            pbar = get_pbar("Generating field %s in trajectories." % (field), self.num_steps)
+            my_storage={}
+            for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
+                mask = self.masks[i]
+                sort = self.sorts[i]
                 if field in self.particle_fields:
                     # This is easy... just get the particle fields
-                    dd = pf.h.all_data()
-                    pfield = dd[field][mask]
-                    particles = np.append(particles, pfield[sort])
+                    dd = ds.all_data()
+                    pfield = dd[fd].ndarray_view()[mask][sort]
                 else:
                     # This is hard... must loop over grids
                     pfield = np.zeros((self.num_indices))
-                    x = self["particle_position_x"][:,step]
-                    y = self["particle_position_y"][:,step]
-                    z = self["particle_position_z"][:,step]
-                    particle_grids, particle_grid_inds = pf.h.find_points(x,y,z)
+                    x = self["particle_position_x"][:,step].ndarray_view()
+                    y = self["particle_position_y"][:,step].ndarray_view()
+                    z = self["particle_position_z"][:,step].ndarray_view()
+                    # This will fail for non-grid index objects
+                    particle_grids, particle_grid_inds = ds.index._find_points(x,y,z)
                     for grid in particle_grids:
-                        cube = grid.retrieve_ghost_zones(1, [field])
+                        cube = grid.retrieve_ghost_zones(1, [fd])
                         CICSample_3(x,y,z,pfield,
                                     self.num_indices,
-                                    cube[field],
+                                    cube[fd],
                                     np.array(grid.LeftEdge).astype(np.float64),
                                     np.array(grid.ActiveDimensions).astype(np.int32),
-                                    np.float64(grid['dx']))
-                    particles = np.append(particles, pfield)
+                                    grid.dds[0])
+                sto.result_id = ds.parameter_filename
+                sto.result = (self.array_indices[i], pfield)
+                pbar.update(step)
                 step += 1
-            self[field] = particles.reshape(self.num_steps,
-                                            self.num_indices).transpose()
+            pbar.finish()
+            for i, (fn, (indices, pfield)) in enumerate(sorted(my_storage.items())):
+                particles[indices,i] = pfield
+            self.field_data[field] = array_like_field(dd_first, particles, fd)
+            if self.suppress_logging:
+                mylog.setLevel(old_level)
         return self.field_data[field]
 
     def trajectory_from_index(self, index):
@@ -269,6 +284,7 @@ class ParticleTrajectories(object):
             traj[field] = self[field][mask,:][0]
         return traj
 
+    @parallel_root_only
     def write_out(self, filename_base):
         """
         Write out particle trajectories to tab-separated ASCII files (one
@@ -299,7 +315,8 @@ class ParticleTrajectories(object):
             fid.writelines(outlines)
             fid.close()
             del fid
-            
+
+    @parallel_root_only
     def write_out_h5(self, filename):
         """
         Write out all the particle trajectories to a single HDF5 file

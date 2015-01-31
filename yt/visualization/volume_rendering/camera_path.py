@@ -80,7 +80,7 @@ class Keyframes(object):
             Nz = 1
             ndims = 2
         if Nx*Ny*Nz != Nx**ndims:
-            print "Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz)
+            print("Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz))
             sys.exit()
         self.nframes = Nx
         self.pos = np.zeros((Nx,3))

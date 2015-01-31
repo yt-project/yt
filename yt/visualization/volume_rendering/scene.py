@@ -46,12 +46,25 @@ class SceneHandle(object):
 
 class Scene(object):
 
-    """Skeleton Class for 3D Scenes"""
+    """The Scene Class
+
+    The Scene class is meant to be the primary container for the
+    new volume rendering framework. A single scene may contain
+    several Camera and RenderSource instances, and is the primary
+    driver behind creating a volume rendering.
+
+    """
 
     _current = None
 
     def __init__(self):
-        mylog.debug("Entering %s" % str(self))
+        """
+        Create a new Scene instance.
+
+        This sets up the basics needed to add sources and cameras.
+        This does very little setup, and requires additional input
+        to do anything useful.
+        """
         super(Scene, self).__init__()
         self.sources = {}
         self.default_camera = None
@@ -65,12 +78,14 @@ class Scene(object):
         returning a tuple of (key, source)
         """
         for k, source in self.sources.iteritems():
-            if isinstance(source, OpaqueSource):
+            #print source, issubclass(OpaqueSource, type(source))
+            #print source, issubclass(VolumeSource, type(source))
+            if isinstance(source, OpaqueSource) or issubclass(OpaqueSource, type(source)):
                 yield k, source
 
     def iter_transparent_sources(self):
         """
-        Iterate over opaque RenderSource objects,
+        Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
         """
         for k, source in self.sources.iteritems():
@@ -112,7 +127,7 @@ class Scene(object):
         ims = {}
         for k, v in self.sources.iteritems():
             v.validate()
-            print 'Running', k, v
+            #print 'Running', k, v
             ims[k] = v.render(camera)
 
         bmp = np.zeros_like(ims.values()[0])
@@ -137,14 +152,18 @@ class Scene(object):
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self.iter_opaque_sources():
-            print "Adding opaque source:", source
-            if source.zbuffer is not None:
-                opaque = opaque + source.zbuffer
+            #print "Adding opaque source:", source
+            source.render(cam, zbuffer=opaque)
+            #print opaque.z.min(), opaque.z.max()
+            #print opaque.rgba[:, :, :3].max()
+            #if source.zbuffer is not None:
+            #    opaque = opaque + source.zbuffer
+        #im = opaque.rgba
 
         for k, source in self.iter_transparent_sources():
-            print "Adding transparent source:", source
-            print opaque.z.min(), opaque.z.max()
-            print opaque.rgba[:,:,:3].max()
+            #print "Adding transparent source:", source
+            #print opaque.z.min(), opaque.z.max()
+            #print opaque.rgba[:, :, :3].max()
             im = source.render(cam, zbuffer=opaque)
             #opaque = opaque + source.zbuffer
         return im
@@ -161,17 +180,11 @@ class Scene(object):
                              self.sources[key].lens)
         return handle
 
-
-def volume_render(data_source, field=None, fname=None):
-    data_source = data_source_or_all(data_source)
-    sc = Scene()
-    if field is None:
-        data_source.pf.index
-        field = data_source.pf.field_list[0]
-        mylog.info('Setting default field to %s' % field.__repr__())
-
-    vol = VolumeSource(data_source, field=field)
-    cam = Camera(data_source)
-    sc.set_default_camera(cam)
-    sc.add_source(vol)
-    return sc.render(fname=fname), sc
+    def __repr__(self):
+        disp = "<Scene Object>:"
+        disp += "\nSources: \n"
+        for k, v in self.sources.iteritems():
+            disp += "    %s: %s\n" % (k, v)
+        disp += "Camera: \n"
+        disp += "    %s" % self.default_camera
+        return disp

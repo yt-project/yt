@@ -2,88 +2,75 @@ Cosmological Analysis
 ---------------------
 
 These scripts demonstrate some basic and more advanced analysis that can be 
-performed on cosmological simulations.
-
-.. _cookbook-halo_finding:
-
-Simple Halo Finding
-~~~~~~~~~~~~~~~~~~~
-This script shows how to create a halo catalog for a single dataset.
-
-.. yt_cookbook:: halo_finding.py
+performed on cosmological simulation datasets.  Most of the following 
+recipes are derived from functionality in yt's :ref:`analysis-modules`.
 
 Plotting Halos
 ~~~~~~~~~~~~~~
+
 This is a mechanism for plotting circles representing identified particle halos
 on an image.
+See :ref:`halo-analysis` and :ref:`annotate-halos` for more information.
 
 .. yt_cookbook:: halo_plotting.py
 
-Plotting Halo Particles
-~~~~~~~~~~~~~~~~~~~~~~~
-This is a simple mechanism for overplotting the particles belonging only to
-halos.
+.. _cookbook-rockstar-nested-grid:
 
-.. yt_cookbook:: halo_particle_plotting.py
+Running Rockstar to Find Halos on Multi-Resolution-Particle Datasets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _cookbook-halo_mass_info:
+The version of Rockstar installed with yt does not have the capability
+to work on datasets with particles of different masses.  Unfortunately,
+many simulations possess particles of different masses, notably cosmological 
+zoom datasets.  This recipe uses Rockstar in two different ways to generate a 
+HaloCatalog from the highest resolution dark matter particles (the ones 
+inside the zoom region).  It then overlays some of those halos on a projection
+as a demonstration.  See :ref:`rockstar` and :ref:`annotate-halos` for
+more information.
 
-Halo Information
-~~~~~~~~~~~~~~~~
-This recipe finds halos and then prints out information about them.
+.. yt_cookbook:: rockstar_nest.py
 
-.. yt_cookbook:: halo_mass_info.py
+.. _cookbook-halo_finding:
 
 Halo Profiling and Custom Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates the three primary uses of the halo profiler: 
-1) radial profiles and filtering; 2) projections; and 3) custom halo 
-analysis.
+
+This script demonstrates the use of the halo catalog to create radial
+profiles for each halo in a cosmological dataset.
+See :ref:`halo_catalog` for more information.
 
 .. yt_cookbook:: halo_profiler.py
 
-Halo Tracking Across Timesteps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates tracking a halo across multiple timesteps
-in a TimeSeries object, as well as some handy functions for looking
-at the properties of that halo over time.
-
-.. yt_cookbook:: halo_merger_tree.py
+.. _cookbook-light_cone:
 
 Light Cone Projection
 ~~~~~~~~~~~~~~~~~~~~~
+
 This script creates a light cone projection, a synthetic observation 
 that stacks together projections from multiple datasets to extend over 
 a given redshift interval.
+See :ref:`light-cone-generator` for more information.
 
 .. yt_cookbook:: light_cone_projection.py
 
-Light Cone with Halo Mask
-~~~~~~~~~~~~~~~~~~~~~~~~~
-This script combines the light cone generator with the halo profiler to 
-make a light cone projection with all of the halos cut out of the image.
+.. _cookbook-light_ray:
 
-.. yt_cookbook:: light_cone_with_halo_mask.py 
+Light Ray
+~~~~~~~~~
 
-Making Unique Light Cones
-~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates how to make a series of light cone projections
-that only have a maximum amount of volume in common.
+This script demonstrates how to make a synthetic quasar sight line that 
+extends over multiple datasets and can be used to generate a synthetic 
+absorption spectrum.
+See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more information.
 
-.. yt_cookbook:: unique_light_cone_projections.py 
-
-Making Light Rays
-~~~~~~~~~~~~~~~~~
-This script demonstrates how to make a synthetic quasar sight line and 
-uses the halo profiler to record information about halos close to the 
-line of sight.
-
-.. yt_cookbook:: make_light_ray.py 
+.. yt_cookbook:: light_ray.py 
 
 Creating and Fitting Absorption Spectra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 This script demonstrates how to use light rays to create corresponding
 absorption spectra and then fit the spectra to find absorbing
 structures.
+See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more information.
 
 .. yt_cookbook:: fit_spectrum.py

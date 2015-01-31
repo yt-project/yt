@@ -19,8 +19,7 @@ from .data_structures import \
       SkeletonDataset
 
 from .fields import \
-      SkeletonFieldInfo, \
-      add_skeleton_field
+      SkeletonFieldInfo
 
 from .io import \
       IOHandlerSkeleton

@@ -29,7 +29,7 @@ class Lens(ParallelAnalysisInterface):
     """docstring for Lens"""
 
     def __init__(self, ):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(Lens, self).__init__()
         self.viewpoint = None
         self.sub_samples = 5
@@ -72,13 +72,12 @@ class Lens(ParallelAnalysisInterface):
         """
         raise NotImplementedError("Need to choose viewpoint for this class")
 
-
 class PlaneParallelLens(Lens):
 
     """docstring for PlaneParallelLens"""
 
     def __init__(self, ):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(PlaneParallelLens, self).__init__()
 
     def get_sampler_params(self, camera, render_source):
@@ -118,6 +117,11 @@ class PlaneParallelLens(Lens):
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
         return px, py, dz
 
+    def __repr__(self):
+        disp = "<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" %\
+                (self.viewpoint)
+        return disp
+
 class PerspectiveLens(Lens):
 
     """docstring for PerspectiveLens"""
@@ -133,7 +137,7 @@ class PerspectiveLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera):
+    def get_sampler_params(self, camera, render_source):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
         # We might have a different width and back_center
@@ -191,6 +195,10 @@ class PerspectiveLens(Lens):
         """
         self.viewpoint = self.front_center
 
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % (self.viewpoint)
+        return disp
+
 
 class FisheyeLens(Lens):
 
@@ -206,6 +214,7 @@ class FisheyeLens(Lens):
     def setup_box_properties(self, camera):
         self.radius = camera.width.max()
         super(FisheyeLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -245,7 +254,42 @@ class FisheyeLens(Lens):
         """
         For a PerspectiveLens, the viewpoint is the front center.
         """
-        self.viewpoint = self.center
+        self.viewpoint = camera.position
+
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+        # the return values here need to be px, py, dz
+        # these are the coordinates and dz for the resultant image.
+        # Basically, what we need is an inverse projection from the fisheye
+        # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
+        # vector, and we need the reverse.
+        # First, we transform lpos into *relative to the camera* coordinates.
+        lpos = camera.position - pos
+        inv_mat = np.linalg.inv(self.rotation_matrix)
+        lpos = lpos.dot(self.rotation_matrix)
+        #lpos = lpos.dot(self.rotation_matrix)
+        mag = (lpos * lpos).sum(axis=1)**0.5
+        lpos /= mag[:,None]
+        dz = mag / self.radius
+        theta = np.arccos(lpos[:,2])
+        fov_rad = self.fov * np.pi / 180.0
+        r = 2.0 * theta / fov_rad
+        phi = np.arctan2(lpos[:,1], lpos[:,0])
+        px = r * np.cos(phi)
+        py = r * np.sin(phi)
+        u = camera.focus.uq
+        # dz is distance the ray would travel
+        px = (px + 1.0) * res[0] / 2.0
+        py = (py + 1.0) * res[1] / 2.0
+        px = (u * np.rint(px)).astype("int64")
+        py = (u * np.rint(py)).astype("int64")
+        return px, py, dz
+
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
+                (self.viewpoint, self.fov, self.radius)
+        return disp
 
     def project_to_plane(self, camera, pos, res=None):
         if res is None:

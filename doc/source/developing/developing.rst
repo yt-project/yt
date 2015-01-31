@@ -23,28 +23,28 @@ Please feel free to hack around, commit changes, and send them upstream.  If
 you're new to Mercurial, these three resources are pretty great for learning
 the ins and outs:
 
-   * http://hginit.com/
-   * http://hgbook.red-bean.com/read/
-   * http://mercurial.selenic.com/
+* http://hginit.com/
+* http://hgbook.red-bean.com/read/
+* http://mercurial.selenic.com/
 
 The commands that are essential for using mercurial include:
 
-   * ``hg commit`` which commits changes in the working directory to the
-     repository, creating a new "changeset object."
-   * ``hg add`` which adds a new file to be tracked by mercurial.  This does
-     not change the working directory.
-   * ``hg pull`` which pulls (from an optional path specifier) changeset
-     objects from a remote source.  The working directory is not modified.
-   * ``hg push`` which sends (to an optional path specifier) changeset objects
-     to a remote source.  The working directory is not modified.
-   * ``hg log`` which shows a log of all changeset objects in the current
-     repository.  Use ``-g`` to show a graph of changeset objects and their
-     relationship.
-   * ``hg update`` which (with an optional "revision" specifier) updates the
-     state of the working directory to match a changeset object in the
-     repository.
-   * ``hg merge`` which combines two changesets to make a union of their lines
-     of development.  This updates the working directory.
+* ``hg commit`` which commits changes in the working directory to the
+  repository, creating a new "changeset object."
+* ``hg add`` which adds a new file to be tracked by mercurial.  This does
+  not change the working directory.
+* ``hg pull`` which pulls (from an optional path specifier) changeset
+  objects from a remote source.  The working directory is not modified.
+* ``hg push`` which sends (to an optional path specifier) changeset objects
+  to a remote source.  The working directory is not modified.
+* ``hg log`` which shows a log of all changeset objects in the current
+  repository.  Use ``-g`` to show a graph of changeset objects and their
+  relationship.
+* ``hg update`` which (with an optional "revision" specifier) updates the
+  state of the working directory to match a changeset object in the
+  repository.
+* ``hg merge`` which combines two changesets to make a union of their lines
+  of development.  This updates the working directory.
 
 Keep in touch, and happy hacking!  We also provide `doc/coding_styleguide.txt`
 and an example of a fiducial docstring in `doc/docstring_example.txt`.  Please
@@ -74,6 +74,8 @@ All contributed code must be BSD-compatible.  If you'd rather not license in
 this manner, but still want to contribute, please consider creating an external
 package, which we'll happily link to.
 
+.. _requirements-for-code-submission:
+
 Requirements for Code Submission
 ++++++++++++++++++++++++++++++++
 
@@ -85,31 +87,33 @@ changes in changelogs during the release procedure.  (See `YTEP-0008
 <https://ytep.readthedocs.org/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
-  * New Features
+* New Features
 
-    * New unit tests (possibly new answer tests) (See :ref:`testing`)
-    * Docstrings for public API
-    * Addition of new feature to the narrative documentation
-    * Addition of cookbook recipe
-    * Issue created on issue tracker, to ensure this is added to the changelog
+  * New unit tests (possibly new answer tests) (See :ref:`testing`)
+  * Docstrings in the source code for the public API
+  * Addition of new feature to the narrative documentation (See :ref:`writing_documentation`)
+  * Addition of cookbook recipe (See :ref:`writing_documentation`) 
+  * Issue created on issue tracker, to ensure this is added to the changelog
 
-  * Extension or Breakage of API in Existing Features
+* Extension or Breakage of API in Existing Features
 
-    * Update existing narrative docs and docstrings
-    * Update existing cookbook recipes
-    * Modify of create new unit tests (See :ref:`testing`)
-    * Issue created on issue tracker, to ensure this is added to the changelog
+  * Update existing narrative docs and docstrings (See :ref:`writing_documentation`) 
+  * Update existing cookbook recipes (See :ref:`writing_documentation`) 
+  * Modify of create new unit tests (See :ref:`testing`)
+  * Issue created on issue tracker, to ensure this is added to the changelog
 
-  * Bug fixes
+* Bug fixes
 
-    * Unit test is encouraged, to ensure breakage does not happen again in the
-      future.
-    * Issue created on issue tracker, to ensure this is added to the changelog
+  * Unit test is encouraged, to ensure breakage does not happen again in the
+    future. (See :ref:`testing`)
+  * Issue created on issue tracker, to ensure this is added to the changelog
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
 out with them.  In :ref:`code-style-guide` there is a list of handy tips for
 how to structure and write your code.
+
+.. _mercurial-with-yt:
 
 How to Use Mercurial with yt
 ++++++++++++++++++++++++++++
@@ -118,22 +122,24 @@ This document doesn't cover detailed mercurial use, but on IRC we are happy to
 walk you through any troubles you might have.  Here are some suggestions
 for using mercurial with yt:
 
-  * Named branches are to be avoided.  Try using bookmarks (``hg bookmark``) to
-    track work.  (`More <http://mercurial.selenic.com/wiki/Bookmarks>`_)
-  * Make sure you set a username in your ``~/.hgrc`` before you commit any
-    changes!  All of the tutorials above will describe how to do this as one of
-    the very first steps.
-  * When contributing changes, you might be asked to make a handful of
-    modifications to your source code.  We'll work through how to do this with
-    you, and try to make it as painless as possible.
-  * Please avoid deleting your yt forks, as that eliminates the code review
-    process from BitBucket's website.
-  * In all likelihood, you only need one fork.  To keep it in sync, you can
-    sync from the website.  (See Bitbucket's `Blog Post
-    <http://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
-    about this.)
-  * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
-    list.
+* Named branches are to be avoided.  Try using bookmarks (``hg bookmark``) to
+  track work.  (`More <http://mercurial.selenic.com/wiki/Bookmarks>`_)
+* Make sure you set a username in your ``~/.hgrc`` before you commit any
+  changes!  All of the tutorials above will describe how to do this as one of
+  the very first steps.
+* When contributing changes, you might be asked to make a handful of
+  modifications to your source code.  We'll work through how to do this with
+  you, and try to make it as painless as possible.
+* Please avoid deleting your yt forks, as that eliminates the code review
+  process from BitBucket's website.
+* In all likelihood, you only need one fork.  To keep it in sync, you can
+  sync from the website.  (See Bitbucket's `Blog Post
+  <http://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
+  about this.)
+* If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
+  list.
+
+.. _building-yt:
 
 Building yt
 +++++++++++
@@ -148,85 +154,207 @@ can rebuild these modules by executing:
 
 .. code-block:: bash
 
-   python2.7 setup.py develop
+  $ python2.7 setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-   python2.7 setup.py install
+  $ python2.7 setup.py install
 
-Only one of these two options is needed.  yt may require you to specify the
-location to libpng and hdf5.  This can be done through files named ``png.cfg``
-and ``hdf5.cfg``.  If you are using the installation script, these will already
-exist.
+Only one of these two options is needed.
+
+.. _windows-developing:
+
+Developing yt on Windows
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you plan to develop yt on Windows, it is necessary to use the `MinGW
+<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
+Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. The libpython package must be
+installed from Anaconda as well. These can both be installed with a single command:
+
+.. code-block:: bash
+
+  $ conda install libpython mingw
+
+Additionally, the syntax for the setup command is slightly different; you must type:
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 develop
+
+or
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 install
+
+.. _sharing-changes:
 
 Making and Sharing Changes
 ++++++++++++++++++++++++++
 
-The simplest way to submit changes to yt is to commit changes in your
-``$YT_DEST/src/yt-hg`` directory, fork the repository on BitBucket,  push the
-changesets to your fork, and then issue a pull request.  If you will be
-developing much more in-depth features for yt, you will also
-likely want to edit the paths in your 
+The simplest way to submit changes to yt is to do the following:
+
+* Build yt from the mercurial repository
+* Navigate to the root of the yt repository 
+* Make some changes and commit them
+* Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
+* Push the changesets to your fork
+* Issue a pull request.
 
 Here's a more detailed flowchart of how to submit changes.
 
-  #. If you have used the installation script, the source code for yt can be
-     found in ``$YT_DEST/src/yt-hg``.  (Below, in :ref:`reading-source`, 
-     we describe how to find items of interest.)  Edit the source file you are
-     interested in and test your changes.  (See :ref:`testing` for more
-     information.)
-  #. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
-     this at: https://bitbucket.org/yt_analysis/yt/fork .  Call this repository
-     ``yt``.
-  #. Commit these changes, using ``hg commit``.  This can take an argument
-     which is a series of filenames, if you have some changes you do not want
-     to commit.
-  #. If your changes include new functionality or cover an untested area of the
-     code, add a test.  (See :ref:`testing` for more information.)  Commit
-     these changes as well.
-  #. Push your changes to your new fork using the command::
+#. If you have used the installation script, the source code for yt can be
+   found in ``$YT_DEST/src/yt-hg``.  Alternatively see
+   :ref:`source-installation` for instructions on how to build yt from the
+   mercurial repository. (Below, in :ref:`reading-source`, we describe how to
+   find items of interest.)  
+#. Edit the source file you are interested in and
+   test your changes.  (See :ref:`testing` for more information.)
+#. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
+   this at: https://bitbucket.org/yt_analysis/yt/fork.  Call this repository
+   yt.
+#. Commit these changes, using ``hg commit``.  This can take an argument
+   which is a series of filenames, if you have some changes you do not want
+   to commit.
+#. Remember that this is a large development effort and to keep the code 
+   accessible to everyone, good documentation is a must.  Add in source code 
+   comments for what you are doing.  Add in docstrings
+   if you are adding a new function or class or keyword to a function.  
+   Add documentation to the appropriate section of the online docs so that
+   people other than yourself know how to use your new code.  
+#. If your changes include new functionality or cover an untested area of the
+   code, add a test.  (See :ref:`testing` for more information.)  Commit
+   these changes as well.
+#. Push your changes to your new fork using the command::
 
-        hg push https://bitbucket.org/YourUsername/yt/
+      hg push -r . https://bitbucket.org/YourUsername/yt/
  
-     If you end up doing considerable development, you can set an alias in the
-     file ``.hg/hgrc`` to point to this path.
-  #. Issue a pull request at
-     https://bitbucket.org/YourUsername/yt/pull-request/new
+   If you end up doing considerable development, you can set an alias in the
+   file ``.hg/hgrc`` to point to this path.
+
+   .. note::
+     Note that the above approach uses HTTPS as the transfer protocol
+     between your machine and BitBucket.  If you prefer to use SSH - or
+     perhaps you're behind a proxy that doesn't play well with SSL via
+     HTTPS - you may want to set up an `SSH key`_ on BitBucket.  Then, you use
+     the syntax ``ssh://hg@bitbucket.org/YourUsername/yt``, or equivalent, in
+     place of ``https://bitbucket.org/YourUsername/yt`` in Mercurial commands.
+     For consistency, all commands we list in this document will use the HTTPS
+     protocol.
+
+     .. _SSH key: https://confluence.atlassian.com/display/BITBUCKET/Set+up+SSH+for+Mercurial
+
+#. Issue a pull request at
+   https://bitbucket.org/YourUsername/yt/pull-request/new
+   A pull request is essentially just asking people to review and accept the 
+   modifications you have made to your personal version of the code.
+
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
 tests.  The process for responding to pull request code review is relatively
 straightforward.
 
-  #. Make requested changes, or leave a comment indicating why you don't think
-     they should be made.
-  #. Commit those changes to your local repository.
-  #. Push the changes to your fork::
+#. Make requested changes, or leave a comment indicating why you don't think
+   they should be made.
+#. Commit those changes to your local repository.
+#. Push the changes to your fork:
 
-        hg push https://bitbucket.org/YourUsername/yt/
+      hg push https://bitbucket.org/YourUsername/yt/
 
-  #. Update your pull request by visiting
-     https://bitbucket.org/YourUsername/yt/pull-request/new
+#. Your pull request will be automatically updated.
 
-How to Write Documentation
-++++++++++++++++++++++++++
+.. _multiple-PRs:
 
-The process for writing documentation is identical to the above, except that
-instead of ``yt_analysis/yt`` you should be forking and pushing to
-``yt_analysis/yt-doc``.  All the source for the documentation is written in
-`Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.
+Working with Multiple BitBucket Pull Requests
++++++++++++++++++++++++++++++++++++++++++++++
 
-Cookbook recipes go in ``source/cookbook/`` and must be added to one of the
-``.rst`` files in that directory.
+Once you become active developing for yt, you may be working on
+various aspects of the code or bugfixes at the same time.  Currently,
+BitBucket's *modus operandi* for pull requests automatically updates
+your active pull request with every ``hg push`` of commits that are a
+descendant of the head of your pull request.  In a normal workflow,
+this means that if you have an active pull request, make some changes
+locally for, say, an unrelated bugfix, then push those changes back to
+your fork in the hopes of creating a *new* pull request, you'll
+actually end up updating your current pull request!
+
+There are a few ways around this feature of BitBucket that will allow
+for multiple pull requests to coexist; we outline one such method
+below.  We assume that you have a fork of yt at
+``http://bitbucket.org/YourUsername/Your_yt`` (see
+:ref:`sharing-changes` for instructions on creating a fork) and that
+you have an active pull request to the main repository.
+
+The main issue with starting another pull request is to make sure that
+your push to BitBucket doesn't go to the same head as your
+existing pull request and trigger BitBucket's auto-update feature.
+Here's how to get your local repository away from your current pull
+request head using `revsets <http://www.selenic.com/hg/help/revsets>`_
+and your ``hgrc`` file:
+   
+#. Set up a Mercurial path for the main yt repository (note this is a convenience
+   step and only needs to be done once).  Add the following to your
+   ``Your_yt/.hg/hgrc``::
+
+     [paths]
+     upstream = https://bitbucket.org/yt_analysis/yt
+
+   This will create a path called ``upstream`` that is aliased to the URL of the
+   main yt repository.
+#. Now we'll use revsets_ to update your local repository to the tip of the
+   ``upstream`` path:
+
+   .. code-block:: bash
+
+      $ hg pull upstream
+      $ hg update -r "remote(tip,'upstream')"
+
+After the above steps, your local repository should be at the tip of
+the main yt repository.  If you find yourself doing this a lot, it may
+be worth aliasing this task in your ``hgrc`` file by adding something like::
+
+  [alias]
+  myupdate = update -r "remote(tip,'upstream')"
+
+And then you can just issue ``hg myupdate`` to get at the tip of the main yt repository.
+
+Make sure you are on the branch you want to be on, and then you can
+make changes and ``hg commit`` them.  If you prefer working with
+`bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
+want to make a bookmark before committing your changes, such as ``hg
+bookmark mybookmark``.
+
+To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
+
+.. code-block:: bash
+
+  $ hg push -r . -f https://bitbucket.org/YourUsername/Your_yt
+
+The ``-r .`` means "push only the commit I'm standing on and any ancestors."  The
+``-f`` is to force Mecurial to do the push since we are creating a new remote head.
+
+Note that if you *did* use a bookmark, you don't have to force the push, but you do
+need to push the bookmark; in other words do the following instead of the above:
+
+.. code-block:: bash
+		
+   $ hg push -B mybookmark https://bitbucket.org/YourUsername/Your_yt
+
+The ``-B`` means "publish my bookmark and any relevant changesets to the remote server."
+		
+You can then go to the BitBucket interface and issue a new pull request based on
+your last changes, as usual.
 
 How To Get The Source Code For Editing
 --------------------------------------
 
 yt is hosted on BitBucket, and you can see all of the yt repositories at
-http://hg.yt-project.org/ .  With the yt installation script you should have a
+http://hg.yt-project.org/.  With the yt installation script you should have a
 copy of Mercurial for checking out pieces of code.  Make sure you have followed
 the steps above for bootstrapping your development (to assure you have a
 bitbucket account, etc.)
@@ -268,21 +396,11 @@ code (a previous changeset or version) by executing the command:
 
    $ hg up revision_specifier
 
-Lastly, if you want to use this new downloaded version of your yt repository
-as the *active* version of yt on your computer (i.e. the one which is executed
-when you run yt from the command line or ``from yt.mods import *``),
-then you must "activate" it using the following commands from within the
+Lastly, if you want to use this new downloaded version of your yt repository as
+the *active* version of yt on your computer (i.e. the one which is executed when
+you run yt from the command line or the one that is loaded when you do ``import
+yt``), then you must "activate" it using the following commands from within the
 repository directory.
-
-In order to do this for the first time with a new repository, you have to
-copy some config files over from your yt installation directory (where yt
-was initially installed from the install_script.sh).  Try this:
-
-.. code-block:: bash
-
-   $ cp $YT_DEST/src/yt-hg/*.cfg <REPOSITORY_NAME>
-
-and then every time you want to "activate" a different repository of yt.
 
 .. code-block:: bash
 
@@ -296,47 +414,65 @@ This will rebuild all C modules as well.
 How To Read The Source Code
 ---------------------------
 
-If you just want to *look* at the source code, you already have it on your
-computer.  Go to the directory where you ran the install_script.sh, then
-go to ``$YT_DEST/src/yt-hg`` .  In this directory are a number of
-subdirectories with different components of the code, although most of them
-are in the yt subdirectory.  Feel free to explore here.
+If you just want to *look* at the source code, you may already have it on your
+computer.  If you build yt using the install script, the source is available at
+``$YT_DEST/src/yt-hg``.  See :ref:`source-installation` for more details about
+to obtain the yt source code if you did not build yt using the install
+script. 
 
-   ``frontends``
-      This is where interfaces to codes are created.  Within each subdirectory of
-      yt/frontends/ there must exist the following files, even if empty:
+The root directory of the yt mercurial repository contains a number of
+subdirectories with different components of the code.  Most of the yt source
+code is contained in the yt subdirectory.  This directory its self contains
+the following subdirectories:
 
-      * ``data_structures.py``, where subclasses of AMRGridPatch, Dataset
-        and AMRHierarchy are defined.
-      * ``io.py``, where a subclass of IOHandler is defined.
-      * ``misc.py``, where any miscellaneous functions or classes are defined.
-      * ``definitions.py``, where any definitions specific to the frontend are
-        defined.  (i.e., header formats, etc.)
+``frontends``
+   This is where interfaces to codes are created.  Within each subdirectory of
+   yt/frontends/ there must exist the following files, even if empty:
 
-   ``visualization``
-      This is where all visualization modules are stored.  This includes plot
-      collections, the volume rendering interface, and pixelization frontends.
+   * ``data_structures.py``, where subclasses of AMRGridPatch, Dataset
+     and AMRHierarchy are defined.
+   * ``io.py``, where a subclass of IOHandler is defined.
+   * ``fields.py``, where fields we expect to find in datasets are defined
+   * ``misc.py``, where any miscellaneous functions or classes are defined.
+   * ``definitions.py``, where any definitions specific to the frontend are
+     defined.  (i.e., header formats, etc.)
 
-   ``data_objects``
-      All objects that handle data, processed or unprocessed, not explicitly
-      defined as visualization are located in here.  This includes the base
-      classes for data regions, covering grids, time series, and so on.  This
-      also includes derived fields and derived quantities.
+``fields``
+   This is where all of the derived fields that ship with yt are defined.
 
-   ``analysis_modules``
-      This is where all mechanisms for processing data live.  This includes
-      things like clump finding, halo profiling, halo finding, and so on.  This
-      is something of a catchall, but it serves as a level of greater
-      abstraction that simply data selection and modification.
+``geometry`` 
+   This is where geometric helpler routines are defined. Handlers
+   for grid and oct data, as well as helpers for coordinate transformations
+   can be found here.
 
-   ``gui``
-      This is where all GUI components go.  Typically this will be some small
-      tool used for one or two things, which contains a launching mechanism on
-      the command line.
+``visualization``
+   This is where all visualization modules are stored.  This includes plot
+   collections, the volume rendering interface, and pixelization frontends.
 
-   ``utilities``
-      All broadly useful code that doesn't clearly fit in one of the other
-      categories goes here.
+``data_objects``
+   All objects that handle data, processed or unprocessed, not explicitly
+   defined as visualization are located in here.  This includes the base
+   classes for data regions, covering grids, time series, and so on.  This
+   also includes derived fields and derived quantities.
+
+``analysis_modules``
+   This is where all mechanisms for processing data live.  This includes
+   things like clump finding, halo profiling, halo finding, and so on.  This
+   is something of a catchall, but it serves as a level of greater
+   abstraction that simply data selection and modification.
+
+``gui``
+   This is where all GUI components go.  Typically this will be some small
+   tool used for one or two things, which contains a launching mechanism on
+   the command line.
+
+``utilities``
+   All broadly useful code that doesn't clearly fit in one of the other
+   categories goes here.
+
+``extern`` 
+   Bundled external modules (i.e. code that was not written by one of
+   the yt authors but that yt depends on) lives here.
 
 
 If you're looking for a specific file or function in the yt source code, use
@@ -366,72 +502,72 @@ To keep things tidy, we try to stick with a couple simple guidelines.
 General Guidelines
 ++++++++++++++++++
 
- * In general, follow `PEP-8 <http://www.python.org/dev/peps/pep-0008/>`_ guidelines.
- * Classes are ConjoinedCapitals, methods and functions are
-   ``lowercase_with_underscores.``
- * Use 4 spaces, not tabs, to represent indentation.
- * Line widths should not be more than 80 characters.
- * Do not use nested classes unless you have a very good reason to, such as
-   requiring a namespace or class-definition modification.  Classes should live
-   at the top level.  ``__metaclass__`` is exempt from this.
- * Do not use unnecessary parentheses in conditionals.  ``if((something) and
-   (something_else))`` should be rewritten as ``if something and
-   something_else``.  Python is more forgiving than C.
- * Avoid copying memory when possible. For example, don't do ``a =
-   a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3`` should be
-   ``np.multiply(a, 3, a)``.
- * In general, avoid all double-underscore method names: ``__something`` is
-   usually unnecessary.
- * Doc strings should describe input, output, behavior, and any state changes
-   that occur on an object.  See the file `doc/docstring_example.txt` for a
-   fiducial example of a docstring.
+* In general, follow `PEP-8 <http://www.python.org/dev/peps/pep-0008/>`_ guidelines.
+* Classes are ConjoinedCapitals, methods and functions are
+  ``lowercase_with_underscores.``
+* Use 4 spaces, not tabs, to represent indentation.
+* Line widths should not be more than 80 characters.
+* Do not use nested classes unless you have a very good reason to, such as
+  requiring a namespace or class-definition modification.  Classes should live
+  at the top level.  ``__metaclass__`` is exempt from this.
+* Do not use unnecessary parentheses in conditionals.  ``if((something) and
+  (something_else))`` should be rewritten as ``if something and
+  something_else``.  Python is more forgiving than C.
+* Avoid copying memory when possible. For example, don't do ``a =
+  a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3`` should be
+  ``np.multiply(a, 3, a)``.
+* In general, avoid all double-underscore method names: ``__something`` is
+  usually unnecessary.
+* Doc strings should describe input, output, behavior, and any state changes
+  that occur on an object.  See the file `doc/docstring_example.txt` for a
+  fiducial example of a docstring.
 
 API Guide
 +++++++++
 
- * Do not import "*" from anything other than ``yt.funcs``.
- * Internally, only import from source files directly; instead of: ``from
-   yt.visualization.api import SlicePlot`` do
-   ``from yt.visualization.plot_window import SlicePlot``.
- * Numpy is to be imported as ``np``.
- * Do not use too many keyword arguments.  If you have a lot of keyword
-   arguments, then you are doing too much in ``__init__`` and not enough via
-   parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
- * Don't create a new class to replicate the functionality of an old class --
-   replace the old class.  Too many options makes for a confusing user
-   experience.
- * Parameter files external to yt are a last resort.
- * The usage of the ``**kwargs`` construction should be avoided.  If they
-   cannot be avoided, they must be explained, even if they are only to be
-   passed on to a nested function.
- * Constructor APIs should be kept as *simple* as possible.
- * Variable names should be short but descriptive.
- * No global variables!
+* Do not import "*" from anything other than ``yt.funcs``.
+* Internally, only import from source files directly; instead of: ``from
+  yt.visualization.api import SlicePlot`` do
+  ``from yt.visualization.plot_window import SlicePlot``.
+* Numpy is to be imported as ``np``.
+* Do not use too many keyword arguments.  If you have a lot of keyword
+  arguments, then you are doing too much in ``__init__`` and not enough via
+  parameter setting.
+* In function arguments, place spaces before commas.  ``def something(a,b,c)``
+  should be ``def something(a, b, c)``.
+* Don't create a new class to replicate the functionality of an old class --
+  replace the old class.  Too many options makes for a confusing user
+  experience.
+* Parameter files external to yt are a last resort.
+* The usage of the ``**kwargs`` construction should be avoided.  If they
+  cannot be avoided, they must be explained, even if they are only to be
+  passed on to a nested function.
+* Constructor APIs should be kept as *simple* as possible.
+* Variable names should be short but descriptive.
+* No global variables!
 
 Variable Names and Enzo-isms
 ++++++++++++++++++++++++++++
 
- * Avoid Enzo-isms.  This includes but is not limited to:
+* Avoid Enzo-isms.  This includes but is not limited to:
 
-   + Hard-coding parameter names that are the same as those in Enzo.  The
-     following translation table should be of some help.  Note that the
-     parameters are now properties on a Dataset subclass: you access them
-     like ``pf.refine_by`` .
+  + Hard-coding parameter names that are the same as those in Enzo.  The
+    following translation table should be of some help.  Note that the
+    parameters are now properties on a Dataset subclass: you access them
+    like ``ds.refine_by`` .
 
-     - ``RefineBy `` => `` refine_by``
-     - ``TopGridRank `` => `` dimensionality``
-     - ``TopGridDimensions `` => `` domain_dimensions``
-     - ``InitialTime `` => `` current_time``
-     - ``DomainLeftEdge `` => `` domain_left_edge``
-     - ``DomainRightEdge `` => `` domain_right_edge``
-     - ``CurrentTimeIdentifier `` => `` unique_identifier``
-     - ``CosmologyCurrentRedshift `` => `` current_redshift``
-     - ``ComovingCoordinates `` => `` cosmological_simulation``
-     - ``CosmologyOmegaMatterNow `` => `` omega_matter``
-     - ``CosmologyOmegaLambdaNow `` => `` omega_lambda``
-     - ``CosmologyHubbleConstantNow `` => `` hubble_constant``
+    - ``RefineBy `` => `` refine_by``
+    - ``TopGridRank `` => `` dimensionality``
+    - ``TopGridDimensions `` => `` domain_dimensions``
+    - ``InitialTime `` => `` current_time``
+    - ``DomainLeftEdge `` => `` domain_left_edge``
+    - ``DomainRightEdge `` => `` domain_right_edge``
+    - ``CurrentTimeIdentifier `` => `` unique_identifier``
+    - ``CosmologyCurrentRedshift `` => `` current_redshift``
+    - ``ComovingCoordinates `` => `` cosmological_simulation``
+    - ``CosmologyOmegaMatterNow `` => `` omega_matter``
+    - ``CosmologyOmegaLambdaNow `` => `` omega_lambda``
+    - ``CosmologyHubbleConstantNow `` => `` hubble_constant``
 
-   + Do not assume that the domain runs from 0 to 1.  This is not true
-     everywhere.
+  + Do not assume that the domain runs from 0 to 1.  This is not true
+    for many codes and datasets.

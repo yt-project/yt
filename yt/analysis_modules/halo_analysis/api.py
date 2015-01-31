@@ -28,5 +28,3 @@ from .halo_filters import \
      
 from .halo_quantities import \
      add_quantity
-
-from . import fields

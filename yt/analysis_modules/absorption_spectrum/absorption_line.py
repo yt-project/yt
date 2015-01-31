@@ -195,7 +195,6 @@ def tau_profile(lam0, fval, gamma, vkms, column_density,
     ## tau_0
     tau_X = np.sqrt(np.pi) * e**2 / (me * ccgs) * \
         column_density * fval / vdop
-    tau1 = tau_X * lam1cgs
     tau0 = tau_X * lam0cgs
 
     # dimensionless frequency offset in units of doppler freq

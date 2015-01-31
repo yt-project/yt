@@ -165,11 +165,16 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int i, level, ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
             level = 0
             index = indices[p]
+            if index == FLAG:
+                # This is a marker for the index not being inside the domain
+                # we're interested in.
+                continue
             for i in range(3):
                 ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
@@ -218,6 +223,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # Now we look at the last nref particles to decide where they go.
         cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
+        cdef np.uint64_t prefix1, prefix2
         # Now we figure out our prefix, which is the oct address at this level.
         # As long as we're actually in Morton order, we do not need to worry
         # about *any* of the other children of the oct.
@@ -263,6 +269,7 @@ cdef np.uint64_t ONEBIT=1
 
 cdef class ParticleRegions:
     cdef np.float64_t left_edge[3]
+    cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
@@ -274,6 +281,7 @@ cdef class ParticleRegions:
         self.nfiles = nfiles
         for i in range(3):
             self.left_edge[i] = left_edge[i]
+            self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i]
@@ -282,25 +290,36 @@ cdef class ParticleRegions:
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
 
-    def add_data_file(self, np.ndarray pos, int file_id):
+    def add_data_file(self, np.ndarray pos, int file_id, int filter = 0):
         if pos.dtype == np.float32:
-            self._mask_positions[np.float32_t](pos, file_id)
+            self._mask_positions[np.float32_t](pos, file_id, filter)
         elif pos.dtype == np.float64:
-            self._mask_positions[np.float64_t](pos, file_id)
+            self._mask_positions[np.float64_t](pos, file_id, filter)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
-                              np.uint64_t file_id):
+                              np.uint64_t file_id, int filter):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
-        cdef int ind[3], i
+        cdef int ind[3], i, use
         cdef np.ndarray[np.uint64_t, ndim=3] mask
         mask = self.masks[file_id/64]
         cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
         for p in range(no):
             # Now we locate the particle
+            use = 1
             for i in range(3):
+                if filter and (pos[p,i] < self.left_edge[i]
+                            or pos[p,i] > self.right_edge[i]):
+                    use = 0
+                    break
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
-            mask[ind[0],ind[1],ind[2]] |= val
+                ind[i] = iclip(ind[i], 0, self.dims[i])
+            if use == 1:
+                mask[ind[0],ind[1],ind[2]] |= val
+        return
 
     def identify_data_files(self, SelectorObject selector):
         # This is relatively cheap to iterate over.

@@ -1,5 +1,5 @@
 """
-ARTIO frontend tests 
+ARTIO frontend tests
 
 
 
@@ -16,7 +16,7 @@ ARTIO frontend tests
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
@@ -24,24 +24,34 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.artio.api import ARTIODataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
-           ("deposit", "all_density"), ("deposit", "all_count")) 
+           ("deposit", "all_density"), ("deposit", "all_count"))
 
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art"
-@requires_pf(sizmbhloz)
+@requires_ds(sizmbhloz)
 def test_sizmbhloz():
-    pf = data_dir_load(sizmbhloz)
-    pf.max_range = 1024*1024
-    yield assert_equal, str(pf), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
+    ds = data_dir_load(sizmbhloz)
+    ds.max_range = 1024*1024
+    yield assert_equal, str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         sizmbhloz, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(sizmbhloz, field, ds)
-        dobj = create_obj(pf, ds)
+                        dobj_name)
+            yield FieldValuesTest(sizmbhloz, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+
+
+@requires_file(sizmbhloz)
+def test_ARTIODataset():
+    assert isinstance(data_dir_load(sizmbhloz), ARTIODataset)
+
+@requires_file(sizmbhloz)
+def test_units_override():
+    for test in units_override_check(sizmbhloz):
+        yield test

@@ -17,7 +17,7 @@ commands through ExtDirect calls
 import json
 import os
 import stat
-import cStringIO
+from cStringIO import StringIO
 import logging
 import uuid
 import numpy as np
@@ -189,7 +189,7 @@ import pylab
 from yt.mods import *
 from yt.gui.reason.utils import load_script, deliver_image
 from yt.gui.reason.widget_store import WidgetStore
-from yt.data_objects.static_output import _cached_pfs
+from yt.data_objects.static_output import _cached_datasets
 
 pylab.ion()
 data_objects = []
@@ -369,11 +369,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def paste_session(self):
-        import xmlrpclib, cStringIO
+        import xmlrpclib
         p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
-        cs = cStringIO.StringIO()
+        cs = StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs = cs.getvalue()
         ret = p.pastes.newPaste('python', cs, None, '', '', True)
@@ -382,7 +382,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def paste_text(self, to_paste):
-        import xmlrpclib, cStringIO
+        import xmlrpclib
         p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
@@ -411,7 +411,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     @lockit
     def _session_py(self):
-        cs = cStringIO.StringIO()
+        cs = StringIO()
         cs.write("\n######\n".join(self.executed_cell_texts))
         cs.seek(0)
         response.headers["content-disposition"] = "attachment;"
@@ -420,7 +420,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     @lockit
     def load(self, base_dir, filename):
         pp = os.path.join(base_dir, filename)
-        funccall = "pfs.append(load('%s'))" % pp
+        funccall = "datasets.append(load('%s'))" % pp
         self.execute(funccall)
         return []
 

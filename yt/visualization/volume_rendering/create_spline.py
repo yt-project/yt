@@ -53,7 +53,7 @@ Outputs:
         elif ind[i] == im1[i]:
             u = 0
         else:
-            print "Bad index during interpolation?"
+            print ("Bad index during interpolation?")
             sys.exit()
         b0 = -tension * u + 2*tension * u**2 - tension * u**3
         b1 = 1.0 + (tension-3) * u**2 + (2-tension) * u**3

@@ -16,16 +16,19 @@ Analyzer objects for time series datasets
 import inspect
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 analysis_task_registry = {}
 
+class RegisteredTask(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "skip") and cls.skip == False:
+            return
+        analysis_task_registry[cls.__name__] = cls
+
+@add_metaclass(RegisteredTask)
 class AnalysisTask(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "skip") and cls.skip == False:
-                return
-            analysis_task_registry[cls.__name__] = cls
 
     def __init__(self, *args, **kwargs):
         # This should only get called if the subclassed object
@@ -57,8 +60,8 @@ def MaximumValue(params, data_object):
     return v
 
 @analysis_task()
-def CurrentTimeYears(params, pf):
-    return pf.current_time * pf["years"]
+def CurrentTimeYears(params, ds):
+    return ds.current_time * ds["years"]
 
 class SlicePlotDataset(AnalysisTask):
     _params = ['field', 'axis', 'center']
@@ -68,8 +71,8 @@ class SlicePlotDataset(AnalysisTask):
         self.SlicePlot = SlicePlot
         AnalysisTask.__init__(self, *args, **kwargs)
 
-    def eval(self, pf):
-        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
+    def eval(self, ds):
+        slc = self.SlicePlot(ds, self.axis, self.field, center = self.center)
         return slc.save()
 
 class QuantityProxy(AnalysisTask):
@@ -101,8 +104,8 @@ class ParameterValue(AnalysisTask):
             cast = lambda a: a
         self.cast = cast
 
-    def eval(self, pf):
-        return self.cast(pf.get_parameter(self.parameter))
+    def eval(self, ds):
+        return self.cast(ds.get_parameter(self.parameter))
 
 def create_quantity_proxy(quantity_object):
     args, varargs, kwargs, defaults = inspect.getargspec(quantity_object[1])

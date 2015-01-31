@@ -16,6 +16,7 @@ Time series analysis functions.
 import inspect, functools, weakref, glob, types, os
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.convenience import load
 from yt.config import ytcfg
 from .data_containers import data_object_registry
@@ -46,9 +47,9 @@ class AnalysisTaskProxy(object):
     def __contains__(self, key):
         return key in analysis_task_registry
 
-def get_pf_prop(propname):
-    def _eval(params, pf):
-        return getattr(pf, propname)
+def get_ds_prop(propname):
+    def _eval(params, ds):
+        return getattr(ds, propname)
     cls = type(propname, (AnalysisTask,),
                 dict(eval = _eval, _params = tuple()))
     return cls
@@ -77,7 +78,7 @@ class TimeSeriesParametersContainer(object):
 
     def __getattr__(self, attr):
         if attr in attrs:
-            return self.data_object.eval(get_pf_prop(attr)())
+            return self.data_object.eval(get_ds_prop(attr)())
         raise AttributeError(attr)
 
 class DatasetSeries(object):
@@ -104,32 +105,32 @@ class DatasetSeries(object):
         this is set to either True or an integer, it will be iterated with
         1 or that integer number of processors assigned to each parameter
         file provided to the loop.
-    setup_function : callable, accepts a pf
-        This function will be called whenever a parameter file is loaded.
+    setup_function : callable, accepts a ds
+        This function will be called whenever a dataset is loaded.
 
     Examples
     --------
 
     >>> ts = DatasetSeries(
             "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
-    >>> for pf in ts:
-    ...     SlicePlot(pf, "x", "Density").save()
+    >>> for ds in ts:
+    ...     SlicePlot(ds, "x", "Density").save()
     ...
-    >>> def print_time(pf):
-    ...     print pf.current_time
+    >>> def print_time(ds):
+    ...     print ds.current_time
     ...
     >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
     ...      setup_function = print_time)
     ...
-    >>> for pf in ts:
-    ...     SlicePlot(pf, "x", "Density").save()
+    >>> for ds in ts:
+    ...     SlicePlot(ds, "x", "Density").save()
 
     """
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, basestring):
             outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls, outputs, *args, **kwargs)
+        ret = super(DatasetSeries, cls).__new__(cls, *args, **kwargs)
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
@@ -156,9 +157,9 @@ class DatasetSeries(object):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
             if isinstance(o, types.StringTypes):
-                pf = load(o, **self.kwargs)
-                self._setup_function(pf)
-                yield pf
+                ds = load(o, **self.kwargs)
+                self._setup_function(ds)
+                yield ds
             else:
                 yield o
 
@@ -206,31 +207,31 @@ class DatasetSeries(object):
         ----------
         storage : dict
             This is a dictionary, which will be filled with results during the
-            course of the iteration.  The keys will be the parameter file
+            course of the iteration.  The keys will be the dataset
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
 
         Examples
         --------
         Here is an example of iteration when the results do not need to be
-        stored.  One processor will be assigned to each parameter file.
+        stored.  One processor will be assigned to each dataset.
 
         >>> ts = DatasetSeries("DD*/DD*.index")
-        >>> for pf in ts.piter():
-        ...    SlicePlot(pf, "x", "Density").save()
+        >>> for ds in ts.piter():
+        ...    SlicePlot(ds, "x", "Density").save()
         ...
         
         This demonstrates how one might store results:
 
-        >>> def print_time(pf):
-        ...     print pf.current_time
+        >>> def print_time(ds):
+        ...     print ds.current_time
         ...
         >>> ts = DatasetSeries("DD*/DD*.index",
         ...             setup_function = print_time )
         ...
         >>> my_storage = {}
-        >>> for sto, pf in ts.piter(storage=my_storage):
-        ...     v, c = pf.h.find_max("Density")
+        >>> for sto, ds in ts.piter(storage=my_storage):
+        ...     v, c = ds.find_max("density")
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
@@ -241,8 +242,8 @@ class DatasetSeries(object):
 
         >>> ts = DatasetSeries("DD*/DD*.index",
         ...                     parallel = 4)
-        >>> for pf in ts.piter():
-        ...     ProjectionPlot(pf, "x", "Density").save()
+        >>> for ds in ts.piter():
+        ...     ProjectionPlot(ds, "x", "Density").save()
         ...
 
         """
@@ -258,17 +259,17 @@ class DatasetSeries(object):
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
         return_values = {}
-        for store, pf in self.piter(return_values):
+        for store, ds in self.piter(return_values):
             store.result = []
             for task in tasks:
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
-                    if style == 'pf':
-                        arg = pf
+                    if style == 'ds':
+                        arg = ds
                     elif style == 'data_object':
                         if obj == None:
                             obj = DatasetSeriesObject(self, "all_data")
-                        arg = obj.get(pf)
+                        arg = obj.get(ds)
                     rv = task.eval(arg)
                 # We catch and store YT-originating exceptions
                 # This fixes the standard problem of having a sphere that's too
@@ -304,21 +305,21 @@ class DatasetSeries(object):
             this is set to either True or an integer, it will be iterated with
             1 or that integer number of processors assigned to each parameter
             file provided to the loop.
-        setup_function : callable, accepts a pf
-            This function will be called whenever a parameter file is loaded.
+        setup_function : callable, accepts a ds
+            This function will be called whenever a dataset is loaded.
 
         Examples
         --------
 
-        >>> def print_time(pf):
-        ...     print pf.current_time
+        >>> def print_time(ds):
+        ...     print ds.current_time
         ...
         >>> ts = DatasetSeries.from_filenames(
         ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
         ...      setup_function = print_time)
         ...
-        >>> for pf in ts:
-        ...     SlicePlot(pf, "x", "Density").save()
+        >>> for ds in ts:
+        ...     SlicePlot(ds, "x", "Density").save()
 
         """
         
@@ -369,22 +370,22 @@ class DatasetSeriesObject(object):
     def eval(self, tasks):
         return self.time_series.eval(tasks, self)
 
-    def get(self, pf):
+    def get(self, ds):
         # We get the type name, which corresponds to an attribute of the
         # index
-        cls = getattr(pf.h, self.data_object_name)
+        cls = getattr(ds, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 
+class RegisteredSimulationTimeSeries(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        code_name = name[:name.find('Simulation')]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
+@add_metaclass(RegisteredSimulationTimeSeries)
 class SimulationTimeSeries(DatasetSeries):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            code_name = name[:name.find('Simulation')]
-            if code_name:
-                simulation_time_series_registry[code_name] = cls
-                mylog.debug("Registering simulation: %s as %s", code_name, cls)
-
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
@@ -400,7 +401,7 @@ class SimulationTimeSeries(DatasetSeries):
 
         # Set some parameter defaults.
         self._set_parameter_defaults()
-        # Read the simulation parameter file.
+        # Read the simulation dataset.
         self._parse_parameter_file()
         # Set units
         self._set_units()
@@ -440,7 +441,7 @@ class SimulationTimeSeries(DatasetSeries):
                   "domain_right_edge", "initial_time", "final_time",
                   "stop_cycle", "cosmological_simulation"]:
             if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
+                mylog.error("Missing %s in dataset definition!", a)
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
@@ -450,7 +451,7 @@ class SimulationTimeSeries(DatasetSeries):
                       "omega_matter", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
                 if not hasattr(self, a):
-                    mylog.error("Missing %s in parameter file definition!", a)
+                    mylog.error("Missing %s in dataset definition!", a)
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)

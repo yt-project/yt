@@ -13,12 +13,18 @@ This is a place for base classes of the various plot types.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import matplotlib
-import cStringIO
+from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
-    get_image_suffix, mylog
+    get_image_suffix, mylog, iterable
 import numpy as np
+try:
+    import brewer2mpl
+    has_brewer = True
+except:
+    has_brewer = False
+
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field):
@@ -29,11 +35,11 @@ class CallbackWrapper(object):
         if len(self._axes.images) > 0:
             self.image = self._axes.images[0]
         if frb.axis < 3:
-            DD = frb.pf.domain_width
-            xax = frb.pf.coordinates.x_axis[frb.axis]
-            yax = frb.pf.coordinates.y_axis[frb.axis]
+            DD = frb.ds.domain_width
+            xax = frb.ds.coordinates.x_axis[frb.axis]
+            yax = frb.ds.coordinates.y_axis[frb.axis]
             self._period = (DD[xax], DD[yax])
-        self.pf = frb.pf
+        self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
         if 'OffAxisSlice' in viewer._plot_type:
@@ -62,8 +68,13 @@ class PlotMPL(object):
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
 
-    def save(self, name, mpl_kwargs, canvas=None):
+    def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        if 'papertype' not in mpl_kwargs:
+            mpl_kwargs['papertype'] = 'auto'
+
         suffix = get_image_suffix(name)
         if suffix == '':
             suffix = '.png'
@@ -100,21 +111,41 @@ class ImagePlotMPL(PlotMPL):
             cax.set_position(caxrect)
             self.cax = cax
 
-    def _init_image(self, data, cbnorm, cmap, extent, aspect):
+    def _init_image(self, data, cbnorm, cblinthresh, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
+        elif (cbnorm == 'symlog'):
+            if cblinthresh is None:
+                cblinthresh = (data.max()-data.min())/10.
+            norm = matplotlib.colors.SymLogNorm(cblinthresh,vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
+        if isinstance(cmap, tuple):
+            if has_brewer:
+                bmap = brewer2mpl.get_map(*cmap)
+                cmap = bmap.get_mpl_colormap(N=cmap[2])
+            else:
+                raise RuntimeError(
+                    "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap)
-        self.cb = self.figure.colorbar(self.image, self.cax)
+        if (cbnorm == 'symlog'):
+            formatter = matplotlib.ticker.LogFormatterMathtext()
+            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
+            yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
+                          np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
+                     list(10**np.arange(np.rint(np.log10(cblinthresh)),\
+                          np.ceil(np.log10(data.max()))+1))
+            self.cb.set_ticks(yticks)
+        else:
+            self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
@@ -140,12 +171,16 @@ class ImagePlotMPL(PlotMPL):
             top_buff_size = 0.0
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if self._aspect >= 1.0:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size/self._aspect
-        if self._aspect < 1.0:
-            x_fig_size = self._figure_size*self._aspect
-            y_fig_size = self._figure_size
+        if iterable(self._figure_size):
+            x_fig_size = self._figure_size[0]
+            y_fig_size = self._figure_size[1]
+        else:
+            if self._aspect >= 1.0:
+                x_fig_size = self._figure_size
+                y_fig_size = self._figure_size/self._aspect
+            if self._aspect < 1.0:
+                x_fig_size = self._figure_size*self._aspect
+                y_fig_size = self._figure_size
 
         xbins = np.array([x_axis_size, x_fig_size, cb_size, cb_text_size])
         ybins = np.array([y_axis_size, y_fig_size, top_buff_size])

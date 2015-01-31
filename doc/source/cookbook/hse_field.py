@@ -1,179 +1,49 @@
-from yt.mods import *
+import numpy as np
+import yt
 
-# Define the components of the gravitational acceleration vector field by taking the
-# gradient of the gravitational potential
+from yt.fields.field_plugin_registry import \
+    register_field_plugin
+from yt.fields.fluid_fields import \
+    setup_gradient_fields
 
-def _Grav_Accel_x(field, data) :
 
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dx = div_fac * data['dx'].flat[0]
-
-    gx  = data["Grav_Potential"][sl_right,1:-1,1:-1]/dx
-    gx -= data["Grav_Potential"][sl_left, 1:-1,1:-1]/dx
-
-    new_field = np.zeros(data["Grav_Potential"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = -gx
-
-    return new_field
-
-def _Grav_Accel_y(field, data) :
-
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dy = div_fac * data['dy'].flat[0]
-
-    gy  = data["Grav_Potential"][1:-1,sl_right,1:-1]/dy
-    gy -= data["Grav_Potential"][1:-1,sl_left ,1:-1]/dy
-
-    new_field = np.zeros(data["Grav_Potential"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = -gy
-
-    return new_field
-
-def _Grav_Accel_z(field, data) :
-
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dz = div_fac * data['dz'].flat[0]
-
-    gz  = data["Grav_Potential"][1:-1,1:-1,sl_right]/dz
-    gz -= data["Grav_Potential"][1:-1,1:-1,sl_left ]/dz
-
-    new_field = np.zeros(data["Grav_Potential"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = -gz
-
-    return new_field
-
-# Define the components of the pressure gradient field
-
-def _Grad_Pressure_x(field, data) :
-
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dx = div_fac * data['dx'].flat[0]
-
-    px  = data["pressure"][sl_right,1:-1,1:-1]/dx
-    px -= data["pressure"][sl_left, 1:-1,1:-1]/dx
-
-    new_field = np.zeros(data["pressure"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = px
-
-    return new_field
-
-def _Grad_Pressure_y(field, data) :
-
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dy = div_fac * data['dy'].flat[0]
-
-    py  = data["pressure"][1:-1,sl_right,1:-1]/dy
-    py -= data["pressure"][1:-1,sl_left ,1:-1]/dy
-
-    new_field = np.zeros(data["pressure"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = py
-
-    return new_field
-
-def _Grad_Pressure_z(field, data) :
-
-    # We need to set up stencils
-
-    sl_left = slice(None,-2,None)
-    sl_right = slice(2,None,None)
-    div_fac = 2.0
-
-    dz = div_fac * data['dz'].flat[0]
-
-    pz  = data["pressure"][1:-1,1:-1,sl_right]/dz
-    pz -= data["pressure"][1:-1,1:-1,sl_left ]/dz
-
-    new_field = np.zeros(data["pressure"].shape, dtype='float64')
-    new_field[1:-1,1:-1,1:-1] = pz
-
-    return new_field
+# Define the components of the gravitational acceleration vector field by
+# taking the gradient of the gravitational potential
+@register_field_plugin
+def setup_my_fields(registry, ftype="gas", slice_info=None):
+    setup_gradient_fields(registry, (ftype, "gravitational_potential"),
+                          "cm ** 2 / s ** 2", slice_info)
 
 # Define the "degree of hydrostatic equilibrium" field
 
-def _HSE(field, data) :
 
-    gx = data["density"]*data["Grav_Accel_x"]
-    gy = data["density"]*data["Grav_Accel_y"]
-    gz = data["density"]*data["Grav_Accel_z"]
+@yt.derived_field(name='HSE', units=None, take_log=False,
+                  display_name='Hydrostatic Equilibrium')
+def HSE(field, data):
 
-    hx = data["Grad_Pressure_x"] - gx
-    hy = data["Grad_Pressure_y"] - gy
-    hz = data["Grad_Pressure_z"] - gz
+    gx = data["density"] * data["gravitational_potential_gradient_x"]
+    gy = data["density"] * data["gravitational_potential_gradient_y"]
+    gz = data["density"] * data["gravitational_potential_gradient_z"]
 
-    h = np.sqrt((hx*hx+hy*hy+hz*hz)/(gx*gx+gy*gy+gz*gz))
+    hx = data["pressure_gradient_x"] - gx
+    hy = data["pressure_gradient_y"] - gy
+    hz = data["pressure_gradient_z"] - gz
+
+    h = np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
 
     return h
 
-# Now add the fields to the database
 
-add_field("Grav_Accel_x", function=_Grav_Accel_x, take_log=False,
-          validators=[ValidateSpatial(1,["Grav_Potential"])])
+# Open a dataset from when there's a lot of sloshing going on.
 
-add_field("Grav_Accel_y", function=_Grav_Accel_y, take_log=False,
-          validators=[ValidateSpatial(1,["Grav_Potential"])])
+ds = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0350")
 
-add_field("Grav_Accel_z", function=_Grav_Accel_z, take_log=False,
-          validators=[ValidateSpatial(1,["Grav_Potential"])])
+# gradient operator requires periodic boundaries.  This dataset has
+# open boundary conditions.  We need to hack it for now (this will be fixed
+# in future version of yt)
+ds.periodicity = (True, True, True)
 
-add_field("Grad_Pressure_x", function=_Grad_Pressure_x, take_log=False,
-          validators=[ValidateSpatial(1,["pressure"])])
+# Take a slice through the center of the domain
+slc = yt.SlicePlot(ds, 2, ["density", "HSE"], width=(1, 'Mpc'))
 
-add_field("Grad_Pressure_y", function=_Grad_Pressure_y, take_log=False,
-          validators=[ValidateSpatial(1,["pressure"])])
-
-add_field("Grad_Pressure_z", function=_Grad_Pressure_z, take_log=False,
-          validators=[ValidateSpatial(1,["pressure"])])
-
-add_field("HSE", function=_HSE, take_log=False)
-
-# Open two files, one at the beginning and the other at a later time when there's a
-# lot of sloshing going on.
-
-pfi = load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0000")
-pff = load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0350")
-
-# Sphere objects centered at the cluster potential minimum with a radius of 200 kpc
-
-sphere_i = pfi.h.sphere(pfi.domain_center, (200, "kpc"))
-sphere_f = pff.h.sphere(pff.domain_center, (200, "kpc"))
-
-# Average "degree of hydrostatic equilibrium" in these spheres
-
-hse_i = sphere_i.quantities["WeightedAverageQuantity"]("HSE", "cell_mass")
-hse_f = sphere_f.quantities["WeightedAverageQuantity"]("HSE", "cell_mass")
-
-print "Degree of hydrostatic equilibrium initially: ", hse_i
-print "Degree of hydrostatic equilibrium later: ", hse_f
-
-# Just for good measure, take slices through the center of the domain of the two files
-
-slc_i = SlicePlot(pfi, 2, ["density","HSE"], center=pfi.domain_center, width=(1.0, "mpc"))
-slc_f = SlicePlot(pff, 2, ["density","HSE"], center=pff.domain_center, width=(1.0, "mpc"))
-
-slc_i.save("initial")
-slc_f.save("final")
+slc.save("hse")

@@ -13,7 +13,6 @@ Useful functions.  If non-original, see function for citation.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
 import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
@@ -22,6 +21,7 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
+from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 import yt.extern.progressbar as pb
@@ -59,7 +59,10 @@ def ensure_numpy_array(obj):
     convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
-        return obj
+        if obj.shape == ():
+            return np.array([obj])
+        # We cast to ndarray to catch ndarray subclasses
+        return np.array(obj)
     elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
@@ -266,7 +269,6 @@ def insert_ipython(num_up=1):
 
     api_version = get_ipython_api_version()
 
-    stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
@@ -341,7 +343,7 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
+       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -406,11 +408,12 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    import xmlrpclib, cStringIO
+    from yt.extern.six.moves import StringIO
+    import xmlrpclib
     p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
-    s = cStringIO.StringIO()
+    s = StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
@@ -423,8 +426,9 @@ def paste_traceback_detailed(exc_type, exc, tb):
     This is a traceback handler that knows how to paste to the pastebin.
     Should only be used in sys.excepthook.
     """
-    import xmlrpclib, cStringIO, cgitb
-    s = cStringIO.StringIO()
+    import xmlrpclib, cgitb
+    from yt.extern.six.moves import StringIO
+    s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
@@ -531,7 +535,6 @@ def get_version_stack():
     return version_info
 
 def get_script_contents():
-    stack = inspect.stack()
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
     if finfo[2] != "<module>": return None
@@ -598,10 +601,10 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf=None):
-    assert pf is not None
-    if pf is not None:
-        registry = pf.unit_registry
+def fix_length(length, ds=None):
+    assert ds is not None
+    if ds is not None:
+        registry = ds.unit_registry
     else:
         registry = None
     if isinstance(length, YTArray):
@@ -619,6 +622,22 @@ def fix_length(length, pf=None):
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
+    r"""A context manager for profiling parallel code execution using cProfile
+
+    This is a simple context manager that automatically profiles the execution
+    of a snippet of code.
+
+    Parameters
+    ----------
+    prefix : string
+        A string name to prefix outputs with.
+
+    Examples
+    --------
+
+    >>> with parallel_profile('my_profile'):
+    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    """
     import cProfile
     from yt.config import ytcfg
     fn = "%s_%04i_%04i.cprof" % (prefix,
@@ -637,8 +656,8 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
 
-def fix_axis(axis, pf):
-    return pf.coordinates.axis_id.get(axis, axis)
+def fix_axis(axis, ds):
+    return ds.coordinates.axis_id.get(axis, axis)
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
@@ -657,17 +676,14 @@ def ensure_dir(path):
     if not os.path.exists(path):
         only_on_root(os.makedirs, path)
     return path
-        
-def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], numeric_type) and isinstance(width[1], str)
+
+def validate_width_tuple(width):
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
+        raise YTInvalidWidthError(msg)
 
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -715,8 +731,11 @@ def memory_checker(interval = 15, dest = None):
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
-    yield
-    e.set()
+    try:
+        yield
+    finally:
+        e.set()
+
 
 def deprecated_class(cls):
     @wraps(cls)
@@ -728,8 +747,10 @@ def deprecated_class(cls):
             SyntaxWarning, stacklevel=2)
         return cls(*args, **kwargs)
     return _func
-    
+
 def enable_plugins():
+    import yt
+    from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -739,4 +760,12 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+        execdict = yt.__dict__.copy()
+        execdict['add_field'] = my_plugins_fields.add_field
+        execfile(_fn, execdict)
+
+def fix_unitary(u):
+    if u == '1':
+        return 'unitary'
+    else:
+        return u

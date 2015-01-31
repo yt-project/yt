@@ -2,7 +2,7 @@ from yt.mods import *
 import inspect
 from textwrap import TextWrapper
 
-pf = load("RD0005-mine/RedshiftOutput0005")
+ds = load("RD0005-mine/RedshiftOutput0005")
 
 output = open("source/analyzing/_dq_docstrings.inc", "w")
 
@@ -29,7 +29,7 @@ def write_docstring(f, name, func):
                             docstring = docstring))
                             #docstring = "\n".join(tw.wrap(docstring))))
 
-dd = pf.h.all_data()
+dd = ds.all_data()
 for n,func in sorted(dd.quantities.functions.items()):
     print n, func
     write_docstring(output, n, func[1])

@@ -84,7 +84,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
               / (div_fac*just_one(data["index", "dz"].in_cgs()))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                               dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -96,7 +96,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
               data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
               / (div_fac*just_one(data["index", "dx"]))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                               dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -108,7 +108,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f -= (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
               / (div_fac*just_one(data["index", "dy"]))
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                               dtype=np.float64),
                                 f.units)
         new_field[sl_center, sl_center, sl_center] = f
@@ -168,7 +168,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         result = np.sqrt(data[ftype, "vorticity_growth_x"]**2 +
                          data[ftype, "vorticity_growth_y"]**2 +
                          data[ftype, "vorticity_growth_z"]**2)
-        dot = data.pf.arr(np.zeros(result.shape), "")
+        dot = data.ds.arr(np.zeros(result.shape), "")
         for ax in "xyz":
             dot += (data[ftype, "vorticity_%s" % ax] *
                     data[ftype, "vorticity_growth_%s" % ax]).to_ndarray()
@@ -265,7 +265,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         result = np.sqrt(data[ftype, "vorticity_radiation_pressure_growth_x"]**2 +
                          data[ftype, "vorticity_radiation_pressure_growth_y"]**2 +
                          data[ftype, "vorticity_radiation_pressure_growth_z"]**2)
-        dot = data.pf.arr(np.zeros(result.shape), "")
+        dot = data.ds.arr(np.zeros(result.shape), "")
         for ax in "xyz":
             dot += (data[ftype, "vorticity_%s" % ax] *
                     data[ftype, "vorticity_growth_%s" % ax]).to_ndarray()
@@ -312,7 +312,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
          of subtracting them)
         """
         
-        if data.pf.dimensionality > 1:
+        if data.ds.dimensionality > 1:
             dvydx = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
                     data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
                     / (div_fac*just_one(data["index", "dx"]))
@@ -321,7 +321,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                     / (div_fac*just_one(data["index", "dy"]))
             f  = (dvydx + dvxdy)**2.0
             del dvydx, dvxdy
-        if data.pf.dimensionality > 2:
+        if data.ds.dimensionality > 2:
             dvzdy = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
                     data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
                     / (div_fac*just_one(data["index", "dy"]))
@@ -339,7 +339,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
             f += (dvxdz + dvzdx)**2.0
             del dvxdz, dvzdx
         np.sqrt(f, out=f)
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
     
@@ -383,7 +383,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                         (dvx + dvz)^2  ]^(0.5) / c_sound
         """
         
-        if data.pf.dimensionality > 1:
+        if data.ds.dimensionality > 1:
             dvydx = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
                      data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
                     / div_fac
@@ -392,7 +392,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                     / div_fac
             f  = (dvydx + dvxdy)**2.0
             del dvydx, dvxdy
-        if data.pf.dimensionality > 2:
+        if data.ds.dimensionality > 2:
             dvzdy = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
                      data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
                     / div_fac
@@ -412,7 +412,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         f *= (2.0**data["index", "grid_level"][sl_center, sl_center, sl_center] /
               data[ftype, "sound_speed"][sl_center, sl_center, sl_center])**2.0
         np.sqrt(f, out=f)
-        new_field = data.pf.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
     

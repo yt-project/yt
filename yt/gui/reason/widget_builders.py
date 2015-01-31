@@ -19,12 +19,12 @@ class RenderingScene(object):
     _camera = None
     _tf = None
     
-    def __init__(self, pf, camera=None, tf=None):
-        self.pf = weakref.proxy(pf)
+    def __init__(self, ds, camera=None, tf=None):
+        self.ds = weakref.proxy(ds)
         self._camera = camera
         self._tf = tf
 
-        self.center = self.pf.domain_center
+        self.center = self.ds.domain_center
         self.normal_vector = np.array([0.7,1.0,0.3])
         self.north_vector = [0.,0.,1.]
         self.steady_north = True
@@ -34,14 +34,14 @@ class RenderingScene(object):
         self.mi = None
         self.ma = None
         if self._tf is None:
-            self._new_tf(self.pf)
+            self._new_tf(self.ds)
 
         if self._camera is None:
-            self._new_camera(self.pf)
+            self._new_camera(self.ds)
 
-    def _new_tf(self, pf, mi=None, ma=None, nbins=1024):
+    def _new_tf(self, ds, mi=None, ma=None, nbins=1024):
         if mi is None or ma is None:
-            roi = self.pf.region(self.center, self.center-self.width, self.center+self.width)
+            roi = self.ds.region(self.center, self.center-self.width, self.center+self.width)
             self.mi, self.ma = roi.quantities['Extrema'](self.fields[0])[0]
             if self.log_fields[0]:
                 self.mi, self.ma = np.log10(self.mi), np.log10(self.ma)
@@ -53,9 +53,9 @@ class RenderingScene(object):
                                   col_bounds = (self.mi,self.ma), 
                                   colormap=colormap)
 
-    def _new_camera(self, pf):
+    def _new_camera(self, ds):
         del self._camera
-        self._camera = self.pf.camera(self.center, self.normal_vector, 
+        self._camera = self.ds.camera(self.center, self.normal_vector, 
                                       self.width, self.resolution, self._tf,
                                       north_vector=self.north_vector,
                                       steady_north=self.steady_north,
@@ -65,16 +65,16 @@ class RenderingScene(object):
         return self._camera.snapshot()
 
 
-def get_corners(pf, max_level=None):
-    DL = pf.domain_left_edge[None,:,None]
-    DW = pf.domain_width[None,:,None]/100.0
-    corners = ((pf.grid_corners-DL)/DW)
-    levels = pf.grid_levels
+def get_corners(ds, max_level=None):
+    DL = ds.domain_left_edge[None,:,None]
+    DW = ds.domain_width[None,:,None]/100.0
+    corners = ((ds.grid_corners-DL)/DW)
+    levels = ds.grid_levels
     return corners, levels
 
-def get_isocontour(pf, field, value=None, rel_val = False):
+def get_isocontour(ds, field, value=None, rel_val = False):
 
-    dd = pf.h.all_data()
+    dd = ds.h.all_data()
     if value is None or rel_val:
         if value is None: value = 0.5
         mi, ma = np.log10(dd.quantities["Extrema"]("Density")[0])
@@ -83,9 +83,9 @@ def get_isocontour(pf, field, value=None, rel_val = False):
     np.multiply(vert, 100, vert)
     return vert
 
-def get_streamlines(pf):
+def get_streamlines(ds):
     from yt.visualization.api import Streamlines
-    streamlines = Streamlines(pf, pf.domain_center) 
+    streamlines = Streamlines(ds, ds.domain_center) 
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
     matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')

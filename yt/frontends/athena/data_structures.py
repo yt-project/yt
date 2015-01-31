@@ -28,9 +28,13 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
+from yt.utilities.decompose import \
+    decompose_array, get_psize
 
 def _get_convert(fname):
     def _conv(data):
@@ -39,8 +43,9 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, index, level, start, dimensions):
-        df = index.parameter_file.filename[4:-4]
+    def __init__(self, id, index, level, start, dimensions,
+                 file_offset, read_dims):
+        df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               index = index)
@@ -51,19 +56,21 @@ class AthenaGrid(AMRGridPatch):
         self.start_index = start.copy()
         self.stop_index = self.start_index + dimensions
         self.ActiveDimensions = dimensions.copy()
+        self.file_offset = file_offset
+        self.read_dims = read_dims
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
+            self.dds = self.Parent[0].dds / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id,:], \
                      self.index.grid_right_edge[id,:]
-            self.dds = self.pf.arr((RE-LE)/self.ActiveDimensions, "code_length")
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+            self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
+        if self.ds.dimensionality < 2: self.dds[1] = 1.0
+        if self.ds.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -102,15 +109,15 @@ class AthenaHierarchy(GridIndex):
     _dataset_type='athena'
     _data_file = None
     
-    def __init__(self, pf, dataset_type='athena'):
-        self.parameter_file = weakref.proxy(pf)
-        self.directory = os.path.dirname(self.parameter_file.filename)
+    def __init__(self, ds, dataset_type='athena'):
+        self.dataset = weakref.proxy(ds)
+        self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.filename
+        # for now, the index file is the dataset!
+        self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
         #self.directory = os.path.dirname(self.index_filename)
         self._fhandle = file(self.index_filename,'rb')
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
 
@@ -172,7 +179,7 @@ class AthenaHierarchy(GridIndex):
         self._field_map = field_map
 
     def _count_grids(self):
-        self.num_grids = self.parameter_file.nvtk
+        self.num_grids = self.dataset.nvtk*self.dataset.nprocs
 
     def _parse_index(self):
         f = open(self.index_filename,'rb')
@@ -220,7 +227,6 @@ class AthenaHierarchy(GridIndex):
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.num_grids = len(gridlistread)
         dxs=[]
-        self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
         glis = np.empty((self.num_grids,3), dtype='float64')
         gdds = np.empty((self.num_grids,3), dtype='float64')
@@ -271,48 +277,91 @@ class AthenaHierarchy(GridIndex):
         # Now we convert the glis, which were left edges (floats), to indices 
         # from the domain left edge.  Then we do a bunch of fixing now that we
         # know the extent of all the grids. 
-        glis = np.round((glis - self.parameter_file.domain_left_edge.ndarray_view())/gdds).astype('int')
+        glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
-        self.parameter_file.domain_width = \
-                (self.parameter_file.domain_right_edge - 
-                 self.parameter_file.domain_left_edge)
-        self.parameter_file.domain_center = \
-                0.5*(self.parameter_file.domain_left_edge + 
-                     self.parameter_file.domain_right_edge)
-        self.parameter_file.domain_dimensions = \
-                np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
+        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
+        self.dataset.domain_width = \
+                (self.dataset.domain_right_edge - 
+                 self.dataset.domain_left_edge)
+        self.dataset.domain_center = \
+                0.5*(self.dataset.domain_left_edge + 
+                     self.dataset.domain_right_edge)
+        self.dataset.domain_dimensions = \
+                np.round(self.dataset.domain_width/gdds[0]).astype('int')
 
-        # Need to reset the units in the parameter file based on the correct
+        # Need to reset the units in the dataset based on the correct
         # domain left/right/dimensions.
-        self.parameter_file._set_code_unit_attributes()
+        # DEV: Is this really necessary?
+        #self.dataset._set_code_unit_attributes()
 
-        if self.parameter_file.dimensionality <= 2 :
-            self.parameter_file.domain_dimensions[2] = np.int(1)
-        if self.parameter_file.dimensionality == 1 :
-            self.parameter_file.domain_dimensions[1] = np.int(1)
-        for i in range(levels.shape[0]):
-            self.grids[i] = self.grid(i,self,levels[i],
-                                      glis[i],
-                                      gdims[i])
-            dx = (self.parameter_file.domain_right_edge-
-                  self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-            dx = dx/self.parameter_file.refine_by**(levels[i])
-            dxs.append(dx)
+        if self.dataset.dimensionality <= 2 :
+            self.dataset.domain_dimensions[2] = np.int(1)
+        if self.dataset.dimensionality == 1 :
+            self.dataset.domain_dimensions[1] = np.int(1)
 
-        dx = self.pf.arr(dxs, "code_length")
-        dle = self.parameter_file.domain_left_edge
-        dre = self.parameter_file.domain_right_edge
-        self.grid_left_edge = self.pf.arr(np.round(dle + dx*glis, decimals=12), "code_length")
-        self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = self.pf.arr(np.round(self.grid_left_edge +
-                                                    dx*self.grid_dimensions,
-                                                    decimals=12),
-                                            "code_length")
+        dle = self.dataset.domain_left_edge
+        dre = self.dataset.domain_right_edge
+        dx_root = (self.dataset.domain_right_edge-
+                   self.dataset.domain_left_edge)/self.dataset.domain_dimensions
+
+        if self.dataset.nprocs > 1:
+            gle_all = []
+            gre_all = []
+            shapes_all = []
+            levels_all = []
+            new_gridfilenames = []
+            file_offsets = []
+            read_dims = []
+            for i in range(levels.shape[0]):
+                dx = dx_root/self.dataset.refine_by**(levels[i])
+                gle_orig = self.ds.arr(np.round(dle + dx*glis[i], decimals=12),
+                                       "code_length")
+                gre_orig = self.ds.arr(np.round(gle_orig + dx*gdims[i], decimals=12),
+                                       "code_length")
+                bbox = np.array([[le,re] for le, re in zip(gle_orig, gre_orig)])
+                psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
+                gle, gre, shapes, slices = decompose_array(gdims[i], psize, bbox)
+                gle_all += gle
+                gre_all += gre
+                shapes_all += shapes
+                levels_all += [levels[i]]*self.dataset.nprocs
+                new_gridfilenames += [self.grid_filenames[i]]*self.dataset.nprocs
+                file_offsets += [[slc[0].start, slc[1].start, slc[2].start] for slc in slices]
+                read_dims += [np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int") for shape in shapes]
+            self.num_grids *= self.dataset.nprocs
+            self.grids = np.empty(self.num_grids, dtype='object')
+            self.grid_filenames = new_gridfilenames
+            self.grid_left_edge = self.ds.arr(gle_all, "code_length")
+            self.grid_right_edge = self.ds.arr(gre_all, "code_length")
+            self.grid_dimensions = np.array([shape for shape in shapes_all],
+                                            dtype="int32")
+            gdds = (self.grid_right_edge-self.grid_left_edge)/self.grid_dimensions
+            glis = np.round((self.grid_left_edge - self.ds.domain_left_edge)/gdds).astype('int')
+            for i in range(self.num_grids):
+                self.grids[i] = self.grid(i,self,levels_all[i],
+                                          glis[i], shapes_all[i],
+                                          file_offsets[i], read_dims[i])
+        else:
+            self.grids = np.empty(self.num_grids, dtype='object')
+            for i in range(levels.shape[0]):
+                self.grids[i] = self.grid(i,self,levels[i],
+                                          glis[i], gdims[i], [0]*3,
+                                          gdims[i])
+                dx = dx_root/self.dataset.refine_by**(levels[i])
+                dxs.append(dx)
+
+            dx = self.ds.arr(dxs, "code_length")
+            self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12),
+                                              "code_length")
+            self.grid_dimensions = gdims.astype("int32")
+            self.grid_right_edge = self.ds.arr(np.round(self.grid_left_edge +
+                                                        dx*self.grid_dimensions,
+                                                        decimals=12),
+                                               "code_length")
         
-        if self.parameter_file.dimensionality <= 2:
+        if self.dataset.dimensionality <= 2:
             self.grid_right_edge[:,2] = dre[2]
-        if self.parameter_file.dimensionality == 1:
+        if self.dataset.dimensionality == 1:
             self.grid_right_edge[:,1:] = dre[1:]
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 
@@ -346,47 +395,68 @@ class AthenaHierarchy(GridIndex):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in gobjs:
+            yield YTDataChunk(dobj, "io", [subset],
+                              self._count_selection(dobj, [subset]),
+                              cache = cache)
+
 class AthenaDataset(Dataset):
     _index_class = AthenaHierarchy
     _field_info_class = AthenaFieldInfo
     _dataset_type = "athena"
 
     def __init__(self, filename, dataset_type='athena',
-                 storage_filename=None, parameters=None):
+                 storage_filename=None, parameters=None,
+                 units_override=None, nprocs=1):
         self.fluid_types += ("athena",)
+        self.nprocs = nprocs
         if parameters is None:
             parameters = {}
-        self.specified_parameters = parameters
-        Dataset.__init__(self, filename, dataset_type)
+        self.specified_parameters = parameters.copy()
+        if units_override is None:
+            units_override = {}
+        # This is for backwards-compatibility
+        already_warned = False
+        for k,v in self.specified_parameters.items():
+            if k.endswith("_unit") and k not in units_override:
+                if not already_warned:
+                    mylog.warning("Supplying unit conversions from the parameters dict is deprecated, "+
+                                  "and will be removed in a future release. Use units_override instead.")
+                    already_warned = True
+                units_override[k] = self.specified_parameters.pop(k)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
+        self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
-        self.h
+        self.index
 
     def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
+        if "length_unit" not in self.units_override:
+            self.no_cgs_equiv_length = True
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            val = self.specified_parameters.get("%s_unit" % unit, None)
-            if val is None:
-                mylog.warning("No %s conversion to cgs provided.  " +
-                              "Assuming 1.0 = 1.0 %s", unit, cgs)
-                val = 1.0
-            if not isinstance(val, tuple):
-                val = (val, cgs)
-            setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
-        self.velocity_unit = self.length_unit/self.time_unit
-        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                  (self.time_unit**2 * self.length_unit))
-        self.magnetic_unit.convert_to_units("gauss")
+            # We set these to cgs for now, but they may be overridden later.
+            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
 
     def set_code_units(self):
-        super(self, AthenaDataset).set_code_units()
+        super(AthenaDataset, self).set_code_units()
+        mag_unit = getattr(self, "magnetic_unit", None)
+        if mag_unit is None:
+            self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                         (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit.convert_to_units("gauss")
+
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
 
     def _parse_parameter_file(self):
@@ -422,6 +492,8 @@ class AthenaDataset(Dataset):
             dimensionality = 1
         if dimensionality <= 2 : self.domain_dimensions[2] = np.int32(1)
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
+        if dimensionality != 3 and self.nprocs > 1:
+            raise RuntimeError("Virtual grids are only supported for 3D outputs!")
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self.parameter_filename.__hash__()
@@ -456,13 +528,12 @@ class AthenaDataset(Dataset):
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
-        if self.specified_parameters.has_key("gamma") :
+        if self.specified_parameters.has_key("gamma"):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
-        else :
+        else:
             self.parameters["Gamma"] = 5./3. 
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -34,7 +34,7 @@ including how it can be used and all of the possible "methods" that can be
 called on it.  ``dir()`` will return the available commands and objects that
 can be directly called, and ``dir(something)`` will return information about
 all the commands that ``something`` provides.  This probably sounds a bit
-opaque, but it will become clearer with time -- it's also probably helpful to
+opaque, but it will become clearer with time -- it's also probably heldsul to
 call ``help`` on any or all of the objects we create during this orientation.
 
 To start up Python, at your prompt simply type:
@@ -136,7 +136,7 @@ Now that we have a couple primitive datatypes, we can move on to sequences --
 lists and tuples.  These two objects are very similar, in that they are
 collections of arbitrary data types.  We'll only look at collections of strings
 and numbers for now, but these can be filled with arbitrary datatypes
-(including objects that yt provides, like spheres, parameter files, grids, and
+(including objects that yt provides, like spheres, datasets, grids, and
 so on.)  The easiest way to create a list is to simply construct one::
 
    >>> my_list = []

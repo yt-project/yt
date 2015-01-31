@@ -12,7 +12,7 @@ class TestHaloCountHOP(YTDatasetTest):
 
     def run(self):
         # Find the halos using vanilla HOP.
-        halos = HaloFinder(self.pf, threshold=self.threshold, dm_only=False)
+        halos = HaloFinder(self.ds, threshold=self.threshold, dm_only=False)
         # We only care about the number of halos.
         self.result = len(halos)
                     
@@ -30,7 +30,7 @@ class TestHaloCountFOF(YTDatasetTest):
 
     def run(self):
         # Find the halos using FOF.
-        halos = FOFHaloFinder(self.pf, link=self.link, dm_only=False, 
+        halos = FOFHaloFinder(self.ds, link=self.link, dm_only=False, 
                                padding=self.padding)
         # We only care about the number of halos.
         self.result = len(halos)
@@ -49,7 +49,7 @@ class TestHaloCountPHOP(YTDatasetTest):
 
     def run(self):
         # Find the halos using parallel HOP.
-        halos = parallelHF(self.pf, threshold=self.threshold, dm_only=False)
+        halos = parallelHF(self.ds, threshold=self.threshold, dm_only=False)
         # We only care about the number of halos.
         self.result = len(halos)
                     
@@ -65,7 +65,7 @@ class TestHaloComposition(YTDatasetTest):
     
     def run(self):
         # Find the halos using vanilla HOP.
-        halos = HaloFinder(self.pf, threshold=self.threshold, dm_only=False)
+        halos = HaloFinder(self.ds, threshold=self.threshold, dm_only=False)
         # The result is a list of the particle IDs, stored
         # as sets for easy comparison.
         IDs = []
@@ -89,7 +89,7 @@ class TestHaloCompositionHashHOP(YTDatasetTest):
     
     def run(self):
         # Find the halos using vanilla HOP.
-        halos = HaloFinder(self.pf, threshold=self.threshold, dm_only=False)
+        halos = HaloFinder(self.ds, threshold=self.threshold, dm_only=False)
         # The result is a flattened array of the arrays of the particle IDs for
         # each halo
         IDs = []
@@ -117,7 +117,7 @@ class TestHaloCompositionHashFOF(YTDatasetTest):
     
     def run(self):
         # Find the halos using vanilla FOF.
-        halos = FOFHaloFinder(self.pf, link=self.link, dm_only=False, 
+        halos = FOFHaloFinder(self.ds, link=self.link, dm_only=False, 
                                padding=self.padding)
         # The result is a flattened array of the arrays of the particle IDs for
         # each halo
@@ -145,7 +145,7 @@ class TestHaloCompositionHashPHOP(YTDatasetTest):
     
     def run(self):
         # Find the halos using parallel HOP.
-        halos = parallelHF(self.pf, threshold=self.threshold, dm_only=False)
+        halos = parallelHF(self.ds, threshold=self.threshold, dm_only=False)
         # The result is a flattened array of the arrays of the particle IDs for
         # each halo
         IDs = []

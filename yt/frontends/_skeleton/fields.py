@@ -33,12 +33,12 @@ class SkeletonFieldInfo(FieldInfoContainer):
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
     )
 
-    def __init__(self, pf):
-        super(SkeletonFieldInfo, self).__init__(pf)
+    def __init__(self, ds):
+        super(SkeletonFieldInfo, self).__init__(ds)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
-        # Here we do anything that might need info about the parameter file.
+        # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field and self.add_field .
         pass
 

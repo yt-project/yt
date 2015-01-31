@@ -27,6 +27,6 @@ class DomainContext(object):
     _known_fluid_fields     =  ()
     _known_particle_fields  =  ()
 
-    def __init__(self, pf):
-        self.pf = pf
+    def __init__(self, ds):
+        self.ds = ds
 

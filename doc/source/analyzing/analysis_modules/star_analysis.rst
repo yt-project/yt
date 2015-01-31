@@ -5,6 +5,14 @@ Star Particle Analysis
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.6
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the star particle analysis module is not currently
+    functional.  This functionality is still available in :code:`yt-2.x`.  If
+    you would like to use these features in :code:`yt-3.x`, help is needed to
+    port them over.  Contact the yt-users mailing list if you are interested in
+    doing this.
+
 This document describes tools in yt for analyzing star particles.
 The Star Formation Rate tool bins stars by time to produce star formation
 statistics over several metrics.
@@ -27,9 +35,9 @@ This example will analyze all the stars in the volume:
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
-  dd = pf.h.all_data()
-  sfr = StarFormationRate(pf, data_source=dd)
+  ds = load("data0030")
+  dd = ds.all_data()
+  sfr = StarFormationRate(ds, data_source=dd)
 
 or just a small part of the volume:
 
@@ -37,9 +45,9 @@ or just a small part of the volume:
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
+  ds = load("data0030")
   sp = p.h.sphere([0.5,0.5,0.5], 0.05)
-  sfr = StarFormationRate(pf, data_source=sp)
+  sfr = StarFormationRate(ds, data_source=sp)
 
 If the stars to be analyzed cannot be defined by a data_source, arrays can be
 passed. In this case, the units for the ``star_mass`` must be in Msun,
@@ -51,8 +59,8 @@ in mpc as a float
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
-  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  ds = load("data0030")
+  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   # This puts the particle data for *all* the particles in the region re
   # into the arrays sm and ct.
   sm = re["ParticleMassMsun"]
@@ -65,7 +73,7 @@ in mpc as a float
   # 100 is a time in code units.
   sm_old = sm[ct < 100]
   ct_old = ct[ct < 100]
-  sfr = StarFormationRate(pf, star_mass=sm_old, star_creation_time=ct_old,
+  sfr = StarFormationRate(ds, star_mass=sm_old, star_creation_time=ct_old,
   volume=re.volume('mpc'))
 
 To output the data to a text file, use the command ``.write_out``:
@@ -139,8 +147,8 @@ The models are chosen with the ``model`` parameter, which is either
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
-  spec = SpectrumBuilder(pf, bcdir="/home/username/bc/", model="chabrier")
+  ds = load("data0030")
+  spec = SpectrumBuilder(ds, bcdir="/home/username/bc/", model="chabrier")
 
 In order to analyze a set of stars, use the ``calculate_spectrum`` command.
 It accepts either a ``data_source``, or a set of arrays with the star 
@@ -148,7 +156,7 @@ information. Continuing from the above example:
 
 .. code-block:: python
 
-  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   spec.calculate_spectrum(data_source=re)
 
 If a subset of stars are desired, call it like this. ``star_mass`` is in units
@@ -157,7 +165,7 @@ units.
 
 .. code-block:: python
 
-  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   # This puts the particle data for *all* the particles in the region re
   # into the arrays sm, ct and metal.
   sm = re["ParticleMassMsun"]
@@ -223,14 +231,14 @@ in two columns:
 
 Below is an example of an absurd SED for universe-old stars all with 
 solar metallicity at a redshift of zero. Note that even in this example,
-a ``pf`` is required.
+a ``ds`` is required.
 
 .. code-block:: python
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
-  spec = SpectrumBuilder(pf, bcdir="/home/user/bc", model="chabrier")
+  ds = load("data0030")
+  spec = SpectrumBuilder(ds, bcdir="/home/user/bc", model="chabrier")
   sm = np.ones(100)
   ct = np.zeros(100)
   spec.calculate_spectrum(star_mass=sm, star_creation_time=ct, star_metallicity_constant=0.02)
@@ -252,11 +260,11 @@ and written out for each.
 
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
-  pf = load("data0030")
+  ds = load("data0030")
   # Find all the haloes, and include star particles.
-  haloes = HaloFinder(pf, dm_only=False)
+  haloes = HaloFinder(ds, dm_only=False)
   # Set up the spectrum builder.
-  spec = SpectrumBuilder(pf, bcdir="/home/user/bc", model="salpeter")
+  spec = SpectrumBuilder(ds, bcdir="/home/user/bc", model="salpeter")
   # Iterate over the haloes.
   for halo in haloes:
       # Get the pertinent arrays.

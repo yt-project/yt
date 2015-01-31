@@ -1,0 +1,50 @@
+"""
+Answer Testing for level sets
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2014, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import numpy as np
+
+from yt.testing import *
+
+from .framework import \
+    AnswerTestingTest, requires_ds, data_dir_load
+
+class ExtractConnectedSetsTest(AnswerTestingTest):
+    _type_name = "ExtractConnectedSets"
+    _attrs = ()
+
+    def __init__(self, ds_fn, data_source, field, num_levels, min_val, max_val):
+        super(ExtractConnectedSetsTest, self).__init__(ds_fn)
+        self.data_source = data_source
+        self.field = field
+        self.num_levels = num_levels
+        self.min_val = min_val
+        self.max_val = max_val
+    
+    def run(self):
+        n, all_sets = self.data_source.extract_connected_sets(
+            self.field, self.num_levels, self.min_val, self.max_val)
+        result = []
+        for level in all_sets:
+            for set_id in all_sets[level]:
+                result.append([all_sets[level][set_id]["cell_mass"].size,
+                               all_sets[level][set_id]["cell_mass"].sum()])
+        result = np.array(result)
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = "Size and/or mass of connected sets do not agree for %s." % \
+          self.ds_fn
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)

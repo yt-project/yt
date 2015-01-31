@@ -16,11 +16,10 @@ rendering.
 
 from yt.funcs import mylog
 from yt.data_objects.profiles import BinnedProfile1D
-from yt.visualization.volume_rendering.api import ColorTransferFunction
+from .transfer_functions import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
-from IPython.core.display import Image
-import cStringIO
+from yt.extern.six.moves import StringIO
 import numpy as np
 
 
@@ -28,7 +27,7 @@ class TransferFunctionHelper(object):
 
     profiles = None
 
-    def __init__(self, pf):
+    def __init__(self, ds):
         r"""A transfer function helper.
 
         This attempts to help set up a good transfer function by finding
@@ -37,14 +36,14 @@ class TransferFunctionHelper(object):
 
         Parameters
         ----------
-        pf: A Dataset instance
+        ds: A Dataset instance
             A static output that is currently being rendered. This is used to
             help set up data bounds.
 
         Notes
         -----
         """
-        self.pf = pf
+        self.ds = ds
         self.field = None
         self.log = False
         self.tf = None
@@ -65,7 +64,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)
+            bounds = self.ds.h.all_data().quantities['Extrema'](self.field, non_zero=True)
             bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
@@ -86,12 +85,12 @@ class TransferFunctionHelper(object):
             The field to be rendered.
         """
         self.field = field
-        self.log = self.pf._get_field_info(self.field).take_log
+        self.log = self.ds._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """
         Set whether or not the transfer function should be in log or linear
-        space. Also modifies the pf.field_info[field].take_log attribute to
+        space. Also modifies the ds.field_info[field].take_log attribute to
         stay in sync with this setting.
 
         Parameters
@@ -100,8 +99,8 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.pf.h
-        self.pf._get_field_info(self.field).take_log = log
+        self.ds.index
+        self.ds._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
         """
@@ -166,7 +165,9 @@ class TransferFunctionHelper(object):
             xmi, xma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             xfunc = np.linspace
-            xmi, xma = self.bounds
+            # Need to strip units off of the bounds to avoid a recursion error
+            # in matplotlib 1.3.1
+            xmi, xma = [np.float64(b) for b in self.bounds]
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
@@ -178,7 +179,7 @@ class TransferFunctionHelper(object):
         canvas = FigureCanvasAgg(fig)
         ax = fig.add_axes([0.2, 0.2, 0.75, 0.75])
         ax.bar(x, tf.funcs[3].y, w, edgecolor=[0.0, 0.0, 0.0, 0.0],
-               log=True, color=colors, bottom=[0])
+               log=self.log, color=colors, bottom=[0])
 
         if profile_field is not None:
             try:
@@ -189,19 +190,22 @@ class TransferFunctionHelper(object):
             if profile_field not in prof.keys():
                 prof.add_fields([profile_field], fractional=False,
                                 weight=profile_weight)
-            ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
-                    prof[profile_field].max(), color='w', linewidth=3)
-            ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
-                    prof[profile_field].max(), color='k')
+            # Strip units, if any, for matplotlib 1.3.1
+            xplot = np.array(prof[self.field])
+            yplot = np.array(prof[profile_field]*tf.funcs[3].y.max() /
+                             prof[profile_field].max())
+            ax.plot(xplot, yplot, color='w', linewidth=3)
+            ax.plot(xplot, yplot, color='k')
 
         ax.set_xscale({True: 'log', False: 'linear'}[self.log])
         ax.set_xlim(x.min(), x.max())
-        ax.set_xlabel(self.pf._get_field_info(self.field).get_label())
+        ax.set_xlabel(self.ds._get_field_info(self.field).get_label())
         ax.set_ylabel(r'$\mathrm{alpha}$')
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
         if fn is None:
-            f = cStringIO.StringIO()
+            from IPython.core.display import Image
+            f = StringIO()
             canvas.print_figure(f)
             f.seek(0)
             img = f.read()
@@ -211,8 +215,8 @@ class TransferFunctionHelper(object):
 
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
-            profile_field = 'CellVolume'
-        prof = BinnedProfile1D(self.pf.h.all_data(), 128, self.field,
+            profile_field = 'cell_volume'
+        prof = BinnedProfile1D(self.ds.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
                                end_collect=False)

@@ -1,3 +1,5 @@
+.. _notebook-tutorial:
+
 Notebook Tutorial
 -----------------
 

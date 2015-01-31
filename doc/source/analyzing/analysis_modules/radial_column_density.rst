@@ -5,6 +5,14 @@ Radial Column Density
 .. sectionauthor:: Stephen Skory <s@skory.us>
 .. versionadded:: 2.3
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the radial column density analysis module is not
+    currently functional.  This functionality is still available in
+    :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`,
+    help is needed to port them over.  Contact the yt-users mailing list if you
+    are interested in doing this.
+
 This module allows the calculation of column densities around a point over a
 field such as ``NumberDensity`` or ``Density``.
 This uses :ref:`healpix_volume_rendering` to interpolate column densities
@@ -41,15 +49,15 @@ Just like a real number column density, when the derived is added using
 
   from yt.mods import *
   from yt.analysis_modules.radial_column_density.api import *
-  pf = load("data0030")
+  ds = load("data0030")
   
-  rcdnumdens = RadialColumnDensity(pf, 'NumberDensity', [0.5, 0.5, 0.5],
+  rcdnumdens = RadialColumnDensity(ds, 'NumberDensity', [0.5, 0.5, 0.5],
     max_radius = 0.5)
   def _RCDNumberDensity(field, data, rcd = rcdnumdens):
       return rcd._build_derived_field(data)
   add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
   
-  dd = pf.h.all_data()
+  dd = ds.all_data()
   print dd['RCDNumberDensity']
 
 The field ``RCDNumberDensity`` can be used just like any other derived field

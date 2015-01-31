@@ -95,7 +95,7 @@ cdef class ParticleDepositOperation:
             if self.update_values == 1:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j] 
-        
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def process_grid(self, gobj,
@@ -424,3 +424,56 @@ cdef class MeshIdentifier(ParticleDepositOperation):
         return
 
 deposit_mesh_id = MeshIdentifier
+
+cdef class NNParticleField(ParticleDepositOperation):
+    cdef np.float64_t *nnfield
+    cdef np.float64_t *distfield
+    cdef public object onnfield
+    cdef public object odistfield
+    def initialize(self):
+        self.onnfield = np.zeros(self.nvals, dtype="float64", order='F')
+        cdef np.ndarray arr = self.onnfield
+        self.nnfield = <np.float64_t*> arr.data
+
+        self.odistfield = np.zeros(self.nvals, dtype="float64", order='F')
+        self.odistfield[:] = np.inf
+        arr = self.odistfield
+        self.distfield = <np.float64_t*> arr.data
+
+    @cython.cdivision(True)
+    cdef void process(self, int dim[3],
+                      np.float64_t left_edge[3], 
+                      np.float64_t dds[3],
+                      np.int64_t offset, 
+                      np.float64_t ppos[3],
+                      np.float64_t *fields,
+                      np.int64_t domain_ind
+                      ):
+        # This one is a bit slow.  Every grid cell is going to be iterated
+        # over, and we're going to deposit particles in it.
+        cdef int ii[3], i, j, k
+        cdef np.int64_t ggind
+        cdef np.float64_t r2, gpos[3]
+        gpos[0] = left_edge[0] + 0.5 * dds[0]
+        for i in range(dim[0]):
+            gpos[1] = left_edge[1] + 0.5 * dds[1]
+            for j in range(dim[1]):
+                gpos[2] = left_edge[2] + 0.5 * dds[2]
+                for k in range(dim[2]):
+                    ggind = gind(i, j, k, dim) + offset
+                    r2 = ((ppos[0] - gpos[0])*(ppos[0] - gpos[0]) +
+                          (ppos[1] - gpos[1])*(ppos[1] - gpos[1]) +
+                          (ppos[2] - gpos[2])*(ppos[2] - gpos[2]))
+                    if r2 < self.distfield[ggind]:
+                        self.distfield[ggind] = r2
+                        self.nnfield[ggind] = fields[0]
+                    gpos[2] += dds[2]
+                gpos[1] += dds[1]
+            gpos[0] += dds[0]
+        return
+        
+    def finalize(self):
+        return self.onnfield
+
+deposit_nearest = NNParticleField
+

@@ -3,63 +3,72 @@
 ChangeLog
 =========
 
-
-This is a non-comprehensive log of changes to the code.
+This is a non-comprehensive log of changes to yt over its many releases.
 
 Contributors
 ------------
 
-Here are all of the contributors to the code base, in alphabetical order.
+The `CREDITS file <http://hg.yt-project.org/yt/src/yt/CREDITS>`_ contains the
+most up-to-date list of everyone who has contributed to the yt source code.
 
- * Tom Abel
- * David Collins
- * Brian Crosby
- * Andrew Cunningham
- * Hilary Egan
- * John Forbes
- * Nathan Goldbaum
- * Markus Haider
- * Cameron Hummels
- * Christian Karch
- * Ji-hoon Kim
- * Steffen Klemer
- * Kacper Kowalik
- * Michael Kuhlen
- * Eve Lee
- * Sam Leitner
- * Yuan Li
- * Chris Malone
- * Josh Moloney
- * Chris Moody
- * Andrew Myers
- * Jill Naiman
- * Kaylea Nelson
- * Jeﬀ Oishi
- * Jean-Claude Passy
- * Mark Richardson
- * Thomass Robitaille
- * Anna Rosen
- * Douglas Rudd
- * Anthony Scopatz
- * Noel Scudder
- * Devin Silvia
- * Sam Skillman
- * Stephen Skory
- * Britton Smith
- * Geoffrey So
- * Casey Stark
- * Elizabeth Tasker
- * Stephanie Tonnesen
- * Matthew Turk
- * Rick Wagner
- * Andrew Wetzel
- * John Wise
- * John ZuHone
+Version 3.0
+-----------
+
+This release of yt features an entirely rewritten infrastructure for
+data ingestion, indexing, and representation.  While past versions of
+yt were focused on analysis and visualization of data structured as
+regular grids, this release features full support for particle
+(discrete point) data such as N-body and SPH data, irregular
+hexahedral mesh data, and data organized via octrees.  This
+infrastructure will be extended in future versions for high-fidelity
+representation of unstructured mesh datasets.
+
+Highlighted changes in yt 3.0:
+
+ * Units now permeate the code base, enabling self-consistent unit
+   transformations of all arrays and quantities returned by yt.
+ * Particle data is now supported using a lightweight octree.  SPH
+   data can be smoothed onto an adaptively-defined mesh using standard
+   SPH smoothing
+ * Support for octree AMR codes
+ * Preliminary Support for non-Cartesian data, such as cylindrical,
+   spherical, and geographical
+ * Revamped analysis framework for halos and halo catalogs, including
+   direct ingestion and analysis of halo catalogs of several different
+   formats
+ * Support for multi-fluid datasets and datasets containing multiple
+   particle types
+ * Flexible support for dynamically defining new particle types using
+   filters on existing particle types or by combining different particle
+   types.
+ * Vastly improved support for loading generic grid, AMR, hexahedral
+   mesh, and particle without hand-coding a frontend for a particular
+   data format.
+ * New frontends for ART, ARTIO, Boxlib, Chombo, FITS, GDF, Subfind,
+   Rockstar, Pluto, RAMSES, SDF, Gadget, OWLS, PyNE, Tipsy, as well as
+   rewritten frontends for Enzo, FLASH, Athena, and generic data.
+ * First release to support installation of yt on Windows
+ * Extended capabilities for construction of simulated observations,
+   and new facilities for analyzing and visualizing FITS images and cube
+   data
+ * Many performance improvements
+
+This release is the first of several; while most functionality from
+the previous generation of yt has been updated to work with yt 3.0, it
+does not yet have feature parity in all respects.  While the core of
+yt is stable, we suggest the support for analysis modules and volume
+rendering be viewed as a late-stage beta, with a series of additional
+releases (3.1, 3.2, etc) appearing over the course of the next year to
+improve support in these areas.
+
+For a description of how to bring your 2.x scripts up to date to 3.0, 
+and a summary of common gotchas in this transition, please see 
+:ref:`yt3differences`.
 
 Version 2.6
 -----------
 
-This is a scheduled release, bringing to a close the development in the 2.5
+This is a scheduled release, bringing to a close the development in the 2.x
 series.  Below are the itemized, aggregate changes since version 2.5.
 
 Major changes:
@@ -157,7 +166,7 @@ The Stream frontend, which can construct datasets in memory, has been improved
 considerably.  It's now easier than ever to load data from disk.  If you know
 how to get volumetric data into Python, you can use either the
 ``load_uniform_grid`` function or the ``load_amr_grid`` function to create an
-in-memory parameter file that yt can analyze.
+in-memory dataset that yt can analyze.
 
 yt now supports the Athena code.
 
@@ -200,7 +209,7 @@ Most Visible Improvements
    * Sidecar files containing expensive derived fields can be written and
      implicitly loaded from.
    * GDF files, which are portable yt-specific representations of full
-     simulations, can be created from any parameter file.  Work is underway on
+     simulations, can be created from any dataset.  Work is underway on
      a pure C library that can be linked against to load these files into
      simulations.
 
@@ -228,7 +237,7 @@ Most Visible Improvements
  * Many, many improvements to PlotWindow.  If you're still using
    PlotCollection, check out ``ProjectionPlot``, ``SlicePlot``,
    ``OffAxisProjectionPlot`` and ``OffAxisSlicePlot``.
- * PlotWindow can now accept a timeseries instead of a parameter file.
+ * PlotWindow can now accept a timeseries instead of a dataset.
  * Many fixes for 1D and 2D data, especially in FLASH datasets.
  * Vast improvements to the particle file handling for FLASH datasets.
  * Particles can now be created ex nihilo with CICSample_3.
@@ -277,7 +286,7 @@ Most Visible Improvements
  * Many improvements to Time Series analysis:
     * EnzoSimulation now integrates with TimeSeries analysis!
     * Auto-parallelization of analysis and parallel iteration
-    * Memory usage when iterating over parameter files reduced substantially
+    * Memory usage when iterating over datasets reduced substantially
  * Many improvements to Reason, the yt GUI
     * Addition of "yt reason" as a startup command
     * Keyboard shortcuts in projection & slice mode: z, Z, x, X for zooms,
@@ -341,14 +350,14 @@ Version 2.3
  * Real, extensive answer tests
  * Boolean data regions (see :ref:`boolean_data_objects`)
  * Isocontours / flux calculations (see :ref:`extracting-isocontour-information`)
- * Field reorganization (see :ref:`types_of_fields`)
+ * Field reorganization
  * PHOP memory improvements
  * Bug fixes for tests
  * Parallel data loading for RAMSES, along with other speedups and improvements
    there
  * WebGL interface for isocontours and a pannable map widget added to Reason
  * Performance improvements for volume rendering
- * Adaptive HEALPix support (see :ref:`adaptive_healpix_volume_rendering`)
+ * Adaptive HEALPix support
  * Column density calculations (see :ref:`radial-column-density`)
  * Massive speedup for 1D profiles
  * Lots more, bug fixes etc.
@@ -372,7 +381,7 @@ Version 2.2
  * “mapserver” for in-browser, Google Maps-style slice and projection
    visualization (see :ref:`mapserver`)
  * Many bug fixes and performance improvements
- * Halo loader (see :ref:`load_haloes`)
+ * Halo loader
 
 Version 2.1
 -----------
@@ -393,7 +402,7 @@ Version 2.1
  * Contour finder has been sped up by a factor of a few
  * Constrained two-point functions are now possible, for LOS power spectra
  * Time series analysis (:ref:`time-series-analysis`) now much easier
- * Stream Lines now a supported 1D data type (:class:`AMRStreamlineBase`)
+ * Stream Lines now a supported 1D data type
  * Stream Lines now able to be calculated and plotted (:ref:`streamlines`)
  * In situ Enzo visualization now much faster
  * "gui" source directory reorganized and cleaned up
@@ -482,7 +491,7 @@ finder (see :ref:`halo_finding`)
  * Optimized data structures such as the index
  * Star particle analysis routines
    (see :ref:`star_analysis`)
- * Halo mass function routines (see :ref:`hmf_howto`)
+ * Halo mass function routines
  * Completely rewritten, massively faster and more memory efficient Particle IO
  * Fixes for plots, including normalized phase plots
  * Better collective communication in parallel routines

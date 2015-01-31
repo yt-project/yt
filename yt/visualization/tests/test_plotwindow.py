@@ -20,10 +20,10 @@ import unittest
 from nose.tools import assert_true
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
-    fake_random_pf, assert_equal, assert_rel_equal, assert_array_equal, \
+    fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
     assert_array_almost_equal
 from yt.utilities.answer_testing.framework import \
-    requires_pf, data_dir_load, PlotWindowAttributeTest
+    requires_ds, data_dir_load, PlotWindowAttributeTest
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
@@ -61,7 +61,7 @@ def assert_fname(fname):
     return image_type == os.path.splitext(fname)[1]
 
 
-TEST_FLNMS = [None, 'test.png', 'test.eps',
+TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
@@ -140,44 +140,55 @@ WIDTH_SPECS = {
     ),
 }
 
+WEIGHT_FIELDS = (
+    None,
+    'density',
+    ('gas', 'density'),
+)
 
-@requires_pf(M7)
+PROJECTION_METHODS = (
+    'integrate',
+    'sum',
+    'mip'
+)
+
+@requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
     plot_field = 'density'
     decimals = 3
 
-    pf = data_dir_load(M7)
+    ds = data_dir_load(M7)
     for ax in 'xyz':
         for attr_name in ATTR_ARGS.keys():
             for args in ATTR_ARGS[attr_name]:
-                test = PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
+                test = PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                                args, decimals)
                 test_attributes.__name__ = test.description
                 yield test
 
 
-@requires_pf(WT)
+@requires_ds(WT)
 def test_attributes_wt():
     plot_field = 'density'
     decimals = 3
 
-    pf = data_dir_load(WT)
+    ds = data_dir_load(WT)
     ax = 'z'
     for attr_name in ATTR_ARGS.keys():
         for args in ATTR_ARGS[attr_name]:
-            yield PlotWindowAttributeTest(pf, plot_field, ax, attr_name,
+            yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
 
 
 class TestSetWidth(unittest.TestCase):
 
-    pf = None
+    ds = None
 
     def setUp(self):
-        if self.pf is None:
-            self.pf = fake_random_pf(64)
-            self.slc = SlicePlot(self.pf, 0, "density")
+        if self.ds is None:
+            self.ds = fake_random_ds(64)
+            self.slc = SlicePlot(self.ds, 0, "density")
 
     def _assert_05cm(self):
         assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
@@ -227,31 +238,41 @@ class TestPlotWindowSave(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        test_pf = fake_random_pf(64)
+        test_ds = fake_random_ds(64)
         normal = [1, 1, 1]
-        ds_region = test_pf.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+        ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         projections = []
         projections_ds = []
         projections_c = []
+        projections_wf = []
         projections_w = {}
+        projections_m = []
         for dim in range(3):
-            projections.append(ProjectionPlot(test_pf, dim, "density"))
-            projections_ds.append(ProjectionPlot(test_pf, dim, "density",
+            projections.append(ProjectionPlot(test_ds, dim, "density"))
+            projections_ds.append(ProjectionPlot(test_ds, dim, "density",
                                                  data_source=ds_region))
         for center in CENTER_SPECS:
-            projections_c.append(ProjectionPlot(test_pf, dim, "density",
+            projections_c.append(ProjectionPlot(test_ds, dim, "density",
                                                 center=center))
         for width in WIDTH_SPECS:
-            projections_w[width] = ProjectionPlot(test_pf, dim, 'density',
+            projections_w[width] = ProjectionPlot(test_ds, dim, 'density',
                                                   width=width)
+        for wf in WEIGHT_FIELDS:
+            projections_wf.append(ProjectionPlot(test_ds, dim, "density",
+                                                 weight_field=wf))
+        for m in PROJECTION_METHODS:
+            projections_m.append(ProjectionPlot(test_ds, dim, "density",
+                                                 method=m))
 
-        cls.slices = [SlicePlot(test_pf, dim, "density") for dim in range(3)]
+        cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
         cls.projections_c = projections_c
+        cls.projections_wf = projections_wf
         cls.projections_w = projections_w
-        cls.offaxis_slice = OffAxisSlicePlot(test_pf, normal, "density")
-        cls.offaxis_proj = OffAxisProjectionPlot(test_pf, normal, "density")
+        cls.projections_m = projections_m
+        cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
+        cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -282,6 +303,14 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_projection_plot_c(self, dim):
         self.projections_c[dim].save()
 
+    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
+    def test_projection_plot_wf(self, dim):
+        self.projections_wf[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
+    def test_projection_plot_m(self, dim):
+        self.projections_m[dim].save()
+
     @parameterized.expand(
         param.explicit((fname, ))
         for fname in TEST_FLNMS)
@@ -294,6 +323,9 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_offaxis_projection_plot(self, fname):
         assert assert_fname(self.offaxis_proj.save(fname)[0])
 
+    def test_ipython_repr(self):
+        self.slices[0]._repr_html_()
+
     @parameterized.expand(
         param.explicit((width, ))
         for width in WIDTH_SPECS)
@@ -301,9 +333,9 @@ class TestPlotWindowSave(unittest.TestCase):
         xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
         plot = self.projections_w[width]
 
-        xlim = [plot.pf.quan(el[0], el[1]) for el in xlim]
-        ylim = [plot.pf.quan(el[0], el[1]) for el in ylim]
-        pwidth = [plot.pf.quan(el[0], el[1]) for el in pwidth]
+        xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
+        ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
+        pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
         [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
         [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]

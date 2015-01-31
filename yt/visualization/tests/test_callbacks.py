@@ -14,7 +14,7 @@ Tests for callbacks
 #-----------------------------------------------------------------------------
 import os, tempfile, shutil
 from yt.testing import \
-    fake_amr_pf
+    fake_amr_ds
 import yt.units as u
 from test_plotwindow import assert_fname
 from yt.visualization.api import \
@@ -61,54 +61,54 @@ def _cleanup_fname():
 
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
-        pf = fake_amr_pf(fields =
+        ds = fake_amr_ds(fields =
             ("density", "velocity_x", "velocity_y", "velocity_z"))
         for ax in 'xyz':
-            p = ProjectionPlot(pf, ax, "density", weight_field="density")
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_velocity()
             yield assert_fname, p.save(prefix)[0]
-            p = SlicePlot(pf, ax, "density")
+            p = SlicePlot(ds, ax, "density")
             p.annotate_velocity()
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
-        p = SlicePlot(pf, "x", "density")
+        p = SlicePlot(ds, "x", "density")
         p.annotate_velocity(factor=8, scale=0.5, scale_units="inches",
                             normalize = True)
         p.save(prefix)
 
 def test_magnetic_callback():
     with _cleanup_fname() as prefix:
-        pf = fake_amr_pf(fields = ("density", "magnetic_field_x",
+        ds = fake_amr_ds(fields = ("density", "magnetic_field_x",
           "magnetic_field_y", "magnetic_field_z"))
         for ax in 'xyz':
-            p = ProjectionPlot(pf, ax, "density", weight_field="density")
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_magnetic_field()
             yield assert_fname, p.save(prefix)[0]
-            p = SlicePlot(pf, ax, "density")
+            p = SlicePlot(ds, ax, "density")
             p.annotate_magnetic_field()
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
-        p = SlicePlot(pf, "x", "density")
+        p = SlicePlot(ds, "x", "density")
         p.annotate_magnetic_field(factor=8, scale=0.5,
             scale_units="inches", normalize = True)
         p.save(prefix)
 
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
-        pf = fake_amr_pf(fields =
+        ds = fake_amr_ds(fields =
             ("density", "velocity_x", "velocity_y", "velocity_z"))
         for ax in 'xyz':
-            p = ProjectionPlot(pf, ax, "density")
+            p = ProjectionPlot(ds, ax, "density")
             p.annotate_quiver("velocity_x", "velocity_y")
             yield assert_fname, p.save(prefix)[0]
-            p = ProjectionPlot(pf, ax, "density", weight_field="density")
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_quiver("velocity_x", "velocity_y")
             yield assert_fname, p.save(prefix)[0]
-            p = SlicePlot(pf, ax, "density")
+            p = SlicePlot(ds, ax, "density")
             p.annotate_quiver("velocity_x", "velocity_y")
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
-        p = SlicePlot(pf, "x", "density")
+        p = SlicePlot(ds, "x", "density")
         p.annotate_quiver("velocity_x", "velocity_y", factor=8, scale=0.5,
             scale_units="inches", normalize = True,
             bv_x = 0.5 * u.cm / u.s,
@@ -117,27 +117,27 @@ def test_quiver_callback():
 
 def test_contour_callback():
     with _cleanup_fname() as prefix:
-        pf = fake_amr_pf(fields = ("density", "temperature"))
+        ds = fake_amr_ds(fields = ("density", "temperature"))
         for ax in 'xyz':
-            p = ProjectionPlot(pf, ax, "density")
+            p = ProjectionPlot(ds, ax, "density")
             p.annotate_contour("temperature")
             yield assert_fname, p.save(prefix)[0]
-            p = ProjectionPlot(pf, ax, "density", weight_field="density")
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_contour("temperature")
             yield assert_fname, p.save(prefix)[0]
-            p = SlicePlot(pf, ax, "density")
+            p = SlicePlot(ds, ax, "density")
             p.annotate_contour("temperature") # BREAKS WITH ndarray
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
-        p = SlicePlot(pf, "x", "density")
+        p = SlicePlot(ds, "x", "density")
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
             label_args={'text-size':'x-large'})
         p.save(prefix)
 
-        p = SlicePlot(pf, "x", "density")
-        s2 = pf.slice(0, 0.2)
+        p = SlicePlot(ds, "x", "density")
+        s2 = ds.slice(0, 0.2)
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
@@ -147,19 +147,19 @@ def test_contour_callback():
 
 def test_grids_callback():
     with _cleanup_fname() as prefix:
-        pf = fake_amr_pf(fields = ("density",))
+        ds = fake_amr_ds(fields = ("density",))
         for ax in 'xyz':
-            p = ProjectionPlot(pf, ax, "density")
+            p = ProjectionPlot(ds, ax, "density")
             p.annotate_grids()
             yield assert_fname, p.save(prefix)[0]
-            p = ProjectionPlot(pf, ax, "density", weight_field="density")
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_grids()
             yield assert_fname, p.save(prefix)[0]
-            p = SlicePlot(pf, ax, "density")
+            p = SlicePlot(ds, ax, "density")
             p.annotate_grids()
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
-        p = SlicePlot(pf, "x", "density")
+        p = SlicePlot(ds, "x", "density")
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
             draw_ids=True, periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")

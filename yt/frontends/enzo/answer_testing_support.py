@@ -19,7 +19,7 @@ from yt.mods import *
 
 from yt.utilities.answer_testing.framework import \
      AnswerTestingTest, \
-     can_run_pf, \
+     can_run_ds, \
      FieldValuesTest, \
      GridHierarchyTest, \
      GridValuesTest, \
@@ -47,23 +47,23 @@ def requires_outputlog(path = ".", prefix = ""):
             return ftrue
     return ffalse
      
-def standard_small_simulation(pf_fn, fields):
-    if not can_run_pf(pf_fn): return
+def standard_small_simulation(ds_fn, fields):
+    if not can_run_ds(ds_fn): return
     dso = [None]
     tolerance = ytcfg.getint("yt", "answer_testing_tolerance")
     bitwise = ytcfg.getboolean("yt", "answer_testing_bitwise")
     for field in fields:
         if bitwise:
-            yield GridValuesTest(pf_fn, field)
+            yield GridValuesTest(ds_fn, field)
         if 'particle' in field: continue
-        for ds in dso:
+        for dobj_name in dso:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
-                        pf_fn, axis, field, weight_field,
-                        ds, decimals=tolerance)
+                        ds_fn, axis, field, weight_field,
+                        dobj_name, decimals=tolerance)
             yield FieldValuesTest(
-                    pf_fn, field, ds, decimals=tolerance)
+                    ds_fn, field, dobj_name, decimals=tolerance)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 
@@ -77,11 +77,11 @@ class ShockTubeTest(object):
         self.atol = atol
 
     def __call__(self):
-        # Read in the pf
-        pf = load(self.data_file)  
+        # Read in the ds
+        ds = load(self.data_file)  
         exact = self.get_analytical_solution() 
 
-        ad = pf.h.all_data()
+        ad = ds.all_data()
         position = ad['x']
         for k in self.fields:
             field = ad[k]

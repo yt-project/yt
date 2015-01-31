@@ -161,7 +161,7 @@ class Bar(ProgressBarWidgetHFill):
             return self.marker.update(pbar)
     def update(self, pbar, width):
         percent = pbar.percentage()
-        cwidth = width - len(self.left) - len(self.right)
+        cwidth = int(width - len(self.left) - len(self.right))
         marked_width = int(percent * cwidth / 100)
         m = self._format_marker(pbar)
         bar = (self.left + (m*marked_width).ljust(cwidth) + self.right)

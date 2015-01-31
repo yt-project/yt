@@ -14,8 +14,8 @@ def test_covering_grid():
     cs = np.array([a.ravel() for a in cs]).T
     length = (1.0/128) * 16 # 16 half-widths of a cell
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs = nprocs, fields = _fields)
-        streams = Streamlines(pf, cs, length=length)
+        ds = fake_random_ds(64, nprocs = nprocs, fields = _fields)
+        streams = Streamlines(ds, cs, length=length)
         streams.integrate_through_volume()
         for path in (streams.path(i) for i in range(8)):
             yield assert_rel_equal, path['dts'].sum(), 1.0, 14

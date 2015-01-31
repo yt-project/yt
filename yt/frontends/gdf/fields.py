@@ -25,8 +25,9 @@ from yt.fields.field_info_container import \
 class GDFFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], None)),
-        ("specific_energy", ("erg / g", ["thermal_energy"], None)),
-        ("pressure", ("", ["pressure"], None)),
+        ("specific_energy", ("erg/g", ["thermal_energy"], None)),
+        ("pressure", ("erg/cm**3", ["pressure"], None)),
+        ("temperature", ("K", ["temperature"], None)),
         ("velocity_x", ("cm/s", ["velocity_x"], None)),
         ("velocity_y", ("cm/s", ["velocity_y"], None)),
         ("velocity_z", ("cm/s", ["velocity_z"], None)),

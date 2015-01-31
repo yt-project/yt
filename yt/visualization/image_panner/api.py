@@ -13,6 +13,6 @@ API for yt.visualization.image_panner
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from vm_panner import VariableMeshPanner, WindowedVariableMeshPanner, \
+from .vm_panner import VariableMeshPanner, WindowedVariableMeshPanner, \
                 MultipleWindowVariableMeshPanner, ImageSaver, \
                 PanningCeleritasStreamer, NonLocalDataImagePanner

@@ -53,9 +53,32 @@ op_names = dict(
         max = "MPI.MAX"
 )
 
+class FilterAllMessages(logging.Filter):
+    """
+    This is a simple filter for logging.Logger's that won't let any 
+    messages pass.
+    """
+    def filter(self, record):
+        return 0
+
 # Set up translation table and import things
 
-def enable_parallelism():
+def enable_parallelism(suppress_logging=False, communicator=None):
+    """
+    This method is used inside a script to turn on MPI parallelism, via 
+    mpi4py.  More information about running yt in parallel can be found
+    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+    
+    Parameters
+    ----------
+    suppress_logging : bool
+       If set to True, only rank 0 will log information after the initial
+       setup of MPI.
+
+    communicator : mpi4py.MPI.Comm
+        The MPI communicator to use. This controls which processes yt can see.
+        If not specified, will be set to COMM_WORLD.
+    """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
@@ -65,30 +88,35 @@ def enable_parallelism():
         return
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
+    
+    # if no communicator specified, set to COMM_WORLD
+    if communicator is None:
+        communicator = MPI.COMM_WORLD
+
+    parallel_capable = (communicator.size > 1)
     if not parallel_capable: return False
     mylog.info("Global parallel computation enabled: %s / %s",
-               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-    communication_system.push(MPI.COMM_WORLD)
-    ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-    ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
+               communicator.rank, communicator.size)
+    communication_system.push(communicator)
+    ytcfg["yt","__global_parallel_rank"] = str(communicator.rank)
+    ytcfg["yt","__global_parallel_size"] = str(communicator.size)
     ytcfg["yt","__parallel"] = "True"
     if exe_name == "embed_enzo" or \
         ("_parallel" in dir(sys) and sys._parallel == True):
         ytcfg["yt","inline"] = "True"
-    if MPI.COMM_WORLD.rank > 0:
+    if communicator.rank > 0:
         if ytcfg.getboolean("yt","LogFile"):
             ytcfg["yt","LogFile"] = "False"
             yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
-    f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+    f = logging.Formatter("P%03i %s" % (communicator.rank,
                                         yt.utilities.logger.ufstring))
-    if len(yt.utilities.logger.rootLogger.handlers) > 0:
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if len(yt.utilities.logger.ytLogger.handlers) > 0:
+        yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
     if ytcfg.getboolean("yt", "parallel_traceback"):
-        sys.excepthook = traceback_writer_hook("_%03i" % MPI.COMM_WORLD.rank)
+        sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
@@ -104,6 +132,10 @@ def enable_parallelism():
         min = MPI.MIN,
         max = MPI.MAX
     ))
+    # Turn off logging on all but the root rank, if specified.
+    if suppress_logging:
+        if communicator.rank > 0:
+            mylog.addFilter(FilterAllMessages())
     return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
@@ -194,7 +226,6 @@ def parallel_simple_proxy(func):
         # attribute, which must be an instance of MPI.Intracomm, and call bcast
         # on that.
         retval = comm.comm.bcast(retval, root=self._owner)
-        #MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
 
@@ -370,7 +401,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     Calls to this function can be nested.
 
-    This should not be used to iterate over parameter files --
+    This should not be used to iterate over datasets --
     :class:`~yt.data_objects.time_series.DatasetSeries` provides a much nicer
     interface for that.
 
@@ -383,7 +414,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
         each available processor.
     storage : dict
         This is a dictionary, which will be filled with results during the
-        course of the iteration.  The keys will be the parameter file
+        course of the iteration.  The keys will be the dataset
         indices and the values will be whatever is assigned to the *result*
         attribute on the storage during iteration.
     barrier : bool
@@ -401,7 +432,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     slice plots centered at each.
 
     >>> for c in parallel_objects(centers):
-    ...     SlicePlot(pf, "x", "Density", center = c).save()
+    ...     SlicePlot(ds, "x", "Density", center = c).save()
     ...
 
     Here's an example of calculating the angular momentum vector of a set of
@@ -410,7 +441,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     >>> storage = {}
     >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
-    ...     sp = pf.sphere(c, (100, "kpc"))
+    ...     sp = ds.sphere(c, (100, "kpc"))
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
@@ -598,7 +629,7 @@ class CommunicationSystem(object):
         from yt.config import ytcfg
         ytcfg["yt","__topcomm_parallel_size"] = str(new_comm.size)
         ytcfg["yt","__topcomm_parallel_rank"] = str(new_comm.rank)
-        if MPI.COMM_WORLD.rank > 0 and ytcfg.getboolean("yt","serialize"):
+        if new_comm.rank > 0 and ytcfg.getboolean("yt","serialize"):
             ytcfg["yt","onlydeserialize"] = "True"
 
     def pop(self):
@@ -1045,11 +1076,11 @@ class ParallelAnalysisInterface(object):
 
     def get_dependencies(self, fields):
         deps = []
-        fi = self.pf.field_info
+        fi = self.ds.field_info
         for field in fields:
             if any(getattr(v,"ghost_zones", 0) > 0 for v in
                    fi[field].validators): continue
-            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
+            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
         return list(set(deps))
 
     def _initialize_parallel(self):
@@ -1064,15 +1095,15 @@ class ParallelAnalysisInterface(object):
            return False, self.index.grid_collection(self.center,
                                                         self.index.grids)
 
-        xax = self.pf.coordinates.x_axis[axis]
-        yax = self.pf.coordinates.y_axis[axis]
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
         mi = self.comm.rank
         cx, cy = np.unravel_index(mi, cc)
         x = np.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
-        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
+        DLE, DRE = self.ds.domain_left_edge.copy(), self.ds.domain_right_edge.copy()
         LE = np.ones(3, dtype='float64') * DLE
         RE = np.ones(3, dtype='float64') * DRE
         LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
@@ -1081,15 +1112,15 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.index.region(self.center, LE, RE)
+        reg = self.ds.region(self.center, LE, RE)
         return True, reg
 
     def partition_index_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
-        if (LE == self.pf.domain_left_edge).all() and \
-                (RE == self.pf.domain_right_edge).all():
+        if (LE == self.ds.domain_left_edge).all() and \
+                (RE == self.ds.domain_right_edge).all():
             subvol = False
         else:
             subvol = True
@@ -1097,20 +1128,20 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.index.region(self.center, LE-padding, RE+padding)
+            self.ds.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0
             # grid that belongs to this processor.
-            grids = self.pf.h.select_grids(0)
+            grids = self.ds.index.select_grids(0)
             root_grids = [g for g in grids
                           if g.proc_num == self.comm.rank]
             if len(root_grids) != 1: raise RuntimeError
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
-            return True, LE, RE, self.index.region(self.center, LE, RE)
+            return True, LE, RE, self.ds.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1124,10 +1155,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center,
+                LE, RE, self.ds.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.ds.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1152,10 +1183,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center, LE-padding,
+                LE, RE, self.ds.region(self.center, LE-padding,
                     RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.ds.region(self.center, LE, RE)
 
     def partition_index_3d_bisection_list(self):
         """

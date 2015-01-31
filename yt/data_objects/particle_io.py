@@ -16,6 +16,7 @@ The particle-IO handler
 import numpy as np
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 particle_handler_registry = defaultdict()
 
@@ -30,17 +31,18 @@ def particle_converter(func):
         return tr
     return save_state
 
-class ParticleIOHandler(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "_source_type"):
-                particle_handler_registry[cls._source_type] = cls
+class RegisteredParticleIOType(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "_source_type"):
+            particle_handler_registry[cls._source_type] = cls
 
+@add_metaclass(RegisteredParticleIOType)
+class ParticleIOHandler(object):
     _source_type = None
 
-    def __init__(self, pf, source):
-        self.pf = pf
+    def __init__(self, ds, source):
+        self.ds = ds
         self.source = source
 
     def __getitem__(self, key):
@@ -59,8 +61,8 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
     def get_data(self, fields):
         mylog.info("Getting %s using ParticleIO" % str(fields))
         fields = ensure_list(fields)
-        if not self.pf.h.io._particle_reader:
-            mylog.info("not self.pf.h.io._particle_reader")
+        if not self.ds.index.io._particle_reader:
+            mylog.info("not self.ds.index.io._particle_reader")
             return self.source.get_data(fields)
         rtype, args = self._get_args()
         count_list, grid_list = [], []
@@ -75,8 +77,8 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
         fields_to_read = []
         conv_factors = []
         for field in fields:
-            f = self.pf.field_info[field]
-            to_add = f.get_dependencies(pf = self.pf).requested
+            f = self.ds.field_info[field]
+            to_add = f.get_dependencies(ds = self.ds).requested
             to_add = list(np.unique(to_add))
             if len(to_add) != 1: raise KeyError
             fields_to_read += to_add
@@ -90,7 +92,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
                           count=len(grid_list), dtype='float64'))
         conv_factors = np.array(conv_factors).transpose()
         self.conv_factors = conv_factors
-        rvs = self.pf.h.io._read_particles(
+        rvs = self.ds.index.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
         for [n, v] in zip(fields, rvs):
@@ -100,14 +102,14 @@ class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False
     _source_type = "region"
 
-    def __init__(self, pf, source):
+    def __init__(self, ds, source):
         self.left_edge = source.left_edge
         self.right_edge = source.right_edge
-        ParticleIOHandler.__init__(self, pf, source)
+        ParticleIOHandler.__init__(self, ds, source)
 
     def _get_args(self):
-        DLE = np.array(self.pf.domain_left_edge, dtype='float64') 
-        DRE = np.array(self.pf.domain_right_edge, dtype='float64') 
+        DLE = np.array(self.ds.domain_left_edge, dtype='float64') 
+        DRE = np.array(self.ds.domain_right_edge, dtype='float64') 
         args = (np.array(self.left_edge), np.array(self.right_edge), 
                 int(self.periodic), DLE, DRE)
         return (0, args)
@@ -115,26 +117,26 @@ class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
 class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
     _source_type = "sphere"
 
-    def __init__(self, pf, source):
+    def __init__(self, ds, source):
         self.center = source.center
         self.radius = source.radius
-        ParticleIOHandler.__init__(self, pf, source)
+        ParticleIOHandler.__init__(self, ds, source)
 
     def _get_args(self):
-        DLE = np.array(self.pf.domain_left_edge, dtype='float64')
-        DRE = np.array(self.pf.domain_right_edge, dtype='float64')
+        DLE = np.array(self.ds.domain_left_edge, dtype='float64')
+        DRE = np.array(self.ds.domain_right_edge, dtype='float64')
         return (1, (np.array(self.center, dtype='float64'), self.radius,
             1, DLE, DRE))
 
 class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
     _source_type = "disk"
     
-    def __init__(self, pf, source):
+    def __init__(self, ds, source):
         self.center = source.center
         self.normal = source._norm_vec
         self.radius = source._radius
         self.height = source._height
-        ParticleIOHandler.__init__(self, pf, source)
+        ParticleIOHandler.__init__(self, ds, source)
     
     def _get_args(self):
         args = (np.array(self.center, dtype='float64'),

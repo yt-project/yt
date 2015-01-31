@@ -101,7 +101,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                           rleft, rright, zleft, zright, \
                                           cleft, cright, thetaleft, thetaright, \
                                           tmleft, tpleft, tmright, tpright, tsect
-    cdef np.ndarray[np.int64_t, ndim=1] inds, tinds, sinds
+    cdef np.ndarray[np.intp_t, ndim=1] inds, tinds, sinds
     cdef np.ndarray[np.float64_t, ndim=2] xyz, rztheta, ptemp, b1, b2, dsect
 
     # set up  points
@@ -126,7 +126,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     bsqrd = b**2
 
     # Compute positive and negative times and associated masks
-    I = left_edges.shape[0]
+    I = np.intp(left_edges.shape[0])
     tmleft = np.empty(I, dtype='float64')
     tpleft = np.empty(I, dtype='float64')
     tmright = np.empty(I, dtype='float64')
@@ -152,7 +152,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                      np.argwhere(tmmright).flat, 
                                      np.argwhere(tpmright).flat,]))
     if 0 == inds.shape[0]:
-        inds = np.arange(np.int64(I))
+        inds = np.arange(np.intp(I))
         thetaleft = np.empty(I)
         thetaleft.fill(p1[2])
         thetaright = np.empty(I)

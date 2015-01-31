@@ -18,7 +18,6 @@ import numpy as np
 import stat
 import weakref
 import cStringIO
-
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -34,8 +33,9 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import mp, kb
 from .fields import \
-    RAMSESFieldInfo
+    RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -46,15 +46,15 @@ class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
 
-    def __init__(self, pf, domain_id):
-        self.pf = pf
+    def __init__(self, ds, domain_id):
+        self.ds = ds
         self.domain_id = domain_id
         self.nvar = 0 # Set this later!
-        num = os.path.basename(pf.parameter_filename).split("."
+        num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(pf.parameter_filename)),
+              os.path.dirname(ds.parameter_filename)),
             num, domain_id)
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
@@ -88,7 +88,7 @@ class RAMSESDomainFile(object):
         f = open(self.hydro_fn, "rb")
         fpu.skip(f, 6)
         # It goes: level, CPU, 8-variable
-        min_level = self.pf.min_level
+        min_level = self.ds.min_level
         n_levels = self.amr_header['nlevelmax'] - min_level
         hydro_offset = np.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
@@ -163,6 +163,7 @@ class RAMSESDomainFile(object):
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
+
         field_offsets = {}
         _pfields = {}
         for field, vtype in particle_fields:
@@ -195,8 +196,8 @@ class RAMSESDomainFile(object):
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
         self.amr_offset = f.tell()
-        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
-        self.total_oct_count = hvals['numbl'][self.pf.min_level:,:].sum(axis=0)
+        self.local_oct_count = hvals['numbl'][self.ds.min_level:, self.domain_id - 1].sum()
+        self.total_oct_count = hvals['numbl'][self.ds.min_level:,:].sum(axis=0)
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
@@ -205,9 +206,9 @@ class RAMSESDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        self.oct_handler = RAMSESOctreeContainer(self.pf.domain_dimensions/2,
-                self.pf.domain_left_edge, self.pf.domain_right_edge)
-        root_nodes = self.amr_header['numbl'][self.pf.min_level,:].sum()
+        self.oct_handler = RAMSESOctreeContainer(self.ds.domain_dimensions/2,
+                self.ds.domain_left_edge, self.ds.domain_right_edge)
+        root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
@@ -223,8 +224,12 @@ class RAMSESDomainFile(object):
                 ng = self.ngridbound[c - self.amr_header['ncpu'] +
                                 self.amr_header['nboundary']*l]
             return ng
-        min_level = self.pf.min_level
-        max_level = min_level
+        min_level = self.ds.min_level
+        # yt max level is not the same as the RAMSES one.
+        # yt max level is the maximum number of additional refinement levels
+        # so for a uni grid run with no refinement, it would be 0. 
+        # So we initially assume that.
+        max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -238,8 +243,8 @@ class RAMSESDomainFile(object):
                 pos[:,0] = fpu.read_vector(f, "d") - nx
                 pos[:,1] = fpu.read_vector(f, "d") - ny
                 pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.pf.domain_width
-                #pos += self.parameter_file.domain_left_edge
+                #pos *= self.ds.domain_width
+                #pos += self.dataset.domain_left_edge
                 fpu.skip(f, 31)
                 #parents = fpu.read_vector(f, "I")
                 #fpu.skip(f, 6)
@@ -280,9 +285,9 @@ class RAMSESDomainFile(object):
             print "  extent [%s]                     :  %s %s" % \
             (ax, pos[:,i].min(), pos[:,i].max())
         print "  domain left                    :  %s" % \
-            (self.pf.domain_left_edge,)
+            (self.ds.domain_left_edge,)
         print "  domain right                   :  %s" % \
-            (self.pf.domain_right_edge,)
+            (self.ds.domain_right_edge,)
         print "  offset applied                 :  %s %s %s" % \
             (nn[0], nn[1], nn[2])
         print "AMR Header:"
@@ -304,7 +309,7 @@ class RAMSESDomainSubset(OctreeSubset):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.index.fluid_field_list
+        all_fields = self.domain.ds.index.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
@@ -330,22 +335,20 @@ class RAMSESDomainSubset(OctreeSubset):
 
 class RAMSESIndex(OctreeIndex):
 
-    def __init__(self, pf, dataset_type='ramses'):
-        self._pf = pf # TODO: Figure out the class composition better!
-        self.fluid_field_list = pf._fields_in_file
+    def __init__(self, ds, dataset_type='ramses'):
+        self.fluid_field_list = ds._fields_in_file
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESIndex, self).__init__(pf, dataset_type)
+        super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
-        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
-                        for i in range(self.parameter_file['ncpu'])]
+        self.domains = [RAMSESDomainFile(self.dataset, i + 1)
+                        for i in range(self.dataset['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
@@ -353,12 +356,12 @@ class RAMSESIndex(OctreeIndex):
 
     def _detect_output_fields(self):
         # Do we want to attempt to figure out what the fields are in the file?
-        pfl = set([])
+        dsl = set([])
         if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
             self._setup_auto_fields()
         for domain in self.domains:
-            pfl.update(set(domain.particle_field_offsets.keys()))
-        self.particle_field_list = list(pfl)
+            dsl.update(set(domain.particle_field_offsets.keys()))
+        self.particle_field_list = list(dsl)
         self.field_list = [("ramses", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
 
@@ -371,12 +374,12 @@ class RAMSESIndex(OctreeIndex):
         
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self._pf.parameter_filename).split("."
+        num = os.path.basename(self.dataset.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(self._pf.parameter_filename)),
+              os.path.dirname(self.dataset.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
@@ -393,7 +396,7 @@ class RAMSESIndex(OctreeIndex):
                          ('gamma', 1, 'd')
                          )
         hvals = fpu.read_attrs(f, hydro_header)
-        self.pf.gamma = hvals['gamma']
+        self.ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # Allow some wiggle room for users to add too many variables
@@ -434,7 +437,7 @@ class RAMSESIndex(OctreeIndex):
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.debug("Identified %s intersecting domains", len(domains))
-            subsets = [RAMSESDomainSubset(base_region, domain, self.parameter_file)
+            subsets = [RAMSESDomainSubset(base_region, domain, self.dataset)
                        for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
@@ -463,7 +466,8 @@ class RAMSESDataset(Dataset):
     gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
-                 fields = None, storage_filename = None):
+                 fields = None, storage_filename = None,
+                 units_override=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, types.StringTypes):
             fields = field_aliases[fields]
@@ -473,7 +477,7 @@ class RAMSESDataset(Dataset):
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
 
     def __repr__(self):
@@ -486,19 +490,28 @@ class RAMSESDataset(Dataset):
         # Note that unit_l *already* converts to proper!
         # Also note that unit_l must be multiplied by the boxlen parameter to
         # ensure we are correctly set up for the current domain.
-        length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
-        rho_u = self.parameters['unit_d']
-        # We're not multiplying by the boxlength here.
-        mass_unit = rho_u * self.parameters['unit_l']**3
+        length_unit = self.parameters['unit_l']
+        boxlen = self.parameters['boxlen']
+        density_unit = self.parameters['unit_d']
+        mass_unit = density_unit * (length_unit * boxlen)**3
         time_unit = self.parameters['unit_t']
-
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
+        pressure_unit = density_unit * (length_unit / time_unit)**2
+        # TODO:
+        # Generalize the temperature field to account for ionization
+        # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
+        mean_molecular_weight_factor = _X**-1
+
+        self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit, "cm")
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
-        self.velocity_unit = self.length_unit / self.time_unit
+        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
+        self.temperature_unit = (self.velocity_unit**2 * mp *
+                                 mean_molecular_weight_factor / kb)
+        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
 
     def _parse_parameter_file(self):
         # hardcoded for now
@@ -543,16 +556,23 @@ class RAMSESDataset(Dataset):
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
         self.domain_right_edge = np.ones(3, dtype='float64')
-        # This is likely not true, but I am not sure how to otherwise
-        # distinguish them.
-        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
-        self.cosmological_simulation = 1
+        # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
-        self.omega_lambda = rheader["omega_l"]
-        self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - self.min_level
+        # These conditions seem to always be true for non-cosmological datasets
+        if rheader["time"] > 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+            self.cosmological_simulation = 0
+            self.current_redshift = 0
+            self.hubble_constant = 0
+            self.omega_matter = 0
+            self.omega_lambda = 0
+        else:
+            self.cosmological_simulation = 1
+            self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+            self.omega_lambda = rheader["omega_l"]
+            self.omega_matter = rheader["omega_m"]
+            self.hubble_constant = rheader["H0"] / 100.0 # This is H100
+        self.max_level = rheader['levelmax'] - self.min_level - 1
+        f.close()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

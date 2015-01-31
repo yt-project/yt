@@ -21,7 +21,7 @@ import re
 import json
 import sys
 import traceback
-from cStringIO import StringIO
+from yt.extern.six.moves import StringIO
 
 class ProgrammaticREPL(object):
     stopped = False

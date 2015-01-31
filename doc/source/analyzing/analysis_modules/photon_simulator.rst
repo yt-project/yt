@@ -1,8 +1,13 @@
 Constructing Mock X-ray Observations
 ------------------------------------
 
+.. note::
+
+  If you just want to create derived fields for X-ray emission,
+  you should go `here <xray_emission_fields.html>`_ instead.
+
 The ``photon_simulator`` analysis module enables the creation of
-simulated X-ray photon lists of events from datasets that ``yt`` is able
+simulated X-ray photon lists of events from datasets that yt is able
 to read. The simulated events then can be exported to X-ray telescope
 simulators to produce realistic observations or can be analyzed in-line.
 The algorithm is based off of that implemented in
@@ -19,7 +24,7 @@ The basic procedure is as follows:
 
 1. Using a spectral model for the photon flux given the gas properties,
    and an algorithm for generating photons from the dataset loaded in
-   ``yt``, produce a large number of photons in three-dimensional space
+   yt, produce a large number of photons in three-dimensional space
    associated with the cells of the dataset.
 2. Use this three-dimensional dataset as a sample from which to generate
    photon events that are projected along a line of sight, Doppler and
@@ -30,26 +35,37 @@ The basic procedure is as follows:
 We'll demonstrate the functionality on a realistic dataset of a galaxy
 cluster to get you started.
 
+.. note::
+
+  Currently, the ``photon_simulator`` analysis module only works with grid-based
+  data.
+  
 Creating an X-ray observation of a dataset on disk
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code:: python
 
-    from yt.mods import *
-    from yt.analysis_modules.api import *
+    import yt
+    #yt.enable_parallelism() # If you want to run in parallel this should go here!
+    from yt.analysis_modules.photon_simulator.api import *
     from yt.utilities.cosmology import Cosmology
+
+.. note::
+
+    For parallel runs using ``mpi4py``, the call to ``yt.enable_parallelism`` should go *before*
+    the import of the ``photon_simulator`` module, as shown above.
 
 We're going to load up an Athena dataset of a galaxy cluster core:
 
 .. code:: python
 
-    pf = load("MHDSloshing/virgo_low_res.0054.vtk", 
-              parameters={"TimeUnits":3.1557e13,
-                          "LengthUnits":3.0856e24,
-                          "DensityUnits":6.770424595218825e-27})
+    ds = yt.load("MHDSloshing/virgo_low_res.0054.vtk",
+                 units_override={"time_unit":(1.0,"Myr"),
+                                 "length_unit":(1.0,"Mpc"),
+                                 "mass_unit":(1.0e14,"Msun")})
 
 First, to get a sense of what the resulting image will look like, let's
-make a new ``yt`` field called ``"DensitySquared"``, since the X-ray
+make a new yt field called ``"density_squared"``, since the X-ray
 emission is proportional to :math:`\rho^2`, and a weak function of
 temperature and metallicity.
 
@@ -57,14 +73,14 @@ temperature and metallicity.
 
     def _density_squared(field, data):
         return data["density"]**2
-    add_field("DensitySquared", function=_density_squared)
+    ds.add_field("density_squared", function=_density_squared, units="g**2/cm**6")
 
 Then we'll project this field along the z-axis.
 
 .. code:: python
 
-    prj = ProjectionPlot(pf, "z", ["DensitySquared"], width=(500., "kpc"))
-    prj.set_cmap("DensitySquared", "gray_r")
+    prj = yt.ProjectionPlot(ds, "z", ["density_squared"], width=(500., "kpc"))
+    prj.set_cmap("density_squared", "gray_r")
     prj.show()
 
 .. image:: _images/dsquared.png
@@ -77,19 +93,20 @@ cold fronts.
    To work out the following examples, you should install
    `AtomDB <http://www.atomdb.org>`_ and get the files from the
    `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
-   data package (see the ``xray_data`` `README <xray_data_README.html>`_ for details on the latter). Make sure that
+   data package (see the ``xray_data`` `README <xray_data_README.html>`_ 
+   for details on the latter). Make sure that
    in what follows you specify the full path to the locations of these
    files.
 
 To generate photons from this dataset, we have several different things
-we need to set up. The first is a standard ``yt`` data object. It could
+we need to set up. The first is a standard yt data object. It could
 be all of the cells in the domain, a rectangular solid region, a
 cylindrical region, etc. Let's keep it simple and make a sphere at the
 center of the domain, with a radius of 250 kpc:
 
 .. code:: python
 
-    sp = pf.sphere("c", (250., "kpc"))
+    sp = ds.sphere("c", (250., "kpc"))
 
 This will serve as our ``data_source`` that we will use later. Next, we
 need to create the ``SpectralModel`` instance that will determine how
@@ -130,7 +147,8 @@ photons. For thermal spectra, we have a special ``PhotonModel`` called
 
 .. code:: python
 
-    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3)
+    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3,
+                                       photons_per_chunk=100000000)
 
 Where we pass in the ``SpectralModel``, and can optionally set values for
 the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
@@ -138,6 +156,14 @@ the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
 everywhere in terms of the solar metallicity. If it is a string, it will
 assume that is the name of the metallicity field (which may be spatially
 varying).
+
+The ``ThermalPhotonModel`` iterates over "chunks" of the supplied data source
+to generate the photons, to reduce memory usage and make parallelization more
+efficient. For each chunk, memory is set aside for the photon energies that will
+be generated. ``photons_per_chunk`` is an optional keyword argument which controls
+the size of this array. For large numbers of photons, you may find that
+this parameter needs to be set higher, or if you are looking to decrease memory
+usage, you might set this parameter lower.
 
 Next, we need to specify "fiducial" values for the telescope collecting
 area, exposure time, and cosmological redshift. Remember, the initial
@@ -258,11 +284,6 @@ reading by telescope simulation codes later.
     events = photons.project_photons(L, exp_time_new=2.0e5, redshift_new=0.07, absorb_model=abs_model,
                                      sky_center=(187.5,12.333), responses=[ARF,RMF])
 
-.. parsed-literal::
-
-    WARNING:yt:This routine has not been tested to work with all RMFs. YMMV.
-
-
 Also, the optional keyword ``psf_sigma`` specifies a Gaussian standard
 deviation to scatter the photon sky positions around with, providing a
 crude representation of a PSF.
@@ -282,12 +303,12 @@ Let's just take a quick look at the raw events object:
 
 .. code:: python
 
-    {'eobs': array([  0.32086522,   0.32271389,   0.32562708, ...,   8.90600621,
-             9.73534237,  10.21614256]), 
-     'xsky': array([ 187.5177707 ,  187.4887825 ,  187.50733609, ...,  187.5059345 ,
-            187.49897546,  187.47307048]), 
-     'ysky': array([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
-            12.33327653,  12.32955225]), 
+    {'eobs': YTArray([  0.32086522,   0.32271389,   0.32562708, ...,   8.90600621,
+             9.73534237,  10.21614256]) keV, 
+     'xsky': YTArray([ 187.5177707 ,  187.4887825 ,  187.50733609, ...,  187.5059345 ,
+            187.49897546,  187.47307048]) degree, 
+     'ysky': YTArray([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
+            12.33327653,  12.32955225]) degree, 
      'ypix': array([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
             129.17278711,  120.11508562]), 
      'PI': array([ 27,  15,  25, ..., 609, 611, 672]), 
@@ -357,19 +378,28 @@ standard X-ray analysis:
 
     events.write_fits_file("my_events.fits", clobber=True)
 
-**WARNING**: We've done some very low-level testing of this feature, and
-it seems to work, but it may not be consistent with standard FITS events
-files in subtle ways that we haven't been able to identify. Please email
-jzuhone@gmail.com if you find any bugs!
+.. warning:: We've done some very low-level testing of this feature, and
+   it seems to work, but it may not be consistent with standard FITS events
+   files in subtle ways that we haven't been able to identify. Please email
+   jzuhone@gmail.com if you find any bugs!
 
-Two ``EventList`` instances can be joined togther like this:
+Two ``EventList`` instances can be added together, which is useful if they were
+created using different data sources:
 
 .. code:: python
 
-    events3 = EventList.join_events(events1, events2)
+    events3 = events1+events2
 
-**WARNING**: This doesn't check for parameter consistency between the
-two lists!
+.. warning:: This only works if the two event lists were generated using
+    the same parameters!
+
+Finally, a new ``EventList`` can be created from a subset of an existing ``EventList``,
+defined by a ds9 region (this functionality requires the
+`pyregion <http://pyregion.readthedocs.org>`_ package to be installed):
+
+.. code:: python
+
+    circle_events = events.filter_events("circle.reg")
 
 Creating a X-ray observation from an in-memory dataset
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -383,10 +413,10 @@ for details on how to do this):
 
 .. code:: python
 
-   from yt.mods import *
+   import yt
    from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
    from yt.utilities.cosmology import Cosmology
-   from yt.analysis_modules.api import *
+   from yt.analysis_modules.photon_simulator.api import *
    import aplpy
 
    R = 1000. # in kpc
@@ -423,20 +453,20 @@ of 4 keV, and a density distribution from a :math:`\beta`-model. We then
 evacuated two "bubbles" of radius 30 kpc at a distance of 50 kpc from
 the center. 
 
-Now, we create a parameter file out of this dataset:
+Now, we create a yt Dataset object out of this dataset:
 
 .. code:: python
 
    data = {}
-   data["density"] = dens
-   data["temperature"] = temp
-   data["velocity_x"] = np.zeros(ddims)
-   data["velocity_y"] = np.zeros(ddims)
-   data["velocity_z"] = np.zeros(ddims)
+   data["density"] = (dens, "g/cm**3")
+   data["temperature"] = (temp, "K")
+   data["velocity_x"] = (np.zeros(ddims), "cm/s")
+   data["velocity_y"] = (np.zeros(ddims), "cm/s")
+   data["velocity_z"] = (np.zeros(ddims), "cm/s")
 
    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
-   pf = load_uniform_grid(data, ddims, 2*R*cm_per_kpc, bbox=bbox)
+   ds = yt.load_uniform_grid(data, ddims, 2*R*cm_per_kpc, bbox=bbox)
 
 where for simplicity we have set the velocities to zero, though we
 could have created a realistic velocity field as well. Now, we
@@ -445,7 +475,7 @@ example:
 
 .. code:: python
 
-   sphere = pf.sphere(pf.domain_center, 1.0/pf["mpc"])
+   sphere = ds.sphere("c", (1.0,"Mpc"))
        
    A = 6000.
    exp_time = 2.0e5
@@ -518,9 +548,11 @@ SIMPUT file:
 
 which will write two files, ``"my_events_phlist.fits"`` and
 ``"my_events_simput.fits"``, the former being a auxiliary file for the
-latter. **NOTE**: You can only write SIMPUT files if you didn't convolve
-the photons with responses, since the idea is to pass unconvolved
-photons to the telescope simulator.
+latter. 
+
+.. note:: You can only write SIMPUT files if you didn't convolve
+   the photons with responses, since the idea is to pass unconvolved
+   photons to the telescope simulator.
 
 The following images were made from the same yt-generated events in both MARX and
 SIMX. They are 200 ks observations of the two example clusters from above
@@ -529,5 +561,3 @@ SIMX. They are 200 ks observations of the two example clusters from above
 .. image:: _images/ds9_sloshing.png
 
 .. image:: _images/ds9_bubbles.png
-
-

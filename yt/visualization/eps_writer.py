@@ -21,8 +21,6 @@ from _mpl_imports import FigureCanvasAgg
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
-from .plot_modifications import get_smallest_appropriate_unit
-
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -262,7 +260,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.visualization.plot_types.RavenPlot`
+        plot : `yt.visalization.plot_window.PlotWindow`
             yt plot on which the axes are based.
         units : string
             Unit description that overrides yt's unit description.  Only
@@ -286,12 +284,12 @@ class DualEPS(object):
             data = plot._frb
             width = plot.width[0]
             if units == None:
-                units = get_smallest_appropriate_unit(width, plot.pf)
-            _xrange = (0, width * plot.pf[units])
-            _yrange = (0, width * plot.pf[units])
+                units = plot.ds.get_smallest_appropriate_unit(width)
+            _xrange = (0, width * plot.ds[units])
+            _yrange = (0, width * plot.ds[units])
             _xlog = False
             _ylog = False
-            axis_names = plot.pf.coordinates.axis_name
+            axis_names = plot.ds.coordinates.axis_name
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
@@ -301,7 +299,7 @@ class DualEPS(object):
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        xax = plot.pf.coordinates.x_axis[data.axis]
+                        xax = plot.ds.coordinates.x_axis[data.axis]
                         _xlabel = '%s (%s)' % (axis_names[xax], units)
                     else:
                         _xlabel = 'Image x (%s)' % (units)
@@ -309,7 +307,7 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        yax = plot.pf.coordinatesyx_axis[data.axis]
+                        yax = plot.ds.coordinatesyx_axis[data.axis]
                         _ylabel = '%s (%s)' % (axis_names[yax], units)
                     else:
                         _ylabel = 'Image y (%s)' % (units)
@@ -422,7 +420,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.visualization.plot_types.VMPlot`
+        plot : `yt.visalization.plot_window.PlotWindow`
             yt plot that provides the image
         pos : tuple of floats
             Position of the origin of the image in centimeters.
@@ -446,13 +444,6 @@ class DualEPS(object):
         shift = 0.0
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        if isinstance(plot, VMPlot):
-            if plot.colorbar != None:
-                mylog.warning("Image (slices, projections, etc.) plots must not"\
-                              "have a colorbar.  Removing it.")
-                plot.colorbar = None
-            plot._redraw_image()
-            _p1 = plot._figure
         elif isinstance(plot, (PlotWindow, PhasePlot)):
             self.field = field
             if self.field == None:
@@ -627,7 +618,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.visualization.plot_types.VMPlot`
+        plot : A yt plot
             yt plot from which the information is taken.
 
         Examples
@@ -649,20 +640,13 @@ class DualEPS(object):
                 _cmap = plot.cmap.name
         if _cmap == None:
             _cmap = 'algae'
-        if isinstance(plot, VMPlot):
-            proj = "Proj" in plot._type_name and \
-                plot.data._weight is None
-            _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
-            _zlabel = _zlabel.replace("_","\;")
-            _zlog = plot.log_field
-            _zrange = (plot.norm.vmin, plot.norm.vmax)
-        elif isinstance(plot, (PlotWindow, PhasePlot)):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
-                _zlabel = plot.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.ds.field_info[self.field].get_label(proj)
             else:
-                _zlabel = plot.data_source.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -905,7 +889,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
               savefig=None, format="eps", yt_nocbar=False, bare_axes=False,
               xaxis_flags=None, yaxis_flags=None,
-              cb_flags=None, cb_location=None, plot_collection=False):
+              cb_flags=None, cb_location=None):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -916,7 +900,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    yt_plots : list of `yt.visualization.plot_types.VMPlot`
+    yt_plots : list of yt plot instances
         yt plots to include in the figure.
     images : list of strings
         JPEG filenames to include in the figure.
@@ -953,8 +937,6 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     cb_location : list of strings
         Strings to control the location of the colorbar (left, right, 
         top, bottom)
-    plot_collection : boolean
-        Set to true to yt_plots is a PlotCollection
 
     Examples
     --------
@@ -1013,7 +995,6 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             for i in range(npanels): ylabels.append("")
 
     d = DualEPS(figsize=figsize)
-    count = 0
     for j in range(nrow):
         invj = nrow - j - 1
         ypos = invj*(figsize[1] + margins[1])
@@ -1154,7 +1135,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
 #=============================================================================
 
 def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
-    r"""Wrapper for multiplot that takes a yt PlotWindow or PlotCollection.
+    r"""Wrapper for multiplot that takes a yt PlotWindow
 
     Accepts all parameters used in multiplot.
 
@@ -1164,12 +1145,12 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    plots : `PlotCollection` or `PlotWindow`
-        yt PlotCollection or PlotWindow that has the plots to be used.
+    plots : `yt.visualization.plot_window.PlotWindow`
+        yt PlotWindow that has the plots to be used.
 
     Examples
     --------
-    >>> pc = PlotCollection(pf)
+    >>> pc = PlotCollection(ds)
     >>> p = pc.add_slice('Density',0,use_colorbar=False)
     >>> p.set_width(0.1,'kpc')
     >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
@@ -1184,17 +1165,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
     >>>                   yt_nocbar=False, margins=(0.5,0.5))
     """
-    # Determine whether the plots are organized in a PlotCollection,
-    # PlotWindow, or list of PlotWindows
-    if isinstance(plots, PlotCollection):
-        if len(plots.plots) < nrow*ncol:
-            raise RuntimeError("Number of plots in PlotCollection is less "\
-                               "than nrow(%d) x ncol(%d)." % \
-                               (len(plots.plots), nrow, ncol))
-            return
-        figure = multiplot(ncol, nrow, yt_plots=plots.plots, 
-                           plot_collection=True, **kwargs)
-    elif isinstance(plots, PlotWindow):
+    if isinstance(plots, PlotWindow):
         if fields == None:
             fields = plots.fields
         if len(fields) < nrow*ncol:
@@ -1225,7 +1196,7 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
     Parameters
     ----------
-    plot : `yt.visualization.plot_types.VMPlot`
+    plot : `yt.visalization.plot_window.PlotWindow`
         yt plot that provides the image and metadata
     figsize : tuple of floats
         Size of the figure in centimeters.
@@ -1281,8 +1252,8 @@ def return_cmap(cmap="algae", label="", range=(0,1), log=False):
 #=============================================================================
 
 #if __name__ == "__main__":
-#    pf = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
-#    pc = PlotCollection(pf)
+#    ds = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
+#    pc = PlotCollection(ds)
 #    p = pc.add_slice('Density',0,use_colorbar=False)
 #    p.set_width(0.1,'kpc')
 #    p1 = pc.add_slice('Temperature',0,use_colorbar=False)

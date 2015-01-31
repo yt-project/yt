@@ -65,7 +65,7 @@ class MultipleTexture(vv.Wobject):
         self._colormap = vvt.Colormap()
         
         # create glsl program for this texture...
-        self._program1 = program =  vvt.GlslProgram()
+        self._program1 = vvt.GlslProgram()
         
         # scale and translation transforms
         self._trafo_scale = vv.Transform_Scale()
@@ -148,7 +148,7 @@ class MultipleTexture(vv.Wobject):
         # clean up
         gl.glFlush()
         t2 = time.time()
-        print "Rendering: %0.3e" % (t2-t1)
+        print ("Rendering: %0.3e" % (t2-t1))
         self._colormap.Disable()
         self._program1.Disable()
         #
@@ -287,15 +287,15 @@ def visvis_plot(vp):
 
     ax = vv.gca()
 
-    for i,g in enumerate(gs):
+    for g in gs:
         ss = ((g.RightEdge - g.LeftEdge) / (np.array(g.my_data[0].shape)-1)).tolist()
         origin = g.LeftEdge.astype("float32").tolist()
         dd = (g.my_data[0].astype("float32") - mi)/(ma - mi)
         dd = np.clip(dd, 0.0, 1.0)
-        print ss
+        print (ss)
         texes.append(vv.Aarray(dd, origin = origin, sampling = ss))
 
-    mtex = MultipleTexture(ax, texes, global_size=vp.pf.domain_dimensions)
+    mtex = MultipleTexture(ax, texes, global_size=vp.ds.domain_dimensions)
 
     ax.daspectAuto = False
     ax.SetLimits()

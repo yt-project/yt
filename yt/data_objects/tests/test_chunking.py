@@ -14,11 +14,11 @@ def _get_dobjs(c):
 
 def test_chunking():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs = nprocs)
-        c = (pf.domain_right_edge + pf.domain_left_edge)/2.0 
-        c += pf.arr(0.5/pf.domain_dimensions, "code_length")
+        ds = fake_random_ds(64, nprocs = nprocs)
+        c = (ds.domain_right_edge + ds.domain_left_edge)/2.0 
+        c += ds.arr(0.5/ds.domain_dimensions, "code_length")
         for dobj in _get_dobjs(c):
-            obj = getattr(pf.h, dobj[0])(*dobj[1])
+            obj = getattr(ds, dobj[0])(*dobj[1])
             coords = {'f':{}, 'i':{}}
             for t in ["io", "all", "spatial"]:
                 coords['i'][t] = []

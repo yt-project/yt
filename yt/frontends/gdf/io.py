@@ -15,7 +15,6 @@ The data-file handling functions
 
 import numpy as np
 import h5py
-import exceptions
 from yt.funcs import \
     mylog
 from yt.utilities.io_handler import \
@@ -47,7 +46,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             h5f = h5py.File(grid.filename, 'r')
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
-                if self.pf.field_ordering == 1:
+                if self.ds.field_ordering == 1:
                     rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0, 2)
                 else:
                     rv[(ftype, fname)] = gds.get(fname).value
@@ -76,7 +75,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     continue
                 if fid is None:
                     fid = h5py.h5f.open(grid.filename, h5py.h5f.ACC_RDONLY)
-                if self.pf.field_ordering == 1:
+                if self.ds.field_ordering == 1:
                     # check the dtype instead
                     data = np.empty(grid.ActiveDimensions[::-1],
                                     dtype="float64")

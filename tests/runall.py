@@ -87,22 +87,22 @@ if __name__ == "__main__":
             keys = set(registry_entries())
             tests_to_run += [t for t in new_tests if t in keys]
         tests = list(set(tests_to_run))
-        print "\n    ".join(tests)
+        print ("\n    ".join(tests))
         sys.exit(0)
 
-    # Load the test pf and make sure it's good.
-    pf = load(opts.parameter_file)
-    if pf is None:
+    # Load the test ds and make sure it's good.
+    ds = load(opts.parameter_file)
+    if ds is None:
         print "Couldn't load the specified parameter file."
         sys.exit(1)
 
-    # Now we modify our compare name and self name to include the pf.
+    # Now we modify our compare name and self name to include the ds.
     compare_id = opts.compare_name
     watcher = None
     if compare_id is not None:
-        compare_id += "_%s_%s" % (pf, pf._hash())
+        compare_id += "_%s_%s" % (ds, ds._hash())
         watcher = Xunit()
-    this_id = opts.this_name + "_%s_%s" % (pf, pf._hash())
+    this_id = opts.this_name + "_%s_%s" % (ds, ds._hash())
 
     rtr = RegressionTestRunner(this_id, compare_id,
                                results_path=opts.storage_dir,

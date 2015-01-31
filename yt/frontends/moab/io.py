@@ -23,9 +23,9 @@ def field_dname(field_name):
 class IOHandlerMoabH5MHex8(BaseIOHandler):
     _dataset_type = "moab_hex8"
 
-    def __init__(self, pf):
-        super(IOHandlerMoabH5MHex8, self).__init__(pf)
-        self._handle = pf._handle
+    def __init__(self, ds):
+        super(IOHandlerMoabH5MHex8, self).__init__(ds)
+        self._handle = ds._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -55,7 +55,7 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         assert(len(chunks) == 1)
         tags = {}
         rv = {}
-        pyne_mesh = self.pf.pyne_mesh
+        pyne_mesh = self.ds.pyne_mesh
         mesh = pyne_mesh.mesh
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")

@@ -24,7 +24,7 @@ ytcfg_defaults = dict(
     logfile = 'False',
     coloredlogs = 'False',
     suppressstreamlogging = 'False',
-    StdoutStreamLogging = 'False',
+    stdoutStreamLogging = 'False',
     loglevel = '20',
     inline = 'False',
     numthreads = '-1',
@@ -38,7 +38,8 @@ ytcfg_defaults = dict(
     __command_line = 'False',
     storeparameterfiles = 'False',
     parameterfilestore = 'parameter_files.csv',
-    maximumstoredpfs = '500',
+    maximumstoreddatasets = '500',
+    skip_dataset_cache = 'False',
     loadfieldplugins = 'True',
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
@@ -97,6 +98,8 @@ if os.path.exists(__fn):
 class YTConfigParser(ConfigParser.ConfigParser):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
+    def __getitem__(self, key):
+        self.get(key[0], key[1])
 
 if os.path.exists(os.path.expanduser("~/.yt/config")):
     ytcfg = YTConfigParser(ytcfg_defaults)

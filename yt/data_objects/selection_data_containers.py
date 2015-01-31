@@ -16,21 +16,60 @@ Data containers based on geometric selection
 
 import types
 import numpy as np
-from exceptions import ValueError, SyntaxError
+from contextlib import contextmanager
 
 from yt.funcs import *
 from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
 from yt.utilities.orientation import Orientation
 from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
+    YTSelectionContainer0D, YTSelectionContainer1D, \
+    YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection
-from yt.utilities.exceptions import YTSphereTooSmall
+from yt.utilities.exceptions import \
+    YTSphereTooSmall, \
+    YTIllDefinedCutRegion, \
+    YTMixedCutRegion
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.units.yt_array import YTQuantity
+
+
+class YTPointBase(YTSelectionContainer0D):
+    """
+    A 0-dimensional object defined by a single point
+
+    Parameters
+    ----------
+    p: array_like
+        A points defined within the domain.  If the domain is
+        periodic its position will be corrected to lie inside
+        the range [DLE,DRE) to ensure one and only one cell may
+        match that point
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+        A dictionary of field parameters than can be accessed by derived
+        fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> c = [0.5,0.5,0.5]
+    >>> point = ds.point(c)
+    """
+    _type_name = "point"
+    _con_args = ('p',)
+    def __init__(self, p, ds=None, field_parameters=None, data_source=None):
+        super(YTPointBase, self).__init__(ds, field_parameters, data_source)
+        self.p = p
 
 class YTOrthoRayBase(YTSelectionContainer1D):
     """
@@ -51,25 +90,43 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         that this is in the plane coordinates: so if you are casting along
         x, this will be (y,z).  If you are casting along y, this will be
         (x,z).  If you are casting along z, this will be (x,y).
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
 
-    >>> pf = load("RedshiftOutput0005")
-    >>> oray = pf.ortho_ray(0, (0.2, 0.74))
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> oray = ds.ortho_ray(0, (0.2, 0.74))
     >>> print oray["Density"]
+
+    Note: The low-level data representation for rays are not guaranteed to be 
+    spatially ordered.  In particular, with AMR datasets, higher resolution 
+    data is tagged on to the end of the ray.  If you want this data 
+    represented in a spatially ordered manner, manually sort it by the "t" 
+    field, which is the value of the parametric variable that goes from 0 at 
+    the start of the ray to 1 at the end:
+
+    >>> my_ray = ds.ortho_ray(...)
+    >>> ray_sort = np.argsort(my_ray["t"])
+    >>> density = my_ray["density"][ray_sort]
     """
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
-    def __init__(self, axis, coords, pf=None, field_parameters=None):
-        super(YTOrthoRayBase, self).__init__(pf, field_parameters)
+    def __init__(self, axis, coords, ds=None, 
+                 field_parameters=None, data_source=None):
+        super(YTOrthoRayBase, self).__init__(ds, field_parameters, data_source)
         self.axis = axis
-        xax = self.pf.coordinates.x_axis[self.axis]
-        yax = self.pf.coordinates.y_axis[self.axis]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
         self.px_ax = xax
         self.py_ax = yax
         # Even though we may not be using x,y,z we use them here.
@@ -100,28 +157,46 @@ class YTRayBase(YTSelectionContainer1D):
         The place where the ray starts.
     end_point : array-like set of 3 floats
         The place where the ray ends.
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
 
-    >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
-    """
+
+    Note: The low-level data representation for rays are not guaranteed to be 
+    spatially ordered.  In particular, with AMR datasets, higher resolution 
+    data is tagged on to the end of the ray.  If you want this data 
+    represented in a spatially ordered manner, manually sort it by the "t" 
+    field, which is the value of the parametric variable that goes from 0 at 
+    the start of the ray to 1 at the end:
+
+    >>> my_ray = ds.ray(...)
+    >>> ray_sort = np.argsort(my_ray["t"])
+    >>> density = my_ray["density"][ray_sort]
+
+"""
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
-    def __init__(self, start_point, end_point, pf=None, field_parameters=None):
-        super(YTRayBase, self).__init__(pf, field_parameters)
-        self.start_point = self.pf.arr(start_point,
+    def __init__(self, start_point, end_point, ds=None,
+                 field_parameters=None, data_source=None):
+        super(YTRayBase, self).__init__(ds, field_parameters, data_source)
+        self.start_point = self.ds.arr(start_point,
                             'code_length', dtype='float64')
-        self.end_point = self.pf.arr(end_point,
+        self.end_point = self.ds.arr(end_point,
                             'code_length', dtype='float64')
         self.vec = self.end_point - self.start_point
-        #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = None, None
@@ -142,7 +217,7 @@ class YTSliceBase(YTSelectionContainer2D):
     domain.
 
     This object is typically accessed through the `slice` object that hangs
-    off of index objects.  AMRSlice is an orthogonal slice through the
+    off of index objects.  Slice is an orthogonal slice through the
     data, taking all the points at the finest resolution available and then
     indexing them.  It is more appropriately thought of as a slice
     'operator' than an object, however, as its field and coordinate can
@@ -157,34 +232,38 @@ class YTSliceBase(YTSelectionContainer2D):
         "domain" coordinates.
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
-        not have to have `coord` as one value.  Strictly optional.
-    pf: Dataset, optional
-        An optional dataset to use rather than self.pf
+        not have to have `coord` as one value.  optional.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
 
-    >>> pf = load("RedshiftOutput0005")
-    >>> slice = pf.slice(0, 0.25)
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> slice = ds.slice(0, 0.25)
     >>> print slice["Density"]
     """
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
     _container_fields = ("px", "py", "pdx", "pdy")
-
-    def __init__(self, axis, coord, center=None, pf=None,
-                 field_parameters = None):
-        YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
+    def __init__(self, axis, coord, center=None, ds=None,
+                 field_parameters=None, data_source=None):
+        YTSelectionContainer2D.__init__(self, axis, ds,
+                                        field_parameters, data_source)
         self._set_center(center)
         self.coord = coord
 
     def _generate_container_field(self, field):
-        xax = self.pf.coordinates.x_axis[self.axis]
-        yax = self.pf.coordinates.y_axis[self.axis]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "px":
@@ -222,9 +301,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `cutting` object
-    that hangs off of index objects.  AMRCuttingPlane is an oblique
+    that hangs off of index objects.  A cutting plane is an oblique
     plane through the data, defined by a normal vector and a coordinate.
-    It attempts to guess an 'up' vector, which cannot be overridden, and
+    It attempts to guess an 'north' vector, which can be overridden, and
     then it pixelizes the appropriate data onto the plane without
     interpolation.
 
@@ -233,14 +312,19 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     normal : array_like
         The vector that defines the desired plane.  For instance, the
         angular momentum of a sphere.
-    center : array_like, optional
-        The center of the cutting plane.
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
-    node_name: string, optional
-        The node in the .yt file to find or store this slice at.  Should
-        probably not be used.
+    center : array_like
+        The center of the cutting plane, where the normal vector is anchored.
+    north_vector: array_like, optional
+        An optional vector to describe the north-facing direction in the resulting
+        plane.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Notes
     -----
@@ -253,8 +337,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     Examples
     --------
 
-    >>> pf = load("RedshiftOutput0005")
-    >>> cp = pf.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> cp = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     >>> print cp["Density"]
     """
     _plane = None
@@ -263,10 +348,10 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _type_name = "cutting"
     _con_args = ('normal', 'center')
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
-
-    def __init__(self, normal, center, pf = None,
-                 north_vector = None, field_parameters = None):
-        YTSelectionContainer2D.__init__(self, 4, pf, field_parameters)
+    def __init__(self, normal, center, north_vector=None,
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer2D.__init__(self, 4, ds,
+                                        field_parameters, data_source)
         self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
@@ -288,61 +373,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
-    def to_frb(self, width, resolution, height=None,
-               periodic=False):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
-
-        An ObliqueFixedResolutionBuffer is an object that accepts a
-        variable-resolution 2D object and transforms it into an NxM bitmap that
-        can be plotted, examined or processed.  This is a convenience function
-        to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other AMR2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        height : height specifier, optional
-            This will be the height of the FRB, by default it is equal to width.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
-        """
-        if iterable(width):
-            w, u = width
-            width = self.pf.quan(w, input_units = u)
-        if height is None:
-            height = width
-        elif iterable(height):
-            h, u = height
-            height = self.pf.quan(w, input_units = u)
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
-                    periodic = periodic)
-        return frb
-
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
@@ -351,7 +381,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = self.pf.arr(tr, "code_length")
+            tr = self.ds.arr(tr, "code_length")
             tr += x * self._x_vec[0]
             tr += y * self._x_vec[1]
             tr += z * self._x_vec[2]
@@ -361,7 +391,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = self.pf.arr(tr, "code_length")
+            tr = self.ds.arr(tr, "code_length")
             tr += x * self._y_vec[0]
             tr += y * self._y_vec[1]
             tr += z * self._y_vec[2]
@@ -371,7 +401,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             y = self._current_chunk.fcoords[:,1] - self.center[1]
             z = self._current_chunk.fcoords[:,2] - self.center[2]
             tr = np.zeros(x.size, dtype='float64')
-            tr = self.pf.arr(tr, "code_length")
+            tr = self.ds.arr(tr, "code_length")
             tr += x * self._norm_vec[0]
             tr += y * self._norm_vec[1]
             tr += z * self._norm_vec[2]
@@ -395,11 +425,11 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         normal = self.normal
         center = self.center
-        self.fields = [k for k in self.field_data.keys()
-                       if k not in self._key_fields]
+        self.fields = ensure_list(fields) + [k for k in self.field_data.keys()
+                                             if k not in self._key_fields]
         from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.pf)
+        (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.ds)
         pw = PWViewerMPL(
             self, bounds, fields=self.fields, origin='center-window', 
             periodic=False, oblique=True,
@@ -407,9 +437,10 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             plot_type='OffAxisSlice')
         if axes_unit is not None:
             pw.set_axes_unit(axes_unit)
+        pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, height=None):
+    def to_frb(self, width, resolution, height=None, periodic=False):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -417,9 +448,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other AMR2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
+        corresponding to_frb function for other YTSelectionContainer2D objects, 
+        this does not accept a 'center' parameter as it is assumed to be 
+        centered at the center of the cutting plane.
 
         Parameters
         ----------
@@ -431,6 +462,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
+        periodic : boolean
+            This can be true or false, and governs whether the pixelization
+            will span the domain boundaries.
 
         Returns
         -------
@@ -440,26 +474,27 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         Examples
         --------
 
-        >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.cutting(L, c)
+        >>> v, c = ds.find_max("density")
+        >>> sp = ds.sphere(c, (100.0, 'au'))
+        >>> L = sp.quantities.angular_momentum_vector()
+        >>> cutting = ds.cutting(L, c)
         >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
         if iterable(width):
-            assert_valid_width_tuple(width)
-            width = self.pf.quan(width[0], width[1])
+            validate_width_tuple(width)
+            width = self.ds.quan(width[0], width[1])
         if height is None:
             height = width
         elif iterable(height):
-            assert_valid_width_tuple(height)
-            height = self.pf.quan(height[0], height[1])
+            validate_width_tuple(height)
+            height = self.ds.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+                                           periodic=periodic)
         return frb
 
 class YTDiskBase(YTSelectionContainer3D):
@@ -467,18 +502,50 @@ class YTDiskBase(YTSelectionContainer3D):
     By providing a *center*, a *normal*, a *radius* and a *height* we
     can define a cylinder of any proportion.  Only cells whose centers are
     within the cylinder will be selected.
+
+    Parameters
+    ----------
+    center : array_like
+        coordinate to which the normal, radius, and height all reference
+    normal : array_like
+        the normal vector defining the direction of lengthwise part of the 
+        cylinder
+    radius : float
+        the radius of the cylinder
+    height : float
+        the distance from the midplane of the cylinder to the top and 
+        bottom planes
+    fields : array of fields, optional
+        any fields to be pre-loaded in the cylinder object
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> c = [0.5,0.5,0.5]
+    >>> disk = ds.disk(c, [1,0,0], (1, 'kpc'), (10, 'kpc'))
     """
     _type_name = "disk"
-    _con_args = ('center', '_norm_vec', '_radius', '_height')
+    _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
-                 pf=None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
-        self._height = fix_length(height, self.pf)
-        self._radius = fix_length(radius, self.pf)
+        self.set_field_parameter("center", self.center)
+        self.height = fix_length(height, self.ds)
+        self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
-
 
 class YTRegionBase(YTSelectionContainer3D):
     """A 3D region of data with an arbitrary center.
@@ -500,15 +567,16 @@ class YTRegionBase(YTSelectionContainer3D):
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
-    def __init__(self, center, left_edge, right_edge, fields = None,
-                 pf = None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, fields, pf, **kwargs)
+    def __init__(self, center, left_edge, right_edge, fields=None,
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
-            self.left_edge = self.pf.arr(left_edge, 'code_length')
+            self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:
             self.left_edge = left_edge
         if not isinstance(right_edge, YTArray):
-            self.right_edge = self.pf.arr(right_edge, 'code_length')
+            self.right_edge = self.ds.arr(right_edge, 'code_length')
         else:
             self.right_edge = right_edge
 
@@ -519,15 +587,17 @@ class YTDataCollectionBase(YTSelectionContainer3D):
     """
     _type_name = "data_collection"
     _con_args = ("_obj_list",)
-    def __init__(self, center, obj_list, pf = None, field_parameters = None):
-        YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
+    def __init__(self, obj_list, ds=None, field_parameters=None,
+                 data_source=None, center=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
         self._obj_list = obj_list
 
 class YTSphereBase(YTSelectionContainer3D):
     """
-    A sphere f points defined by a *center* and a *radius*.
+    A sphere of points defined by a *center* and a *radius*.
 
     Parameters
     ----------
@@ -538,20 +608,25 @@ class YTSphereBase(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> pf = load("DD0010/moving7_0010")
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
-    >>> sphere = pf.sphere(c,1.*pf['kpc'])
+    >>> sphere = ds.sphere(c, (1., "kpc"))
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
-    def __init__(self, center, radius, pf = None, field_parameters = None):
-        super(YTSphereBase, self).__init__(center, pf, field_parameters)
+    def __init__(self, center, radius, ds=None,
+                 field_parameters=None, data_source=None):
+        super(YTSphereBase, self).__init__(center, ds,
+                                           field_parameters, data_source)
         # Unpack the radius, if necessary
-        radius = fix_length(radius, self.pf)
+        radius = fix_length(radius, self.ds)
         if radius < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(pf, radius.in_units("code_length"),
+            raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
         self.set_field_parameter('radius',radius)
+        self.set_field_parameter("center", self.center)
         self.radius = radius
 
 class YTEllipsoidBase(YTSelectionContainer3D):
@@ -565,11 +640,11 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     center : array_like
         The center of the ellipsoid.
     A : float
-        The magnitude of the largest semi-major axis of the ellipsoid.
+        The magnitude of the largest axis (semi-major) of the ellipsoid.
     B : float
-        The magnitude of the medium semi-major axis of the ellipsoid.
+        The magnitude of the medium axis (semi-medium) of the ellipsoid.
     C : float
-        The magnitude of the smallest semi-major axis of the ellipsoid.
+        The magnitude of the smallest axis (semi-minor) of the ellipsoid.
     e0 : array_like (automatically normalized)
         the direction of the largest semi-major axis of the ellipsoid
     tilt : float
@@ -580,27 +655,30 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         the z-axis.
     Examples
     --------
-    >>> pf = load("DD####/DD####")
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
-    >>> ell = pf.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
+    >>> ell = ds.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
-                 pf=None, field_parameters = None):
-        YTSelectionContainer3D.__init__(self, center, pf, field_parameters)
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
         if A<B or B<C:
-            raise YTEllipsoidOrdering(pf, A, B, C)
+            raise YTEllipsoidOrdering(ds, A, B, C)
         # make sure the smallest side is not smaller than dx
-        self._A = self.pf.quan(A, 'code_length')
-        self._B = self.pf.quan(B, 'code_length')
-        self._C = self.pf.quan(C, 'code_length')
+        self._A = self.ds.quan(A, 'code_length')
+        self._B = self.ds.quan(B, 'code_length')
+        self._C = self.ds.quan(C, 'code_length')
         if self._C < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(pf, self._C, self.index.get_smallest_dx())
+            raise YTSphereTooSmall(self.ds, self._C, self.index.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
-        
+ 
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = np.arctan(e0[1] / e0[0])
         # rotate e0 by -t1
@@ -634,11 +712,11 @@ class YTEllipsoidBase(YTSelectionContainer3D):
 class YTCutRegionBase(YTSelectionContainer3D):
     """
     This is a data object designed to allow individuals to apply logical
-    operations to fields or particles and filter as a result of those cuts.
+    operations to fields and filter as a result of those cuts.
 
     Parameters
     ----------
-    base_object : YTSelectionContainer3D
+    data_source : YTSelectionContainer3D
         The object to which cuts will be applied.
     conditionals : list of strings
         A list of conditionals that will be evaluated.  In the namespace
@@ -649,41 +727,63 @@ class YTCutRegionBase(YTSelectionContainer3D):
     Examples
     --------
 
-    >>> pf = load("DD0010/moving7_0010")
-    >>> sp = pf.sphere("max", (1.0, 'mpc'))
-    >>> cr = pf.cut_region(sp, ["obj['temperature'] < 1e3"])
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp = ds.sphere("max", (1.0, 'mpc'))
+    >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ("base_object", "conditionals")
-    def __init__(self, base_object, conditionals, pf = None,
-                 field_parameters = None):
-        super(YTCutRegionBase, self).__init__(base_object.center, pf, field_parameters)
+    _con_args = ("data_source", "conditionals")
+    def __init__(self, data_source, conditionals, ds=None,
+                 field_parameters=None, base_object=None):
+        if base_object is not None:
+            # passing base_object explicitly has been deprecated,
+            # but we handle it here for backward compatibility
+            if data_source is not None:
+                raise RuntimeError(
+                    "Cannot use both base_object and data_source")
+            data_source=base_object
+        super(YTCutRegionBase, self).__init__(
+            data_source.center, ds, field_parameters, data_source=data_source)
         self.conditionals = ensure_list(conditionals)
-        self.base_object = base_object
+        self.base_object = data_source
         self._selector = None
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
-
-    @property
-    def selector(self):
-        raise NotImplementedError
 
     def chunks(self, fields, chunking_style, **kwargs):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no
         # chunks to speak of, as we do not data IO.
         for chunk in self.index._chunk(self.base_object,
-                                           chunking_style,
-                                           **kwargs):
+                                       chunking_style,
+                                       **kwargs):
             with self.base_object._chunked_read(chunk):
-                self.get_data(fields)
-                yield self
+                with self._chunked_read(chunk):
+                    self.get_data(fields)
+                    yield self
 
     def get_data(self, fields = None):
         fields = ensure_list(fields)
         self.base_object.get_data(fields)
         ind = self._cond_ind
         for field in fields:
+            f = self.base_object[field]
+            if f.shape != ind.shape:
+                raise YTMixedCutRegion(self.conditionals, field)
             self.field_data[field] = self.base_object[field][ind]
+
+    @property
+    def blocks(self):
+        # We have to take a slightly different approach here.  Note that all
+        # that .blocks has to yield is a 3D array and a mask.
+        for obj, m in self.base_object.blocks:
+            m = m.copy()
+            with obj._field_parameter_state(self.field_parameters):
+                for cond in self.conditionals:
+                    ss = eval(cond)
+                    m = np.logical_and(m, ss, m)
+            if not np.any(m): continue
+            yield obj, m
 
     @property
     def _cond_ind(self):
@@ -693,6 +793,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
             for cond in self.conditionals:
                 res = eval(cond)
                 if ind is None: ind = res
+                if ind.shape != res.shape:
+                    raise YTIllDefinedCutRegion(self.conditionals)
                 np.logical_and(res, ind, ind)
         return ind
 
@@ -711,4 +813,3 @@ class YTCutRegionBase(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
-

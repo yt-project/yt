@@ -1,6 +1,9 @@
 What is the yt Hub?
 ===================
 
+.. warning:: The yt Hub is currently offline due to some hosting problems.  We
+             hope to have it back up online soon.
+
 The yt data hub is a mechanism by which images, data objects and projects can be
 shared with other people.  For instance, one can upload projections and browse
 them with an interface similar to Google Maps or upload notebooks and view them
@@ -78,8 +81,8 @@ of uploading a projection:
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   proj = pf.proj(0, "density", weight="density")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   proj = ds.proj(0, "density", weight="density")
    proj.hub_upload()
 
 Here is an example of uploading a slice:
@@ -87,8 +90,8 @@ Here is an example of uploading a slice:
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("JHK-DD0030/galaxy0030")
-   sl = pf.slice(0, 0.5, fields=["density"])
+   ds = load("JHK-DD0030/galaxy0030")
+   sl = ds.slice(0, 0.5, fields=["density"])
    sl.hub_upload()
 
 Uploading Notebooks

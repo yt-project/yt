@@ -15,8 +15,12 @@ Halo quantity object
 
 import numpy as np
 
+from yt.utilities.operator_registry import \
+     OperatorRegistry
+
 from .halo_callbacks import HaloCallback
-from .operator_registry import quantity_registry
+
+quantity_registry = OperatorRegistry()
 
 def add_quantity(name, function):
     quantity_registry[name] = HaloQuantity(function)

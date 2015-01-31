@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.0-dev"
+__version__ = "3.1-dev"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -98,7 +98,12 @@ from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity, \
+    uconcatenate, \
+    uintersect1d, \
+    uunion1d
 
 from yt.fields.api import \
     field_plugins, \
@@ -127,12 +132,13 @@ frontends = _frontend_container()
 
 from yt.frontends.stream.api import \
     load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh, load_octree
+    load_particles, load_hexahedral_mesh, load_octree, \
+    hexahedral_connectivity
 
 # For backwards compatibility
-GadgetDataset = frontends.sph.GadgetDataset
+GadgetDataset = frontends.gadget.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
-TipsyDataset = frontends.sph.TipsyDataset
+TipsyDataset = frontends.tipsy.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
@@ -145,12 +151,12 @@ from yt.visualization.api import \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    ColorTransferFunction
-#    off_axis_projection, ColorTransferFunction, \
-#    TransferFunctionHelper
+    volume_render, ColorTransferFunction, TransferFunction#, \
+#    TransferFunctionHelper, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, enable_parallelism
+    parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
     load, simulation

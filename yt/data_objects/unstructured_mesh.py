@@ -48,13 +48,13 @@ class SemiStructuredMesh(YTSelectionContainer):
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
         self.connectivity_coords = connectivity_coords
-        self.pf = index.parameter_file
+        self.ds = index.dataset
         self._index = index
         self._last_mask = None
         self._last_count = -1
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
 
     def _check_consistency(self):
         for gi in range(self.connectivity_indices.shape[0]):
@@ -81,7 +81,7 @@ class SemiStructuredMesh(YTSelectionContainer):
         either returns the multiplicative factor or throws a KeyError.
 
         """
-        return self.pf[datatype]
+        return self.ds[datatype]
 
     @property
     def shape(self):

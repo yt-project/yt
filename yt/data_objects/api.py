@@ -13,20 +13,20 @@ API for yt.data_objects
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from grid_patch import \
+from .grid_patch import \
     AMRGridPatch
 
-from octree_subset import \
+from .octree_subset import \
     OctreeSubset
 
-from static_output import \
+from .static_output import \
     Dataset
 
-from particle_io import \
+from .particle_io import \
     ParticleIOHandler, \
     particle_handler_registry
 
-from profiles import \
+from .profiles import \
     YTEmptyProfileData, \
     BinnedProfile, \
     BinnedProfile1D, \
@@ -37,21 +37,21 @@ from profiles import \
     Profile2D, \
     Profile3D
 
-from time_series import \
+from .time_series import \
     DatasetSeries, \
     DatasetSeriesObject
 
-from analyzer_objects import \
+from .analyzer_objects import \
     AnalysisTask, analysis_task
 
-from data_containers import \
+from .data_containers import \
     data_object_registry
 
-import construction_data_containers as __cdc
-import selection_data_containers as __sdc
+from . import construction_data_containers as __cdc
+from . import selection_data_containers as __sdc
 
-from image_array import \
+from .image_array import \
     ImageArray
 
-from particle_filters import \
+from .particle_filters import \
     particle_filter

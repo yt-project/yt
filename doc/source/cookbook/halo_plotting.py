@@ -1,13 +1,17 @@
-"""
-This is a mechanism for plotting circles representing identified particle halos
-on an image.  For more information, see :ref:`halo_finding`.
-"""
-from yt.mods import * # set up our namespace
+import yt
+from yt.analysis_modules.halo_analysis.halo_catalog import HaloCatalog
 
-pf = load("Enzo_64/DD0043/data0043")
+# Load the dataset
+ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
 
-halos = HaloFinder(pf)
+# Load the halo list from a rockstar output for this dataset
+halos = yt.load('rockstar_halos/halos_0.0.bin')
 
-p = ProjectionPlot(pf, "z", "density")
-p.annotate_hop_circles(halos)
+# Create the halo catalog from this halo list
+hc = HaloCatalog(halos_ds=halos)
+hc.load()
+
+# Create a projection with the halos overplot on top
+p = yt.ProjectionPlot(ds, "x", "density")
+p.annotate_halos(hc)
 p.save()

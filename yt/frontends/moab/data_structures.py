@@ -28,6 +28,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import MoabFieldInfo, PyneFieldInfo
 
@@ -37,15 +38,14 @@ class MoabHex8Mesh(SemiStructuredMesh):
 
 class MoabHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, dataset_type='h5m'):
-        self.parameter_file = weakref.proxy(pf)
+    def __init__(self, ds, dataset_type='h5m'):
+        self.dataset = weakref.proxy(ds)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self._fhandle = h5py.File(self.index_filename,'r')
 
-        UnstructuredIndex.__init__(self, pf, dataset_type)
+        UnstructuredIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
 
@@ -70,12 +70,13 @@ class MoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, filename, dataset_type='moab_hex8',
-                 storage_filename = None):
+                 storage_filename = None, units_override=None):
         self.fluid_types += ("moab",)
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
-        self._handle = h5py.File(self.parameter_filename, "r")
+        self._handle = HDF5FileHandler(filename)
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
@@ -114,15 +115,14 @@ class PyneHex8Mesh(SemiStructuredMesh):
 
 class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, dataset_type='moab_hex8_pyne'):
-        self.parameter_file = weakref.proxy(pf)
+    def __init__(self, ds, dataset_type='moab_hex8_pyne'):
+        self.dataset = weakref.proxy(ds)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.getcwd()
-        self.pyne_mesh = pf.pyne_mesh
+        self.pyne_mesh = ds.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(pf, dataset_type)
+        super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
@@ -149,11 +149,12 @@ class PyneMoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
-                 storage_filename = None):
+                 storage_filename = None, units_override=None):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        Dataset.__init__(self, str(filename), dataset_type)
+        Dataset.__init__(self, str(filename), dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
 

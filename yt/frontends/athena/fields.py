@@ -25,6 +25,11 @@ pres_units = "code_mass/(code_length*code_time**2)"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 
+def velocity_field(comp):
+    def _velocity(field, data):
+        return data["athena", "momentum_%s" % comp]/data["athena","density"]
+    return _velocity
+
 class AthenaFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", ("code_mass/code_length**3", ["density"], None)),
@@ -41,19 +46,17 @@ class AthenaFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         # Add velocity fields
         for comp in "xyz":
-            vel_field = ("athena", "velocity_%s" % (comp))
-            mom_field = ("athena", "momentum_%s" % (comp))
+            vel_field = ("athena", "velocity_%s" % comp)
+            mom_field = ("athena", "momentum_%s" % comp)
             if vel_field in self.field_list:
                 self.add_output_field(vel_field, units="code_length/code_time")
-                self.alias(("gas","velocity_%s" % (comp)), vel_field,
+                self.alias(("gas","velocity_%s" % comp), vel_field,
                            units="cm/s")
             elif mom_field in self.field_list:
                 self.add_output_field(mom_field,
-                                      units="code_mass*code_length/code_time")
-                f = lambda data: data["athena","momentum_%s" % (comp)] / \
-                                 data["athena","density"]
-                self.add_field(("gas","velocity_%s" % (comp)),
-                               function=f, units = "cm/s")
+                                      units="code_mass/code_time/code_length**2")
+                self.add_field(("gas","velocity_%s" % comp),
+                               function=velocity_field(comp), units = "cm/s")
         # Add pressure, energy, and temperature fields
         def ekin1(data):
             return 0.5*(data["athena","momentum_x"]**2 +
@@ -74,7 +77,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 eint -= emag(data)
             return eint
         def etot_from_pres(data):
-            etot = data["athena","pressure"]/(data.pf.gamma-1.)
+            etot = data["athena","pressure"]/(data.ds.gamma-1.)
             etot += ekin2(data)
             if ("athena","cell_centered_B_x") in self.field_list:
                 etot += emag(data)
@@ -86,7 +89,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                        units="dyne/cm**2")
             def _thermal_energy(field, data):
                 return data["athena","pressure"] / \
-                       (data.pf.gamma-1.)/data["athena","density"]
+                       (data.ds.gamma-1.)/data["athena","density"]
             self.add_field(("gas","thermal_energy"),
                            function=_thermal_energy,
                            units="erg/g")
@@ -96,8 +99,10 @@ class AthenaFieldInfo(FieldInfoContainer):
                            function=_total_energy,
                            units="erg/g")
         elif ("athena","total_energy") in self.field_list:
+            self.add_output_field(("athena","total_energy"),
+                                  units=pres_units)
             def _pressure(field, data):
-                return eint_from_etot(data)*(data.pf.gamma-1.0)
+                return eint_from_etot(data)*(data.ds.gamma-1.0)
             self.add_field(("gas","pressure"), function=_pressure,
                            units="dyne/cm**2")
             def _thermal_energy(field, data):

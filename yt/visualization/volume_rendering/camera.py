@@ -13,12 +13,13 @@ Import the components of the volume rendering extension
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import iterable, mylog
+from yt.funcs import iterable, mylog, ensure_numpy_array
 from yt.utilities.orientation import Orientation
 from yt.units.yt_array import YTArray
 from yt.utilities.math_utils import get_rotation_matrix
 from utils import data_source_or_all
 from lens import lenses
+from yt.extern.six.moves import builtins
 import numpy as np
 
 
@@ -28,20 +29,41 @@ class Camera(Orientation):
 
     _moved = True
 
-    def __init__(self, data_source=None, lens_type='plane-parallel'):
-        mylog.debug("Entering %s" % str(self))
-        """Initialize a Camera Instance"""
+    def __init__(self, data_source=None, lens_type='plane-parallel',
+            auto=False):
+        """
+        Initialize a Camera Instance
+
+        Parameters
+        ----------
+        data_source: :class:`yt.data_objects.data_containers.AMR3DData`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+        lens_type: string, optional
+            This specifies the type of lens to use for rendering. Current options
+            are 'plane-parallel', 'perspective', and 'fisheye'. See
+            :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+            Default: 'plane-parallel'
+        auto: boolean
+            If True, build smart defaults using the data source extent. This
+            can be time-consuming to iterate over the entire dataset to find
+            the positional bounds. Default: False 
+
+        """
+        #mylog.debug("Entering %s" % str(self))
         self.lens = None
-        self.position = None
         self.north_vector = None
-        self.resolution = (256, 256)
+        self.resolution = (512, 512)
         self.light = None
-        self.width = None
-        self.focus = np.zeros(3)
-        self.position = np.ones(3)
+        self.width = 1.0 
+        self.focus = np.array([0.0]*3) 
+        self.position = np.array([1.0]*3) 
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
+            self.width = data_source.ds.domain_width
+            self.focus = data_source.ds.domain_center
+            self.position = data_source.ds.domain_right_edge 
+        if auto:
             self.set_defaults_from_data_source(data_source)
 
         super(Camera, self).__init__(self.focus - self.position,
@@ -65,15 +87,17 @@ class Camera(Orientation):
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
-                        (zma - zmi) ** 2) / np.sqrt(3)
+                        (zma - zmi) ** 2)
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
             width = data_source.pf.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
-            width = width.in_units("code_length").value
+            width = width.in_units("code_length")  # .value
         if not iterable(width):
-            width = (width, width, width)  # left/right, top/bottom, front/back
+            width = data_source.pf.arr([width, width, width],
+                                       input_units='code_length')
+            # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
             width = data_source.pf.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
@@ -88,7 +112,7 @@ class Camera(Orientation):
 
     def set_width(self, width):
         if not iterable(width):
-            width = [width, width, width] # No way to get code units.
+            width = YTArray([width]*3)  # Can't get code units.
         self.width = width
         self.switch_orientation()
 
@@ -139,6 +163,46 @@ class Camera(Orientation):
                                 north_vector=north_vector)
         self._moved = True
 
+    def rotate(self, theta, rot_vector=None):
+        r"""Rotate by a given angle
+
+        Rotate the view.  If `rot_vector` is None, rotation will occur
+        around the `north_vector`.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to rotate the view.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around
+            `north_vector`
+
+        Examples
+        --------
+
+        >>> cam.rotate(np.pi/4)
+        """
+        rotate_all = rot_vector is not None
+        if rot_vector is None:
+            rot_vector = self.unit_vectors[0]
+        else:
+            rot_vector = ensure_numpy_array(rot_vector)
+            rot_vector = rot_vector/np.linalg.norm(rot_vector)
+          
+        R = get_rotation_matrix(theta, rot_vector)
+
+        normal_vector = self.unit_vectors[2]
+        normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
+
+        if rotate_all:
+            self.switch_view(
+                normal_vector=np.dot(R, normal_vector),
+                north_vector=np.dot(R, self.unit_vectors[1]))
+        else:
+            self.switch_view(normal_vector=np.dot(R, normal_vector))
+
+
     def pitch(self, theta):
         r"""Rotate by a given angle about the horizontal axis
 
@@ -155,13 +219,7 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
-        rot_vector = self.unit_vectors[0]
-        R = get_rotation_matrix(theta, rot_vector)
-        self.switch_view(
-            normal_vector=np.dot(R, self.unit_vectors[2]),
-            north_vector=np.dot(R, self.unit_vectors[1]))
-        if self.steady_north:
-            self.north_vector = self.unit_vectors[1]
+        self.rotate(theta, rot_vector=self.unit_vectors[0])
 
     def yaw(self, theta):
         r"""Rotate by a given angle about the vertical axis
@@ -179,10 +237,7 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
-        rot_vector = self.unit_vectors[1]
-        R = get_rotation_matrix(theta, rot_vector)
-        self.switch_view(
-            normal_vector=np.dot(R, self.unit_vectors[2]))
+        self.rotate(theta, rot_vector=self.unit_vectors[1])
 
     def roll(self, theta):
         r"""Rotate by a given angle about the view normal axis
@@ -200,13 +255,117 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
-        rot_vector = self.unit_vectors[2]
-        R = get_rotation_matrix(theta, rot_vector)
-        self.switch_view(
-            normal_vector=np.dot(R, self.unit_vectors[2]),
-            north_vector=np.dot(R, self.unit_vectors[1]))
-        if self.steady_north:
-            self.north_vector = np.dot(R, self.north_vector)
+        self.rotate(theta, rot_vector=self.unit_vectors[2])
+
+    def rotation(self, theta, n_steps, rot_vector=None):
+        r"""Loop over rotate, creating a rotation
+
+        This will rotate `n_steps` until the current view has been
+        rotated by an angle `theta`.
+
+        Parameters
+        ----------
+        theta : float, in radians
+            Angle (in radians) by which to rotate the view.
+        n_steps : int
+            The number of look_at snapshots to make.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around the
+            original `north_vector`
+
+        Examples
+        --------
+
+        >>> for i in cam.rotation(np.pi, 10):
+        ...     im = sc.render("rotation_%04i.png" % i)
+        """
+
+        dtheta = (1.0*theta)/n_steps
+        for i in xrange(n_steps):
+            self.rotate(dtheta, rot_vector=rot_vector)
+            yield i
+
+    def move_to(self, final, n_steps, exponential=False):
+        r"""Loop over a look_at
+
+        This will yield `n_steps` until the current view has been
+        moved to a final center of `final`.
+
+        Parameters
+        ----------
+        final : YTArray 
+            The final center to move to after `n_steps`
+        n_steps : int
+            The number of look_at snapshots to make.
+        exponential : boolean
+            Specifies whether the move/zoom transition follows an
+            exponential path toward the destination or linear
+
+        Examples
+        --------
+
+        >>> for i in cam.move_to([0.2,0.3,0.6], 10):
+        ...     sc.render("move_%04i.png" % i)
+        """
+        assert isinstance(final, YTArray)
+        if exponential:
+            position_diff = (np.array(final)/self.position)*1.0
+            dx = position_diff**(1.0/n_steps)
+        else:
+            dx = (final - self.position)*1.0/n_steps
+        for i in xrange(n_steps):
+            if exponential:
+                self.set_position(self.position * dx)
+            else:
+                self.set_position(self.position + dx)
+            yield i 
+
+    def zoom(self, factor):
+        r"""Change the distance to the focal point.
+
+        This will zoom the camera in by some `factor` toward the focal point,
+        along the current view direction, modifying the left/right and up/down
+        extents as well.
+
+        Parameters
+        ----------
+        factor : float
+            The factor by which to reduce the distance to the focal point.
+
+
+        Notes
+        -----
+
+        You will need to call snapshot() again to get a new image.
+
+        """
+        self.set_width(self.width / factor)
+
+    def zoomin(self, final, n_steps):
+        r"""Loop over a zoomin and return snapshots along the way.
+
+        This will yield `n_steps` snapshots until the current view has been
+        zooming in to a final factor of `final`.
+
+        Parameters
+        ----------
+        final : float
+            The zoom factor, with respect to current, desired at the end of the
+            sequence.
+        n_steps : int
+            The number of zoom snapshots to make.
+
+        Examples
+        --------
+
+        >>> for i in cam.zoomin(100.0, 10):
+        ...     sc.render("zoom_%04i.png" % i)
+        """
+        f = final**(1.0/n_steps)
+        for i in xrange(n_steps):
+            self.zoom(f)
+            yield i
 
     def project_to_plane(self, pos, res=None):
         if res is None:
@@ -218,3 +377,11 @@ class Camera(Orientation):
         py = (res[0]/2 + res[0]*(dx/self.width[0].d)).astype('int')
         px = (res[1]/2 + res[1]*(dy/self.width[1].d)).astype('int')
         return px, py, dz
+
+    def __repr__(self):
+        disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t"+\
+                "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n")\
+                % (self.position, self.focus, self.north_vector, self.width,
+                        self.light, self.resolution)
+        disp += "Lens: %s" % self.lens
+        return disp

@@ -7,17 +7,17 @@ def setup():
 
 def test_extrema():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",
+        ds = fake_random_ds(16, nprocs = nprocs, fields = ("density",
                 "velocity_x", "velocity_y", "velocity_z"))
-        sp = pf.sphere("c", (0.25, 'unitary'))
+        sp = ds.sphere("c", (0.25, 'unitary'))
         mi, ma = sp.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(sp["density"])
         yield assert_equal, ma, np.nanmax(sp["density"])
-        dd = pf.h.all_data()
+        dd = ds.all_data()
         mi, ma = dd.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(dd["density"])
         yield assert_equal, ma, np.nanmax(dd["density"])
-        sp = pf.sphere("max", (0.25, 'unitary'))
+        sp = ds.sphere("max", (0.25, 'unitary'))
         yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), False
         mi, ma = dd.quantities["Extrema"]("radial_velocity")
         yield assert_equal, mi, np.nanmin(dd["radial_velocity"])
@@ -25,8 +25,8 @@ def test_extrema():
 
 def test_average():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",))
-        ad = pf.h.all_data()
+        ds = fake_random_ds(16, nprocs = nprocs, fields = ("density",))
+        ad = ds.all_data()
         
         my_mean = ad.quantities["WeightedAverageQuantity"]("density", "ones")
         yield assert_rel_equal, my_mean, ad["density"].mean(), 12
@@ -37,8 +37,8 @@ def test_average():
 
 def test_variance():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density", ))
-        ad = pf.h.all_data()
+        ds = fake_random_ds(16, nprocs = nprocs, fields = ("density", ))
+        ad = ds.all_data()
         
         my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
         yield assert_rel_equal, my_mean, ad["density"].mean(), 12
