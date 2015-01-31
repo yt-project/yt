@@ -196,7 +196,7 @@ class VolumeSource(RenderSource):
         return self.current_image
 
     def finalize_image(self, camera, image):
-        image.shape = camera.resolution[0], camera.resolution[1], 4
+        #image.shape = camera.resolution[0], camera.resolution[1], 4
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         if self.transfer_function.grey_opacity is False:
