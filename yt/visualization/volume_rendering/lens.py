@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.units.yt_array import YTArray
 from yt.data_objects.image_array import ImageArray
+from yt.utilities.math_utils import get_rotation_matrix
 import numpy as np
 
 from yt.utilities.lib.grid_traversal import \
@@ -321,6 +322,58 @@ class FisheyeLens(Lens):
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz
 
+class SphericalLens(Lens):
+
+    def __init__(self):
+        super(SphericalLens, self).__init__()
+        self.radius = 1.0
+        self.center = None
+        self.rotation_matrix = np.eye(3)
+
+    def setup_box_properties(self, camera):
+        self.radius = camera.width.max()
+        super(SphericalLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
+
+    def new_image(self, camera):
+        self.current_image = ImageArray(
+            np.zeros((camera.resolution[0]**2, 1,
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def get_sampler_params(self, camera, render_source):
+        px = np.linspace(-np.pi, np.pi, camera.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1], endpoint=True)[None,:]
+        
+        vectors = np.zeros((camera.resolution[0], camera.resolution[1], 3),
+                           dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+
+        vectors = vectors * self.width[0]
+        positions = self.center + vectors * 0
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, self.orienter.unit_vectors)
+        uv = np.dot(R2, uv)
+        vectors.reshape((camera.resolution[0]*camera.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        vectors.reshape((camera.resolution[0], camera.resolution[1], 3))
+
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (camera.resolution[0]*camera.resolution[1],1,4)
+        vectors.shape = (camera.resolution[0]*camera.resolution[1],1,3)
+        positions.shape = (camera.resolution[0]*camera.resolution[1],1,3)
+        args = (positions, vectors, self.back_center.d,
+                (0.0,1.0,0.0,1.0),
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
-          'fisheye': FisheyeLens}
+          'fisheye': FisheyeLens,
+          'spherical': SphericalLens}
