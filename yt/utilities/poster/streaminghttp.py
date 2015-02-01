@@ -37,7 +37,7 @@ __all__ = ['StreamingHTTPConnection', 'StreamingHTTPRedirectHandler',
 if hasattr(http_client, 'HTTPS'):
     __all__.extend(['StreamingHTTPSHandler', 'StreamingHTTPSConnection'])
 
-class _StreamingHTTPMixin(object):
+class _StreamingHTTPMixin:
     """Mixin class for HTTP and HTTPS connections that implements a streaming
     send method."""
     def send(self, value):
@@ -89,6 +89,7 @@ class _StreamingHTTPMixin(object):
 class StreamingHTTPConnection(_StreamingHTTPMixin, http_client.HTTPConnection):
     """Subclass of `httplib.HTTPConnection` that overrides the `send()` method
     to support iterable body objects"""
+    pass
 
 class StreamingHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Subclass of `urllib2.HTTPRedirectHandler` that overrides the
