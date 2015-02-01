@@ -337,7 +337,7 @@ class SphericalLens(Lens):
 
     def new_image(self, camera):
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]**2, 1,
+            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
@@ -367,7 +367,7 @@ class SphericalLens(Lens):
         else:
             image = self.new_image(camera)
         dummy = np.ones(3, dtype='float64')
-        #image.shape = (camera.resolution[0]*camera.resolution[1],1,4)
+        image.shape = (camera.resolution[0]*camera.resolution[1],1,4)
         vectors.shape = (camera.resolution[0]*camera.resolution[1],1,3)
         positions.shape = (camera.resolution[0]*camera.resolution[1],1,3)
         sampler_params = dict(
