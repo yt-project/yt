@@ -290,6 +290,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if communication_system.communicators[-1].size > 1:
             for chunk in self.data_source.chunks([], "io", local_only = False):
                 self._initialize_chunk(chunk, tree)
+        self._initialize_projected_units(fields)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
@@ -356,6 +357,21 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires * self.ds.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
 
+    def _initialize_projected_units(self, fields):
+        for field in fields:
+            field_unit = self.ds.arr(1.0, self.ds.field_info[field].units)
+            if self.method == "mip" or self._sum_only:
+                path_length_unit = self.ds.arr(1.0, "")
+            else:
+                ax_name = self.ds.coordinates.axis_name[self.axis]
+                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_length_unit = \
+                    self.ds.arr(1.0, self.ds.field_info[path_element_name].units)
+            if self.weight_field is None:
+                self._projected_units[field] = field_unit*path_length_unit
+            else:
+                self._projected_units[field] = field_unit
+
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
@@ -373,19 +389,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for i, field in enumerate(fields):
             d = chunk[field] * dl
             v[:,i] = d
-            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
-            for field in fields:
-                # Note that this removes the dl integration, which is
-                # *correct*, but we are not fully self-consistently carrying it
-                # all through.  So if interrupted, the process will have
-                # incorrect units assigned in the projected units.  This should
-                # not be a problem, since the weight division occurs
-                # self-consistently with unitfree arrays.
-                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
