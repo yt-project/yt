@@ -314,7 +314,8 @@ class ProfilePlot(object):
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     def _setup_plots(self):

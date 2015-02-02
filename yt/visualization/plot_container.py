@@ -648,7 +648,8 @@ class ImagePlotContainer(object):
         ret = ''
         for field in self.plots:
             img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     @invalidate_plot
