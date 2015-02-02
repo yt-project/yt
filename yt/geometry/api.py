@@ -5,6 +5,7 @@ API for Geometry Handlers
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -14,8 +15,8 @@ API for Geometry Handlers
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from geometry_handler import \
+from .geometry_handler import \
     Index
 
-from grid_geometry_handler import \
+from .grid_geometry_handler import \
     GridIndex

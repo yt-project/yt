@@ -108,7 +108,7 @@ class FieldDetector(defaultdict):
                 finfo = FI[item]
             else:
                 finfo = None
-        if finfo is not None and finfo._function.func_name != 'NullFunc':
+        if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
                 vv = finfo(self)
             except NeedsGridType as exc:

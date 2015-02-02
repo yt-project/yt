@@ -19,7 +19,11 @@ length.
 
 Configuring the Light Ray Generator
 -----------------------------------
-  
+
+Below follows the creation of a light ray from multiple datasets stacked 
+together.  However, a light ray can also be made from a single dataset.  
+For an example of this, see :ref:`cookbook-single-dataset-light-ray`.
+
 The arguments required to instantiate a 
 :class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay` 
 object are the same as 
@@ -32,7 +36,8 @@ simulation type, the nearest redshift, and the furthest redshift.
 
   from yt.analysis_modules.cosmological_observation.api import LightRay
   lr = LightRay("enzo_tiny_cosmology/32Mpc_32.enzo",
-                'Enzo', 0.0, 0.1)
+                simulation_type="Enzo",
+                near_redshift=0.0, far_redshift=0.1)
 
 Additional keyword arguments are:
 
@@ -105,13 +110,15 @@ The keyword arguments are:
 * ``get_los_velocity`` (*bool*): If True, the line of sight velocity is 
   calculated for each point in the ray.  Default: True.
 
+* ``redshift`` (*float*): Used with light rays made from single datasets to 
+  specify a starting redshift for the ray.  If not used, the starting 
+  redshift will be 0 for a non-cosmological dataset and the dataset redshift 
+  for a cosmological dataset.  Default: None.
+
 * ``njobs`` (*int*): The number of parallel jobs over which the slices for 
   the halo mask will be split.  Choose -1 for one processor per individual 
   slice and 1 to have all processors work together on each projection.  
   Default: 1
-
-* ``dynamic`` (*bool*): If True, use dynamic load balancing to create the 
-  projections.  Default: False.
 
 .. note:: As of :code:`yt-3.0`, the functionality for recording properties of the nearest halo to each element of the ray no longer exists.  This is still available in :code:`yt-2.x`.  If you would like to use this feature in :code:`yt-3.x`, help is needed to port it over.  Contact the yt-users mailing list if you are interested in doing this.
 

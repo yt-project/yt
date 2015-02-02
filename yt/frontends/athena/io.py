@@ -43,9 +43,9 @@ class IOHandlerAthena(BaseIOHandler):
             f = open(grid.filename, "rb")
             data[grid.id] = {}
             grid_dims = grid.ActiveDimensions
-            read_dims = grid.read_dims
-            grid_ncells = np.int(np.prod(read_dims))
-            grid0_ncells = np.int(np.prod(grid.index.grids[0].read_dims))
+            read_dims = grid.read_dims.astype("int64")
+            grid_ncells = np.prod(read_dims)
+            grid0_ncells = np.prod(grid.index.grids[0].read_dims)
             read_table_offset = get_read_table_offset(f)
             for field in fields:
                 dtype, offsetr = grid.index._field_map[field]
@@ -53,6 +53,7 @@ class IOHandlerAthena(BaseIOHandler):
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
+                offset = int(offset) # Casting to be certain.
                 file_offset = grid.file_offset[2]*read_dims[0]*read_dims[1]*float_size
                 xread = slice(grid.file_offset[0],grid.file_offset[0]+grid_dims[0])
                 yread = slice(grid.file_offset[1],grid.file_offset[1]+grid_dims[1])
@@ -103,10 +104,15 @@ class IOHandlerAthena(BaseIOHandler):
         return rv
 
 def get_read_table_offset(f):
+    from sys import version
     line = f.readline()
     while True:
         splitup = line.strip().split()
-        if 'CELL_DATA' in splitup:
+        if version < '3':
+            chk = 'CELL_DATA'
+        else:
+            chk = b'CELL_DATA'
+        if chk in splitup:
             f.readline()
             read_table_offset = f.tell()
             break

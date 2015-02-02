@@ -319,7 +319,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(nim, px, py, colors, 24, flip=1)
+        lines(nim.d, px.d, py.d, colors, 24, flip=1)
 
         return nim
 
@@ -378,7 +378,7 @@ class Camera(ParallelAnalysisInterface):
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
-            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
+            lines(im.d, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
                   np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
@@ -430,7 +430,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, np.array([px0, px1]), np.array([py0, py1]),
+        lines(im.d, np.array([px0, px1]), np.array([py0, py1]),
               np.array([color,color]), flip=1)
 
     def draw_domain(self,im,alpha=0.3):
@@ -515,7 +515,7 @@ class Camera(ParallelAnalysisInterface):
        
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, px, py, color.reshape(1,4), 24, flip=1)
+        lines(im.d, px.d, py.d, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.

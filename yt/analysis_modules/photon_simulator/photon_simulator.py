@@ -930,7 +930,7 @@ class EventList(object) :
 
         cols = [col1, col2, col3]
 
-        if self.parameters.has_key("ChannelType"):
+        if "ChannelType" in self.parameters:
              chantype = self.parameters["ChannelType"]
              if chantype == "PHA":
                   cunit="adu"
@@ -1203,7 +1203,7 @@ class EventList(object) :
             spec, ee = np.histogram(espec, bins=nchan, range=range)
             bins = 0.5*(ee[1:]+ee[:-1])
         else:
-            if not self.parameters.has_key("ChannelType"):
+            if "ChannelType" not in self.parameters:
                 mylog.error("These events were not convolved with an RMF. Set energy_bins=True.")
                 raise KeyError
             spectype = self.parameters["ChannelType"]
@@ -1256,23 +1256,23 @@ class EventList(object) :
             tbhdu.header["BACKFILE"] = "none"
             tbhdu.header["CORRFILE"] = "none"
             tbhdu.header["POISSERR"] = True
-            if self.parameters.has_key("RMF"):
+            if "RMF" in self.parameters:
                  tbhdu.header["RESPFILE"] = self.parameters["RMF"]
             else:
                  tbhdu.header["RESPFILE"] = "none"
-            if self.parameters.has_key("ARF"):
+            if "ARF" in self.parameters:
                 tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
-            if self.parameters.has_key("Mission"):
+            if "Mission" in self.parameters:
                 tbhdu.header["MISSION"] = self.parameters["Mission"]
             else:
                 tbhdu.header["MISSION"] = "none"
-            if self.parameters.has_key("Telescope"):
+            if "Telescope" in self.parameters:
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
                 tbhdu.header["TELESCOP"] = "none"
-            if self.parameters.has_key("Instrument"):
+            if "Instrument" in self.parameters:
                 tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             else:
                 tbhdu.header["INSTRUME"] = "none"

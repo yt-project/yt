@@ -4,6 +4,7 @@ Clump tools for use with the yt Clump object
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -64,7 +65,7 @@ def recursive_bottom_clumps(clump,clump_list, dbg = 0,level=0):
 
     global counter
     if dbg > 0:
-        print tabs(level), "l =",level, "n_core",counter
+        print(tabs(level), "l =",level, "n_core",counter)
 
     if ((clump.children is None) or (len(clump.children) == 0)):
         counter += 1

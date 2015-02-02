@@ -52,6 +52,7 @@ default_unit_symbol_lut = {
     "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_mks),
     "A": (0.1*speed_of_light_cm_per_s, dimensions.current_mks),
     "T": (1.0e4, dimensions.magnetic_field_mks),
+    "Pa": (10.0, dimensions.pressure),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -202,6 +203,7 @@ prefixable_units = (
     "A",
     "C",
     "statA",
+    "Pa",
 )
 
 cgs_base_units = {
