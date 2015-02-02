@@ -5,6 +5,8 @@ from yt.units.unit_object import Unit
 import os
 import tempfile
 
+LENGTH_UNIT = 2.0
+
 
 def setup():
     from yt.config import ytcfg
@@ -18,13 +20,15 @@ def teardown_func(fns):
         except OSError:
             pass
 
-
 def test_projection():
     fns = []
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
-        ds = fake_random_ds(64, nprocs=nprocs)
+        fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
+        units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
+        ds = fake_random_ds(64, fields=fields, units=units, nprocs=nprocs,
+                            length_unit=LENGTH_UNIT)
         dims = ds.domain_dimensions
         xn, yn, zn = ds.domain_dimensions
         xi, yi, zi = ds.domain_left_edge.to_ndarray() + \
@@ -47,9 +51,14 @@ def test_projection():
             yax = ds.coordinates.y_axis[ax]
             for wf in ['density', ("gas", "density"), None]:
                 proj = ds.proj(["ones", "density"], ax, weight_field=wf)
-                yield assert_equal, proj["ones"].sum(), proj["ones"].size
-                yield assert_equal, proj["ones"].min(), 1.0
-                yield assert_equal, proj["ones"].max(), 1.0
+                if wf is None:
+                    yield assert_equal, proj["ones"].sum(), LENGTH_UNIT*proj["ones"].size
+                    yield assert_equal, proj["ones"].min(), LENGTH_UNIT
+                    yield assert_equal, proj["ones"].max(), LENGTH_UNIT
+                else:
+                    yield assert_equal, proj["ones"].sum(), proj["ones"].size
+                    yield assert_equal, proj["ones"].min(), 1.0
+                    yield assert_equal, proj["ones"].max(), 1.0
                 yield assert_equal, np.unique(proj["px"]), uc[xax]
                 yield assert_equal, np.unique(proj["py"]), uc[yax]
                 yield assert_equal, np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0)
@@ -62,7 +71,7 @@ def test_projection():
                         p.save(name=tmpname)
                         fns.append(tmpname)
                 frb = proj.to_frb((1.0, 'unitary'), 64)
-                for proj_field in ['ones', 'density']:
+                for proj_field in ['ones', 'density', 'temperature']:
                     fi = ds._get_field_info(proj_field)
                     yield assert_equal, frb[proj_field].info['data_source'], \
                         proj.__str__()
@@ -100,6 +109,6 @@ def test_projection():
             # wf == None
             yield assert_equal, wf, None
             v1 = proj["density"].sum()
-            v2 = (dd["density"] * dd["d%s" % an]).sum()
+            v2 = (LENGTH_UNIT * dd["density"] * dd["d%s" % an]).sum()
             yield assert_rel_equal, v1, v2, 10
     teardown_func(fns)
