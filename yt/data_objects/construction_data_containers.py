@@ -367,6 +367,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 path_element_name = ("index", "path_element_%s" % (ax_name))
                 path_length_unit = \
                     self.ds.arr(1.0, self.ds.field_info[path_element_name].units)
+                # Only convert to CGS for path elements that aren't angles
+                if not path_length_unit.units.is_dimensionless:
+                    path_length_unit = self.ds.arr(1, 'cm')
             if self.weight_field is None:
                 self._projected_units[field] = field_unit*path_length_unit
             else:
