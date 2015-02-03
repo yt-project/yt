@@ -257,36 +257,6 @@ class FisheyeLens(Lens):
         """
         self.viewpoint = camera.position
 
-    def project_to_plane(self, camera, pos, res=None):
-        if res is None:
-            res = camera.resolution
-        # the return values here need to be px, py, dz
-        # these are the coordinates and dz for the resultant image.
-        # Basically, what we need is an inverse projection from the fisheye
-        # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
-        # vector, and we need the reverse.
-        # First, we transform lpos into *relative to the camera* coordinates.
-        lpos = camera.position - pos
-        inv_mat = np.linalg.inv(self.rotation_matrix)
-        lpos = lpos.dot(self.rotation_matrix)
-        #lpos = lpos.dot(self.rotation_matrix)
-        mag = (lpos * lpos).sum(axis=1)**0.5
-        lpos /= mag[:,None]
-        dz = mag / self.radius
-        theta = np.arccos(lpos[:,2])
-        fov_rad = self.fov * np.pi / 180.0
-        r = 2.0 * theta / fov_rad
-        phi = np.arctan2(lpos[:,1], lpos[:,0])
-        px = r * np.cos(phi)
-        py = r * np.sin(phi)
-        u = camera.focus.uq
-        # dz is distance the ray would travel
-        px = (px + 1.0) * res[0] / 2.0
-        py = (py + 1.0) * res[1] / 2.0
-        px = (u * np.rint(px)).astype("int64")
-        py = (u * np.rint(py)).astype("int64")
-        return px, py, dz
-
     def __repr__(self):
         disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
                 (self.viewpoint, self.fov, self.radius)
@@ -355,11 +325,12 @@ class SphericalLens(Lens):
         vectors = vectors * camera.width[0]
         positions = camera.position*vectors.uq + (vectors * 0)
         R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
-        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        R2 = get_rotation_matrix(-0.5*np.pi, [0,0,1])
         uv = np.dot(R1, camera.unit_vectors)
         uv = np.dot(R2, uv)
         vectors.reshape((camera.resolution[0]*camera.resolution[1], 3))
         vectors = np.dot(vectors, uv)
+        #vectors = np.dot(vectors, self.rotation_matrix)
         vectors.reshape((camera.resolution[0], camera.resolution[1], 3))
 
         if render_source.zbuffer is not None:
@@ -393,17 +364,25 @@ class SphericalLens(Lens):
         # Much of our setup here is the same as in the fisheye, except for the
         # actual conversion back to the px, py values.
         lpos = camera.position - pos
-        inv_mat = np.linalg.inv(self.rotation_matrix)
-        lpos = lpos.dot(self.rotation_matrix)
+        #inv_mat = np.linalg.inv(self.rotation_matrix)
+        #lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
         lpos /= mag[:,None]
+        # originally:
+        #  the x vector is cos(px) * cos(py)
+        #  the y vector is sin(px) * cos(py)
+        #  the z vector is sin(py)
+        # y / x = tan(px), so arctan2(lpos[:,1], lpos[:,0]) => px
+        # z = sin(py) so arcsin(z) = py
+        # px runs from -pi to pi
+        # py runs from -pi/2 to pi/2
         px = np.arctan2(lpos[:,1], lpos[:,0])
         py = np.arcsin(lpos[:,2])
         dz = mag / self.radius
         u = camera.focus.uq
         # dz is distance the ray would travel
-        px = ((px + np.pi) / (2.0*np.pi)) * res[0]
-        py = ((py + np.pi/2.0) / np.pi) * res[1]
+        px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
+        py = ((-py + np.pi/2.0) / np.pi) * res[1]
         px = (u * np.rint(px)).astype("int64")
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz

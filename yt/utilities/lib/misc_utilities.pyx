@@ -219,7 +219,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.float64_t, ndim=2] colors,
           int points_per_color=1,
           int thick=1,
-	  int flip=0):
+	      int flip=0,
+          int crop = 0):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -238,6 +239,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
         y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
+        if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
+            continue
         err = dx - dy
 
         if no_color:
