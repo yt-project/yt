@@ -598,16 +598,16 @@ class ProfilePlot(object):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -765,16 +765,16 @@ class PhasePlot(ImagePlotContainer):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit is '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
         
     def _get_field_log(self, field_z, profile):

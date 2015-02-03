@@ -211,7 +211,7 @@ class DerivedField(object):
             units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\/\/ (%s)" % (units)
+            data_label += r"\ \ (%s)" % (units)
 
         data_label += r"$"
         return data_label

@@ -383,7 +383,7 @@ class SZProjection(object):
             cbar_label = self.display_names[field]
             units = self.data[field].units.latex_representation()
             if units is not None and units != "":
-                cbar_label += r'$\/\/('+units+r')$'
+                cbar_label += r'$\ \ ('+units+r')$'
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
             cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")

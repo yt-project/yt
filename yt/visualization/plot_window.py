@@ -793,7 +793,7 @@ class PWViewerMPL(PlotWindow):
                                    "%s_axis" % ("xy"[i]))[axis_index]
                     unn = self.ds.coordinates.default_unit_label.get(axax, "")
                     if unn != "":
-                        axes_unit_labels[i] = r'\/\/\left('+unn+r'\right)'
+                        axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
                         continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -825,11 +825,11 @@ class PWViewerMPL(PlotWindow):
                         un = un + '\,h^{-1}'
                     if comoving:
                         un = un + '\,(1+z)^{-1}'
-                    axes_unit_labels[i] = '\/\/('+un+')'
+                    axes_unit_labels[i] = '\ \ ('+un+')'
 
             if self.oblique:
-                labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
-                          r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
+                labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
+                          r'$\rm{Image\ y'+axes_unit_labels[1]+'}$']
             else:
                 coordinates = self.ds.coordinates
                 axis_names = coordinates.image_axis_name[axis_index]
@@ -878,7 +878,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
+                    colorbar_label += r'$\ \ \left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:

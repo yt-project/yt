@@ -648,7 +648,7 @@ class Camera(ParallelAnalysisInterface):
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
         label = self.ds._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
-            label = '$\\rm{log}\\/ $' + label
+            label = r'$\rm{log}\ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):

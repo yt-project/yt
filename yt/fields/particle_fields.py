@@ -72,7 +72,7 @@ def _field_concat_slice(fname, axi):
 
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     orig = set(registry.keys())
-    ptype_dn = ptype.replace("_","\/").title()
+    ptype_dn = ptype.replace("_","\ ").title()
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
