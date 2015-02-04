@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.units.yt_array import YTArray
 from yt.data_objects.image_array import ImageArray
+from yt.utilities.math_utils import get_rotation_matrix
 import numpy as np
 
 from yt.utilities.lib.grid_traversal import \
@@ -256,6 +257,11 @@ class FisheyeLens(Lens):
         """
         self.viewpoint = camera.position
 
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
+                (self.viewpoint, self.fov, self.radius)
+        return disp
+
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
             res = camera.resolution
@@ -286,12 +292,103 @@ class FisheyeLens(Lens):
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz
 
-    def __repr__(self):
-        disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
-                (self.viewpoint, self.fov, self.radius)
-        return disp
+class SphericalLens(Lens):
+
+    def __init__(self):
+        super(SphericalLens, self).__init__()
+        self.radius = 1.0
+        self.center = None
+        self.rotation_matrix = np.eye(3)
+
+    def setup_box_properties(self, camera):
+        self.radius = camera.width.max()
+        super(SphericalLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
+
+    def new_image(self, camera):
+        self.current_image = ImageArray(
+            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def get_sampler_params(self, camera, render_source):
+        px = np.linspace(-np.pi, np.pi, camera.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1], endpoint=True)[None,:]
+        
+        vectors = np.zeros((camera.resolution[0], camera.resolution[1], 3),
+                           dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+
+        vectors = vectors * camera.width[0]
+        positions = camera.position*vectors.uq + (vectors * 0)
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(-0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, camera.unit_vectors)
+        uv = np.dot(R2, uv)
+        vectors.reshape((camera.resolution[0]*camera.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        #vectors = np.dot(vectors, self.rotation_matrix)
+        vectors.reshape((camera.resolution[0], camera.resolution[1], 3))
+
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (camera.resolution[0]*camera.resolution[1],1,4)
+        vectors.shape = (camera.resolution[0]*camera.resolution[1],1,3)
+        positions.shape = (camera.resolution[0]*camera.resolution[1],1,3)
+        sampler_params = dict(
+                vp_pos = positions,
+                vp_dir = vectors,
+                center = self.back_center.d,
+                bounds = (0.0, 1.0, 0.0, 1.0),
+                x_vec = dummy,
+                y_vec = dummy,
+                width = np.zeros(3, dtype="float64"),
+                image = image)
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """
+        For a PerspectiveLens, the viewpoint is the front center.
+        """
+        self.viewpoint = camera.position
+
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+        # Much of our setup here is the same as in the fisheye, except for the
+        # actual conversion back to the px, py values.
+        lpos = camera.position - pos
+        #inv_mat = np.linalg.inv(self.rotation_matrix)
+        #lpos = lpos.dot(self.rotation_matrix)
+        mag = (lpos * lpos).sum(axis=1)**0.5
+        lpos /= mag[:,None]
+        # originally:
+        #  the x vector is cos(px) * cos(py)
+        #  the y vector is sin(px) * cos(py)
+        #  the z vector is sin(py)
+        # y / x = tan(px), so arctan2(lpos[:,1], lpos[:,0]) => px
+        # z = sin(py) so arcsin(z) = py
+        # px runs from -pi to pi
+        # py runs from -pi/2 to pi/2
+        px = np.arctan2(lpos[:,1], lpos[:,0])
+        py = np.arcsin(lpos[:,2])
+        dz = mag / self.radius
+        u = camera.focus.uq
+        # dz is distance the ray would travel
+        px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
+        py = ((-py + np.pi/2.0) / np.pi) * res[1]
+        px = (u * np.rint(px)).astype("int64")
+        py = (u * np.rint(py)).astype("int64")
+        return px, py, dz
 
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
-          'fisheye': FisheyeLens}
+          'fisheye': FisheyeLens,
+          'spherical': SphericalLens}
