@@ -373,6 +373,44 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
         # assert(np.abs(z0 - z1) < 1.0e-3 * (np.abs(z0) + np.abs(z1)))
     return
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def zpoints(np.ndarray[np.float64_t, ndim=3] image,
+        np.ndarray[np.float64_t, ndim=2] zbuffer,
+        np.ndarray[np.int64_t, ndim=1] xs,
+        np.ndarray[np.int64_t, ndim=1] ys,
+        np.ndarray[np.float64_t, ndim=1] zs,
+        np.ndarray[np.float64_t, ndim=2] colors,
+        int points_per_color=1,
+        int thick=1):
+
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[4], talpha
+    cdef int i, j
+    cdef np.int64_t x0, y0
+    cdef np.float64_t z0
+    for j in range(0, nl):
+        x0 = xs[j] 
+        y0 = ys[j]
+        z0 = zs[j]
+        if (x0 < 0 or x0 >= nx): continue 
+        if (y0 < 0 or y0 >= ny): continue 
+        for i in range(4):
+            alpha[i] = colors[j/points_per_color, i]
+
+        if z0 < zbuffer[x0, y0]: 
+            if alpha[3] != 0.0:
+                talpha = image[x0, y0, 3]
+                for i in range(3):
+                    image[x0, y0, i] = (1 - talpha) * (alpha[3] * alpha[i]) + talpha * image[x0, y0, i]
+                image[x0, y0, 3] += talpha
+            if (1.0 - image[x0, y0, 3] < 1.0e-4):
+                zbuffer[x0, y0] = z0
+    return
+
 
 def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
         np.ndarray[np.float64_t, ndim=2] R):

@@ -20,13 +20,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
-from transfer_functions import TransferFunction, ProjectionTransferFunction
+from transfer_functions import TransferFunction, \
+        ProjectionTransferFunction, ColorTransferFunction
 from utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
-    lines, zlines
+    lines, zlines, zpoints
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -208,9 +209,45 @@ class VolumeSource(RenderSource):
         disp += "transfer_function:%s" % str(self.transfer_function)
         return disp
 
-class PointSource(OpaqueSource):
+class PointsSource(OpaqueSource):
 
     """Add set of opaque points to a scene."""
+    _image = None
+    data_source = None
+
+    def __init__(self, positions, colors=None, color_stride=1):
+        self.positions = positions
+        # If colors aren't individually set, make black with full opacity
+        if colors is None:
+            colors =  np.ones((len(positions), 4))
+            colors[:,3] = 1.
+        self.colors = colors
+        self.color_stride = color_stride
+
+    def render(self, camera, zbuffer=None):
+        vertices = self.positions
+        if zbuffer is None:
+            empty = camera.lens.new_image(camera)
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        else:
+            empty = zbuffer.rgba
+            z = zbuffer.z
+
+        # DRAW SOME LINES
+        #print 'Before rendering opaque lines: z range', z.min(), z.max()
+        camera.lens.setup_box_properties(camera)
+        px, py, dz = camera.lens.project_to_plane(camera, vertices)
+        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
+
+        self.zbuffer = zbuffer
+        return zbuffer
+
+    def __repr__(self):
+        disp = "<Line Source>"
+        return disp
 
 
 class LineSource(OpaqueSource):
@@ -224,7 +261,7 @@ class LineSource(OpaqueSource):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
-            color =  np.ones((len(positions), 4))
+            colors =  np.ones((len(positions), 4))
             colors[:,3] = 1.
         self.colors = colors
         self.color_stride = color_stride
