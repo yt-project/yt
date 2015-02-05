@@ -553,7 +553,8 @@ class FITSDataset(Dataset):
         for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += np.any(y)
-        if x == self.dimensionality: self._setup_spec_cube()
+        if x == self.dimensionality and self.axis_names != ['LINEAR','LINEAR']: 
+            self._setup_spec_cube()
 
     def _setup_spec_cube(self):
 
