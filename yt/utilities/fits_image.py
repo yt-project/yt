@@ -407,7 +407,7 @@ class FITSSlice(FITSImageBuffer):
         Specify the resolution of the resulting image. If not provided, it will be
         determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, image_res=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
