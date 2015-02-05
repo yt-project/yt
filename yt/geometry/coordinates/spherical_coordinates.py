@@ -213,8 +213,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
             display_center = (0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2])
-        elif axis ==2:
-            display_center = (self.ds.domain_width[0]/2.0,
+        elif axis == 2:
+            display_center = (self.ds.domain_width[0]/2.0 +
+                                self.ds.domain_left_edge[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2])
         return center, display_center
