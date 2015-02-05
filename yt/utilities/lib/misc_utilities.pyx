@@ -320,7 +320,8 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4], outa
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1, yi0
@@ -366,10 +367,20 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
                             yi0 = ny - yi
                         else:
                             yi0 = yi
-                        if z0 < zbuffer[xi, yi0]: 
-                            for i in range(4):
-                                image[xi, yi0, i] = alpha[i]
-                            zbuffer[xi, yi0] = z0
+                        if z0 < zbuffer[x0, yi0]: 
+                            if alpha[3] != 1.0:
+                                talpha = image[x0, yi0, 3]
+                                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                                for i in range(3):
+                                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                                    if image[x0, yi0, 3] == 0.0: 
+                                        image[x0, yi0, i] = 0.0
+                            else:
+                                for i in range(4):
+                                    image[x0, yi0, i] = alpha[i]
+                            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                                image[x0, yi0, 3] = 1.0
+                                zbuffer[x0, yi0] = z0
 
             if (x0 == x1 and y0 == y1):
                 break
@@ -401,7 +412,8 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4], talpha
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t talpha
     cdef int i, j
     cdef np.int64_t x0, y0, yi0
     cdef np.float64_t z0
@@ -414,16 +426,21 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
         for i in range(4):
             alpha[i] = colors[j/points_per_color, i]
         if flip:
-            yi0 = ny - yi
+            yi0 = ny - y0
         else:
-            yi0 = yi
+            yi0 = y0
 
         if z0 < zbuffer[x0, yi0]: 
-            if alpha[3] != 0.0:
+            if alpha[3] != 1.0:
                 talpha = image[x0, yi0, 3]
+                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
                 for i in range(3):
-                    image[x0, yi0, i] = (1 - talpha) * (alpha[3] * alpha[i]) + talpha * image[x0, yi0, i]
-                image[x0, yi0, 3] += talpha
+                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                    if image[x0, yi0, 3] == 0.0: 
+                        image[x0, yi0, i] = 0.0
+            else:
+                for i in range(4):
+                    image[x0, yi0, i] = alpha[i]
             if (1.0 - image[x0, yi0, 3] < 1.0e-4):
                 zbuffer[x0, yi0] = z0
     return
