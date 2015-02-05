@@ -117,12 +117,14 @@ class StarFormationRate(object):
             if self.mode == 'data_source':
                 ct = self._data_source['creation_time']
                 if ct is None:
-                    print('data source must have particle_age!')
-                    sys.exit(1)
+                    errmsg = 'data source must have particle_age!'
+                    mylog.error(errmsg)
+                    raise RuntimeError(errmsg)
                 mask = ct > 0
                 if not any(mask):
-                    print('all particles have age < 0')
-                    sys.exit(1)
+                    errmsg = 'all particles have age < 0'
+                    mylog.error(errmsg)
+                    raise RuntimeError(errmsg)
                 # type = self._data_source['particle_type']
                 ct_stars = ct[mask]
                 mass_stars = self._data_source[
