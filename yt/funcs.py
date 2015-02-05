@@ -462,8 +462,8 @@ def update_hg(path, skip_rebuild = False):
     try:
         import hglib
     except ImportError:
-        print "Updating requires python-hglib to be installed."
-        print "Try: pip install python-hglib"
+        print("Updating requires python-hglib to be installed.")
+        print("Try: pip install python-hglib")
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
     repo = hglib.open(path)
@@ -498,8 +498,8 @@ def get_hg_version(path):
     try:
         import hglib
     except ImportError:
-        print "Updating requires python-hglib to be installed."
-        print "Try: pip install python-hglib"
+        print("Updating requires python-hglib to be installed.")
+        print("Try: pip install python-hglib")
         return -1
     repo = hglib.open(path)
     return repo.identify()
