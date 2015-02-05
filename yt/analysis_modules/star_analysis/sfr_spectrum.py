@@ -72,6 +72,7 @@ class StarFormationRate(object):
         self._ds = ds
         self._data_source = data_source
         self._filter = star_filter
+        self.filter_provided = self._filter is not None
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
         self.volume = volume
@@ -92,8 +93,6 @@ class StarFormationRate(object):
             self.mode = 'provided'
         else:
             self.mode = 'data_source'
-        if filter is not None:
-            self.filter = 'provided'
         # Set up for time conversion.
         self.cosm = Cosmology(
             hubble_constant=self._ds.hubble_constant,
@@ -111,7 +110,7 @@ class StarFormationRate(object):
         Build the data for plotting.
         """
         # Pick out the stars.
-        if self.filter == 'provided':
+        if self.filter_provided:
             ct = self._filter['creation_time']
             mass_stars = self._data_source[self._filter, "particle_mass"]
         else:
@@ -296,8 +295,7 @@ class SpectrumBuilder(object):
         self._ds = ds
         self.bcdir = bcdir
         self._filter = star_filter
-        if star_filter is not None:
-            self.filter = 'provided'
+        self.filter_provided = self._filter is not None
         if model == "chabrier":
             self.model = CHABRIER
         elif model == "salpeter":
@@ -409,7 +407,7 @@ class SpectrumBuilder(object):
                 self.star_metal = star_metallicity_fraction
         else:
             # Get the data we need.
-            if self.filter == 'provided':
+            if self.filter_provided:
                 ct = self._filter['creation_time']
                 # mass_stars = self._data_source[self._filter, "particle_mass"]
                 if star_metallicity_constant is not None:
