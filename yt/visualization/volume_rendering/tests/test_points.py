@@ -13,13 +13,13 @@ Test for Composite VR.
 import yt
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource, LineSource, BoxSource
+    VolumeSource, OpaqueSource, LineSource, BoxSource, PointsSource
 from yt.utilities.lib.misc_utilities import lines
 from yt.data_objects.api import ImageArray
 import numpy as np
 np.random.seed(0)
 
-def test_composite_vr():
+def test_points_vr():
     ds = fake_random_ds(64)
     dd = ds.sphere(ds.domain_center, 0.45*ds.domain_width[0])
     ds.field_info[ds.field_list[0]].take_log=False
@@ -30,34 +30,25 @@ def test_composite_vr():
     sc.set_default_camera(cam)
     vr = VolumeSource(dd, field=ds.field_list[0])
     vr.transfer_function.clear()
-    vr.transfer_function.grey_opacity=True
-    vr.transfer_function.map_to_colormap(0.0, 1.0, scale=3.0, colormap="Reds")
+    vr.transfer_function.grey_opacity=False
+    vr.transfer_function.map_to_colormap(0.0, 1.0, scale=10., colormap="Reds")
     sc.add_source(vr)
     
     cam.set_width( 1.8*ds.domain_width )
     cam.lens.setup_box_properties(cam)
 
-    # DRAW SOME LINES
-    npoints = 100
+    # DRAW SOME POINTS
+    npoints = 1000
     vertices = np.random.random([npoints, 3])
     colors = np.random.random([npoints, 4])
     colors[:,3] = 0.10
 
-    box_source = BoxSource(ds.domain_left_edge, ds.domain_right_edge, color=[1.,1.,1.,1.0])
-    sc.add_source(box_source)
-    
-    box_source = BoxSource(ds.domain_left_edge + np.array([0.1,0.,0.3])*ds.domain_left_edge.uq,
-            ds.domain_right_edge-np.array([0.1,0.2,0.3])*ds.domain_left_edge.uq, 
-            color=np.array([0.0, 1.0, 0.0, 0.10]))
-    sc.add_source(box_source)
-    
-    line_source = LineSource(vertices, colors)
-    sc.add_source(line_source)
-
+    points_source = PointsSource(vertices, colors=colors)
+    sc.add_source(points_source)
     im = sc.composite()
     im = ImageArray(im.d)
-    im.write_png("composite.png")
+    im.write_png("points.png")
     return im
 
 if __name__ == "__main__":
-    im = test_composite_vr()
+    im = test_points_vr()
