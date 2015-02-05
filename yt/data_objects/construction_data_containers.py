@@ -343,7 +343,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            input_units = self._projected_units[field].units
+            input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
@@ -359,17 +359,19 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _initialize_projected_units(self, fields):
         for field in fields:
-            field_unit = self.ds.arr(1.0, self.ds.field_info[field].units)
+            field_unit = Unit(self.ds.field_info[field].units,
+                              registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
-                path_length_unit = self.ds.arr(1.0, "")
+                path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
                 path_element_name = ("index", "path_element_%s" % (ax_name))
-                path_length_unit = \
-                    self.ds.arr(1.0, self.ds.field_info[path_element_name].units)
+                path_length_unit = self.ds.field_info[path_element_name].units
+                path_length_unit = Unit(path_length_unit,
+                                        registry=self.ds.unit_registry)
                 # Only convert to CGS for path elements that aren't angles
-                if not path_length_unit.units.is_dimensionless:
-                    path_length_unit = self.ds.arr(1, 'cm')
+                if not path_length_unit.is_dimensionless:
+                    path_length_unit = path_length_unit.get_cgs_equivalent()
             if self.weight_field is None:
                 self._projected_units[field] = field_unit*path_length_unit
             else:
