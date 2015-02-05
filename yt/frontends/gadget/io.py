@@ -5,6 +5,7 @@ Gadget data-file handling functions
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -163,7 +164,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
-            if not isinstance(field, types.StringTypes):
+            if not isinstance(field, str):
                 field = field[0]
             if not any( (ptype, field) in field_list
                         for ptype in self._ptypes):
@@ -200,7 +201,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             if count == 0: continue
             m = domain.header["Massarr"][i]
             for field in self._fields:
-                if isinstance(field, types.TupleType):
+                if isinstance(field, tuple):
                     field, req = field
                     if req is ZeroMass:
                         if m > 0.0 : continue

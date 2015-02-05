@@ -109,10 +109,10 @@ cdef void fcoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.float64_t *fcoords = <np.float64_t*> data.array
     cdef int i
-    cdef np.float64_t c, dx 
+    cdef np.float64_t c, dx
     dx = 1.0 / ((1 << data.oref) << data.level)
     for i in range(3):
-        c = <np.float64_t> ((data.pos[i] << data.oref ) + data.ind[i]) 
+        c = <np.float64_t> ((data.pos[i] << data.oref ) + data.ind[i])
         fcoords[data.index * 3 + i] = (c + 0.5) * dx
     data.index += 1
 
@@ -124,7 +124,7 @@ cdef void fwidth_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.float64_t *fwidth = <np.float64_t*> data.array
     cdef int i
-    cdef np.float64_t dx 
+    cdef np.float64_t dx
     dx = 1.0 / ((1 << data.oref) << data.level)
     for i in range(3):
         fwidth[data.index * 3 + i] = dx
@@ -176,7 +176,9 @@ cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
     arr[o.domain - 1] += 1
 
 cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    cdef np.uint8_t *arr, res, ii, *always_descend
+    cdef np.uint8_t res, ii
+    cdef np.uint8_t *arr
+    cdef np.uint8_t *always_descend
     ii = cind(data.ind[0], data.ind[1], data.ind[2])
     cdef void **p = <void **> data.array
     arr = <np.uint8_t *> p[0]

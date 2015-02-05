@@ -53,7 +53,8 @@ def fill_fwidths(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nv = indices.shape[1]
     if nv != 8:
         raise NotImplementedError
-    cdef np.float64_t LE[3], RE[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
     cdef int i, j, k
     cdef np.float64_t pos
     fwidths = np.empty((nc, 3), dtype="float64")
@@ -81,7 +82,8 @@ def smallest_fwidth(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nv = indices.shape[1]
     if nv != 8:
         raise NotImplementedError
-    cdef np.float64_t LE[3], RE[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
     cdef int i, j, k
     for i in range(nc):
         for j in range(3):

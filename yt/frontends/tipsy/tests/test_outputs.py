@@ -52,7 +52,7 @@ def test_pkdgrav():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None]:
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
                         dobj_name)
@@ -83,7 +83,7 @@ def test_gasoline():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None]:
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
                         dobj_name)

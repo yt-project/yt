@@ -108,7 +108,7 @@ class FieldDetector(defaultdict):
                 finfo = FI[item]
             else:
                 finfo = None
-        if finfo is not None and finfo._function.func_name != 'NullFunc':
+        if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
                 vv = finfo(self)
             except NeedsGridType as exc:
@@ -190,6 +190,8 @@ class FieldDetector(defaultdict):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])
+        elif param in ['surface_height']:
+            return self.ds.quan(0.0, 'code_length')
         elif param in ['axis']:
             return 0
         elif param.startswith("cp_"):

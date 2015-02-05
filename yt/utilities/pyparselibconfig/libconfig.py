@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, Samuel Skillman 
@@ -99,4 +100,4 @@ class libconfig(dict):
 if __name__ == '__main__':
     cfg = libconfig()
     cfg.read('test_config.cfg')
-    print cfg
+    print(cfg)

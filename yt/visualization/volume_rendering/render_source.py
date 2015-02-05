@@ -240,7 +240,7 @@ class PointsSource(OpaqueSource):
         #print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
+        zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -282,7 +282,7 @@ class LineSource(OpaqueSource):
         #print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        zlines(empty, z, px, py, dz, self.colors, self.color_stride)
+        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
 
         #print 'When rendering opaque lines: dz range:', dz.min(), dz.max()
         #print 'When rendering opaque lines:', z.min(), z.max()

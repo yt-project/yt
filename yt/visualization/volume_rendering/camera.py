@@ -19,7 +19,6 @@ from yt.units.yt_array import YTArray
 from yt.utilities.math_utils import get_rotation_matrix
 from utils import data_source_or_all
 from lens import lenses
-from yt.extern.six.moves import builtins
 import numpy as np
 
 

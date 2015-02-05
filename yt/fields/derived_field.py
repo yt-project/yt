@@ -34,7 +34,7 @@ from yt.units.unit_object import \
 def derived_field(**kwargs):
     def inner_decorator(function):
         if 'name' not in kwargs:
-            kwargs['name'] = function.func_name
+            kwargs['name'] = function.__name__
         kwargs['function'] = function
         add_field(**kwargs)
         return function
@@ -152,7 +152,7 @@ class DerivedField(object):
         This returns a list of names of fields that this field depends on.
         """
         e = FieldDetector(*args, **kwargs)
-        if self._function.func_name == '<lambda>':
+        if self._function.__name__ == '<lambda>':
             e.requested.append(self.name)
         else:
             e[self.name]
@@ -211,7 +211,7 @@ class DerivedField(object):
             units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\/\/ (%s)" % (units)
+            data_label += r"\ \ (%s)" % (units)
 
         data_label += r"$"
         return data_label

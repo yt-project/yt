@@ -287,7 +287,7 @@ class FITSHierarchy(GridIndex):
 
         for field in self.derived_field_list:
             f = self.dataset.field_info[field]
-            if f._function.func_name == "_TranslationFunc":
+            if f._function.__name__ == "_TranslationFunc":
                 # Translating an already-converted field
                 self.dataset.conversion_factors[field] = 1.0
 

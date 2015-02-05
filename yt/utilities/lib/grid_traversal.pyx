@@ -100,8 +100,12 @@ cdef class PartitionedGrid:
     @cython.cdivision(True)
     def integrate_streamline(self, pos, np.float64_t h, mag):
         cdef np.float64_t cmag[1]
-        cdef np.float64_t k1[3], k2[3], k3[3], k4[3]
-        cdef np.float64_t newpos[3], oldpos[3]
+        cdef np.float64_t k1[3]
+        cdef np.float64_t k2[3]
+        cdef np.float64_t k3[3]
+        cdef np.float64_t k4[3]
+        cdef np.float64_t newpos[3]
+        cdef np.float64_t oldpos[3]
         for i in range(3):
             newpos[i] = oldpos[i] = pos[i]
         self.get_vector_field(newpos, k1, cmag)
@@ -180,14 +184,19 @@ cdef class PartitionedGrid:
                 vel[i] /= vel_mag[0]
 
 cdef struct ImageContainer:
-    np.float64_t *vp_pos, *vp_dir, *center, *image,
+    np.float64_t *vp_pos
+    np.float64_t *vp_dir
+    np.float64_t *center
+    np.float64_t *image
     np.float64_t *zbuffer
-    np.float64_t pdx, pdy, bounds[4]
+    np.float64_t pdx, pdy
+    np.float64_t bounds[4]
     int nv[2]
     int vp_strides[3]
     int im_strides[3]
     int vd_strides[3]
-    np.float64_t *x_vec, *y_vec
+    np.float64_t *x_vec
+    np.float64_t *y_vec
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
@@ -200,7 +209,7 @@ cdef class ImageSampler:
     cdef public object azbuffer
     cdef void *supp_data
     cdef np.float64_t width[3]
-    def __init__(self, 
+    def __init__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
@@ -274,7 +283,8 @@ cdef class ImageSampler:
     cdef void calculate_extent(self, np.float64_t extrema[4],
                                VolumeContainer *vc) nogil:
         # We do this for all eight corners
-        cdef np.float64_t *edges[2], temp
+        cdef np.float64_t temp
+        cdef np.float64_t *edges[2]
         edges[0] = vc.left_edge
         edges[1] = vc.right_edge
         extrema[0] = extrema[2] = 1e300; extrema[1] = extrema[3] = -1e300
@@ -302,12 +312,17 @@ cdef class ImageSampler:
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, j, ni, nj, nn
-        cdef np.int64_t offset, iter[4]
+        cdef np.int64_t offset
+        cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
         self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
-        cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4], max_t
+        cdef np.float64_t *v_pos
+        cdef np.float64_t *v_dir
+        cdef np.float64_t rgba[6]
+        cdef np.float64_t extrema[4]
+        cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
         if im.vd_strides[0] == -1:
@@ -326,9 +341,8 @@ cdef class ImageSampler:
             iter[0] = iter[1] = iter[2] = iter[3] = 0
             size = nx
         cdef ImageAccumulator *idata
-        cdef np.float64_t px, py 
-        cdef np.float64_t width[3] 
-        cdef int every
+        cdef np.float64_t px, py
+        cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
@@ -365,8 +379,7 @@ cdef class ImageSampler:
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                every = <int> (size / 25.0)
-                for j in prange(size, schedule="static", chunksize=1):
+                for j in prange(size, schedule="dynamic", chunksize=100):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
@@ -391,7 +404,7 @@ cdef class ImageSampler:
         return
 
 cdef void projection_sampler(
-                 VolumeContainer *vc, 
+                 VolumeContainer *vc,
                  np.float64_t v_pos[3],
                  np.float64_t v_dir[3],
                  np.float64_t enter_t,
@@ -401,7 +414,7 @@ cdef void projection_sampler(
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
-    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2] 
+    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2]
     for i in range(imin(4, vc.n_fields)):
         im.rgba[i] += vc.data[i][di] * dl
 
@@ -427,7 +440,7 @@ cdef class ProjectionSampler(ImageSampler):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void interpolated_projection_sampler(
-                 VolumeContainer *vc, 
+                 VolumeContainer *vc,
                  np.float64_t v_pos[3],
                  np.float64_t v_dir[3],
                  np.float64_t enter_t,
@@ -440,7 +453,9 @@ cdef void interpolated_projection_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t slopes[6]
+    cdef np.float64_t dp[3]
+    cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6]
     for i in range(3):
@@ -461,7 +476,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
     cdef public object tf_obj
     cdef public object my_field_tables
-    def __cinit__(self, 
+    def __cinit__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
@@ -487,7 +502,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void volume_render_sampler(
-                 VolumeContainer *vc, 
+                 VolumeContainer *vc,
                  np.float64_t v_pos[3],
                  np.float64_t v_dir[3],
                  np.float64_t enter_t,
@@ -504,7 +519,9 @@ cdef void volume_render_sampler(
                     + index[1] * (vc.dims[2]) + index[2]
     if vc.mask[cell_offset] != 1:
         return
-    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t slopes[6]
+    cdef np.float64_t dp[3]
+    cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6]
     for i in range(3):
@@ -516,7 +533,7 @@ cdef void volume_render_sampler(
         for j in range(vc.n_fields):
             dvs[j] = offset_interpolate(vc.dims, dp,
                     vc.data[j] + offset)
-        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits, 
+        FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits,
                 vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
@@ -526,7 +543,7 @@ cdef void volume_render_sampler(
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void volume_render_gradient_sampler(
-                 VolumeContainer *vc, 
+                 VolumeContainer *vc,
                  np.float64_t v_pos[3],
                  np.float64_t v_dir[3],
                  np.float64_t enter_t,
@@ -539,7 +556,9 @@ cdef void volume_render_gradient_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t slopes[6]
+    cdef np.float64_t dp[3]
+    cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6]
     cdef np.float64_t *grad
@@ -554,9 +573,9 @@ cdef void volume_render_gradient_sampler(
             dvs[j] = offset_interpolate(vc.dims, dp,
                     vc.data[j] + offset)
         eval_gradient(vc.dims, dp, vc.data[0] + offset, grad)
-        FIT_eval_transfer_with_light(dt, dvs, grad, 
+        FIT_eval_transfer_with_light(dt, dvs, grad,
                 vri.light_dir, vri.light_rgba,
-                im.rgba, vri.n_fits, 
+                im.rgba, vri.n_fits,
                 vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
             dp[j] += ds[j]
@@ -588,7 +607,7 @@ cdef class star_kdtree_container:
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void volume_render_stars_sampler(
-                 VolumeContainer *vc, 
+                 VolumeContainer *vc,
                  np.float64_t v_pos[3],
                  np.float64_t v_dir[3],
                  np.float64_t enter_t,
@@ -602,11 +621,17 @@ cdef void volume_render_stars_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6], dp[3], ds[3]
+    cdef np.float64_t slopes[6]
+    cdef np.float64_t dp[3]
+    cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
-    cdef np.float64_t dvs[6], cell_left[3], local_dds[3], pos[3]
+    cdef np.float64_t dvs[6]
+    cdef np.float64_t cell_left[3]
+    cdef np.float64_t local_dds[3]
+    cdef np.float64_t pos[3]
     cdef int nstars, dti, i, j
-    cdef np.float64_t *colors = NULL, gexp, gaussian, px, py, pz
+    cdef np.float64_t *colors = NULL
+    cdef np.float64_t gexp, gaussian, px, py, pz
     for i in range(3):
         dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
@@ -635,7 +660,7 @@ cdef void volume_render_stars_sampler(
                          vc.data[i] + offset)
         slopes[i] *= -1.0/vri.n_samples
         dvs[i] = temp
-    for dti in range(vri.n_samples): 
+    for dti in range(vri.n_samples):
         # Now we add the contribution from stars
         kdtree_utils.kd_res_rewind(ballq)
         for i in range(nstars):
@@ -661,7 +686,7 @@ cdef class VolumeRenderSampler(ImageSampler):
     cdef public object my_field_tables
     cdef kdtree_utils.kdtree **trees
     cdef object tree_containers
-    def __cinit__(self, 
+    def __cinit__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
@@ -732,7 +757,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
     cdef public object tf_obj
     cdef public object my_field_tables
-    def __cinit__(self, 
+    def __cinit__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
@@ -802,10 +827,13 @@ cdef int walk_volume(VolumeContainer *vc,
                      void *data,
                      np.float64_t *return_t = NULL,
                      np.float64_t max_t = 1.0) nogil:
-    cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
+    cdef int cur_ind[3]
+    cdef int step[3]
+    cdef int x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
-    cdef np.float64_t tmax[3], tdelta[3]
+    cdef np.float64_t tmax[3]
+    cdef np.float64_t tdelta[3]
     cdef np.float64_t dist, alpha, dt, exit_t, enter_t = -1.0
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
     if max_t > 1.0: max_t = 1.0
@@ -852,10 +880,10 @@ cdef int walk_volume(VolumeContainer *vc,
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
         # tmax[i], the 't' until it crosses out of the grid cell
-        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i] 
+        tdelta[i] = step[i] * iv_dir[i] * vc.dds[i]
         if i == direction and step[i] > 0:
             # Intersection with the left face in this direction
-            cur_ind[i] = 0 
+            cur_ind[i] = 0
         elif i == direction and step[i] < 0:
             # Intersection with the right face in this direction
             cur_ind[i] = vc.dims[i] - 1

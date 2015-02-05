@@ -14,14 +14,14 @@ import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy, NotAModule
 from yt.units.yt_array import YTQuantity, YTArray
 import re
 
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
 
-if pyfits is None:
+if isinstance(pyfits, NotAModule):
     HDUList = object
 else:
     HDUList = pyfits.HDUList
@@ -337,8 +337,8 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
         cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        ctr_pix = center.in_units("code_length")[:self.dimensionality].v
-        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
+        ctr_pix = center.in_units("code_length")[:ds.dimensionality].v
+        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,ds.dimensionality))[0]
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
         # This is some other kind of dataset                                                                      

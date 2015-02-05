@@ -4,6 +4,7 @@ Answer Testing using Nose as a starting point
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -18,9 +19,8 @@ import os
 import hashlib
 import contextlib
 import urllib2
-import cPickle
 import sys
-import cPickle
+from yt.extern.six.moves import cPickle
 import shelve
 import zlib
 import tempfile
@@ -121,7 +121,7 @@ class AnswerTesting(Plugin):
         # Local/Cloud storage
         if options.local_results:
             if options.output_dir is None:
-                print 'Please supply an output directory with the --local-dir option'
+                print('Please supply an output directory with the --local-dir option')
                 sys.exit(1)
             storage_class = AnswerTestLocalStorage
             # Fix up filename for local storage
@@ -169,7 +169,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, ds_name, default = None):
         if self.reference_name is None: return default
         if ds_name in self.cache: return self.cache[ds_name]
-        url = _url_path % (self.reference_name, ds_name)
+        url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib2.urlopen(url)
         except urllib2.HTTPError as ex:
@@ -491,7 +491,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
 
     def run(self):
@@ -504,7 +504,8 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
-        frb[self.weight_field]
+        if self.weight_field is not None:
+            frb[self.weight_field]
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
@@ -695,7 +696,7 @@ class GenericArrayTest(AnswerTestingTest):
     def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
         super(GenericArrayTest, self).__init__(ds_fn)
         self.array_func = array_func
-        self.array_func_name = array_func.func_name
+        self.array_func_name = array_func.__name__
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
@@ -725,7 +726,7 @@ class GenericImageTest(AnswerTestingTest):
     def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
         super(GenericImageTest, self).__init__(ds_fn)
         self.image_func = image_func
-        self.image_func_name = image_func.func_name
+        self.image_func_name = image_func.__name__
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals

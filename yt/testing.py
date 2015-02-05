@@ -3,6 +3,7 @@ Utilities to aid testing.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -13,7 +14,7 @@ Utilities to aid testing.
 #-----------------------------------------------------------------------------
 
 import hashlib
-import cPickle
+from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
 import importlib
@@ -28,16 +29,27 @@ from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
 from yt.convenience import load
 
+
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
     # weighted without non-zero weights.  I'm looking at you, particle fields!
     if isinstance(a1, np.ndarray):
         assert(a1.size == a2.size)
         # Mask out NaNs
+        assert((np.isnan(a1) == np.isnan(a2)).all())
         a1[np.isnan(a1)] = 1.0
         a2[np.isnan(a2)] = 1.0
+        # Mask out 0
+        ind1 = np.array(np.abs(a1) < np.finfo(a1.dtype).eps)
+        ind2 = np.array(np.abs(a2) < np.finfo(a2.dtype).eps)
+        assert((ind1 == ind2).all())
+        a1[ind1] = 1.0
+        a2[ind2] = 1.0
     elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
         return True
+    if not isinstance(a1, np.ndarray) and a1 == a2 == 0.0:
+        # NANS!
+        a1 = a2 = 1.0
     return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
                                verbose=verbose)
 
@@ -179,11 +191,25 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_amr_ds(fields = ("Density",)):
+_geom_transforms = {
+    # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
+    'cartesian'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
+    'spherical'  : ( (0.0, 0.0, 0.0), (1.0, np.pi, 2*np.pi) ),
+    'cylindrical': ( (0.0, 0.0, 0.0), (1.0, 1.0, 2.0*np.pi) ), # rzt
+    'polar'      : ( (0.0, 0.0, 0.0), (1.0, 2.0*np.pi, 1.0) ), # rtz
+    'geographic' : ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlonalt
+}
+
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
     from yt.frontends.stream.api import load_amr_grids
+    LE, RE = _geom_transforms[geometry]
+    LE = np.array(LE)
+    RE = np.array(RE)
     data = []
     for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
+        left_edge = left_edge * (RE - LE) + LE
+        right_edge = right_edge * (RE - LE) + LE
         gdata = dict(level = level,
                      left_edge = left_edge,
                      right_edge = right_edge,
@@ -191,13 +217,14 @@ def fake_amr_ds(fields = ("Density",)):
         for f in fields:
             gdata[f] = np.random.random(dims)
         data.append(gdata)
-    return load_amr_grids(data, [32, 32, 32], 1.0)
+    bbox = np.array([LE, RE]).T
+    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
 
 def fake_particle_ds(
         fields = ("particle_position_x",
                   "particle_position_y",
                   "particle_position_z",
-                  "particle_mass", 
+                  "particle_mass",
                   "particle_velocity_x",
                   "particle_velocity_y",
                   "particle_velocity_z"),
@@ -225,8 +252,6 @@ def fake_particle_ds(
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
-
-
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
@@ -236,12 +261,12 @@ def expand_keywords(keywords, full=False):
 
     It will return a list of kwargs dicts containing combinations of
     the various kwarg values you passed it.  These can then be passed
-    to the appropriate function in nosetests. 
+    to the appropriate function in nosetests.
 
     If full=True, then every possible combination of keywords is produced,
     otherwise, every keyword option is included at least once in the output
     list.  Be careful, by using full=True, you may be in for an exponentially
-    larger number of tests! 
+    larger number of tests!
 
     keywords : dict
         a dictionary where the keys are the keywords for the function,
@@ -249,7 +274,7 @@ def expand_keywords(keywords, full=False):
         can take in the function
 
    full : bool
-        if set to True, every possible combination of given keywords is 
+        if set to True, every possible combination of given keywords is
         returned
 
     Returns
@@ -266,18 +291,18 @@ def expand_keywords(keywords, full=False):
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50}, 
+    array([{'cmap': 'algae', 'dpi': 50},
            {'cmap': 'jet', 'dpi': 100},
            {'cmap': 'algae', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50}, 
+    array([{'cmap': 'algae', 'dpi': 50},
            {'cmap': 'algae', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200}, 
+           {'cmap': 'algae', 'dpi': 200},
            {'cmap': 'jet', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100}, 
+           {'cmap': 'jet', 'dpi': 100},
            {'cmap': 'jet', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
@@ -289,8 +314,8 @@ def expand_keywords(keywords, full=False):
         keys = sorted(keywords)
         list_of_kwarg_dicts = np.array([dict(zip(keys, prod)) for prod in \
                               it.product(*(keywords[key] for key in keys))])
-            
-    # if we just want to probe each keyword, but not necessarily every 
+
+    # if we just want to probe each keyword, but not necessarily every
     # combination
     else:
         # Determine the maximum number of values any of the keywords has
@@ -300,14 +325,14 @@ def expand_keywords(keywords, full=False):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
-    
+
         # Construct array of kwargs dicts, each element of the list is a different
         # **kwargs dict.  each kwargs dict gives a different combination of
         # the possible values of the kwargs
-    
+
         # initialize array
         list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
-    
+
         # fill in array
         for i in np.arange(num_lists):
             list_of_kwarg_dicts[i] = {}
@@ -327,7 +352,7 @@ def expand_keywords(keywords, full=False):
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
-    If the module imports without issue, the function is returned, but if not, 
+    If the module imports without issue, the function is returned, but if not,
     a null function is returned. This is so tests that depend on certain modules
     being imported will not fail if the module is not installed on the testing
     platform.
@@ -342,7 +367,7 @@ def requires_module(module):
         return ffalse
     else:
         return ftrue
-    
+
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
@@ -628,7 +653,7 @@ def check_results(func):
     """
     def compute_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -649,10 +674,10 @@ def check_results(func):
     from yt.mods import unparsed_args
     if "--answer-reference" in unparsed_args:
         return compute_results(func)
-    
+
     def compare_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -667,17 +692,17 @@ def check_results(func):
                     hashlib.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
-                print "Answers need to be created with --answer-reference ."
+                print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
-            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
+            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
             assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
             assert_equal(vals[4], ref[4])
-            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            print("Hashes equal: %s" % (vals[-1] == ref[-1]))
             return rv
         return _func
     return compare_results(func)
@@ -694,13 +719,16 @@ def periodicity_cases(ds):
                 center = dx * np.array([i,j,k]) + ds.domain_left_edge
                 yield center
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
+             call_pdb = False):
     import nose, os, sys, yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
     nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
+    if call_pdb:
+        nose_argv += ["--pdb", "--pdb-failures"]
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:

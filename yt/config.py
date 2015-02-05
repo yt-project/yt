@@ -6,6 +6,7 @@ Everything will be returned in a global config dictionary: ytcfg
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -15,7 +16,9 @@ Everything will be returned in a global config dictionary: ytcfg
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import ConfigParser, os, os.path, types
+import os
+import types
+from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(
     serialize = 'False',
@@ -55,7 +58,7 @@ ytcfg_defaults = dict(
     answer_testing_bitwise = 'False',
     gold_standard_filename = 'gold311',
     local_standard_filename = 'local001',
-    answer_tests_url = 'http://answers.yt-project.org/%s_%s',
+    answer_tests_url = 'http://answers.yt-project.org/{1}_{2}',
     sketchfab_api_key = 'None',
     thread_field_detection = 'False',
     ignore_invalid_unit_operation_errors = 'False'
@@ -68,22 +71,22 @@ __fn = os.path.expanduser("~/.yt/config")
 if os.path.exists(__fn):
     f = open(__fn).read()
     if any(header in f for header in ["[lagos]","[raven]","[fido]","[enki]"]):
-        print "***********************************************************"
-        print "* Upgrading configuration file to new format; saving old. *"
-        print "***********************************************************"
+        print("***********************************************************")
+        print("* Upgrading configuration file to new format; saving old. *")
+        print("***********************************************************")
         # This is of the old format
-        cp = ConfigParser.ConfigParser()
+        cp = configparser.ConfigParser()
         cp.read(__fn)
         # NOTE: To avoid having the 'DEFAULT' section here,
         # we are not passing in ytcfg_defaults to the constructor.
-        new_cp = ConfigParser.ConfigParser()
+        new_cp = configparser.ConfigParser()
         new_cp.add_section("yt")
         for section in cp.sections():
             for option in cp.options(section):
                 # We changed them all to lowercase
                 if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
-                    print "Setting %s to %s" % (option, cp.get(section, option))
+                    print("Setting %s to %s" % (option, cp.get(section, option)))
         open(__fn + ".old", "w").write(f)
         new_cp.write(open(__fn, "w"))
 # Pathological check for Kraken
@@ -92,10 +95,10 @@ if os.path.exists(__fn):
 #            print "yt is creating a new directory, ~/.yt ."
 #            os.mkdir(os.path.exists("~/.yt/"))
 #    # Now we can read in and write out ...
-#    new_cp = Configparser.ConfigParser(ytcfg_defaults)
+#    new_cp = configparser.ConfigParser(ytcfg_defaults)
 #    new_cp.write(__fn)
 
-class YTConfigParser(ConfigParser.ConfigParser):
+class YTConfigParser(configparser.ConfigParser):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
     def __getitem__(self, key):

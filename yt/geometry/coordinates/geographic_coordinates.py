@@ -74,40 +74,64 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  function=_SphericalVolume,
                  units = "code_length**3")
 
+        def _path_altitude(field, data):
+            return data["index", "daltitude"]
+        registry.add_field(("index", "path_element_altitude"),
+                 function = _path_altitude,
+                 units = "code_length")
+        def _path_latitude(field, data):
+            # We use r here explicitly
+            return data["index", "r"] * \
+                data["index", "dlatitude"] * np.pi/180.0
+        registry.add_field(("index", "path_element_latitude"),
+                 function = _path_latitude,
+                 units = "code_length")
+        def _path_longitude(field, data):
+            # We use r here explicitly
+            return data["index", "r"] \
+                    * data["index", "dlongitude"] * np.pi/180.0 \
+                    * np.sin((data["index", "latitude"] + 90.0) * np.pi/180.0)
+        registry.add_field(("index", "path_element_longitude"),
+                 function = _path_longitude,
+                 units = "code_length")
+
         # Altitude is the radius from the central zone minus the radius of the
         # surface.
         def _altitude_to_radius(field, data):
             surface_height = data.get_field_parameter("surface_height")
             if surface_height is None:
-                surface_height = getattr(data.ds, "surface_height", 0.0)
+                if hasattr(data.ds, "surface_height"):
+                    surface_height = data.ds.surface_height
+                else:
+                    surface_height = data.ds.quan(0.0, "code_length")
             return data["altitude"] + surface_height
         registry.add_field(("index", "r"),
                  function=_altitude_to_radius,
                  units = "code_length")
         registry.alias(("index", "dr"), ("index", "daltitude"))
 
-        def _longitude_to_theta(field, data):
-            # longitude runs from -180 to 180.
-            return (data["longitude"] + 180) * np.pi/180.0
-        registry.add_field(("index", "theta"),
-                 function = _longitude_to_theta,
-                 units = "")
-        def _dlongitude_to_dtheta(field, data):
-            return data["dlongitude"] * np.pi/180.0
-        registry.add_field(("index", "dtheta"),
-                 function = _dlongitude_to_dtheta,
-                 units = "")
-
-        def _latitude_to_phi(field, data):
+        def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
             return (data["latitude"] + 90) * np.pi/180.0
-        registry.add_field(("index", "phi"),
-                 function = _latitude_to_phi,
+        registry.add_field(("index", "theta"),
+                 function = _latitude_to_theta,
                  units = "")
-        def _dlatitude_to_dphi(field, data):
+        def _dlatitude_to_dtheta(field, data):
             return data["dlatitude"] * np.pi/180.0
+        registry.add_field(("index", "dtheta"),
+                 function = _dlatitude_to_dtheta,
+                 units = "")
+
+        def _longitude_to_phi(field, data):
+            # longitude runs from -180 to 180
+            return (data["longitude"] + 180) * np.pi/180.0
+        registry.add_field(("index", "phi"),
+                 function = _longitude_to_phi,
+                 units = "")
+        def _dlongitude_to_dphi(field, data):
+            return data["dlongitude"] * np.pi/180.0
         registry.add_field(("index", "dphi"),
-                 function = _dlatitude_to_dphi,
+                 function = _dlongitude_to_dphi,
                  units = "")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
@@ -123,28 +147,33 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        buff = pixelize_aitoff(data_source["theta"], data_source["dtheta"]/2.0,
-                               data_source["phi"], data_source["dphi"]/2.0,
+        # For axis=2, x axis will be latitude, y axis will be longitude
+        px = (data_source["px"].d + 90) * np.pi/180
+        pdx = data_source["pdx"].d * np.pi/180
+        py = (data_source["py"].d + 180) * np.pi/180
+        pdy = data_source["pdy"].d * np.pi/180
+        # First one in needs to be the equivalent of "theta", which is
+        # longitude
+        buff = pixelize_aitoff(py, pdy, px, pdx,
                                size, data_source[field], None,
                                None).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
-        if dimension == 0:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
-                                     size, data_source[field], bounds)
-        elif dimension == 1:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['phi'],
-                                     data_source['dphi'] / 2.0, # half-widths
-                                     size, data_source[field], bounds)
-        else:
-            raise RuntimeError
+        surface_height = data_source.get_field_parameter("surface_height")
+        if surface_height is None:
+            if hasattr(data_source.ds, "surface_height"):
+                surface_height = data_source.ds.surface_height
+            else:
+                surface_height = data_source.ds.quan(0.0, "code_length")
+        r = data_source['py'] + surface_height
+        # Because of the axis-ordering, dimensions 0 and 1 both have r as py
+        # and the angular coordinate as px.
+        buff = pixelize_cylinder(r, data_source['pdy'],
+                                 data_source['px'],
+                                 data_source['pdx'], # half-widths
+                                 size, data_source[field], bounds)
         return buff
 
 
@@ -191,4 +220,39 @@ class GeographicCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return self.ds.domain_width
+
+    def sanitize_center(self, center, axis):
+        center, display_center = super(
+            GeographicCoordinateHandler, self).sanitize_center(center, axis)
+        if axis == 2:
+            display_center = center
+        elif axis == 1:
+            display_center = (0.0 * display_center[0],
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        elif axis == 0:
+            display_center = (self.ds.domain_width[0]/2.0,
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        return center, display_center
+
+    def convert_to_cartesian(self, coord):
+        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
+            r = coord[:,2] + self.ds.surface_height
+            theta = coord[:,1] * np.pi/180
+            phi = coord[:,0] * np.pi/180
+            nc = np.zeros_like(coord)
+            # r, theta, phi
+            nc[:,0] = np.cos(phi) * np.sin(theta)*r
+            nc[:,1] = np.sin(phi) * np.sin(theta)*r
+            nc[:,2] = np.cos(theta) * r
+        else:
+            a, b, c = coord
+            theta = b * np.pi/180
+            phi = a * np.pi/180
+            r = self.ds.surface_height + c
+            nc = (np.cos(phi) * np.sin(theta)*r,
+                  np.sin(phi) * np.sin(theta)*r,
+                  np.cos(theta) * r)
+        return nc
 

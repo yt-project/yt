@@ -32,7 +32,7 @@ cdef struct VolumeContainer:
 
 cdef class PartitionedGrid:
     cdef public object my_data
-    cdef public object source_mask 
+    cdef public object source_mask
     cdef public object LeftEdge
     cdef public object RightEdge
     cdef public int parent_grid_id
@@ -65,7 +65,8 @@ cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
     return (i*vc.dims[1]+j)*vc.dims[2]+k
 
 cdef inline int vc_pos_index(VolumeContainer *vc, np.float64_t *spos):
-    cdef int i, index[3]
+    cdef int index[3]
+    cdef int i
     for i in range(3):
         index[i] = <int> ((spos[i] - vc.left_edge[i]) * vc.idds[i])
     return vc_index(vc, index[0], index[1], index[2])

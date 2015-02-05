@@ -11,12 +11,6 @@ ad = ds.all_data()
 plot = yt.PhasePlot(ad, "density", "temperature", "cell_mass",
                     weight_field=None, fractional=True)
 
-# Set a new title for the colorbar since it is now fractional.
-plot.z_title["cell_mass"] = r"$\mathrm{Mass}\/\mathrm{fraction}$"
-
-# Reset the plot so it is redrawn when we save the image.
-plot.reset_plot()
-
 # Save the image.
 # Optionally, give a string as an argument
 # to name files with a keyword.

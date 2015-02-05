@@ -238,7 +238,7 @@ def rotate_vector_3D(a, dim, angle):
         return np.dot(R, a.T).T
     
 
-def modify_reference_frame(CoM, L, P, V):
+def modify_reference_frame(CoM, L, P=None, V=None):
     r"""Rotates and translates data into a new reference frame to make
     calculations easier.
     
@@ -258,10 +258,13 @@ def modify_reference_frame(CoM, L, P, V):
     L : array
         The angular momentum vector.
     
+    Optional
+    --------
+        
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
-    
+
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
@@ -272,10 +275,10 @@ def modify_reference_frame(CoM, L, P, V):
         The angular momentum vector equal to [0, 0, 1] modulo machine error.
     
     P : array
-        The modified positional data.
+        The modified positional data. Only returned if P is not None
     
     V : array
-        The modified velocity data.
+        The modified velocity data. Only returned if V is not None
     
     Examples
     --------
@@ -300,9 +303,15 @@ def modify_reference_frame(CoM, L, P, V):
     """
     if (L == np.array([0, 0, 1.])).all():
         # Whew! Nothing to do!
-        return L, P, V
+        if V is None:
+            return L, P
+        if P is None:
+            return L, V
+        else:
+            return L, P, V
     # First translate the positions to center of mass reference frame.
-    P = P - CoM
+    if P is not None:
+        P = P - CoM
     # Now find the angle between modified L and the x-axis.
     LL = L.copy()
     LL[2] = 0.
@@ -311,16 +320,25 @@ def modify_reference_frame(CoM, L, P, V):
         theta = -theta
     # Now rotate all the position, velocity, and L vectors by this much around
     # the z axis.
-    P = rotate_vector_3D(P, 2, theta)
-    V = rotate_vector_3D(V, 2, theta)
+    if P is not None:
+        P = rotate_vector_3D(P, 2, theta)
+    if V is not None:
+        V = rotate_vector_3D(V, 2, theta)
     L = rotate_vector_3D(L, 2, theta)
     # Now find the angle between L and the z-axis.
     theta = np.arccos(np.inner(L, [0,0,1])/np.inner(L,L)**.5)
     # This time we rotate around the y axis.
-    P = rotate_vector_3D(P, 1, theta)
-    V = rotate_vector_3D(V, 1, theta)
+    if P is not None:
+        P = rotate_vector_3D(P, 1, theta)
+    if V is not None:
+        V = rotate_vector_3D(V, 1, theta)
     L = rotate_vector_3D(L, 1, theta)
-    return L, P, V
+    if V is None:
+        return L, P
+    if P is None:
+        return L, V
+    else:
+        return L, P, V
 
 def compute_rotational_velocity(CoM, L, P, V):
     r"""Computes the rotational velocity for some data around an axis.

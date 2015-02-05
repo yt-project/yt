@@ -150,7 +150,7 @@ class StreamHandler(object):
 
     def get_particle_type(self, field) :
 
-        if self.particle_types.has_key(field) :
+        if field in self.particle_types :
             return self.particle_types[field]
         else :
             return False
@@ -269,7 +269,7 @@ class StreamHierarchy(GridIndex):
             self.stream_handler.particle_types[key] = particle_types[key]
 
         for i, grid in enumerate(self.grids) :
-            if data[i].has_key("number_of_particles") :
+            if "number_of_particles" in data[i] :
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
             for fname in data[i]:
                 if fname in grid.field_data:
@@ -486,7 +486,7 @@ def unitify_data(data):
                   "Unit specification is not a string!"
                 field_units[field] = data[field][1]
                 new_data[field] = data[field][0]
-            except AssertionError, e:
+            except AssertionError as e:
                 raise RuntimeError("The data dict appears to be invalid.\n" +
                                    str(e))
         data = new_data
@@ -796,7 +796,7 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_right_edges[i,:] = g.pop("right_edge")
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
-        if g.has_key("number_of_particles") :
+        if "number_of_particles" in g :
             number_of_particles[i,:] = g.pop("number_of_particles")  
         update_field_names(g)
         sfh[i] = g

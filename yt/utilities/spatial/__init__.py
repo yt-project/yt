@@ -21,8 +21,9 @@ Delaunay triangulation:
    tsearch
 
 """
+from __future__ import absolute_import
 
-from kdtree import *
+from .kdtree import *
 from .ckdtree import *
 #from qhull import *
 

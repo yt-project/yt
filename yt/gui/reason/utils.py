@@ -4,6 +4,7 @@ Utilities for Reason
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -30,10 +31,10 @@ def load_script(filename):
 def deliver_image(im):
     if hasattr(im, 'read'):
         img_data = base64.b64encode(im.read())
-    elif isinstance(im, types.StringTypes) and \
+    elif isinstance(im, str) and \
          im.endswith(".png"):
         img_data = base64.b64encode(open(im).read())
-    elif isinstance(im, types.StringTypes):
+    elif isinstance(im, str):
         img_data = im
     else:
         raise RuntimeError
@@ -75,23 +76,23 @@ def get_list_of_datasets():
 def get_reasonjs_path():
     fn = "reason-js-20120623.zip"
     if "YT_DEST" not in os.environ:
-        print
-        print "*** You must set the environment variable YT_DEST ***"
-        print "*** to point to the installation location!        ***"
-        print
+        print()
+        print("*** You must set the environment variable YT_DEST ***")
+        print("*** to point to the installation location!        ***")
+        print()
         raise IOError
     reasonjs_path = os.path.join(os.environ["YT_DEST"], "src", fn)
     if not os.path.isfile(reasonjs_path):
-        print
-        print "*** You are missing the Reason support files. You ***"
-        print "*** You can get these by either rerunning the     ***"
-        print "*** install script installing, or downloading     ***"
-        print "*** them manually.                                ***"
-        print "***                                               ***"
-        print "*** FOR INSTANCE:                                 ***"
-        print
-        print "cd %s" % os.path.join(os.environ["YT_DEST"], "src")
-        print "wget http://yt-project.org/dependencies/reason-js-20120623.zip"
-        print
+        print()
+        print("*** You are missing the Reason support files. You ***")
+        print("*** You can get these by either rerunning the     ***")
+        print("*** install script installing, or downloading     ***")
+        print("*** them manually.                                ***")
+        print("***                                               ***")
+        print("*** FOR INSTANCE:                                 ***")
+        print()
+        print("cd %s" % os.path.join(os.environ["YT_DEST"], "src"))
+        print("wget http://yt-project.org/dependencies/reason-js-20120623.zip")
+        print()
         raise IOError
     return reasonjs_path

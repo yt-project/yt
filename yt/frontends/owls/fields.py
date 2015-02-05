@@ -5,6 +5,7 @@ OWLS fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -16,6 +17,7 @@ OWLS fields
 
 import os
 import numpy as np
+from . import owls_ion_tables as oit
 
 from yt.funcs import \
     mylog, download_file
@@ -25,12 +27,11 @@ from yt.fields.particle_fields import \
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
     add_species_field_by_density
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.frontends.gadget.fields import \
+    GadgetFieldInfo
 
-import owls_ion_tables as oit
 
-class OWLSFieldInfo(SPHFieldInfo):
+class OWLSFieldInfo(GadgetFieldInfo):
 
     _ions = ("c1", "c2", "c3", "c4", "c5", "c6",
              "fe2", "fe17", "h1", "he1", "he2", "mg1", "mg2", "n2", 
@@ -320,6 +321,6 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
         if not os.path.exists(owls_ion_path):
-            raise RuntimeError, "Failed to download owls ion data."
+            raise RuntimeError("Failed to download owls ion data.")
 
         return owls_ion_path
