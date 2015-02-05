@@ -484,7 +484,7 @@ class SpectrumBuilder(object):
         self.total_mass = self.star_mass.sum()
         self.avg_mass = self.star_mass.mean()
         tot_metal = (self.star_metal * self.star_mass).sum()
-        if total_metal > 0:
+        if tot_metal > 0:
             self.avg_metal = math.log10(
                 (tot_metal / self.total_mass).in_units('Zsun'))
         else:
