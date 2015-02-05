@@ -4,6 +4,8 @@ A means of running standalone commands with a shared set of options.
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -37,7 +39,7 @@ def _fix_ds(arg):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, types.StringTypes):
+    if isinstance(arg, str):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []
@@ -293,44 +295,44 @@ _common_options = dict(
 
 def _get_yt_stack_date():
     if "YT_DEST" not in os.environ:
-        print "Could not determine when yt stack was last updated."
+        print("Could not determine when yt stack was last updated.")
         return
     date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
     if not os.path.exists(date_file):
-        print "Could not determine when yt stack was last updated."
+        print("Could not determine when yt stack was last updated.")
         return
-    print "".join(file(date_file, 'r').readlines())
-    print "To update all dependencies, run \"yt update --all\"."
+    print("".join(file(date_file, 'r').readlines()))
+    print("To update all dependencies, run \"yt update --all\".")
 
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
 
     install_script = os.path.join(path, "doc/install_script.sh")
     if not os.path.exists(install_script):
-        print
-        print "Install script not found!"
-        print "The install script should be here: %s," % install_script
-        print "but it was not."
+        print()
+        print("Install script not found!")
+        print("The install script should be here: %s," % install_script)
+        print("but it was not.")
         return
 
-    print
-    print "We will now attempt to update the yt stack located at:"
-    print "    %s." % os.environ["YT_DEST"]
-    print
-    print "[hit enter to continue or Ctrl-C to stop]"
+    print()
+    print("We will now attempt to update the yt stack located at:")
+    print("    %s." % os.environ["YT_DEST"])
+    print()
+    print("[hit enter to continue or Ctrl-C to stop]")
     try:
         raw_input()
     except:
         sys.exit(0)
     os.environ["REINST_YT"] = "1"
     ret = subprocess.call(["bash", install_script])
-    print
+    print()
     if ret:
-        print "The install script seems to have failed."
-        print "Check the output above."
+        print("The install script seems to have failed.")
+        print("Check the output above.")
     else:
-        print "The yt stack has been updated successfully."
-        print "Now get back to work!"
+        print("The yt stack has been updated successfully.")
+        print("Now get back to work!")
 
 def get_yt_version():
     try:
@@ -370,36 +372,36 @@ class YTBugreportCmd(YTCommand):
         """
 
     def __call__(self, args):
-        print "==============================================================="
-        print
-        print "Hi there!  Welcome to the yt bugreport taker."
-        print
-        print "==============================================================="
-        print "At any time in advance of the upload of the bug, you should feel free"
-        print "to ctrl-C out and submit the bug report manually by going here:"
-        print "   http://hg.yt-project.org/yt/issues/new"
-        print
-        print "Also, in order to submit a bug through this interface, you"
-        print "need a Bitbucket account. If you don't have one, exit this "
-        print "bugreport now and run the 'yt bootstrap_dev' command to create one."
-        print
-        print "Have you checked the existing bug reports to make"
-        print "sure your bug has not already been recorded by someone else?"
-        print "   http://hg.yt-project.org/yt/issues?status=new&status=open"
-        print
-        print "Finally, are you sure that your bug is, in fact, a bug? It might"
-        print "simply be a misunderstanding that could be cleared up by"
-        print "visiting the yt irc channel or getting advice on the email list:"
-        print "   http://yt-project.org/irc.html"
-        print "   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
-        print
+        print("===============================================================")
+        print()
+        print("Hi there!  Welcome to the yt bugreport taker.")
+        print()
+        print("===============================================================")
+        print("At any time in advance of the upload of the bug, you should feel free")
+        print("to ctrl-C out and submit the bug report manually by going here:")
+        print("   http://hg.yt-project.org/yt/issues/new")
+        print()
+        print("Also, in order to submit a bug through this interface, you")
+        print("need a Bitbucket account. If you don't have one, exit this ")
+        print("bugreport now and run the 'yt bootstrap_dev' command to create one.")
+        print()
+        print("Have you checked the existing bug reports to make")
+        print("sure your bug has not already been recorded by someone else?")
+        print("   http://hg.yt-project.org/yt/issues?status=new&status=open")
+        print()
+        print("Finally, are you sure that your bug is, in fact, a bug? It might")
+        print("simply be a misunderstanding that could be cleared up by")
+        print("visiting the yt irc channel or getting advice on the email list:")
+        print("   http://yt-project.org/irc.html")
+        print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
+        print()
         summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
-        print
-        print
-        print "Okay, sorry about that. How about a nice, pithy ( < 12 words )"
-        print "summary of the bug?  (e.g. 'Particle overlay problem with parallel "
-        print "projections')"
-        print
+        print()
+        print()
+        print("Okay, sorry about that. How about a nice, pithy ( < 12 words )")
+        print("summary of the bug?  (e.g. 'Particle overlay problem with parallel ")
+        print("projections')")
+        print()
         try:
             current_version = get_yt_version()
         except:
@@ -407,15 +409,15 @@ class YTBugreportCmd(YTCommand):
         summary = raw_input("Summary? ")
         bugtype = "bug"
         data = dict(title = summary, type=bugtype)
-        print
-        print "Okay, now let's get a bit more information."
-        print
-        print "Remember that if you want to submit a traceback, you can run"
-        print "any script with --paste or --detailed-paste to submit it to"
-        print "the pastebin and then include the link in this bugreport."
+        print()
+        print("Okay, now let's get a bit more information.")
+        print()
+        print("Remember that if you want to submit a traceback, you can run")
+        print("any script with --paste or --detailed-paste to submit it to")
+        print("the pastebin and then include the link in this bugreport.")
         if "EDITOR" in os.environ:
-            print
-            print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
+            print()
+            print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
             loki = raw_input()
             tf = temdsile.NamedTemporaryFile(delete=False)
             fn = tf.name
@@ -427,14 +429,14 @@ class YTBugreportCmd(YTCommand):
             except:
                 pass
         else:
-            print
-            print "Couldn't find an $EDITOR variable.  So, let's just take"
-            print "take input here.  Type up your summary until you're ready"
-            print "to be done, and to signal you're done, type --- by itself"
-            print "on a line to signal your completion."
-            print
-            print "(okay, type now)"
-            print
+            print()
+            print("Couldn't find an $EDITOR variable.  So, let's just take")
+            print("take input here.  Type up your summary until you're ready")
+            print("to be done, and to signal you're done, type --- by itself")
+            print("on a line to signal your completion.")
+            print()
+            print("(okay, type now)")
+            print()
             lines = []
             while 1:
                 line = raw_input()
@@ -444,37 +446,37 @@ class YTBugreportCmd(YTCommand):
         content = "Reporting Version: %s\n\n%s" % (current_version, content)
         endpoint = "repositories/yt_analysis/yt/issues"
         data['content'] = content
-        print
-        print "==============================================================="
-        print
-        print "Okay, we're going to submit with this:"
-        print
-        print "Summary: %s" % (data['title'])
-        print
-        print "---"
-        print content
-        print "---"
-        print
-        print "==============================================================="
-        print
-        print "Is that okay?  If not, hit ctrl-c.  Otherwise, enter means"
-        print "'submit'.  Next we'll ask for your Bitbucket Username."
-        print "If you don't have one, run the 'yt bootstrap_dev' command."
-        print
+        print()
+        print("===============================================================")
+        print()
+        print("Okay, we're going to submit with this:")
+        print()
+        print("Summary: %s" % (data['title']))
+        print()
+        print("---")
+        print(content)
+        print("---")
+        print()
+        print("===============================================================")
+        print()
+        print("Is that okay?  If not, hit ctrl-c.  Otherwise, enter means")
+        print("'submit'.  Next we'll ask for your Bitbucket Username.")
+        print("If you don't have one, run the 'yt bootstrap_dev' command.")
+        print()
         loki = raw_input()
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
         url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
-        print
-        print "==============================================================="
-        print
-        print "Thanks for your bug report!  Together we'll make yt totally bug free!"
-        print "You can view bug report here:"
-        print "   %s" % url
-        print
-        print "Keep in touch!"
-        print
+        print()
+        print("===============================================================")
+        print()
+        print("Thanks for your bug report!  Together we'll make yt totally bug free!")
+        print("You can view bug report here:")
+        print("   %s" % url)
+        print()
+        print("Keep in touch!")
+        print()
 
 
 class YTHubRegisterCmd(YTCommand):
@@ -492,47 +494,47 @@ class YTHubRegisterCmd(YTCommand):
         #   5. (optional) URL
         #   6. "Secret" key to make it epsilon harder for spammers
         if ytcfg.get("yt","hub_api_key") != "":
-            print "You seem to already have an API key for the hub in"
-            print "~/.yt/config .  Delete this if you want to force a"
-            print "new user registration."
-        print "Awesome!  Let's start by registering a new user for you."
-        print "Here's the URL, for reference: http://hub.yt-project.org/ "
-        print
-        print "As always, bail out with Ctrl-C at any time."
-        print
-        print "What username would you like to go by?"
-        print
+            print("You seem to already have an API key for the hub in")
+            print("~/.yt/config .  Delete this if you want to force a")
+            print("new user registration.")
+        print("Awesome!  Let's start by registering a new user for you.")
+        print("Here's the URL, for reference: http://hub.yt-project.org/ ")
+        print()
+        print("As always, bail out with Ctrl-C at any time.")
+        print()
+        print("What username would you like to go by?")
+        print()
         username = raw_input("Username? ")
         if len(username) == 0: sys.exit(1)
-        print
-        print "To start out, what's your name?"
-        print
+        print()
+        print("To start out, what's your name?")
+        print()
         name = raw_input("Name? ")
         if len(name) == 0: sys.exit(1)
-        print
-        print "And your email address?"
-        print
+        print()
+        print("And your email address?")
+        print()
         email = raw_input("Email? ")
         if len(email) == 0: sys.exit(1)
-        print
-        print "Please choose a password:"
-        print
+        print()
+        print("Please choose a password:")
+        print()
         while 1:
             password1 = getpass.getpass("Password? ")
             password2 = getpass.getpass("Confirm? ")
             if len(password1) == 0: continue
             if password1 == password2: break
-            print "Sorry, they didn't match!  Let's try again."
-            print
-        print
-        print "Would you like a URL displayed for your user?"
-        print "Leave blank if no."
-        print
+            print("Sorry, they didn't match!  Let's try again.")
+            print()
+        print()
+        print("Would you like a URL displayed for your user?")
+        print("Leave blank if no.")
+        print()
         url = raw_input("URL? ")
-        print
-        print "Okay, press enter to register.  You should receive a welcome"
-        print "message at %s when this is complete." % email
-        print
+        print()
+        print("Okay, press enter to register.  You should receive a welcome")
+        print("message at %s when this is complete." % email)
+        print()
         loki = raw_input()
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
@@ -544,17 +546,17 @@ class YTHubRegisterCmd(YTCommand):
             status = urllib2.urlopen(req).read()
         except urllib2.HTTPError as exc:
             if exc.code == 400:
-                print "Sorry, the Hub couldn't create your user."
-                print "You can't register duplicate users, which is the most"
-                print "common cause of this error.  All values for username,"
-                print "name, and email must be unique in our system."
+                print("Sorry, the Hub couldn't create your user.")
+                print("You can't register duplicate users, which is the most")
+                print("common cause of this error.  All values for username,")
+                print("name, and email must be unique in our system.")
                 sys.exit(1)
         except urllib2.URLError as exc:
-            print "Something has gone wrong.  Here's the error message."
+            print("Something has gone wrong.  Here's the error message.")
             raise exc
-        print
-        print "SUCCESS!"
-        print
+        print()
+        print("SUCCESS!")
+        print()
 
 
 class YTInstInfoCmd(YTCommand):
@@ -579,40 +581,40 @@ class YTInstInfoCmd(YTCommand):
         import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
+        print()
+        print("yt module located at:")
+        print("    %s" % (path))
         update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
+                print("The supplemental repositories are located at:")
+                print("    %s" % (spath))
                 update_supp = True
         vstring = get_yt_version()
         if vstring is not None:
-            print
-            print "The current version and changeset for the code is:"
-            print
-            print "---"
-            print "Version = %s" % yt.__version__
-            print "Changeset = %s" % vstring.strip()
-            print "---"
-            print
+            print()
+            print("The current version and changeset for the code is:")
+            print()
+            print("---")
+            print("Version = %s" % yt.__version__)
+            print("Changeset = %s" % vstring.strip())
+            print("---")
+            print()
             if "site-packages" not in path:
-                print "This installation CAN be automatically updated."
+                print("This installation CAN be automatically updated.")
                 if opts.update_source:
                     update_hg(path)
-                    print "Updated successfully."
+                    print("Updated successfully.")
                 _get_yt_stack_date()
         elif opts.update_source:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
+            print()
+            print("YT site-packages not in path, so you must")
+            print("update this installation manually by committing and")
+            print("merging your modifications to the code before")
+            print("updating to the newest changeset.")
+            print()
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
@@ -628,7 +630,7 @@ class YTLoadCmd(YTCommand):
 
     def __call__(self, args):
         if args.ds is None:
-            print "Could not load file."
+            print("Could not load file.")
             sys.exit()
         import yt.mods
         import yt
@@ -678,7 +680,7 @@ class YTMapserverCmd(YTCommand):
     def __call__(self, args):
         ds = args.ds
         if args.axis == 4:
-            print "Doesn't work with multiple axes!"
+            print("Doesn't work with multiple axes!")
             return
         if args.projection:
             p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
@@ -761,28 +763,28 @@ class YTNotebookUploadCmd(YTCommand):
         if not os.path.isfile(filename):
             raise IOError(filename)
         if not filename.endswith(".ipynb"):
-            print "File must be an IPython notebook!"
+            print("File must be an IPython notebook!")
             return 1
         import json
         try:
             t = json.loads(open(filename).read())['metadata']['name']
         except (ValueError, KeyError):
-            print "File does not appear to be an IPython notebook."
+            print("File does not appear to be an IPython notebook.")
         if len(t) == 0:
             t = filename.strip(".ipynb")
         from yt.utilities.minimal_representation import MinimalNotebook
         mn = MinimalNotebook(filename, t)
         rv = mn.upload()
-        print "Upload successful!"
-        print
-        print "To access your raw notebook go here:"
-        print
-        print "  %s" % (rv['url'])
-        print
-        print "To view your notebook go here:"
-        print
-        print "  %s" % (rv['url'].replace("/go/", "/nb/"))
-        print
+        print("Upload successful!")
+        print()
+        print("To access your raw notebook go here:")
+        print()
+        print("  %s" % (rv['url']))
+        print()
+        print("To view your notebook go here:")
+        print()
+        print("  %s" % (rv['url'].replace("/go/", "/nb/")))
+        print()
 
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
@@ -864,7 +866,7 @@ class YTRPDBCmd(YTCommand):
            )
 
     def __call__(self, args):
-        import rpdb
+        from . import rpdb
         rpdb.run_rpdb(int(args.task))
 
 class YTNotebookCmd(YTCommand):
@@ -895,18 +897,18 @@ class YTNotebookCmd(YTCommand):
         except ImportError:
             # pre-IPython v1.0
             from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print "You must choose a password so that others cannot connect to " \
-              "your notebook."
+        print("You must choose a password so that others cannot connect to " \
+              "your notebook.")
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
             pw = IPython.lib.passwd()
-            print "If you would like to use this password in the future,"
-            print "place a line like this inside the [yt] section in your"
-            print "yt configuration file at ~/.yt/config"
-            print
-            print "notebook_password = %s" % pw
-            print
+            print("If you would like to use this password in the future,")
+            print("place a line like this inside the [yt] section in your")
+            print("yt configuration file at ~/.yt/config")
+            print()
+            print("notebook_password = %s" % pw)
+            print()
         elif args.no_password:
             pw = None
         if args.port != 0:
@@ -918,22 +920,22 @@ class YTNotebookCmd(YTCommand):
         app = NotebookApp(open_browser=args.open_browser,
                           **kwargs)
         app.initialize(argv=[])
-        print
-        print "***************************************************************"
-        print
-        print "The notebook is now live at:"
-        print
-        print "     http://127.0.0.1:%s/" % app.port
-        print
-        print "Recall you can create a new SSH tunnel dynamically by pressing"
-        print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
-        print "where the first number is the port on your local machine. "
-        print
-        print "If you are using %s on your machine already, try " \
-              "-L8889:localhost:%s" % (app.port, app.port)
-        print
-        print "***************************************************************"
-        print
+        print()
+        print("***************************************************************")
+        print()
+        print("The notebook is now live at:")
+        print()
+        print("     http://127.0.0.1:%s/" % app.port)
+        print()
+        print("Recall you can create a new SSH tunnel dynamically by pressing")
+        print("~C and then typing -L%s:localhost:%s" % (app.port, app.port))
+        print("where the first number is the port on your local machine. ")
+        print()
+        print("If you are using %s on your machine already, try " \
+              "-L8889:localhost:%s" % (app.port, app.port))
+        print()
+        print("***************************************************************")
+        print()
         app.start()
 
 
@@ -961,12 +963,12 @@ class YTStatsCmd(YTCommand):
         if args.field in ds.derived_field_list:
             if args.max == True:
                 vals['min'] = ds.find_max(args.field)
-                print "Maximum %s: %0.5e at %s" % (args.field,
-                    vals['min'][0], vals['min'][1])
+                print("Maximum %s: %0.5e at %s" % (args.field,
+                    vals['min'][0], vals['min'][1]))
             if args.min == True:
                 vals['max'] = ds.find_min(args.field)
-                print "Minimum %s: %0.5e at %s" % (args.field,
-                    vals['max'][0], vals['max'][1])
+                print("Minimum %s: %0.5e at %s" % (args.field,
+                    vals['max'][0], vals['max'][1]))
         if args.output is not None:
             t = ds.current_time * ds['years']
             with open(args.output, "a") as f:
@@ -992,41 +994,41 @@ class YTUpdateCmd(YTCommand):
         import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print
-        print "yt module located at:"
-        print "    %s" % (path)
+        print()
+        print("yt module located at:")
+        print("    %s" % (path))
         update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
-                print "The supplemental repositories are located at:"
-                print "    %s" % (spath)
+                print("The supplemental repositories are located at:")
+                print("    %s" % (spath))
                 update_supp = True
         vstring = None
         if "site-packages" not in path:
             vstring = get_hg_version(path)
-            print
-            print "The current version and changeset for the code is:"
-            print
-            print "---"
-            print "Version = %s" % yt.__version__
-            print "Changeset = %s" % vstring.strip()
-            print "---"
-            print
-            print "This installation CAN be automatically updated."
+            print()
+            print("The current version and changeset for the code is:")
+            print()
+            print("---")
+            print("Version = %s" % yt.__version__)
+            print("Changeset = %s" % vstring.strip())
+            print("---")
+            print()
+            print("This installation CAN be automatically updated.")
             update_hg(path, skip_rebuild=opts.reinstall)
-            print "Updated successfully."
+            print("Updated successfully.")
             _get_yt_stack_date()
             if opts.reinstall:
                 _update_yt_stack(path)
         else:
-            print
-            print "YT site-packages not in path, so you must"
-            print "update this installation manually by committing and"
-            print "merging your modifications to the code before"
-            print "updating to the newest changeset."
-            print
+            print()
+            print("YT site-packages not in path, so you must")
+            print("update this installation manually by committing and")
+            print("merging your modifications to the code before")
+            print("updating to the newest changeset.")
+            print()
 
 class YTUploadImageCmd(YTCommand):
     args = (dict(short="file", type=str),)
@@ -1039,7 +1041,7 @@ class YTUploadImageCmd(YTCommand):
     def __call__(self, args):
         filename = args.file
         if not filename.endswith(".png"):
-            print "File must be a PNG file!"
+            print("File must be a PNG file!")
             return 1
         import base64, json, pprint
         image_data = base64.b64encode(open(filename).read())
@@ -1052,21 +1054,21 @@ class YTUploadImageCmd(YTCommand):
         try:
             response = urllib2.urlopen(req).read()
         except urllib2.HTTPError as e:
-            print "ERROR", e
+            print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
         if 'upload' in rv and 'links' in rv['upload']:
-            print
-            print "Image successfully uploaded!  You can find it at:"
-            print "    %s" % (rv['upload']['links']['original'])
-            print
-            print "If you'd like to delete it, visit this page:"
-            print "    %s" % (rv['upload']['links']['delete_page'])
-            print
+            print()
+            print("Image successfully uploaded!  You can find it at:")
+            print("    %s" % (rv['upload']['links']['original']))
+            print()
+            print("If you'd like to delete it, visit this page:")
+            print("    %s" % (rv['upload']['links']['delete_page']))
+            print()
         else:
-            print
-            print "Something has gone wrong!  Here is the server response:"
-            print
+            print()
+            print("Something has gone wrong!  Here is the server response:")
+            print()
             pprint.pprint(rv)
 
 

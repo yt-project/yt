@@ -52,6 +52,7 @@ default_unit_symbol_lut = {
     "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_mks),
     "A": (0.1*speed_of_light_cm_per_s, dimensions.current_mks),
     "T": (1.0e4, dimensions.magnetic_field_mks),
+    "Pa": (10.0, dimensions.pressure),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -131,26 +132,26 @@ default_unit_symbol_lut = {
 
 # Add LaTeX representations for units with trivial representations.
 latex_symbol_lut = {
-    "unitary" : "",
-    "dimensionless" : "",
-    "code_length" : "\\rm{code}\/\\rm{length}",
-    "code_time" : "\\rm{code}\/\\rm{time}",
-    "code_mass" : "\\rm{code}\/\\rm{mass}",
-    "code_temperature" : "\\rm{code}\/\\rm{temperature}",
-    "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
-    "code_velocity" : "\\rm{code}\/\\rm{velocity}",
-    "code_magnetic" : "\\rm{code}\/\\rm{magnetic}",
-    "Msun" : "\\rm{M}_\\odot",
-    "msun" : "\\rm{M}_\\odot",
-    "Rsun" : "\\rm{R}_\\odot",
-    "rsun" : "\\rm{R}_\\odot",
-    "Lsun" : "\\rm{L}_\\odot",
-    "Tsun" : "\\rm{T}_\\odot",
-    "Zsun" : "\\rm{Z}_\\odot",
+    "unitary" : r"",
+    "dimensionless" : r"",
+    "code_length" : r"\rm{code}\ \rm{length}",
+    "code_time" : r"\rm{code}\ \rm{time}",
+    "code_mass" : r"\rm{code}\ \rm{mass}",
+    "code_temperature" : r"\rm{code}\ \rm{temperature}",
+    "code_metallicity" : r"\rm{code}\ \rm{metallicity}",
+    "code_velocity" : r"\rm{code}\ \rm{velocity}",
+    "code_magnetic" : r"\rm{code}\ \rm{magnetic}",
+    "Msun" : r"\rm{M}_\odot",
+    "msun" : r"\rm{M}_\odot",
+    "Rsun" : r"\rm{R}_\odot",
+    "rsun" : r"\rm{R}_\odot",
+    "Lsun" : r"\rm{L}_\odot",
+    "Tsun" : r"\rm{T}_\odot",
+    "Zsun" : r"\rm{Z}_\odot",
 }
 for key in default_unit_symbol_lut:
     if key not in latex_symbol_lut:
-        latex_symbol_lut[key] = "\\rm{" + key + "}"
+        latex_symbol_lut[key] = r"\rm{" + key + r"}"
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
 unit_prefixes = {
@@ -202,6 +203,7 @@ prefixable_units = (
     "A",
     "C",
     "statA",
+    "Pa",
 )
 
 cgs_base_units = {

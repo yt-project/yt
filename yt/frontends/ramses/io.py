@@ -20,7 +20,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.fortran_utils as fpu
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
@@ -37,7 +37,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 f = open(subset.domain.hydro_fn, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                content = cStringIO.StringIO(f.read())
+                content = cStringIO(f.read())
                 rv = subset.fill(content, fields, selector)
                 for ft, f in fields:
                     d = rv.pop(f)
@@ -78,6 +78,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                     x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8")
                                for ax in 'xyz')
                     mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None:
+                       mask = []
                     for field in field_list:
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data

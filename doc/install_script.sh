@@ -300,7 +300,7 @@ function host_specific
         echo "  * patch"
         echo 
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
@@ -914,7 +914,11 @@ then
    echo "[gui_support]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
    echo "macosx = False" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
 fi
+
+_user_DISPLAY=$DISPLAY
+unset DISPLAY   # see (yt-user link missing: "Installation failure" 01/29/15)
 do_setup_py $MATPLOTLIB
+export DISPLAY=${_user_DISPLAY}
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}

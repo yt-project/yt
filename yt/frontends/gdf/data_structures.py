@@ -30,6 +30,7 @@ from yt.utilities.exceptions import \
     YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
 from .fields import GDFFieldInfo
 
 
@@ -195,7 +196,7 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = just_one(field_conv)
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
-                if isinstance(field_units, types.StringTypes):
+                if isinstance(field_units, str):
                     current_field_units = current_field.attrs['field_units']
                 else:
                     current_field_units = \
@@ -210,6 +211,11 @@ class GDFDataset(Dataset):
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
                 setattr(self, unit_name, self.quan(value, unit))
+                if unit_name in h5f["/field_types"]:
+                    if unit_name in self.field_units:
+                        mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
+                                      % (unit_name))
+                    self.field_units[unit_name] = unit
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")

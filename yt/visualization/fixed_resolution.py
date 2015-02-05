@@ -173,8 +173,8 @@ class FixedResolutionBuffer(object):
                     ipstr = i
             element = segments[ipstr-1]
             roman = pnum2rom[pstr[1:]] 
-            label = element + '\/' + roman + '\/' + \
-                string.join( segments[ipstr+1:], '\/' ) 
+            label = element + '\ ' + roman + '\ ' + \
+                string.join(segments[ipstr+1:], '\ ')
         else:
             label = fname
         return label
@@ -210,12 +210,12 @@ class FixedResolutionBuffer(object):
             if self._is_ion( fname ):
                 fname = self._ion_to_label( fname )
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ')+r'}$'
             else:    
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ').title()+r'}$'
         elif info['label'].find('$') == -1:
-            info['label'] = info['label'].replace(' ','\/')
+            info['label'] = info['label'].replace(' ','\ ')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         
         return info

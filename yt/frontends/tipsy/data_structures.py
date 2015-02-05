@@ -5,6 +5,7 @@ Data structures for Tipsy frontend
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -74,15 +75,15 @@ class TipsyDataset(ParticleDataset):
             field_dtypes = {}
         success, self.endian = self._validate_header(filename)
         if not success:
-            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
-            print "%s != (%s == %s + %s + %s)" % (
+            print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
+            print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
                 tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
-                self.parameters['nstar'])
-            print "Often this can be fixed by changing the 'endian' parameter."
-            print "This defaults to '>' but may in fact be '<'."
+                self.parameters['nstar']))
+            print("Often this can be fixed by changing the 'endian' parameter.")
+            print("This defaults to '>' but may in fact be '<'.")
             raise RuntimeError
         self.storage_filename = None
 

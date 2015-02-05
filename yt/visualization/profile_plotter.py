@@ -4,6 +4,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -23,7 +24,7 @@ from functools import wraps
 from itertools import izip
 import matplotlib
 import numpy as np
-import cStringIO
+from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
@@ -35,7 +36,7 @@ from yt.data_objects.profiles import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-import _mpl_imports as mpl
+from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
@@ -254,14 +255,14 @@ class ProfilePlot(object):
         suffix = get_image_suffix(name)
         prefix = name[:name.rfind(suffix)]
         xfn = self.profiles[0].x_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
         if not suffix:
             suffix = ".png"
         canvas_cls = get_canvas(name)
         fns = []
         for uid, fig in iters:
-            if isinstance(uid, types.TupleType):
+            if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
             fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
@@ -309,11 +310,12 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
-            f = cStringIO.StringIO()
+            f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     def _setup_plots(self):
@@ -596,16 +598,16 @@ class ProfilePlot(object):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -763,16 +765,16 @@ class PhasePlot(ImagePlotContainer):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit is '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
         
     def _get_field_log(self, field_z, profile):
@@ -979,13 +981,13 @@ class PhasePlot(ImagePlotContainer):
         name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
-        if isinstance(yfn, types.TupleType):
+        if isinstance(yfn, tuple):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType):
+            if isinstance(f, tuple):
                 _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             splitname = os.path.split(name)

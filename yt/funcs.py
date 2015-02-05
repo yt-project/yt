@@ -4,6 +4,7 @@ Useful functions.  If non-original, see function for citation.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -49,7 +50,7 @@ def ensure_list(obj):
     """
     if obj is None:
         return [obj]
-    if not isinstance(obj, types.ListType):
+    if not isinstance(obj, list):
         return [obj]
     return obj
 
@@ -63,7 +64,7 @@ def ensure_numpy_array(obj):
             return np.array([obj])
         # We cast to ndarray to catch ndarray subclasses
         return np.array(obj)
-    elif isinstance(obj, (types.ListType, types.TupleType)):
+    elif isinstance(obj, (list, tuple)):
         return np.asarray(obj)
     else:
         return np.asarray([obj])
@@ -74,9 +75,9 @@ def ensure_tuple(obj):
     scalar, list, or array arguments specified by a user in a context where
     we assume a tuple internally
     """
-    if isinstance(obj, types.TupleType):
+    if isinstance(obj, tuple):
         return obj
-    elif isinstance(obj, (types.ListType, np.ndarray)):
+    elif isinstance(obj, (list, np.ndarray)):
         return tuple(obj)
     else:
         return (obj,)
@@ -146,7 +147,7 @@ def time_execution(func):
         t1 = time.time()
         res = func(*arg, **kw)
         t2 = time.time()
-        mylog.debug('%s took %0.3f s', func.func_name, (t2-t1))
+        mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","timefunctions") == True:
@@ -215,7 +216,7 @@ def deprecate(func):
     @wraps(func)
     def run_func(*args, **kwargs):
         warnings.warn("%s has been deprecated and may be removed without notice!" \
-                % func.func_name, DeprecationWarning, stacklevel=2)
+                % func.__name__, DeprecationWarning, stacklevel=2)
         func(*args, **kwargs)
     return run_func
 
@@ -394,7 +395,7 @@ def is_root():
 #
 
 def signal_print_traceback(signo, frame):
-    print traceback.print_stack(frame)
+    print(traceback.print_stack(frame))
 
 def signal_problem(signo, frame):
     raise RuntimeError()
@@ -408,45 +409,44 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    from yt.extern.six.moves import StringIO
-    import xmlrpclib
-    p = xmlrpclib.ServerProxy(
+    from yt.extern.six.moves import StringIO, xmlrpc_client
+    p = xmlrpc_client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
-    print
-    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
-    print
+    print()
+    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print()
 
 def paste_traceback_detailed(exc_type, exc, tb):
     """
     This is a traceback handler that knows how to paste to the pastebin.
     Should only be used in sys.excepthook.
     """
-    import xmlrpclib, cgitb
-    from yt.extern.six.moves import StringIO
+    import cgitb
+    from yt.extern.six.moves import StringIO, xmlrpc_client
     s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
-    print s
-    p = xmlrpclib.ServerProxy(
+    print(s)
+    p = xmlrpc_client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
-    print
-    print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
-    print
+    print()
+    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print()
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
     import itertools, base64
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
-    print dec_s
+    print(dec_s)
 
 #
 # Some exceptions
@@ -470,14 +470,14 @@ def update_hg(path, skip_rebuild = False):
     repo.pull()
     ident = repo.identify()
     if "+" in ident:
-        print "Can't rebuild modules by myself."
-        print "You will have to do this yourself.  Here's a sample commands:"
-        print
-        print "    $ cd %s" % (path)
-        print "    $ hg up"
-        print "    $ %s setup.py develop" % (sys.executable)
+        print("Can't rebuild modules by myself.")
+        print("You will have to do this yourself.  Here's a sample commands:")
+        print("")
+        print("    $ cd %s" % (path))
+        print("    $ hg up")
+        print("    $ %s setup.py develop" % (sys.executable))
         return 1
-    print "Updating the repository"
+    print("Updating the repository")
     f.write("Updating the repository\n\n")
     repo.update(check=True)
     f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
@@ -489,10 +489,10 @@ def update_hg(path, skip_rebuild = False):
     f.write(stdout)
     f.write("\n\n")
     if p.returncode:
-        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
         sys.exit(1)
     f.write("Successful!\n")
-    print "Updated successfully."
+    print("Updated successfully.")
 
 def get_hg_version(path):
     try:
@@ -540,9 +540,8 @@ def download_file(url, filename):
     import urllib
     class MyURLopener(urllib.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError, \
-              "Attempt to download file from %s failed with error %s: %s." % \
-              (url, errcode, errmsg)
+            raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
+              (url, errcode, errmsg))
     fn, h = MyURLopener().retrieve(url, filename)
     return fn
 
@@ -568,26 +567,26 @@ def get_yt_supp():
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
     if not os.path.isdir(supp_path):
-        print
-        print "*** The yt-supplemental repository is not checked ***"
-        print "*** out.  I can do this for you, but because this ***"
-        print "*** is a delicate act, I require you to respond   ***"
-        print "*** to the prompt with the word 'yes'.            ***"
-        print
+        print()
+        print("*** The yt-supplemental repository is not checked ***")
+        print("*** out.  I can do this for you, but because this ***")
+        print("*** is a delicate act, I require you to respond   ***")
+        print("*** to the prompt with the word 'yes'.            ***")
+        print()
         response = raw_input("Do you want me to try to check it out? ")
         if response != "yes":
-            print
-            print "Okay, I understand.  You can check it out yourself."
-            print "This command will do it:"
-            print
-            print "$ hg clone http://hg.yt-project.org/yt-supplemental/ ",
-            print "%s" % (supp_path)
-            print
+            print()
+            print("Okay, I understand.  You can check it out yourself.")
+            print("This command will do it:")
+            print()
+            print("$ hg clone http://hg.yt-project.org/yt-supplemental/ ", end=' ')
+            print("%s" % (supp_path))
+            print()
             sys.exit(1)
         rv = commands.clone(uu,
                 "http://hg.yt-project.org/yt-supplemental/", supp_path)
         if rv:
-            print "Something has gone wrong.  Quitting."
+            print("Something has gone wrong.  Quitting.")
             sys.exit(1)
     # Now we think we have our supplemental repository.
     return supp_path
@@ -605,7 +604,7 @@ def fix_length(length, ds=None):
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
-    unit_is_string = isinstance(length[1], types.StringTypes)
+    unit_is_string = isinstance(length[1], str)
     if length_valid_tuple and unit_is_string:
         return YTArray(*length, registry=registry)
     else:
@@ -717,7 +716,7 @@ def memory_checker(interval = 15, dest = None):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print >> dest, "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+                print("MEMORY: %0.3e gb" % (get_memory_usage()/1024.), file=dest)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)

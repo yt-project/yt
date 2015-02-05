@@ -4,6 +4,8 @@ RAMSES-specific data structures
 
 
 """
+# BytesIO needs absolute import
+from __future__ import print_function, absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -17,7 +19,8 @@ import os
 import numpy as np
 import stat
 import weakref
-import cStringIO
+from io import BytesIO
+
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -102,9 +105,9 @@ class RAMSESDomainFile(object):
                 try:
                     hvals = fpu.read_attrs(f, header, "=")
                 except AssertionError:
-                    print "You are running with the wrong number of fields."
-                    print "If you specified these in the load command, check the array length."
-                    print "In this file there are %s hydro fields." % skipped
+                    print("You are running with the wrong number of fields.")
+                    print("If you specified these in the load command, check the array length.")
+                    print("In this file there are %s hydro fields." % skipped)
                     #print "The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
@@ -212,7 +215,7 @@ class RAMSESDomainFile(object):
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = cStringIO.StringIO()
+        f = BytesIO()
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
@@ -276,23 +279,23 @@ class RAMSESDomainFile(object):
         # This is where we now check for issues with creating the new octs, and
         # we attempt to determine what precisely is going wrong.
         # These are all print statements.
-        print "We have detected an error with the construction of the Octree."
-        print "  The number of Octs to be added :  %s" % ng
-        print "  The number of Octs added       :  %s" % n
-        print "  Level                          :  %s" % level
-        print "  CPU Number (0-indexed)         :  %s" % cpu
+        print("We have detected an error with the construction of the Octree.")
+        print("  The number of Octs to be added :  %s" % ng)
+        print("  The number of Octs added       :  %s" % n)
+        print("  Level                          :  %s" % level)
+        print("  CPU Number (0-indexed)         :  %s" % cpu)
         for i, ax in enumerate('xyz'):
-            print "  extent [%s]                     :  %s %s" % \
-            (ax, pos[:,i].min(), pos[:,i].max())
-        print "  domain left                    :  %s" % \
-            (self.ds.domain_left_edge,)
-        print "  domain right                   :  %s" % \
-            (self.ds.domain_right_edge,)
-        print "  offset applied                 :  %s %s %s" % \
-            (nn[0], nn[1], nn[2])
-        print "AMR Header:"
+            print("  extent [%s]                     :  %s %s" % \
+            (ax, pos[:,i].min(), pos[:,i].max()))
+        print("  domain left                    :  %s" % \
+            (self.ds.domain_left_edge,))
+        print("  domain right                   :  %s" % \
+            (self.ds.domain_right_edge,))
+        print("  offset applied                 :  %s %s %s" % \
+            (nn[0], nn[1], nn[2]))
+        print("AMR Header:")
         for key in sorted(self.amr_header):
-            print "   %-30s: %s" % (key, self.amr_header[key])
+            print("   %-30s: %s" % (key, self.amr_header[key]))
         raise RuntimeError
 
     def included(self, selector):
@@ -470,7 +473,7 @@ class RAMSESDataset(Dataset):
                  fields = None, storage_filename = None,
                  units_override=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, types.StringTypes):
+        if isinstance(fields, str):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file

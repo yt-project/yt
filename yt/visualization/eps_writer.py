@@ -4,6 +4,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +17,7 @@ import pyx
 import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from _mpl_imports import FigureCanvasAgg
+from ._mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
@@ -39,7 +40,7 @@ def convert_frac_to_tex(string):
     end_pos = level.index(0,div_pos+1)
     result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:end_pos] + \
              r'}$' + result[end_pos:]
-    result = result.replace(r'\/', r'\;')
+    result = result.replace(r'\ ', r'\;')
     return result
 
 def pyxize_label(string):
