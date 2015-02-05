@@ -745,10 +745,7 @@ class PhotonList(object):
                 "Telescope" : tblhdu.header["TELESCOP"],
                 "Instrument" : tblhdu.header["INSTRUME"]}
 
-        try:
-            info["Mission"] = tblhdu.header["MISSION"]
-        except KeyError:
-            info["Mission"] = ""
+        info["Mission"] = tblhdu.header.get("MISSION","")
 
         return events, info
 
