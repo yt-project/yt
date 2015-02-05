@@ -99,7 +99,7 @@ class StarFormationRate(object):
             omega_matter=self._ds.omega_matter,
             omega_lambda=self._ds.omega_lambda)
         # Find the time right now.
-        self.time_now = self._ds.current_time.in_units('s')  # seconds
+        self.time_now = self._ds.current_time
         # Build the distribution.
         self.build_dist()
         # Attach some convenience arrays.
@@ -134,12 +134,13 @@ class StarFormationRate(object):
                 ct_stars = self.star_creation_time
                 mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
-        tmin = min(ct_stars)
+        tmin = min(ct_stars.in_units("s"))
         # Multiply the end to prevent numerical issues.
-        self.time_bins = np.linspace(tmin * 1.01, self._ds.current_time,
-                                     num=self.bin_count + 1)
+        self.time_bins = np.linspace(
+            tmin * 1.01, self._ds.current_time.in_units("s"),
+            num=self.bin_count + 1)
         # Figure out which bins the stars go into.
-        inds = np.digitize(ct_stars, self.time_bins) - 1
+        inds = np.digitize(ct_stars.in_units("s"), self.time_bins) - 1
         # Sum up the stars created in each time bin.
         self.mass_bins = np.zeros(self.bin_count + 1, dtype='float64')
         for index in np.unique(inds):
@@ -315,7 +316,7 @@ class SpectrumBuilder(object):
         # Find the time right now.
 
         if time_now is None:
-            self.time_now = self._ds.current_time.in_units('s')  # seconds
+            self.time_now = self._ds.current_time
         else:
             self.time_now = time_now
 
