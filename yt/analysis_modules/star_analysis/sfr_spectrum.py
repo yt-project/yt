@@ -62,8 +62,10 @@ class StarFormationRate(object):
     Examples
     --------
 
-    >>> ds = load("RedshiftOutput0000")
-    >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
+    >>> import yt
+    >>> from yt.analysis_modules.star_analysis.api import StarFormationRate
+    >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+    >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
     >>> sfr = StarFormationRate(ds, sp)
     """
 
@@ -221,6 +223,11 @@ class StarFormationRate(object):
 
         Examples
         --------
+        >>> import yt
+        >>> from yt.analysis_modules.star_analysis.api import StarFormationRate
+        >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+        >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
+        >>> sfr = StarFormationRate(ds, sp)
         >>> sfr.write_out("stars-SFR.out")
         """
         fp = open(name, "w")
@@ -295,8 +302,10 @@ class SpectrumBuilder(object):
 
     Examples
     --------
-    >>> ds = load("Enzo_64/RD0000/RedshiftOutput0000")
-    >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
+    >>> import yt
+    >>> from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+    >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+    >>> spec = SpectrumBuilder(ds, "bc", model="salpeter")
     """
 
     def __init__(self, ds, bcdir="", model="chabrier", time_now=None,
@@ -376,7 +385,11 @@ class SpectrumBuilder(object):
 
         Examples
         --------
-        >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
+        >>> import yt
+        >>> from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+        >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+        >>> spec = SpectrumBuilder(ds, "bc", model="salpeter")
+        >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
         >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values
@@ -431,17 +444,25 @@ class SpectrumBuilder(object):
                         self._filter, "metallicity_fraction"].in_units('Zsun')
             else:
                 ct = self._data_source["creation_time"]
+                if ct is None:
+                    errmsg = 'data source must have particle_age!'
+                    mylog.error(errmsg)
+                    raise RuntimeError(errmsg)
+                mask = ct > 0
+                if not any(mask):
+                    errmsg = 'all particles have age < 0'
+                    mylog.error(errmsg)
+                    raise RuntimeError(errmsg)
                 # type = self._data_source['particle_type']
-                ct_stars = ct[ct > 0]
-                self.star_creation_time = ct_stars
+                self.star_creation_time = ct[mask]
                 self.star_mass = self._data_source[
-                    'particle_mass'][ct_stars].in_units('Msun')
+                    'particle_mass'][mask].in_units('Msun')
                 if star_metallicity_constant is not None:
                     self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                         star_metallicity_constant
                 else:
                     self.star_metal = self._data_source[
-                        "metallicity_fraction"][ct_stars].in_units('Zsun')
+                        "metallicity_fraction"][mask].in_units('Zsun')
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time).in_units('yr').tolist()
         dt = np.maximum(dt, 0.0)
@@ -552,6 +573,12 @@ class SpectrumBuilder(object):
 
         Examples
         --------
+        >>> import yt
+        >>> from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+        >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+        >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
+        >>> spec = SpectrumBuilder(ds, "bc", model="salpeter")
+        >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         >>> spec.write_out("spec.out")
         """
         fp = open(name, 'w')
@@ -577,6 +604,12 @@ class SpectrumBuilder(object):
 
         Examples
         --------
+        >>> import yt
+        >>> from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+        >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
+        >>> spec = SpectrumBuilder(ds, "bc", model="salpeter")
+        >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
+        >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         >>> spec.write_out_SED(name = "SED.out", flux_norm = 6000.)
         """
         # find the f_nu closest to flux_norm
