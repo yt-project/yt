@@ -6,16 +6,15 @@ if yt.__version__.startswith('2'):
 # else:
 #     from yt.visualization.volume_rendering.old_camera import Camera
 
-DSNAME = "HiresIsolatedGalaxy/DD0044/DD0044"
-
 class Suite:
+    dsname = "HiresIsolatedGalaxy/DD0044/DD0044"
     def setup(self):
         if yt.__version__.startswith('3'):
-            self.ds = yt.load(DSNAME)
+            self.ds = yt.load(self.dsname)
             self.ad = self.ds.all_data()
             self.field_name = "density"
         else:
-            self.ds = load(DSNAME)
+            self.ds = load(self.dsname)
             self.ad = self.ds.h.all_data()
             self.field_name = "Density"
         # Warmup hdd
