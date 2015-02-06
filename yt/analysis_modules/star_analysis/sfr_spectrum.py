@@ -14,12 +14,13 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import sys
+import os
 import numpy as np
 import h5py
 import math
 import itertools
 
+from yt.config import ytcfg
 from yt.funcs import \
     iterable, get_pbar
 from yt.utilities.cosmology import \
@@ -294,13 +295,17 @@ class SpectrumBuilder(object):
 
     Examples
     --------
-    >>> ds = load("RedshiftOutput0000")
+    >>> ds = load("Enzo_64/RD0000/RedshiftOutput0000")
     >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
     """
 
     def __init__(self, ds, bcdir="", model="chabrier", time_now=None,
                  star_filter=None):
         self._ds = ds
+        if not os.path.isdir(bcdir):
+            bcdir = os.path.join(ytcfg.get("yt", "test_data_dir"), bcdir)
+            if not os.path.isdir(bcdir):
+                raise RuntimeError("Failed to locate %s" % bcdir)
         self.bcdir = bcdir
         self._filter = star_filter
         self.filter_provided = self._filter is not None
