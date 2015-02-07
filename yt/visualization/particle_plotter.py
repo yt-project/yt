@@ -22,6 +22,7 @@ import numpy as np
 from yt.data_objects.image_array import ImageArray
 from .base_plot_types import ImagePlotMPL
 from yt.units.yt_array import array_like_field
+from yt.units.unit_object import Unit
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks
@@ -30,13 +31,83 @@ from yt.funcs import \
     ensure_list, \
     get_image_suffix
 from .profile_plotter import \
-    invalidate_plot
+    invalidate_plot, \
+    PhasePlot
 from yt.utilities.lib.api import add_points_to_greyscale_image
 
 
+class ParticlePhasePlot(PhasePlot):
+
+    def __init__(self, data_source, x_field, y_field, z_fields,
+                 weight_field=None, x_bins=128, y_bins=128,
+                 accumulation=False, fractional=False,
+                 fontsize=18, figure_size=8.0):
+
+        super(ParticlePhasePlot, self).__init__(data_source,
+                                                x_field,
+                                                y_field,
+                                                z_fields,
+                                                weight_field,
+                                                x_bins,
+                                                y_bins,
+                                                accumulation,
+                                                fractional,
+                                                fontsize,
+                                                figure_size)
+
+    def save(self, name=None, mpl_kwargs=None):
+        r"""
+        Saves a particle phase plot.
+
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        mpl_kwargs : dict
+           A dict of keyword arguments to be passed to matplotlib.
+
+        >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
+        
+        """
+        names = []
+        if not self._plot_valid:
+            self._setup_plots()
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        if name is None:
+            name = str(self.profile.ds)
+        name = os.path.expanduser(name)
+        xfn = self.profile.x_field
+        yfn = self.profile.y_field
+        if isinstance(xfn, tuple):
+            xfn = xfn[1]
+        if isinstance(yfn, tuple):
+            yfn = yfn[1]
+        for f in self.profile.field_data:
+            _f = f
+            if isinstance(f, tuple):
+                _f = _f[1]
+            middle = "Particle_Phase_%s_%s_%s" % (xfn, yfn, _f)
+            splitname = os.path.split(name)
+            if splitname[0] != '' and not os.path.isdir(splitname[0]):
+                os.makedirs(splitname[0])
+            if os.path.isdir(name) and name != str(self.profile.ds):
+                prefix = name + (os.sep if name[-1] != os.sep else '')
+                prefix += str(self.profile.ds)
+            else:
+                prefix = name
+            suffix = get_image_suffix(name)
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
+            fn = "%s_%s%s" % (prefix, middle, '.png')
+            names.append(fn)
+            self.plots[f].save(fn, mpl_kwargs)
+        return names
+
+
 class ParticleSplatter(object):
-    x_log = False
-    y_log = False
 
     def __init__(self, data_source, x_field, y_field,
                  bounds, z_fields=None,
@@ -48,18 +119,28 @@ class ParticleSplatter(object):
         self.x_bins = x_bins
         self.y_bins = y_bins
         self.bounds = bounds
+        self.field_units = {}
         self.data = {}
+
+        self.x_log = False
+        self.y_log = False
+
+        xmin = bounds[0]
+        xmax = bounds[1]
+        ymin = bounds[2]
+        ymax = bounds[3]
+
         self.x = array_like_field(data_source,
-                                  np.linspace(bounds[0], bounds[1], x_bins),
+                                  self._get_bins(xmin, xmax, x_bins, False),
                                   x_field)
         self.y = array_like_field(data_source,
-                                  np.linspace(bounds[2], bounds[3], y_bins),
+                                  self._get_bins(ymin, ymax, y_bins, False),
                                   y_field)
 
         if z_fields is None:
             self._splat_particle_field('particle_ones')
         else:
-            for f in z_fields:
+            for f in data_source._determine_fields(z_fields):
                 self._splat_particle_field(f)
 
     def keys(self):
@@ -69,7 +150,7 @@ class ParticleSplatter(object):
         del self.data[item]
 
     def __getitem__(self, item):
-        return self.data[item]
+        return self.data[item].in_units(self.field_units[item])
 
     def _splat_particle_field(self, item):
 
@@ -99,6 +180,7 @@ class ParticleSplatter(object):
         ia = ImageArray(buff, input_units=data.units)
 
         self.data[item] = ia
+        self.field_units[item] = self.data[item].units
         return self.data[item]
 
     def __setitem__(self, item, val):
@@ -109,6 +191,54 @@ class ParticleSplatter(object):
 
     def __iter__(self):
         return sorted(self.items())
+
+    def _get_bins(self, mi, ma, n, take_log):
+        if take_log:
+            return np.logspace(np.log10(mi), np.log10(ma), n+1)
+        else:
+            return np.linspace(mi, ma, n+1)
+
+    def set_x_unit(self, new_unit):
+        """Sets a new unit for the x field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.x.convert_to_units(new_unit)
+
+    def set_y_unit(self, new_unit):
+        """Sets a new unit for the y field
+
+        parameters
+        ----------
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        self.y.convert_to_units(new_unit)
+
+    def set_field_unit(self, field, new_unit):
+        """Sets a new unit for the requested field
+
+        Parameters
+        ----------
+        field : string or field tuple
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        if field in self.field_units:
+            self.field_units[field] = \
+                Unit(new_unit, registry=self.ds.unit_registry)
+        else:
+            fd = self.data_source._determine_fields(field)[0]
+            if fd in self.field_units:
+                self.field_units[fd] = \
+                    Unit(new_unit, registry=self.ds.unit_registry)
+            else:
+                raise KeyError("%s not in profile!" % (field))
 
 
 class ParticlePlot(ImagePlotContainer):
@@ -217,18 +347,18 @@ class ParticlePlot(ImagePlotContainer):
         obj._initfinished = True
         return obj
 
-    def _get_field_title(self, field_z, profile):
-        ds = profile.data_source.ds
-        field_x = profile.x_field
-        field_y = profile.y_field
-        xf, yf, zf = profile.data_source._determine_fields(
+    def _get_field_title(self, field_z, splatter):
+        ds = splatter.ds
+        field_x = splatter.x_field
+        field_y = splatter.y_field
+        xf, yf, zf = splatter.data_source._determine_fields(
             [field_x, field_y, field_z])
         xfi = ds._get_field_info(*xf)
         yfi = ds._get_field_info(*yf)
         zfi = ds._get_field_info(*zf)
-        x_unit = profile.x.units
-        y_unit = profile.y.units
-        z_unit = profile.data[field_z].units
+        x_unit = splatter.x.units
+        y_unit = splatter.y.units
+        z_unit = splatter.field_units[field_z]
         x_label, y_label, z_label = self._get_axes_labels(field_z)
         x_title = x_label or self._get_field_label(field_x, xfi, x_unit)
         y_title = y_label or self._get_field_label(field_y, yfi, y_unit)
@@ -242,27 +372,27 @@ class ParticlePlot(ImagePlotContainer):
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
             field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
-            label = field_name
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
-            label = field_name
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         elif field_unit is None or field_unit is '':
             label = field_name
         else:
             label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
 
-    def _get_field_log(self, field_z, profile):
-        ds = profile.data_source.ds
-        zf, = profile.data_source._determine_fields([field_z])
+    def _get_field_log(self, field_z, splatter):
+        ds = splatter.ds
+        zf, = splatter.data_source._determine_fields([field_z])
         zfi = ds._get_field_info(*zf)
         if self.x_log is None:
-            x_log = profile.x_log
+            x_log = splatter.x_log
         else:
             x_log = self.x_log
         if self.y_log is None:
-            y_log = profile.y_log
+            y_log = splatter.y_log
         else:
             y_log = self.y_log
         if field_z in self.z_log:
@@ -318,7 +448,9 @@ class ParticlePlot(ImagePlotContainer):
 
             font_size = self._font_properties.get_size()
 
-            self.plots[f] = ParticlePlotMPL(data, self.splatter.bounds,
+            self.plots[f] = ParticlePlotMPL(data,
+                                            self.splatter.x,
+                                            self.splatter.y,
                                             x_scale, y_scale, z_scale,
                                             self._colormaps[f], zlim,
                                             self.figure_size, font_size,
@@ -428,11 +560,11 @@ class ParticlePlot(ImagePlotContainer):
             xfn = xfn[1]
         if isinstance(yfn, tuple):
             yfn = yfn[1]
-        for f in self.splatter.field_data:
+        for f in self.splatter.data:
             _f = f
             if isinstance(f, tuple):
                 _f = _f[1]
-            middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
+            middle = "2d-Particle_%s_%s_%s" % (xfn, yfn, _f)
             splitname = os.path.split(name)
             if splitname[0] != '' and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
@@ -515,13 +647,13 @@ class ParticlePlot(ImagePlotContainer):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        fields = [fd[1] for fd in self.splatter.data]
+        fields = [fd[1] for fd in self.splatter.keys()]
         if field == self.splatter.x_field[1]:
             self.splatter.set_x_unit(unit)
         elif field == self.splatter.y_field[1]:
-            self.profile.set_y_unit(unit)
+            self.splatter.set_y_unit(unit)
         elif field in fields:
-            self.profile.set_field_unit(field, unit)
+            self.splatter.set_field_unit(field, unit)
             self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
             raise KeyError("Field %s not in phase plot!" % (field))
@@ -631,13 +763,14 @@ class ParticlePlot(ImagePlotContainer):
 
 class ParticlePlotMPL(ImagePlotMPL):
     """A container for a single matplotlib figure and axes for a ParticlePlot"""
-    def __init__(self, data, bounds,
+    def __init__(self, data, x, y,
                  x_scale, y_scale, z_scale, cmap,
                  zlim, figure_size, fontsize, figure, axes, cax):
         self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
         self._figure_size = figure_size
+        bounds = [x[0], x[-1], y[0], y[-1]]
 
         # Compute layout
         fontscale = float(fontsize) / 18.0
