@@ -38,12 +38,13 @@ class ParticleSplatter(object):
     x_log = False
     y_log = False
 
-    def __init__(self, data_source, x_field, y_field, bounds,
-                 x_bins=128, y_bins=128):
+    def __init__(self, data_source, x_field, y_field,
+                 bounds, z_fields=None,
+                 x_bins=256, y_bins=256):
         self.data_source = data_source
         self.ds = data_source.ds
-        self.x_field = x_field
-        self.y_field = y_field
+        self.x_field = data_source._determine_fields(x_field)[0]
+        self.y_field = data_source._determine_fields(y_field)[0]
         self.x_bins = x_bins
         self.y_bins = y_bins
         self.bounds = bounds
@@ -55,6 +56,12 @@ class ParticleSplatter(object):
                                   np.linspace(bounds[2], bounds[3], y_bins),
                                   y_field)
 
+        if z_fields is None:
+            self._splat_particle_field('particle_ones')
+        else:
+            for f in z_fields:
+                self._splat_particle_field(f)
+
     def keys(self):
         return self.data.keys()
 
@@ -62,8 +69,9 @@ class ParticleSplatter(object):
         del self.data[item]
 
     def __getitem__(self, item):
-        if item in self.data:
-            return self.data[item]
+        return self.data[item]
+
+    def _splat_particle_field(self, item):
 
         mylog.info("Splatting (%s) onto a %d by %d mesh in %s by %s space" %
                 (item, self.x_bins, self.y_bins, self.x_field, self.y_field))
@@ -165,22 +173,24 @@ class ParticlePlot(ImagePlotContainer):
     _plot_valid = False
     _plot_type = 'Particle'
 
-    def __init__(self, data_source, x_field, y_field, z_fields,
-                 bounds, x_bins=128, y_bins=128,
+    def __init__(self, data_source, x_field, y_field, bounds,
+                 z_fields=None, x_bins=256, y_bins=256,
                  fontsize=18, figure_size=8.0):
 
-        self.x_field = x_field
-        self.y_field = y_field
+        self.x_field = data_source._determine_fields(x_field)[0]
+        self.y_field = data_source._determine_fields(y_field)[0]
+        if z_fields is None:
+            self._draw_colorbars = False
+        else:
+            self._draw_colorbars = True
 
         splatter = ParticleSplatter(data_source,
                                     x_field,
                                     y_field,
                                     bounds,
+                                    z_fields,
                                     x_bins,
                                     y_bins)
-
-        for field in ensure_list(z_fields):
-            splatter[field]
 
         type(self)._initialize_instance(self,
                                         data_source,
@@ -267,7 +277,10 @@ class ParticlePlot(ImagePlotContainer):
             fig = None
             axes = None
             cax = None
-            draw_colorbar = True
+            if self._draw_colorbars is False:
+                draw_colorbar = False
+            else:
+                draw_colorbar = True
             draw_axes = True
             zlim = (None, None)
             if f in self.plots:
@@ -502,7 +515,7 @@ class ParticlePlot(ImagePlotContainer):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        fields = [fd[1] for fd in self.splatter.field_data]
+        fields = [fd[1] for fd in self.splatter.data]
         if field == self.splatter.x_field[1]:
             self.splatter.set_x_unit(unit)
         elif field == self.splatter.y_field[1]:
