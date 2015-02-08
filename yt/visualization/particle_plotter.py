@@ -67,7 +67,7 @@ class ParticlePhasePlot(PhasePlot):
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
-        
+
         """
         names = []
         if not self._plot_valid:

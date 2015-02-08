@@ -1474,11 +1474,13 @@ class ParticleAxisAlignedDummyDataSource(object):
     _key_fields = []
 
     def __init__(self, center, ds, axis, width, fields,
+                 weight_field=None,
                  field_parameters=None, data_source=None):
         self.center = center
         self.ds = ds
         self.axis = axis
         self.width = width
+        self.weight_field = weight_field
 
         if field_parameters is None:
             self.field_parameters = {}
@@ -1562,6 +1564,8 @@ class AxisAlignedParticlePlot(PWViewerMPL):
          A tuple containing the depth to project through and the string
          key of the unit: (width, 'unit').  If set to a float, code units
          are assumed
+    weight_field : string
+         The name of the weighting field.  Set to None for no weight.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1618,7 +1622,8 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     _plot_type = 'Particle'
     _frb_generator = ParticleImageBuffer
 
-    def __init__(self, ds, axis, fields, center='c', width=None, depth=(1, '1'), axes_unit=None,
+    def __init__(self, ds, axis, fields, center='c', width=None,
+                 depth=(1, '1'), weight_field=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
@@ -1642,7 +1647,7 @@ class AxisAlignedParticlePlot(PWViewerMPL):
         width[axis] = depth[0]
 
         ParticleSource = ParticleAxisAlignedDummyDataSource(center, ds, axis,
-                                        width, fields,
+                                        width, fields, weight_field,
                                         field_parameters=field_parameters,
                                         data_source=data_source)
 
