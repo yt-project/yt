@@ -135,6 +135,19 @@ class CoordinateHandler(object):
     def period(self):
         raise NotImplementedError
 
+    def sanitize_depth(self, depth):
+        if iterable(depth):
+            validate_width_tuple(depth)
+            depth = (self.ds.quan(depth[0], fix_unitary(depth[1])), )
+        elif isinstance(depth, Number):
+            depth = (self.ds.quan(depth, 'code_length',
+                                  registry=self.ds.unit_registry), )
+        elif isinstance(depth, YTQuantity):
+            depth = (depth, )
+        else:
+            raise YTInvalidWidthError(depth)
+        return depth
+
     def sanitize_width(self, axis, width, depth):
         if width is None:
             # Default to code units
@@ -158,16 +171,7 @@ class CoordinateHandler(object):
         else:
             raise YTInvalidWidthError(width)
         if depth is not None:
-            if iterable(depth):
-                validate_width_tuple(depth)
-                depth = (self.ds.quan(depth[0], fix_unitary(depth[1])), )
-            elif isinstance(depth, Number):
-                depth = (self.ds.quan(depth, 'code_length',
-                         registry = self.ds.unit_registry), )
-            elif isinstance(depth, YTQuantity):
-                depth = (depth, )
-            else:
-                raise YTInvalidWidthError(depth)
+            depth = self.sanitize_depth(depth)
             return width + depth
         return width
 

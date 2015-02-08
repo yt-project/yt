@@ -19,6 +19,8 @@ from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
+from yt.utilities.lib.api import add_points_to_greyscale_image
+
 from . import _MPL
 import numpy as np
 import weakref
@@ -146,7 +148,6 @@ class FixedResolutionBuffer(object):
         for f in fields:
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
-
 
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
@@ -411,6 +412,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
 
     def __getitem__(self, item):
+        import pdb; pdb.set_trace()
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
@@ -428,6 +430,65 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             units *= Unit('cm', registry=dd.ds.unit_registry)
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
-        return ia 
+        return ia
 
 
+class ParticleImageBuffer(FixedResolutionBuffer):
+    """
+
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports off axis projections.  This calls the volume renderer.
+
+    """
+    def __init__(self, data_source, bounds, buff_size, antialias=True,
+                 periodic=False):
+        self.data = {}
+        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size,
+                                       antialias, periodic)
+
+    def __getitem__(self, item):
+        if item in self.data: return self.data[item]
+
+        mylog.info("Splatting (%s) onto a %d by %d mesh" %
+                (item, self.buff_size[0], self.buff_size[1]))
+
+        bounds = []
+        for b in self.bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            bounds.append(b)
+
+        axis = self.data_source.axis
+        x_coord = self.ds.coordinates.x_axis[axis]
+        y_coord = self.ds.coordinates.y_axis[axis]
+
+        particle_spatial_fields = ['particle_position_x',
+                                   'particle_position_y',
+                                   'particle_position_z']
+
+        x_field = particle_spatial_fields[x_coord]
+        y_field = particle_spatial_fields[y_coord]
+
+        x_data = self.data_source.dd[x_field]
+        y_data = self.data_source.dd[y_field]
+        data = self.data_source.dd[item]
+
+        px = (x_data - self.bounds[0]) / (self.bounds[1] - self.bounds[0])
+        py = (y_data - self.bounds[2]) / (self.bounds[3] - self.bounds[2])
+
+        buff = np.zeros(self.buff_size)
+        add_points_to_greyscale_image(buff, px, py, data)
+        ia = ImageArray(buff, input_units=data.units,
+                        info=self._get_info(item))
+
+        self.data[item] = ia
+        return self.data[item]
+
+    def _get_data_source_fields(self):
+        exclude = self.data_source._key_fields + list(self._exclude_fields)
+        fields = getattr(self.data_source, "fields", [])
+        fields += getattr(self.data_source, "field_data", {}).keys()
+        for f in fields:
+            if f not in exclude:
+                self[f]
