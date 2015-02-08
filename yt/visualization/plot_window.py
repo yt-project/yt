@@ -950,7 +950,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
 
     Given a ds object, an axis to slice along, and a field name
-    string, this will return a PWViewrMPL object containing
+    string, this will return a PWViewerMPL object containing
     the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1077,7 +1077,7 @@ class ProjectionPlot(PWViewerMPL):
     r"""Creates a projection plot from a dataset
 
     Given a ds object, an axis to project along, and a field name
-    string, this will return a PWViewrMPL object containing
+    string, this will return a PWViewerMPL object containing
     the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1239,7 +1239,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     r"""Creates an off axis slice plot from a dataset
 
     Given a ds object, a normal vector defining a slicing plane, and
-    a field name string, this will return a PWViewrMPL object
+    a field name string, this will return a PWViewerMPL object
     containing the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1357,7 +1357,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     r"""Creates an off axis projection plot from a dataset
 
     Given a ds object, a normal vector to project along, and
-    a field name string, this will return a PWViewrMPL object
+    a field name string, this will return a PWViewerMPL object
     containing the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1473,15 +1473,23 @@ class ParticleAxisAlignedDummyDataSource(object):
     _type_name = 'Particle'
     _key_fields = []
 
-    def __init__(self, center, ds, axis, width, fields):
+    def __init__(self, center, ds, axis, width, fields,
+                 field_parameters=None, data_source=None):
         self.center = center
         self.ds = ds
         self.axis = axis
         self.width = width
 
+        if field_parameters is None:
+            self.field_parameters = {}
+        else:
+            self.field_parameters = field_parameters
+
         LE = center - 0.5*YTArray(width)
         RE = center + 0.5*YTArray(width)
-        self.dd = ds.region(center, LE, RE, fields)
+        self.dd = ds.region(center, LE, RE, fields,
+                            field_parameters=field_parameters,
+                            data_source=data_source)
 
         fields = self.dd._determine_fields(fields)
         self.fields = fields
@@ -1501,10 +1509,10 @@ class ParticleAxisAlignedDummyDataSource(object):
 
 
 class AxisAlignedParticlePlot(PWViewerMPL):
-    r"""Creates a slice plot from a dataset
+    r"""Creates a particle plot from a dataset
 
     Given a ds object, an axis to slice along, and a field name
-    string, this will return a PWViewrMPL object containing
+    string, this will return a PWViewerMPL object containing
     the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1519,7 +1527,7 @@ class AxisAlignedParticlePlot(PWViewerMPL):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
-         The name of the field(s) to be plotted.
+         The name of the particle field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
@@ -1550,6 +1558,10 @@ class AxisAlignedParticlePlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1594,12 +1606,13 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     Examples
     --------
 
-    This will save an image the the file 'sliceplot_Density
+    This will save an image the the file
+    'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-    >>> p.save('sliceplot')
+    >>> p = yt.AxisAlignedParticlePlot(ds, 2, 'particle_mass')
+    >>> p.save()
 
     """
     _plot_type = 'Particle'
@@ -1629,7 +1642,9 @@ class AxisAlignedParticlePlot(PWViewerMPL):
         width[axis] = depth[0]
 
         ParticleSource = ParticleAxisAlignedDummyDataSource(center, ds, axis,
-                                                            width, fields)
+                                        width, fields,
+                                        field_parameters=field_parameters,
+                                        data_source=data_source)
 
         PWViewerMPL.__init__(self, ParticleSource, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
