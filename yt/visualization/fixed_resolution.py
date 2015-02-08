@@ -437,12 +437,16 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
     This object is a subclass of
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
-    that supports off axis projections.  This calls the volume renderer.
+    that supports particle plots. It splats points onto an image
+    buffer.
 
     """
     def __init__(self, data_source, bounds, buff_size, antialias=True,
                  periodic=False):
         self.data = {}
+        self._particle_spatial_fields = ['particle_position_x',
+                                         'particle_position_y',
+                                         'particle_position_z']
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size,
                                        antialias, periodic)
 
@@ -459,15 +463,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             bounds.append(b)
 
         axis = self.data_source.axis
-        x_coord = self.ds.coordinates.x_axis[axis]
-        y_coord = self.ds.coordinates.y_axis[axis]
-
-        particle_spatial_fields = ['particle_position_x',
-                                   'particle_position_y',
-                                   'particle_position_z']
-
-        x_field = particle_spatial_fields[x_coord]
-        y_field = particle_spatial_fields[y_coord]
+        x_field, y_field = self._get_particle_axes_fields(axis)
 
         x_data = self.data_source.dd[x_field]
         y_data = self.data_source.dd[y_field]
@@ -484,6 +480,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         self.data[item] = ia
         return self.data[item]
 
+    # over-ride the base class version, since we don't want to exclude 
+    # particle fields
     def _get_data_source_fields(self):
         exclude = self.data_source._key_fields + list(self._exclude_fields)
         fields = getattr(self.data_source, "fields", [])
@@ -491,3 +489,12 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         for f in fields:
             if f not in exclude:
                 self[f]
+
+    def _get_particle_axes_fields(self, axis):
+        x_coord = self.ds.coordinates.x_axis[axis]
+        y_coord = self.ds.coordinates.y_axis[axis]
+
+        x_field = self._particle_spatial_fields[x_coord]
+        y_field = self._particle_spatial_fields[y_coord]
+
+        return x_field, y_field
