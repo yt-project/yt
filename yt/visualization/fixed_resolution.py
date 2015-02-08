@@ -412,7 +412,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
 
     def __getitem__(self, item):
-        import pdb; pdb.set_trace()
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
