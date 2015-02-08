@@ -938,6 +938,13 @@ class PWViewerMPL(PlotWindow):
                 ignored += ['VelocityCallback','MagFieldCallback',
                             'QuiverCallback','CuttingQuiverCallback',
                             'StreamlineCallback']
+            if self._plot_type == 'Particle':
+                ignored += ['HopCirclesCallback','HopParticleCallback',
+                            'ParticleCallback','ClumpContourCallback',
+                            'GridBoundaryCallback', 'VelocityCallback',
+                            'MagFieldCallback', 'QuiverCallback',
+                            'CuttingQuiverCallback', 'StreamlineCallback',
+                            'ContourCallback', ]
             if key in ignored:
                 continue
             cbname = callback_registry[key]._type_name
