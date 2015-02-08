@@ -180,9 +180,6 @@ class FixedResolutionBuffer(object):
             label = fname
         return label
 
-
-
-
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
@@ -469,18 +466,43 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         y_data = self.data_source.dd[y_field]
         data = self.data_source.dd[item]
 
+        # convert to pixels
         px = (x_data - self.bounds[0]) / (self.bounds[1] - self.bounds[0])
         py = (y_data - self.bounds[2]) / (self.bounds[3] - self.bounds[2])
 
+        # select only the particles that will actually show up in the image
+        mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),
+                              np.logical_and(py >= 0.0, py <= 1.0))
+        indices = np.where(mask)
+
+        # splat particles
         buff = np.zeros(self.buff_size)
-        add_points_to_greyscale_image(buff, px, py, data)
+        add_points_to_greyscale_image(buff,
+                                      px[indices],
+                                      py[indices],
+                                      data[indices])
         ia = ImageArray(buff, input_units=data.units,
                         info=self._get_info(item))
+
+        # divide by the weight_field, if needed
+        weight_field = self.data_source.weight_field
+        if weight_field is not None:
+            weight_data = self.data_source.dd[weight_field]
+            weight_buff = np.zeros(self.buff_size)
+            add_points_to_greyscale_image(weight_buff,
+                                          px[indices],
+                                          py[indices],
+                                          weight_data[indices])
+            weight_array = ImageArray(weight_buff,
+                                      input_units=weight_data.units,
+                                      info=self._get_info(item))
+
+            ia /= weight_array
 
         self.data[item] = ia
         return self.data[item]
 
-    # over-ride the base class version, since we don't want to exclude 
+    # over-ride the base class version, since we don't want to exclude
     # particle fields
     def _get_data_source_fields(self):
         exclude = self.data_source._key_fields + list(self._exclude_fields)
