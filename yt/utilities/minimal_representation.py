@@ -51,6 +51,8 @@ class MinimalRepresentation(object):
         if hasattr(obj, "ds"):
             self.output_hash = obj.ds._hash()
             self._ds_mrep = obj.ds._mrep
+        if hasattr(obj, "data_source"):
+            self.data_source_hash = obj.data_source._hash
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
