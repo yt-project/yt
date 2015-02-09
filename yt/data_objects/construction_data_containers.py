@@ -89,11 +89,11 @@ class YTStreamlineBase(YTSelectionContainer1D):
     --------
 
     >>> from yt.visualization.api import Streamlines
-    >>> streamlines = Streamlines(ds, [0.5]*3) 
+    >>> streamlines = Streamlines(ds, [0.5]*3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
     >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-    
+
     """
     _type_name = "streamline"
     _con_args = ('positions')
@@ -125,15 +125,15 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
     def _get_data_from_grid(self, grid, field):
         # No child masking here; it happens inside the mask cut
-        mask = self._get_cut_mask(grid) 
+        mask = self._get_cut_mask(grid)
         if field == 'dts': return self._dts[grid.id]
         if field == 't': return self._ts[grid.id]
         return grid[field].flat[mask]
-        
+
 
     def _get_cut_mask(self, grid):
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
-                         np.all(self.positions <= grid.RightEdge, axis=1) 
+                         np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
         mask = np.zeros(points_in_grid.sum(), dtype='int')
         dts = np.zeros(points_in_grid.sum(), dtype='float64')
@@ -197,7 +197,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         WARNING: The "sum" option should only be used for uniform resolution grid
         datasets, as other datasets may result in unphysical images.
     style : string, optional
-        The same as the method keyword.  Deprecated as of version 3.0.2.  
+        The same as the method keyword.  Deprecated as of version 3.0.2.
         Please use method keyword instead.
     field_parameters : dict of items
         Values to be passed as field parameters that can be
@@ -216,11 +216,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
-                 style = None, method = "integrate", 
+                 style = None, method = "integrate",
                  field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
-        # keyword.  TODO: Remove this keyword and this check at some point in 
+        # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
         if style is not None:
             method = style
@@ -250,7 +250,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self.weight_field = self._determine_fields(weight_field)[0]
 
         if not self.deserialize():
-        self.get_data(field)
+            self.get_data(field)
             self.serialize()
 
     @property
@@ -321,7 +321,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._initialize_projected_units(fields)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io", local_only = True)): 
+                                          chunk_fields, "io", local_only = True)):
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
@@ -449,9 +449,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
 class YTCoveringGridBase(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
-    resolution.  Left edge should align with a cell boundary, but 
+    resolution.  Left edge should align with a cell boundary, but
     defaults to the closest cell boundary.
-    
+
     Parameters
     ----------
     level : int
@@ -481,7 +481,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                          ("index", "z"))
     _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
-                 ds = None, num_ghost_zones = 0, use_pbar = True, 
+                 ds = None, num_ghost_zones = 0, use_pbar = True,
                  field_parameters = None):
         if field_parameters is None:
             center = None
@@ -734,7 +734,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
     is yt-generated or from the simulation data.  For example, arbitrary boxes
     around particles can be drawn and particle deposition fields can be
     created.  This object will refuse to generate any fluid fields.
-    
+
     Parameters
     ----------
     left_edge : array_like
@@ -806,7 +806,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     fill the region to level 1, replacing any cells actually
     covered by level 1 data, and then recursively repeating this
     process until it reaches the specified `level`.
-    
+
     Parameters
     ----------
     level : int
@@ -915,8 +915,8 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
-        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64') 
-        input_left = (level_state.old_global_startindex + 0.5) * rf 
+        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64')
+        input_left = (level_state.old_global_startindex + 0.5) * rf
         width = (self.ActiveDimensions*ls.dds)
         output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
         level_state.current_dims = output_dims
@@ -943,7 +943,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
     <http://meshlab.sf.net>`_.)  The object has the properties .vertices
     and will sample values if a field is requested.  The values are
     interpolated to the center of a given face.
-    
+
     Parameters
     ----------
     data_source : YTSelectionContainer
@@ -1027,7 +1027,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 self[fields] = samples
             elif sample_type == "vertex":
                 self.vertex_samples[fields] = samples
-        
+
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        mask, sample_values = None,
                                        sample_type = "face"):
@@ -1061,7 +1061,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field_x : string
@@ -1131,25 +1131,25 @@ class YTSurfaceBase(YTSelectionContainer3D):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
- 
+
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae", 
-                   color_log = True, emit_log = True, plot_index = None, 
-                   color_field_max = None, color_field_min = None, 
+                   color_field = None, emit_field = None, color_map = "algae",
+                   color_log = True, emit_log = True, plot_index = None,
+                   color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
         r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
-        and an .mtl file, both with the general 'filename' as a prefix.  
-        The .obj file points to the .mtl file in its header, so if you move the 2 
-        files, make sure you change the .obj header to account for this. ALSO NOTE: 
-        the emit_field needs to be a combination of the other 2 fields used to 
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
+        and an .mtl file, both with the general 'filename' as a prefix.
+        The .obj file points to the .mtl file in its header, so if you move the 2
+        files, make sure you change the .obj header to account for this. ALSO NOTE:
+        the emit_field needs to be a combination of the other 2 fields used to
         have the emissivity track with the color.
 
         Parameters
          ----------
         filename : string
             The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files 
+            Note - there are no file extentions included - both obj & mtl files
             are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1194,9 +1194,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', dist_fac = distf, 
-        ...                      plot_index = i, color_field_max = ma, 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', dist_fac = distf,
+        ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
@@ -1208,8 +1208,8 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', emit_field = 'Emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1224,12 +1224,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field, 
-                             color_map, color_log, emit_log, plot_index, color_field_max, 
+        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field,
+                             color_map, color_log, emit_log, plot_index, color_field_max,
                              color_field_min, emit_field_max, emit_field_min)
 
-    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
-                           color_field_max, color_field_min, color_field, 
+    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr,
+                           color_field_max, color_field_min, color_field,
                            emit_field_max, emit_field_min, emit_field): # this now holds for obj files
         from sys import version
         if color_field is not None:
@@ -1241,7 +1241,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 if version >= '3':
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
-                mi = cs.min()  
+                mi = cs.min()
             else:
                 mi = color_field_min
                 if color_log: mi = np.log10(mi)
@@ -1252,7 +1252,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 ma = cs.max()
             else:
                 ma = color_field_max
-                if color_log: ma = np.log10(ma)            
+                if color_log: ma = np.log10(ma)
             cs = (cs - mi) / (ma - mi)
         else:
             cs[:] = 1.0
@@ -1287,10 +1287,10 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
 
     @parallel_root_only
-    def _export_obj(self, filename, transparency, dist_fac = None, 
-                    color_field = None, emit_field = None, color_map = "algae", 
-                    color_log = True, emit_log = True, plot_index = None, 
-                    color_field_max = None, color_field_min = None, 
+    def _export_obj(self, filename, transparency, dist_fac = None,
+                    color_field = None, emit_field = None, color_map = "algae",
+                    color_log = True, emit_log = True, plot_index = None,
+                    color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
         from sys import version
         from io import IOBase
@@ -1337,9 +1337,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         if emit_field is not None:
             em = self[emit_field]
         else:
-            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
-        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
-                                color_field_max, color_field_min,  color_field, 
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
+                                color_field_max, color_field_min,  color_field,
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
@@ -1356,14 +1356,14 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 w = bounds[i][1] - bounds[i][0]
                 np.divide(tmp, w, tmp)
                 np.subtract(tmp, 0.5, tmp) # Center at origin.
-                v[ax][:] = tmp   
+                v[ax][:] = tmp
         else:
             for i, ax in enumerate("xyz"):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp
         #(1) write all colors per surface to mtl file
-        for i in range(0,lut[0].shape[0]): 
+        for i in range(0,lut[0].shape[0]):
             omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
             fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
             fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
@@ -1375,7 +1375,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
         for i in range(0,self.vertices.shape[1]):
-            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
+            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))
         fobj.write("#done defining vertices\n\n")
         #(3) define faces and materials for each face
         for i in range(0,self.triangles.shape[0]):
@@ -1388,23 +1388,23 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
 
     def export_blender(self,  transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae", 
-                   color_log = True, emit_log = True, plot_index = None, 
-                   color_field_max = None, color_field_min = None, 
+                   color_field = None, emit_field = None, color_map = "algae",
+                   color_log = True, emit_log = True, plot_index = None,
+                   color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
         r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
-        and an .mtl file, both with the general 'filename' as a prefix.  
-        The .obj file points to the .mtl file in its header, so if you move the 2 
-        files, make sure you change the .obj header to account for this. ALSO NOTE: 
-        the emit_field needs to be a combination of the other 2 fields used to 
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
+        and an .mtl file, both with the general 'filename' as a prefix.
+        The .obj file points to the .mtl file in its header, so if you move the 2
+        files, make sure you change the .obj header to account for this. ALSO NOTE:
+        the emit_field needs to be a combination of the other 2 fields used to
         have the emissivity track with the color.
 
         Parameters
         ----------
         filename : string
             The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files 
+            Note - there are no file extentions included - both obj & mtl files
             are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1449,9 +1449,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', dist_fac = distf, 
-        ...                      plot_index = i, color_field_max = ma, 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', dist_fac = distf,
+        ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
@@ -1463,8 +1463,8 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', emit_field = 'Emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1479,17 +1479,17 @@ class YTSurfaceBase(YTSelectionContainer3D):
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, 
-                                                                transparency, dist_fac, color_field, emit_field, 
-                                                                color_map, color_log, emit_log, plot_index, 
-                                                                color_field_max, 
+        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender,
+                                                                transparency, dist_fac, color_field, emit_field,
+                                                                color_map, color_log, emit_log, plot_index,
+                                                                color_field_max,
                                                                 color_field_min, emit_field_max, emit_field_min)
         return fullverts, colors, alpha, emisses, colorindex
 
-    def _export_blender(self, transparency, dist_fac = None, 
-                    color_field = None, emit_field = None, color_map = "algae", 
-                    color_log = True, emit_log = True, plot_index = None, 
-                    color_field_max = None, color_field_min = None, 
+    def _export_blender(self, transparency, dist_fac = None,
+                    color_field = None, emit_field = None, color_map = "algae",
+                    color_log = True, emit_log = True, plot_index = None,
+                    color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
         import io
         from sys import version
@@ -1509,9 +1509,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         if emit_field is not None:
             em = self[emit_field]
         else:
-            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
-        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
-                                color_field_max, color_field_min, color_field, 
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
+                                color_field_max, color_field_min, color_field,
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
@@ -1528,12 +1528,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 w = bounds[i][1] - bounds[i][0]
                 np.divide(tmp, w, tmp)
                 np.subtract(tmp, 0.5, tmp) # Center at origin.
-                v[ax][:] = tmp   
+                v[ax][:] = tmp
         else:
             for i, ax in enumerate("xyz"):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
-                v[ax][:] = tmp        
+                v[ax][:] = tmp
         return  v, lut, transparency, emiss, f['cind']
 
 
@@ -1640,7 +1640,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
             w = bounds[i][1] - bounds[i][0]
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
-            v[ax][:] = tmp 
+            v[ax][:] = tmp
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
