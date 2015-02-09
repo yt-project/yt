@@ -442,7 +442,6 @@ class YTDataContainer(object):
     @property
     def _hash(self):
         s = "%s" % self
-        print "!!!!! " + s
         try:
             import hashlib
             return hashlib.md5(s.encode('utf-8')).hexdigest()
