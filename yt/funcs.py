@@ -104,7 +104,7 @@ def compare_dicts(dict1, dict2):
     if not set(dict1) <= set(dict2):
         return False
     for key in dict1.keys():
-        if dict1[key] is not None:
+        if dict1[key] is not None and dict2[key] is not None:
             for a, b in zip(dict1[key], dict2[key]):
                 if a != b:
                     return False
