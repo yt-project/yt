@@ -249,7 +249,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
 
-        if not self.deserialize():
+        field = field or []
+        field = self._determine_fields(ensure_list(field))
+
+        if not self.deserialize(field):
             self.get_data(field)
             self.serialize()
 
@@ -268,7 +271,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
-    def deserialize(self):
+    def deserialize(self, fields):
         if not ytcfg.get("yt", "serialize"):
             return False
 
@@ -276,18 +279,17 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         store_file = self.ds.parameter_filename + '.yt'
         if os.path.isfile(store_file):
             mrep = self._mrep.load(store_file)
-            field = field or []
-            field = self._determine_fields(ensure_list(field))
             deserialized_successfully = \
                 (mrep.data_source_hash == self.data_source._hash) and \
                 (mrep.axis == self.axis) and \
-                (mrep.field == field) and \
+                (mrep.field == fields) and \
                 (mrep.center == self.center) and \
                 compare_dicts(self.field_parameters, mrep.field_parameters) and \
-                (mrep.proj_style == self.proj_style)
+                (mrep.method == self.method)
 
             if deserialized_successfully:
-                for field, field_data in temp.field_data.items():
+                mylog.info("Using previous projection data from %s" % store_file)
+                for field, field_data in mrep.field_data.items():
                     self[field] = field_data
 
         return deserialized_successfully
