@@ -22,6 +22,7 @@ import shelve
 from functools import wraps
 import fileinput
 from re import finditer
+import os.path
 
 from yt.config import ytcfg
 from yt.funcs import *
@@ -247,7 +248,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self.weight_field = weight_field
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
+
+        if not self.deserialize():
         self.get_data(field)
+            self.serialize()
 
     @property
     def blocks(self):
@@ -263,6 +267,30 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def hub_upload(self):
         self._mrep.upload()
+
+    def deserialize(self):
+        deserialized_successfully = False
+        store_file = self.ds.parameter_filename + '.yt'
+        if os.path.isfile(store_file):
+            mrep = self._mrep.load(store_file)
+            field = field or []
+            field = self._determine_fields(ensure_list(field))
+            deserialized_successfully = \
+                (mrep.data_source_hash == self.data_source._hash) and \
+                (mrep.axis == self.axis) and \
+                (mrep.field == field) and \
+                (mrep.center == self.center) and \
+                compare_dicts(self.field_parameters, mrep.field_parameters) and \
+                (mrep.proj_style == self.proj_style)
+
+            if deserialized_successfully:
+                for field, field_data in temp.field_data.items():
+                    self[field] = field_data
+
+        return deserialized_successfully
+
+    def serialize(self):
+        self._mrep.dump(self.ds.parameter_filename + '.yt')
 
     def _get_tree(self, nvals):
         xax = self.ds.coordinates.x_axis[self.axis]

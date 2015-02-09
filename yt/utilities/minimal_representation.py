@@ -182,6 +182,10 @@ class MinimalMappableData(MinimalRepresentation):
 class MinimalProjectionData(MinimalMappableData):
     type = 'proj'
     vm_type = "Projection"
+    _attr_list = ("field_data", "field", "weight_field", "axis", "output_hash",
+                  "center", "proj_style", "field_parameters", "_hash",
+                  "data_source_hash")
+
 
 class MinimalSliceData(MinimalMappableData):
     type = 'slice'
