@@ -269,6 +269,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._mrep.upload()
 
     def deserialize(self):
+        if not ytcfg.get("yt", "serialize"):
+            return False
+
         deserialized_successfully = False
         store_file = self.ds.parameter_filename + '.yt'
         if os.path.isfile(store_file):
@@ -290,6 +293,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return deserialized_successfully
 
     def serialize(self):
+        if not ytcfg.get("yt", "serialize"):
+            return
         self._mrep.dump(self.ds.parameter_filename + '.yt')
 
     def _get_tree(self, nvals):
