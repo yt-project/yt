@@ -439,6 +439,16 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
         
+    @property
+    def _hash(self):
+        s = "%s" % self
+        print "!!!!! " + s
+        try:
+            import hashlib
+            return hashlib.md5(s.encode('utf-8')).hexdigest()
+        except ImportError:
+            return s
+
     def __reduce__(self):
         args = tuple([self.ds._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +
