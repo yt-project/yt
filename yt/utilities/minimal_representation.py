@@ -16,6 +16,7 @@ Skeleton objects that represent a few fundamental yt data types.
 import numpy as np
 import abc
 import json
+import cPickle as pickle
 from yt.extern.six.moves import urllib
 from tempfile import TemporaryFile
 from yt.config import ytcfg
@@ -136,6 +137,14 @@ class MinimalRepresentation(object):
         rv = json.loads(urllib.request.urlopen(request).read())
         mylog.info("Upload succeeded!  View here: %s", rv['url'])
         return rv
+
+    def load(self, storage):
+        return pickle.load(open(storage, 'r'))
+
+    def dump(self, storage):
+        with open(storage, 'w') as fh:
+            pickle.dump(self, fh)
+
 
 class FilteredRepresentation(MinimalRepresentation):
     def _generate_post(self):
