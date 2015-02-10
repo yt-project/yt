@@ -508,7 +508,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         tr *= self.level
         return tr
 
-    def _sanitize_dims(dims):
+    def _sanitize_dims(self, dims):
         if not iterable(dims):
             dims = [dims]*self.ds.dimensionality
         if len(dims) != self.ds.dimensionality:
