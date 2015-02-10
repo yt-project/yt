@@ -570,9 +570,6 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            if field[0] == 'deposit':
-                fill.append(field)
-                continue
             finfo = self.ds._get_field_info(*field)
             if finfo._function.func_name == "_TranslationFunc":
                 alias[field] = finfo
