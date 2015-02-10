@@ -272,7 +272,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._mrep.upload()
 
     def deserialize(self, fields):
-        if not ytcfg.get("yt", "serialize"):
+        if not ytcfg.getboolean("yt", "serialize"):
             return False
         for field in fields:
             self[field] = None
@@ -291,7 +291,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return deserialized_successfully
 
     def serialize(self):
-        if not ytcfg.get("yt", "serialize"):
+        if not ytcfg.getboolean("yt", "serialize"):
             return
         self._mrep.store(self.ds.parameter_filename + '.yt')
 
