@@ -740,9 +740,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
         self.left_edge = self._sanitize_edge(left_edge)
         self.right_edge = self._sanitize_edge(right_edge)
-        self.ActiveDimensions = np.array(dims, dtype='int32')
-        if self.ActiveDimensions.size == 1:
-            self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
+        self.ActiveDimensions = self._sanitize_dims(dims)
         self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()
