@@ -463,18 +463,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center, ds, field_parameters)
 
         self.level = level
-
-        if not iterable(left_edge):
-            left_edge = [left_edge]*self.ds.dimensionality
-        if len(left_edge) != self.ds.dimensionality:
-            raise RuntimeError(
-                "Length of left_edge must match the dimensionality of the "
-                "dataset")
-        if hasattr(left_edge, 'units'):
-            le_units = left_edge.units
-        else:
-            le_units = 'code_length'
-        self.left_edge = self.ds.arr(left_edge, le_units)
+        self.left_edge = self._sanitize_edge(left_edge)
 
         if not iterable(dims):
             dims = [dims]*self.ds.dimensionality
@@ -524,6 +513,19 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
         tr *= self.level
         return tr
+
+    def _sanitize_edge(self, edge):
+        if not iterable(edge):
+            edge = [edge]*self.ds.dimensionality
+        if len(edge) != self.ds.dimensionality:
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
@@ -737,8 +739,8 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         else:
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
-        self.left_edge = np.array(left_edge)
-        self.right_edge = np.array(right_edge)
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.right_edge = self._sanitize_edge(right_edge)
         self.ActiveDimensions = np.array(dims, dtype='int32')
         if self.ActiveDimensions.size == 1:
             self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
