@@ -274,7 +274,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def deserialize(self, fields):
         if not ytcfg.get("yt", "serialize"):
             return False
-
+        for field in fields:
+            self[field] = None
         deserialized_successfully = False
         store_file = self.ds.parameter_filename + '.yt'
         if os.path.isfile(store_file):
@@ -284,6 +285,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 mylog.info("Using previous projection data from %s" % store_file)
                 for field, field_data in self._mrep.field_data.items():
                     self[field] = field_data
+        if not deserialized_successfully:
+            for field in fields:
+                del self[field]
         return deserialized_successfully
 
     def serialize(self):
