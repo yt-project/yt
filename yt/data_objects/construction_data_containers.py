@@ -278,26 +278,18 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         deserialized_successfully = False
         store_file = self.ds.parameter_filename + '.yt'
         if os.path.isfile(store_file):
-            mrep = self._mrep.load(store_file)
-            deserialized_successfully = \
-                (mrep.data_source_hash == self.data_source._hash) and \
-                (mrep.axis == self.axis) and \
-                (mrep.field == fields) and \
-                (mrep.center == self.center) and \
-                compare_dicts(self.field_parameters, mrep.field_parameters) and \
-                (mrep.method == self.method)
+            deserialized_successfully = self._mrep.restore(store_file, self.ds)
 
             if deserialized_successfully:
                 mylog.info("Using previous projection data from %s" % store_file)
-                for field, field_data in mrep.field_data.items():
+                for field, field_data in self._mrep.field_data.items():
                     self[field] = field_data
-
         return deserialized_successfully
 
     def serialize(self):
         if not ytcfg.get("yt", "serialize"):
             return
-        self._mrep.dump(self.ds.parameter_filename + '.yt')
+        self._mrep.store(self.ds.parameter_filename + '.yt')
 
     def _get_tree(self, nvals):
         xax = self.ds.coordinates.x_axis[self.axis]
