@@ -25,6 +25,9 @@ from yt.config import ytcfg
 from yt.funcs import *
 from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
+from yt.units.yt_array import \
+     YTArray, \
+     YTQuantity
 
 from .poster.streaminghttp import register_openers
 from .poster.encode import multipart_encode
@@ -33,7 +36,6 @@ register_openers()
 def _serialize_to_h5(g, cdict):
     for item in cdict:
         if isinstance(cdict[item], (YTQuantity, YTArray)):
-            g.attrs[item] = "dataset"
             g[item] = cdict[item].d
             g[item].attrs["units"] = str(cdict[item].units)
         elif isinstance(cdict[item], dict):
@@ -41,8 +43,29 @@ def _serialize_to_h5(g, cdict):
         elif cdict[item] is None:
             g[item] = "None"
         else:
-            g.attrs[item] = cdict[item]
+            g[item] = cdict[item]
 
+def _deserialize_from_h5(g, ds):
+    result = {}
+    for item in g:
+        if item == "chunks":
+            continue
+        if "units" in g[item].attrs:
+            if iterable(g[item]):
+                result[item] = ds.arr(g[item][:], g[item].attrs["units"])
+            else:
+                result[item] = ds.quan(g[item][()],
+                                           g[item].attrs["units"])
+        elif isinstance(g[item], h5.Group):
+            result[item] = _deserialize_from_h5(g[item], ds)
+        elif g[item] == "None":
+            result[item] = None
+        else:
+            try:
+                result[item] = g[item][:]   # try array
+            except ValueError:
+                result[item] = g[item][()]  # fallback to scalar
+    return result
 
 class UploaderBar(object):
     pbar = None
@@ -102,9 +125,9 @@ class MinimalRepresentation(object):
         return cls(cc)
 
     def store(self, storage):
-        metadata, (final_name, chunks) = self._generate_post()
         if hasattr(self, "_ds_mrep"):
             self._ds_mrep.store(storage)
+        metadata, (final_name, chunks) = self._generate_post()
         metadata['obj_type'] = self.type
         with h5.File(storage) as h5f:
             dset = str(uuid4())[:8]
@@ -124,6 +147,8 @@ class MinimalRepresentation(object):
                     else:
                         g.create_dataset(fname, data=fdata, compression="lzf")
 
+    def restore(self, storage, ds):
+        pass
 
     def upload(self):
         api_key = ytcfg.get("yt","hub_api_key")
@@ -220,12 +245,40 @@ class MinimalMappableData(MinimalRepresentation):
         chunks = [(arr, self.field_data[arr]) for arr in self.field_data]
         return (metadata, ('field_data', chunks))
 
+    def _read_chunks(self, g, ds):
+        for fname in g.keys():
+            if '*' in fname:
+                arr = tuple(fname.split('*'))
+            else:
+                arr = fname
+            try:
+                self.field_data[arr] = ds.arr(g[fname][:],
+                                              g[fname].attrs["units"])
+            except KeyError:
+                self.field_data[arr] = g[fname][:]
+
 class MinimalProjectionData(MinimalMappableData):
     type = 'proj'
     vm_type = "Projection"
     _attr_list = ("field_data", "field", "weight_field", "axis", "output_hash",
-                  "center", "method", "field_parameters", "_hash",
+                  "center", "method", "field_parameters",
                   "data_source_hash")
+
+    def restore(self, storage, ds):
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.restore(storage, ds)
+        metadata, (final_name, chunks) = self._generate_post()
+        with h5.File(storage, 'r') as h5f:
+            for dset in h5f:
+                a = _deserialize_from_h5(h5f[dset], ds)
+                # decide if serialized projection is the same as current one
+                # following if statement is definitely not sufficient
+                if a["obj_type"] == self.type and \
+                        a["output_hash"] == self.output_hash and \
+                        a["data_source_hash"] == self.data_source_hash:
+                    self._read_chunks(h5f[dset]["chunks"], ds)
+                    return True
+        return False
 
 
 class MinimalSliceData(MinimalMappableData):
