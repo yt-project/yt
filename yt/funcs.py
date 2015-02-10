@@ -105,6 +105,11 @@ def compare_dicts(dict1, dict2):
         return False
     for key in dict1.keys():
         if dict1[key] is not None and dict2[key] is not None:
+            if isinstance(dict1[key], dict) and \
+                    not compare_dicts(dict1[key], dict2[key]):
+                return False
+            else:
+                continue
             for a, b in zip(dict1[key], dict2[key]):
                 if a != b:
                     return False
