@@ -17,6 +17,8 @@ import numpy as np
 import abc
 import json
 import cPickle as pickle
+import h5py as h5
+from uuid import uuid4
 from yt.extern.six.moves import urllib
 from tempfile import TemporaryFile
 from yt.config import ytcfg
@@ -27,6 +29,20 @@ from yt.utilities.exceptions import *
 from .poster.streaminghttp import register_openers
 from .poster.encode import multipart_encode
 register_openers()
+
+def _serialize_to_h5(g, cdict):
+    for item in cdict:
+        if isinstance(cdict[item], (YTQuantity, YTArray)):
+            g.attrs[item] = "dataset"
+            g[item] = cdict[item].d
+            g[item].attrs["units"] = str(cdict[item].units)
+        elif isinstance(cdict[item], dict):
+            _serialize_to_h5(g.create_group(item), cdict[item])
+        elif cdict[item] is None:
+            g[item] = "None"
+        else:
+            g.attrs[item] = cdict[item]
+
 
 class UploaderBar(object):
     pbar = None
@@ -84,6 +100,30 @@ class MinimalRepresentation(object):
         for a, v in metadata.values():
             setattr(cc, a, v)
         return cls(cc)
+
+    def store(self, storage):
+        metadata, (final_name, chunks) = self._generate_post()
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.store(storage)
+        metadata['obj_type'] = self.type
+        with h5.File(storage) as h5f:
+            dset = str(uuid4())[:8]
+            grp = h5f.create_group(dset)
+            _serialize_to_h5(h5f[dset], metadata)
+            if len(chunks) > 0:
+                g = h5f[dset].create_group('chunks')
+                g.attrs['final_name'] = final_name
+                for fname, fdata in chunks:
+                    if isinstance(fname, (tuple, list)):
+                        fname = "*".join(fname)
+
+                    if isinstance(fdata, (YTQuantity, YTArray)):
+                        g.create_dataset(fname, data=fdata.d,
+                                         compression="lzf")
+                        g[fname].attrs["units"] = str(fdata.units)
+                    else:
+                        g.create_dataset(fname, data=fdata, compression="lzf")
+
 
     def upload(self):
         api_key = ytcfg.get("yt","hub_api_key")
@@ -144,6 +184,7 @@ class MinimalRepresentation(object):
     def dump(self, storage):
         with open(storage, 'w') as fh:
             pickle.dump(self, fh)
+
 
 
 class FilteredRepresentation(MinimalRepresentation):
