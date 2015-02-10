@@ -270,12 +270,8 @@ class MinimalProjectionData(MinimalMappableData):
         metadata, (final_name, chunks) = self._generate_post()
         with h5.File(storage, 'r') as h5f:
             for dset in h5f:
-                a = _deserialize_from_h5(h5f[dset], ds)
-                # decide if serialized projection is the same as current one
-                # following if statement is definitely not sufficient
-                if a["obj_type"] == self.type and \
-                        a["output_hash"] == self.output_hash and \
-                        a["data_source_hash"] == self.data_source_hash:
+                stored_metadata = _deserialize_from_h5(h5f[dset], ds)
+                if compare_dicts(metadata, stored_metadata):
                     self._read_chunks(h5f[dset]["chunks"], ds)
                     return True
         return False
