@@ -180,6 +180,22 @@ def test_attributes_wt():
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
 
+class TestSetWidth(unittest.TestCase):
+
+    ds = None
+
+    def setUp(self):
+        if self.ds is None:
+            self.ds = fake_random_ds(64)
+            self.slc = SlicePlot(self.ds, 0, "density")
+
+    def test_hide_show_axes(self):
+        self.slc.hide_axes()
+        self.slc.show_axes()
+
+    def test_hide_show_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.show_colorbar()
 
 class TestSetWidth(unittest.TestCase):
 
