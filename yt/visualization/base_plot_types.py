@@ -181,7 +181,7 @@ class ImagePlotMPL(PlotMPL):
 
         top_buff_size = self._top_buff_size
 
-        if self._naked_image:
+        if not self._draw_axes and not self._draw_colorbar:
             x_axis_size = 0.0
             y_axis_size = 0.0
             cb_size = 0.0
@@ -199,9 +199,9 @@ class ImagePlotMPL(PlotMPL):
         # axrect is the rectangle defining the area of the 
         # axis object of the plot.  Its range goes from 0 to 1 in 
         # x and y directions.  The first two values are the x,y 
-        # start values of the axis object (upper left corner), and the 
+        # start values of the axis object (lower left corner), and the 
         # second two values are the size of the axis object.  To get
-        # the lower right corner, add the first x,y to the second x,y.
+        # the upper right corner, add the first x,y to the second x,y.
         axrect = (
             x_frac_widths[0],
             y_frac_widths[0],
@@ -250,18 +250,6 @@ class ImagePlotMPL(PlotMPL):
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
 
-    def _toggle_naked(self, choice):
-        """
-        Turn on/off displaying the image alone (without anything beyond the
-        borders of the image).
-
-        choice = True or False
-        """
-        self._naked_image = choice
-        self._toggle_axes(not choice)
-        self._toggle_colorbar(not choice)
-        return self
-
     def hide_axes(self):
         """
         Hide the axes for a plot including ticks and labels
@@ -288,21 +276,6 @@ class ImagePlotMPL(PlotMPL):
         Show the colorbar for a plot including ticks and labels
         """
         self._toggle_colorbar(True)
-        return self
-
-    def hide_all(self):
-        """
-        Plot only the image itself by narrowing the image to exclude 
-        axis ticks, axis labels, and the colorbar.
-        """
-        self._toggle_naked(True)
-        return self
-
-    def show_all(self):
-        """
-        Plot both the colorbar and the axis ticks and labels
-        """
-        self._toggle_naked(False)
         return self
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,

@@ -1725,7 +1725,6 @@ class WindowPlotMPL(ImagePlotMPL):
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
-        self._naked_image = False
         self._fontsize = fontsize
         self._figure_size = figure_size
 
