@@ -1,7 +1,7 @@
 from yt.testing import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
-from yt.frontends.stream.api import load_amr_grids, load_particles
+from yt.frontends.stream.api import load_particles
 
 def setup():
     from yt.config import ytcfg
@@ -100,8 +100,9 @@ def test_arbitrary_grid():
             dims = np.array([ncells, ncells, ncells])
 
             dds = (RE - LE) / dims
-            volume = np.product(dds)
+            volume = ds.quan(np.product(dds), 'cm**3')
 
             obj = ds.arbitrary_grid(LE, RE, dims)
-            yield assert_equal(obj["deposit", "all_density"].sum() * volume,
-                               ds.quan(1.0, 'g / cm**3'))
+            deposited_mass = obj["deposit", "all_density"].sum() * volume
+
+            yield assert_equal, deposited_mass, ds.quan(1.0, 'g')
