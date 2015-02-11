@@ -114,8 +114,12 @@ def get_window_parameters(axis, center, width, ds):
         if axis == 2:
             # latitude slice
             width = ds.arr([360, 180], "code_length")
-        else:
+        elif axis == 0:
             width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
+                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
+            center[2] = 0.0
+        elif axis == 1:
+            width = [(ds.domain_right_edge[2] + ds.surface_height),
                      2.0*(ds.domain_right_edge[2] + ds.surface_height)]
             center[2] = 0.0
     else:
