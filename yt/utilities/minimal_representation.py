@@ -26,12 +26,13 @@ from yt.funcs import *
 from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
 from yt.units.yt_array import \
-     YTArray, \
-     YTQuantity
+    YTArray, \
+    YTQuantity
 
 from .poster.streaminghttp import register_openers
 from .poster.encode import multipart_encode
 register_openers()
+
 
 def _serialize_to_h5(g, cdict):
     for item in cdict:
@@ -45,6 +46,7 @@ def _serialize_to_h5(g, cdict):
         else:
             g[item] = cdict[item]
 
+
 def _deserialize_from_h5(g, ds):
     result = {}
     for item in g:
@@ -55,7 +57,7 @@ def _deserialize_from_h5(g, ds):
                 result[item] = ds.arr(g[item][:], g[item].attrs["units"])
             else:
                 result[item] = ds.quan(g[item][()],
-                                           g[item].attrs["units"])
+                                       g[item].attrs["units"])
         elif isinstance(g[item], h5.Group):
             result[item] = _deserialize_from_h5(g[item], ds)
         elif g[item] == "None":
@@ -67,9 +69,11 @@ def _deserialize_from_h5(g, ds):
                 result[item] = g[item][()]  # fallback to scalar
     return result
 
+
 class UploaderBar(object):
     pbar = None
-    def __init__(self, my_name = ""):
+
+    def __init__(self, my_name=""):
         self.my_name = my_name
 
     def __call__(self, name, prog, total):
@@ -79,8 +83,10 @@ class UploaderBar(object):
         if prog == total:
             self.pbar.finish()
 
+
 class ContainerClass(object):
     pass
+
 
 @add_metaclass(abc.ABCMeta)
 class MinimalRepresentation(object):
@@ -115,7 +121,7 @@ class MinimalRepresentation(object):
 
     @property
     def _attrs(self):
-        return dict( ((attr, getattr(self, attr)) for attr in self._attr_list) )
+        return dict(((attr, getattr(self, attr)) for attr in self._attr_list))
 
     @classmethod
     def _from_metadata(cls, metadata):
@@ -151,9 +157,10 @@ class MinimalRepresentation(object):
         pass
 
     def upload(self):
-        api_key = ytcfg.get("yt","hub_api_key")
-        url = ytcfg.get("yt","hub_url")
-        if api_key == '': raise YTHubRegisterError
+        api_key = ytcfg.get("yt", "hub_api_key")
+        url = ytcfg.get("yt", "hub_url")
+        if api_key == '':
+            raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
         if hasattr(self, "_ds_mrep"):
             self._ds_mrep.upload()
@@ -166,14 +173,14 @@ class MinimalRepresentation(object):
         if len(chunks) == 0:
             chunk_info = {'chunks': []}
         else:
-            chunk_info = {'final_name' : final_name, 'chunks': []}
+            chunk_info = {'final_name': final_name, 'chunks': []}
             for cn, cv in chunks:
                 chunk_info['chunks'].append((cn, cv.size * cv.itemsize))
         metadata = json.dumps(metadata)
         chunk_info = json.dumps(chunk_info)
-        datagen, headers = multipart_encode({'metadata' : metadata,
-                                             'chunk_info' : chunk_info,
-                                             'api_key' : api_key})
+        datagen, headers = multipart_encode({'metadata': metadata,
+                                             'chunk_info': chunk_info,
+                                             'api_key': api_key})
         request = urllib.request.Request(url, datagen, headers)
         # Actually do the request, and get the response
         try:
@@ -192,12 +199,13 @@ class MinimalRepresentation(object):
             f = TemporaryFile()
             np.save(f, cv)
             f.seek(0)
-            pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i+1, len(chunks)))
-            datagen, headers = multipart_encode({'chunk_data' : f}, cb = pbar)
+            pbar = UploaderBar("%s, % 2i/% 2i" %
+                               (self.type, i + 1, len(chunks)))
+            datagen, headers = multipart_encode({'chunk_data': f}, cb=pbar)
             request = urllib.request.Request(new_url, datagen, headers)
             rv = urllib.request.urlopen(request).read()
 
-        datagen, headers = multipart_encode({'status' : 'FINAL'})
+        datagen, headers = multipart_encode({'status': 'FINAL'})
         request = urllib.request.Request(new_url, datagen, headers)
         rv = json.loads(urllib.request.urlopen(request).read())
         mylog.info("Upload succeeded!  View here: %s", rv['url'])
@@ -211,10 +219,11 @@ class MinimalRepresentation(object):
             pickle.dump(self, fh)
 
 
-
 class FilteredRepresentation(MinimalRepresentation):
+
     def _generate_post(self):
         raise RuntimeError
+
 
 class MinimalDataset(MinimalRepresentation):
     _attr_list = ("dimensionality", "refine_by", "domain_dimensions",
@@ -233,6 +242,7 @@ class MinimalDataset(MinimalRepresentation):
         metadata = self._attrs
         chunks = []
         return (metadata, (None, chunks))
+
 
 class MinimalMappableData(MinimalRepresentation):
 
@@ -256,6 +266,7 @@ class MinimalMappableData(MinimalRepresentation):
                                               g[fname].attrs["units"])
             except KeyError:
                 self.field_data[arr] = g[fname][:]
+
 
 class MinimalProjectionData(MinimalMappableData):
     type = 'proj'
@@ -282,6 +293,7 @@ class MinimalSliceData(MinimalMappableData):
     vm_type = "Slice"
     weight_field = "None"
 
+
 class MinimalImageCollectionData(MinimalRepresentation):
     type = "image_collection"
     _attr_list = ("name", "output_hash", "images", "image_metadata")
@@ -297,12 +309,13 @@ _hub_categories = ("News", "Documents", "Simulation Management",
                    "Paper Repositories", "Astrophysical Utilities",
                    "yt Scripts")
 
+
 class MinimalProjectDescription(MinimalRepresentation):
     type = "project"
     _attr_list = ("title", "url", "description", "category", "image_url")
 
     def __init__(self, title, url, description,
-                 category, image_url = ""):
+                 category, image_url=""):
         assert(category in _hub_categories)
         self.title = title
         self.url = url
@@ -314,11 +327,12 @@ class MinimalProjectDescription(MinimalRepresentation):
         metadata = self._attrs
         return (metadata, ("chunks", []))
 
+
 class MinimalNotebook(MinimalRepresentation):
     type = "notebook"
     _attr_list = ("title",)
 
-    def __init__(self, filename, title = None):
+    def __init__(self, filename, title=None):
         # First we read in the data
         if not os.path.isfile(filename):
             raise IOError(filename)
@@ -330,10 +344,12 @@ class MinimalNotebook(MinimalRepresentation):
 
     def _generate_post(self):
         metadata = self._attrs
-        chunks = [ ("notebook", self.data) ]
+        chunks = [("notebook", self.data)]
         return (metadata, ("chunks", chunks))
 
+
 class ImageCollection(object):
+
     def __init__(self, ds, name):
         self.ds = ds
         self.name = name
@@ -343,4 +359,3 @@ class ImageCollection(object):
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
         self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
-
