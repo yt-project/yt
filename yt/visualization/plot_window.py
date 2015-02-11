@@ -109,19 +109,16 @@ def get_window_parameters(axis, center, width, ds):
         elif axis == 2:
             width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
     elif ds.geometry == "geographic":
-        c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
-        center = display_center = ds.arr([0.0, 0.0, c_r], "code_length")
-        if axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-        elif axis == 0:
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
+        if axis == 0:
             width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
                      2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-            center[2] = 0.0
         elif axis == 1:
-            width = [(ds.domain_right_edge[2] + ds.surface_height),
+            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
                      2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-            center[2] = 0.0
+        elif axis == 2:
+            # latitude slice
+            width = ds.arr([360, 180], "code_length")
     else:
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
