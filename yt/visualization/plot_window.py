@@ -945,6 +945,80 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    def hide_colorbar(self, field=None):
+        """
+        Hides the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        fields : string or list of strings (optional)
+            The name of the field(s) that we want to hide the colorbar. If None
+            is provided, will default to using all fields available for this
+            object.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_colorbar()
+
+    def show_colorbar(self, field=None):
+        """
+        Shows the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        fields : string (optional)
+            The name of the field(s) that we want to hide the colorbar.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_colorbar()
+
+    def hide_axes(self, field=None):
+        """
+        Hides the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        fields : string (optional)
+            The name of the field(s) that we want to hide the axes.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_axes()
+
+    def show_axes(self, field=None):
+        """
+        Displays the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        fields : string (optional)
+            The name of the field(s) that we want to show the axes.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_axes()
+
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
 
