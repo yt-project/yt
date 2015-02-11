@@ -229,6 +229,7 @@ class ImagePlotMPL(PlotMPL):
         """
 
         self._draw_axes = choice
+        self.axes.set_frame_on(choice)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
         size, axrect, caxrect = self._get_best_layout()
