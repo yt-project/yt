@@ -188,14 +188,30 @@ class TestSetWidth(unittest.TestCase):
         if self.ds is None:
             self.ds = fake_random_ds(64)
             self.slc = SlicePlot(self.ds, 0, "density")
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
 
     def test_hide_show_axes(self):
         self.slc.hide_axes()
+        self.slc.save()
         self.slc.show_axes()
+        self.slc.save()
 
     def test_hide_show_colorbar(self):
         self.slc.hide_colorbar()
+        self.slc.save()
         self.slc.show_colorbar()
+        self.slc.save()
+
+    def test_hide_axes_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.hide_axes()
+        self.slc.save()
 
 class TestSetWidth(unittest.TestCase):
 
