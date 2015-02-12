@@ -42,8 +42,8 @@ of fixed size. This is accomplished behind the scenes using
 
 The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the 
 underlying matplotlib 
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects, making it easy to customize your plots and 
 add new annotations.  See :ref:`matplotlib-customization` for more information.
 
@@ -623,8 +623,8 @@ accessed via the ``plots`` dictionary attached to each
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
 matplotlib 
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>` 
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects.  We can access these matplotlib primitives via attributes of 
 ``dens_plot``.  
 
@@ -635,8 +635,8 @@ objects.  We can access these matplotlib primitives via attributes of
     colorbar_axes = dens_plot.cax
 
 These are the 
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`, 
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_ 
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_ 
 objects that control the actual drawing of the plot.  Arbitrary plot 
 customizations are possible by manipulating these objects.  See 
 :ref:`matplotlib-primitives` for an example.
