@@ -437,6 +437,29 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+
+.. _hiding-colorbar-and-axes:
+
+Hiding the Colorbar and Axis Labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :class:`~yt.visualization.plot_window.PlotWindow` class has functions
+attached for hiding/showing the colorbar and axes.  This allows for making
+minimal plots that focus on the data:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.hide_colorbar()
+   slc.hide_axes()
+   slc.save()
+
+See the cookbook recipe :ref:`show-hide-axes-colorbar` and the 
+`full function description ~yt.visualization.plot_window.PlotWindow` for more
+information.
+
 Fonts
 ~~~~~
 
