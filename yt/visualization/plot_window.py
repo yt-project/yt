@@ -954,10 +954,30 @@ class PWViewerMPL(PlotWindow):
         Parameters
         ----------
 
-        fields : string or list of strings (optional)
+        field : string, field tuple, or list of strings or field tuples (optional)
             The name of the field(s) that we want to hide the colorbar. If None
             is provided, will default to using all fields available for this
             object.
+
+        Examples
+        --------
+
+        This will save an image with no colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
         """
         if field is None:
             field = self.fields
@@ -969,13 +989,13 @@ class PWViewerMPL(PlotWindow):
         """
         Shows the colorbar for a plot and updates the size of the 
         plot accordingly.  Defaults to operating on all fields for a 
-        PlotWindow object.
+        PlotWindow object.  See hide_colorbar().
 
         Parameters
         ----------
 
-        fields : string (optional)
-            The name of the field(s) that we want to hide the colorbar.
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to show the colorbar.
         """
         if field is None:
             field = self.fields
@@ -992,8 +1012,28 @@ class PWViewerMPL(PlotWindow):
         Parameters
         ----------
 
-        fields : string (optional)
+        field : string, field tuple, or list of strings or field tuples (optional)
             The name of the field(s) that we want to hide the axes.
+
+        Examples
+        --------
+
+        This will save an image with no axes.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
         """
         if field is None:
             field = self.fields
@@ -1003,14 +1043,14 @@ class PWViewerMPL(PlotWindow):
 
     def show_axes(self, field=None):
         """
-        Displays the axes for a plot and updates the size of the 
+        Shows the axes for a plot and updates the size of the 
         plot accordingly.  Defaults to operating on all fields for a 
-        PlotWindow object.
+        PlotWindow object.  See hide_axes().
 
         Parameters
         ----------
 
-        fields : string (optional)
+        field : string, field tuple, or list of strings or field tuples (optional)
             The name of the field(s) that we want to show the axes.
         """
         if field is None:
