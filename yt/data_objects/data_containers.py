@@ -907,7 +907,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         if iterable(width):
             w, u = width
             width = self.ds.quan(w, input_units = u)
-        else:
+        elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')
         if height is None:
             height = width
