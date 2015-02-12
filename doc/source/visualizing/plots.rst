@@ -23,8 +23,9 @@ Slices & Projections
 --------------------
 
 If you need to take a quick look at a single simulation output, yt
-provides the ``PlotWindow`` interface for generating annotated 2D
-visualizations of simulation data.  You can create a ``PlotWindow`` plot by
+provides the :class:`~yt.visualization.plot_window.PlotWindow` interface for 
+generating annotated 2D visualizations of simulation data.  You can create a 
+:class:`~yt.visualization.plot_window.PlotWindow` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
 create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
@@ -39,9 +40,12 @@ is requested of it -- for instance, when the width or field is changed
 of fixed size. This is accomplished behind the scenes using
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`.
 
-``PlotWindow`` expose the underlying matplotlib ``figure`` and
-``axes`` objects, making it easy to customize your plots and 
-add new annotations.
+The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the 
+underlying matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+objects, making it easy to customize your plots and 
+add new annotations.  See :ref:`matplotlib-customization` for more information.
 
 .. _slice-plots:
 
@@ -582,10 +586,11 @@ function for the colorbar axis.
 Further customization via matplotlib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each ``PlotWindow`` object is really a container for plots - one plot for each
-field specified in the list of fields supplied when the plot object is
-created. The individual plots can be accessed via the ``plots`` dictionary
-attached to each ``PlotWindow`` object:
+Each :class:`~yt.visualization.plot_window.PlotWindow` object is really a 
+container for plots - one plot for each field specified in the list of fields 
+supplied when the plot object is created. The individual plots can be 
+accessed via the ``plots`` dictionary attached to each 
+:class:`~yt.visualization.plot_window.PlotWindow` object:
 
 .. code-block:: python
 
@@ -594,7 +599,11 @@ attached to each ``PlotWindow`` object:
 
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
-matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib primitives via attributes of ``dens_plot``.
+matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>` 
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+objects.  We can access these matplotlib primitives via attributes of 
+``dens_plot``.  
 
 .. code-block:: python
 
@@ -602,10 +611,12 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
     axes = dens_plot.axes
     colorbar_axes = dens_plot.cax
 
-These are the ``figure``, and ``axes`` objects
-that control the actual drawing of the plot.  Arbitrary plot customizations
-are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
-an example.
+These are the 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`, 
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>` 
+objects that control the actual drawing of the plot.  Arbitrary plot 
+customizations are possible by manipulating these objects.  See 
+:ref:`matplotlib-primitives` for an example.
 
 .. _how-to-make-1d-profiles:
 
