@@ -1189,3 +1189,112 @@ class TriangleFacetsCallback(PlotCallback):
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
 
+class TimestampCallback(PlotCallback):
+    """
+    annotate_timestamp(corner='upperleft', time=True, redshift=False, 
+                       precision=2, time_unit='Gyr', pos=None, text=None, 
+                       color='w', text_args=None)
+
+    Annotates the timestamp and/or redshift of the data output at a specified
+    location in the image.
+
+    Parameters
+    ----------
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
+        and 'lowerright'.  This value will be trumped by the optional 'pos'
+        keyword.
+    time : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with redshift parameter.
+    redshift : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with time parameter.
+    precision : int, optional
+        The number of values after the decimal place to display the redshift
+        and time information.
+    time_unit : string, optional
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
+        'Myr', etc.)
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) = 
+        (0..1, 0..1).  Setting pos trumps the corner parameter.
+    text : string, optional
+        The text to be displayed.  Setting text trumps redshift/time information.
+    color : string, optional
+        A valid matplotlib color.  Examples: 'black', 'k', 'white', 'w', 
+        'blue', 'b', etc.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Example: {'color':'black', 'size':'large'}.
+    """
+    _type_name = "timestamp"
+    def __init__(self, corner='upperleft', time=True, redshift=False, 
+                 precision=2, time_unit='Gyr', pos=None, text=None, 
+                 color='w', text_args=None):
+
+        # Set position based on corner argument.
+        self.corner = corner
+        self.time = time
+        self.redshift = redshift
+        self.precision = precision
+        self.time_unit = time_unit
+        self.pos = pos
+        self.text = text
+        self.color = color
+        if text_args is None: text_args = {}
+        self.text_args = text_args
+
+    def __call__(self, plot):
+        # Setting pos trumps corner argument
+        if self.pos is None:
+            if self.corner == 'upperleft':
+                self.pos = (0.05, 0.95)
+                self.text_args['horizontalalignment'] = 'left'
+                self.text_args['verticalalignment'] = 'top'
+            elif self.corner == 'upperright':
+                self.pos = (0.95, 0.95)
+                self.text_args['horizontalalignment'] = 'right'
+                self.text_args['verticalalignment'] = 'top'
+            elif self.corner == 'lowerleft':
+                self.pos = (0.05, 0.05)
+                self.text_args['horizontalalignment'] = 'left'
+                self.text_args['verticalalignment'] = 'bottom'
+            elif self.corner == 'lowerright':
+                self.pos = (0.95, 0.05)
+                self.text_args['horizontalalignment'] = 'right'
+                self.text_args['verticalalignment'] = 'bottom'
+            else:
+                print "Argument 'corner' must be set to 'upperleft',", \
+                      "'upperright', 'lowerleft', or 'lowerright'"
+                raise SyntaxError
+
+        # Setting text trumps existing text
+        if self.text is None:
+            self.text = ""
+            if self.time:
+                age = plot.data.ds.current_time.in_units(self.time_unit)
+                self.text += "t = %.*f %s" % (self.precision, age, \
+                                               self.time_unit)
+            if self.time and self.redshift:
+                self.text += "\n"
+
+            if self.redshift:
+                try:
+                    z = np.abs(plot.data.ds.current_redshift)
+                except AttributeError:
+                    print "Dataset does not have current_redshift. Set redshift=False."
+                    raise AttributeError
+                self.text += "z = %.*f" % (self.precision, z)
+
+        # If color is set, it trumps over other text_args
+        self.text_args['color'] = self.color
+
+        # If text size is not already set, set to xx-large so easily visible
+        if not self.text_args.has_key('xx-large'):
+            self.text_args['size'] = 'xx-large'
+
+        # This is just a fancy wrapper around the TextLabelCallback
+        tcb = TextLabelCallback(self.pos, self.text, text_args=self.text_args)
+        return tcb(plot)
