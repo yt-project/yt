@@ -461,8 +461,8 @@ cdef class QuadTree:
         cdef np.float64_t dds[2]
         cdef int nn[2]
         cdef int i, j
-        cdef np.float64_t bounds[4]
-        cdef np.float64_t weight
+        cdef np.float64_t bounds[4], opos[4]
+        cdef np.float64_t weight, value = 0.0
         cdef np.float64_t *wval = NULL
         if weighted == 1:
             wval = &weight
@@ -473,12 +473,18 @@ cdef class QuadTree:
             dds[i] = (bounds[i*2 + 1] - bounds[i*2])/nn[i]
         cdef QuadTreeNode *node
         pos[0] = bounds[0]
+        opos[0] = opos[1] = pos[0] + dds[0]
         for i in range(nn[0]):
             pos[1] = bounds[2]
+            opos[2] = opos[3] = pos[1] + dds[1]
             for j in range(nn[1]):
                 # We start at level zero.  In the future we could optimize by
                 # retaining oct information from previous cells.
-                buffer[i,j] = self.find_value_at_pos(pos, val_index, wval)
+                if not ((opos[0] <= pos[0] <= opos[1]) and
+                        (opos[2] <= pos[1] <= opos[3])):
+                    value = self.find_value_at_pos(pos, val_index,
+                                        opos, wval)
+                buffer[i,j] = value
                 if weighted == 1:
                     buffer[i,j] /= weight
                 pos[1] += dds[1]
@@ -488,7 +494,7 @@ cdef class QuadTree:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef np.float64_t find_value_at_pos(self, np.float64_t pos[2],
-                                         int val_index,
+                                         int val_index, np.float64_t opos[4],
                                          np.float64_t *wval = NULL):
         cdef int i
         cdef np.int64_t ind[2]
@@ -518,6 +524,10 @@ cdef class QuadTree:
             cur = cur.children[ind[0]][ind[1]]
             value += cur.val[val_index]
             weight += cur.weight_val
+        opos[0] = cp[0] - dds[0] * 0.5
+        opos[1] = cp[0] + dds[0] * 0.5
+        opos[2] = cp[1] - dds[1] * 0.5
+        opos[3] = cp[1] + dds[1] * 0.5
         if wval != NULL:
             wval[0] = weight
         return value

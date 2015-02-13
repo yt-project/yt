@@ -347,6 +347,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
+        self.tree = tree
 
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords
