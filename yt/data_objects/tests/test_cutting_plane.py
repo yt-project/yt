@@ -35,23 +35,24 @@ def test_cutting_plane():
             os.close(tmpfd)
             p.save(name=tmpname)
             fns.append(tmpname)
-        frb = cut.to_frb((1.0, 'unitary'), 64)
-        for cut_field in ['ones', 'density']:
-            fi = ds._get_field_info("unknown", cut_field)
-            yield assert_equal, frb[cut_field].info['data_source'], \
-                cut.__str__()
-            yield assert_equal, frb[cut_field].info['axis'], \
-                4
-            yield assert_equal, frb[cut_field].info['field'], \
-                cut_field
-            yield assert_equal, frb[cut_field].units, \
-                Unit(fi.units)
-            yield assert_equal, frb[cut_field].info['xlim'], \
-                frb.bounds[:2]
-            yield assert_equal, frb[cut_field].info['ylim'], \
-                frb.bounds[2:]
-            yield assert_equal, frb[cut_field].info['length_to_cm'], \
-                ds.length_unit.in_cgs()
-            yield assert_equal, frb[cut_field].info['center'], \
-                cut.center
+        for width in [(1.0, 'unitary'), 1.0, ds.quan(0.5, 'code_length')]:
+            frb = cut.to_frb(width, 64)
+            for cut_field in ['ones', 'density']:
+                fi = ds._get_field_info("unknown", cut_field)
+                yield assert_equal, frb[cut_field].info['data_source'], \
+                    cut.__str__()
+                yield assert_equal, frb[cut_field].info['axis'], \
+                    4
+                yield assert_equal, frb[cut_field].info['field'], \
+                    cut_field
+                yield assert_equal, frb[cut_field].units, \
+                    Unit(fi.units)
+                yield assert_equal, frb[cut_field].info['xlim'], \
+                    frb.bounds[:2]
+                yield assert_equal, frb[cut_field].info['ylim'], \
+                    frb.bounds[2:]
+                yield assert_equal, frb[cut_field].info['length_to_cm'], \
+                    ds.length_unit.in_cgs()
+                yield assert_equal, frb[cut_field].info['center'], \
+                    cut.center
     teardown_func(fns)
