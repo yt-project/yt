@@ -439,7 +439,6 @@ class ImagePlotContainer(object):
                     del self.frb[key]
 
     def _set_font_properties(self):
-        #import pdb; pdb.set_trace()
         for f in self.plots:
             ax = self.plots[f].axes
             cbax = self.plots[f].cb.ax

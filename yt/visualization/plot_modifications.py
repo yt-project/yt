@@ -101,6 +101,11 @@ class PlotCallback(object):
         # MPL.Text() kwargs from the local kwargs and let them trump the
         # defaults.
         local_font_properties = plot.font_properties.copy()
+
+        # Turn off the default TT font file, otherwise none of this works.
+        local_font_properties.set_file(None)
+        local_font_properties.set_family('stixgeneral')
+
         if kwargs.has_key('family'): 
             local_font_properties.set_family(kwargs['family'])
         if kwargs.has_key('file'): 
@@ -901,7 +906,7 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, data_coords=False, text_args = None)
+    annotate_text(pos, text, data_coords=False, text_args=None, bbox_args=None)
 
     Accepts a position in (0..1, 0..1) of the image, some text and
     optionally some text arguments. If data_coords is True,
@@ -1259,7 +1264,7 @@ class TimestampCallback(PlotCallback):
     def __init__(self, corner='upperleft', time=True, redshift=False, 
                  time_format="t = {time:.1f} {units}", time_unit=None,
                  redshift_format="z = {redshift:.2f}", bbox=False,
-                 pos=None, color=None, bbox_color=None,
+                 pos=None, color=None, bbox_color=None, 
                  text_args=None, bbox_args=None):
 
         # Set position based on corner argument.
@@ -1349,6 +1354,7 @@ class TimestampCallback(PlotCallback):
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
-        tcb = TextLabelCallback(self.pos, self.text, text_args=self.text_args, 
-                               bbox_args=self.bbox_args)
+        tcb = TextLabelCallback(self.pos, self.text, 
+                                text_args=self.text_args, 
+                                bbox_args=self.bbox_args)
         return tcb(plot)
