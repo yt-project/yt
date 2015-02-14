@@ -78,7 +78,7 @@ class PlotCallback(object):
             return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
-    def pixel_scale(self,plot):
+    def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
         dx = (xx1 - xx0)/(x1 - x0)
@@ -89,6 +89,45 @@ class PlotCallback(object):
 
         return (dx,dy)
 
+    def _set_font_properties(self, plot, labels, **kwargs):
+        """
+        This sets all of the text instances created by a callback to have
+        the same font size and properties as all of the other fonts in the
+        figure.  If kwargs are set, they trump the defaults.
+        """
+        # This is a little messy because there is no trivial way to update
+        # a MPL.font_manager.FontProperties object with new attributes
+        # aside from setting them individually.  So we pick out the relevant
+        # MPL.Text() kwargs from the local kwargs and let them trump the
+        # defaults.
+        local_font_properties = plot.font_properties.copy()
+        if kwargs.has_key('family'): 
+            local_font_properties.set_family(kwargs['family'])
+        if kwargs.has_key('file'): 
+            local_font_properties.set_file(kwargs['file'])
+        if kwargs.has_key('fontconfig_pattern'): 
+            local_font_properties.set_fontconfig_pattern(kwargs['fontconfig_pattern'])
+        if kwargs.has_key('name'): 
+            local_font_properties.set_name(kwargs['name'])
+        if kwargs.has_key('size'): 
+            local_font_properties.set_size(kwargs['size'])
+        if kwargs.has_key('slant'): 
+            local_font_properties.set_slant(kwargs['slant'])
+        if kwargs.has_key('stretch'): 
+            local_font_properties.set_stretch(kwargs['stretch'])
+        if kwargs.has_key('style'): 
+            local_font_properties.set_style(kwargs['style'])
+        if kwargs.has_key('variant'): 
+            local_font_properties.set_variant(kwargs['variant'])
+        if kwargs.has_key('weight'): 
+            local_font_properties.set_weight(kwargs['weight'])
+
+        # For each label, set the font properties and color to the figure
+        # defaults if not already set in the callback itself
+        for label in labels:
+            if plot.font_color is not None and not kwargs.has_key('color'):
+                label.set_color(plot.font_color)
+            label.set_fontproperties(local_font_properties)
 
 class VelocityCallback(PlotCallback):
     """
@@ -890,7 +929,11 @@ class TextLabelCallback(PlotCallback):
             x, y = self.pos
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
-        plot._axes.text(x, y, self.text, bbox=self.bbox_args, **kwargs)
+
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.text(x, y, self.text, bbox=self.bbox_args, **kwargs)
+        self._set_font_properties(plot, [label], **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
     """
