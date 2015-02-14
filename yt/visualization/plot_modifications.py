@@ -1197,8 +1197,7 @@ class TimestampCallback(PlotCallback):
     annotate_timestamp(corner='upperleft', time=True, redshift=False, 
                        time_format="t = {time:.0f} {units}", time_unit=None, 
                        redshift_format="z = {redshift:.2f}", 
-                       bbox=False, pos=None, color='white', text_args=None, 
-                       bbox_args=None)
+                       bbox=False, pos=None, text_args=None, bbox_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
@@ -1240,12 +1239,6 @@ class TimestampCallback(PlotCallback):
     pos : tuple of floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) = 
         (0..1, 0..1).  Setting pos trumps the corner parameter.
-    color : string, optional
-        Color of text is a valid matplotlib color.  Examples: 'black', 'k', 
-        'white', 'w', 'blue', 'b', etc.  Trumps other text_args color.
-    bbox_color : string, optional
-        Color of bounding box is a valid matplotlib color.  Examples: 'black', 
-        'k', 'white', 'w', 'blue', 'b', etc.  Trumps other bbox_args color.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white', 'size':'xx-large'}.
@@ -1264,8 +1257,7 @@ class TimestampCallback(PlotCallback):
     def __init__(self, corner='upperleft', time=True, redshift=False, 
                  time_format="t = {time:.1f} {units}", time_unit=None,
                  redshift_format="z = {redshift:.2f}", bbox=False,
-                 pos=None, color=None, bbox_color=None, 
-                 text_args=None, bbox_args=None):
+                 pos=None, text_args=None, bbox_args=None):
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1279,13 +1271,6 @@ class TimestampCallback(PlotCallback):
         else: self.text_args = text_args
         if bbox_args is None: self.bbox_args = self._bbox_args
         else: self.bbox_args = bbox_args
-
-        # if set, color arguments trumps others
-        if color is not None:
-            self.text_args['color'] = color
-        if bbox_color is not None:
-            self.bbox_args['facecolor'] = bbox_color
-            self.bbox_args['edgecolor'] = color
 
         # if bbox is not desired, set bbox_args to {}
         if not bbox: self.bbox_args = {}

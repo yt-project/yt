@@ -436,33 +436,74 @@ Overplot quivers for the velocity field
    p.annotate_velocity()
    p.save()
 
-Add a Timestamp Inset Box
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Add the current time and/or redshift to the plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", \
-                                 **kwargs, normalized=False, bbox_dict=None)
+.. function:: annotate_timestamp(corner='upperleft', time=True, \
+                                 redshift=False, \
+                                 time_format='t = {time:.0f} {units}', \
+                                 time_unit=None, \
+                                 redshift_format='z = {redshift:.2f}', \
+                                 bbox=False, pos=None, text_args=None, \
+                                 bbox_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TimestampCallback`.)
 
-   Adds the current time to the plot at point given by *x* and *y*.  If *units*
-   is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
-   *units* is None, it will attempt to figure out the correct value by which to
-   scale.  The *format* keyword is a template string that will be evaluated and
-   displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
-   as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
-   otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
-   is an optional dict of arguments for the bbox that frames the timestamp, see
-   matplotlib's text annotation guide for more details. All other *kwargs* will
-   be passed to the text() method on the plot axes.  See matplotlib's text()
-   functions for more information.
+    Annotates the timestamp and/or redshift of the data output at a specified
+    location in the image (either in a present corner, or by specifying (x,y)
+    image coordinates with the pos argument.  If no time_units are specified,
+    it will automatically choose appropriate units.  It allows for custom
+    formatting of the time and redshift information, as well as the
+    specification of a bounding box around the text.
+
+
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
+        'lowerright' (also allows None). This value will be trumped by the
+        optional 'pos' keyword.
+    time : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with redshift parameter.
+    redshift : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with time parameter.
+    time_format : string, optional
+        This specifies the format of the time output assuming "time" is the
+        number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
+        The time can be specified to arbitrary precision according to printf
+        formatting codes (defaults to .1f -- a float with 1 digits after
+        decimal).
+    time_unit : string, optional
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr',
+        'Myr', etc.).  If not specified, finds best unit for dataset.
+    redshift_format : string, optional
+        This specifies the format of the redshift output.  The redshift can
+        be specified to arbitrary precision according to printf formatting
+        codes (defaults to 0.2f -- a float with 2 digits after decimal).
+    bbox : boolean, optional
+        Whether or not a bounding box should be included around the text
+        If so, it uses the bbox_args to set the matplotlib FancyBboxPatch
+        object.
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) =
+        (0..1, 0..1).  Setting pos trumps the corner parameter.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+
+    bbox_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the bounding box around the text.
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_timestamp(-9, -9)
+   p.annotate_timestamp(redshift=True)
    p.save()
 
 Annotate Triangle Facets Callback
