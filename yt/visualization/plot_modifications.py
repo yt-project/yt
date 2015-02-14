@@ -1138,7 +1138,7 @@ class TimestampCallback(PlotCallback):
     annotate_timestamp(corner='upperleft', time=True, redshift=False, 
                        time_format="t = {time:.0f} {units}", time_unit=None, 
                        redshift_format="z = {redshift:.2f}", 
-                       bbox=False, pos=None, color='w', text_args=None, 
+                       bbox=False, pos=None, color='white', text_args=None, 
                        bbox_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
@@ -1165,7 +1165,7 @@ class TimestampCallback(PlotCallback):
         This specifies the format of the time output assuming "time" is the 
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
         The time can be specified to arbitrary precision according to printf
-        formatting codes (defaults to .0f -- a float with 0 digits after 
+        formatting codes (defaults to .1f -- a float with 1 digits after 
         decimal).
     time_unit : string, optional
         time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
@@ -1182,8 +1182,11 @@ class TimestampCallback(PlotCallback):
         The image location of the timestamp in image coords (i.e. (x,y) = 
         (0..1, 0..1).  Setting pos trumps the corner parameter.
     color : string, optional
-        A valid matplotlib color.  Examples: 'black', 'k', 'white', 'w', 
-        'blue', 'b', etc.
+        Color of text is a valid matplotlib color.  Examples: 'black', 'k', 
+        'white', 'w', 'blue', 'b', etc.  Trumps other text_args color.
+    bbox_color : string, optional
+        Color of bounding box is a valid matplotlib color.  Examples: 'black', 
+        'k', 'white', 'w', 'blue', 'b', etc.  Trumps other bbox_args color.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white', 'size':'xx-large'}.
@@ -1195,14 +1198,15 @@ class TimestampCallback(PlotCallback):
     """
     _type_name = "timestamp"
     # Defaults
+    _text_args = {'color':'white', 'size':'xx-large'}
     _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                   'linewidth':3, 'edgecolor':'white', 'alpha':0.3}
-    _text_args = {'size':'xx-large'}
 
     def __init__(self, corner='upperleft', time=True, redshift=False, 
-                 time_format="t = {time:.0f} {units}", time_unit=None,
+                 time_format="t = {time:.1f} {units}", time_unit=None,
                  redshift_format="z = {redshift:.2f}", bbox=False,
-                 pos=None, color='white', text_args=None, bbox_args=None):
+                 pos=None, color=None, bbox_color=None,
+                 text_args=None, bbox_args=None):
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1215,29 +1219,33 @@ class TimestampCallback(PlotCallback):
         if text_args is None: self.text_args = self._text_args
         if bbox_args is None: self.bbox_args = self._bbox_args
 
+        # if set, color arguments trumps others
+        if color is not None:
+            self.text_args['color'] = color
+        if bbox_color is not None:
+            self.bbox_args['facecolor'] = bbox_color
+            self.bbox_args['edgecolor'] = color
+
         # if bbox is not desired, set bbox_args to {}
         if not bbox: self.bbox_args = {}
-
-        # color argument trumps others
-        self.text_args['color'] = color
 
     def __call__(self, plot):
         # Setting pos trumps corner argument
         if self.pos is None:
             if self.corner == 'upperleft':
-                self.pos = (0.05, 0.95)
+                self.pos = (0.02, 0.98)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'upperright':
-                self.pos = (0.95, 0.95)
+                self.pos = (0.98, 0.98)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'lowerleft':
-                self.pos = (0.05, 0.05)
+                self.pos = (0.02, 0.02)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'bottom'
             elif self.corner == 'lowerright':
-                self.pos = (0.95, 0.05)
+                self.pos = (0.98, 0.02)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'bottom'
             elif self.corner is None:
@@ -1258,7 +1266,8 @@ class TimestampCallback(PlotCallback):
             if self.time_unit is None:
                 t = plot.data.ds.current_time.in_units('s')
                 scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 
-                              'day', 'yr', 'kyr', 'Myr', 'Gyr']
+                              'day', 'yr', 'kyr', 'Myr', 'Gyr', 'Tyr', 
+                              'Pyr', 'Eyr', 'Zyr', 'Yyr']
                 for i, k in enumerate(scale_keys):
                     if t < YTQuantity(1, k):
                         break
@@ -1270,9 +1279,11 @@ class TimestampCallback(PlotCallback):
             self.text += self.time_format.format(time=float(t), 
                                                  units=self.time_unit)
 
+        # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:
             self.text += "\n"
 
+        # If we're annotating the redshift, put it in the correct format
         if self.redshift:
             try:
                 z = np.abs(plot.data.ds.current_redshift)
