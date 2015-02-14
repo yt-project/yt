@@ -817,7 +817,10 @@ class PointAnnotateCallback(PlotCallback):
         else: pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         
-        plot._axes.text(x, y, self.text, **self.text_args)
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.text(x, y, self.text, **self.text_args)
+        self._set_font_properties(plot, [label], **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
     """
@@ -1039,9 +1042,13 @@ class HaloCatalogCallback(PlotCallback):
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
             texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
+            labels = []
             for pos_x, pos_y, t in zip(px, py, texts): 
-                plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
- 
+                labels.append(plot._axes.text(pos_x, pos_y, t, **self.font_kwargs))
+
+            # Set the font properties of text from this callback to be
+            # consistent with other text labels in this figure
+            self._set_font_properties(plot, labels, **self.font_kwargs)
 
 class ParticleCallback(PlotCallback):
     """
@@ -1134,6 +1141,10 @@ class TitleCallback(PlotCallback):
 
     def __call__(self,plot):
         plot._axes.set_title(self.title)
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.title
+        self._set_font_properties(plot, [label])
 
 class TriangleFacetsCallback(PlotCallback):
     """ 
@@ -1260,7 +1271,9 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         self.pos = pos
         if text_args is None: self.text_args = self._text_args
+        else: self.text_args = text_args
         if bbox_args is None: self.bbox_args = self._bbox_args
+        else: self.bbox_args = bbox_args
 
         # if set, color arguments trumps others
         if color is not None:
