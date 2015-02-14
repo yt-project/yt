@@ -866,12 +866,15 @@ class TextLabelCallback(PlotCallback):
     position will be in code units instead of image coordinates.
     """
     _type_name = "text"
-    def __init__(self, pos, text, data_coords=False, text_args = None):
+    def __init__(self, pos, text, data_coords=False, text_args=None, 
+                 bbox_args=None):
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
         if text_args is None: text_args = {}
         self.text_args = text_args
+        if bbox_args is None: bbox_args = {}
+        self.bbox_args = bbox_args
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
@@ -887,7 +890,7 @@ class TextLabelCallback(PlotCallback):
             x, y = self.pos
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
-        plot._axes.text(x, y, self.text, **kwargs)
+        plot._axes.text(x, y, self.text, bbox=self.bbox_args, **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
     """
@@ -1089,65 +1092,6 @@ class TitleCallback(PlotCallback):
     def __call__(self,plot):
         plot._axes.set_title(self.title)
 
-class TimestampCallback(PlotCallback):
-    """
-    annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
-                       normalized=False, bbox_dict=None)
-
-    Adds the current time to the plot at point given by *x* and *y*.  If *units*
-    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
-    *units* is None, it will attempt to figure out the correct value by which to
-    scale.  The *format* keyword is a template string that will be evaluated and
-    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
-    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
-    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
-    is an optional dict of arguments for the bbox that frames the timestamp, see
-    matplotlib's text annotation guide for more details. All other *kwargs* will
-    be passed to the text() method on the plot axes.  See matplotlib's text()
-    functions for more information.
-    """
-    _type_name = "timestamp"
-    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black',
-                  'alpha': 1.0}
-
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}",
-                 normalized=False, bbox_dict=None, **kwargs):
-        self.x = x
-        self.y = y
-        self.format = format
-        self.units = units
-        self.normalized = normalized
-        if bbox_dict is not None:
-            self.bbox_dict = bbox_dict
-        else:
-            self.bbox_dict = self._bbox_dict
-        self.kwargs = {'color': 'k'}
-        self.kwargs.update(kwargs)
-
-    def __call__(self, plot):
-        if self.units is None:
-            t = plot.data.ds.current_time.in_units('s')
-            scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 'day',
-                          'yr', 'kyr', 'Myr', 'Gyr']
-            for i, k in enumerate(scale_keys):
-                if t < YTQuantity(1, k):
-                    break
-                t.convert_to_units(k)
-            self.units = scale_keys[i-1]
-        else:
-            t = plot.data.ds.current_time.in_units(self.units)
-        s = self.format.format(time=float(t), units=self.units)
-        plot._axes.hold(True)
-        if self.normalized:
-            plot._axes.text(self.x, self.y, s, horizontalalignment='center',
-                            verticalalignment='center', 
-                            transform = plot._axes.transAxes,
-                            bbox=self.bbox_dict)
-        else:
-            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict,
-                            **self.kwargs)
-        plot._axes.hold(False)
-
 class TriangleFacetsCallback(PlotCallback):
     """ 
     annotate_triangle_facets(triangle_vertices, plot_args=None )
@@ -1192,59 +1136,90 @@ class TriangleFacetsCallback(PlotCallback):
 class TimestampCallback(PlotCallback):
     """
     annotate_timestamp(corner='upperleft', time=True, redshift=False, 
-                       precision=2, time_unit='Gyr', pos=None, text=None, 
-                       color='w', text_args=None)
+                       time_format="t = {time:.0f} {units}", time_unit=None, 
+                       redshift_format="z = {redshift:.2f}", 
+                       bbox=False, pos=None, color='w', text_args=None, 
+                       bbox_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
-    location in the image.
+    location in the image (either in a present corner, or by specifying (x,y)
+    image coordinates with the pos argument.  If no time_units are specified, 
+    it will automatically choose appropriate units.  It allows for custom 
+    formatting of the time and redshift information, as well as the 
+    specification of a bounding box around the text.
 
     Parameters
     ----------
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
-        and 'lowerright'.  This value will be trumped by the optional 'pos'
-        keyword.
+        'lowerright' (also allows None). This value will be trumped by the 
+        optional 'pos' keyword.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with redshift parameter.
     redshift : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with time parameter.
-    precision : int, optional
-        The number of values after the decimal place to display the redshift
-        and time information.
+    time_format : string, optional
+        This specifies the format of the time output assuming "time" is the 
+        number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
+        The time can be specified to arbitrary precision according to printf
+        formatting codes (defaults to .0f -- a float with 0 digits after 
+        decimal).
     time_unit : string, optional
         time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
         'Myr', etc.)
+    redshift_format : string, optional
+        This specifies the format of the redshift output.  The redshift can
+        be specified to arbitrary precision according to printf formatting 
+        codes (defaults to 0.2f -- a float with 2 digits after decimal).
+    bbox : boolean, optional
+        Whether or not a bounding box should be included around the text
+        If so, it uses the bbox_args to set the matplotlib FancyBboxPatch 
+        object.  
     pos : tuple of floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) = 
         (0..1, 0..1).  Setting pos trumps the corner parameter.
-    text : string, optional
-        The text to be displayed.  Setting text trumps redshift/time information.
     color : string, optional
         A valid matplotlib color.  Examples: 'black', 'k', 'white', 'w', 
         'blue', 'b', etc.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Example: {'color':'black', 'size':'large'}.
+        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+    bbox_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the bounding box around the text.  
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
     """
     _type_name = "timestamp"
+    # Defaults
+    _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                  'linewidth':3, 'edgecolor':'white', 'alpha':0.3}
+    _text_args = {'size':'xx-large'}
+
     def __init__(self, corner='upperleft', time=True, redshift=False, 
-                 precision=2, time_unit='Gyr', pos=None, text=None, 
-                 color='w', text_args=None):
+                 time_format="t = {time:.0f} {units}", time_unit=None,
+                 redshift_format="z = {redshift:.2f}", bbox=False,
+                 pos=None, color='white', text_args=None, bbox_args=None):
 
         # Set position based on corner argument.
         self.corner = corner
         self.time = time
         self.redshift = redshift
-        self.precision = precision
+        self.time_format = time_format
+        self.redshift_format = redshift_format
         self.time_unit = time_unit
         self.pos = pos
-        self.text = text
-        self.color = color
-        if text_args is None: text_args = {}
-        self.text_args = text_args
+        if text_args is None: self.text_args = self._text_args
+        if bbox_args is None: self.bbox_args = self._bbox_args
+
+        # if bbox is not desired, set bbox_args to {}
+        if not bbox: self.bbox_args = {}
+
+        # color argument trumps others
+        self.text_args['color'] = color
 
     def __call__(self, plot):
         # Setting pos trumps corner argument
@@ -1265,36 +1240,48 @@ class TimestampCallback(PlotCallback):
                 self.pos = (0.95, 0.05)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'bottom'
+            elif self.corner is None:
+                self.pos = (0.5, 0.5)
+                self.text_args['horizontalalignment'] = 'center'
+                self.text_args['verticalalignment'] = 'center'
             else:
                 print "Argument 'corner' must be set to 'upperleft',", \
-                      "'upperright', 'lowerleft', or 'lowerright'"
+                      "'upperright', 'lowerleft', 'lowerright', or None"
                 raise SyntaxError
 
-        # Setting text trumps existing text
-        if self.text is None:
-            self.text = ""
-            if self.time:
-                age = plot.data.ds.current_time.in_units(self.time_unit)
-                self.text += "t = %.*f %s" % (self.precision, age, \
-                                               self.time_unit)
-            if self.time and self.redshift:
-                self.text += "\n"
+        self.text = ""
 
-            if self.redshift:
-                try:
-                    z = np.abs(plot.data.ds.current_redshift)
-                except AttributeError:
-                    print "Dataset does not have current_redshift. Set redshift=False."
-                    raise AttributeError
-                self.text += "z = %.*f" % (self.precision, z)
+        # If we're annotating the time, put it in the correct format
+        if self.time:
 
-        # If color is set, it trumps over other text_args
-        self.text_args['color'] = self.color
+            # If no time_units are set, then identify a best fit time unit
+            if self.time_unit is None:
+                t = plot.data.ds.current_time.in_units('s')
+                scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 
+                              'day', 'yr', 'kyr', 'Myr', 'Gyr']
+                for i, k in enumerate(scale_keys):
+                    if t < YTQuantity(1, k):
+                        break
+                    t.convert_to_units(k)
+                self.time_unit = scale_keys[i-1]
+            # If time_unit is set, use it
+            else:
+                t = plot.data.ds.current_time.in_units(self.time_unit)
+            self.text += self.time_format.format(time=float(t), 
+                                                 units=self.time_unit)
 
-        # If text size is not already set, set to xx-large so easily visible
-        if not self.text_args.has_key('xx-large'):
-            self.text_args['size'] = 'xx-large'
+        if self.time and self.redshift:
+            self.text += "\n"
+
+        if self.redshift:
+            try:
+                z = np.abs(plot.data.ds.current_redshift)
+            except AttributeError:
+                print "Dataset does not have current_redshift. Set redshift=False."
+                raise AttributeError
+            self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
-        tcb = TextLabelCallback(self.pos, self.text, text_args=self.text_args)
+        tcb = TextLabelCallback(self.pos, self.text, text_args=self.text_args, 
+                               bbox_args=self.bbox_args)
         return tcb(plot)
