@@ -373,14 +373,16 @@ Overplot streamlines
 Add text
 ~~~~~~~~
 
-.. function:: annotate_text(self, pos, text, data_coords=False, text_args=None):
+.. function:: annotate_text(self, pos, text, data_coords=False, text_args=None,
+                            bbox_args=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TextLabelCallback`.)
 
    Accepts a position in (0..1, 0..1) of the image, some text and optionally
    some text arguments. If data_coords is True, position will be in code units
-   instead of image coordinates.
+   instead of image coordinates.  If you desire a bounding box around your
+   text, set one with the bbox_args dictionary keyword.
 
 .. python-script::
 
