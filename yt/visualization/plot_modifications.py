@@ -633,11 +633,12 @@ class ImageLineCallback(LinePlotCallback):
     with *plot_args* fed into the plot.
     """
     _type_name = "image_line"
+    _plot_args = {'color':'white', 'linewidth':2}
     def __init__(self, p1, p2, data_coords=False, plot_args = None):
         PlotCallback.__init__(self)
         self.p1 = p1
         self.p2 = p2
-        if plot_args is None: plot_args = {}
+        if plot_args is None: plot_args = self._plot_args
         self.plot_args = plot_args
         self._ids = []
         self.data_coords = data_coords
@@ -1301,7 +1302,7 @@ class TimestampCallback(PlotCallback):
                 self.text_args['horizontalalignment'] = 'center'
                 self.text_args['verticalalignment'] = 'center'
             else:
-                print "Argument 'corner' must be set to 'upperleft',", \
+                print "Argument 'corner' must be set to 'upperleft'," \
                       "'upperright', 'lowerleft', 'lowerright', or None"
                 raise SyntaxError
 
@@ -1341,6 +1342,142 @@ class TimestampCallback(PlotCallback):
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
+        tcb = TextLabelCallback(self.pos, self.text, 
+                                text_args=self.text_args, 
+                                bbox_args=self.bbox_args)
+        return tcb(plot)
+
+class ScaleCallback(PlotCallback):
+    """
+    annotate_scale(corner='upperleft', time=True, redshift=False, 
+                   time_format="t = {time:.0f} {units}", time_unit=None, 
+                   redshift_format="z = {redshift:.2f}", 
+                   bbox=False, pos=None, text_args=None, bbox_args=None)
+
+    Annotates the timestamp and/or redshift of the data output at a specified
+    location in the image (either in a present corner, or by specifying (x,y)
+    image coordinates with the pos argument.  If no time_units are specified, 
+    it will automatically choose appropriate units.  It allows for custom 
+    formatting of the time and redshift information, as well as the 
+    specification of a bounding box around the text.
+
+    Parameters
+    ----------
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
+        'lowerright' (also allows None). This value will be trumped by the 
+        optional 'pos' keyword.
+    unit : string, optional
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
+        'Myr', etc.)
+    bbox : boolean, optional
+        Whether or not a bounding box should be included around the text
+        If so, it uses the bbox_args to set the matplotlib FancyBboxPatch 
+        object.  
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) = 
+        (0..1, 0..1).  Setting pos trumps the corner parameter.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+    bbox_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the bounding box around the text.  
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
+    """
+    _type_name = "scale"
+    # Defaults
+    _text_args = {'color':'white', 'size':'xx-large'}
+    _plot_args = {'color':'white', 'linewidth':3}
+    _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                  'linewidth':3, 'edgecolor':'white', 'alpha':0.3}
+
+    def __init__(self, corner='lowerleft', 
+                 coeff=None, unit=None, bbox=False, pos=None, 
+                 text_args=None, plot_args=None, bbox_args=None):
+
+        # Set position based on corner argument.
+        self.corner = corner
+        self.coeff = coeff
+        self.unit = unit
+        self.pos = pos
+        if text_args is None: self.text_args = self._text_args
+        else: self.text_args = text_args
+        if plot_args is None: self.plot_args = self._plot_args
+        else: self.plot_args = plot_args
+        if bbox_args is None: self.bbox_args = self._bbox_args
+        else: self.bbox_args = bbox_args
+
+        # if bbox is not desired, set bbox_args to {}
+        if not bbox: self.bbox_args = {}
+
+    def __call__(self, plot):
+        # Callback only works for plots with axis ratios of 1
+        xsize = plot.xlim[1] - plot.xlim[0]
+        ysize = plot.ylim[1] - plot.ylim[0]
+        if xsize != ysize:
+            raise RuntimeError("Scale callback only works for plots with", \
+                                "axis ratios of 1: xsize = %s, ysize = %s." %
+                                (xsize, ysize))
+
+        # Setting pos trumps corner argument
+        if self.pos is None:
+            self.text_args['horizontalalignment'] = 'center'
+            self.text_args['verticalalignment'] = 'top'
+            if self.corner == 'upperleft':
+                self.pos = (0.14, 0.95)
+            elif self.corner == 'upperright':
+                self.pos = (0.86, 0.95)
+            elif self.corner == 'lowerleft':
+                self.pos = (0.14, 0.05)
+            elif self.corner == 'lowerright':
+                self.pos = (0.86, 0.05)
+            elif self.corner is None:
+                self.pos = (0.5, 0.5)
+            else:
+                print "Argument 'corner' must be set to 'upperleft',", \
+                      "'upperright', 'lowerleft', 'lowerright', or None"
+                raise SyntaxError
+
+        # Do not let the maximum scale size surpass 25% of the width of the 
+        # plot.  Do not let the minimum scale size go below .25% of the width
+        # of the plot.
+        max_scale = 0.25*xsize
+        min_scale = 0.020*xsize
+
+        # If no unit are set, then identify a best fit distance unit
+        if self.unit is None:
+            scale_keys = ['fm', 'pm', 'nm', 'um', 'mm', 'cm', 'm', 
+                          'km', 'AU', 'pc', 'kpc', 'Mpc', 
+                          'Gpc', 'Tpc', 'Ppc', 'Epc', 'Zpc', 'Ypc']
+            for i, k in enumerate(scale_keys):
+                if i == len(scale_keys)-1: break
+                # How many OOM between this scale and next? Use each as 
+                # coefficient
+                powers = np.ceil(np.log10(YTQuantity(1, scale_keys[i+1]) / \
+                                 YTQuantity(1, scale_keys[i])))
+                coefficients = 10**np.arange(powers)
+                for j in coefficients:
+                    #print "%i %s" % (j, k)
+                    if not (min_scale < YTQuantity(j, k) and max_scale > YTQuantity(j, k)):
+                        continue
+                    self.coeff = j
+                    self.unit = scale_keys[i]
+                    break
+        self.scale = YTQuantity(self.coeff, self.unit)
+        self.text = "{scale} {units}".format(scale=int(self.coeff), 
+                                             units=self.unit)
+        image_scale = (plot.frb.convert_distance_x(self.scale) / \
+                       plot.frb.convert_distance_x(xsize)).v
+
+        # This is just a fancy wrapper around the TextLabelCallback and the
+        # ImageLineCallback
+        pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
+        pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
+        icb = ImageLineCallback(pos_line_start, pos_line_end, plot_args=self.plot_args)
+        icb(plot)
         tcb = TextLabelCallback(self.pos, self.text, 
                                 text_args=self.text_args, 
                                 bbox_args=self.bbox_args)
