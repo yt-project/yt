@@ -28,6 +28,8 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.exceptions import YTEmptyProfileData
+from yt.utilities.lib.CICDeposit import CICDeposit_2
+
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -1101,6 +1103,77 @@ class Profile2D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
+
+
+class DepositedProfile2D(Profile2D):
+    """An object that represents a *deposited* 2D profile. This is like a
+    Profile2D, except that it is intended for particle data. Instead of just
+    binning the particles, the added fields will be deposited onto the mesh
+    using Cloud-in-Cell interpolation.
+
+    Parameters
+    ----------
+
+    data_source : AMD3DData object
+        The data object to be profiled
+    x_field : string field name
+        The field to profile as a function of along the x axis.
+    x_n : integer
+        The number of bins along the x direction.
+    x_min : float
+        The minimum value of the x profile field.
+    x_max : float
+        The maximum value of hte x profile field.
+    y_field : string field name
+        The field to profile as a function of along the y axis
+    y_n : integer
+        The number of bins along the y direction.
+    y_min : float
+        The minimum value of the y profile field.
+    y_max : float
+        The maximum value of hte y profile field.
+
+    """
+
+    def __init__(self, data_source,
+                 x_field, x_n, x_min, x_max,
+                 y_field, y_n, y_min, y_max):
+
+        self.LeftEdge = np.array([x_min, y_min], dtype=np.float64)
+        self.dx = (x_max - x_min) / x_n
+        self.dy = (y_max - y_min) / y_n
+        self.CellSize = np.array([self.dx, self.dy], dtype=np.float64)
+        self.CellVolume = np.product(self.CellSize)
+        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
+
+        # set the log parameters to False (since that doesn't make much sense
+        # for deposited data) and also turn off the weight field.
+        super(DepositedProfile2D, self).__init__(data_source,
+                                                 x_field,
+                                                 x_n, x_min, x_max, False,
+                                                 y_field,
+                                                 y_n, y_min, y_max, False,
+                                                 weight_field=None)
+
+    # instead of sticking the particle field in the nearest bin,
+    # we spread it out using the 2D CIC deposition function
+    def _bin_chunk(self, chunk, fields, storage):
+        rv = self._get_data(chunk, fields)
+        if rv is None: return
+        fdata, wdata, (bf_x, bf_y) = rv
+        for fi, field in enumerate(fields):
+            Np = fdata[:, fi].size
+            CICDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
+                         storage.values[:, :, fi],
+                         self.LeftEdge,
+                         self.GridDimensions,
+                         self.CellSize)
+            storage.values[:, :, fi] /= self.CellVolume
+            locs = np.where(storage.values[:, :, fi] > 0.0)
+            storage.used[locs] = True
+            storage.weight_values[locs] = 1.0
+        # We've binned it!
+
 
 class Profile3D(ProfileND):
     """An object that represents a 2D profile.
