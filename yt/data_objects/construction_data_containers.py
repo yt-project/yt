@@ -463,6 +463,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center, ds, field_parameters)
 
         self.level = level
+
         self.left_edge = self._sanitize_edge(left_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
 
@@ -560,6 +561,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
         fill, gen, part, alias = self._split_fields(fields_to_get)
+        print part, fill
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
@@ -741,11 +743,13 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         self.left_edge = self._sanitize_edge(left_edge)
         self.right_edge = self._sanitize_edge(right_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
+
         self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()
 
     def _fill_fields(self, fields):
+        print fields
         raise NotImplementedError
 
 class LevelState(object):

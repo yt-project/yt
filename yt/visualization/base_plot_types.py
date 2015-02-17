@@ -152,12 +152,9 @@ class ImagePlotMPL(PlotMPL):
         return f.read()
 
     def _get_best_layout(self):
-        if self._draw_colorbar:
-            cb_size = self._cb_size
-            cb_text_size = self._ax_text_size[1] + 0.45
-        else:
-            cb_size = 0.0
-            cb_text_size = 0.0
+
+        cb_size = self._cb_size
+        cb_text_size = self._ax_text_size[1] + 0.45
 
         if self._draw_axes:
             x_axis_size = self._ax_text_size[0]

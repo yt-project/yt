@@ -75,6 +75,51 @@ def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def CICDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
+                 np.ndarray[np.float64_t, ndim=1] posy,
+                 np.ndarray[np.float64_t, ndim=1] mass,
+                 np.int64_t npositions,
+                 np.ndarray[np.float64_t, ndim=2] field,
+                 np.ndarray[np.float64_t, ndim=1] leftEdge,
+                 np.ndarray[np.int32_t, ndim=1] gridDimension,
+                 np.ndarray[np.float64_t, ndim=1] cellSize):
+
+    cdef int i1, j1, n
+    cdef np.float64_t xpos, ypos
+    cdef np.float64_t edge0, edge1
+    cdef np.float64_t le0, le1
+    cdef np.float64_t dx, dy, dx2, dy2
+
+    edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
+    edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
+
+    le0 = leftEdge[0]
+    le1 = leftEdge[1]
+
+    for n in range(npositions):
+
+        # Compute the position of the central cell
+        xpos = fmin(fmax((posx[n] - le0)/cellSize[0], 0.5001), edge0)
+        ypos = fmin(fmax((posy[n] - le1)/cellSize[1], 0.5001), edge1)
+
+        i1  = <int> (xpos + 0.5)
+        j1  = <int> (ypos + 0.5)
+
+        # Compute the weights
+        dx = (<np.float64_t> i1) + 0.5 - xpos
+        dy = (<np.float64_t> j1) + 0.5 - ypos
+        dx2 =  1.0 - dx
+        dy2 =  1.0 - dy
+
+        # Deposit onto field
+        field[i1-1,j1-1] += mass[n] * dx  * dy
+        field[i1  ,j1-1] += mass[n] * dx2 * dy
+        field[i1-1,j1  ] += mass[n] * dx  * dy2
+        field[i1  ,j1  ] += mass[n] * dx2 * dy2
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 def sample_field_at_positions(np.ndarray[np.float64_t, ndim=3] arr,
                               np.ndarray[np.float64_t, ndim=1] left_edge,
