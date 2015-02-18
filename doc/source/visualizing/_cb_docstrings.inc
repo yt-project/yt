@@ -441,7 +441,7 @@ Overplot quivers for the velocity field
 Add the current time and/or redshift to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_timestamp(corner='upperleft', time=True, \
+.. function:: annotate_timestamp(corner='lowerleft', time=True, \
                                  redshift=False, \
                                  time_format='t = {time:.0f} {units}', \
                                  time_unit=None, \
@@ -507,6 +507,65 @@ Add the current time and/or redshift to the plot
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_timestamp(redshift=True)
    p.save()
+
+
+Add the physical scale to the plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_scale(corner='lowerright', coeff=None, \
+                             unit=None, pos=None, max_frac=0.2, \
+                             min_frac=0.018, text_args=None, \
+                             bbox_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
+
+    Annotates the scale of the plot at a specified location in the image
+    (either in a preset corner, or by specifying (x,y) image coordinates with
+    the pos argument.  Coeff and units (e.g. 1 Mpc) refer to the distance scale
+    you desire to show on the plot.  If no coeff and units are specified,
+    an appropriate pair will be determined such that your scale bar is never
+    smaller than min_frac or greater than max_frac of your plottable axis
+    length.  For additional text and plot arguments for the text and line,
+    include them as dictionaries to pass to text_args and plot_args.
+
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
+        'lowerright' (also allows None). This value will be trumped by the
+        optional 'pos' keyword.
+    coeff : float, optional
+        The coefficient before the unit scale.  If set to None along with
+        unit keyword, will be automatically determined to be a power of 10
+        relative to the best-fit scale.
+    unit : string, optional
+        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc',
+        'kpc', etc.) or set to None.  If set to None, will be automatically
+        determined to be the best-fit to the data.
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) =
+        (0..1, 0..1).  Setting pos trumps the corner parameter.
+    min_frac, max_frac: float, optional
+        The minimum/maximum fraction of the axis width for the scale bar to
+        extend. A value of 1 would allow the scale bar to extend across the
+        entire axis width.  Only used for automatically calculating
+        best-fit coeff and unit when neither is specified, otherwise
+        disregarded.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+    plot_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        line object.  Defaults: {'color':'white', 'linewidth':3}.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+   p.annotate_scale()
+   p.save()
+
 
 Annotate Triangle Facets Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
