@@ -52,6 +52,7 @@ import contextlib
 #    title
 #    flash_ray_data
 #  X timestamp
+#  X scale
 #    material_boundary
 
 @contextlib.contextmanager
@@ -73,6 +74,21 @@ def test_timestamp_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_timestamp(corner='lowerright', redshift=True, bbox=True)
+        p.save(prefix)
+
+def test_scale_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_scale()
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_scale()
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_scale(corner='upperright', coeff=10., unit='kpc')
         p.save(prefix)
 
 def test_velocity_callback():
