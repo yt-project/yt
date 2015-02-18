@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import inspect
+from collections import Counter
 
-def find_lowest_subclass(candidates):
+def find_lowest_subclasses(candidates):
     """
-    This function searches an inheritance hierarchy and looks for the lowest 
-    subclass in that hierarchy. If the tree diverges then an exception is raised.
+    This function takes a list of classes, and returns only the ones that are 
+    are not super classes of any others in the list. i.e. the ones that are at 
+    the bottom of the specified mro of classes.
     
     Parameters
     ----------
@@ -14,25 +16,15 @@ def find_lowest_subclass(candidates):
     
     Returns
     -------
-    result : object
-        The object in candidates which is the lowest in the tree.
+    result : list
+        A list of classes which are not super classes for any others in 
+        candidates.
     """
-    candidates.sort()
-    mros = [set(inspect.getmro(c)) for c in candidates]
-    def swipe(mros):
-        uniques = []
-        for m in mros[1:]:
-            x = mros[0].symmetric_difference(m)
-            uniques.append(x)
+
+    mros = [inspect.getmro(c) for c in candidates]
     
-        while len(uniques) >1:
-            uniques = swipe(uniques)
-        return uniques
+    counters = [Counter(mro) for mro in mros]
     
-    result = swipe(mros)[0]
+    count = reduce(lambda x, y: x+y, counters)
     
-    if len(result) > 1:
-        raise TypeError("A Diverging hierarchy was detected.")
-    
-    else:
-        return list(result)[0]
+    return [x for x in count.keys() if count[x] == 1]

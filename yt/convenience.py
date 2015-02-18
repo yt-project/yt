@@ -13,10 +13,7 @@ Some convenience functions, objects, and iterators
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import glob
-import numpy as np
-import os, os.path, inspect, types
-from functools import wraps
+import os, os.path, types
 
 # Named imports
 from yt.funcs import *
@@ -25,6 +22,7 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     simulation_time_series_registry, \
     EnzoRunDatabase
+from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def load(*args ,**kwargs):
     """
@@ -76,6 +74,9 @@ def load(*args ,**kwargs):
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
+    
+    # Find only the lowest subclasses, i.e. most specialised front ends
+    candidates = find_lowest_subclasses(candidates)
     if len(candidates) == 1:
         return output_type_registry[candidates[0]](*args, **kwargs)
     if len(candidates) == 0:
@@ -89,19 +90,6 @@ def load(*args ,**kwargs):
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
-
-    if len(candidates) == 2:
-        # Check to see if one of the candidates is a subclass of the other, if
-        # so return the subclass.
-        c0 = output_type_registry[candidates[0]]
-        c1 = output_type_registry[candidates[1]]
-
-        if issubclass(c0, c1):
-            return output_type_registry[candidates[0]](*args, **kwargs)
-        if issubclass(c1, c0):
-            return output_type_registry[candidates[1]](*args, **kwargs)
-
-        raise YTOutputNotIdentified(args, kwargs)
 
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
