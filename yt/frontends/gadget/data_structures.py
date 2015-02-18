@@ -199,7 +199,7 @@ class GadgetDataset(ParticleDataset):
             else:
                 mylog.info("Assuming length units are in kpc (physical)")
                 self._unit_base = dict(length = (1.0, "kpc"))
-                
+
         # If units passed in by user, decide what to do about
         # co-moving and factors of h
         unit_base = self._unit_base or {}
@@ -252,7 +252,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None,
@@ -322,8 +322,8 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     def _set_owls_eagle_units(self):
 
-        # note the contents of the HDF5 Units group are in _unit_base 
-        # note the velocity stored on disk is sqrt(a) dx/dt 
+        # note the contents of the HDF5 Units group are in _unit_base
+        # note the velocity stored on disk is sqrt(a) dx/dt
         self.length_unit = self.quan(self._unit_base["UnitLength_in_cm"], 'cmcm/h')
         self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
         self.velocity_unit = self.quan(self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
@@ -333,8 +333,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0], mode='r')
-            if "Constants" not in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
+            if "Header" in fileh["/"].keys():
                 fileh.close()
                 return True
             fileh.close()
