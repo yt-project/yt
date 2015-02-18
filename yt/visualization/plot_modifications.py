@@ -1244,18 +1244,18 @@ class TimestampCallback(PlotCallback):
         (0..1, 0..1).  Setting pos trumps the corner parameter.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+        text object.  Defaults: {'color':'white'}.
     bbox_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the bounding box around the text.  
         Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
-                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
+                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.5'}
     """
     _type_name = "timestamp"
     # Defaults
-    _text_args = {'color':'white', 'size':'xx-large'}
+    _text_args = {'color':'white'}
     _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
-                  'linewidth':3, 'edgecolor':'white', 'alpha':0.3}
+                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
     def __init__(self, corner='lowerleft', time=True, redshift=False, 
                  time_format="t = {time:.1f} {units}", time_unit=None,
@@ -1388,14 +1388,17 @@ class ScaleCallback(PlotCallback):
         disregarded.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+        text object.  Defaults: {'color':'white', 
+        'horizontalalignment':'center', 'verticalalignment':'top'}.
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':3}.
     """
     _type_name = "scale"
     # Defaults
-    _text_args = {'color':'white', 'size':'xx-large'}
+    _text_args = {'horizontalalignment':'center', \
+                  'verticalalignment':'top', \
+                  'color':'white'}
     _plot_args = {'color':'white', 'linewidth':3}
 
     def __init__(self, corner='lowerright', coeff=None, unit=None, pos=None, 
@@ -1425,8 +1428,6 @@ class ScaleCallback(PlotCallback):
 
         # Setting pos trumps corner argument
         if self.pos is None:
-            self.text_args['horizontalalignment'] = 'center'
-            self.text_args['verticalalignment'] = 'top'
             if self.corner == 'upperleft':
                 self.pos = (0.12, 0.971)
             elif self.corner == 'upperright':

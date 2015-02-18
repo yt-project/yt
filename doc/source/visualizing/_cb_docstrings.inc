@@ -493,7 +493,7 @@ Add the current time and/or redshift to the plot
         (0..1, 0..1).  Setting pos trumps the corner parameter.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+        text object.  Defaults: {'color':'white'}.
 
     bbox_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -553,7 +553,7 @@ Add the physical scale to the plot
         disregarded.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 'size':'xx-large'}.
+        text object.  Defaults: {'color':'white'}.
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':3}.
