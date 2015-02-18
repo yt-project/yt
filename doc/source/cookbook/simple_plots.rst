@@ -135,12 +135,15 @@ See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: simple_volume_rendering.py
 
-Showing and Hiding Axes Labels and Colorbars
+.. _show-hide-axes-colorbar:
+
+Showing and Hiding Axis Labels and Colorbars
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This example illustrates how to create a SlicePlot and then suppress the axes
 labels and colorbars.  This is useful when you don't care about the physical
-scales and just want to take a closer look at the raw plot data.
+scales and just want to take a closer look at the raw plot data.  See 
+:ref:`hiding-colorbar-and-axes` for more information.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
 
