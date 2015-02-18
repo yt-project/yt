@@ -74,7 +74,7 @@ def load(*args ,**kwargs):
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
-    
+
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
     if len(candidates) == 1:
@@ -90,6 +90,7 @@ def load(*args ,**kwargs):
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
+        raise YTOutputNotIdentified(args, kwargs)
 
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
