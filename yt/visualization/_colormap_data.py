@@ -7816,6 +7816,65 @@ array([
 np.ones(256),
 )
 
+# aliases for different colors
+white = np.array([255, 255, 255 ])/255.
+gray = np.array([130, 130, 130])/255.
+dgray = np.array([80, 80, 80])/255.
+black = np.array([0, 0, 0])/255.
+blue = np.array([0, 0, 255])/255.
+dblue = np.array([0, 0, 160])/255.
+purple = np.array([100, 0, 200])/255.
+dpurple = np.array([66, 0, 133])/255.
+dred = np.array([160, 0, 0])/255.
+red = np.array([255, 0, 0])/255.
+orange = np.array([255, 128, 0])/255.
+dorange = np.array([200,100, 0])/255.
+yellow = np.array([255, 255, 0])/255.
+dyellow = np.array([200, 200, 0])/255.
+green = np.array([0, 255, 0])/255.
+dgreen = np.array([0, 160, 0])/255.
+
+def _make_custom_colormap(colors, spacings):
+    """
+    This generates a custom colormap including the colors and spacings you
+    provide.  Colormaps are arrays of 256x3 elements, the first dimension
+    showing the variation across the colormap and the second dimension for the
+    red, green, and blue channels.
+
+    Parameters
+    ----------
+
+    colors: list of colors (from the color definitions above)
+        colors must have length N
+    spacings: list of ints
+        designates the number of elements between the N colors.
+        SPACINGS MUST HAVE N-1 ELEMENTS.  spacings must sum to 256.
+
+    Example
+    -------
+    For a colormap that starts at black and spends 64 elements to build to
+    each of green, blue, red, and white:
+
+    >>> cm = _make_colormap([black, green, blue, red, white], [64, 64, 64, 64])
+    """
+    cm = np.zeros((256,3))
+    index = 0
+    # walk through colors and spacing lists and set cm values to linearly
+    # interpolate between each color over the spacing
+    for i in np.arange(len(spacings)):
+        # j is index for each of R, G, B channels
+        for j in np.arange(3):
+            cm[index:index+spacings[i], j] = np.linspace(colors[i][j], \
+                                                         colors[i+1][j], \
+                                                         spacings[i])
+        index += spacings[i]
+    return (cm[:,0], cm[:,1], cm[:,2], np.ones(256))
+
+color_map_luts['chum'] = _make_custom_colormap([black, dblue, blue, purple, dpurple, dred, red, orange, dorange, dyellow, yellow, green, dgreen, dgray, gray, white], [20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 32])
+# Very similar to STD GAMMA-II, but it includes green in the top instead of just a long expanse of yellow/white.
+color_map_luts['STDGREEN'] = _make_custom_colormap([black, blue, purple, dpurple, dred, red, orange, orange, yellow, yellow, yellow, white, dgreen], [51, 15, 10, 26, 15, 31, 10, 22, 10, 4, 22, 40])
+
+# Aliases
 color_map_luts['B-W LINEAR'] = color_map_luts['idl00']
 color_map_luts['BLUE'] = color_map_luts['idl01']
 color_map_luts['GRN-RED-BLU-WHT'] = color_map_luts['idl02']
