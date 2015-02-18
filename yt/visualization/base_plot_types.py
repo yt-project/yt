@@ -28,7 +28,8 @@ except:
 
 
 class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field):
+    def __init__(self, viewer, window_plot, frb, field, font_properties, 
+                 font_color):
         self.frb = frb
         self.data = frb.data_source
         self._axes = window_plot.axes
@@ -47,7 +48,8 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
-
+        self.font_properties = font_properties
+        self.font_color = font_color
 
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
