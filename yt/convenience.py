@@ -75,10 +75,12 @@ def load(*args ,**kwargs):
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
 
+    # convert to classes
+    candidates = [output_type_registry[c] for c in candidates]
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
     if len(candidates) == 1:
-        return output_type_registry[candidates[0]](*args, **kwargs)
+        return candidates[0](*args, **kwargs)
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
