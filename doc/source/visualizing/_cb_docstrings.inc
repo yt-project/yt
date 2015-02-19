@@ -480,25 +480,25 @@ Add the current time and/or redshift to the plot
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
-    image coordinates with the x_pos,y_pos arguments.  If no time_units are 
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
     specified, it will automatically choose appropriate units.  It allows for 
     custom formatting of the time and redshift information, as well as the
     specification of a bounding box around the text.
 
-    x_pos,y_pos : floats, optional
+    x_pos, y_pos : floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) =
-        (0..1, 0..1).  Setting x_pos,y_pos trumps the corner parameter.
+        (0..1, 0..1).  Setting x_pos, y_pos overrides the corner parameter.
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be trumped by the
+        'lower_right' (also allows None). This value will be overridden by the
         optional x_pos and y_pos keywords.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with redshift parameter.
     redshift : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
-        be used solo or in conjunction with time parameter.
+        be used solo or in conjunction with the time parameter.
     time_format : string, optional
         This specifies the format of the time output assuming "time" is the
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
@@ -557,7 +557,7 @@ Add the physical scale to the plot
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be trumped by the
+        'lower_right' (also allows None). This value will be overridden by the
         optional 'pos' keyword.
     coeff : float, optional
         The coefficient before the unit scale.  If set to None along with
@@ -569,7 +569,7 @@ Add the physical scale to the plot
         determined to be the best-fit to the data.
     pos : tuple of floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) =
-        (0..1, 0..1).  Setting pos trumps the corner parameter.
+        (0..1, 0..1).  Setting pos overrides the corner parameter.
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to
         extend. A value of 1 would allow the scale bar to extend across the

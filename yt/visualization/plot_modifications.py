@@ -93,12 +93,12 @@ class PlotCallback(object):
         """
         This sets all of the text instances created by a callback to have
         the same font size and properties as all of the other fonts in the
-        figure.  If kwargs are set, they trump the defaults.
+        figure.  If kwargs are set, they override the defaults.
         """
         # This is a little messy because there is no trivial way to update
         # a MPL.font_manager.FontProperties object with new attributes
         # aside from setting them individually.  So we pick out the relevant
-        # MPL.Text() kwargs from the local kwargs and let them trump the
+        # MPL.Text() kwargs from the local kwargs and let them override the
         # defaults.
         local_font_properties = plot.font_properties.copy()
 
@@ -1204,7 +1204,7 @@ class TimestampCallback(PlotCallback):
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
-    image coordinates with the x_pos,y_pos arguments.  If no time_units are 
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
     specified, it will automatically choose appropriate units.  It allows for 
     custom formatting of the time and redshift information, as well as the 
     specification of a bounding box around the text.
@@ -1213,24 +1213,24 @@ class TimestampCallback(PlotCallback):
     ----------
     x_pos, y_pos : floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) = 
-        (0..1, 0..1).  Setting x_pos and y_pos trumps the corner parameter.
+        (0..1, 0..1).  Setting x_pos and y_pos overrides the corner parameter.
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be trumped by the 
+        'lower_right' (also allows None). This value will be overridden by the 
         optional x_pos and y_pos keywords.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with redshift parameter.
     redshift : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
-        be used solo or in conjunction with time parameter.
+        be used solo or in conjunction with the time parameter.
     time_format : string, optional
         This specifies the format of the time output assuming "time" is the 
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
         The time can be specified to arbitrary precision according to printf
         formatting codes (defaults to .1f -- a float with 1 digits after 
-        decimal).
+        decimal).  Example: "Age = {time:.2f} {units}". 
     time_unit : string, optional
         time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
         'Myr', etc.)
@@ -1238,6 +1238,7 @@ class TimestampCallback(PlotCallback):
         This specifies the format of the redshift output.  The redshift can
         be specified to arbitrary precision according to printf formatting 
         codes (defaults to 0.2f -- a float with 2 digits after decimal).
+        Example: "REDSHIFT = {redshift:03.3g}", 
     bbox : boolean, optional
         Whether or not a bounding box should be included around the text
         If so, it uses the bbox_args to set the matplotlib FancyBboxPatch 
@@ -1250,6 +1251,14 @@ class TimestampCallback(PlotCallback):
         FancyBboxPatch object as the bounding box around the text.  
         Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                   'linewidth':3, 'edgecolor':'white', 'alpha':'0.5'}
+
+    Example
+    ------- 
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
     # Defaults
@@ -1279,7 +1288,7 @@ class TimestampCallback(PlotCallback):
         if not bbox: self.bbox_args = {}
 
     def __call__(self, plot):
-        # Setting pos trumps corner argument
+        # Setting pos overrides corner argument
         if self.pos[0] is None or self.pos[1] is None:
             if self.corner == 'upper_left':
                 self.pos = (0.03, 0.97)
@@ -1302,8 +1311,8 @@ class TimestampCallback(PlotCallback):
                 self.text_args['horizontalalignment'] = 'center'
                 self.text_args['verticalalignment'] = 'center'
             else:
-                raise SyntaxError("Argument 'corner' must be set to " \
-                                  "'upper_left', 'upper_right', 'lower_left'," \
+                raise SyntaxError("Argument 'corner' must be set to " 
+                                  "'upper_left', 'upper_right', 'lower_left', " 
                                   "'lower_right', or None")
 
         self.text = ""
@@ -1329,14 +1338,14 @@ class TimestampCallback(PlotCallback):
             try:
                 z = np.abs(plot.data.ds.current_redshift)
             except AttributeError:
-                raise AttributeError("Dataset does not have current_redshift."\
+                raise AttributeError("Dataset does not have current_redshift. "
                                      "Set redshift=False.")
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
         tcb = TextLabelCallback(self.pos, self.text, 
                                 text_args=self.text_args, 
-                                bbox_args=self.bbox_args)
+                                inset_box_args=self.inset_box_args)
         return tcb(plot)
 
 class ScaleCallback(PlotCallback):
@@ -1359,7 +1368,7 @@ class ScaleCallback(PlotCallback):
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be trumped by the 
+        'lower_right' (also allows None). This value will be overridden by the 
         optional 'pos' keyword.
     coeff : float, optional
         The coefficient of the unit defining the distance scale (e.g. 10 kpc or
@@ -1372,7 +1381,7 @@ class ScaleCallback(PlotCallback):
         determined to be the best-fit to the data.
     pos : tuple of floats, optional
         The image location of the timestamp in image coords (i.e. (x,y) = 
-        (0..1, 0..1).  Setting pos trumps the corner parameter.
+        (0..1, 0..1).  Setting pos overrides the corner parameter.
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to 
         extend. A value of 1 would allow the scale bar to extend across the
@@ -1386,6 +1395,14 @@ class ScaleCallback(PlotCallback):
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':3}.
+
+    Example
+    ------- 
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_scale()
     """
     _type_name = "scale"
     # Defaults
@@ -1415,11 +1432,11 @@ class ScaleCallback(PlotCallback):
         xsize = plot.xlim[1] - plot.xlim[0]
         ysize = plot.ylim[1] - plot.ylim[0]
         if xsize != ysize:
-            raise RuntimeError("Scale callback only works for plots with", \
+            raise RuntimeError("Scale callback only works for plots with "
                                "axis ratios of 1: xsize = %s, ysize = %s." %
                                (xsize, ysize))
 
-        # Setting pos trumps corner argument
+        # Setting pos overrides corner argument
         if self.pos is None:
             if self.corner == 'upper_left':
                 self.pos = (0.12, 0.971)
@@ -1432,8 +1449,8 @@ class ScaleCallback(PlotCallback):
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                raise SyntaxError("Argument 'corner' must be set to" \
-                                  "'upper_left', 'upper_right', 'lower_left'," \
+                raise SyntaxError("Argument 'corner' must be set to " 
+                                  "'upper_left', 'upper_right', 'lower_left', " 
                                   "'lower_right', or None")
 
         # When identifying a best fit distance unit, do not allow scale marker
