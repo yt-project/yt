@@ -1,3 +1,5 @@
+.. _annotate-arrow:
+
 Arrow callback
 ~~~~~~~~~~~~~~
 
@@ -17,6 +19,8 @@ Arrow callback
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='c')
    slc.annotate_arrow((0.5, 0.5, 0.5), (1, 'kpc'))
    slc.save()
+
+.. _annotate-clumps:
 
 Clump Finder Callback
 ~~~~~~~~~~~~~~~~~~~~~
@@ -77,6 +81,8 @@ Overplot Contours
    s = yt.SlicePlot(ds, "x", "density", center="max")
    s.annotate_contour("temperature")
    s.save()
+
+.. _annotate-quivers:
 
 Overplot quivers
 ~~~~~~~~~~~~~~~~
@@ -192,6 +198,8 @@ Overplot Halo Annotations
    prj.annotate_halos(hc, annotate_field='particle_identifier')
    prj.save()
 
+.. _annotate-image-line:
+
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -210,6 +218,8 @@ Overplot a Straight Line
    p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_image_line((0.3, 0.4), (0.8, 0.9), plot_args={'linewidth':5})
    p.save()
+
+.. _annotate-line:
 
 Overplot a line plot
 ~~~~~~~~~~~~~~~~~~~~
@@ -232,6 +242,8 @@ Overplot a line plot
    y = x**2/10
    p.annotate_line(x, y, plot_args={'linewidth':5})
    p.save()
+
+.. _annotate-magnetic-field:
 
 Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -258,6 +270,8 @@ Overplot Magnetic Field Quivers
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(300, 'kpc'))
    p.annotate_magnetic_field()
    p.save()
+
+.. _annotate-marker:
 
 Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,6 +319,8 @@ Overplotting Particle Positions
    p.annotate_particles((10, 'Mpc'))
    p.save()
 
+.. _annotate-point:
+
 Annotate a point with text
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -324,6 +340,8 @@ Annotate a point with text
    p.annotate_point([0.5, 0.496, 0.5], "What's going on here?",
                     text_args={'size':'xx-large', 'color':'w'})
    p.save()
+
+.. _annotate-sphere:
 
 Overplot a circle on a plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -345,6 +363,8 @@ Overplot a circle on a plot
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_sphere([0.5, 0.5, 0.5], (2, 'kpc'), {'fill':True})
    p.save()
+
+.. _annotate-streamlines:
 
 Overplot streamlines
 ~~~~~~~~~~~~~~~~~~~~
@@ -370,6 +390,8 @@ Overplot streamlines
    s.annotate_streamlines('velocity_x', 'velocity_y')
    s.save()
 
+.. _annotate-text:
+
 Add text
 ~~~~~~~~
 
@@ -392,6 +414,8 @@ Add text
    s.annotate_text((0.5, 0.5), 'Sample text',
                    text_args={'size':'xx-large', 'color':'w'})
    s.save()
+
+.. _annotate-title:
 
 Add a title to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -437,6 +461,8 @@ Overplot quivers for the velocity field
    p = yt.SlicePlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_velocity()
    p.save()
+
+.. _annotate-timestamp:
 
 Add the current time and/or redshift to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -494,7 +520,6 @@ Add the current time and/or redshift to the plot
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white'}.
-
     bbox_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the bounding box around the text.
@@ -508,6 +533,7 @@ Add the current time and/or redshift to the plot
    p.annotate_timestamp()
    p.save()
 
+.. _annotate-scale:
 
 Add the physical scale to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -566,6 +592,7 @@ Add the physical scale to the plot
    p.annotate_scale()
    p.save()
 
+.. _annotate-triangle-facets:
 
 Annotate Triangle Facets Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
