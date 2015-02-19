@@ -1022,7 +1022,7 @@ class Profile2D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -1033,7 +1033,7 @@ class Profile2D(ProfileND):
     y_min : float
         The minimum value of the y profile field.
     y_max : float
-        The maximum value of hte y profile field.
+        The maximum value of the y profile field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -1123,7 +1123,7 @@ class DepositedProfile2D(Profile2D):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     y_field : string field name
         The field to profile as a function of along the y axis
     y_n : integer
@@ -1131,7 +1131,7 @@ class DepositedProfile2D(Profile2D):
     y_min : float
         The minimum value of the y profile field.
     y_max : float
-        The maximum value of hte y profile field.
+        The maximum value of the y profile field.
 
     """
 
@@ -1190,7 +1190,7 @@ class Profile3D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -1201,7 +1201,7 @@ class Profile3D(ProfileND):
     y_min : float
         The minimum value of the y profile field.
     y_max : float
-        The maximum value of hte y profile field.
+        The maximum value of the y profile field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -1212,7 +1212,7 @@ class Profile3D(ProfileND):
     z_min : float
         The minimum value of the z profile field.
     z_max : float
-        The maximum value of hte z profile field.
+        The maximum value of thee z profile field.
     z_log : boolean
         Controls whether or not the bins for the z field are evenly
         spaced in linear (False) or log (True) space.
