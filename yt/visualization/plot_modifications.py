@@ -1197,25 +1197,28 @@ class TriangleFacetsCallback(PlotCallback):
 
 class TimestampCallback(PlotCallback):
     """
-    annotate_timestamp(corner='lower_left', time=True, redshift=False, 
-                       time_format="t = {time:.0f} {units}", time_unit=None, 
-                       redshift_format="z = {redshift:.2f}", 
-                       bbox=False, pos=None, text_args=None, bbox_args=None)
+    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True, 
+                       redshift=False, time_format="t = {time:.0f} {units}", 
+                       time_unit=None, redshift_format="z = {redshift:.2f}", 
+                       bbox=False, text_args=None, bbox_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
-    image coordinates with the pos argument.  If no time_units are specified, 
-    it will automatically choose appropriate units.  It allows for custom 
-    formatting of the time and redshift information, as well as the 
+    image coordinates with the x_pos,y_pos arguments.  If no time_units are 
+    specified, it will automatically choose appropriate units.  It allows for 
+    custom formatting of the time and redshift information, as well as the 
     specification of a bounding box around the text.
 
     Parameters
     ----------
+    x_pos, y_pos : floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) = 
+        (0..1, 0..1).  Setting x_pos and y_pos trumps the corner parameter.
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
         'lower_right' (also allows None). This value will be trumped by the 
-        optional 'pos' keyword.
+        optional x_pos and y_pos keywords.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with redshift parameter.
@@ -1239,9 +1242,6 @@ class TimestampCallback(PlotCallback):
         Whether or not a bounding box should be included around the text
         If so, it uses the bbox_args to set the matplotlib FancyBboxPatch 
         object.  
-    pos : tuple of floats, optional
-        The image location of the timestamp in image coords (i.e. (x,y) = 
-        (0..1, 0..1).  Setting pos trumps the corner parameter.
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white'}.
@@ -1257,19 +1257,19 @@ class TimestampCallback(PlotCallback):
     _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                   'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
-    def __init__(self, corner='lower_left', time=True, redshift=False, 
-                 time_format="t = {time:.1f} {units}", time_unit=None,
-                 redshift_format="z = {redshift:.2f}", bbox=False,
-                 pos=None, text_args=None, bbox_args=None):
+    def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
+                 redshift=False, time_format="t = {time:.1f} {units}", 
+                 time_unit=None, redshift_format="z = {redshift:.2f}", 
+                 bbox=False, text_args=None, bbox_args=None):
 
         # Set position based on corner argument.
+        self.pos = (x_pos, y_pos)
         self.corner = corner
         self.time = time
         self.redshift = redshift
         self.time_format = time_format
         self.redshift_format = redshift_format
         self.time_unit = time_unit
-        self.pos = pos
         if text_args is None: self.text_args = self._text_args
         else: self.text_args = text_args
         if bbox_args is None: self.bbox_args = self._bbox_args
@@ -1280,7 +1280,7 @@ class TimestampCallback(PlotCallback):
 
     def __call__(self, plot):
         # Setting pos trumps corner argument
-        if self.pos is None:
+        if self.pos[0] is None or self.pos[1] is None:
             if self.corner == 'upper_left':
                 self.pos = (0.03, 0.97)
                 self.text_args['horizontalalignment'] = 'left'
@@ -1313,18 +1313,10 @@ class TimestampCallback(PlotCallback):
 
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                t = plot.data.ds.current_time.in_units('s')
-                scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 
-                              'day', 'yr', 'kyr', 'Myr', 'Gyr', 'Tyr', 
-                              'Pyr', 'Eyr', 'Zyr', 'Yyr']
-                for i, k in enumerate(scale_keys):
-                    if t < YTQuantity(1, k):
-                        break
-                    t.convert_to_units(k)
-                self.time_unit = scale_keys[i-1]
-            # If time_unit is set, use it
-            else:
-                t = plot.data.ds.current_time.in_units(self.time_unit)
+                self.time_unit = plot.ds.get_smallest_appropriate_unit( \
+                                            plot.ds.current_time, 
+                                            quantity='time')
+            t = plot.ds.current_time.in_units(self.time_unit)
             self.text += self.time_format.format(time=float(t), 
                                                  units=self.time_unit)
 
@@ -1455,8 +1447,10 @@ class ScaleCallback(PlotCallback):
 
         # If no units are set, then identify a best fit distance unit
         if self.unit is None:
-            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, quantity=True)
-            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, quantity=True)
+            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, 
+                                                   return_quantity=True)
+            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, 
+                                                   return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
