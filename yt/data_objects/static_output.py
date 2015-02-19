@@ -251,15 +251,38 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v):
+    def get_smallest_appropriate_unit(self, v, quantity=False):
+        """
+        Returns the largest whole unit (e.g. Mpc, kpc, pc, au, etc) smaller 
+        than the YTQuantity passed to it.  
+        
+        If quantity is set to True, it finds the largest YTQuantity object 
+        with a whole unit and a power of ten as the coefficient, and it 
+        returns this YTQuantity.
+        """
         good_u = None
-        for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
+        unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+                    'km', 'cm', 'um', 'nm', 'pm']
+        for unit in unit_list:
             uq = self.quan(1.0, unit)
-            if uq < v:
+            if uq <= v:
                 good_u = unit
                 break
         if good_u is None : good_u = 'cm'
-        return good_u
+        if quantity:
+            unit_index = unit_list.index(good_u)
+            if unit_index == 0: return self.quan(1, 'Ppc')
+            # Number of orders of magnitude between unit and next one up
+            OOMs = np.ceil(np.log10(self.quan(1, unit_list[unit_index-1]) /
+                                    self.quan(1, unit_list[unit_index])))
+            # Backwards order of coefficients (e.g. [100, 10, 1])
+            coeffs = 10**np.arange(OOMs)[::-1]
+            for j in coeffs:
+                uq = self.quan(j, good_u)
+                if uq <= v:
+                    return uq
+        else:            
+            return good_u
 
     def has_key(self, key):
         """

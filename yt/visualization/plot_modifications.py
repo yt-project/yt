@@ -1197,7 +1197,7 @@ class TriangleFacetsCallback(PlotCallback):
 
 class TimestampCallback(PlotCallback):
     """
-    annotate_timestamp(corner='lowerleft', time=True, redshift=False, 
+    annotate_timestamp(corner='lower_left', time=True, redshift=False, 
                        time_format="t = {time:.0f} {units}", time_unit=None, 
                        redshift_format="z = {redshift:.2f}", 
                        bbox=False, pos=None, text_args=None, bbox_args=None)
@@ -1213,8 +1213,8 @@ class TimestampCallback(PlotCallback):
     ----------
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
-        'lowerright' (also allows None). This value will be trumped by the 
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be trumped by the 
         optional 'pos' keyword.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
@@ -1257,7 +1257,7 @@ class TimestampCallback(PlotCallback):
     _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                   'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
-    def __init__(self, corner='lowerleft', time=True, redshift=False, 
+    def __init__(self, corner='lower_left', time=True, redshift=False, 
                  time_format="t = {time:.1f} {units}", time_unit=None,
                  redshift_format="z = {redshift:.2f}", bbox=False,
                  pos=None, text_args=None, bbox_args=None):
@@ -1281,19 +1281,19 @@ class TimestampCallback(PlotCallback):
     def __call__(self, plot):
         # Setting pos trumps corner argument
         if self.pos is None:
-            if self.corner == 'upperleft':
+            if self.corner == 'upper_left':
                 self.pos = (0.03, 0.97)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'top'
-            elif self.corner == 'upperright':
+            elif self.corner == 'upper_right':
                 self.pos = (0.97, 0.97)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'top'
-            elif self.corner == 'lowerleft':
+            elif self.corner == 'lower_left':
                 self.pos = (0.03, 0.03)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'bottom'
-            elif self.corner == 'lowerright':
+            elif self.corner == 'lower_right':
                 self.pos = (0.97, 0.03)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'bottom'
@@ -1302,9 +1302,9 @@ class TimestampCallback(PlotCallback):
                 self.text_args['horizontalalignment'] = 'center'
                 self.text_args['verticalalignment'] = 'center'
             else:
-                print "Argument 'corner' must be set to 'upperleft'," \
-                      "'upperright', 'lowerleft', 'lowerright', or None"
-                raise SyntaxError
+                raise SyntaxError("Argument 'corner' must be set to " \
+                                  "'upper_left', 'upper_right', 'lower_left'," \
+                                  "'lower_right', or None")
 
         self.text = ""
 
@@ -1337,8 +1337,8 @@ class TimestampCallback(PlotCallback):
             try:
                 z = np.abs(plot.data.ds.current_redshift)
             except AttributeError:
-                print "Dataset does not have current_redshift. Set redshift=False."
-                raise AttributeError
+                raise AttributeError("Dataset does not have current_redshift."\
+                                     "Set redshift=False.")
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
@@ -1349,30 +1349,31 @@ class TimestampCallback(PlotCallback):
 
 class ScaleCallback(PlotCallback):
     """
-    annotate_scale(corner='lowerright', coeff=None, unit=None, pos=None,
+    annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
                    max_frac=0.2, min_frac=0.018,
                    text_args=None, plot_args=None)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
-    the pos argument.  Coeff and units (e.g. 1 Mpc) refer to the distance scale
-    you desire to show on the plot.  If no coeff and units are specified, 
-    an appropriate pair will be determined such that your scale bar is never
-    smaller than min_frac or greater than max_frac of your plottable axis 
-    length.  For additional text and plot arguments for the text and line,
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the 
+    distance scale you desire to show on the plot.  If no coeff and units are 
+    specified, an appropriate pair will be determined such that your scale bar 
+    is never smaller than min_frac or greater than max_frac of your plottable 
+    axis length.  For additional text and plot arguments for the text and line,
     include them as dictionaries to pass to text_args and plot_args.
     
     Parameters
     ----------
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
-        'lowerright' (also allows None). This value will be trumped by the 
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be trumped by the 
         optional 'pos' keyword.
     coeff : float, optional
-        The coefficient before the unit scale.  If set to None along with
-        unit keyword, will be automatically determined to be a power of 10
-        relative to the best-fit scale.
+        The coefficient of the unit defining the distance scale (e.g. 10 kpc or
+        100 Mpc) to be overplot.  If set to None along with unit keyword, 
+        coeff will be automatically determined to be a power of 10
+        relative to the best-fit unit.
     unit : string, optional
         unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
         'kpc', etc.) or set to None.  If set to None, will be automatically
@@ -1401,7 +1402,7 @@ class ScaleCallback(PlotCallback):
                   'color':'white'}
     _plot_args = {'color':'white', 'linewidth':3}
 
-    def __init__(self, corner='lowerright', coeff=None, unit=None, pos=None, 
+    def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
                  max_frac=0.20, min_frac=0.018,
                  text_args=None, plot_args=None):
 
@@ -1423,25 +1424,25 @@ class ScaleCallback(PlotCallback):
         ysize = plot.ylim[1] - plot.ylim[0]
         if xsize != ysize:
             raise RuntimeError("Scale callback only works for plots with", \
-                                "axis ratios of 1: xsize = %s, ysize = %s." %
-                                (xsize, ysize))
+                               "axis ratios of 1: xsize = %s, ysize = %s." %
+                               (xsize, ysize))
 
         # Setting pos trumps corner argument
         if self.pos is None:
-            if self.corner == 'upperleft':
+            if self.corner == 'upper_left':
                 self.pos = (0.12, 0.971)
-            elif self.corner == 'upperright':
+            elif self.corner == 'upper_right':
                 self.pos = (0.88, 0.971)
-            elif self.corner == 'lowerleft':
+            elif self.corner == 'lower_left':
                 self.pos = (0.12, 0.062)
-            elif self.corner == 'lowerright':
+            elif self.corner == 'lower_right':
                 self.pos = (0.88, 0.062)
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                print "Argument 'corner' must be set to 'upperleft',", \
-                      "'upperright', 'lowerleft', 'lowerright', or None"
-                raise SyntaxError
+                raise SyntaxError("Argument 'corner' must be set to" \
+                                  "'upper_left', 'upper_right', 'lower_left'," \
+                                  "'lower_right', or None")
 
         # When identifying a best fit distance unit, do not allow scale marker
         # to be greater than max_frac fraction of xaxis or under min_frac 
@@ -1454,22 +1455,10 @@ class ScaleCallback(PlotCallback):
 
         # If no units are set, then identify a best fit distance unit
         if self.unit is None:
-            scale_keys = ['fm', 'pm', 'nm', 'um', 'mm', 'cm', 'm', 
-                          'km', 'AU', 'pc', 'kpc', 'Mpc', 
-                          'Gpc', 'Tpc', 'Ppc', 'Epc', 'Zpc', 'Ypc']
-            for i, k in enumerate(scale_keys):
-                if i == len(scale_keys)-1: break
-                # How many OOM between this scale and next? Use each as 
-                # coefficient
-                powers = np.ceil(np.log10(YTQuantity(1, scale_keys[i+1]) / \
-                                 YTQuantity(1, scale_keys[i])))
-                coefficients = 10**np.arange(powers)
-                for j in coefficients:
-                    if not (min_scale < YTQuantity(j, k) and max_scale > YTQuantity(j, k)):
-                        continue
-                    self.coeff = j
-                    self.unit = scale_keys[i]
-                    break
+            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, quantity=True)
+            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, quantity=True)
+            self.coeff = max_scale.v
+            self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
         self.text = "{scale} {units}".format(scale=int(self.coeff), 
                                              units=self.unit)

@@ -441,7 +441,7 @@ Overplot quivers for the velocity field
 Add the current time and/or redshift to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_timestamp(corner='lowerleft', time=True, \
+.. function:: annotate_timestamp(corner='lower_left', time=True, \
                                  redshift=False, \
                                  time_format='t = {time:.0f} {units}', \
                                  time_unit=None, \
@@ -462,8 +462,8 @@ Add the current time and/or redshift to the plot
 
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
-        'lowerright' (also allows None). This value will be trumped by the
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be trumped by the
         optional 'pos' keyword.
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
@@ -505,14 +505,14 @@ Add the current time and/or redshift to the plot
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_timestamp(redshift=True)
+   p.annotate_timestamp()
    p.save()
 
 
 Add the physical scale to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_scale(corner='lowerright', coeff=None, \
+.. function:: annotate_scale(corner='lower_right', coeff=None, \
                              unit=None, pos=None, max_frac=0.2, \
                              min_frac=0.018, text_args=None, \
                              bbox_args=None)
@@ -531,8 +531,8 @@ Add the physical scale to the plot
 
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upperleft', 'upperright', 'lowerleft',
-        'lowerright' (also allows None). This value will be trumped by the
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be trumped by the
         optional 'pos' keyword.
     coeff : float, optional
         The coefficient before the unit scale.  If set to None along with
