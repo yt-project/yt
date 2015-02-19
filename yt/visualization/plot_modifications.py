@@ -907,24 +907,25 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, data_coords=False, text_args=None, bbox_args=None)
+    annotate_text(pos, text, data_coords=False, text_args=None, 
+                  inset_box_args=None)
 
     Accepts a position in (0..1, 0..1) of the image, some text and
     optionally some text arguments. If data_coords is True,
     position will be in code units instead of image coordinates.  If you desire
-    a bounding box around your text, set one with the bbox_args dictionary 
+    an inset box around your text, set one with the inset_box_args dictionary 
     keyword.
     """
     _type_name = "text"
     def __init__(self, pos, text, data_coords=False, text_args=None, 
-                 bbox_args=None):
+                 inset_box_args=None):
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
         if text_args is None: text_args = {}
         self.text_args = text_args
-        if bbox_args is None: bbox_args = {}
-        self.bbox_args = bbox_args
+        if inset_box_args is None: inset_box_args = {}
+        self.inset_box_args = inset_box_args
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
@@ -943,7 +944,7 @@ class TextLabelCallback(PlotCallback):
 
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
-        label = plot._axes.text(x, y, self.text, bbox=self.bbox_args, **kwargs)
+        label = plot._axes.text(x, y, self.text, bbox=self.inset_box_args, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
@@ -1200,14 +1201,14 @@ class TimestampCallback(PlotCallback):
     annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True, 
                        redshift=False, time_format="t = {time:.0f} {units}", 
                        time_unit=None, redshift_format="z = {redshift:.2f}", 
-                       bbox=False, text_args=None, bbox_args=None)
+                       draw_inset_box=False, text_args=None, inset_box_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are 
     specified, it will automatically choose appropriate units.  It allows for 
     custom formatting of the time and redshift information, as well as the 
-    specification of a bounding box around the text.
+    specification of an inset box around the text.
 
     Parameters
     ----------
@@ -1239,16 +1240,16 @@ class TimestampCallback(PlotCallback):
         be specified to arbitrary precision according to printf formatting 
         codes (defaults to 0.2f -- a float with 2 digits after decimal).
         Example: "REDSHIFT = {redshift:03.3g}", 
-    bbox : boolean, optional
-        Whether or not a bounding box should be included around the text
-        If so, it uses the bbox_args to set the matplotlib FancyBboxPatch 
+    draw_inset_box : boolean, optional
+        Whether or not an inset box should be included around the text
+        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch 
         object.  
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white'}.
-    bbox_args : dictionary, optional
+    inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        FancyBboxPatch object as the bounding box around the text.  
+        FancyBboxPatch object as the inset box around the text.  
         Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                   'linewidth':3, 'edgecolor':'white', 'alpha':'0.5'}
 
@@ -1263,13 +1264,13 @@ class TimestampCallback(PlotCallback):
     _type_name = "timestamp"
     # Defaults
     _text_args = {'color':'white'}
-    _bbox_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
-                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+    _inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                       'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
                  redshift=False, time_format="t = {time:.1f} {units}", 
                  time_unit=None, redshift_format="z = {redshift:.2f}", 
-                 bbox=False, text_args=None, bbox_args=None):
+                 draw_inset_box=False, text_args=None, inset_box_args=None):
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -1281,11 +1282,11 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         if text_args is None: self.text_args = self._text_args
         else: self.text_args = text_args
-        if bbox_args is None: self.bbox_args = self._bbox_args
-        else: self.bbox_args = bbox_args
+        if inset_box_args is None: self.inset_box_args = self._inset_box_args
+        else: self.inset_box_args = inset_box_args
 
-        # if bbox is not desired, set bbox_args to {}
-        if not bbox: self.bbox_args = {}
+        # if inset box is not desired, set inset_box_args to {}
+        if not draw_inset_box: self.inset_box_args = {}
 
     def __call__(self, plot):
         # Setting pos overrides corner argument

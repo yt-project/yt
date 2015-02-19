@@ -3,6 +3,6 @@ import yt
 ts = yt.load("enzo_tiny_cosmology/DD000?/DD000?")
 for ds in ts:
     p = yt.ProjectionPlot(ds, "z", "density")
-    p.annotate_timestamp(corner='upper_left', redshift=True, bbox=True)
+    p.annotate_timestamp(corner='upper_left', redshift=True, use_inset_box=True)
     p.annotate_scale(corner='upper_right')
     p.save()
