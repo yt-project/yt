@@ -165,6 +165,9 @@ class ImagePlotMPL(PlotMPL):
                 x_fig_size = self._figure_size*self._aspect
                 y_fig_size = self._figure_size
 
+        if hasattr(self, '_unit_aspect'):
+            y_fig_size = y_fig_size * self._unit_aspect
+
         if self._draw_colorbar:
             cb_size = self._cb_size
             cb_text_size = self._ax_text_size[1] + 0.45
