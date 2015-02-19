@@ -80,7 +80,11 @@ class FixedResolutionBuffer(object):
     104923.1
     """
     _exclude_fields = ('pz','pdz','dx','x','y','z',
-                       ('index','dx'),('index','x'),('index','y'),('index','z'))
+        'r', 'dr', 'phi', 'dphi', 'theta', 'dtheta',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'),
+                       ('index', 'r'), ('index', 'dr'),
+                       ('index', 'phi'), ('index', 'dphi'),
+                       ('index', 'theta'), ('index', 'dtheta'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
@@ -169,8 +173,8 @@ class FixedResolutionBuffer(object):
                     ipstr = i
             element = segments[ipstr-1]
             roman = pnum2rom[pstr[1:]] 
-            label = element + '\/' + roman + '\/' + \
-                string.join( segments[ipstr+1:], '\/' ) 
+            label = element + '\ ' + roman + '\ ' + \
+                string.join(segments[ipstr+1:], '\ ')
         else:
             label = fname
         return label
@@ -206,12 +210,12 @@ class FixedResolutionBuffer(object):
             if self._is_ion( fname ):
                 fname = self._ion_to_label( fname )
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ')+r'}$'
             else:    
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ').title()+r'}$'
         elif info['label'].find('$') == -1:
-            info['label'] = info['label'].replace(' ','\/')
+            info['label'] = info['label'].replace(' ','\ ')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         
         return info

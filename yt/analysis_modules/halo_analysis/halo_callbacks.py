@@ -378,7 +378,9 @@ def load_profiles(halo, storage="profiles", fields=None,
 
 add_callback("load_profiles", load_profiles)
 
-def virial_quantities(halo, fields, critical_overdensity=200,
+def virial_quantities(halo, fields, 
+                      overdensity_field=("gas", "overdensity"),
+                      critical_overdensity=200,
                       profile_storage="profiles"):
     r"""
     Calculate the value of the given fields at the virial radius defined at 
@@ -390,6 +392,10 @@ def virial_quantities(halo, fields, critical_overdensity=200,
         The Halo object to be provided by the HaloCatalog.
     fields : string or list of strings
         The fields whose virial values are to be calculated.
+    overdensity_field : string or tuple of strings
+        The field used as the overdensity from which interpolation is done to 
+        calculate virial quantities.
+        Default: ("gas", "overdensity")
     critical_density : float
         The value of the overdensity at which to evaulate the virial quantities.  
         Overdensity is with respect to the critical density.
@@ -410,10 +416,11 @@ def virial_quantities(halo, fields, critical_overdensity=200,
     dds = halo.halo_catalog.data_ds
     profile_data = getattr(halo, profile_storage)
 
-    if ("gas", "overdensity") not in profile_data:
-      raise RuntimeError('virial_quantities callback requires profile of ("gas", "overdensity").')
+    if overdensity_field not in profile_data:
+      raise RuntimeError("virial_quantities callback requires profile of %s." %
+                         str(overdensity_field))
 
-    overdensity = profile_data[("gas", "overdensity")]
+    overdensity = profile_data[overdensity_field]
     dfilter = np.isfinite(overdensity) & profile_data["used"] & (overdensity > 0)
 
     v_fields = {}

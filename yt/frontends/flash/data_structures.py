@@ -72,10 +72,12 @@ class FLASHHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("flash", s.decode("ascii","ignore"))
+                           for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle):
-            self.field_list += [("io", "particle_" + s[0].strip()) for s
-                                in self._particle_handle["/particle names"][:]]
+            self.field_list += [("io", "particle_" +
+                                    s[0].decode("ascii","ignore").strip())
+                                for s in self._particle_handle["/particle names"][:]]
     
     def _count_grids(self):
         try:
@@ -259,7 +261,9 @@ class FLASHDataset(Dataset):
         if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
-            if tpname.strip() == pname:
+            if tpname.decode("ascii","ignore").strip() == pname:
+                if hasattr(pval, "decode"):
+                    pval = pval.decode("ascii", "ignore")
                 if ptype == "string":
                     return pval.strip()
                 else:
@@ -298,7 +302,9 @@ class FLASHDataset(Dataset):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    if hasattr(pval, 'decode'):
+                        pval = pval.decode("ascii", "ignore")
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         if self._flash_version == 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -316,7 +322,9 @@ class FLASHDataset(Dataset):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    if hasattr(pval, 'decode'):
+                        pval = pval.decode("ascii", "ignore")
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         
         # Determine block size
         try:

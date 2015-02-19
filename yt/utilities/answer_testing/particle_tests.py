@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import matplotlib
 from yt.mods import *
 import pylab
-from output_tests import SingleOutputTest, YTDatasetTest, create_test
+from .output_tests import SingleOutputTest, YTDatasetTest, create_test
 
 class TestParticleUniqueIDs(YTDatasetTest):
 

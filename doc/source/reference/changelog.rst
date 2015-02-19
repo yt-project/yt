@@ -11,6 +11,138 @@ Contributors
 The `CREDITS file <http://hg.yt-project.org/yt/src/yt/CREDITS>`_ contains the
 most up-to-date list of everyone who has contributed to the yt source code.
 
+Version 3.1
+-----------
+
+This is a scheduled feature release.  Below are the itemized, aggregate changes
+since version 3.0.
+
+
+Major changes:
+++++++++++++++
+
+* The RADMC-3D export analysis module has been updated. `PR 1358 <https://bitbucket.org/yt_analysis/yt/pull-request/1358>`_, `PR 1332 <https://bitbucket.org/yt_analysis/yt/pull-request/1332>`_.
+
+* Performance improvements for grid frontends. `PR 1350 <https://bitbucket.org/yt_analysis/yt/pull-request/1350>`_. `PR 1382 <https://bitbucket.org/yt_analysis/yt/pull-request/1382>`_, `PR 1322 <https://bitbucket.org/yt_analysis/yt/pull-request/1322>`_.
+
+* Added a frontend for Dark Matter-only NMSU Art simulations. `PR 1258 <https://bitbucket.org/yt_analysis/yt/pull-request/1258>`_.
+
+* The absorption spectrum generator has been updated. `PR 1356 <https://bitbucket.org/yt_analysis/yt/pull-request/1356>`_.
+
+* The PerspectiveCamera has been updated and a new SphericalCamera has been
+  added. `PR 1346 <https://bitbucket.org/yt_analysis/yt/pull-request/1346>`_, `PR 1299 <https://bitbucket.org/yt_analysis/yt/pull-request/1299>`_.
+
+* The unit system now supports unit equivalencies and has improved support for MKS units.  See :ref:`unit_equivalencies`. `PR 1291 <https://bitbucket.org/yt_analysis/yt/pull-request/1291>`_, `PR 1286 <https://bitbucket.org/yt_analysis/yt/pull-request/1286>`_.
+
+* Data object selection can now be chained, allowing selecting based on multiple constraints. `PR 1264 <https://bitbucket.org/yt_analysis/yt/pull-request/1264>`_.
+
+* Added the ability to manually override the simulation unit system. `PR 1236 <https://bitbucket.org/yt_analysis/yt/pull-request/1236>`_.
+
+* The documentation has been reorganized and has seen substantial improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
+
+Minor or bugfix changes:
+++++++++++++++++++++++++
+
+* The Ampere unit now accepts SI prefixes.  `PR 1393 <https://bitbucket.org/yt_analysis/yt/pull-request/1393>`_.
+
+* The Gadget InternalEnergy and StarFormationRate fields are now read in with the correct units.  `PR 1392 <https://bitbucket.org/yt_analysis/yt/pull-request/1392>`_, `PR 1379 <https://bitbucket.org/yt_analysis/yt/pull-request/1379>`_.
+
+* Substantial improvements for the PPVCube analysis module and support for FITS dataset. `PR 1390 <https://bitbucket.org/yt_analysis/yt/pull-request/1390>`_, `PR 1367 <https://bitbucket.org/yt_analysis/yt/pull-request/1367>`_, `PR 1347 <https://bitbucket.org/yt_analysis/yt/pull-request/1347>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1280 <https://bitbucket.org/yt_analysis/yt/pull-request/1280>`_, `PR 1336 <https://bitbucket.org/yt_analysis/yt/pull-request/1336>`_.
+
+* The center of a PlotWindow plot can now be set to the maximum or minimum of any field. `PR 1280 <https://bitbucket.org/yt_analysis/yt/pull-request/1280>`_.
+
+* Fixes for yt testing infrastructure. `PR 1388 <https://bitbucket.org/yt_analysis/yt/pull-request/1388>`_, `PR 1348 <https://bitbucket.org/yt_analysis/yt/pull-request/1348>`_.
+
+* Projections are now performed using an explicit path length field for all
+  coordinate systems. `PR 1307 <https://bitbucket.org/yt_analysis/yt/pull-request/1307>`_.
+
+* An example notebook for simulations using the OWLS data format has been added
+  to the documentation. `PR 1386 <https://bitbucket.org/yt_analysis/yt/pull-request/1386>`_.
+
+* Fix for the camera.draw_line function. `PR 1380 <https://bitbucket.org/yt_analysis/yt/pull-request/1380>`_.
+
+* Minor fixes and improvements for yt plots. `PR 1376 <https://bitbucket.org/yt_analysis/yt/pull-request/1376>`_, `PR 1374 <https://bitbucket.org/yt_analysis/yt/pull-request/1374>`_, `PR 1288 <https://bitbucket.org/yt_analysis/yt/pull-request/1288>`_, `PR 1290 <https://bitbucket.org/yt_analysis/yt/pull-request/1290>`_.
+
+* Significant documentation reorganization and improvement. `PR 1375 <https://bitbucket.org/yt_analysis/yt/pull-request/1375>`_, `PR 1359 <https://bitbucket.org/yt_analysis/yt/pull-request/1359>`_.
+
+* Fixed a conflict in the CFITSIO library used by the x-ray analysis module. `PR 1365 <https://bitbucket.org/yt_analysis/yt/pull-request/1365>`_.
+
+* Miscellaneous code cleanup. `PR 1371 <https://bitbucket.org/yt_analysis/yt/pull-request/1371>`_, `PR 1361 <https://bitbucket.org/yt_analysis/yt/pull-request/1361>`_.
+
+* yt now hooks up to the python logging infrastructure in a more standard
+  fashion, avoiding issues with yt logging showing up with using other
+  libraries. `PR 1355 <https://bitbucket.org/yt_analysis/yt/pull-request/1355>`_, `PR 1362 <https://bitbucket.org/yt_analysis/yt/pull-request/1362>`_, `PR 1360 <https://bitbucket.org/yt_analysis/yt/pull-request/1360>`_.
+
+* The docstring for the projection data object has been corrected. `PR 1366 <https://bitbucket.org/yt_analysis/yt/pull-request/1366>`_
+
+* A bug in the calculation of the plot bounds for off-axis slice plots has been fixed. `PR 1357 <https://bitbucket.org/yt_analysis/yt/pull-request/1357>`_.
+
+* Improvements for the yt-rockstar interface. `PR 1352 <https://bitbucket.org/yt_analysis/yt/pull-request/1352>`_, `PR 1317 <https://bitbucket.org/yt_analysis/yt/pull-request/1317>`_.
+
+* Fix issues with plot positioning with saving to postscript or encapsulated postscript. `PR 1353 <https://bitbucket.org/yt_analysis/yt/pull-request/1353>`_.
+
+* It is now possible to supply a default value for get_field_parameter. `PR 1343 <https://bitbucket.org/yt_analysis/yt/pull-request/1343>`_.
+
+* A bug in the interpretation of the units of RAMSES simulations has been fixed. `PR 1335 <https://bitbucket.org/yt_analysis/yt/pull-request/1335>`_.
+
+* Plot callbacks are now only executed once before the plot is saved. `PR 1328 <https://bitbucket.org/yt_analysis/yt/pull-request/1328>`_.
+
+* Performance improvements for smoothed covering grid alias fields. `PR 1331 <https://bitbucket.org/yt_analysis/yt/pull-request/1331>`_.
+
+* Improvements and bugfixes for the halo analysis framework. `PR 1349 <https://bitbucket.org/yt_analysis/yt/pull-request/1349>`_, `PR 1325 <https://bitbucket.org/yt_analysis/yt/pull-request/1325>`_.
+
+* Fix issues with the default setting for the ``center`` field parameter. `PR 1327 <https://bitbucket.org/yt_analysis/yt/pull-request/1327>`_.
+
+* Avoid triggering warnings in numpy and matplotlib. `PR 1334 <https://bitbucket.org/yt_analysis/yt/pull-request/1334>`_, `PR 1300 <https://bitbucket.org/yt_analysis/yt/pull-request/1300>`_.
+
+* Updates for the field list reference. `PR 1344 <https://bitbucket.org/yt_analysis/yt/pull-request/1344>`_, `PR 1321 <https://bitbucket.org/yt_analysis/yt/pull-request/1321>`_, `PR 1318 <https://bitbucket.org/yt_analysis/yt/pull-request/1318>`_.
+
+* yt can now be run in parallel on a subset of available processors using an MPI subcommunicator. `PR 1340 <https://bitbucket.org/yt_analysis/yt/pull-request/1340>`_
+
+* Fix for incorrect units when loading an Athena simulation as a time series. `PR 1341 <https://bitbucket.org/yt_analysis/yt/pull-request/1341>`_.
+
+* Improved support for Enzo 3.0 simulations that have not produced any active particles. `PR 1329 <https://bitbucket.org/yt_analysis/yt/pull-request/1329>`_.
+
+* Fix for parsing OWLS outputs with periods in the file path.  `PR 1320 <https://bitbucket.org/yt_analysis/yt/pull-request/1320>`_.
+
+* Fix for periodic radius vector calculation. `PR 1311 <https://bitbucket.org/yt_analysis/yt/pull-request/1311>`_.
+
+* Improvements for the Maestro and Castro frontends. `PR 1319 <https://bitbucket.org/yt_analysis/yt/pull-request/1319>`_.
+
+* Clump finding is now supported for more generic types of data. `PR 1314 <https://bitbucket.org/yt_analysis/yt/pull-request/1314>`_
+
+* Fix unit consistency issue when mixing dimensionless unit symbols. `PR 1300 <https://bitbucket.org/yt_analysis/yt/pull-request/1300>`_.
+
+* Improved memory footprint in the photon_simulator. `PR 1304 <https://bitbucket.org/yt_analysis/yt/pull-request/1304>`_.
+
+* Large grids in Athena datasets produced by the join_vtk script can now be optionally split, improving parallel performance.  `PR 1304 <https://bitbucket.org/yt_analysis/yt/pull-request/1304>`_.
+
+* Slice plots now accept a ``data_source`` keyword argument. `PR 1310 <https://bitbucket.org/yt_analysis/yt/pull-request/1310>`_.
+
+* Corrected inconsistent octrees in the RAMSES frontend. `PR 1302 <https://bitbucket.org/yt_analysis/yt/pull-request/1302>`_
+
+* Nearest neighbor distance field added.  `PR 1138 <https://bitbucket.org/yt_analysis/yt/pull-request/1138>`_.
+
+* Improvements for the ORION2 frontend. `PR 1303 <https://bitbucket.org/yt_analysis/yt/pull-request/1303>`_
+
+* Enzo 3.0 frontend can now read active particle attributes that are arrays of any shape. `PR 1248 <https://bitbucket.org/yt_analysis/yt/pull-request/1248>`_.
+
+* Answer tests added for halo finders. `PR 1253 <https://bitbucket.org/yt_analysis/yt/pull-request/1253>`_
+
+* A ``setup_function`` has been added to the LightRay initializer. `PR 1295 <https://bitbucket.org/yt_analysis/yt/pull-request/1295>`_.
+
+* The SPH code frontends have been reorganized into separate frontend directories. `PR 1281 <https://bitbucket.org/yt_analysis/yt/pull-request/1281>`_.
+
+* Fixes for accessing deposit fields for FLASH data. `PR 1294 <https://bitbucket.org/yt_analysis/yt/pull-request/1294>`_
+
+* Added tests for ORION datasets containing sink and star particles. `PR 1252 <https://bitbucket.org/yt_analysis/yt/pull-request/1252>`_
+
+* Fix for field names in the particle generator. `PR 1278 <https://bitbucket.org/yt_analysis/yt/pull-request/1278>`_.
+
+* Added wrapper functions for numpy array manipulation functions.  `PR 1287 <https://bitbucket.org/yt_analysis/yt/pull-request/1287>`_.
+
+* Added support for packed HDF5 Enzo datasets. `PR 1282 <https://bitbucket.org/yt_analysis/yt/pull-request/1282>`_.
+
 Version 3.0
 -----------
 

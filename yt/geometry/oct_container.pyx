@@ -128,7 +128,8 @@ cdef class OctreeContainer:
         assert(ref_mask.shape[0] / float(data.nz) ==
             <int>(ref_mask.shape[0]/float(data.nz)))
         obj.allocate_domains([ref_mask.shape[0] / data.nz])
-        cdef np.float64_t pos[3], dds[3]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
@@ -201,7 +202,7 @@ cdef class OctreeContainer:
 
     def __iter__(self):
         #Get the next oct, will traverse domains
-        #Note that oct containers can be sorted 
+        #Note that oct containers can be sorted
         #so that consecutive octs are on the same domain
         cdef OctAllocationContainer *cur = self.cont
         cdef Oct *this
@@ -222,7 +223,8 @@ cdef class OctreeContainer:
             vc = self.partial_coverage
         data.global_index = -1
         data.level = 0
-        cdef np.float64_t pos[3], dds[3]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
@@ -272,11 +274,15 @@ cdef class OctreeContainer:
         #refined oct at that time
         cdef int ind32[3]
         cdef np.int64_t ipos[3]
-        cdef np.float64_t dds[3], cp[3], pp[3]
-        cdef Oct *cur, *next
+        cdef np.float64_t dds[3]
+        cdef np.float64_t cp[3]
+        cdef np.float64_t pp[3]
+        cdef Oct *cur
+        cdef Oct *next
         cdef int i
         cur = next = NULL
-        cdef np.int64_t ind[3], level = -1
+        cdef np.int64_t ind[3]
+        cdef np.int64_t level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> (floor((ppos[i] - self.DLE[i])/dds[i]))
@@ -346,10 +352,12 @@ cdef class OctreeContainer:
         # neighbors, including the main oct.
         cdef np.int64_t i, j, k, n, level, ii, nfound = 0, dlevel
         cdef int ind[3]
-        cdef OctList *olist, *my_list
+        cdef OctList *olist
+        cdef OctList *my_list
         my_list = olist = NULL
         cdef Oct *cand
-        cdef np.int64_t npos[3], ndim[3]
+        cdef np.int64_t npos[3]
+        cdef np.int64_t ndim[3]
         # Now we get our boundaries for this level, so that we can wrap around
         # if need be.
         # ndim is the oct dimensions of the level, not the cell dimensions.
@@ -596,10 +604,14 @@ cdef class OctreeContainer:
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
             int count_boundary = 0):
-        cdef int level, no, p, i, j, k, ind[3]
+        cdef int level, no, p, i, j, k
+        cdef int ind[3]
         cdef int nb = 0
-        cdef Oct *cur, *next = NULL
-        cdef np.float64_t pp[3], cp[3], dds[3]
+        cdef Oct *cur
+        cdef Oct *next = NULL
+        cdef np.float64_t pp[3]
+        cdef np.float64_t cp[3]
+        cdef np.float64_t dds[3]
         no = pos.shape[0] #number of octs
         if curdom > self.num_domains: return 0
         cdef OctAllocationContainer *cont = self.domains[curdom - 1]
@@ -607,7 +619,7 @@ cdef class OctreeContainer:
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
         for p in range(no):
-            #for every oct we're trying to add find the 
+            #for every oct we're trying to add find the
             #floating point unitary position on this level
             in_boundary = 0
             for i in range(3):
@@ -630,7 +642,7 @@ cdef class OctreeContainer:
                 for i in range(3):
                     #as we get deeper, oct size halves
                     dds[i] = dds[i] / 2.0
-                    if cp[i] > pp[i]: 
+                    if cp[i] > pp[i]:
                         ind[i] = 0
                         cp[i] -= dds[i]/2.0
                     else:
@@ -657,7 +669,7 @@ cdef class OctreeContainer:
 
     cdef void append_domain(self, np.int64_t domain_count):
         self.num_domains += 1
-        self.domains = <OctAllocationContainer **> realloc(self.domains, 
+        self.domains = <OctAllocationContainer **> realloc(self.domains,
                 sizeof(OctAllocationContainer *) * self.num_domains)
         if self.domains == NULL: raise RuntimeError
         self.domains[self.num_domains - 1] = NULL
@@ -766,7 +778,8 @@ cdef class OctreeContainer:
         assert ((data.global_index+1)*data.nz == data.index)
 
 cdef int root_node_compare(void *a, void *b) nogil:
-    cdef OctKey *ao, *bo
+    cdef OctKey *ao
+    cdef OctKey *bo
     ao = <OctKey *>a
     bo = <OctKey *>b
     if ao.key < bo.key:
@@ -810,7 +823,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
         o[0] = NULL
         cdef int i
         cdef np.int64_t key = self.ipos_to_key(ind)
-        cdef OctKey okey, **oresult = NULL
+        cdef OctKey okey
+        cdef OctKey **oresult = NULL
         okey.key = key
         okey.node = NULL
         oresult = <OctKey **> tfind(<void*>&okey,
@@ -850,7 +864,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
         data.level = 0
         if vc == -1:
             vc = self.partial_coverage
-        cdef np.float64_t pos[3], dds[3]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
@@ -931,7 +946,10 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     # For now, we assume we will not be doing this along all three zeros,
     # because that would be pretty tricky.
     if i == j == k == 1: return olist
-    cdef np.int64_t n[3], ind[3], off[3][2], ii, ij, ik, ci
+    cdef np.int64_t n[3]
+    cdef np.int64_t ind[3]
+    cdef np.int64_t off[3][2]
+    cdef np.int64_t ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
     ind[2] = 1 - k
@@ -982,7 +1000,8 @@ cdef int OctList_count(OctList *olist):
     return i
 
 cdef void OctList_delete(OctList *olist):
-    cdef OctList *next, *this = olist
+    cdef OctList *next
+    cdef OctList *this = olist
     while this != NULL:
         next = this.next
         free(this)

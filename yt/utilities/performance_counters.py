@@ -50,9 +50,9 @@ class PerformanceCounters(object):
         if not self._on: return func
         @wraps(func)
         def func_wrapper(*args, **kwargs):
-            self(func.func_name)
+            self(func.__name__)
             func(*args, **kwargs)
-            self(func.func_name)
+            self(func.__name__)
         return func_wrapper
 
     def print_stats(self):

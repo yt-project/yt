@@ -5,6 +5,7 @@ OWLS fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -16,6 +17,7 @@ OWLS fields
 
 import os
 import numpy as np
+from . import owls_ion_tables as oit
 
 from yt.funcs import \
     mylog, download_file
@@ -28,7 +30,7 @@ from yt.fields.species_fields import \
 from yt.frontends.sph.fields import \
     SPHFieldInfo
 
-import owls_ion_tables as oit
+
 
 class OWLSFieldInfo(SPHFieldInfo):
 
@@ -115,22 +117,6 @@ class OWLSFieldInfo(SPHFieldInfo):
         # and now we add the smoothed versions for PartType0
         #-----------------------------------------------------
         if ptype == 'PartType0':
-
-            loaded = []
-            for s in self._elements:
-                for sfx in smoothed_suffixes:
-                    fname = s + sfx
-                    fn = add_volume_weighted_smoothed_field( 
-                        ptype, "particle_position", "particle_mass",
-                        "smoothing_length", "density", fname, self,
-                        self._num_neighbors)
-                    loaded += fn
-
-                    self.alias(("gas", fname), fn[0])
-
-            self._show_field_errors += loaded
-            self.find_dependencies(loaded)
-
 
             # we only add ion fields for gas.  this takes some 
             # time as the ion abundances have to be interpolated
@@ -320,6 +306,6 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
         if not os.path.exists(owls_ion_path):
-            raise RuntimeError, "Failed to download owls ion data."
+            raise RuntimeError("Failed to download owls ion data.")
 
         return owls_ion_path

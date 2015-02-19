@@ -181,7 +181,7 @@ class CastroFieldInfo(FieldInfoContainer):
                                function = func,
                                units = "g/cm**3")
                 # We know this will either have one letter, or two.
-                if field[3] in string.letters:
+                if field[3] in string.ascii_letters:
                     element, weight = field[2:4], field[4:-1]
                 else:
                     element, weight = field[2:3], field[3:-1]
@@ -277,7 +277,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                 # sometimes we make up descriptive names (e.g. ash)
                 if any(char.isdigit() for char in field):
                     # We know this will either have one letter, or two.
-                    if field[3] in string.letters:
+                    if field[3] in string.ascii_letters:
                         element, weight = field[2:4], field[4:-1]
                     else:
                         element, weight = field[2:3], field[3:-1]

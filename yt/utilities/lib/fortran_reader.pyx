@@ -223,8 +223,10 @@ cdef void read_art_vars(FILE *f,
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef int record_size = 2+1+1+nhydro_vars+2
-    cdef float temp, varpad[2]
-    cdef int padding[3], new_padding
+    cdef float temp
+    cdef float varpad[2]
+    cdef int new_padding
+    cdef int padding[3]
     cdef long offset = 8*grid_id*record_size*sizeof(float)
     fseek(f, level_offsets[grid_level] + offset, SEEK_SET)
     for j in range(8): #iterate over the children

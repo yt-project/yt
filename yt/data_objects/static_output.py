@@ -125,7 +125,7 @@ class Dataset(object):
 
     def __new__(cls, filename=None, *args, **kwargs):
         from yt.frontends.stream.data_structures import StreamHandler
-        if not isinstance(filename, types.StringTypes):
+        if not isinstance(filename, str):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -399,7 +399,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, types.StringTypes):
+        if isinstance(filter, str):
             used = False
             for f in filter_registry[filter]:
                 used = self._setup_filtered_type(f)

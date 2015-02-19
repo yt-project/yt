@@ -444,7 +444,8 @@ class ImagePlotContainer(object):
             labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
             labels += cbax.yaxis.get_ticklabels()
             labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
-                       cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+                       cbax.yaxis.label, cbax.yaxis.get_offset_text(),
+                       ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
             for label in labels:
                 label.set_fontproperties(self._font_properties)
                 if self._font_color is not None:
@@ -574,7 +575,7 @@ class ImagePlotContainer(object):
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType):
+            if isinstance(k, tuple):
                 k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))
@@ -647,7 +648,8 @@ class ImagePlotContainer(object):
         ret = ''
         for field in self.plots:
             img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     @invalidate_plot
@@ -662,7 +664,7 @@ class ImagePlotContainer(object):
         x_title: str
               The new string for the x-axis.
 
-        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -679,7 +681,7 @@ class ImagePlotContainer(object):
         label: str
           The new string for the y-axis.
 
-        >>>  plot.set_ytitle("Temperature (K)")
+        >>>  plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -697,7 +699,7 @@ class ImagePlotContainer(object):
         label: str
           The new label
 
-        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label

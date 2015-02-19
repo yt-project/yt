@@ -41,21 +41,21 @@ def assert_fname(fname):
 
     with open(fname, 'rb') as fimg:
         data = fimg.read()
-    data = str(data)
     image_type = ''
 
     # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith('\211PNG\r\n\032\n'):
+    if data.startswith(b'\211PNG\r\n\032\n'):
         image_type = '.png'
     # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith('\377\330'):
+    elif data.startswith(b'\377\330'):
         image_type = '.jpeg'
-    elif data.startswith('%!PS-Adobe'):
-        if 'EPSF' in data[:data.index('\n')]:
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
             image_type = '.eps'
         else:
             image_type = '.ps'
-    elif data.startswith('%PDF'):
+    elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
     return image_type == os.path.splitext(fname)[1]
@@ -180,6 +180,38 @@ def test_attributes_wt():
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
 
+class TestSetWidth(unittest.TestCase):
+
+    ds = None
+
+    def setUp(self):
+        if self.ds is None:
+            self.ds = fake_random_ds(64)
+            self.slc = SlicePlot(self.ds, 0, "density")
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
+
+    def test_hide_show_axes(self):
+        self.slc.hide_axes()
+        self.slc.save()
+        self.slc.show_axes()
+        self.slc.save()
+
+    def test_hide_show_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.save()
+        self.slc.show_colorbar()
+        self.slc.save()
+
+    def test_hide_axes_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.hide_axes()
+        self.slc.save()
 
 class TestSetWidth(unittest.TestCase):
 

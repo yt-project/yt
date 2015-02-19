@@ -4,6 +4,7 @@ Create smooth camera paths from keyframes.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.

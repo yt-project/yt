@@ -1,7 +1,7 @@
 Hi there!  You've just downloaded yt, an analysis tool for scientific
 datasets, generated on a variety of data platforms.  It's written in 
-python and heavily leverages both NumPy and Matplotlib for fast arrays and 
-visualization, respectively.
+python and heavily leverages NumPy, Matplotlib, SymPy and Cython for a variety
+of tasks.
 
 Full documentation and a user community can be found at:
 

@@ -126,7 +126,7 @@ def fix_units(units, in_cgs=False):
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace('\/', '~')
+    return latex.replace('\ ', '~')
 
 def print_all_fields(fl):
     for fn in sorted(fl):

@@ -516,7 +516,7 @@ class PhotonList(object):
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
             zobs = self.parameters["FiducialRedshift"]
-            D_A = self.parameters["FiducialAngularDiameterDistance"]*1000.
+            D_A = self.parameters["FiducialAngularDiameterDistance"]
         else:
             if exp_time_new is None:
                 Tratio = 1.
@@ -546,15 +546,15 @@ class PhotonList(object):
             if redshift_new is None and dist_new is None:
                 Dratio = 1.
                 zobs = self.parameters["FiducialRedshift"]
-                D_A = self.parameters["FiducialAngularDiameterDistance"].in_units("Mpc")
+                D_A = self.parameters["FiducialAngularDiameterDistance"]
             else:
                 if redshift_new is None:
                     zobs = 0.0
                     D_A = parse_value(dist_new, "Mpc")
                 else:
                     zobs = redshift_new
-                    D_A = self.cosmo.angular_diameter_distance(0.0,zobs).in_units("kpc")
-                fid_D_A = self.parameters["FiducialAngularDiameterDistance"].in_units("kpc")
+                    D_A = self.cosmo.angular_diameter_distance(0.0,zobs).in_units("Mpc")
+                fid_D_A = self.parameters["FiducialAngularDiameterDistance"]
                 Dratio = fid_D_A*fid_D_A*(1.+self.parameters["FiducialRedshift"]**3) / \
                          (D_A*D_A*(1.+zobs)**3)
             fak = Aratio*Tratio*Dratio
@@ -623,11 +623,11 @@ class PhotonList(object):
                     
         events = {}
 
-        dx_min = self.parameters["Width"].value/self.parameters["Dimension"]
-        dtheta = YTQuantity(np.rad2deg(dx_min/D_A.value), "degree")
+        dx_min = self.parameters["Width"]/self.parameters["Dimension"]
+        dtheta = YTQuantity(np.rad2deg(dx_min/D_A), "degree")
         
-        events["xpix"] = xsky[detected]/dx_min + 0.5*(nx+1)
-        events["ypix"] = ysky[detected]/dx_min + 0.5*(nx+1)
+        events["xpix"] = xsky[detected]/dx_min.v + 0.5*(nx+1)
+        events["ypix"] = ysky[detected]/dx_min.v + 0.5*(nx+1)
         events["eobs"] = eobs[detected]
 
         events = comm.par_combine_object(events, datatype="dict", op="cat")
@@ -733,7 +733,7 @@ class PhotonList(object):
             pbar.update(k)
             k+=1
         pbar.finish()
-        
+
         dchannel = np.array(detectedChannels)
 
         events["xpix"] = phXX
@@ -742,12 +742,13 @@ class PhotonList(object):
         events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
 
         info = {"ChannelType" : tblhdu.header["CHANTYPE"],
-                "Mission" : tblhdu.header["MISSION"],
                 "Telescope" : tblhdu.header["TELESCOP"],
                 "Instrument" : tblhdu.header["INSTRUME"]}
-        
+
+        info["Mission"] = tblhdu.header.get("MISSION","")
+
         return events, info
-    
+
 class EventList(object) :
 
     def __init__(self, events, parameters):
@@ -930,7 +931,7 @@ class EventList(object) :
 
         cols = [col1, col2, col3]
 
-        if self.parameters.has_key("ChannelType"):
+        if "ChannelType" in self.parameters:
              chantype = self.parameters["ChannelType"]
              if chantype == "PHA":
                   cunit="adu"
@@ -1203,7 +1204,7 @@ class EventList(object) :
             spec, ee = np.histogram(espec, bins=nchan, range=range)
             bins = 0.5*(ee[1:]+ee[:-1])
         else:
-            if not self.parameters.has_key("ChannelType"):
+            if "ChannelType" not in self.parameters:
                 mylog.error("These events were not convolved with an RMF. Set energy_bins=True.")
                 raise KeyError
             spectype = self.parameters["ChannelType"]
@@ -1256,23 +1257,23 @@ class EventList(object) :
             tbhdu.header["BACKFILE"] = "none"
             tbhdu.header["CORRFILE"] = "none"
             tbhdu.header["POISSERR"] = True
-            if self.parameters.has_key("RMF"):
+            if "RMF" in self.parameters:
                  tbhdu.header["RESPFILE"] = self.parameters["RMF"]
             else:
                  tbhdu.header["RESPFILE"] = "none"
-            if self.parameters.has_key("ARF"):
+            if "ARF" in self.parameters:
                 tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
-            if self.parameters.has_key("Mission"):
+            if "Mission" in self.parameters:
                 tbhdu.header["MISSION"] = self.parameters["Mission"]
             else:
                 tbhdu.header["MISSION"] = "none"
-            if self.parameters.has_key("Telescope"):
+            if "Telescope" in self.parameters:
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
                 tbhdu.header["TELESCOP"] = "none"
-            if self.parameters.has_key("Instrument"):
+            if "Instrument" in self.parameters:
                 tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             else:
                 tbhdu.header["INSTRUME"] = "none"

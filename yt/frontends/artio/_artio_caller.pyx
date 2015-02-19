@@ -1,7 +1,7 @@
 cimport cython
 import numpy as np
 cimport numpy as np
-import sys 
+import sys
 
 from yt.geometry.selection_routines cimport \
     SelectorObject, AlwaysSelector, OctreeSubsetSelector
@@ -16,7 +16,7 @@ from yt.geometry.particle_deposit cimport \
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
-import data_structures  
+import data_structures
 
 IF UNAME_SYSNAME == "Windows":
     cdef extern from "malloc.h":
@@ -59,12 +59,12 @@ cdef extern from "artio.h":
         pass
     ctypedef struct artio_context :
         pass
-    cdef extern artio_context *artio_context_global 
+    cdef extern artio_context *artio_context_global
 
     # open modes
     cdef int ARTIO_OPEN_HEADER "ARTIO_OPEN_HEADER"
     cdef int ARTIO_OPEN_GRID "ARTIO_OPEN_GRID"
-    cdef int ARTIO_OPEN_PARTICLES "ARTIO_OPEN_PARTICLES" 
+    cdef int ARTIO_OPEN_PARTICLES "ARTIO_OPEN_PARTICLES"
 
     # parameter constants
     cdef int ARTIO_TYPE_STRING "ARTIO_TYPE_STRING"
@@ -93,8 +93,8 @@ cdef extern from "artio.h":
     artio_fileset_handle *artio_fileset_open(char *file_prefix, int type, artio_context *context )
     int artio_fileset_close( artio_fileset_handle *handle )
     int artio_fileset_open_particle( artio_fileset_handle *handle )
-    int artio_fileset_open_grid(artio_fileset_handle *handle) 
-    int artio_fileset_close_grid(artio_fileset_handle *handle) 
+    int artio_fileset_open_grid(artio_fileset_handle *handle)
+    int artio_fileset_close_grid(artio_fileset_handle *handle)
 
     int artio_fileset_has_grid( artio_fileset_handle *handle )
     int artio_fileset_has_particles( artio_fileset_handle *handle )
@@ -120,9 +120,9 @@ cdef extern from "artio.h":
 
     # grid functions
     int artio_grid_cache_sfc_range(artio_fileset_handle *handle, int64_t start, int64_t end)
-    int artio_grid_clear_sfc_cache( artio_fileset_handle *handle ) 
+    int artio_grid_clear_sfc_cache( artio_fileset_handle *handle )
 
-    int artio_grid_read_root_cell_begin(artio_fileset_handle *handle, int64_t sfc, 
+    int artio_grid_read_root_cell_begin(artio_fileset_handle *handle, int64_t sfc,
         double *pos, float *variables,
         int *num_tree_levels, int *num_octs_per_level)
     int artio_grid_read_root_cell_end(artio_fileset_handle *handle)
@@ -130,7 +130,7 @@ cdef extern from "artio.h":
     int artio_grid_read_level_begin(artio_fileset_handle *handle, int level )
     int artio_grid_read_level_end(artio_fileset_handle *handle)
 
-    int artio_grid_read_oct(artio_fileset_handle *handle, double *pos, 
+    int artio_grid_read_oct(artio_fileset_handle *handle, double *pos,
             float *variables, int *refined)
 
     int artio_grid_count_octs_in_sfc_range(artio_fileset_handle *handle,
@@ -146,9 +146,9 @@ cdef extern from "artio.h":
     int artio_particle_cache_sfc_range(artio_fileset_handle *handle, int64_t sfc_start, int64_t sfc_end)
     int artio_particle_clear_sfc_cache(artio_fileset_handle *handle)
     int artio_particle_read_species_begin(artio_fileset_handle *handle, int species)
-    int artio_particle_read_species_end(artio_fileset_handle *handle) 
-   
-    
+    int artio_particle_read_species_end(artio_fileset_handle *handle)
+
+
 cdef extern from "artio_internal.h":
     np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) nogil
     void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
@@ -162,7 +162,7 @@ cdef void check_artio_status(int status, char *fname="[unknown]"):
         raise RuntimeError('failure with status', status, 'in function',fname,'from caller', callername, nline)
 
 cdef class artio_fileset :
-    cdef public object parameters 
+    cdef public object parameters
     cdef artio_fileset_handle *handle
 
     # cosmology parameter for time unit conversion
@@ -188,12 +188,12 @@ cdef class artio_fileset :
     cdef int *num_particles_per_species
     cdef double *primary_variables
     cdef float *secondary_variables
- 
+
     def __init__(self, char *file_prefix) :
         cdef int artio_type = ARTIO_OPEN_HEADER
         cdef int64_t num_root
 
-        self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global ) 
+        self.handle = artio_fileset_open( file_prefix, artio_type, artio_context_global )
         if not self.handle :
             raise RuntimeError
 
@@ -210,7 +210,7 @@ cdef class artio_fileset :
         self.sfc_max = self.num_root_cells-1
 
         # initialize cosmology module
-        if self.parameters.has_key("abox"):
+        if "abox" in self.parameters:
             self.cosmology = cosmology_allocate()
             cosmology_set_OmegaM(self.cosmology, self.parameters['OmegaM'][0])
             cosmology_set_OmegaL(self.cosmology, self.parameters['OmegaL'][0])
@@ -244,9 +244,9 @@ cdef class artio_fileset :
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
-
+	    
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
-                if not self.parameters.has_key(v):
+                if v not in self.parameters:
                     raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
 
             self.num_species = self.parameters['num_particle_species'][0]
@@ -255,7 +255,7 @@ cdef class artio_fileset :
                 raise MemoryError
             for ispec in range(self.num_species) :
                 species_labels = "species_%02d_primary_variable_labels"% (ispec,)
-                if not self.parameters.has_key(species_labels):
+                if species_labels not in self.parameters:
                     raise RuntimeError("Unable to locate variable labels for species",ispec)
 
                 labels = self.parameters[species_labels]
@@ -265,10 +265,10 @@ cdef class artio_fileset :
                     self.particle_position_index[3*ispec+2] = labels.index('POSITION_Z')
                 except ValueError :
                     raise RuntimeError("Unable to locate position information for particle species", ispec)
-    
-            self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species) 
-            self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))  
-            self.secondary_variables = <float *>malloc(sizeof(float)*max(self.parameters['num_secondary_variables']))  
+
+            self.num_particles_per_species =  <int *>malloc(sizeof(int)*self.num_species)
+            self.primary_variables = <double *>malloc(sizeof(double)*max(self.parameters['num_primary_variables']))
+            self.secondary_variables = <float *>malloc(sizeof(float)*max(self.parameters['num_secondary_variables']))
             if (not self.num_particles_per_species) or (not self.primary_variables) or (not self.secondary_variables) :
                 raise MemoryError
         else:
@@ -286,8 +286,9 @@ cdef class artio_fileset :
         if self.cosmology : cosmology_free(self.cosmology)
 
         if self.handle : artio_fileset_close(self.handle)
-  
+
     def read_parameters(self) :
+        from sys import version
         cdef char key[64]
         cdef int type
         cdef int length
@@ -300,15 +301,19 @@ cdef class artio_fileset :
         self.parameters = {}
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
+	    
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
                     char_values[i] = <char *>malloc( ARTIO_MAX_STRING_LENGTH*sizeof(char) )
-                artio_parameter_get_string_array( self.handle, key, length, char_values ) 
+                artio_parameter_get_string_array( self.handle, key, length, char_values )
                 parameter = [ char_values[i] for i in range(length) ]
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
+                if version[0] == '3':
+                    for i in range(0,len(parameter)):
+                        parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
                 int_values = <int32_t *>malloc(length*sizeof(int32_t))
                 artio_parameter_get_int_array( self.handle, key, length, int_values )
@@ -332,7 +337,10 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            self.parameters[key] = parameter
+            if version[0] == '3':
+                self.parameters[key.decode('utf-8')] = parameter
+            else:
+                self.parameters[key] = parameter
 
     def abox_from_auni(self, np.float64_t a):
         if self.cosmology:
@@ -478,19 +486,19 @@ cdef class artio_fileset :
                 raise RuntimeError("invalid field name provided to read_particle_chunk")
 
         # cache the range
-        status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max ) 
+        status = artio_particle_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
         check_artio_status(status)
 
         for sfc in range( sfc_start, sfc_end+1 ) :
             status = artio_particle_read_root_cell_begin( self.handle, sfc,
                     self.num_particles_per_species )
-            check_artio_status(status)	
+            check_artio_status(status)
 
-            for ispec in range(self.num_species) : 
+            for ispec in range(self.num_species) :
                 if accessed_species[ispec] :
                     status = artio_particle_read_species_begin(self.handle, ispec)
                     check_artio_status(status)
- 
+
                     for particle in range( self.num_particles_per_species[ispec] ) :
                         status = artio_particle_read_particle(self.handle,
                                 &pid, &subspecies, self.primary_variables,
@@ -506,7 +514,7 @@ cdef class artio_fileset :
                                 count = len(data[field])
                                 data[field].resize(count+1)
                                 data[field][count] = self.primary_variables[i]
-                            
+
                             # loop over secondary variables
                             for i,field in selected_secondary[ispec] :
                                 count = len(data[field])
@@ -524,13 +532,13 @@ cdef class artio_fileset :
                                 count = len(data[selected_mass[ispec]])
                                 data[selected_mass[ispec]].resize(count+1)
                                 data[selected_mass[ispec]][count] = self.parameters["particle_species_mass"][ispec]
-                        
+
                     status = artio_particle_read_species_end( self.handle )
                     check_artio_status(status)
-                    
+
             status = artio_particle_read_root_cell_end( self.handle )
             check_artio_status(status)
- 
+
         return data
 
     #@cython.boundscheck(False)
@@ -561,10 +569,10 @@ cdef class artio_fileset :
             field_order[i] = var_labels.index(f)
 
         status = artio_grid_cache_sfc_range( self.handle, self.sfc_min, self.sfc_max )
-        check_artio_status(status) 
+        check_artio_status(status)
 
         # determine max number of cells we could hit (optimize later)
-        #status = artio_grid_count_octs_in_sfc_range( self.handle, 
+        #status = artio_grid_count_octs_in_sfc_range( self.handle,
         #        sfc_start, sfc_end, &max_octs )
         #check_artio_status(status)
         #max_cells = sfc_end-sfc_start+1 + max_octs*8
@@ -580,9 +588,9 @@ cdef class artio_fileset :
 
         count = 0
         for sfc in range( sfc_start, sfc_end+1 ) :
-            status = artio_grid_read_root_cell_begin( self.handle, sfc, 
+            status = artio_grid_read_root_cell_begin( self.handle, sfc,
                     dpos, self.grid_variables, &num_oct_levels, self.num_octs_per_level )
-            check_artio_status(status) 
+            check_artio_status(status)
 
             if num_oct_levels == 0 :
                 for i in range(num_fields) :
@@ -594,17 +602,17 @@ cdef class artio_fileset :
                 ires.resize(count+1)
                 ires[count] = 0
                 count += 1
-    
+
             for level in range(1,num_oct_levels+1) :
                 status = artio_grid_read_level_begin( self.handle, level )
-                check_artio_status(status) 
+                check_artio_status(status)
 
                 for i in range(3) :
                     dds[i] = 2.**-level
 
                 for oct in range(self.num_octs_per_level[level-1]) :
                     status = artio_grid_read_oct( self.handle, dpos, self.grid_variables, refined )
-                    check_artio_status(status) 
+                    check_artio_status(status)
 
                     for child in range(8) :
                         if not refined[child] :
@@ -621,18 +629,18 @@ cdef class artio_fileset :
                                 for i in range(num_fields) :
                                     data[i].resize(count+1)
                                     data[i][count] = self.grid_variables[self.num_grid_variables*child+field_order[i]]
-                                count += 1 
+                                count += 1
                 status = artio_grid_read_level_end( self.handle )
-                check_artio_status(status) 
+                check_artio_status(status)
 
             status = artio_grid_read_root_cell_end( self.handle )
-            check_artio_status(status) 
-        
+            check_artio_status(status)
+
         free(field_order)
 
         #fcoords.resize((count,3))
         #ires.resize(count)
-        #    
+        #
         #for i in range(num_fields) :
         #    data[i].resize(count)
 
@@ -646,7 +654,7 @@ cdef class artio_fileset :
         if selection == NULL :
             raise RuntimeError
         sfc_ranges = []
-        while artio_selection_iterator(selection, max_range_size, 
+        while artio_selection_iterator(selection, max_range_size,
                 &sfc_start, &sfc_end) == ARTIO_SUCCESS :
             sfc_ranges.append([sfc_start, sfc_end])
         artio_selection_destroy(selection)
@@ -674,14 +682,14 @@ cdef class artio_fileset :
                 left[1] = coords[1]
                 right[1] = left[1] + 1.0
                 for k in range(self.num_grid) :
-                    coords[2] = k 
-                    left[2] = coords[2] 
+                    coords[2] = k
+                    left[2] = coords[2]
                     right[2] = left[2] + 1.0
                     if selector.select_bbox(left,right) :
                         status = artio_selection_add_root_cell(selection, coords)
                         check_artio_status(status)
 
-        while artio_selection_iterator(selection, max_range_size, 
+        while artio_selection_iterator(selection, max_range_size,
                 &sfc_start, &sfc_end) == ARTIO_SUCCESS :
             sfc_ranges.append([sfc_start, sfc_end])
 
@@ -690,12 +698,12 @@ cdef class artio_fileset :
 
 ###################################################
 def artio_is_valid( char *file_prefix ) :
-    cdef artio_fileset_handle *handle = artio_fileset_open( file_prefix, 
+    cdef artio_fileset_handle *handle = artio_fileset_open( file_prefix,
             ARTIO_OPEN_HEADER, artio_context_global )
     if handle == NULL :
         return False
     else :
-        artio_fileset_close(handle) 
+        artio_fileset_close(handle)
     return True
 
 cdef class ARTIOSFCRangeHandler:
@@ -780,7 +788,7 @@ cdef class ARTIOSFCRangeHandler:
         cdef int *num_octs_per_level = <int *>malloc(
             (max_level + 1)*sizeof(int))
         cdef int num_species = self.artio_handle.num_species
-        cdef int *num_particles_per_species 
+        cdef int *num_particles_per_species
         cdef ARTIOOctreeContainer octree
         ngv = self.nvars[1]
         cdef float *grid_variables = <float *>malloc(
@@ -799,7 +807,7 @@ cdef class ARTIOSFCRangeHandler:
         oct_count = np.zeros(self.sfc_end - self.sfc_start + 1, dtype="int64")
         status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
                                             self.sfc_end)
-        check_artio_status(status) 
+        check_artio_status(status)
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             status = artio_grid_read_root_cell_begin( self.handle,
                 sfc, dpos, grid_variables, &num_oct_levels,
@@ -828,7 +836,7 @@ cdef class ARTIOSFCRangeHandler:
             # Now particles
             status = artio_particle_cache_sfc_range(self.handle, self.sfc_start,
                                             self.sfc_end)
-            check_artio_status(status) 
+            check_artio_status(status)
             for sfc in range(self.sfc_start, self.sfc_end + 1):
                 # Now particles
                 status = artio_particle_read_root_cell_begin(self.handle,
@@ -935,7 +943,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         cdef int coords[3]
         cdef int max_level = self.artio_handle.max_level
         cdef double dpos[3]
-        cdef np.float64_t f64pos[3], dds[3]
+        cdef np.float64_t f64pos[3]
+        cdef np.float64_t dds[3]
         cdef np.ndarray[np.float64_t, ndim=2] pos
         # NOTE: We do not cache any SFC ranges here, as we should only ever be
         # called from within a pre-cached operation in the SFC handler.
@@ -972,7 +981,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_sfc(self, 
+    def fill_sfc(self,
              np.ndarray[np.uint8_t, ndim=1] levels,
              np.ndarray[np.uint8_t, ndim=1] cell_inds,
              np.ndarray[np.int64_t, ndim=1] file_inds,
@@ -1009,7 +1018,8 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
             source = np.zeros((ipos, 8), dtype="float32")
             source_arrays.append(source)
             field_vals[i] = <np.float32_t*> source.data
-        cdef np.int64_t level_position[32], lp
+        cdef np.int64_t level_position[32]
+        cdef np.int64_t lp
         # First we need to walk the mesh in the file.  Then we fill in the dest
         # location based on the file index.
         # A few ways this could be improved:
@@ -1024,17 +1034,17 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         sfc_start = self.domains[0].con_id
         sfc_end = self.domains[self.num_domains - 1].con_id
         status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end)
-        check_artio_status(status) 
-        cdef np.int64_t offset = 0 
+        check_artio_status(status)
+        cdef np.int64_t offset = 0
         for si in range(self.num_domains):
             sfc = self.domains[si].con_id
-            status = artio_grid_read_root_cell_begin( handle, sfc, 
+            status = artio_grid_read_root_cell_begin( handle, sfc,
                     dpos, NULL, &num_oct_levels, num_octs_per_level)
-            check_artio_status(status) 
+            check_artio_status(status)
             lp = 0
             for level in range(num_oct_levels):
                 status = artio_grid_read_level_begin(handle, level + 1)
-                check_artio_status(status) 
+                check_artio_status(status)
                 level_position[level] = lp
                 for oct_ind in range(num_octs_per_level[level]):
                     status = artio_grid_read_oct(handle, dpos, grid_variables, NULL)
@@ -1087,14 +1097,15 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef artio_fileset_handle *handle = artio_handle.handle
     cdef int num_oct_levels
     cdef int *num_particles_per_species =  <int *>malloc(
-        sizeof(int)*num_species) 
+        sizeof(int)*num_species)
     cdef int *accessed_species =  <int *>malloc(
-        sizeof(int)*num_species) 
+        sizeof(int)*num_species)
     cdef int *total_particles = <int *>malloc(
-        sizeof(int)*num_species) 
+        sizeof(int)*num_species)
     cdef particle_var_pointers *vpoints = <particle_var_pointers *> malloc(
         sizeof(particle_var_pointers)*num_species)
-    cdef double *primary_variables, dpos[3]
+    cdef double *primary_variables
+    cdef double dpos[3]
     cdef float *secondary_variables
     cdef np.int64_t tp
     cdef int max_level = artio_handle.max_level
@@ -1187,7 +1198,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
             vp.mass = <np.float64_t*> npf64arr.data
 
     status = artio_particle_cache_sfc_range( handle,
-            sfc_start, sfc_end ) 
+            sfc_start, sfc_end )
     check_artio_status(status)
 
     for sfc in range(sfc_start, sfc_end + 1):
@@ -1196,14 +1207,14 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         if read_unrefined == 1 and c > 0: continue
         if read_unrefined == 0 and c == 0: continue
         c = 0
-        for ispec in range(num_species) : 
+        for ispec in range(num_species) :
             if accessed_species[ispec] == 0: continue
             c += pcount[ispec][sfc - sfc_start]
         if c == 0: continue
         status = artio_particle_read_root_cell_begin( handle, sfc,
                 num_particles_per_species )
         check_artio_status(status)
-        for ispec in range(num_species) : 
+        for ispec in range(num_species) :
             if accessed_species[ispec] == 0: continue
             status = artio_particle_read_species_begin(handle, ispec);
             check_artio_status(status)
@@ -1215,15 +1226,15 @@ cdef read_sfc_particles(artio_fileset artio_handle,
                         secondary_variables)
                 check_artio_status(status)
                 ind = vp.count
-                
+
                 for i in range(vp.n_p):
                     vind = vp.p_ind[i]
                     vp.pvars[i][ind] = primary_variables[vind]
-                    
+
                 for i in range(vp.n_s):
                     vind = vp.s_ind[i]
                     vp.svars[i][ind] = secondary_variables[vind]
-                    
+
                 if vp.n_pid:
                     vp.pid[ind] = pid
 
@@ -1231,7 +1242,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
 
             status = artio_particle_read_species_end( handle )
             check_artio_status(status)
-                
+
         status = artio_particle_read_root_cell_end( handle )
         check_artio_status(status)
 
@@ -1298,7 +1309,8 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
         # Calculate the index
-        cdef int coords[3], i
+        cdef int coords[3]
+        cdef int i
         cdef np.int64_t sfc
         for i in range(3):
             coords[i] = <int>((pos[i] - self.DLE[i])/self.dds[i])
@@ -1307,7 +1319,8 @@ cdef class ARTIORootMeshContainer:
 
     @cython.cdivision(True)
     cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
-        cdef int coords[3], i
+        cdef int coords[3]
+        cdef int i
         artio_sfc_coords(self.handle, sfc, coords)
         for i in range(3):
             pos[i] = self.DLE[i] + (coords[i] + 0.5) * self.dds[i]
@@ -1316,7 +1329,8 @@ cdef class ARTIORootMeshContainer:
         # We visit each cell if it is not refined and determine whether it is
         # included or not.
         cdef np.int64_t sfc
-        cdef np.float64_t pos[3], right_edge[3]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t right_edge[3]
         cdef int num_cells = 0
         cdef int i
         return self.mask(selector).sum()
@@ -1328,7 +1342,8 @@ cdef class ARTIORootMeshContainer:
                 int domain_id = -1):
         # Note that num_octs does not have to equal sfc_end - sfc_start + 1.
         cdef np.int64_t sfc, sfci = -1
-        cdef int acoords[3], i
+        cdef int acoords[3]
+        cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
         num_cells = self._last_mask_sum
@@ -1356,7 +1371,8 @@ cdef class ARTIORootMeshContainer:
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
         cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
-        cdef int acoords[3], i
+        cdef int acoords[3]
+        cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
         num_cells = self._last_mask_sum
@@ -1456,7 +1472,7 @@ cdef class ARTIORootMeshContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def mask(self, SelectorObject selector, np.int64_t num_cells = -1,
-             int domain_id = -1): 
+             int domain_id = -1):
         # We take a domain_id here to avoid subclassing
         cdef int i
         cdef np.float64_t pos[3]
@@ -1554,11 +1570,14 @@ cdef class ARTIORootMeshContainer:
         for sfc in range(self.sfc_start, self.sfc_end + 1):
             if self.sfc_mask[sfc - self.sfc_start] == 0: continue
             sfci += 1
-            if mask[sfci] == 0: 
+            if mask[sfci] == 0:
                 continue
             domain_ind[sfc - self.sfc_start] = j
             j += 1
-        cdef np.float64_t **field_pointers, *field_vals, pos[3], left_edge[3]
+        cdef np.float64_t **field_pointers
+        cdef np.float64_t *field_vals
+        cdef np.float64_t pos[3]
+        cdef np.float64_t left_edge[3]
         cdef int coords[3]
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
@@ -1587,10 +1606,10 @@ cdef class ARTIORootMeshContainer:
                          offset, pos, field_vals, sfc)
             if pdeposit.update_values == 1:
                 for j in range(nf):
-                    field_pointers[j][i] = field_vals[j] 
+                    field_pointers[j][i] = field_vals[j]
 
 cdef class SFCRangeSelector(SelectorObject):
-    
+
     cdef SelectorObject base_selector
     cdef ARTIOSFCRangeHandler range_handler
     cdef ARTIORootMeshContainer mesh_container
@@ -1602,7 +1621,7 @@ cdef class SFCRangeSelector(SelectorObject):
         self.range_handler = self.mesh_container.range_handler
         self.sfc_start = self.mesh_container.sfc_start
         self.sfc_end = self.mesh_container.sfc_end
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1641,7 +1660,7 @@ cdef class SFCRangeSelector(SelectorObject):
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         return self.base_selector.select_bbox(left_edge, right_edge)
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1651,7 +1670,7 @@ cdef class SFCRangeSelector(SelectorObject):
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
         return self.base_selector.select_grid(left_edge, right_edge, level, o)
-    
+
     def _hash_vals(self):
         return (hash(self.base_selector), self.sfc_start, self.sfc_end)
 

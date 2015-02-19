@@ -319,7 +319,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(nim, px, py, colors, 24, flip=1)
+        lines(nim.d, px.d, py.d, colors, 24, flip=1)
 
         return nim
 
@@ -352,7 +352,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
         >>> im = cam.snapshot()
-        >>> cam.draw__coordinate_vectors(im)
+        >>> cam.draw_coordinate_vectors(im)
         >>> im.write_png('render_with_grids.png')
 
         """
@@ -378,27 +378,28 @@ class Camera(ParallelAnalysisInterface):
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
-            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
+            lines(im.d, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
                   np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
-
         Given starting and ending positions x0 and x1, draws a line on 
         a volume rendering using the camera orientation.
 
         Parameters
         ----------
-        im: Numpy ndarray
+        im : ImageArray or 2D ndarray
             Existing image that has the same resolution as the Camera, 
             which will be painted by grid lines.
-        x0 : Numpy ndarray
-            Starting coordinate, in simulation coordinates
-        x1 : Numpy ndarray
-            Ending coordinate, in simulation coordinates
+        x0 : YTArray or ndarray
+            Starting coordinate.  If passed in as an ndarray,
+            assumed to be in code units.
+        x1 : YTArray or ndarray
+            Ending coordinate, in simulation coordinates.  If passed in as
+            an ndarray, assumed to be in code units.
         color : array like, optional
             Color of the line (r, g, b, a). Defaults to white. 
-        
+
         Returns
         -------
         None
@@ -410,7 +411,13 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_line.png')
 
         """
-        if color is None: color = np.array([1.0,1.0,1.0,1.0])
+        if color is None:
+            color = np.array([1.0,1.0,1.0,1.0])
+
+        if not hasattr(x0, "units"):
+            x0 = self.ds.arr(x0, "code_length")
+        if not hasattr(x1, "units"):
+            x1 = self.ds.arr(x1, "code_length")
 
         dx0 = ((x0-self.origin)*self.orienter.unit_vectors[1]).sum()
         dx1 = ((x1-self.origin)*self.orienter.unit_vectors[1]).sum()
@@ -423,7 +430,8 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]),flip=1)
+        lines(im.d, np.array([px0, px1]), np.array([py0, py1]),
+              np.array([color,color]), flip=1)
 
     def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
@@ -507,7 +515,7 @@ class Camera(ParallelAnalysisInterface):
        
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, px, py, color.reshape(1,4), 24, flip=1)
+        lines(im.d, px.d, py.d, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -640,7 +648,7 @@ class Camera(ParallelAnalysisInterface):
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
         label = self.ds._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
-            label = '$\\rm{log}\\/ $' + label
+            label = r'$\rm{log}\ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):
