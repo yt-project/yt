@@ -147,7 +147,7 @@ def sphere_bulk_velocity(halo):
 
 add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
 
-def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None,
+def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None, units=None,
             weight_field="cell_mass", accumulation=False, fractional=False,
             storage="profiles", output_dir="."):
     r"""
@@ -222,7 +222,7 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
     
     bin_fields = ensure_list(bin_fields)
     my_profile = create_profile(halo.data_object, bin_fields, profile_fields, n_bins=n_bins,
-                                extrema=extrema, logs=logs, weight_field=weight_field,
+                                extrema=extrema, logs=logs, units=units, weight_field=weight_field,
                                 accumulation=accumulation, fractional=fractional)
                   
     prof_store = dict([(field, my_profile[field]) \
