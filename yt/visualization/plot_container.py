@@ -429,7 +429,8 @@ class ImagePlotContainer(object):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
                 callback(cbw)

@@ -78,7 +78,7 @@ class PlotCallback(object):
             return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
-    def pixel_scale(self,plot):
+    def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
         dx = (xx1 - xx0)/(x1 - x0)
@@ -89,6 +89,50 @@ class PlotCallback(object):
 
         return (dx,dy)
 
+    def _set_font_properties(self, plot, labels, **kwargs):
+        """
+        This sets all of the text instances created by a callback to have
+        the same font size and properties as all of the other fonts in the
+        figure.  If kwargs are set, they override the defaults.
+        """
+        # This is a little messy because there is no trivial way to update
+        # a MPL.font_manager.FontProperties object with new attributes
+        # aside from setting them individually.  So we pick out the relevant
+        # MPL.Text() kwargs from the local kwargs and let them override the
+        # defaults.
+        local_font_properties = plot.font_properties.copy()
+
+        # Turn off the default TT font file, otherwise none of this works.
+        local_font_properties.set_file(None)
+        local_font_properties.set_family('stixgeneral')
+
+        if kwargs.has_key('family'): 
+            local_font_properties.set_family(kwargs['family'])
+        if kwargs.has_key('file'): 
+            local_font_properties.set_file(kwargs['file'])
+        if kwargs.has_key('fontconfig_pattern'): 
+            local_font_properties.set_fontconfig_pattern(kwargs['fontconfig_pattern'])
+        if kwargs.has_key('name'): 
+            local_font_properties.set_name(kwargs['name'])
+        if kwargs.has_key('size'): 
+            local_font_properties.set_size(kwargs['size'])
+        if kwargs.has_key('slant'): 
+            local_font_properties.set_slant(kwargs['slant'])
+        if kwargs.has_key('stretch'): 
+            local_font_properties.set_stretch(kwargs['stretch'])
+        if kwargs.has_key('style'): 
+            local_font_properties.set_style(kwargs['style'])
+        if kwargs.has_key('variant'): 
+            local_font_properties.set_variant(kwargs['variant'])
+        if kwargs.has_key('weight'): 
+            local_font_properties.set_weight(kwargs['weight'])
+
+        # For each label, set the font properties and color to the figure
+        # defaults if not already set in the callback itself
+        for label in labels:
+            if plot.font_color is not None and not kwargs.has_key('color'):
+                label.set_color(plot.font_color)
+            label.set_fontproperties(local_font_properties)
 
 class VelocityCallback(PlotCallback):
     """
@@ -589,11 +633,12 @@ class ImageLineCallback(LinePlotCallback):
     with *plot_args* fed into the plot.
     """
     _type_name = "image_line"
+    _plot_args = {'color':'white', 'linewidth':2}
     def __init__(self, p1, p2, data_coords=False, plot_args = None):
         PlotCallback.__init__(self)
         self.p1 = p1
         self.p2 = p2
-        if plot_args is None: plot_args = {}
+        if plot_args is None: plot_args = self._plot_args
         self.plot_args = plot_args
         self._ids = []
         self.data_coords = data_coords
@@ -778,7 +823,10 @@ class PointAnnotateCallback(PlotCallback):
         else: pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
         
-        plot._axes.text(x, y, self.text, **self.text_args)
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.text(x, y, self.text, **self.text_args)
+        self._set_font_properties(plot, [label], **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
     """
@@ -859,19 +907,25 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, data_coords=False, text_args = None)
+    annotate_text(pos, text, data_coords=False, text_args=None, 
+                  inset_box_args=None)
 
     Accepts a position in (0..1, 0..1) of the image, some text and
     optionally some text arguments. If data_coords is True,
-    position will be in code units instead of image coordinates.
+    position will be in code units instead of image coordinates.  If you desire
+    an inset box around your text, set one with the inset_box_args dictionary 
+    keyword.
     """
     _type_name = "text"
-    def __init__(self, pos, text, data_coords=False, text_args = None):
+    def __init__(self, pos, text, data_coords=False, text_args=None, 
+                 inset_box_args=None):
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
         if text_args is None: text_args = {}
         self.text_args = text_args
+        if inset_box_args is None: inset_box_args = {}
+        self.inset_box_args = inset_box_args
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
@@ -887,7 +941,11 @@ class TextLabelCallback(PlotCallback):
             x, y = self.pos
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
-        plot._axes.text(x, y, self.text, **kwargs)
+
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.text(x, y, self.text, bbox=self.inset_box_args, **kwargs)
+        self._set_font_properties(plot, [label], **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
     """
@@ -993,9 +1051,13 @@ class HaloCatalogCallback(PlotCallback):
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
             texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
+            labels = []
             for pos_x, pos_y, t in zip(px, py, texts): 
-                plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
- 
+                labels.append(plot._axes.text(pos_x, pos_y, t, **self.font_kwargs))
+
+            # Set the font properties of text from this callback to be
+            # consistent with other text labels in this figure
+            self._set_font_properties(plot, labels, **self.font_kwargs)
 
 class ParticleCallback(PlotCallback):
     """
@@ -1088,65 +1150,10 @@ class TitleCallback(PlotCallback):
 
     def __call__(self,plot):
         plot._axes.set_title(self.title)
-
-class TimestampCallback(PlotCallback):
-    """
-    annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
-                       normalized=False, bbox_dict=None)
-
-    Adds the current time to the plot at point given by *x* and *y*.  If *units*
-    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
-    *units* is None, it will attempt to figure out the correct value by which to
-    scale.  The *format* keyword is a template string that will be evaluated and
-    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
-    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
-    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
-    is an optional dict of arguments for the bbox that frames the timestamp, see
-    matplotlib's text annotation guide for more details. All other *kwargs* will
-    be passed to the text() method on the plot axes.  See matplotlib's text()
-    functions for more information.
-    """
-    _type_name = "timestamp"
-    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black',
-                  'alpha': 1.0}
-
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}",
-                 normalized=False, bbox_dict=None, **kwargs):
-        self.x = x
-        self.y = y
-        self.format = format
-        self.units = units
-        self.normalized = normalized
-        if bbox_dict is not None:
-            self.bbox_dict = bbox_dict
-        else:
-            self.bbox_dict = self._bbox_dict
-        self.kwargs = {'color': 'k'}
-        self.kwargs.update(kwargs)
-
-    def __call__(self, plot):
-        if self.units is None:
-            t = plot.data.ds.current_time.in_units('s')
-            scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 'day',
-                          'yr', 'kyr', 'Myr', 'Gyr']
-            for i, k in enumerate(scale_keys):
-                if t < YTQuantity(1, k):
-                    break
-                t.convert_to_units(k)
-            self.units = scale_keys[i-1]
-        else:
-            t = plot.data.ds.current_time.in_units(self.units)
-        s = self.format.format(time=float(t), units=self.units)
-        plot._axes.hold(True)
-        if self.normalized:
-            plot._axes.text(self.x, self.y, s, horizontalalignment='center',
-                            verticalalignment='center', 
-                            transform = plot._axes.transAxes,
-                            bbox=self.bbox_dict)
-        else:
-            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict,
-                            **self.kwargs)
-        plot._axes.hold(False)
+        # Set the font properties of text from this callback to be
+        # consistent with other text labels in this figure
+        label = plot._axes.title
+        self._set_font_properties(plot, [label])
 
 class TriangleFacetsCallback(PlotCallback):
     """ 
@@ -1189,3 +1196,293 @@ class TriangleFacetsCallback(PlotCallback):
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
 
+class TimestampCallback(PlotCallback):
+    """
+    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True, 
+                       redshift=False, time_format="t = {time:.0f} {units}", 
+                       time_unit=None, redshift_format="z = {redshift:.2f}", 
+                       draw_inset_box=False, text_args=None, inset_box_args=None)
+
+    Annotates the timestamp and/or redshift of the data output at a specified
+    location in the image (either in a present corner, or by specifying (x,y)
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
+    specified, it will automatically choose appropriate units.  It allows for 
+    custom formatting of the time and redshift information, as well as the 
+    specification of an inset box around the text.
+
+    Parameters
+    ----------
+    x_pos, y_pos : floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) = 
+        (0..1, 0..1).  Setting x_pos and y_pos overrides the corner parameter.
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be overridden by the 
+        optional x_pos and y_pos keywords.
+    time : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with redshift parameter.
+    redshift : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with the time parameter.
+    time_format : string, optional
+        This specifies the format of the time output assuming "time" is the 
+        number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
+        The time can be specified to arbitrary precision according to printf
+        formatting codes (defaults to .1f -- a float with 1 digits after 
+        decimal).  Example: "Age = {time:.2f} {units}". 
+    time_unit : string, optional
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
+        'Myr', etc.)
+    redshift_format : string, optional
+        This specifies the format of the redshift output.  The redshift can
+        be specified to arbitrary precision according to printf formatting 
+        codes (defaults to 0.2f -- a float with 2 digits after decimal).
+        Example: "REDSHIFT = {redshift:03.3g}", 
+    draw_inset_box : boolean, optional
+        Whether or not an inset box should be included around the text
+        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch 
+        object.  
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white'}.
+    inset_box_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the inset box around the text.  
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.5'}
+
+    Example
+    ------- 
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_timestamp()
+    """
+    _type_name = "timestamp"
+    # Defaults
+    _text_args = {'color':'white'}
+    _inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                       'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+
+    def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
+                 redshift=False, time_format="t = {time:.1f} {units}", 
+                 time_unit=None, redshift_format="z = {redshift:.2f}", 
+                 draw_inset_box=False, text_args=None, inset_box_args=None):
+
+        # Set position based on corner argument.
+        self.pos = (x_pos, y_pos)
+        self.corner = corner
+        self.time = time
+        self.redshift = redshift
+        self.time_format = time_format
+        self.redshift_format = redshift_format
+        self.time_unit = time_unit
+        if text_args is None: self.text_args = self._text_args
+        else: self.text_args = text_args
+        if inset_box_args is None: self.inset_box_args = self._inset_box_args
+        else: self.inset_box_args = inset_box_args
+
+        # if inset box is not desired, set inset_box_args to {}
+        if not draw_inset_box: self.inset_box_args = {}
+
+    def __call__(self, plot):
+        # Setting pos overrides corner argument
+        if self.pos[0] is None or self.pos[1] is None:
+            if self.corner == 'upper_left':
+                self.pos = (0.03, 0.97)
+                self.text_args['horizontalalignment'] = 'left'
+                self.text_args['verticalalignment'] = 'top'
+            elif self.corner == 'upper_right':
+                self.pos = (0.97, 0.97)
+                self.text_args['horizontalalignment'] = 'right'
+                self.text_args['verticalalignment'] = 'top'
+            elif self.corner == 'lower_left':
+                self.pos = (0.03, 0.03)
+                self.text_args['horizontalalignment'] = 'left'
+                self.text_args['verticalalignment'] = 'bottom'
+            elif self.corner == 'lower_right':
+                self.pos = (0.97, 0.03)
+                self.text_args['horizontalalignment'] = 'right'
+                self.text_args['verticalalignment'] = 'bottom'
+            elif self.corner is None:
+                self.pos = (0.5, 0.5)
+                self.text_args['horizontalalignment'] = 'center'
+                self.text_args['verticalalignment'] = 'center'
+            else:
+                raise SyntaxError("Argument 'corner' must be set to " 
+                                  "'upper_left', 'upper_right', 'lower_left', " 
+                                  "'lower_right', or None")
+
+        self.text = ""
+
+        # If we're annotating the time, put it in the correct format
+        if self.time:
+
+            # If no time_units are set, then identify a best fit time unit
+            if self.time_unit is None:
+                self.time_unit = plot.ds.get_smallest_appropriate_unit( \
+                                            plot.ds.current_time, 
+                                            quantity='time')
+            t = plot.ds.current_time.in_units(self.time_unit)
+            self.text += self.time_format.format(time=float(t), 
+                                                 units=self.time_unit)
+
+        # If time and redshift both shown, do one on top of the other
+        if self.time and self.redshift:
+            self.text += "\n"
+
+        # If we're annotating the redshift, put it in the correct format
+        if self.redshift:
+            try:
+                z = np.abs(plot.data.ds.current_redshift)
+            except AttributeError:
+                raise AttributeError("Dataset does not have current_redshift. "
+                                     "Set redshift=False.")
+            self.text += self.redshift_format.format(redshift=float(z))
+
+        # This is just a fancy wrapper around the TextLabelCallback
+        tcb = TextLabelCallback(self.pos, self.text, 
+                                text_args=self.text_args, 
+                                inset_box_args=self.inset_box_args)
+        return tcb(plot)
+
+class ScaleCallback(PlotCallback):
+    """
+    annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
+                   max_frac=0.2, min_frac=0.018,
+                   text_args=None, plot_args=None)
+
+    Annotates the scale of the plot at a specified location in the image
+    (either in a preset corner, or by specifying (x,y) image coordinates with
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the 
+    distance scale you desire to show on the plot.  If no coeff and units are 
+    specified, an appropriate pair will be determined such that your scale bar 
+    is never smaller than min_frac or greater than max_frac of your plottable 
+    axis length.  For additional text and plot arguments for the text and line,
+    include them as dictionaries to pass to text_args and plot_args.
+    
+    Parameters
+    ----------
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be overridden by the 
+        optional 'pos' keyword.
+    coeff : float, optional
+        The coefficient of the unit defining the distance scale (e.g. 10 kpc or
+        100 Mpc) to be overplot.  If set to None along with unit keyword, 
+        coeff will be automatically determined to be a power of 10
+        relative to the best-fit unit.
+    unit : string, optional
+        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
+        'kpc', etc.) or set to None.  If set to None, will be automatically
+        determined to be the best-fit to the data.
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) = 
+        (0..1, 0..1).  Setting pos overrides the corner parameter.
+    min_frac, max_frac: float, optional
+        The minimum/maximum fraction of the axis width for the scale bar to 
+        extend. A value of 1 would allow the scale bar to extend across the
+        entire axis width.  Only used for automatically calculating 
+        best-fit coeff and unit when neither is specified, otherwise 
+        disregarded.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white', 
+        'horizontalalignment':'center', 'verticalalignment':'top'}.
+    plot_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        line object.  Defaults: {'color':'white', 'linewidth':3}.
+
+    Example
+    ------- 
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_scale()
+    """
+    _type_name = "scale"
+    # Defaults
+    _text_args = {'horizontalalignment':'center', \
+                  'verticalalignment':'top', \
+                  'color':'white'}
+    _plot_args = {'color':'white', 'linewidth':3}
+
+    def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
+                 max_frac=0.20, min_frac=0.018,
+                 text_args=None, plot_args=None):
+
+        # Set position based on corner argument.
+        self.corner = corner
+        self.coeff = coeff
+        self.unit = unit
+        self.pos = pos
+        self.max_frac = max_frac
+        self.min_frac = min_frac
+        if text_args is None: self.text_args = self._text_args
+        else: self.text_args = text_args
+        if plot_args is None: self.plot_args = self._plot_args
+        else: self.plot_args = plot_args
+
+    def __call__(self, plot):
+        # Callback only works for plots with axis ratios of 1
+        xsize = plot.xlim[1] - plot.xlim[0]
+        ysize = plot.ylim[1] - plot.ylim[0]
+        if xsize != ysize:
+            raise RuntimeError("Scale callback only works for plots with "
+                               "axis ratios of 1: xsize = %s, ysize = %s." %
+                               (xsize, ysize))
+
+        # Setting pos overrides corner argument
+        if self.pos is None:
+            if self.corner == 'upper_left':
+                self.pos = (0.12, 0.971)
+            elif self.corner == 'upper_right':
+                self.pos = (0.88, 0.971)
+            elif self.corner == 'lower_left':
+                self.pos = (0.12, 0.062)
+            elif self.corner == 'lower_right':
+                self.pos = (0.88, 0.062)
+            elif self.corner is None:
+                self.pos = (0.5, 0.5)
+            else:
+                raise SyntaxError("Argument 'corner' must be set to " 
+                                  "'upper_left', 'upper_right', 'lower_left', " 
+                                  "'lower_right', or None")
+
+        # When identifying a best fit distance unit, do not allow scale marker
+        # to be greater than max_frac fraction of xaxis or under min_frac 
+        # fraction of xaxis 
+        max_scale = self.max_frac * xsize
+        min_scale = self.min_frac * xsize
+
+        if self.coeff is None:
+            self.coeff = 1.
+
+        # If no units are set, then identify a best fit distance unit
+        if self.unit is None:
+            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, 
+                                                   return_quantity=True)
+            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, 
+                                                   return_quantity=True)
+            self.coeff = max_scale.v
+            self.unit = max_scale.units
+        self.scale = YTQuantity(self.coeff, self.unit)
+        self.text = "{scale} {units}".format(scale=int(self.coeff), 
+                                             units=self.unit)
+        image_scale = (plot.frb.convert_distance_x(self.scale) / \
+                       plot.frb.convert_distance_x(xsize)).v
+
+        # This is just a fancy wrapper around the TextLabelCallback and the
+        # ImageLineCallback
+        pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
+        pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
+        icb = ImageLineCallback(pos_line_start, pos_line_end, plot_args=self.plot_args)
+        icb(plot)
+        tcb = TextLabelCallback(self.pos, self.text, 
+                                text_args=self.text_args)
+        return tcb(plot)
