@@ -772,6 +772,25 @@ class Dataset(object):
         self.field_dependencies.update(deps)
 
     def add_deposited_particle_field(self, deposit_field, method):
+        """Add a new deposited particle field
+
+        Creates a new deposited field based on the particle *deposit_field*.
+
+        Parameters
+        ----------
+
+        deposit_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        method : one of 'count', 'sum', 'cic', 'nearest'
+           The particle deposition method to use.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+        """
         self.index
         if isinstance(deposit_field, tuple):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
@@ -803,6 +822,7 @@ class Dataset(object):
             units=units,
             take_log=False,
             validators=[ValidateSpatial()])
+        return field_name
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
