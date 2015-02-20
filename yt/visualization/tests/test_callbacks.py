@@ -74,7 +74,7 @@ def test_timestamp_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_timestamp(corner='lower_right', redshift=True, 
-                             use_inset_box=True)
+                             draw_inset_box=True)
         p.save(prefix)
 
 def test_scale_callback():
