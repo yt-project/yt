@@ -169,11 +169,24 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 surface_height = data_source.ds.quan(0.0, "code_length")
         r = data_source['py'] + surface_height
         # Because of the axis-ordering, dimensions 0 and 1 both have r as py
-        # and the angular coordinate as px.
+        # and the angular coordinate as px.  But we need to figure out how to
+        # convert our coordinate back to an actual angle, based on which
+        # dimension we're in.
+        pdx = data_source['pdx'].d * np.pi/180
+        if self.axis_name[self.x_axis[dimension]] == 'latitude':
+            px = (data_source['px'].d + 90) * np.pi/180
+            do_transpose = True
+        elif self.axis_name[self.x_axis[dimension]] == 'longitude':
+            px = (data_source['px'].d + 180) * np.pi/180
+            do_transpose = False
+        else:
+            # We should never get here!
+            raise NotImplementedError
         buff = pixelize_cylinder(r, data_source['pdy'],
-                                 data_source['px'],
-                                 data_source['pdx'], # half-widths
+                                 px, pdx,
                                  size, data_source[field], bounds)
+        if do_transpose:
+            buff = buff.transpose()
         return buff
 
 
@@ -208,6 +221,24 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  'lon' : 'longitude', 
                  'alt' : 'altitude' }
 
+    _image_axis_name = None
+    @property
+    def image_axis_name(self):    
+        if self._image_axis_name is not None:
+            return self._image_axis_name
+        # This is the x and y axes labels that get displayed.  For
+        # non-Cartesian coordinates, we usually want to override these for
+        # Cartesian coordinates, since we transform them.
+        rv = {0: ('x / \\sin(\mathrm{latitude})',
+                  'y / \\sin(\mathrm{latitude})'),
+              1: ('R', 'z'),
+              2: ('longitude', 'latitude')}
+        for i in rv.keys():
+            rv[self.axis_name[i]] = rv[i]
+            rv[self.axis_name[i].upper()] = rv[i]
+        self._image_axis_name = rv
+        return rv
+
     axis_id = { 'latitude' : 0, 'longitude' : 1, 'altitude' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
@@ -226,13 +257,13 @@ class GeographicCoordinateHandler(CoordinateHandler):
             GeographicCoordinateHandler, self).sanitize_center(center, axis)
         if axis == 2:
             display_center = center
-        elif axis == 1:
+        elif axis == 0:
             display_center = (0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2])
-        elif axis == 0:
-            display_center = (self.ds.domain_width[0]/2.0,
-                              0.0 * display_center[1],
+        elif axis == 1:
+            display_center = (self.ds.domain_right_edge[2]/2.0,
+                              0.0 * display_center[2],
                               0.0 * display_center[2])
         return center, display_center
 
