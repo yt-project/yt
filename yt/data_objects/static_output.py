@@ -783,7 +783,7 @@ class Dataset(object):
            The field name tuple of the particle field the deposited field will
            be created from.  This must be a field name tuple so yt can
            appropriately infer the correct particle type.
-        method : one of 'count', 'sum', 'cic', 'nearest'
+        method : one of 'count', 'sum', or 'cic'
            The particle deposition method to use.
 
         Returns
@@ -814,7 +814,8 @@ class Dataset(object):
             top[bnz] /= bottom[bnz]
             d = data.ds.arr(top, input_units=units)
             return d
-        field_name = "%s_"+ {"cic": "cic", "sum": "nn"}[method] + "_%s"
+        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
         self.add_field(
             ("deposit", field_name),
@@ -822,7 +823,7 @@ class Dataset(object):
             units=units,
             take_log=False,
             validators=[ValidateSpatial()])
-        return field_name
+        return ("deposit", field_name)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
