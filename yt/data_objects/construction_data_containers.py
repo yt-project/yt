@@ -510,16 +510,16 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def _sanitize_dims(self, dims):
         if not iterable(dims):
-            dims = [dims]*self.ds.dimensionality
-        if len(dims) != self.ds.dimensionality:
+            dims = [dims]*len(self.ds.domain_left_edge)
+        if len(dims) != len(self.ds.domain_left_edge):
             raise RuntimeError(
                 "Length of dims must match the dimensionality of the dataset")
         return np.array(dims, dtype='int32')
 
     def _sanitize_edge(self, edge):
         if not iterable(edge):
-            edge = [edge]*self.ds.dimensionality
-        if len(edge) != self.ds.dimensionality:
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
                 "Length of edges must match the dimensionality of the "
                 "dataset")
