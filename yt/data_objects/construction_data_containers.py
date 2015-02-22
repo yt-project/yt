@@ -830,14 +830,17 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         for level in range(self.level + 1):
             domain_dims = self.ds.domain_dimensions.astype("int64") \
                         * self.ds.relative_refinement(0, self.level)
+            tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
                 # NOTE: This usage of "refine_by" is actually *okay*, because it's
                 # being used with respect to iref, which is *already* scaled!
-                fill_region(input_fields, ls.fields, ls.current_level,
+                tot -= fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
                             chunk.ires, domain_dims, self.ds.refine_by)
+            if tot != 0:
+                raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
