@@ -78,6 +78,10 @@ class PlotCallback(object):
             return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
+    def convert_data_coords_to_image_coords(self, plot):
+        pass
+        #def project_to_plane(
+
     def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
@@ -1486,3 +1490,58 @@ class ScaleCallback(PlotCallback):
         tcb = TextLabelCallback(self.pos, self.text, 
                                 text_args=self.text_args)
         return tcb(plot)
+
+class MarkerAnnotateCallback(PlotCallback):
+    """
+    annotate_marker(pos, marker='x', plot_args=None)
+
+    Adds text *marker* at *pos* in code units.  *plot_args* is a dict
+    that will be forwarded to the plot command.
+    """
+    _type_name = "marker"
+    def __init__(self, pos, marker='x', plot_args=None):
+        self.pos = pos
+        self.marker = marker
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        if len(self.pos) == 3:
+            ax = plot.data.axis
+            self.pos = plot.data.ds.arr(self.pos, 'code_length')
+            # if this is an on-axis projection or slice
+            if ax >= 0 and ax <= 2:
+                (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                            plot.data.ds.coordinates.y_axis[ax])
+                pos = self.pos[xi], self.pos[yi]
+
+            # if this is an off-axis project or slice (ie cutting plane)
+            # we have to calculate where the data coords fall in the projected
+            # plane
+            elif ax == 4:
+                width = plot.data.width
+                pos_vectors = self.pos - plot.data.center
+                dx = np.dot(pos_vectors, plot.data.orienter.unit_vectors[1])
+                dy = np.dot(pos_vectors, plot.data.orienter.unit_vectors[0])
+
+                # Transpose into image coords.
+                pos = (dy, dx)
+                print "pos_vectors = %s" % pos_vectors
+                print "unit_vectors = %s" % plot.data.orienter.unit_vectors
+                print "new pos = (%f, %f)" % (dy, dx)
+
+            else:
+                raise SyntaxError("Object must have an axis defined")
+
+        elif len(self.pos) == 2:
+            pos = self.pos
+        x,y = self.convert_to_plot(plot, pos)
+        print "plot coords = (%f, %f)" % (x,y)
+        plot._axes.hold(True)
+        plot._axes.scatter(x,y, marker = self.marker, color='w', s=50,**self.plot_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
