@@ -282,6 +282,7 @@ cdef class ParticleForest:
     cdef int oref
     cdef public int n_ref
     cdef public object masks
+    cdef public object buffer_masks
     cdef public object counts
     cdef public object max_count
     cdef public object owners
@@ -311,33 +312,42 @@ cdef class ParticleForest:
             self.idds[i] = 1.0/self.dds[i]
         # We use 64-bit masks
         self.masks = []
+        self.buffer_masks = []
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
+            self.buffer_masks.append(np.zeros(dims, dtype="uint64"))
         self.counts = np.zeros(dims, dtype="uint64")
         self.max_count = np.zeros(dims, dtype="uint64")
         self.owners = np.zeros(dims, dtype="int32") - 1
 
-    def add_data_file(self, np.ndarray pos, int file_id, int filter = 0):
+    def add_data_file(self, np.ndarray pos, int file_id, int filter = 0, 
+                      np.float64_t rel_buffer = 0.0):
         if pos.dtype == np.float32:
-            self._mask_positions[np.float32_t](pos, file_id, filter)
+            self._mask_positions[np.float32_t](pos, file_id, filter, rel_buffer)
         elif pos.dtype == np.float64:
-            self._mask_positions[np.float64_t](pos, file_id, filter)
+            self._mask_positions[np.float64_t](pos, file_id, filter, rel_buffer)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
-                              np.uint64_t file_id, int filter):
+                              np.uint64_t file_id, int filter,
+                              np.float64_t rel_buffer = 0.0):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3], i, j, k, use
         cdef np.ndarray[np.uint64_t, ndim=3] mask, counts, my_counts, mcount
+        cdef np.ndarray[np.uint64_t, ndim=3]buffer_mask
         cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
         mcount = self.max_count
         mask = self.masks[file_id/64]
+        buffer_mask = self.buffer_masks[file_id/64]
         counts = self.counts
         my_counts = np.zeros_like(self.counts)
         cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
+        cdef np.float64_t buf_size[3]
+        for i in range(3): 
+            buf_size[i] = rel_buffer * self.dds[i]
         for p in range(no):
             # Now we locate the particle
             use = 1
@@ -348,13 +358,13 @@ cdef class ParticleForest:
                     break
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
                 ind[i] = iclip(ind[i], 0, self.dims[i])
-            if use == 1:
-                mask[ind[0],ind[1],ind[2]] |= val
-                counts[ind[0],ind[1],ind[2]] += 1
-                my_counts[ind[0],ind[1],ind[2]] += 1
-                if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
-                    mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
-                    owners[ind[0],ind[1],ind[2]] = file_id
+            if use == 0: continue
+            mask[ind[0],ind[1],ind[2]] |= val
+            counts[ind[0],ind[1],ind[2]] += 1
+            my_counts[ind[0],ind[1],ind[2]] += 1
+            if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
+                mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
+                owners[ind[0],ind[1],ind[2]] = file_id
         return
 
     @cython.boundscheck(False)
