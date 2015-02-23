@@ -274,7 +274,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # We do this once
         for chunk in self.data_source.chunks([], "io", local_only = False):
             self._initialize_chunk(chunk, tree)
-        # This needs to be parallel_objects-ified
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 

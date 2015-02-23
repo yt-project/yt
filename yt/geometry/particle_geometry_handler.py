@@ -76,6 +76,8 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
+        N = min(len(4*self.data_files), 256) 
+        self.ds.domain_dimensions[:] = N*(1<<self.ds.over_refine_factor)
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
 
@@ -83,11 +85,10 @@ class ParticleIndex(Index):
         ds = self.dataset
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
-        N = min(len(4*self.data_files), 256) 
-        self.ds.domain_dimensions[:] = N*(1<<self.ds.over_refine_factor)
+        N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
-                [N, N, N], len(self.data_files), ds.over_refine_factor,
+                N, len(self.data_files), ds.over_refine_factor,
                 ds.n_ref)
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
