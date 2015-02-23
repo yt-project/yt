@@ -15,7 +15,6 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
 
 from yt.frontends.owls.io import \
@@ -26,6 +25,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
     compute_morton
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
