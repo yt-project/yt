@@ -401,10 +401,22 @@ cdef class ParticleForest:
                 continue
             for i in range(off_count[0]):
                 ind2[0] = ind[0] + off_ind[0][i]
+                if ind2[0] >= self.dims[0]:
+                    ind2[0] -= self.dims[0]
+                elif ind2[0] < 0:
+                    ind2[0] += self.dims[0]
                 for j in range(off_count[1]):
                     ind2[1] = ind[1] + off_ind[1][i]
+                    if ind2[1] >= self.dims[1]:
+                        ind2[1] -= self.dims[1]
+                    elif ind2[1] < 0:
+                        ind2[1] += self.dims[1]
                     for k in range(off_count[2]):
                         ind2[2] = ind[2] + off_ind[2][i]
+                        if ind2[2] >= self.dims[2]:
+                            ind2[2] -= self.dims[2]
+                        elif ind2[2] < 0:
+                            ind2[2] += self.dims[2]
                         buffer_mask[ind2[0], ind2[1], ind2[2]] |= val
                         
         return
