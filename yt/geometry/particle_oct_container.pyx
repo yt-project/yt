@@ -313,7 +313,8 @@ cdef class ParticleForest:
         # We use 64-bit masks
         self.masks = []
         self.buffer_masks = []
-        for i in range(nfiles/64 + 1):
+        cdef int nmasks = <int> ceil(float(nfiles)/64)
+        for i in range(nmasks):
             self.masks.append(np.zeros(dims, dtype="uint64"))
             self.buffer_masks.append(np.zeros(dims, dtype="uint64"))
         self.counts = np.zeros(dims, dtype="uint64")
@@ -322,79 +323,61 @@ cdef class ParticleForest:
 
     def add_data_file(self, np.ndarray pos, int file_id, int filter = 1, 
                       np.float64_t rel_buffer = 0.05):
-        cdef int off_i, off_j, off_k
-        for off_i in range(3):
-            for off_j in range(3):
-                for off_k in range(3):
-                    if pos.dtype == np.float32:
-                        self._mask_positions[np.float32_t](pos, file_id,
-                            filter, rel_buffer, off_i, off_j, off_k)
-                    elif pos.dtype == np.float64:
-                        self._mask_positions[np.float64_t](pos, file_id,
-                            filter, rel_buffer, off_i, off_j, off_k)
+        if pos.dtype == np.float32:
+            self._mask_positions[np.float32_t](pos, file_id,
+                filter, rel_buffer)
+        elif pos.dtype == np.float64:
+            self._mask_positions[np.float64_t](pos, file_id,
+                filter, rel_buffer)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
                               np.uint64_t file_id, int filter,
-                              np.float64_t rel_buffer,
-                              int off_i, int off_j, int off_k):
-        if rel_buffer == 0.0 and not (off_i == off_j == off_k == 1):
-            return
-        cdef int offsets[3] 
-        offsets[0] = off_i
-        offsets[1] = off_j
-        offsets[2] = off_k
+                              np.float64_t rel_buffer):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
-        cdef int ind[3], i, j, k, use, off_ind[3]
+        cdef int ind[3], ind2[3], i, j, k, use, off_ind[3][2], off_count[3]
         cdef np.ndarray[np.uint64_t, ndim=3] mask, counts, my_counts, mcount
+        cdef np.ndarray[np.uint64_t, ndim=3] buffer_mask
         cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
         mcount = self.max_count
         # Check if we're in a buffer or not.
-        cdef int inc_count
         counts = self.counts
-        if off_i == 1 and off_j == 1 and off_k == 1:
-            mask = self.masks[file_id/64]
-            inc_count = 1
-            my_counts = np.zeros_like(self.counts)
-        else:
-            mask = self.buffer_masks[file_id/64]
-            inc_count = 0
-            # This kills a compile-time error
-            my_counts = counts
+        mask = self.masks[file_id/64]
+        my_counts = np.zeros_like(self.counts)
+        buffer_mask = self.buffer_masks[file_id/64]
         cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
         cdef anyfloat buf_size[3], ppos[3], fp
         for i in range(3): 
             buf_size[i] = rel_buffer * self.dds[i]
         for p in range(no):
-            # Now we locate the particle
-            use = 1
             # Now we're going to check all the various possibilities, and look
             # for offsetting.  Note that if we're being asked to offset in a
             # given direction, we just won't bother if we're not within the
             # buffer zone.
             for i in range(3):
                 ppos[i] = pos[p, i]
-                if offsets[i] == 1:
-                    continue
+                off_ind[i][0] = 0
+                off_count[i] = 0
+                if rel_buffer == 0.0: continue
                 # http://cboard.cprogramming.com/c-programming/105096-fmod.html
                 # fmod(x, y) => x-((int)(x/y))*y
                 fp = ppos[i] - (<int>((ppos[i] - self.left_edge[i]) *
                                 self.idds[i])) * self.dds[i]
-                if offsets[i] == 0:
-                    if fp >= buf_size[i]:
-                        use = 0
-                        break
-                    ppos[i] -= buf_size[i]
-                elif offsets[i] == 2:
-                    if fp < self.dds[i] - buf_size[i]:
-                        use = 0
-                        break
-                    ppos[i] += buf_size[i]
-            # Note that we're not currently going around the domain edges.
-            for i in range(3*use):
+                if fp < buf_size[i]:
+                    # We're close to the left edge
+                    off_ind[i][1] = -1
+                    off_count[i] = 2
+                elif fp >= self.dds[i] - buf_size[i]:
+                    off_ind[i][1] = 1
+                    off_count[i] = 2
+                else:
+                    off_ind[i][1] = 0
+                    off_count[i] = 1
+            use = 1
+            for i in range(3):
                 if filter and (ppos[i] < self.left_edge[i]
                             or ppos[i] > self.right_edge[i]):
                     use = 0
@@ -404,12 +387,26 @@ cdef class ParticleForest:
             if use == 0: continue
             mask[ind[0],ind[1],ind[2]] |= val
             # Don't increment any counts if we're in the buffer zone
-            if inc_count == 0: continue
             counts[ind[0],ind[1],ind[2]] += 1
             my_counts[ind[0],ind[1],ind[2]] += 1
             if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
                 mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
                 owners[ind[0],ind[1],ind[2]] = file_id
+            # Okay, now the tricky bit.  We know which buffers we are next to.
+            # This still requires us to figure out which indices, etc etc.
+            # This is a somewhat opaque way of doing it very succinctly; we're
+            # saying, okay, we get up to two cells for each buffer zone we're
+            # in, so let's investigate those.
+            if off_count[0] == off_count[1] == off_count[2] == 1:
+                continue
+            for i in range(off_count[0]):
+                ind2[0] = ind[0] + off_ind[0][i]
+                for j in range(off_count[1]):
+                    ind2[1] = ind[1] + off_ind[1][i]
+                    for k in range(off_count[2]):
+                        ind2[2] = ind[2] + off_ind[2][i]
+                        buffer_mask[ind2[0], ind2[1], ind2[2]] |= val
+                        
         return
 
     @cython.boundscheck(False)
