@@ -16,11 +16,10 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import os
 
 from yt.frontends.owls.io import \
     IOHandlerOWLS
-from yt.geometry.oct_container import \
-    _ORDER_MAX
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
@@ -137,7 +136,6 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         count = sum(data_file.total_particles.values())
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
-        dx = (DRE - DLE) / 2**_ORDER_MAX
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
