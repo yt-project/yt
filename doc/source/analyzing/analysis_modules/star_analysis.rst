@@ -33,20 +33,20 @@ This example will analyze all the stars in the volume:
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  dd = ds.all_data()
-  sfr = StarFormationRate(ds, data_source=dd)
+  import yt
+  from yt.analysis_modules.star_analysis.api import StarFormationRate
+  ds = yt.load("Enzo_64/DD0030/data0030")
+  ad = ds.all_data()
+  sfr = StarFormationRate(ds, data_source=ad)
 
 or just a small part of the volume:
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  sp = p.h.sphere([0.5,0.5,0.5], 0.05)
+  import yt
+  from yt.analysis_modules.star_analysis.api import StarFormationRate
+  ds = yt.load("Enzo_64/DD0030/data0030")
+  sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
   sfr = StarFormationRate(ds, data_source=sp)
 
 If the stars to be analyzed cannot be defined by a data_source, arrays can be
@@ -57,24 +57,33 @@ in mpc as a float
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
-  # This puts the particle data for *all* the particles in the region re
+  import yt
+  from yt.analysis_modules.star_analysis.api import StarFormationRate
+  from yt.data_objects.particle_filters import add_particle_filter
+
+  def Stars(pfilter, data):
+        return data[("all", "particle_type")] == 2
+  add_particle_filter("stars", function=Stars, filtered_type='all',
+                      requires=["particle_type"])
+
+  ds = yt.load("enzo_tiny_cosmology/RD0009/RD0009")
+  ds.add_particle_filter('stars')
+  v, center = ds.find_max("density")
+  sp = ds.sphere(center, (50, "kpc"))
+
+  # This puts the particle data for *all* the particles in the sphere sp
   # into the arrays sm and ct.
-  sm = re["ParticleMassMsun"]
-  ct = re["creation_time"]
-  # First pick out only stars.
-  stars = (ct > 0)
-  ct = ct[stars]
-  sm = sm[stars]
+  mass = sp[("stars", "particle_mass")].in_units('Msun')
+  age = sp[("stars", "age")].in_units('Myr')
+  ct = sp[("stars", "creation_time")].in_units('Myr')
+
   # Pick out only old stars using Numpy array fancy indexing.
-  # 100 is a time in code units.
-  sm_old = sm[ct < 100]
-  ct_old = ct[ct < 100]
-  sfr = StarFormationRate(ds, star_mass=sm_old, star_creation_time=ct_old,
-  volume=re.volume('mpc'))
+  threshold = ds.quan(100.0, "Myr")
+  mass_old = mass[age > threshold]
+  ct_old = ct[age > threshold]
+
+  sfr = StarFormationRate(ds, star_mass=mass_old, star_creation_time=ct_old,
+                          volume=sp.volume())
 
 To output the data to a text file, use the command ``.write_out``:
 
@@ -145,10 +154,10 @@ The models are chosen with the ``model`` parameter, which is either
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  spec = SpectrumBuilder(ds, bcdir="/home/username/bc/", model="chabrier")
+  import yt
+  from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+  ds = yt.load("enzo_tiny_cosmology/RD0009/RD0009")
+  spec = SpectrumBuilder(ds, bcdir="bc", model="chabrier")
 
 In order to analyze a set of stars, use the ``calculate_spectrum`` command.
 It accepts either a ``data_source``, or a set of arrays with the star 
@@ -156,8 +165,9 @@ information. Continuing from the above example:
 
 .. code-block:: python
 
-  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
-  spec.calculate_spectrum(data_source=re)
+  v, center = ds.find_max("density")
+  sp = ds.sphere(center, (50, "kpc"))
+  spec.calculate_spectrum(data_source=sp)
 
 If a subset of stars are desired, call it like this. ``star_mass`` is in units
 of Msun, ``star_creation_time`` and ``star_metallicity_fraction`` in code
@@ -165,24 +175,21 @@ units.
 
 .. code-block:: python
 
-  re = ds.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
-  # This puts the particle data for *all* the particles in the region re
-  # into the arrays sm, ct and metal.
-  sm = re["ParticleMassMsun"]
-  ct = re["creation_time"]
-  metal = re["metallicity_fraction"]
-  # First pick out only stars.
-  stars = (ct > 0)
-  ct = ct[stars]
-  sm = sm[stars]
-  metal = metal[stars]
+  from yt.data_objects.particle_filters import add_particle_filter
+
+  def Stars(pfilter, data):
+      return data[("all", "particle_type")] == 2
+  add_particle_filter("stars", function=Stars, filtered_type='all',
+                      requires=["particle_type"])
+
   # Pick out only old stars using Numpy array fancy indexing.
-  # 100 is a time in code units.
-  sm_old = sm[ct < 100]
-  ct_old = ct[ct < 100]
-  metal_old = metal[ct < 100]
-  spec.calculate_spectrum(star_mass=sm_old, star_creation_time=ct_old,
-  star_metallicity_fraction=metal_old)
+  threshold = ds.quan(100.0, "Myr")
+  mass_old = sp[("stars", "age")][age > threshold]
+  metal_old = sp[("stars", "metallicity_fraction")][age > threshold]
+  ct_old = sp[("stars", "creation_time")][age > threshold]
+
+  spec.calculate_spectrum(star_mass=mass_old, star_creation_time=ct_old,
+                          star_metallicity_fraction=metal_old)
 
 Alternatively, when using either a ``data_source`` or individual arrays,
 the option ``star_metallicity_constant`` can be specified to force all the
@@ -192,7 +199,7 @@ stars to have the same metallicity. If arrays are being used, the
 .. code-block:: python
 
   # Make all the stars have solar metallicity.
-  spec.calculate_spectrum(data_source=re, star_metallicity_constant=0.02)
+  spec.calculate_spectrum(data_source=sp, star_metallicity_constant=0.02)
 
 Newly formed stars are often shrouded by thick gas. With the ``min_age`` option
 of ``calculate_spectrum``, young stars can be excluded from the spectrum.
@@ -201,8 +208,8 @@ The default is zero, which is equivalent to including all stars.
 
 .. code-block:: python
 
-  spec.calculate_spectrum(data_source=re, star_metallicity_constant=0.02,
-  min_age=1e7)
+  spec.calculate_spectrum(data_source=sp, star_metallicity_constant=0.02,
+                          min_age=ds.quan('1e7', 's'))
 
 There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
@@ -235,13 +242,16 @@ a ``ds`` is required.
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  spec = SpectrumBuilder(ds, bcdir="/home/user/bc", model="chabrier")
+  import yt
+  import numpy as np
+  from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+
+  ds = yt.load("Enzo_64/DD0030/data0030")
+  spec = SpectrumBuilder(ds, bcdir="bc", model="chabrier")
   sm = np.ones(100)
   ct = np.zeros(100)
-  spec.calculate_spectrum(star_mass=sm, star_creation_time=ct, star_metallicity_constant=0.02)
+  spec.calculate_spectrum(star_mass=sm, star_creation_time=ct,
+                          star_metallicity_constant=0.02)
   spec.write_out_SED('SED.out')
 
 And the plot:
@@ -258,27 +268,28 @@ and written out for each.
 
 .. code-block:: python
 
-  from yt.mods import *
-  from yt.analysis_modules.star_analysis.api import *
-  ds = load("data0030")
-  # Find all the haloes, and include star particles.
+  import yt
+  from yt.analysis_modules.star_analysis.api import SpectrumBuilder
+  from yt.data_objects.particle_filters import add_particle_filter
+  from yt.analysis_modules.halo_finding.api import HaloFinder
+
+  def Stars(pfilter, data):
+      return data[("all", "particle_type")] == 2
+  add_particle_filter("stars", function=Stars, filtered_type='all',
+                      requires=["particle_type"])
+
+  ds = yt.load("enzo_tiny_cosmology/RD0009/RD0009")
+  ds.add_particle_filter('stars')
   haloes = HaloFinder(ds, dm_only=False)
   # Set up the spectrum builder.
-  spec = SpectrumBuilder(ds, bcdir="/home/user/bc", model="salpeter")
+  spec = SpectrumBuilder(ds, bcdir="bc", model="salpeter")
+
   # Iterate over the haloes.
   for halo in haloes:
-      # Get the pertinent arrays.
-      ct = halo["creation_time"]
-      sm = halo["ParticleMassMsun"]
-      metal = halo["metallicity_fraction"]
-      # Select just the stars.
-      stars = (ct > 0)
-      ct = ct[stars]
-      sm = sm[stars]
-      metal = metal[stars]
-      # Calculate the spectrum.
-      spec.calculate_spectrum(star_mass=sm, star_creation_time=ct,
-      star_metallicity_fraction=metal)
+      sp = halo.get_sphere()
+      spec.calculate_spectrum(
+          star_mass=sp[("stars", "particle_mass")],
+          star_creation_time=sp[("stars", "creation_time")],
+          star_metallicity_fraction=sp[("stars", "metallicity_fraction")])
       # Write out the SED using the default flux normalization.
       spec.write_out_SED(name="halo%05d.out" % halo.id)
-
