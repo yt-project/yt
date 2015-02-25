@@ -59,7 +59,7 @@ def test_absorption_spectrum():
 
     sp.add_continuum(my_label, field, wavelength, normalization, index)
 
-    wavelength, flux = sp.make_spectrum('lightray.h5', output_file='spectrum.fits',
+    wavelength, flux = sp.make_spectrum('lightray.h5', output_file='spectrum.txt',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
 
