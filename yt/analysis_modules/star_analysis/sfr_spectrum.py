@@ -390,23 +390,21 @@ class SpectrumBuilder(object):
 
         if isinstance(star_mass, YTArray):
             assert star_mass.units.same_dimensions_as(g.units)
-        else:
+        elif star_mass is not None:
             star_mass = YTArray(star_mass, 'Msun')
         self.star_mass = star_mass
 
         if isinstance(star_creation_time, YTArray):
             assert star_creation_time.units.same_dimensions_as(s.units)
-        else:
-            assert data_source is not None
+        elif star_creation_time is not None:
             star_creation_time = self._ds.arr(star_creation_time,
-                                                 'code_time')
+                                              'code_time')
         self.star_creation_time = star_creation_time
 
         if isinstance(star_metallicity_fraction, YTArray):
             assert \
                 star_metallicity_fraction.units.same_dimensions_as(Zsun.units)
-        else:
-            assert data_source is not None
+        elif star_metallicity_fraction is not None:
             star_metallicity_fraction = self._ds.arr(
                 star_metallicity_fraction, 'code_metallicity'
             )
@@ -414,15 +412,15 @@ class SpectrumBuilder(object):
 
         if isinstance(min_age, YTQuantity):
             assert min_age.units.same_dimensions_as(s.units)
-        else:
+        elif min_age is not None:
             min_age = YTQuantity(min_age, 'yr')
         self.min_age = min_age
 
         if star_metallicity_constant is not None:
             self.star_metal = YTArray(
                 np.ones(self.star_mass.size, dtype='float64') *
-                star_metallicity_constant, 'Zsun'
-            )
+                    star_metallicity_constant, 'Zsun'
+                )
 
         # Check to make sure we have the right set of data.
         if data_source is None:
