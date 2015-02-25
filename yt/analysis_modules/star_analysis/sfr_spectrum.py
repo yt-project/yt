@@ -417,12 +417,6 @@ class SpectrumBuilder(object):
             min_age = YTQuantity(min_age, 'yr')
         self.min_age = min_age
 
-        if star_metallicity_constant is not None:
-            self.star_metal = YTArray(
-                np.ones(self.star_mass.size, dtype='float64') *
-                star_metallicity_constant, 'Zsun'
-            )
-
         # Check to make sure we have the right set of data.
         if data_source is None:
             if self.star_mass is None or self.star_creation_time is None or \
@@ -451,6 +445,12 @@ class SpectrumBuilder(object):
                 if star_metallicity_constant is None:
                     self.star_metal = self._data_source[
                         self._filter, "metallicity_fraction"].in_units('Zsun')
+                else:
+                    self.star_metal = self._ds.arr(
+                        np.ones_like(
+                            self._data_source[self._filter,
+                                              "metallicity_fraction"]) *
+                        star_metallicity_constant, "Zsun")
             else:
                 ct = self._data_source["creation_time"]
                 if ct is None:
@@ -467,8 +467,9 @@ class SpectrumBuilder(object):
                 self.star_mass = self._data_source[
                     'particle_mass'][mask].in_units('Msun')
                 if star_metallicity_constant is not None:
-                    self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
-                        star_metallicity_constant
+                    self.star_metal = self._ds.arr(
+                        np.ones_like(self.star_mass) *
+                        star_metallicity_constant, 'Zsun')
                 else:
                     self.star_metal = self._data_source[
                         "metallicity_fraction"][mask].in_units('Zsun')
