@@ -437,6 +437,10 @@ class SpectrumBuilder(object):
 
             if star_metallicity_fraction is not None:
                 self.star_metal = star_metallicity_fraction
+            else:
+                self.star_metal = \
+                    self._ds.arr(np.ones_like(self.star_mass) *
+                                 star_metallicity_constant, 'Zsun')
         else:
             # Get the data we need.
             if self.filter_provided:
@@ -446,8 +450,8 @@ class SpectrumBuilder(object):
                     self.star_metal = self._data_source[
                         self._filter, "metallicity_fraction"].in_units('Zsun')
                 else:
-                    self.star_metal = self._ds.arr(
-                        np.ones_like(
+                    self.star_metal = \
+                        self._ds.arr(np.ones_like(
                             self._data_source[self._filter,
                                               "metallicity_fraction"]) *
                         star_metallicity_constant, "Zsun")
