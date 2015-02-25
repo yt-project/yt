@@ -28,7 +28,9 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.exceptions import YTEmptyProfileData
-from yt.utilities.lib.CICDeposit import CICDeposit_2
+from yt.utilities.lib.CICDeposit import \
+    CICDeposit_2, \
+    NGPDeposit_2
 
 
 def preserve_source_parameters(func):
@@ -1132,12 +1134,18 @@ class DepositedProfile2D(Profile2D):
         The minimum value of the y profile field.
     y_max : float
         The maximum value of the y profile field.
+    method : string, optional
+        The interpolation kernal to be used for
+        deposition. Valid choices:
+        "ngp" : nearest grid point interpolation
+        "cic" : cloud-in-cell interpolation
 
     """
 
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max,
-                 y_field, y_n, y_min, y_max):
+                 y_field, y_n, y_min, y_max,
+                 method="ngp"):
 
         self.LeftEdge = np.array([x_min, y_min], dtype=np.float64)
         self.dx = (x_max - x_min) / x_n
@@ -1145,6 +1153,10 @@ class DepositedProfile2D(Profile2D):
         self.CellSize = np.array([self.dx, self.dy], dtype=np.float64)
         self.CellVolume = np.product(self.CellSize)
         self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
+        self.known_styles = ["ngp", "cic"]
+        if method not in self.known_styles:
+            raise NotImplementedError(method)
+        self.method = method
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
@@ -1163,12 +1175,21 @@ class DepositedProfile2D(Profile2D):
         fdata, wdata, (bf_x, bf_y) = rv
         for fi, field in enumerate(fields):
             Np = fdata[:, fi].size
-            CICDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
-                         storage.values[:, :, fi],
-                         self.LeftEdge,
-                         self.GridDimensions,
-                         self.CellSize)
-            storage.values[:, :, fi] /= self.CellVolume
+
+            if self.method == "ngp":
+                NGPDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
+                             storage.values[:, :, fi],
+                             self.LeftEdge,
+                             self.GridDimensions,
+                             self.CellSize)
+
+            if self.method == "cic":
+                CICDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
+                             storage.values[:, :, fi],
+                             self.LeftEdge,
+                             self.GridDimensions,
+                             self.CellSize)
+
             locs = np.where(storage.values[:, :, fi] > 0.0)
             storage.used[locs] = True
             storage.weight_values[locs] = 1.0
