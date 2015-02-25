@@ -12,7 +12,7 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import __builtin__
+from yt.extern.six.moves import builtins
 import base64
 import numpy as np
 import matplotlib
@@ -624,7 +624,7 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
