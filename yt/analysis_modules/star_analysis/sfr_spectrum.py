@@ -532,43 +532,6 @@ class SpectrumBuilder(object):
         else:
             self.avg_metal = -99
 
-        # Below is an attempt to do the loop using vectors and matrices,
-        # however it doesn't appear to be much faster, probably due to all
-        # the gymnastics that have to be done to do element-by-element
-        # multiplication for matricies.
-        # I'm keeping it in here in case I come up with a more
-        # elegant way that actually is faster.
-#         for metal_name in MtoD:
-#             # Pick out our stars in this metallicity bin.
-#             select = (Mname == metal_name)
-#             A = Aindex[select]
-#             if A.size == 0: continue
-#             r1 = ratio1[select]
-#             r2 = ratio2[select]
-#             sm = self.star_mass[select]
-#             # From the flux array for this metal, and our selection, build
-#             # a new flux array just for the ages of these stars, in the
-#             # same order as the selection of stars.
-#             this_flux = np.matrix(self.flux[metal_name][A])
-#             # Make one for the last time step for each star in the same fashion
-#             # as above.
-#             this_flux_1 = np.matrix(self.flux[metal_name][A-1])
-#             # This is kind of messy, but we're going to multiply this_fluxes
-#             # by the appropriate ratios and add it together to do the
-#             # interpolation in log(flux) and linear in time.
-#             print r1.size
-#             r1 = np.matrix(r1.tolist() * self.wavelength.size).reshape(self.wavelength.size,r1.size).T
-#             r2 = np.matrix(r2.tolist() * self.wavelength.size).reshape(self.wavelength.size,r2.size).T
-#             print this_flux_1.shape, r1.shape
-#             int_flux = np.multiply(np.log10(this_flux_1),r1) \
-#                 + np.multiply(np.log10(this_flux),r2)
-#             # Weight the fluxes by mass.
-#             sm = np.matrix(sm.tolist()*self.wavelength.size).reshape(self.wavelength.size,sm.size).T
-#             int_flux = np.multiply(np.power(10., int_flux), sm)
-#             # Sum along the columns, converting back to an array, adding
-#             # to the full spectrum.
-#             self.final_spec += np.array(int_flux.sum(axis=0))[0,:]
-
     def write_out(self, name="sum_flux.out"):
         r"""Write out the summed flux to a file.
 
