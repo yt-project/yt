@@ -151,7 +151,7 @@ class StarFormationRate(object):
                 ct_stars = self.star_creation_time
                 mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
-        tmin = min(ct_stars.in_units("s"))
+        tmin = ct_stars.min().in_units("s")
         # Multiply the end to prevent numerical issues.
         self.time_bins = np.linspace(
             tmin * 1.01, self._ds.current_time.in_units("s"),
