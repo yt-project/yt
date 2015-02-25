@@ -229,13 +229,13 @@ class StarFormationRate(object):
             "#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
         for i, time in enumerate(self.time):
             line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
-                (time,  # Time
-                 self.lookback_time[i],  # Lookback time
+                (time.in_units("yr"),  # Time
+                 self.lookback_time[i].in_units('yr'),  # Lookback time
                  self.redshift[i],  # Redshift
-                 self.Msol_yr[i],  # Msol/yr
-                 self.Msol_yr_vol[i],  # Msol/yr/vol
-                 self.Msol[i],  # Msol in bin
-                 self.Msol_cumulative[i])  # cumulative
+                 self.Msol_yr[i].in_units("Msun/yr"),
+                 self.Msol_yr_vol[i],
+                 self.Msol[i].in_units("Msun"),  # Msol in bin
+                 self.Msol_cumulative[i].in_units("Msun"))  # cumulative
             fp.write(line)
         fp.close()
 
