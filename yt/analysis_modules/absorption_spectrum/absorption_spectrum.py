@@ -25,8 +25,10 @@ from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import \
     amu_cgs, boltzmann_constant_cgs, \
     speed_of_light_cgs, km_per_cm
+from yt.utilities.on_demand_imports import _astropy
 
 speed_of_light_kms = speed_of_light_cgs * km_per_cm
+pyfits = _astropy.pyfits
 
 class AbsorptionSpectrum(object):
     r"""Create an absorption spectrum object.
@@ -305,18 +307,11 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to a fits file.
         """
-        try:
-            import astropy.io.fits as fits
-        except:
-            print("Could not import the astropy.io.fits module.  Please "
-                  "install astropy with `pip install astropy`.")
-            return
-
         print("Writing spectrum to fits file: %s." % filename)
-        col1 = fits.Column(name='wavelength', format='E', array=self.lambda_bins)
-        col2 = fits.Column(name='flux', format='E', array=self.flux_field)
-        cols = fits.ColDefs([col1, col2])
-        tbhdu = fits.BinTableHDU.from_columns(cols)
+        col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_bins)
+        col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
+        cols = pyfits.ColDefs([col1, col2])
+        tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
 
     def _write_spectrum_hdf5(self, filename):
