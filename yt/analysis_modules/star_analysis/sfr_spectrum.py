@@ -159,15 +159,13 @@ class StarFormationRate(object):
         # Figure out which bins the stars go into.
         inds = np.digitize(ct_stars.in_units("s"), self.time_bins) - 1
         # Sum up the stars created in each time bin.
-        self.mass_bins = np.zeros(self.bin_count + 1, dtype='float64')
+        self.mass_bins = YTArray(
+            np.zeros(self.bin_count + 1, dtype='float64'), "Msun"
+        )
         for index in np.unique(inds):
-            self.mass_bins[index] += sum(mass_stars[inds == index].tolist())
-        # Calculate the cumulative mass sum over time by forward adding.
-        self.cum_mass_bins = self.mass_bins.copy()
-        for index in xrange(self.bin_count):
-            self.cum_mass_bins[index + 1] += self.cum_mass_bins[index]
+            self.mass_bins[index] += (mass_stars[inds == index]).sum()
         # We will want the time taken between bins.
-        self.time_bins_dt = self.time_bins[:-1] - self.time_bins[1:]
+        self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
 
     def attach_arrays(self):
         """
@@ -184,37 +182,18 @@ class StarFormationRate(object):
                 vol = ds['cell_volume'].in_units('Mpccm ** 3').sum()
         else:
             vol = self.volume.in_units('Mpccm ** 3')
-        # tc = self._ds["Time"] # code time to seconds conversion factor
-        self.time = []
-        self.lookback_time = []
-        self.redshift = []
-        self.Msol_yr = []
-        self.Msol_yr_vol = []
-        self.Msol = []
-        self.Msol_cumulative = []
-        co = Cosmology()
+
         # Use the center of the time_bin, not the left edge.
-        for i, time in enumerate((self.time_bins[1:] +
-                                  self.time_bins[:-1]) / 2.):
-            self.time.append(time.in_units('yr'))
-            self.lookback_time.append(
-                self.time_now.in_units('yr') - time.in_units('yr'))
-            self.redshift.append(co.z_from_t(time.in_units('s')))
-            self.Msol_yr.append(self.mass_bins[i] /
-                                (self.time_bins_dt[i].in_units('yr')))
-            # changed vol from mpc to mpccm used in literature
-            self.Msol_yr_vol.append(
-                self.mass_bins[i] / (self.time_bins_dt[i].in_units('yr')) / vol
-            )
-            self.Msol.append(self.mass_bins[i])
-            self.Msol_cumulative.append(self.cum_mass_bins[i])
-        self.time = np.array(self.time)
-        self.lookback_time = np.array(self.lookback_time)
-        self.redshift = np.array(self.redshift)
-        self.Msol_yr = np.array(self.Msol_yr)
-        self.Msol_yr_vol = np.array(self.Msol_yr_vol)
-        self.Msol = np.array(self.Msol)
-        self.Msol_cumulative = np.array(self.Msol_cumulative)
+        self.time = 0.5*(self.time_bins[1:] + self.time_bins[:-1]).in_units('yr')
+        self.lookback_time = self.time_now - self.time  # now in code_time...
+        self.redshift = self.cosm.z_from_t(self.time)
+
+        self.Msol_yr = (self.mass_bins[:-1] / self.time_bins_dt[:]).in_units('Msun/yr')
+        # changed vol from mpc to mpccm used in literature
+        self.Msol_yr_vol = self.Msol_yr / vol
+
+        self.Msol = self.mass_bins[:-1].in_units("Msun")
+        self.Msol_cumulative = self.Msol.cumsum()
 
     def write_out(self, name="StarFormationRate.out"):
         r"""Write out the star analysis to a text file *name*. The columns are in
@@ -223,7 +202,7 @@ class StarFormationRate(object):
         The columns in the output file are:
            1. Time (yrs)
            2. Look-back time (yrs)
-           #3. Redshift
+           3. Redshift
            4. Star formation rate in this bin per year (Msol/yr)
            5. Star formation rate in this bin per year
               per Mpc**3 (Msol/yr/Mpc**3)
