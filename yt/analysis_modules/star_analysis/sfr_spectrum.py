@@ -51,8 +51,6 @@ class StarFormationRate(object):
         The mass of the stars to be analyzed in units of Msun.
     star_creation_time : Ordered array or list of floats
         The creation time for the stars in code units.
-    volume : Float
-        The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
     star_filter : A user-defined filtering rule for stars.
@@ -70,7 +68,7 @@ class StarFormationRate(object):
     """
 
     def __init__(self, ds, data_source=None, star_mass=None,
-                 star_creation_time=None, volume=None, bins=300,
+                 star_creation_time=None, bins=300,
                  star_filter=None):
         self._ds = ds
         self._data_source = data_source
@@ -78,19 +76,16 @@ class StarFormationRate(object):
         self.filter_provided = self._filter is not None
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
-        self.volume = volume
         self.bin_count = bins
         # Check to make sure we have the right set of informations.
         if data_source is None:
-            if self.star_mass is None or self.star_creation_time is None or \
-                    self.volume is None:
+            if self.star_mass is None or self.star_creation_time is None:
                 mylog.error(
                     """
                 If data_source is not provided, all of these parameters
                 need to be set:
                   star_mass (array, Msun),
                   star_creation_time (array, code units),
-                  volume (float, cMpc**3).
                 """)
                 return None
             self.mode = 'provided'
