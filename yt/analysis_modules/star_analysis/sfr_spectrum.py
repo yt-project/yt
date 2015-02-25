@@ -23,6 +23,9 @@ import itertools
 from yt.config import ytcfg
 from yt.funcs import \
     iterable, get_pbar
+from yt.units import \
+    g, s, Zsun
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.logger import ytLogger as mylog
@@ -63,29 +66,15 @@ class StarFormationRate(object):
     """
 
     def __init__(self, ds, data_source=None, star_mass=None,
-                 star_creation_time=None, bins=300,
+                 star_creation_time=None, bins=300, volume=None,
                  star_filter=None):
         self._ds = ds
         self._data_source = data_source
         self._filter = star_filter
+        self.ds_provided = self._data_source is not None
         self.filter_provided = self._filter is not None
-        self.star_mass = np.array(star_mass)
-        self.star_creation_time = np.array(star_creation_time)
         self.bin_count = bins
-        # Check to make sure we have the right set of informations.
-        if data_source is None:
-            if self.star_mass is None or self.star_creation_time is None:
-                mylog.error(
-                    """
-                If data_source is not provided, all of these parameters
-                need to be set:
-                  star_mass (array, Msun),
-                  star_creation_time (array, code units),
-                """)
-                return None
-            self.mode = 'provided'
-        else:
-            self.mode = 'data_source'
+
         # Set up for time conversion.
         self.cosm = Cosmology(
             hubble_constant=self._ds.hubble_constant,
@@ -93,6 +82,41 @@ class StarFormationRate(object):
             omega_lambda=self._ds.omega_lambda)
         # Find the time right now.
         self.time_now = self._ds.current_time
+
+        if not self.ds_provided:
+            # Check to make sure we have the right set of informations.
+            if star_mass is None or star_creation_time is None \
+                or volume is None:
+                mylog.error("""
+                    If data_source is not provided, all of these parameters
+                    need to be set:
+                        star_mass (array, Msun),
+                        star_creation_time (array, code units),
+                        volume (float, cMpc**3).""")
+                return None
+
+            if isinstance(star_mass, YTArray):
+                assert star_mass.units.same_dimensions_as(g.units)
+            else:
+                star_mass = YTArray(star_mass, 'Msun')
+            self.star_mass = star_mass
+
+            if isinstance(star_creation_time, YTArray):
+                assert star_creation_time.units.same_dimensions_as(s.units)
+            else:
+                raise RuntimeError
+                star_creation_time = self._ds.arr(star_creation_time,
+                                                  'code_time')
+            self.star_creation_time = star_creation_time
+
+            if isinstance(volume, YTQuantity):
+                assert volume.units.same_dimensions_as(
+                    self._ds.quan(1.0, 'Mpccm**3').units
+                )
+            else:
+                volume = self._ds.quan(volume, 'Mpccm**3')
+            self.volume = volume
+
         # Build the distribution.
         self.build_dist()
         # Attach some convenience arrays.
@@ -107,7 +131,7 @@ class StarFormationRate(object):
             ct = self._filter['creation_time']
             mass_stars = self._data_source[self._filter, "particle_mass"]
         else:
-            if self.mode == 'data_source':
+            if self.ds_provided:
                 ct = self._data_source['creation_time']
                 if ct is None:
                     errmsg = 'data source must have particle_age!'
@@ -123,7 +147,7 @@ class StarFormationRate(object):
                 mass_stars = self._data_source[
                     'particle_mass'][mask].in_units('Msun')
                 del mask
-            elif self.mode == 'provided':
+            else:
                 ct_stars = self.star_creation_time
                 mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
@@ -149,17 +173,17 @@ class StarFormationRate(object):
         """
         Attach convenience arrays to the class for easy access.
         """
-        if self.mode == 'data_source':
+        if self.ds_provided:
             try:
                 vol = self._data_source[
-                    'cell_volume'].in_units('Mpccm**3').sum()
+                    'cell_volume'].in_units('Mpccm ** 3').sum()
             except AttributeError:
                 # If we're here, this is probably a HOPHalo object, and we
                 # can get the volume this way.
                 ds = self._data_source.get_sphere()
-                vol = ds['cell_volume'].in_units('Mpccm**3').sum()
-        elif self.mode == 'provided':
-            vol = self['cell_volume'].in_units('Mpccm**3').sum()
+                vol = ds['cell_volume'].in_units('Mpccm ** 3').sum()
+        else:
+            vol = self.volume.in_units('Mpccm ** 3')
         # tc = self._ds["Time"] # code time to seconds conversion factor
         self.time = []
         self.lookback_time = []
@@ -255,8 +279,6 @@ SALPETER = {
     "Z05": "bc2003_hr_m72_salp_ssp.ised.h5"  # /* 250% */
 }
 
-Zsun = 0.02
-
 # /* dividing line of metallicity; linear in log(Z/Zsun) */
 METAL1 = 0.01  # /* in units of Z/Zsun */
 METAL2 = 0.0632
@@ -336,7 +358,7 @@ class SpectrumBuilder(object):
         for file in self.model:
             fname = self.bcdir + "/" + self.model[file]
             fp = h5py.File(fname, 'r')
-            self.age = fp["agebins"][:]  # 1D floats
+            self.age = YTArray(fp["agebins"][:], 'yr')  # 1D floats
             self.wavelength = fp["wavebins"][:]  # 1D floats
             self.flux[file] = fp["flam"][:, :]  # 2D floats, [agebin, wavebin]
             fp.close()
@@ -344,7 +366,8 @@ class SpectrumBuilder(object):
     def calculate_spectrum(self, data_source=None, star_mass=None,
                            star_creation_time=None,
                            star_metallicity_fraction=None,
-                           star_metallicity_constant=None, min_age=0.):
+                           star_metallicity_constant=None,
+                           min_age=YTQuantity(0.0, 'yr')):
         r"""For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
         final_spec: The collective spectrum in units of flux binned in
@@ -385,19 +408,42 @@ class SpectrumBuilder(object):
         # Initialize values
         self.final_spec = np.zeros(self.wavelength.size, dtype='float64')
         self._data_source = data_source
-        if iterable(star_mass):
-            self.star_mass = star_mass
+
+        if isinstance(star_mass, YTArray):
+            assert star_mass.units.same_dimensions_as(g.units)
         else:
-            self.star_mass = [star_mass]
-        if iterable(star_creation_time):
-            self.star_creation_time = star_creation_time
+            star_mass = YTArray(star_mass, 'Msun')
+        self.star_mass = star_mass
+
+        if isinstance(star_creation_time, YTArray):
+            assert star_creation_time.units.same_dimensions_as(s.units)
         else:
-            self.star_creation_time = [star_creation_time]
-        if iterable(star_metallicity_fraction):
-            self.star_metal = star_metallicity_fraction
+            assert data_source is not None
+            star_creation_time = data_source.arr(star_creation_time,
+                                                 'code_time')
+        self.star_creation_time = star_creation_time
+
+        if isinstance(star_metallicity_fraction, YTArray):
+            assert \
+                star_metallicity_fraction.units.same_dimensions_as(Zsun.units)
         else:
-            self.star_metal = [star_metallicity_fraction]
+            assert data_source is not None
+            star_metallicity_fraction = data_source.arr(
+                star_metallicity_fraction, 'code_metallicity'
+            )
+        self.star_metallicity_fraction = star_metallicity_fraction
+
+        if isinstance(min_age, YTQuantity):
+            assert min_age.units.same_dimensions_as(s.units)
+        else:
+            min_age = YTQuantity(min_age, 'yr')
         self.min_age = min_age
+
+        if star_metallicity_constant is not None:
+            self.star_metal = YTArray(
+                np.ones(self.star_mass.size, dtype='float64') *
+                star_metallicity_constant, 'Zsun'
+            )
 
         # Check to make sure we have the right set of data.
         if data_source is None:
@@ -416,9 +462,7 @@ class SpectrumBuilder(object):
                    star_metallicity_constant (float, code units).
                 """)
                 return None
-            if star_metallicity_constant is not None:
-                self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
-                    star_metallicity_constant
+
             if star_metallicity_fraction is not None:
                 self.star_metal = star_metallicity_fraction
         else:
@@ -426,10 +470,7 @@ class SpectrumBuilder(object):
             if self.filter_provided:
                 ct = self._filter['creation_time']
                 # mass_stars = self._data_source[self._filter, "particle_mass"]
-                if star_metallicity_constant is not None:
-                    self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
-                        star_metallicity_constant
-                else:
+                if star_metallicity_constant is None:
                     self.star_metal = self._data_source[
                         self._filter, "metallicity_fraction"].in_units('Zsun')
             else:
@@ -454,7 +495,7 @@ class SpectrumBuilder(object):
                     self.star_metal = self._data_source[
                         "metallicity_fraction"][mask].in_units('Zsun')
         # Age of star in years.
-        dt = (self.time_now - self.star_creation_time).in_units('yr').tolist()
+        dt = (self.time_now - self.star_creation_time).in_units('yr')
         dt = np.maximum(dt, 0.0)
         # Remove young stars
         sub = dt >= self.min_age
@@ -464,7 +505,7 @@ class SpectrumBuilder(object):
         dt = dt[sub]
         self.star_creation_time = self.star_creation_time[sub]
         # Figure out which METALS bin the star goes into.
-        Mindex = np.digitize(self.star_metal, METALS)
+        Mindex = np.digitize(self.star_metal.in_units('Zsun'), METALS)
         # Replace the indices with strings.
         Mname = MtoD[Mindex]
         # Figure out which age bin this star goes into.
