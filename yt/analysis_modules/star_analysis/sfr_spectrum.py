@@ -49,6 +49,8 @@ class StarFormationRate(object):
         The mass of the stars to be analyzed in units of Msun.
     star_creation_time : Ordered array or list of floats
         The creation time for the stars in code units.
+    volume : Float
+        The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
     star_filter : A user-defined filtering rule for stars.
