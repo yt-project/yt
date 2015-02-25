@@ -22,7 +22,7 @@ import itertools
 
 from yt.config import ytcfg
 from yt.funcs import \
-    iterable, get_pbar
+    get_pbar
 from yt.units import \
     g, s, Zsun
 from yt.units.yt_array import YTArray, YTQuantity
@@ -86,7 +86,7 @@ class StarFormationRate(object):
         if not self.ds_provided:
             # Check to make sure we have the right set of informations.
             if star_mass is None or star_creation_time is None \
-                or volume is None:
+                    or volume is None:
                 mylog.error("""
                     If data_source is not provided, all of these parameters
                     need to be set:
@@ -97,14 +97,13 @@ class StarFormationRate(object):
 
             if isinstance(star_mass, YTArray):
                 assert star_mass.units.same_dimensions_as(g.units)
-            else:
+            elif star_mass is not None:
                 star_mass = YTArray(star_mass, 'Msun')
             self.star_mass = star_mass
 
             if isinstance(star_creation_time, YTArray):
                 assert star_creation_time.units.same_dimensions_as(s.units)
-            else:
-                raise RuntimeError
+            elif star_creation_time is not None:
                 star_creation_time = self._ds.arr(star_creation_time,
                                                   'code_time')
             self.star_creation_time = star_creation_time
@@ -113,7 +112,7 @@ class StarFormationRate(object):
                 assert volume.units.same_dimensions_as(
                     self._ds.quan(1.0, 'Mpccm**3').units
                 )
-            else:
+            elif volume is not None:
                 volume = self._ds.quan(volume, 'Mpccm**3')
             self.volume = volume
 
@@ -184,11 +183,13 @@ class StarFormationRate(object):
             vol = self.volume.in_units('Mpccm ** 3')
 
         # Use the center of the time_bin, not the left edge.
-        self.time = 0.5*(self.time_bins[1:] + self.time_bins[:-1]).in_units('yr')
+        self.time = 0.5 * \
+            (self.time_bins[1:] + self.time_bins[:-1]).in_units('yr')
         self.lookback_time = self.time_now - self.time  # now in code_time...
         self.redshift = self.cosm.z_from_t(self.time)
 
-        self.Msol_yr = (self.mass_bins[:-1] / self.time_bins_dt[:]).in_units('Msun/yr')
+        self.Msol_yr = (
+            self.mass_bins[:-1] / self.time_bins_dt[:]).in_units('Msun/yr')
         # changed vol from mpc to mpccm used in literature
         self.Msol_yr_vol = self.Msol_yr / vol
 
@@ -419,8 +420,8 @@ class SpectrumBuilder(object):
         if star_metallicity_constant is not None:
             self.star_metal = YTArray(
                 np.ones(self.star_mass.size, dtype='float64') *
-                    star_metallicity_constant, 'Zsun'
-                )
+                star_metallicity_constant, 'Zsun'
+            )
 
         # Check to make sure we have the right set of data.
         if data_source is None:
