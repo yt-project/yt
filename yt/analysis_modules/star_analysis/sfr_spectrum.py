@@ -475,7 +475,7 @@ class SpectrumBuilder(object):
                         "metallicity_fraction"][mask].in_units('Zsun')
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time).in_units('yr')
-        dt = np.maximum(dt, 0.0)
+        dt[dt < 0.0] = 0.0
         # Remove young stars
         sub = dt >= self.min_age
         if len(sub) == 0:
