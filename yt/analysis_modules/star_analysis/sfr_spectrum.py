@@ -398,7 +398,7 @@ class SpectrumBuilder(object):
             assert star_creation_time.units.same_dimensions_as(s.units)
         else:
             assert data_source is not None
-            star_creation_time = data_source.arr(star_creation_time,
+            star_creation_time = self._ds.arr(star_creation_time,
                                                  'code_time')
         self.star_creation_time = star_creation_time
 
@@ -407,7 +407,7 @@ class SpectrumBuilder(object):
                 star_metallicity_fraction.units.same_dimensions_as(Zsun.units)
         else:
             assert data_source is not None
-            star_metallicity_fraction = data_source.arr(
+            star_metallicity_fraction = self._ds.arr(
                 star_metallicity_fraction, 'code_metallicity'
             )
         self.star_metallicity_fraction = star_metallicity_fraction
