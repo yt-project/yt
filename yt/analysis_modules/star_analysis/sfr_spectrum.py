@@ -27,12 +27,7 @@ from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import \
-    sec_per_year, \
     speed_of_light_cgs
-
-
-YEAR = sec_per_year  # sec / year
-LIGHT = speed_of_light_cgs  # cm / s
 
 
 class StarFormationRate(object):
@@ -609,7 +604,8 @@ class SpectrumBuilder(object):
         """
         # find the f_nu closest to flux_norm
         fn_wavelength = np.argmin(abs(self.wavelength - flux_norm))
-        f_nu = self.final_spec * np.power(self.wavelength, 2.) / LIGHT
+        f_nu = self.final_spec * np.power(self.wavelength, 2.) \
+            / speed_of_light_cgs
         # Normalize f_nu
         self.f_nu = f_nu / f_nu[fn_wavelength]
         # Write out.
