@@ -1107,7 +1107,7 @@ class Profile2D(ProfileND):
                 (self.y_bins[0], self.y_bins[-1]))
 
 
-class DepositedProfile2D(Profile2D):
+class ParticleProfile(Profile2D):
     """An object that represents a *deposited* 2D profile. This is like a
     Profile2D, except that it is intended for particle data. Instead of just
     binning the particles, the added fields will be deposited onto the mesh
@@ -1160,7 +1160,7 @@ class DepositedProfile2D(Profile2D):
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
-        super(DepositedProfile2D, self).__init__(data_source,
+        super(ParticleProfile, self).__init__(data_source,
                                                  x_field,
                                                  x_n, x_min, x_max, False,
                                                  y_field,
