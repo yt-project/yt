@@ -39,7 +39,8 @@ This example will analyze all the stars in the volume:
   ad = ds.all_data()
   sfr = StarFormationRate(ds, data_source=ad)
 
-or just a small part of the volume:
+or just a small part of the volume i.e. a small sphere at the center of the
+simulation volume with radius 10% the box size:
 
 .. code-block:: python
 
@@ -209,7 +210,7 @@ The default is zero, which is equivalent to including all stars.
 .. code-block:: python
 
   spec.calculate_spectrum(data_source=sp, star_metallicity_constant=0.02,
-                          min_age=ds.quan('1e7', 's'))
+                          min_age=ds.quan(1.0, "Myr"))
 
 There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
