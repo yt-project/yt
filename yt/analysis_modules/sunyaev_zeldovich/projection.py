@@ -258,13 +258,13 @@ class SZProjection(object):
         comm = communication_system.communicators[-1]
 
         nx, ny = self.nx,self.nx
-        signal = np.zeros((self.num_freqs,nx,ny))
-        xo = np.zeros((self.num_freqs))
+        signal = np.zeros(self.num_freqs,nx,ny)
+        xo = np.zeros(self.num_freqs)
 
         k = int(0)
 
-        start_i = comm.rank*nx/comm.size
-        end_i = (comm.rank+1)*nx/comm.size
+        start_i = comm.rank*nx//comm.size
+        end_i = (comm.rank+1)*nx//comm.size
 
         pbar = get_pbar("Computing SZ signal.", nx*nx)
 
