@@ -648,9 +648,9 @@ class ImagePlotContainer(object):
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         for field in self.plots:
-            img = base64.b64encode(self.plots[field]._repr_png_())
+            img = base64.b64encode(self.plots[field]._repr_png_()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
-                   r'src="data:image/png;base64,%s"><br>' % img
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     @invalidate_plot
