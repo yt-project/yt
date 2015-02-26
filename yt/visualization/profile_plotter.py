@@ -14,8 +14,7 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-
-import __builtin__
+from yt.extern.six.moves import builtins
 import base64
 import os
 import types
@@ -289,7 +288,7 @@ class ProfilePlot(object):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
@@ -313,9 +312,9 @@ class ProfilePlot(object):
             f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
-            img = base64.b64encode(f.read())
+            img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
-                   r'src="data:image/png;base64,%s"><br>' % img
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     def _setup_plots(self):
