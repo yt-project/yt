@@ -315,10 +315,12 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         center = ds.domain_center[axis_wcs[axis]]
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
+        unit = ds.get_smallest_appropriate_unit(width[0])
         mylog.info("Making an image of the entire domain, "+
                    "so setting the center to the domain center.")
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
+        unit = str(width[0].units)
     if image_res is None:
         dd = ds.all_data()
         dx, dy = [dd.quantities.extrema("d%s" % "xyz"[idx])[0]
@@ -342,7 +344,6 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
         # This is some other kind of dataset                                                                      
-        unit = str(width[0].units)
         if unit == "unitary":
             unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
         elif unit == "code_length":
