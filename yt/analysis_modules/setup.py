@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import sys
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('analysis_modules', parent_package, top_path)
@@ -7,7 +7,8 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("absorption_spectrum")
     config.add_subpackage("cosmological_observation")
     config.add_subpackage("halo_analysis")
-    config.add_subpackage("halo_finding")
+    if sys.version[0] != '3':
+        config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
     config.add_subpackage("level_sets")
     config.add_subpackage("particle_trajectories")
