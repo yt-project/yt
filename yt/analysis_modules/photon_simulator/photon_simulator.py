@@ -90,7 +90,7 @@ class PhotonList(object):
 
         photons = {}
         parameters = {}
-        
+
         f = h5py.File(filename, "r")
 
         parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
@@ -104,9 +104,9 @@ class PhotonList(object):
         parameters["OmegaLambda"] = f["/omega_lambda"].value
 
         num_cells = f["/x"][:].shape[0]
-        start_c = comm.rank*num_cells/comm.size
-        end_c = (comm.rank+1)*num_cells/comm.size
-        
+        start_c = comm.rank*num_cells//comm.size
+        end_c = (comm.rank+1)*num_cells//comm.size
+
         photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
         photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
         photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
@@ -116,7 +116,7 @@ class PhotonList(object):
         photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
 
         n_ph = f["/num_photons"][:]
-        
+
         if comm.rank == 0:
             start_e = np.uint64(0)
         else:
@@ -771,14 +771,14 @@ class EventList(object) :
 
     def has_key(self, key):
         return key in self.keys()
-    
+
     def items(self):
         return self.events.items()
 
     def values(self):
         return self.events.values()
-    
-    def __getitem__(self,key):                        
+
+    def __getitem__(self,key):
         return self.events[key]
 
     def __repr__(self):
