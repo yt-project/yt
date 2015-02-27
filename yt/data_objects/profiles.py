@@ -1159,6 +1159,9 @@ class ParticleProfile(Profile2D):
         self.method = method
         self.fractional = False
 
+        x_field = data_source._determine_fields(x_field)[0]
+        y_field = data_source._determine_fields(y_field)[0]
+
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
         super(ParticleProfile, self).__init__(data_source,

@@ -1196,9 +1196,6 @@ class ParticlePhasePlot(PhasePlot):
                  x_bins=128, y_bins=128, method='ngp',
                  fontsize=18, figure_size=8.0):
 
-        x_field = data_source._determine_fields(ensure_list(x_field))[0]
-        y_field = data_source._determine_fields(ensure_list(y_field))[0]
-
         x_min, x_max = data_source.quantities["Extrema"](x_field,
                                                          non_zero=False)
         y_min, y_max = data_source.quantities["Extrema"](y_field,
