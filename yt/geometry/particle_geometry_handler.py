@@ -54,15 +54,14 @@ class ParticleIndex(Index):
         mylog.debug("Initializing Particle Geometry Handler.")
         self._initialize_particle_handler()
 
-
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
         ML = self.oct_handler.max_level
-        dx = self.dataset.domain_dimensions(2**ML)
-        dx *= (self.dataset.domain_right_edge -
-               self.dataset.domain_left_edge)
+        dx = 1.0/(self.dataset.domain_dimensions*2**ML)
+        dx = dx * (self.dataset.domain_right_edge -
+                   self.dataset.domain_left_edge)
         return dx.min()
 
     def convert(self, unit):
