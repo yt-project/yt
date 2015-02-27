@@ -410,7 +410,7 @@ class DarkMatterARTDataset(ARTDataset):
     _file_class = ARTParticleFile
     filter_bbox = False
 
-    def __init__(self, filename, dataset_type='art',
+    def __init__(self, filename, dataset_type='dm_art',
                           fields=None, storage_filename=None,
                           skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,

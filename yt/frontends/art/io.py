@@ -182,6 +182,7 @@ class IOHandlerART(BaseIOHandler):
             return tr[field]
 
 class IOHandlerDarkMatterART(IOHandlerART):
+    _dataset_type = "dm_art"
     def _count_particles(self, data_file):
         return self.ds.parameters['lspecies'][-1]
 
