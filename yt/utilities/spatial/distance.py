@@ -113,6 +113,7 @@ Copyright (C) Damian Eads, 2007-2008. New BSD License.
 import warnings
 import numpy as np
 from numpy.linalg import norm
+from yt.extern.six import string_types
 
 from . import _distance_wrap
 
@@ -1183,7 +1184,7 @@ def pdist(X, metric='euclidean', p=2, w=None, V=None, VI=None):
                 dm[k] = dfun(X[i], X[j])
                 k = k + 1
 
-    elif isinstance(metric, basestring):
+    elif isinstance(metric, string_types):
         mstr = metric.lower()
 
         #if X.dtype != np.double and \
@@ -1973,7 +1974,7 @@ def cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None, w=None):
             for i in xrange(0, mA):
                 for j in xrange(0, mB):
                     dm[i, j] = metric(XA[i, :], XB[j, :])
-    elif isinstance(metric, basestring):
+    elif isinstance(metric, string_types):
         mstr = metric.lower()
 
         #if XA.dtype != np.double and \

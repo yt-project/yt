@@ -6,6 +6,7 @@ Callbacks to add additional functionality on to plots.
 
 """
 from __future__ import absolute_import
+from yt.extern.six import string_types
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -787,7 +788,7 @@ class ArrowCallback(PlotCallback):
                         plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
-        if isinstance(self.code_size[1], basestring):
+        if isinstance(self.code_size[1], string_types):
             code_size = plot.data.ds.quan(*self.code_size)
             code_size = code_size.in_units('code_length').value
             self.code_size = (code_size, code_size)

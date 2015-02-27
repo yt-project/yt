@@ -43,7 +43,7 @@ from yt.fields.derived_field import \
 import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 
 def force_array(item, shape):
     try:
@@ -174,7 +174,7 @@ class YTDataContainer(object):
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length')
-        elif isinstance(center, basestring):
+        elif isinstance(center, string_types):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
              # is this dangerous for race conditions?

@@ -14,6 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six import string_types
 import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
@@ -670,7 +671,7 @@ def ensure_dir(path):
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], string_types):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)

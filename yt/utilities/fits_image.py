@@ -9,7 +9,7 @@ FITSImageBuffer Class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -86,11 +86,12 @@ class FITSImageBuffer(HDUList):
 
         super(FITSImageBuffer, self).__init__()
 
-        if isinstance(fields, basestring): fields = [fields]
-            
-        exclude_fields = ['x','y','z','px','py','pz',
-                          'pdx','pdy','pdz','weight_field']
-        
+        if isinstance(fields, string_types):
+            fields = [fields]
+
+        exclude_fields = ['x', 'y', 'z', 'px', 'py', 'pz',
+                          'pdx', 'pdy', 'pdz', 'weight_field']
+
         if hasattr(data, 'keys'):
             img_data = data
         else:
