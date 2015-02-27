@@ -229,16 +229,18 @@ class ProfilePlot(object):
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
-    def save(self, name=None):
+    def save(self, name=None, suffix=None):
         r"""
-         Saves a 1d profile plot.
+        Saves a 1d profile plot.
 
-         Parameters
-         ----------
-         name : str
-             The output file keyword.
-
-         """
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        suffix : string
+            Specify the image type by its suffix. If not specified, the output
+            type will be inferred from the filename. Defaults to PNG.
+        """
         if not self._plot_valid:
             self._setup_plots()
         unique = set(self.figures.values())
@@ -246,19 +248,25 @@ class ProfilePlot(object):
             iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
+        if not suffix:
+            suffix = "png"
+        suffix = ".%s" % suffix
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
-            name = "%s.png" % prefix
-        suffix = get_image_suffix(name)
-        prefix = name[:name.rfind(suffix)]
+            name = "%s%s" % (prefix, suffix)
+        else:
+            sfx = get_image_suffix(name)
+            if sfx != '':
+                suffix = sfx
+                prefix = name[:name.rfind(suffix)]
+            else:
+                prefix = name
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
-        if not suffix:
-            suffix = ".png"
         canvas_cls = get_canvas(name)
         fns = []
         for uid, fig in iters:
@@ -957,7 +965,7 @@ class PhasePlot(ImagePlotContainer):
             self._text_kwargs[f] = text_kwargs
         return self
 
-    def save(self, name=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 
@@ -965,6 +973,9 @@ class PhasePlot(ImagePlotContainer):
         ----------
         name : str
             The output file keyword.
+        suffix : string
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -998,12 +1009,15 @@ class PhasePlot(ImagePlotContainer):
                 prefix += str(self.profile.ds)
             else:
                 prefix = name
-            suffix = get_image_suffix(name)
-            if suffix != '':
-                for k, v in self.plots.iteritems():
-                    names.append(v.save(name, mpl_kwargs))
-                return names
-            fn = "%s_%s%s" % (prefix, middle, '.png')
+            if suffix is None:
+                suffix = get_image_suffix(name)
+                if suffix != '':
+                    for k, v in self.plots.iteritems():
+                        names.append(v.save(name, mpl_kwargs))
+                    return names
+                else:
+                    suffix = "png"
+            fn = "%s_%s.%s" % (prefix, middle, suffix)
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
