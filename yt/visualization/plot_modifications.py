@@ -48,45 +48,6 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def convert_to_plot(self, plot, coord, offset = True):
-        """
-        Convert coordinates from projected data coordinates to PlotWindow 
-        plot coordinates.  Projected data coordinates are two dimensional
-        and refer to the location relative to the specific axes being plotted,
-        although still in simulation units.  PlotWindow plot coordinates
-        are locations as found in the final plot, usually with the origin
-        in the center of the image and the extent of the image defined by
-        the final axis markers.
-        """
-        # coord should be a 2 x ncoord array-like datatype.
-        try:
-            ncoord = np.array(coord).shape[1]
-        except IndexError:
-            ncoord = 1
-
-        # Convert the data and plot limits to tiled numpy arrays so that
-        # convert_to_plot is automatically vectorized.
-
-        x0 = np.array(np.tile(plot.xlim[0],ncoord))
-        x1 = np.array(np.tile(plot.xlim[1],ncoord))
-        xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
-        xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
-
-        y0 = np.array(np.tile(plot.ylim[0],ncoord))
-        y1 = np.array(np.tile(plot.ylim[1],ncoord))
-        yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
-        yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
-
-        ccoord = np.array(coord)
-
-        # We need a special case for when we are only given one coordinate.
-        if ccoord.shape == (2,):
-            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
-        else:
-            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
-
     def project_coords(self, plot, coord):
         """
         Convert coordinates from simulation data coordinates to projected
@@ -115,10 +76,11 @@ class PlotCallback(object):
             elif ax == 4:
                 width = plot.data.width
                 coord_vectors = coord - plot.data.center
-                dx = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
-                dy = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
-                # Transpose into image coords.
-                coord = (dy, dx)
+                x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
+                y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
+                # Transpose into image coords. Due to VR being not a
+                # right-handed coord system
+                coord = (y, x)
             else:
                 raise SyntaxError("Object must have an axis defined")
 
@@ -127,6 +89,73 @@ class PlotCallback(object):
         elif len(coord) == 2:
             pass
         return coord
+
+    def convert_to_plot(self, plot, coord, offset = True):
+        """
+        Convert coordinates from projected data coordinates to PlotWindow 
+        plot coordinates.  Projected data coordinates are two dimensional
+        and refer to the location relative to the specific axes being plotted,
+        although still in simulation units.  PlotWindow plot coordinates
+        are locations as found in the final plot, usually with the origin
+        in the center of the image and the extent of the image defined by
+        the final axis markers.
+        """
+        # coord should be a 2 x ncoord array-like datatype.
+        try:
+            ncoord = np.array(coord).shape[1]
+        except IndexError:
+            ncoord = 1
+
+        # Convert the data and plot limits to tiled numpy arrays so that
+        # convert_to_plot is automatically vectorized.
+
+        x0 = np.array(np.tile(plot.xlim[0],ncoord))
+        x1 = np.array(np.tile(plot.xlim[1],ncoord))
+        x2 = np.array([0, 1])
+        xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
+        xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
+
+        y0 = np.array(np.tile(plot.ylim[0],ncoord))
+        y1 = np.array(np.tile(plot.ylim[1],ncoord))
+        y2 = np.array([0, 1])
+        yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
+        yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
+
+        ccoord = np.array(coord)
+
+        # We need a special case for when we are only given one coordinate.
+        if ccoord.shape == (2,):
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+        else:
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+
+    def put_in_correct_coord_system(self, plot, coord, coord_system="XXX"):
+        """
+        Given a set of x,y (or x,y,z) coordinates, put them in the appropriate
+        coordinate system.
+        """
+        if coord_system == "data":
+            coord = self.project_coords(plot, coord)
+        if coord_system == "data" or coord_system == "projected_data":
+            coord = self.convert_to_plot(plot, coord)
+        if coord_system == "data" or coord_system == "projected_data" or \
+           coord_system == "axis":
+            self.transform = plot._axes.transData,
+            return coord
+        if coord_system == "canvas":
+            self.transform = plot._axes.transAxes
+            return coord
+        elif coord_system == "figure":
+            self.transform = plot._figure.transFigure
+            return coord
+        elif coord_system == "pixel":
+            self.transform = None
+            return coord
+        else:
+            raise SyntaxError("Argument coord_system must have a value of "
+                              "'data', 'projected_data', 'axis', or 'canvas'.")
 
     def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
@@ -697,6 +726,8 @@ class ImageLineCallback(LinePlotCallback):
         # We manually clear out any previous calls to this callback:
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
         kwargs = self.plot_args.copy()
+        #pos = self.project_coords(plot, self.pos)
+        #x,y = self.convert_to_plot(plot, pos)
         if self.data_coords and len(plot.image._A.shape) == 2:
             p1 = self.convert_to_plot(plot, self.p1)
             p2 = self.convert_to_plot(plot, self.p2)
@@ -1545,19 +1576,24 @@ class MarkerAnnotateCallback(PlotCallback):
     that will be forwarded to the plot command.
     """
     _type_name = "marker"
-    def __init__(self, pos, marker='x', plot_args=None):
+    def __init__(self, pos, marker='x', coord_system=None, plot_args=None):
         self.pos = pos
         self.marker = marker
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
+        if coord_system is None: coord_system = "data"
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        pos = self.project_coords(plot, self.pos)
-        x,y = self.convert_to_plot(plot, pos)
+        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+                               coord_system=self.coord_system)
         plot._axes.hold(True)
-        plot._axes.scatter(x,y, marker = self.marker, color='w', s=50,**self.plot_args)
+        plot._axes.scatter(x, y, marker = self.marker, color='w', 
+                           transform=self.transform,
+                           s=50,**self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
