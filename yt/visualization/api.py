@@ -19,7 +19,8 @@ from .color_maps import \
 
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
+    ObliqueFixedResolutionBuffer, \
+    ParticleImageBuffer
 
 from .image_writer import \
     multi_image_composite, \
@@ -46,11 +47,13 @@ from .plot_window import \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
-    OffAxisProjectionPlot
+    OffAxisProjectionPlot, \
+    AxisAlignedParticlePlot
 
 from .profile_plotter import \
     ProfilePlot, \
-    PhasePlot
+    PhasePlot, \
+    ParticlePhasePlot
 
 from .base_plot_types import \
     get_multi_plot

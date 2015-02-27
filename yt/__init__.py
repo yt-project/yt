@@ -122,7 +122,7 @@ from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     DatasetSeries, \
     ImageArray, particle_filter, create_profile, \
-    Profile1D, Profile2D, Profile3D
+    Profile1D, Profile2D, Profile3D, ParticleProfile
 
 # For backwards compatibility
 TimeSeriesData = deprecated_class(DatasetSeries)
@@ -148,7 +148,9 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, ProfilePlot, PhasePlot
+    show_colormaps, ProfilePlot, PhasePlot, \
+    ParticlePhasePlot, AxisAlignedParticlePlot, \
+    ParticleImageBuffer
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \
