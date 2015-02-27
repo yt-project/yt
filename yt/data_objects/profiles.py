@@ -1157,6 +1157,7 @@ class ParticleProfile(Profile2D):
         if method not in self.known_styles:
             raise NotImplementedError(method)
         self.method = method
+        self.fractional = False
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
