@@ -545,8 +545,8 @@ class ImagePlotContainer(object):
            The base of the filename.  If name is a directory or if name is not
            set, the filename of the dataset is used.
         suffix : string
-           Specify the image type by its suffix. If not specified, the filename
-           will be queried for the image type. 
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 

@@ -974,6 +974,81 @@ plot and then call ``.show()`` and the image will appear inline:
    p.set_figure_size(5)
    p.show()
 
+.. _saving_plots:
+
+Saving Plots
+------------
+
+If you want to save your yt plots, you have a couple of options for customizing 
+the plot filenames. If you don't care what the filenames are, just calling the
+``save`` method with no additional arguments usually suffices:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
+   slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
+   slc.save()
+   
+which will yield PNG plots with the filenames
+
+.. code-block:: bash
+
+   $ ls *.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_density.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_kT.png
+
+which has a general form of
+
+.. code-block::
+ 
+   [dataset name]_[plot type]_[axis]_[field name].[suffix]
+   
+Calling ``save`` with a single argument or the ``name`` keyword argument
+specifies an alternative name for the plot:
+
+.. code-block:: python
+
+   slc.save("bananas")
+
+or 
+
+.. code-block:: python
+
+   slc.save(name="bananas")
+
+yields
+
+.. code-block:: bash
+
+   $ ls *.png
+   bananas_Slice_z_kT.png
+   bananas_Slice_z_density.png
+
+If you call ``save`` with a full filename with a file suffix, the plot
+will be saved with that filename:
+
+.. code-block:: python
+ 
+   slc.save("sloshing.png")
+   
+since this will take any field and plot it with this filename, it is
+typically only useful if you are plotting one field. If you want to 
+simply change the image format of the plotted file, use the ``suffix``
+keyword:
+
+.. code-block:: python
+
+   slc.save(name="bananas", suffix="eps")
+
+yielding
+
+.. code-block:: bash
+
+   $ ls *.eps
+   bananas_Slice_z_kT.eps
+   bananas_Slice_z_density.eps
+
 .. _eps-writer:
 
 Publication-ready Figures
