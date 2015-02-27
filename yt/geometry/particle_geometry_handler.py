@@ -59,7 +59,8 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        dx = self.domain_dimensions(2**self.oct_handler.max_level)
+        ML = self.oct_handler.max_level
+        dx = self.dataset.domain_dimensions(2**ML)
         dx *= (self.dataset.domain_right_edge -
                self.dataset.domain_left_edge)
         return dx.min()
