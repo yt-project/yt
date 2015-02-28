@@ -2,6 +2,8 @@
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -18,8 +20,8 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.exceptions import YTNotInsideNotebook
-from color_maps import mcm
-import _colormap_data as cmd
+from .color_maps import mcm
+from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
@@ -47,7 +49,7 @@ def scale_image(image, mi=None, ma=None):
     """
     if isinstance(image, np.ndarray) and image.dtype == np.uint8:
         return image
-    if isinstance(image, (types.TupleType, types.ListType)):
+    if isinstance(image, (tuple, list)):
         image, mi, ma = image
     if mi is None:
         mi = image.min()
@@ -265,8 +267,8 @@ def map_to_colors(buff, cmap_name):
             dummy = cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
-            print "Your color map was not found in either the extracted" +\
-                " colormap file or matplotlib colormaps"
+            print("Your color map was not found in either the extracted" +\
+                " colormap file or matplotlib colormaps")
             raise KeyError(cmap_name)
 
     if isinstance(cmap_name, tuple) and has_brewer:
@@ -288,14 +290,14 @@ def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
                      "kamae")):
     import pprint
-    import color_maps as rcm
+    from . import color_maps as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
     f.write("color_map_luts = {}\n\n\n")
     if cmaps is None: cmaps = rcm.ColorMaps
     for cmap_name in sorted(cmaps):
-        print "Stripping", cmap_name
+        print("Stripping", cmap_name)
         vals = rcm._extract_lookup_table(cmap_name)
         f.write("### %s ###\n\n" % (cmap_name))
         f.write("color_map_luts['%s'] = \\\n" % (cmap_name))

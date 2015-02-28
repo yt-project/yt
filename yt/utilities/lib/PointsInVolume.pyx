@@ -60,7 +60,7 @@ def planar_points_in_volume(
         if valid[i] == 1 and pmask[i] == 1:
             result[count] = i
             count += 1
-        
+
     return result
 
 cdef inline void set_rotated_pos(
@@ -84,8 +84,11 @@ def grid_points_in_volume(
                    np.ndarray[np.float64_t, ndim=1] dds,
                    np.ndarray[np.int32_t, ndim=3] mask,
                    int break_first):
-    cdef int n[3], i, j, k, ax
-    cdef np.float64_t rds[3][3], cur_pos[3], rorigin[3]
+    cdef int n[3]
+    cdef i, j, k, ax
+    cdef np.float64_t rds[3][3]
+    cdef np.float64_t cur_pos[3]
+    cdef np.float64_t rorigin[3]
     for i in range(3):
         rorigin[i] = 0.0
     for i in range(3):
@@ -150,7 +153,7 @@ cdef int check_projected_overlap(
     #print sep_vec[0], sep_vec[1], sep_vec[2],
     #print sep_ax[0], sep_ax[1], sep_ax[2]
     return (fabs(sep_dot) > ba+ga)
-    # Now we do 
+    # Now we do
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -163,8 +166,12 @@ def find_grids_in_inclined_box(
     # http://www.gamasutra.com/view/feature/3383/simple_intersection_tests_for_games.php?page=5
     cdef int n = grid_right_edges.shape[0]
     cdef int g_ax, b_ax, gi
-    cdef np.float64_t b_vec[3][3], g_vec[3][3], a_vec[3][3], sep_ax[15][3]
-    cdef np.float64_t sep_vec[3], norm
+    cdef np.float64_t b_vec[3][3]
+    cdef np.float64_t g_vec[3][3]
+    cdef np.float64_t a_vec[3][3]
+    cdef np.float64_t sep_ax[15][3]
+    cdef np.float64_t sep_vec[3]
+    cdef np.float64_t norm
     cdef np.ndarray[np.int32_t, ndim=1] good = np.zeros(n, dtype='int32')
     cdef np.ndarray[np.float64_t, ndim=2] grid_centers
     # Fill in our axis unit vectors
@@ -212,8 +219,10 @@ def calculate_fill_grids(int fill_level, int refratio, int last_level,
                          np.ndarray[np.int64_t, ndim=1] g_start_index,
                          np.ndarray[np.int32_t, ndim=1] g_dims,
                          np.ndarray[np.uint8_t, ndim=3, cast=True] g_child_mask):
-    cdef np.int64_t cgstart[3], gstart[3]
-    cdef np.int64_t cgend[3], gend[3]
+    cdef np.int64_t cgstart[3]
+    cdef np.int64_t gstart[3]
+    cdef np.int64_t cgend[3]
+    cdef np.int64_t gend[3]
     cdef np.int64_t dw[3]
     cdef np.int64_t cxi, cyi, czi, gxi, gyi, gzi, ci, cj, ck
     cdef int i, total

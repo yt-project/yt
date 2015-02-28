@@ -16,7 +16,8 @@ Octree geometry handler
 
 import h5py
 import numpy as np
-import string, re, gc, time, cPickle
+import string, re, gc, time
+from yt.extern.six.moves import cPickle
 import weakref
 
 from itertools import chain, izip

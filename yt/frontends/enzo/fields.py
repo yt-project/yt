@@ -229,6 +229,13 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_energy"),
                 function = _tot_minus_kin,
                 units = "erg/g")
+        if multi_species == 0 and 'Mu' in params:
+            def _number_density(field, data):
+                return data['gas', 'density']/(mp*params['Mu'])
+            self.add_field(
+                ("gas", "number_density"),
+                function = _number_density,
+                units="1/cm**3")
 
     def setup_particle_fields(self, ptype):
 

@@ -5,6 +5,7 @@ Tipsy data-file handling function
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -84,13 +85,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         try:#ASCII
             auxdata = np.genfromtxt(filename, skip_header=1)
             if auxdata.size != np.sum(data_file.total_particles.values()):
-                print "Error reading auxiliary tipsy file"
-                raise RuntimeError
+                print("Error reading auxiliary tipsy file")
+                raise RuntimeError 
         except ValueError:#binary/xdr
             f = open(filename, 'rb')
             l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
             if l != np.sum(data_file.total_particles.values()):
-                print "Error reading auxiliary tipsy file"
+                print("Error reading auxiliary tipsy file")
                 raise RuntimeError
             dtype = 'd'
             if field in ('iord', 'igasorder', 'grp'):#These fields are integers
@@ -103,7 +104,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 try:
                     auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
                 except struct.error: # None of the binary attempts to read succeeded
-                    print "Error reading auxiliary tipsy file"
+                    print("Error reading auxiliary tipsy file")
                     raise RuntimeError
 
         # Use the mask to slice out the appropriate particle type data

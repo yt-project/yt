@@ -97,8 +97,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         r = pyregion.open(reg)
     else:
         r = pyregion.parse(reg)
+    reg_name = reg
     filter = r.get_filter(header=ds.wcs_2d.to_header())
-    reg_name = reg.split(".")[0]
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
     mask = filter.mask((ny,nx)).transpose()
@@ -151,8 +151,8 @@ class PlotWindowWCS(object):
             ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
                                   wcs.cunit[yax])
             fp = pw._font_properties
-            wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp)
-            wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp)
+            wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
+            wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)
             wcs_ax.coords[0].ticklabels.set_fontproperties(fp)
             wcs_ax.coords[1].ticklabels.set_fontproperties(fp)
             ax.xaxis.set_visible(False)
@@ -195,5 +195,6 @@ class PlotWindowWCS(object):
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret

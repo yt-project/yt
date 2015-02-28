@@ -32,5 +32,12 @@ def test_index_unop():
             i = 0
             for j, v in enumerate(sizes):
                 arr = values[indices[i:i+v]]
-                yield assert_equal, op(arr), out_values[j]
+                if dtype == "float32":
+                    # Numpy 1.9.1 changes the accumulator type to promote
+                    yield assert_rel_equal, op(arr), out_values[j], 6
+                elif dtype == "float64":
+                    # Numpy 1.9.1 changes the accumulator type to promote
+                    yield assert_rel_equal, op(arr), out_values[j], 12
+                else:
+                    yield assert_equal, op(arr), out_values[j]
                 i += v

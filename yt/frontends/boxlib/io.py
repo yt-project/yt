@@ -16,8 +16,7 @@ Orion data-file handling functions
 import os
 import numpy as np
 from yt.utilities.lib.fortran_reader import \
-    read_castro_particles, \
-    read_and_seek
+    read_castro_particles
 from yt.utilities.io_handler import \
            BaseIOHandler
 from yt.funcs import mylog, defaultdict
@@ -67,17 +66,19 @@ class IOHandlerBoxlib(BaseIOHandler):
             f = open(filename, "rb")
             for grid in grids:
                 data[grid.id] = {}
-                grid._seek(f)
+                local_offset = grid._get_offset(f) - f.tell()
                 count = grid.ActiveDimensions.prod()
                 size = count * bpr
                 for field in self.ds.index.field_order:
                     if field in fields:
                         # We read it ...
+                        f.seek(local_offset, os.SEEK_CUR)
                         v = np.fromfile(f, dtype=dtype, count=count)
                         v = v.reshape(grid.ActiveDimensions, order='F')
                         data[grid.id][field] = v
+                        local_offset = 0
                     else:
-                        f.seek(size, os.SEEK_CUR)
+                        local_offset += size
         return data
 
 class IOHandlerOrion(IOHandlerBoxlib):

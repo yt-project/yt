@@ -1,6 +1,7 @@
 from yt.testing import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
+from yt.frontends.stream.api import load_particles
 
 def setup():
     from yt.config import ytcfg
@@ -80,3 +81,28 @@ def test_smoothed_covering_grid():
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
                     yield assert_equal, f, g["density"]
+
+
+def test_arbitrary_grid():
+    for ncells in [64, 128, 256]:
+        for px in [0.125, 0.25, 0.55519]:
+
+            particle_data = {
+                'particle_position_x': np.array([px]),
+                'particle_position_y': np.array([0.5]),
+                'particle_position_z': np.array([0.5]),
+                'particle_mass': np.array([1.0])}
+
+            ds = load_particles(particle_data)
+
+            LE = np.array([0.05, 0.05, 0.05])
+            RE = np.array([0.95, 0.95, 0.95])
+            dims = np.array([ncells, ncells, ncells])
+
+            dds = (RE - LE) / dims
+            volume = ds.quan(np.product(dds), 'cm**3')
+
+            obj = ds.arbitrary_grid(LE, RE, dims)
+            deposited_mass = obj["deposit", "all_density"].sum() * volume
+
+            yield assert_equal, deposited_mass, ds.quan(1.0, 'g')

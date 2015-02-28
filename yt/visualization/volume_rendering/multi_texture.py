@@ -35,6 +35,7 @@ shader to which you pass all textures.
 I hope this helps,
   Almar
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.

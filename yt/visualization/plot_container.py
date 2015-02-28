@@ -35,6 +35,15 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
+def ensure_callbacks(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        try:
+            args[0].run_callbacks()
+        except NotImplementedError:
+            pass
+        return f(*args, **kwargs)
+    return newfunc
 
 def invalidate_data(f):
     @wraps(f)
@@ -416,16 +425,18 @@ class ImagePlotContainer(object):
     def __getitem__(self, item):
         return self.plots[item]
 
-    def run_callbacks(self, f):
-        keys = self.frb.keys()
-        for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
-            CallbackMaker = callback_registry[name]
-            callback = CallbackMaker(*args[1:], **kwargs)
-            callback(cbw)
-        for key in self.frb.keys():
-            if key not in keys:
-                del self.frb[key]
+    def run_callbacks(self):
+        for f in self.fields:
+            keys = self.frb.keys()
+            for name, (args, kwargs) in self._callbacks:
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
+                CallbackMaker = callback_registry[name]
+                callback = CallbackMaker(*args[1:], **kwargs)
+                callback(cbw)
+            for key in self.frb.keys():
+                if key not in keys:
+                    del self.frb[key]
 
     def _set_font_properties(self):
         for f in self.plots:
@@ -434,7 +445,8 @@ class ImagePlotContainer(object):
             labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
             labels += cbax.yaxis.get_ticklabels()
             labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
-                       cbax.yaxis.label]
+                       cbax.yaxis.label, cbax.yaxis.get_offset_text(),
+                       ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
             for label in labels:
                 label.set_fontproperties(self._font_properties)
                 if self._font_color is not None:
@@ -524,7 +536,8 @@ class ImagePlotContainer(object):
         self.figure_size = float(size)
         return self
 
-    def save(self, name=None, mpl_kwargs=None):
+    @ensure_callbacks
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -532,6 +545,9 @@ class ImagePlotContainer(object):
         name : string
            The base of the filename.  If name is a directory or if name is not
            set, the filename of the dataset is used.
+        suffix : string
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -547,11 +563,12 @@ class ImagePlotContainer(object):
             os.mkdir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
-        suffix = get_image_suffix(name)
-        if suffix != '':
-            for k, v in self.plots.iteritems():
-                names.append(v.save(name, mpl_kwargs))
-            return names
+        if suffix is None:
+            suffix = get_image_suffix(name)
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
         axis = self.ds.coordinates.axis_name.get(
             self.data_source.axis, '')
         weight = None
@@ -563,7 +580,7 @@ class ImagePlotContainer(object):
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType):
+            if isinstance(k, tuple):
                 k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))
@@ -572,6 +589,8 @@ class ImagePlotContainer(object):
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
                 n += "_%s" % (weight)
+            if suffix != '':
+                n = ".".join([n,suffix])
             names.append(v.save(n, mpl_kwargs))
         return names
 
@@ -629,13 +648,15 @@ class ImagePlotContainer(object):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
+    @ensure_callbacks
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         for field in self.plots:
             img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     @invalidate_plot
@@ -650,7 +671,7 @@ class ImagePlotContainer(object):
         x_title: str
               The new string for the x-axis.
 
-        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -667,7 +688,7 @@ class ImagePlotContainer(object):
         label: str
           The new string for the y-axis.
 
-        >>>  plot.set_ytitle("Temperature (K)")
+        >>>  plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -685,7 +706,7 @@ class ImagePlotContainer(object):
         label: str
           The new label
 
-        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label

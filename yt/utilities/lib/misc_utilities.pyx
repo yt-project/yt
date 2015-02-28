@@ -223,7 +223,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4], outa
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
@@ -257,7 +258,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
                 for xi in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
-                        if flip: 
+                        if flip:
                             yi0 = ny - yi
                         else:
                             yi0 = yi
@@ -334,7 +335,9 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
     n_grids = data.shape[0]
-    cdef np.float64_t **uniquedims, *uniques, split
+    cdef np.float64_t **uniquedims
+    cdef np.float64_t *uniques
+    cdef np.float64_t split
     uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
     for i in range(3):
         uniquedims[i] = <np.float64_t *> \
@@ -455,8 +458,8 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
     # level to lowest, you will find the correct grid without consulting child
     # masking.  Note also that we will do a few relatively slow operations on
     # strings and whatnot, but they should not be terribly slow.
-    cdef int ind[3], gi, fi
-    cdef int nf = len(field_names)
+    cdef int ind[3]
+    cdef int gi, fi, nf = len(field_names)
     cdef np.float64_t dds
     cdef np.ndarray[np.float64_t, ndim=3] field
     cdef np.ndarray[np.float64_t, ndim=1] rv = np.zeros(nf, dtype='float64')
@@ -494,10 +497,10 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
-    
+
     imax = radius.argmax()
     rmax = radius[imax] + dradius[imax]
-          
+
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
         img[:] = np.nan
@@ -548,7 +551,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx 
+                    r_i += 0.5*dx
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -559,7 +562,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                     if img[pi, pj] != img[pi, pj]:
                         img[pi, pj] = 0.0
                     img[pi, pj] = field[i]
-                r_i += 0.5*dx 
+                r_i += 0.5*dx
             theta_i += dthetamin
 
     return img
@@ -579,7 +582,9 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                     np.ndarray[np.float64_t, ndim=1] dphi,
                     buff_size,
                     np.ndarray[np.float64_t, ndim=1] field,
-                    extents, input_img = None):
+                    extents, input_img = None,
+                    np.float64_t theta_offset = 0.0,
+                    np.float64_t phi_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
     # longitude is -pi to pi
     # latitude is -pi/2 to pi/2
@@ -596,7 +601,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
     nf = field.shape[0]
-    
+
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
         img[:] = np.nan
@@ -610,9 +615,9 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     dx = 2.0 / (img.shape[0] - 1)
     dy = 2.0 / (img.shape[1] - 1)
     for fi in range(nf):
-        theta_p = theta[fi] - PI
+        theta_p = (theta[fi] + theta_offset) - PI
         dtheta_p = dtheta[fi]
-        phi_p = phi[fi] - PI/2.0
+        phi_p = (phi[fi] + phi_offset) - PI/2.0
         dphi_p = dphi[fi]
         # Four transformations
         aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
@@ -809,15 +814,18 @@ def fill_region(input_fields, output_fields,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
-    cdef np.int64_t tot
-    cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
+    cdef np.int64_t tot, oi, oj, ok, rf
+    cdef np.int64_t iind[3]
+    cdef np.int64_t oind[3]
+    cdef np.int64_t dim[3]
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
     nf = len(input_fields)
     # The variable offsets governs for each dimension and each possible
     # wrapping if we do it.  Then the wi, wj, wk indices check into each
     # [dim][wrap] inside the loops.
-    cdef int offsets[3][3], wi, wj, wk
+    cdef int wi, wj, wk
+    cdef int offsets[3][3]
     cdef np.int64_t off
     for i in range(3):
         dim[i] = output_fields[0].shape[i]
@@ -832,7 +840,7 @@ def fill_region(input_fields, output_fields,
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
-            rf = refine_by**(output_level - ires[i]) 
+            rf = refine_by**(output_level - ires[i])
             for wi in range(3):
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))

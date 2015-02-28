@@ -83,6 +83,8 @@ into:
 If you want to create your own custom data object type, see 
 :ref:`creating-objects`.
 
+.. _geometric-objects:
+
 Geometric Objects
 ^^^^^^^^^^^^^^^^^
 
@@ -107,12 +109,15 @@ for the grid cell to be incorporated.
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
-      to be intersected.
+      to be intersected.  Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 **Ray (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
+      Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 2D Objects
 """"""""""
@@ -170,6 +175,7 @@ for the grid cell to be incorporated.
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
+.. _collection-objects:
 
 Filtering and Collection Objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,6 +207,8 @@ See also the section on :ref:`filtering-data`.
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
       sampled and processed as a whole in a single data object.
+
+.. _construction-objects:
 
 Construction Objects
 ^^^^^^^^^^^^^^^^^^^^

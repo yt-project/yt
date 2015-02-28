@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.1-dev"
+__version__ = "3.2-dev"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -152,7 +152,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper
+    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system

@@ -1,7 +1,7 @@
 .. _streamlines:
 
-Streamlines
-===========
+Streamlines: Tracking the Trajectories of Tracers in your Data
+==============================================================
 
 Streamlines, as implemented in yt, are defined as being parallel to a
 vector field at all points.  While commonly used to follow the

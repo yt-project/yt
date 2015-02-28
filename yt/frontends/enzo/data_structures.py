@@ -22,7 +22,6 @@ import string
 import re
 
 from threading import Thread
-import Queue
 
 from itertools import izip
 
@@ -181,7 +180,7 @@ class EnzoGridGZ(EnzoGrid):
         for field in ensure_list(fields):
             if field in self.field_list:
                 conv_factor = 1.0
-                if self.ds.field_info.has_key(field):
+                if field in self.ds.field_info:
                     conv_factor = self.ds.field_info[field]._convert_function(self)
                 if self.ds.field_info[field].particle_type: continue
                 temp = self.index.io._read_raw_data_set(self, field)
@@ -209,7 +208,7 @@ class EnzoHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
 
         # For some reason, r8 seems to want Float64
-        if ds.has_key("CompilerPrecision") \
+        if "CompilerPrecision" in ds \
             and ds["CompilerPrecision"] == "r4":
             self.float_type = 'float32'
         else:
@@ -406,6 +405,10 @@ class EnzoHierarchy(GridIndex):
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
             if np.any(select_grids) == False:
+                current_ptypes = self.dataset.particle_types
+                new_ptypes = [p for p in current_ptypes if p != ptype]
+                self.dataset.particle_types = new_ptypes
+                self.dataset.particle_types_raw = new_ptypes
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
@@ -703,7 +706,7 @@ class EnzoDataset(Dataset):
         """
         Gets a parameter not in the parameterDict.
         """
-        if self.parameters.has_key(parameter):
+        if parameter in self.parameters:
             return self.parameters[parameter]
         for line in open(self.parameter_filename):
             if line.find("#") >= 1: # Keep the commented lines
@@ -997,7 +1000,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)
         for i in self.parameters:
-            if isinstance(self.parameters[i], types.TupleType):
+            if isinstance(self.parameters[i], tuple):
                 self.parameters[i] = np.array(self.parameters[i])
             if i.endswith("Units") and not i.startswith("Temperature"):
                 dataType = i[:-5]
@@ -1005,7 +1008,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         self.domain_left_edge = self.parameters["DomainLeftEdge"].copy()
         self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
         for i in self.conversion_factors:
-            if isinstance(self.conversion_factors[i], types.TupleType):
+            if isinstance(self.conversion_factors[i], tuple):
                 self.conversion_factors[i] = np.array(self.conversion_factors[i])
         for p, v in self._parameter_override.items():
             self.parameters[p] = v

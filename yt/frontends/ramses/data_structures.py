@@ -4,6 +4,8 @@ RAMSES-specific data structures
 
 
 """
+# BytesIO needs absolute import
+from __future__ import print_function, absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -17,7 +19,8 @@ import os
 import numpy as np
 import stat
 import weakref
-import cStringIO
+from io import BytesIO
+
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -33,8 +36,9 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import mp, kb
 from .fields import \
-    RAMSESFieldInfo
+    RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -101,9 +105,9 @@ class RAMSESDomainFile(object):
                 try:
                     hvals = fpu.read_attrs(f, header, "=")
                 except AssertionError:
-                    print "You are running with the wrong number of fields."
-                    print "If you specified these in the load command, check the array length."
-                    print "In this file there are %s hydro fields." % skipped
+                    print("You are running with the wrong number of fields.")
+                    print("If you specified these in the load command, check the array length.")
+                    print("In this file there are %s hydro fields." % skipped)
                     #print "The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
@@ -211,7 +215,7 @@ class RAMSESDomainFile(object):
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = cStringIO.StringIO()
+        f = BytesIO()
         f.write(fb.read())
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
@@ -275,23 +279,23 @@ class RAMSESDomainFile(object):
         # This is where we now check for issues with creating the new octs, and
         # we attempt to determine what precisely is going wrong.
         # These are all print statements.
-        print "We have detected an error with the construction of the Octree."
-        print "  The number of Octs to be added :  %s" % ng
-        print "  The number of Octs added       :  %s" % n
-        print "  Level                          :  %s" % level
-        print "  CPU Number (0-indexed)         :  %s" % cpu
+        print("We have detected an error with the construction of the Octree.")
+        print("  The number of Octs to be added :  %s" % ng)
+        print("  The number of Octs added       :  %s" % n)
+        print("  Level                          :  %s" % level)
+        print("  CPU Number (0-indexed)         :  %s" % cpu)
         for i, ax in enumerate('xyz'):
-            print "  extent [%s]                     :  %s %s" % \
-            (ax, pos[:,i].min(), pos[:,i].max())
-        print "  domain left                    :  %s" % \
-            (self.ds.domain_left_edge,)
-        print "  domain right                   :  %s" % \
-            (self.ds.domain_right_edge,)
-        print "  offset applied                 :  %s %s %s" % \
-            (nn[0], nn[1], nn[2])
-        print "AMR Header:"
+            print("  extent [%s]                     :  %s %s" % \
+            (ax, pos[:,i].min(), pos[:,i].max()))
+        print("  domain left                    :  %s" % \
+            (self.ds.domain_left_edge,))
+        print("  domain right                   :  %s" % \
+            (self.ds.domain_right_edge,))
+        print("  offset applied                 :  %s %s %s" % \
+            (nn[0], nn[1], nn[2]))
+        print("AMR Header:")
         for key in sorted(self.amr_header):
-            print "   %-30s: %s" % (key, self.amr_header[key])
+            print("   %-30s: %s" % (key, self.amr_header[key]))
         raise RuntimeError
 
     def included(self, selector):
@@ -303,6 +307,7 @@ class RAMSESDomainFile(object):
 class RAMSESDomainSubset(OctreeSubset):
 
     _domain_offset = 1
+    _block_reorder = "F"
 
     def fill(self, content, fields, selector):
         # Here we get a copy of the file, which we skip through and read the
@@ -468,7 +473,7 @@ class RAMSESDataset(Dataset):
                  fields = None, storage_filename = None,
                  units_override=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, types.StringTypes):
+        if isinstance(fields, str):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
@@ -489,19 +494,28 @@ class RAMSESDataset(Dataset):
         # Note that unit_l *already* converts to proper!
         # Also note that unit_l must be multiplied by the boxlen parameter to
         # ensure we are correctly set up for the current domain.
-        length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
-        rho_u = self.parameters['unit_d']
-        # We're not multiplying by the boxlength here.
-        mass_unit = rho_u * self.parameters['unit_l']**3
+        length_unit = self.parameters['unit_l']
+        boxlen = self.parameters['boxlen']
+        density_unit = self.parameters['unit_d']
+        mass_unit = density_unit * (length_unit * boxlen)**3
         time_unit = self.parameters['unit_t']
-
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
+        pressure_unit = density_unit * (length_unit / time_unit)**2
+        # TODO:
+        # Generalize the temperature field to account for ionization
+        # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
+        mean_molecular_weight_factor = _X**-1
+
+        self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit, "cm")
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
-        self.velocity_unit = self.length_unit / self.time_unit
+        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
+        self.temperature_unit = (self.velocity_unit**2 * mp *
+                                 mean_molecular_weight_factor / kb)
+        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
 
     def _parse_parameter_file(self):
         # hardcoded for now
@@ -546,15 +560,21 @@ class RAMSESDataset(Dataset):
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
         self.domain_right_edge = np.ones(3, dtype='float64')
-        # This is likely not true, but I am not sure how to otherwise
-        # distinguish them.
-        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
-        self.cosmological_simulation = 1
+        # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
-        self.omega_lambda = rheader["omega_l"]
-        self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
+        # These conditions seem to always be true for non-cosmological datasets
+        if rheader["time"] > 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+            self.cosmological_simulation = 0
+            self.current_redshift = 0
+            self.hubble_constant = 0
+            self.omega_matter = 0
+            self.omega_lambda = 0
+        else:
+            self.cosmological_simulation = 1
+            self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+            self.omega_lambda = rheader["omega_l"]
+            self.omega_matter = rheader["omega_m"]
+            self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
 

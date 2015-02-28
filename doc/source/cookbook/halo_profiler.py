@@ -21,7 +21,7 @@ hc.add_callback("sphere", factor=2.0)
 hc.add_callback("profile", ["radius"],
                 [("gas", "overdensity")],
                 weight_field="cell_volume",
-                accumulation=False,
+                accumulation=True,
                 storage="virial_quantities_profiles")
 
 

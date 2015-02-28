@@ -15,7 +15,7 @@ Test ndarray subclass that handles symbolic units.
 # ----------------------------------------------------------------------------
 
 import copy
-import cPickle as pickle
+from yt.extern.six.moves import cPickle as pickle
 import itertools
 import numpy as np
 import operator
@@ -42,6 +42,8 @@ from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
+from yt.utilities.physical_ratios import \
+    metallicity_sun
 
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
@@ -267,11 +269,15 @@ def test_division():
     a3 = [4*cm, 5*cm, 6*cm]
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
+    if "div" in dir(operator):
+        op = operator.div
+    else:
+        op = operator.truediv
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -286,10 +292,10 @@ def test_division():
     answer3 = YTArray([0.25, 0.4, 0.5], 'cm/m')
     answer4 = YTArray([4.0, 2.5, 2.0], 'm/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer3
     yield operate_and_compare, a2, a1, np.divide, answer4
     yield operate_and_compare, a1, a3, np.divide, answer3
@@ -302,10 +308,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm/g')
     answer2 = YTArray([4, 2.5, 2], 'g/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -318,10 +324,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm')
     answer2 = YTArray([4, 2.5, 2], '1/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -334,10 +340,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
     yield operate_and_compare, a3, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -546,9 +552,6 @@ def test_selecting():
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
     yield assert_true, a_slice.base is a
-    yield assert_true, a_fancy_index.base is None
-    yield assert_true, a_array_fancy_index.base is None
-    yield assert_true, a_boolean_index.base is None
 
 
 def test_fix_length():
@@ -695,7 +698,12 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert_true(not isinstance(ret, YTArray) and
                     isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
-    assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
+    if (ufunc in (np.divide, np.true_divide, np.arctan2) and
+        (a.units.dimensions == b.units.dimensions)):
+        assert_array_almost_equal(
+            np.array(ret), ufunc(np.array(a.in_cgs()), np.array(b.in_cgs())))
+    else:
+        assert_array_almost_equal(np.array(ret), ufunc(np.array(a), np.array(b)))
 
 
 def test_ufuncs():
@@ -776,8 +784,11 @@ def test_registry_association():
         assert_equal(id(c.units.registry), id(ds.unit_registry))
         assert_equal(id(d.units.registry), id(b.units.registry))
 
-    for op in [operator.add, operator.sub, operator.mul, operator.div,
-               operator.truediv]:
+    binary_ops = [operator.add, operator.sub, operator.mul, 
+                  operator.truediv]
+    if hasattr(operator, "div"):
+        binary_ops.append(operator.div)
+    for op in binary_ops:
         yield binary_op_registry_comparison, op
 
     for op in [operator.abs, operator.neg, operator.pos]:
@@ -824,7 +835,10 @@ def test_subclass():
         assert_isinstance(op(inst1, inst2), compare_class)
         assert_isinstance(op(inst2, inst1), compare_class)
 
-    for op in (operator.mul, operator.div, operator.truediv):
+    ops = [operator.mul, operator.truediv]
+    if hasattr(operator, "div"):
+        ops.append(operator.div)
+    for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
             yield op_comparison, op, a, inst, YTASubclass
 
@@ -985,3 +999,26 @@ def test_numpy_wrappers():
 
     yield assert_array_equal, YTArray(union_answer, 'cm'), uunion1d(a1, a2)
     yield assert_array_equal, union_answer, np.union1d(a1, a2)
+
+def test_dimensionless_conversion():
+    a = YTQuantity(1, 'Zsun')
+    b = a.in_units('Zsun')
+    a.convert_to_units('Zsun')
+    yield assert_true, a.units.cgs_value == metallicity_sun
+    yield assert_true, b.units.cgs_value == metallicity_sun
+
+def test_modified_unit_division():
+    ds1 = fake_random_ds(64)
+    ds2 = fake_random_ds(64)
+
+    # this mocks comoving coordinates without going through the trouble
+    # of setting up a fake cosmological dataset
+    ds1.unit_registry.modify('m', 50)
+
+    a = ds1.quan(3, 'm')
+    b = ds2.quan(3, 'm')
+
+    ret = a/b
+    yield assert_true, ret == 0.5
+    yield assert_true, ret.units.is_dimensionless
+    yield assert_true, ret.units.cgs_value == 1.0

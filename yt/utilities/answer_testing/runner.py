@@ -4,6 +4,8 @@ Runner mechanism for answer testing
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -14,14 +16,15 @@ Runner mechanism for answer testing
 #-----------------------------------------------------------------------------
 
 import matplotlib
-import os, shelve, cPickle, sys, imp, tempfile
+import os, shelve, sys, imp, tempfile
+from yt.extern.six.moves import cPickle
 
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 from yt.funcs import *
 from yt.utilities.command_line import YTCommand
 from .xunit import Xunit
 
-from output_tests import test_registry, MultipleOutputTest, \
+from .output_tests import test_registry, MultipleOutputTest, \
                          RegressionTestException
 
 def clear_registry():
@@ -116,7 +119,7 @@ class RegressionTestRunner(object):
     def _run(self, test):
         if self.watcher is not None:
             self.watcher.start()
-        print self.id, "Running", test.name,
+        print(self.id, "Running", test.name, end=' ')
         test.setup()
         test.run()
         if self.plot_tests:
@@ -124,10 +127,10 @@ class RegressionTestRunner(object):
         self.results[test.name] = test.result
         success, msg, exc = self._compare(test)
         if self.old_results is None:
-            print "NO OLD RESULTS"
+            print("NO OLD RESULTS")
         else:
-            if success == True: print "SUCCEEDED"
-            else: print "FAILED", msg
+            if success == True: print("SUCCEEDED")
+            else: print("FAILED", msg)
         self.passed_tests[test.name] = success
         self.test_messages[test.name] = msg
         if self.watcher is not None:
@@ -154,15 +157,15 @@ class RegressionTestRunner(object):
             test_name = line.strip()
             if test_name not in test_registry:
                 if test_name[0] != "#":
-                    print "Test '%s' not recognized, skipping" % (test_name)
+                    print("Test '%s' not recognized, skipping" % (test_name))
                 continue
-            print "Running '%s'" % (test_name)
+            print("Running '%s'" % (test_name))
             self.run_test(line.strip())
 
 def _load_modules(test_modules):
     for fn in test_modules:
         if fn.endswith(".py"): fn = fn[:-3]
-        print "Loading module %s" % (fn)
+        print("Loading module %s" % (fn))
         mname = os.path.basename(fn)
         f, filename, desc = imp.find_module(mname, [os.path.dirname(fn)])
         project = imp.load_module(mname, f, filename, desc)
@@ -173,7 +176,7 @@ def _update_io_log(opts, kwargs):
     kwargs['io_log'] = f.name
     for d in opts.datasets:
         fn = os.path.expanduser(d)
-        print "Registered dataset %s" % fn
+        print("Registered dataset %s" % fn)
         f.write("DATASET WRITTEN %s\n" % fn)
     f.flush()
     f.seek(0)

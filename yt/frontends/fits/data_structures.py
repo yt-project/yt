@@ -287,7 +287,7 @@ class FITSHierarchy(GridIndex):
 
         for field in self.derived_field_list:
             f = self.dataset.field_info[field]
-            if f._function.func_name == "_TranslationFunc":
+            if f._function.__name__ == "_TranslationFunc":
                 # Translating an already-converted field
                 self.dataset.conversion_factors[field] = 1.0
 
@@ -553,7 +553,8 @@ class FITSDataset(Dataset):
         for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += np.any(y)
-        if x == self.dimensionality: self._setup_spec_cube()
+        if x == self.dimensionality and self.axis_names != ['LINEAR','LINEAR']: 
+            self._setup_spec_cube()
 
     def _setup_spec_cube(self):
 

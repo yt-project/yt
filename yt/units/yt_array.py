@@ -289,7 +289,7 @@ class YTArray(np.ndarray):
             dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
-        if registry is None and isinstance(input_units, basestring):
+        if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
                     "Code units used without referring to a dataset. \n"
@@ -368,7 +368,7 @@ class YTArray(np.ndarray):
         """
         # let Unit() handle units arg if it's not already a Unit obj.
         if not isinstance(units, Unit):
-            units = Unit(units, registry = self.units.registry)
+            units = Unit(units, registry=self.units.registry)
 
         if not self.units.same_dimensions_as(units):
             raise YTUnitConversionError(
@@ -472,7 +472,7 @@ class YTArray(np.ndarray):
             The unit that you wish to convert to.
         equiv : string
             The equivalence you wish to use. To see which equivalencies are
-            supported for this unitful quantity, try the :method:`list_equivalencies`
+            supported for this unitful quantity, try the :meth:`list_equivalencies`
             method.
 
         Examples
@@ -591,7 +591,7 @@ class YTArray(np.ndarray):
             info = {}
 
         info['units'] = str(self.units)
-        info['unit_registry'] = pickle.dumps(self.units.registry.lut)
+        info['unit_registry'] = np.void(pickle.dumps(self.units.registry.lut))
 
         if dataset_name is None:
             dataset_name = 'array_data'
@@ -611,7 +611,7 @@ class YTArray(np.ndarray):
             d = f.create_dataset(dataset_name, data=self)
 
         for k, v in info.iteritems():
-            d.attrs.create(k, v)
+            d.attrs[k] = v
         f.close()
 
     @classmethod
@@ -639,7 +639,7 @@ class YTArray(np.ndarray):
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
-            unit_lut = pickle.loads(dataset.attrs['unit_registry'])
+            unit_lut = pickle.loads(dataset.attrs['unit_registry'].tostring())
         else:
             unit_lut = None
         f.close()
@@ -1022,14 +1022,21 @@ class YTArray(np.ndarray):
                         else:
                             raise YTUnitOperationError(context[0], unit1, unit2)
                     unit2 = 1.0
-            if self._ufunc_registry[context[0]] in \
-               (preserve_units, comparison_unit, arctan2_unit):
+            unit_operator = self._ufunc_registry[context[0]]
+            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
                 if unit1 != unit2:
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = self._ufunc_registry[context[0]](unit1, unit2)
+            if unit_operator in (multiply_units, divide_units):
+                if unit.is_dimensionless and unit.cgs_value != 1.0:
+                    if not unit1.is_dimensionless:
+                        if unit1.dimensions == unit2.dimensions:
+                            np.multiply(out_arr.view(np.ndarray),
+                                        unit.cgs_value, out=out_arr)
+                            unit = Unit(registry=unit.registry)
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:

@@ -4,6 +4,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -23,7 +24,7 @@ from functools import wraps
 from itertools import izip
 import matplotlib
 import numpy as np
-import cStringIO
+from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
@@ -35,7 +36,7 @@ from yt.data_objects.profiles import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-import _mpl_imports as mpl
+from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
@@ -228,16 +229,18 @@ class ProfilePlot(object):
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
-    def save(self, name=None):
+    def save(self, name=None, suffix=None):
         r"""
-         Saves a 1d profile plot.
+        Saves a 1d profile plot.
 
-         Parameters
-         ----------
-         name : str
-             The output file keyword.
-
-         """
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        suffix : string
+            Specify the image type by its suffix. If not specified, the output
+            type will be inferred from the filename. Defaults to PNG.
+        """
         if not self._plot_valid:
             self._setup_plots()
         unique = set(self.figures.values())
@@ -245,23 +248,29 @@ class ProfilePlot(object):
             iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
+        if not suffix:
+            suffix = "png"
+        suffix = ".%s" % suffix
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
-            name = "%s.png" % prefix
-        suffix = get_image_suffix(name)
-        prefix = name[:name.rfind(suffix)]
+            name = "%s%s" % (prefix, suffix)
+        else:
+            sfx = get_image_suffix(name)
+            if sfx != '':
+                suffix = sfx
+                prefix = name[:name.rfind(suffix)]
+            else:
+                prefix = name
         xfn = self.profiles[0].x_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
-        if not suffix:
-            suffix = ".png"
         canvas_cls = get_canvas(name)
         fns = []
         for uid, fig in iters:
-            if isinstance(uid, types.TupleType):
+            if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
             fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
@@ -309,11 +318,12 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
-            f = cStringIO.StringIO()
+            f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,%s"><br>' % img
         return ret
 
     def _setup_plots(self):
@@ -596,16 +606,16 @@ class ProfilePlot(object):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -763,16 +773,16 @@ class PhasePlot(ImagePlotContainer):
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
-            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = field_name.replace(' ','\/')
+            field_name = field_name.replace(' ','\ ')
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
+            label = field_name + r'$\rm{\ Probability\ Density}$'
         elif field_unit is None or field_unit is '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+field_unit+r')$'
+            label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
         
     def _get_field_log(self, field_z, profile):
@@ -955,7 +965,7 @@ class PhasePlot(ImagePlotContainer):
             self._text_kwargs[f] = text_kwargs
         return self
 
-    def save(self, name=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 
@@ -963,6 +973,9 @@ class PhasePlot(ImagePlotContainer):
         ----------
         name : str
             The output file keyword.
+        suffix : string
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -979,13 +992,13 @@ class PhasePlot(ImagePlotContainer):
         name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
-        if isinstance(yfn, types.TupleType):
+        if isinstance(yfn, tuple):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType):
+            if isinstance(f, tuple):
                 _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             splitname = os.path.split(name)
@@ -996,12 +1009,15 @@ class PhasePlot(ImagePlotContainer):
                 prefix += str(self.profile.ds)
             else:
                 prefix = name
-            suffix = get_image_suffix(name)
-            if suffix != '':
-                for k, v in self.plots.iteritems():
-                    names.append(v.save(name, mpl_kwargs))
-                return names
-            fn = "%s_%s%s" % (prefix, middle, '.png')
+            if suffix is None:
+                suffix = get_image_suffix(name)
+                if suffix != '':
+                    for k, v in self.plots.iteritems():
+                        names.append(v.save(name, mpl_kwargs))
+                    return names
+                else:
+                    suffix = "png"
+            fn = "%s_%s.%s" % (prefix, middle, suffix)
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
