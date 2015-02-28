@@ -429,7 +429,8 @@ class ImagePlotContainer(object):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
                 callback(cbw)
@@ -536,7 +537,7 @@ class ImagePlotContainer(object):
         return self
 
     @ensure_callbacks
-    def save(self, name=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -544,6 +545,9 @@ class ImagePlotContainer(object):
         name : string
            The base of the filename.  If name is a directory or if name is not
            set, the filename of the dataset is used.
+        suffix : string
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -559,11 +563,12 @@ class ImagePlotContainer(object):
             os.mkdir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
-        suffix = get_image_suffix(name)
-        if suffix != '':
-            for k, v in self.plots.iteritems():
-                names.append(v.save(name, mpl_kwargs))
-            return names
+        if suffix is None:
+            suffix = get_image_suffix(name)
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
         axis = self.ds.coordinates.axis_name.get(
             self.data_source.axis, '')
         weight = None
@@ -584,6 +589,8 @@ class ImagePlotContainer(object):
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
                 n += "_%s" % (weight)
+            if suffix != '':
+                n = ".".join([n,suffix])
             names.append(v.save(n, mpl_kwargs))
         return names
 

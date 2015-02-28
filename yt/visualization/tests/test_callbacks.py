@@ -51,7 +51,8 @@ import contextlib
 #    particles
 #    title
 #    flash_ray_data
-#    timestamp
+#  X timestamp
+#  X scale
 #    material_boundary
 
 @contextlib.contextmanager
@@ -59,6 +60,37 @@ def _cleanup_fname():
     tmpdir = tempfile.mkdtemp()
     yield tmpdir
     shutil.rmtree(tmpdir)
+
+def test_timestamp_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_timestamp()
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_timestamp()
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_timestamp(corner='lower_right', redshift=True, 
+                             draw_inset_box=True)
+        p.save(prefix)
+
+def test_scale_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_scale()
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_scale()
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_scale(corner='upper_right', coeff=10., unit='kpc')
+        p.save(prefix)
 
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
@@ -165,3 +197,4 @@ def test_grids_callback():
             draw_ids=True, periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
         p.save(prefix)
+
