@@ -32,7 +32,8 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks
 from yt.data_objects.profiles import \
-    create_profile
+    create_profile, \
+    ParticleProfile
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
@@ -1202,6 +1203,25 @@ class PhasePlot(ImagePlotContainer):
         raise NotImplementedError
     def setup_callbacks(self, *args):
         raise NotImplementedError
+
+
+class ParticlePhasePlot(PhasePlot):
+    def __init__(self, data_source, x_field, y_field, z_fields,
+                 x_bins=128, y_bins=128, method='ngp',
+                 fontsize=18, figure_size=8.0):
+
+        x_min, x_max = data_source.quantities["Extrema"](x_field,
+                                                         non_zero=False)
+        y_min, y_max = data_source.quantities["Extrema"](y_field,
+                                                         non_zero=False)
+
+        profile = ParticleProfile(data_source, x_field, x_bins, x_min, x_max,
+                                  y_field, y_bins, y_min, y_max, method=method)
+
+        profile.add_fields(ensure_list(z_fields))
+
+        type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
 
 
 class PhasePlotMPL(ImagePlotMPL):
