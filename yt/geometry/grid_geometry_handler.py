@@ -137,7 +137,7 @@ class GridIndex(Index):
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
-        for level in xrange(self.max_level+1):
+        for level in range(self.max_level+1):
             self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
@@ -180,7 +180,7 @@ class GridIndex(Index):
                                            "# cells^3")
         print(header)
         print("%s" % (len(header.expandtabs())*"-"))
-        for level in xrange(MAXLEVEL):
+        for level in range(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
             print("% 3i\t% 6i\t% 14i\t% 14i" % \

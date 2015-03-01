@@ -181,7 +181,7 @@ class StreamHierarchy(GridIndex):
         mylog.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
-        for id in xrange(self.num_grids):
+        for id in range(self.num_grids):
             self.grids.append(self.grid(id, self))
             self.grids[id].Level = self.grid_levels[id, 0]
         parent_ids = self.stream_handler.parent_ids
@@ -425,7 +425,7 @@ def assign_particle_data(ds, pdata) :
         num_children = np.zeros(num_grids, dtype='int64')
         # We're going to do this the slow way
         mask = np.empty(num_grids, dtype="bool")
-        for i in xrange(num_grids):
+        for i in range(num_grids):
             np.equal(parent_ids, i, mask)
             num_children[i] = mask.sum()
         levels = ds.stream_handler.levels.astype("int64").ravel()
