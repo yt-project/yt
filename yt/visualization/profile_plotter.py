@@ -15,13 +15,13 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 from yt.extern.six.moves import builtins
+from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types
 import base64
 import os
 import types
 
 from functools import wraps
-from itertools import izip
 import matplotlib
 import numpy as np
 from io import BytesIO

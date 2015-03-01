@@ -47,7 +47,7 @@ from yt.utilities.on_demand_imports import _astropy, NotAModule
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
 delimiters = ["*", "/", "-", "^", "(", ")"]
-delimiters += [str(i) for i in xrange(10)]
+delimiters += [str(i) for i in range(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 spec_names = {"V":"Velocity",

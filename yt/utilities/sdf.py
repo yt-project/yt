@@ -1,3 +1,4 @@
+from __future__ import print_function
 from yt.extern.six.moves import cStringIO
 import re
 import os
@@ -25,7 +26,7 @@ _types = {
 }
 
 _rev_types = {}
-for v, t in _types.iteritems():
+for v, t in _types.items():
     _rev_types[t] = v
 _rev_types['<f8'] = 'double'
 _rev_types['<f4'] = 'float'
