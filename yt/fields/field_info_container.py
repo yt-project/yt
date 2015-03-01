@@ -307,7 +307,7 @@ class FieldInfoContainer(dict):
     def check_derived_fields(self, fields_to_check = None):
         deps = {}
         unavailable = []
-        fields_to_check = fields_to_check or self.keys()
+        fields_to_check = fields_to_check or list(self.keys())
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
