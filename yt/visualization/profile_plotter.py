@@ -1206,6 +1206,64 @@ class PhasePlot(ImagePlotContainer):
 
 
 class ParticlePhasePlot(PhasePlot):
+    r"""
+    Create a 2d particle phase plot from a data source or from
+    a `yt.data_objects.profiles.ParticleProfile` object.
+
+    Given a data object (all_data, region, sphere, etc.), an x field,
+    y field, and z field (or fields), this will create a particle plot 
+    by depositing the particles onto a two-dimensional mesh, using either
+    nearest grid point or cloud-in-cell deposition.
+
+    Parameters
+    ----------
+    data_source : YTSelectionContainer Object
+        The data object to be profiled, such as all_data, region, or 
+        sphere.
+    x_field : str
+        The x field for the mesh.
+    y_field : str
+        The y field for the mesh.
+    z_fields : str or list
+        The field or fields to be deposited.
+    x_bins : int
+        The number of bins in x field for the mesh.
+        Default: 128.
+    y_bins : int
+        The number of bins in y field for the mesh.
+        Default: 128.
+    method : str
+        Either 'ngp' or 'cic'. Controls what type of
+        interpolation will be used to deposit the
+        particle z_fields onto the mesh.
+        Default: 'ngp'
+    fontsize: int
+        Font size for all text in the plot.
+        Default: 18.
+    figure_size : int
+        Size in inches of the image.
+        Default: 8 (8x8)
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
+                                 "particle_position_y", ["particle_mass"],
+    ...                          x_bins=800, y_bins=800)
+    >>> plot.save()
+
+    >>> # Change plot properties.
+    >>> plot.set_log('particle_mass', True)
+    >>> plot.set_unit('particle_position_x', 'Mpc')
+    >>> plot.set_unit('particle_velocity_z', 'km/s')
+    >>> plot.set_unit('particle_mass', 'Msun')
+
+    """
+    _plot_type = 'ParticlePhase'
+
     def __init__(self, data_source, x_field, y_field, z_fields,
                  x_bins=128, y_bins=128, method='ngp',
                  fontsize=18, figure_size=8.0):
