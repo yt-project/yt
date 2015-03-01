@@ -21,9 +21,10 @@ from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import urllib
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import urllib, urllib2, base64, os
+import base64, os
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -355,13 +356,13 @@ def bb_apicall(endpoint, data, use_pass = True):
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
         data = urllib.urlencode(data)
-    req = urllib2.Request(uri, data)
+    req = urllib.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib2.urlopen(req).read()
+    return urllib.urlopen(req).read()
 
 class YTBugreportCmd(YTCommand):
     name = "bugreport"
@@ -541,17 +542,17 @@ class YTHubRegisterCmd(YTCommand):
                     url = url, zap = "rowsdower")
         data = urllib.urlencode(data)
         hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib2.Request(hub_url, data)
+        req = urllib.Request(hub_url, data)
         try:
-            status = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as exc:
+            status = urllib.urlopen(req).read()
+        except urllib.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
                 print("You can't register duplicate users, which is the most")
                 print("common cause of this error.  All values for username,")
                 print("name, and email must be unique in our system.")
                 sys.exit(1)
-        except urllib2.URLError as exc:
+        except urllib.URLError as exc:
             print("Something has gone wrong.  Here's the error message.")
             raise exc
         print()
@@ -1050,10 +1051,10 @@ class YTUploadImageCmd(YTCommand):
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
         data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        req = urllib.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
+            response = urllib.urlopen(req).read()
+        except urllib.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
