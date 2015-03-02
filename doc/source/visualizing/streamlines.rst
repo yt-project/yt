@@ -51,28 +51,37 @@ The implementation of streamlining  in yt is described below.
 Example Script
 ++++++++++++++
 
-.. code-block:: python
+.. python-script::
 
     import yt
+    import numpy as np
+    import matplotlib.pylab as pl
+
+    from mpl_toolkits.mplot3d import Axes3D
     from yt.visualization.api import Streamlines
+    from yt.units import Mpc
     
-    ds = yt.load('DD1701') # Load ds 
-    c = np.array([0.5]*3)
+    # Load dataset and define a few parameters
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    c = ds.domain_center
     N = 100
     scale = 1.0
     pos_dx = np.random.random((N,3))*scale-scale/2.
     pos = c+pos_dx
     
-    streamlines = Streamlines(ds,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+    # Define and construct streamlines
+    streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z',
+                              length=1.0*Mpc) 
     streamlines.integrate_through_volume()
     
-    import matplotlib.pylab as pl
-    from mpl_toolkits.mplot3d import Axes3D
+    # Make a 3D plot of the streamlines
     fig=pl.figure() 
     ax = Axes3D(fig)
+
     for stream in streamlines.streamlines:
         stream = stream[np.all(stream != 0.0, axis=1)]
     	ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
+
     pl.savefig('streamlines.png')
 
 

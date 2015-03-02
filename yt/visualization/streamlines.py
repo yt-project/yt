@@ -71,21 +71,27 @@ class Streamlines(ParallelAnalysisInterface):
     
     Examples
     --------
-    >>> from yt.mods import *
+    >>> import yt
+    >>> import numpy as np
+    >>> import matplotlib.pylab as pl
+    >>>
     >>> from yt.visualization.api import Streamlines
-    >>> ds = load('DD1701') # Load ds
-
+    >>> from mpl_toolkits.mplot3d import Axes3D
+    >>>
+    >>> # Load the dataset and set some parameters
+    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> c = np.array([0.5]*3)
     >>> N = 100
     >>> scale = 1.0
     >>> pos_dx = np.random.random((N,3))*scale-scale/2.
     >>> pos = c+pos_dx
-    
-    >>> streamlines = Streamlines(ds,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+    >>>
+    >>> # Define and construct streamlines
+    >>> streamlines = Streamlines(
+            ds,pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
     >>> streamlines.integrate_through_volume()
-    
-    >>> import matplotlib.pylab as pl
-    >>> from mpl_toolkits.mplot3d import Axes3D
+    >>>
+    >>> # Make a 3D plot of the streamlines and save it to disk
     >>> fig=pl.figure() 
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
