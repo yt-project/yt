@@ -333,8 +333,8 @@ class Halo(object):
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
                    + ["particle_index"]:
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
-	handle.create_dataset("/%s/particle_mass" % gn,
-		data=self["particle_mass"].in_units('Msun'))
+        handle.create_dataset("/%s/particle_mass" % gn,
+                              data=self["particle_mass"].in_units('Msun'))
         if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
