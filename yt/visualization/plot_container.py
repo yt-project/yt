@@ -13,6 +13,7 @@ A base class for "image" plots with colorbars.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from yt.extern.six.moves import builtins
+from yt.extern.six import iteritems
 import base64
 import numpy as np
 import matplotlib
@@ -562,7 +563,7 @@ class ImagePlotContainer(object):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         suffix = get_image_suffix(name)
         if suffix != '':
-            for k, v in self.plots.iteritems():
+            for k, v in iteritems(self.plots):
                 names.append(v.save(name, mpl_kwargs))
             return names
         axis = self.ds.coordinates.axis_name.get(
@@ -575,7 +576,7 @@ class ImagePlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in self.plots.iteritems():
+        for k, v in iteritems(self.plots):
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
@@ -600,7 +601,7 @@ class ImagePlotContainer(object):
         except ImportError:
             # IPython v1.0+
             from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
+        for k, v in sorted(iteritems(self.plots)):
             # Due to a quirk in the matplotlib API, we need to create
             # a dummy canvas variable here that is never used.
             canvas = FigureCanvasAgg(v.figure)  # NOQA

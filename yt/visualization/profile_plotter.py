@@ -16,7 +16,7 @@ from __future__ import absolute_import
 
 from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
-from yt.extern.six import string_types
+from yt.extern.six import string_types, iteritems
 import base64
 import os
 import types
@@ -245,7 +245,7 @@ class ProfilePlot(object):
         if len(unique) < len(self.figures):
             iters = izip(xrange(len(unique)), sorted(unique))
         else:
-            iters = self.figures.iteritems()
+            iters = iteritems(self.figures)
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
@@ -307,7 +307,7 @@ class ProfilePlot(object):
         if len(unique) < len(self.figures):
             iters = izip(xrange(len(unique)), sorted(unique))
         else:
-            iters = self.figures.iteritems()
+            iters = iteritems(self.figures)
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
             f = BytesIO()
@@ -1000,7 +1000,7 @@ class PhasePlot(ImagePlotContainer):
                 prefix = name
             suffix = get_image_suffix(name)
             if suffix != '':
-                for k, v in self.plots.iteritems():
+                for k, v in iteritems(self.plots):
                     names.append(v.save(name, mpl_kwargs))
                 return names
             fn = "%s_%s%s" % (prefix, middle, '.png')
