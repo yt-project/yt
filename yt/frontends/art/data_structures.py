@@ -202,7 +202,7 @@ class ARTDataset(Dataset):
         base_prefix, base_suffix = filename_pattern['amr']
         aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
-        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+        for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue
