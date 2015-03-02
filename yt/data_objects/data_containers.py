@@ -16,6 +16,7 @@ Various non-grid data containers.
 import itertools
 import types
 import uuid
+from yt.extern.six import string_types
 
 data_object_registry = {}
 
@@ -487,8 +488,8 @@ class YTDataContainer(object):
                 continue
             if isinstance(field, tuple):
                 if len(field) != 2 or \
-                   not isinstance(field[0], types.StringTypes) or \
-                   not isinstance(field[1], types.StringTypes):
+                   not isinstance(field[0], string_types) or \
+                   not isinstance(field[1], string_types):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
@@ -658,7 +659,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         elif self._locked == True:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
-        ofields = set(self.field_data.keys()
+        ofields = set(list(self.field_data.keys())
                     + fields_to_get
                     + fields_to_generate)
         # At this point, we want to figure out *all* our dependencies.
@@ -691,7 +692,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
-        for field in self.field_data.keys():
+        for field in list(self.field_data.keys()):
             if field not in ofields:
                 self.field_data.pop(field)
 

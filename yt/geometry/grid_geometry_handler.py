@@ -348,7 +348,7 @@ class GridIndex(Index):
             size = self._grid_chunksize
             
             for grids in (gs[pos:pos + size] for pos
-                          in xrange(0, len(gs), size)):
+                          in range(0, len(gs), size)):
                 dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
                         cache = cache)

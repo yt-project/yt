@@ -345,7 +345,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in data.keys(): self[i] = data.pop(i)
+        for i in list(data.keys()): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
     def _initialize_chunk(self, chunk, tree):
@@ -573,7 +573,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         alias = {}
         for field in gen:
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.func_name == "_TranslationFunc":
+            if finfo._function.__name__ == "_TranslationFunc":
                 alias[field] = finfo
                 continue
             try:
