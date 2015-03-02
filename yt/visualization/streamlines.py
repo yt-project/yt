@@ -107,9 +107,12 @@ class Streamlines(ParallelAnalysisInterface):
         self.ds = ds
         self.start_positions = sanitize_length(positions, ds)
         self.N = self.start_positions.shape[0]
-        self.xfield = xfield
-        self.yfield = yfield
-        self.zfield = zfield
+        # I need a data object to resolve the field names to field tuples
+        # via _determine_fields()
+        ad = self.ds.all_data()
+        self.xfield = ad._determine_fields(xfield)[0]
+        self.yfield = ad._determine_fields(yfield)[0]
+        self.zfield = ad._determine_fields(zfield)[0]
         self.get_magnitude=get_magnitude
         self.direction = np.sign(direction)
         if volume is None:
@@ -153,15 +156,17 @@ class Streamlines(ParallelAnalysisInterface):
         pbar.finish()
         
         self._finalize_parallel(None)
+        self.streamlines = self.ds.arr(self.streamlines, 'code_length')
+        if self.get_magnitude:
+            self.magnitudes = self.ds.arr(
+                self.magnitudes, self.ds.field_info[self.xfield].units)
        
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self.comm.mpi_allreduce(self.streamlines, op='sum')
-        self.streamlines = self.ds.arr(self.streamlines, 'code_length')
         if self.get_magnitude:
             self.magnitudes = self.comm.mpi_allreduce(
                 self.magnitudes, op='sum')
-            self.magnitudes = self.ds.arr(self.streamlines, 'code_length')
         
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):
