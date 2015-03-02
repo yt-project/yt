@@ -301,7 +301,7 @@ class FieldInfoContainer(dict):
     def keys(self):
         keys = dict.keys(self)
         if self.fallback:
-            keys += self.fallback.keys()
+            keys += list(self.fallback.keys())
         return keys
 
     def check_derived_fields(self, fields_to_check = None):

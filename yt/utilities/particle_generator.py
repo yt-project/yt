@@ -146,7 +146,7 @@ class ParticleGenerator(object):
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i+1]
                 # Note we add one ghost zone to the grid!
-                cube = grid.retrieve_ghost_zones(1, mapping_dict.keys())
+                cube = grid.retrieve_ghost_zones(1, list(mapping_dict.keys()))
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
                 for gfield, pfield in mapping_dict.items():

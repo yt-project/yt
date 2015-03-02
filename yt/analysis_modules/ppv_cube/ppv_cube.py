@@ -180,7 +180,7 @@ class PPVCube(object):
 
         storage = {}
         pbar = get_pbar("Generating cube.", self.nv)
-        for sto, i in parallel_objects(xrange(self.nv), storage=storage):
+        for sto, i in parallel_objects(range(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, string_types):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)

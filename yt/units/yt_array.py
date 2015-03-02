@@ -610,7 +610,7 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
+        for k, v in info.items():
             d.attrs[k] = v
         f.close()
 

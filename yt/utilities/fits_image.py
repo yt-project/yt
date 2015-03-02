@@ -479,9 +479,3 @@ class FITSProjection(FITSImageBuffer):
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
-
-
-
-        
-
-    

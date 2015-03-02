@@ -307,7 +307,7 @@ class Camera(ParallelAnalysisInterface):
         
         vertices = np.empty([corners.shape[2]*2*12,3])
         vertices = self.ds.arr(vertices, "code_length")
-        for i in xrange(3):
+        for i in range(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
@@ -508,7 +508,7 @@ class Camera(ParallelAnalysisInterface):
         
         vertices = np.empty([24,3])
         vertices = self.ds.arr(vertices, "code_length")
-        for i in xrange(3):
+        for i in range(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
@@ -861,7 +861,7 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.zoom(f)
             yield self.snapshot(clip_ratio = clip_ratio)
 
@@ -923,7 +923,7 @@ class Camera(ParallelAnalysisInterface):
             else:
                 dW = self.ds.arr([0.0,0.0,0.0], "code_length")
             dx = (final-self.center)*1.0/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             if exponential:
                 self.switch_view(center=self.center*dx, width=self.width*dW)
             else:
@@ -1066,7 +1066,7 @@ class Camera(ParallelAnalysisInterface):
         """
 
         dtheta = (1.0*theta)/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot(clip_ratio = clip_ratio)
 
@@ -2081,7 +2081,7 @@ class MosaicFisheyeCamera(Camera):
         """
 
         dtheta = (1.0*theta)/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector, keep_focus=keep_focus)
             yield self.snapshot()
 
@@ -2112,7 +2112,7 @@ class MosaicFisheyeCamera(Camera):
             dx = position_diff**(1.0/n_steps)
         else:
             dx = (np.array(final) - self.center)*1.0/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             if exponential:
                 self.center *= dx
             else:

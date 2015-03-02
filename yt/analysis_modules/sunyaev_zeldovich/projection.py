@@ -268,8 +268,8 @@ class SZProjection(object):
 
         pbar = get_pbar("Computing SZ signal.", nx*nx)
 
-        for i in xrange(start_i, end_i):
-            for j in xrange(ny):
+        for i in range(start_i, end_i):
+            for j in range(ny):
                 xo[:] = self.xinit[:]
                 SZpack.compute_combo_means(xo, tau[i,j], Te[i,j],
                                            bpar[i,j], omega1[i,j],

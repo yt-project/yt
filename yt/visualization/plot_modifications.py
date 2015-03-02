@@ -107,31 +107,31 @@ class PlotCallback(object):
         local_font_properties.set_file(None)
         local_font_properties.set_family('stixgeneral')
 
-        if kwargs.has_key('family'): 
+        if 'family' in kwargs: 
             local_font_properties.set_family(kwargs['family'])
-        if kwargs.has_key('file'): 
+        if 'file' in kwargs: 
             local_font_properties.set_file(kwargs['file'])
-        if kwargs.has_key('fontconfig_pattern'): 
+        if 'fontconfig_pattern' in kwargs: 
             local_font_properties.set_fontconfig_pattern(kwargs['fontconfig_pattern'])
-        if kwargs.has_key('name'): 
+        if 'name' in kwargs: 
             local_font_properties.set_name(kwargs['name'])
-        if kwargs.has_key('size'): 
+        if 'size' in kwargs: 
             local_font_properties.set_size(kwargs['size'])
-        if kwargs.has_key('slant'): 
+        if 'slant' in kwargs: 
             local_font_properties.set_slant(kwargs['slant'])
-        if kwargs.has_key('stretch'): 
+        if 'stretch' in kwargs: 
             local_font_properties.set_stretch(kwargs['stretch'])
-        if kwargs.has_key('style'): 
+        if 'style' in kwargs: 
             local_font_properties.set_style(kwargs['style'])
-        if kwargs.has_key('variant'): 
+        if 'variant' in kwargs: 
             local_font_properties.set_variant(kwargs['variant'])
-        if kwargs.has_key('weight'): 
+        if 'weight' in kwargs: 
             local_font_properties.set_weight(kwargs['weight'])
 
         # For each label, set the font properties and color to the figure
         # defaults if not already set in the callback itself
         for label in labels:
-            if plot.font_color is not None and not kwargs.has_key('color'):
+            if plot.font_color is not None and not 'color' in kwargs:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
 

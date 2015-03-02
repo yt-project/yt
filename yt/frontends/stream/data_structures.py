@@ -70,7 +70,7 @@ from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
-from yt.extern.six import string_types
+from yt.extern.six import string_types, iteritems
 from .fields import \
     StreamFieldInfo
 
@@ -492,7 +492,7 @@ def unitify_data(data):
         data = new_data
     elif all([iterable(val) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
-        data = dict((field, np.asarray(val)) for field, val in data.iteritems())
+        data = dict((field, np.asarray(val)) for field, val in iteritems(data))
     else:
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
@@ -606,12 +606,12 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
 
-    if number_of_particles > 0 :
+    if number_of_particles > 0:
         particle_types = set_particle_types(data)
         pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
-        for key in data.keys() :
-            if len(data[key].shape) == 1 :
+        for key in list(data.keys()):
+            if len(data[key].shape) == 1:
                 if not isinstance(key, tuple):
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
@@ -619,10 +619,10 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                     field = key
                 sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
-    else :
+    else:
         particle_types = {}
     update_field_names(data)
-    
+
     if nprocs > 1:
         temp = {}
         new_data = {}

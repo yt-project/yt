@@ -550,7 +550,7 @@ class FITSDataset(Dataset):
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.spec_cube = False
         x = 0
-        for p in lon_prefixes+lat_prefixes+spec_names.keys():
+        for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += np.any(y)
         if x == self.dimensionality and self.axis_names != ['LINEAR','LINEAR']: 
