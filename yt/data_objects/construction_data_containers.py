@@ -95,7 +95,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
     
     """
     _type_name = "streamline"
-    _con_args = ('positions')
+    _con_args = ('positions',)
     sort_by = 't'
     def __init__(self, positions, length = 1.0, fields=None, ds=None, **kwargs):
         YTSelectionContainer1D.__init__(self, ds, fields, **kwargs)

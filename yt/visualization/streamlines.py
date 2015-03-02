@@ -228,5 +228,5 @@ class Streamlines(ParallelAnalysisInterface):
         
         """
         return YTStreamlineBase(self.streamlines[streamline_id], ds=self.ds,
-                                    length = self.length)
+                                length = self.length)
         

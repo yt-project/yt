@@ -88,6 +88,12 @@ Example Script
 Data Access Along the Streamline
 --------------------------------
 
+.. note::
+
+    This functionality has not been implemented yet in in the 3.x series of
+    yt.  If you are interested in working on this and have questions, please
+    let us know on the yt-dev mailing list.
+
 Once the streamlines are found, a
 :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` object can
 be created using the
