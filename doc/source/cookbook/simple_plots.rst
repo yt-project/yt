@@ -135,12 +135,15 @@ See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: simple_volume_rendering.py
 
-Showing and Hiding Axes Labels and Colorbars
+.. _show-hide-axes-colorbar:
+
+Showing and Hiding Axis Labels and Colorbars
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This example illustrates how to create a SlicePlot and then suppress the axes
 labels and colorbars.  This is useful when you don't care about the physical
-scales and just want to take a closer look at the raw plot data.
+scales and just want to take a closer look at the raw plot data.  See 
+:ref:`hiding-colorbar-and-axes` for more information.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
 
@@ -178,3 +181,10 @@ recipe to generate the image, but it works for any NxNx4 image array
 information.
 
 .. yt_cookbook:: image_background_colors.py
+
+Annotating Plots with a Timestamp and Physical Scale
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When creating movies of multiple outputs from the same simulation (see :ref:`time-series-analysis`), it can be helpful to include a timestamp and the physical scale of each individual output.  This is simply achieved using the :ref:`annotate_timestamp() <annotate-timestamp>` and :ref:`annotate_scale() <annotate-scale>` callbacks on your plots.  For more information about similar plot modifications using other callbacks, see the section on :ref:`Plot Modifications <callbacks>`.  
+
+.. yt_cookbook:: annotate_timestamp_and_scale.py

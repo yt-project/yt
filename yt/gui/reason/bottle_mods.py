@@ -20,7 +20,7 @@ import uuid
 import json
 import logging, threading
 import sys
-import urllib, urllib2
+from yt.extern.six.moves import urllib
 import numpy as np
 
 from yt.extern.bottle import \
@@ -156,7 +156,7 @@ class PayloadHandler(object):
                 'payload_data': self.multicast_payloads[widget_id],
                 'payload_metadata': {}
             })
-            urllib2.urlopen("http://localhost:8080/UpdatePayload", data = data)
+            urllib.urlopen("http://localhost:8080/UpdatePayload", data = data)
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars

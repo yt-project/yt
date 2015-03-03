@@ -31,6 +31,7 @@ from yt.utilities.lib.misc_utilities import \
 import yt.visualization._MPL as _MPL
 from yt.units.yt_array import \
     YTArray, YTQuantity
+from yt.extern.six import string_types
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
@@ -172,7 +173,7 @@ class CoordinateHandler(object):
         return width
 
     def sanitize_center(self, center, axis):
-        if isinstance(center, basestring):
+        if isinstance(center, string_types):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
                 center = self.ds.arr(center, 'code_length')
@@ -183,7 +184,7 @@ class CoordinateHandler(object):
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
-            if isinstance(center[0], basestring) and isinstance(center[1], basestring):
+            if isinstance(center[0], string_types) and isinstance(center[1], string_types):
                 if center[0].lower() == "min":
                     v, center = self.ds.find_min(center[1])
                 elif center[0].lower() == "max":
@@ -191,7 +192,7 @@ class CoordinateHandler(object):
                 else:
                     raise RuntimeError("center keyword \"%s\" not recognized" % center)
                 center = self.ds.arr(center, 'code_length')
-            elif iterable(center[0]) and isinstance(center[1], basestring):
+            elif iterable(center[0]) and isinstance(center[1], string_types):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')

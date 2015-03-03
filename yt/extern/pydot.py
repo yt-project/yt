@@ -26,6 +26,7 @@ import re
 import subprocess
 import tempfile
 import copy
+from yt.extern.six import string_types
 # Commenting out this import as we are not including this
 # functionality.
 # try:
@@ -181,7 +182,7 @@ def quote_if_necessary(s):
             return 'True'
         return 'False'
 
-    if not isinstance( s, basestring ):
+    if not isinstance( s, string_types ):
         return s
 
     if needs_quotes(s):
@@ -740,7 +741,7 @@ class Node(object, Common):
             # Remove the compass point
             #
             port = None
-            if isinstance(name, basestring) and not name.startswith('"'):
+            if isinstance(name, string_types) and not name.startswith('"'):
                 idx = name.find(':')
                 if idx > 0:
                     name, port = name[:idx], name[idx:]
@@ -1820,7 +1821,7 @@ class Dot(Graph):
         graph is going to be rendered.
         """
         
-        if isinstance( file_paths, basestring ):
+        if isinstance( file_paths, string_types ):
             self.shape_files.append( file_paths )
             
         if isinstance( file_paths, (list, tuple) ):

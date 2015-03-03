@@ -23,7 +23,7 @@ import re
 
 from threading import Thread
 
-from itertools import izip
+from yt.extern.six.moves import zip as izip
 
 from yt.funcs import *
 from yt.config import ytcfg

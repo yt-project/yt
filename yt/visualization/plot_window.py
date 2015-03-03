@@ -42,6 +42,7 @@ from yt.data_objects.time_series import \
     DatasetSeries
 from yt.extern.six.moves import \
     StringIO
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, validate_width_tuple, \
@@ -104,19 +105,21 @@ def get_window_parameters(axis, center, width, ds):
         if axis == 0:
             # latitude slice
             width = ds.arr([2*np.pi, np.pi], "code_length")
-        else:
-            width = [2.0*ds.domain_right_edge[2], 2.0*ds.domain_right_edge[2]]
-            center[2] = 0.0
+        elif axis == 1:
+            width = [2.0*ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
+        elif axis == 2:
+            width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
     elif ds.geometry == "geographic":
-        c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
-        center = display_center = ds.arr([0.0, 0.0, c_r], "code_length")
-        if axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-        else:
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
+        if axis == 0:
             width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
                      2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-            center[2] = 0.0
+        elif axis == 1:
+            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
+                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
+        elif axis == 2:
+            # latitude slice
+            width = ds.arr([360, 180], "code_length")
     else:
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
@@ -150,7 +153,7 @@ def get_axes_unit(width, ds):
     if ds.no_cgs_equiv_length:
         return ("code_length",)*2
     if iterable(width):
-        if isinstance(width[1], basestring):
+        if isinstance(width[1], string_types):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
@@ -232,7 +235,7 @@ class PlotWindow(ImagePlotContainer):
                 self.data_source.center, ax)
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
-        for field in self.data_source._determine_fields(self.frb.data.keys()):
+        for field in self.data_source._determine_fields(list(self.frb.data.keys())):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -606,7 +609,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, basestring):
+            if isinstance(unit_name, string_types):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
@@ -642,7 +645,7 @@ class PWViewerMPL(PlotWindow):
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
-        if isinstance(origin, basestring):
+        if isinstance(origin, string_types):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
             origin = ('lower', 'left') + origin
@@ -793,7 +796,7 @@ class PWViewerMPL(PlotWindow):
                                    "%s_axis" % ("xy"[i]))[axis_index]
                     unn = self.ds.coordinates.default_unit_label.get(axax, "")
                     if unn != "":
-                        axes_unit_labels[i] = r'\/\/\left('+unn+r'\right)'
+                        axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
                         continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -825,11 +828,11 @@ class PWViewerMPL(PlotWindow):
                         un = un + '\,h^{-1}'
                     if comoving:
                         un = un + '\,(1+z)^{-1}'
-                    axes_unit_labels[i] = '\/\/('+un+')'
+                    axes_unit_labels[i] = '\ \ ('+un+')'
 
             if self.oblique:
-                labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
-                          r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
+                labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
+                          r'$\rm{Image\ y'+axes_unit_labels[1]+'}$']
             else:
                 coordinates = self.ds.coordinates
                 axis_names = coordinates.image_axis_name[axis_index]
@@ -878,7 +881,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
+                    colorbar_label += r'$\ \ \left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:
@@ -943,6 +946,120 @@ class PWViewerMPL(PlotWindow):
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+
+    def hide_colorbar(self, field=None):
+        """
+        Hides the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the colorbar. If None
+            is provided, will default to using all fields available for this
+            object.
+
+        Examples
+        --------
+
+        This will save an image with no colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_colorbar()
+
+    def show_colorbar(self, field=None):
+        """
+        Shows the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.  See hide_colorbar().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to show the colorbar.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_colorbar()
+
+    def hide_axes(self, field=None):
+        """
+        Hides the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the axes.
+
+        Examples
+        --------
+
+        This will save an image with no axes.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_axes()
+
+    def show_axes(self, field=None):
+        """
+        Shows the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
+        PlotWindow object.  See hide_axes().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to show the axes.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_axes()
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
@@ -1720,8 +1837,8 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
-                 unit_aspect, figure, axes, cax):
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size,
+                 fontsize, aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1740,13 +1857,14 @@ class WindowPlotMPL(ImagePlotMPL):
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
+        self._unit_aspect = aspect
 
         size, axrect, caxrect = self._get_best_layout()
 
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':
@@ -1897,7 +2015,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -1905,7 +2023,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \

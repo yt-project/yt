@@ -290,6 +290,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if communication_system.communicators[-1].size > 1:
             for chunk in self.data_source.chunks([], "io", local_only = False):
                 self._initialize_chunk(chunk, tree)
+        self._initialize_projected_units(fields)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
@@ -342,9 +343,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            input_units = self._projected_units[field].units
+            input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in data.keys(): self[i] = data.pop(i)
+        for i in list(data.keys()): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
     def _initialize_chunk(self, chunk, tree):
@@ -355,6 +356,26 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         i2 = icoords[:,yax]
         ilevel = chunk.ires * self.ds.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
+
+    def _initialize_projected_units(self, fields):
+        for field in fields:
+            field_unit = Unit(self.ds.field_info[field].units,
+                              registry=self.ds.unit_registry)
+            if self.method == "mip" or self._sum_only:
+                path_length_unit = Unit(registry=self.ds.unit_registry)
+            else:
+                ax_name = self.ds.coordinates.axis_name[self.axis]
+                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_length_unit = self.ds.field_info[path_element_name].units
+                path_length_unit = Unit(path_length_unit,
+                                        registry=self.ds.unit_registry)
+                # Only convert to CGS for path elements that aren't angles
+                if not path_length_unit.is_dimensionless:
+                    path_length_unit = path_length_unit.get_cgs_equivalent()
+            if self.weight_field is None:
+                self._projected_units[field] = field_unit*path_length_unit
+            else:
+                self._projected_units[field] = field_unit
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
@@ -373,19 +394,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for i, field in enumerate(fields):
             d = chunk[field] * dl
             v[:,i] = d
-            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
-            for field in fields:
-                # Note that this removes the dl integration, which is
-                # *correct*, but we are not fully self-consistently carrying it
-                # all through.  So if interrupted, the process will have
-                # incorrect units assigned in the projected units.  This should
-                # not be a problem, since the weight division occurs
-                # self-consistently with unitfree arrays.
-                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
@@ -451,25 +463,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center, ds, field_parameters)
 
         self.level = level
-
-        if not iterable(left_edge):
-            left_edge = [left_edge]*self.ds.dimensionality
-        if len(left_edge) != self.ds.dimensionality:
-            raise RuntimeError(
-                "Length of left_edge must match the dimensionality of the "
-                "dataset")
-        if hasattr(left_edge, 'units'):
-            le_units = left_edge.units
-        else:
-            le_units = 'code_length'
-        self.left_edge = self.ds.arr(left_edge, le_units)
-
-        if not iterable(dims):
-            dims = [dims]*self.ds.dimensionality
-        if len(dims) != self.ds.dimensionality:
-            raise RuntimeError(
-                "Length of dims must match the dimensionality of the dataset")
-        self.ActiveDimensions = np.array(dims, dtype='int32')
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.ActiveDimensions = self._sanitize_dims(dims)
 
         rdx = self.ds.domain_dimensions*self.ds.relative_refinement(0, level)
         rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1   # issue 602
@@ -512,6 +507,27 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
         tr *= self.level
         return tr
+
+    def _sanitize_dims(self, dims):
+        if not iterable(dims):
+            dims = [dims]*len(self.ds.domain_left_edge)
+        if len(dims) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of dims must match the dimensionality of the dataset")
+        return np.array(dims, dtype='int32')
+
+    def _sanitize_edge(self, edge):
+        if not iterable(edge):
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
@@ -556,11 +572,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            if field[0] == 'deposit':
-                fill.append(field)
-                continue
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.func_name == "_TranslationFunc":
+            if finfo._function.__name__ == "_TranslationFunc":
                 alias[field] = finfo
                 continue
             try:
@@ -725,11 +738,9 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         else:
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
-        self.left_edge = np.array(left_edge)
-        self.right_edge = np.array(right_edge)
-        self.ActiveDimensions = np.array(dims, dtype='int32')
-        if self.ActiveDimensions.size == 1:
-            self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.right_edge = self._sanitize_edge(right_edge)
+        self.ActiveDimensions = self._sanitize_dims(dims)
         self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()

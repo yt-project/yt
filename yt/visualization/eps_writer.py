@@ -4,7 +4,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -40,7 +40,7 @@ def convert_frac_to_tex(string):
     end_pos = level.index(0,div_pos+1)
     result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:end_pos] + \
              r'}$' + result[end_pos:]
-    result = result.replace(r'\/', r'\;')
+    result = result.replace(r'\ ', r'\;')
     return result
 
 def pyxize_label(string):
@@ -712,7 +712,7 @@ class DualEPS(object):
                     units = pyxize_label(units)
                     _zlabel += r' (' + units + r')'
                 except NotImplementedError: 
-                    print "Colorbar label not available"
+                    print("Colorbar label not available")
                     _zlabel = ''
             else:
                 _zlabel = pyxize_label(plot.z_title)

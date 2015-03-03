@@ -35,7 +35,7 @@ mpc_conversion = {'Mpc'   : mpc_per_mpc,
 # Nicely formatted versions of common length units
 formatted_length_unit_names = {'au'      : 'AU',
                                'rsun'    : 'R_\odot',
-                               'code_length': 'code\/length'}
+                               'code_length': 'code\ length'}
 
 # How many seconds are in each thing
 sec_conversion = {'Gyr'   : sec_per_Gyr,

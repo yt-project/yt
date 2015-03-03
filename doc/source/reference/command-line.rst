@@ -162,25 +162,6 @@ After you go through the necessary channels to make sure you're not just
 making a mistake (see :ref:`asking-for-help`), you can submit bug 
 reports using this nice utility.
 
-hub_register and hub_submit
-+++++++++++++++++++++++++++
-
-We in the yt camp believe firmly in the ideals of open-source coding.  To
-further those ends, we have made a location for people to share their 
-nifty and useful codes with other scientists who might be able to use 
-them: the `yt hub <http://hub.yt-project.org/>`_.  Did you make a cool 
-code for generating a movie from your simulation outputs?  Submit it to 
-the hub.  Did you create a perl script that automates something and saves 
-you some time while on a supercomputer.  Submit it to the hub.  And 
-using the hubsubmit command, you can do this really easily.  If you 
-create a mercurial repository for the code you want to submit, just 
-run the hubsubmit command from within its directory structure, and we'll 
-take care of the rest, by putting it on bitbucket and finally submitting 
-it to the hub to share with the rest of the yt community.  Check out 
-what people have already put up on the
-`yt hub <http://hub.yt-project.org/>`_, and see :ref:`share-your-scripts` 
-for more details about sharing your work on the hub.
-
 instinfo and version
 ++++++++++++++++++++
 

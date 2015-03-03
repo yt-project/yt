@@ -12,7 +12,8 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import __builtin__
+from yt.extern.six.moves import builtins
+from yt.extern.six import iteritems
 import base64
 import numpy as np
 import matplotlib
@@ -429,7 +430,8 @@ class ImagePlotContainer(object):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
                 callback(cbw)
@@ -565,7 +567,7 @@ class ImagePlotContainer(object):
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != '':
-                for k, v in self.plots.iteritems():
+                for k, v in iteritems(self.plots):
                     names.append(v.save(name, mpl_kwargs))
                 return names
         axis = self.ds.coordinates.axis_name.get(
@@ -578,7 +580,7 @@ class ImagePlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in self.plots.iteritems():
+        for k, v in iteritems(self.plots):
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
@@ -605,7 +607,7 @@ class ImagePlotContainer(object):
         except ImportError:
             # IPython v1.0+
             from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
+        for k, v in sorted(iteritems(self.plots)):
             # Due to a quirk in the matplotlib API, we need to create
             # a dummy canvas variable here that is never used.
             canvas = FigureCanvasAgg(v.figure)  # NOQA
@@ -629,7 +631,7 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
@@ -653,8 +655,9 @@ class ImagePlotContainer(object):
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         for field in self.plots:
-            img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            img = base64.b64encode(self.plots[field]._repr_png_()).decode()
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     @invalidate_plot

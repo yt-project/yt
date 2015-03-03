@@ -18,9 +18,8 @@ import logging
 import os
 import hashlib
 import contextlib
-import urllib2
 import sys
-from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import cPickle, urllib
 import shelve
 import zlib
 import tempfile
@@ -171,8 +170,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if ds_name in self.cache: return self.cache[ds_name]
         url = _url_path.format(self.reference_name, ds_name)
         try:
-            resp = urllib2.urlopen(url)
-        except urllib2.HTTPError as ex:
+            resp = urllib.urlopen(url)
+        except urllib.HTTPError as ex:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
