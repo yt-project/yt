@@ -272,7 +272,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in fields)
+            tr[field] = np.array([])
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]

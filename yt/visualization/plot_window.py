@@ -109,15 +109,16 @@ def get_window_parameters(axis, center, width, ds):
         elif axis == 2:
             width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
     elif ds.geometry == "geographic":
-        c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
-        center = display_center = ds.arr([0.0, 0.0, c_r], "code_length")
-        if axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-        else:
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
+        if axis == 0:
             width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
                      2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-            center[2] = 0.0
+        elif axis == 1:
+            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
+                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
+        elif axis == 2:
+            # latitude slice
+            width = ds.arr([360, 180], "code_length")
     else:
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
@@ -1835,8 +1836,8 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
-                 unit_aspect, figure, axes, cax):
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size,
+                 fontsize, aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1855,13 +1856,14 @@ class WindowPlotMPL(ImagePlotMPL):
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
+        self._unit_aspect = aspect
 
         size, axrect, caxrect = self._get_best_layout()
 
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':
