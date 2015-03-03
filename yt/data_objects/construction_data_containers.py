@@ -887,10 +887,8 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             dims = np.rint((self.ActiveDimensions * self.dds) / dds).astype("int64")
         else:
             # Give us one buffer
-            # start_index = (np.floor(cell_start).d - 1).astype("int64")
             start_index = np.rint(cell_start.d).astype('int64') - 1
             # How many root cells do we occupy?
-            # end_index = np.ceil(cell_end).d + 1
             end_index = np.rint(cell_end.d).astype('int64')
             dims = end_index - start_index + 1
         return start_index, end_index.astype("int64"), dims.astype("int32")
