@@ -784,35 +784,34 @@ class CastroDataset(BoxlibDataset):
         super(CastroDataset, self)._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, "job_info")
         line = ""
-        with open(jobinfo_filename, "r") as f:
-            while not line.startswith(" Inputs File Parameters"):
-                # boundary condition info starts with -x:, etc.
-                bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
-                if any(b in line for b in bcs):
-                    p, v = line.strip().split(":")
-                    self.parameters[p] = v.strip()
+        try:
+            with open(jobinfo_filename, "r") as f:
+                while not line.startswith(" Inputs File Parameters"):
+                    # boundary condition info starts with -x:, etc.
+                    bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
+                    if any(b in line for b in bcs):
+                        p, v = line.strip().split(":")
+                        self.parameters[p] = v.strip()
+                    line = next(f)
+            
+                # runtime parameters that we overrode follow "Inputs File Parameters"
+                # skip the "====..." line
                 line = next(f)
+                for line in f:
+                    p, v = line.strip().split("=")
+                    self.parameters[p] = v.strip()
+
+        except IOError:
+            sys.exit("error opening job_info file")
             
-            # runtime parameters that we overrode follow "Inputs File Parameters"
-            # skip the "====..." line
-            line = next(f)
-            for line in f:
-                p, v = line.strip().split("=")
-                self.parameters[p] = v.strip()
-            
-            # hydro method is set by the base class -- override it here
-            self.parameters["HydroMethod"] = "Castro"
+        # hydro method is set by the base class -- override it here
+        self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
         periodicity = [True, True, True]
-        if not self.parameters['-x'] == "interior":
-            periodicity[0] = False
-
-        if not self.parameters['-y'] == "interior":
-            periodicity[1] = False
-
-        if not self.parameters['-z'] == "interior":
-            periodicity[2] = False
+        if not self.parameters['-x'] == "interior": periodicity[0] = False
+        if not self.parameters['-y'] == "interior": periodicity[1] = False
+        if not self.parameters['-z'] == "interior": periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
     
