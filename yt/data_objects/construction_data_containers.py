@@ -270,8 +270,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         xd = self.ds.domain_dimensions[xax]
         yd = self.ds.domain_dimensions[yax]
         bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[yax],
-                  self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         bounds, method = self.method)
@@ -347,6 +347,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
+        self.tree = tree
 
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords

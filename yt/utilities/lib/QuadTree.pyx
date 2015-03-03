@@ -107,6 +107,7 @@ cdef class QuadTree:
     cdef np.float64_t bounds[4]
     cdef np.float64_t dds[2]
     cdef np.int64_t last_dims[2]
+    cdef int max_level
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, bounds, method = "integrate"):
@@ -117,6 +118,7 @@ cdef class QuadTree:
         else:
             raise NotImplementedError
         self.merged = 1
+        self.max_level = 0
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
@@ -251,6 +253,8 @@ cdef class QuadTree:
         node = self.find_on_root_level(pos, level)
         if node == NULL:
             return -1
+        if level > self.max_level:
+            self.max_level = level
         cdef np.int64_t fac
         for L in range(level):
             if node.children[0][0] == NULL:
@@ -452,12 +456,16 @@ cdef class QuadTree:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_image(self, np.ndarray[np.float64_t, ndim=2] buffer, _bounds,
-                   int val_index = 0):
+                   int val_index = 0, int weighted = 0):
         cdef np.float64_t pos[2]
         cdef np.float64_t dds[2]
         cdef int nn[2]
         cdef int i, j
-        cdef np.float64_t bounds[4]
+        cdef np.float64_t bounds[4], opos[4]
+        cdef np.float64_t weight, value = 0.0
+        cdef np.float64_t *wval = NULL
+        if weighted == 1:
+            wval = &weight
         for i in range(4):
             bounds[i] = _bounds[i]
         for i in range(2):
@@ -465,42 +473,64 @@ cdef class QuadTree:
             dds[i] = (bounds[i*2 + 1] - bounds[i*2])/nn[i]
         cdef QuadTreeNode *node
         pos[0] = bounds[0]
+        opos[0] = opos[1] = pos[0] + dds[0]
         for i in range(nn[0]):
             pos[1] = bounds[2]
+            opos[2] = opos[3] = pos[1] + dds[1]
             for j in range(nn[1]):
                 # We start at level zero.  In the future we could optimize by
                 # retaining oct information from previous cells.
-                node = self.find_node_at_pos(pos)
-                buffer[i,j] = node.val[val_index]
+                if not ((opos[0] <= pos[0] <= opos[1]) and
+                        (opos[2] <= pos[1] <= opos[3])):
+                    value = self.find_value_at_pos(pos, val_index,
+                                        opos, wval)
+                buffer[i,j] = value
+                if weighted == 1:
+                    buffer[i,j] /= weight
                 pos[1] += dds[1]
             pos[0] += dds[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef QuadTreeNode *find_node_at_pos(self, np.float64_t pos[2]):
+    cdef np.float64_t find_value_at_pos(self, np.float64_t pos[2],
+                                         int val_index, np.float64_t opos[4],
+                                         np.float64_t *wval = NULL):
+        cdef int i
         cdef np.int64_t ind[2]
         cdef np.float64_t cp[2]
         cdef np.float64_t dds[2]
+        cdef np.float64_t value = 0.0
+        cdef np.float64_t weight = 0.0
         cdef QuadTreeNode *cur
         for i in range(2):
             ind[i] = <np.int64_t> (pos[i]/self.dds[i])
             cp[i] = (ind[i] + 0.5) * self.dds[i]
             dds[i] = self.dds[i]
         cur = self.root_nodes[ind[0]][ind[1]]
+        value += cur.val[val_index]
+        weight += cur.weight_val
         while cur.children[0][0] != NULL:
             for i in range(2):
                 # Note that below offset by half a dx for center, after
                 # updating to the next level
-                dds[i] = dds[i] / 2.0
-                if cp[i] < pos[i]:
+                dds[i] = dds[i] * 0.5
+                if cp[i] >= pos[i]:
                     ind[i] = 0
-                    cp[i] -= dds[i] / 2.0
+                    cp[i] -= dds[i] * 0.5
                 else:
                     ind[i] = 1
-                    cp[i] += dds[i] / 2.0
+                    cp[i] += dds[i] * 0.5
             cur = cur.children[ind[0]][ind[1]]
-        return cur
+            value += cur.val[val_index]
+            weight += cur.weight_val
+        opos[0] = cp[0] - dds[0] * 0.5
+        opos[1] = cp[0] + dds[0] * 0.5
+        opos[2] = cp[1] - dds[1] * 0.5
+        opos[3] = cp[1] + dds[1] * 0.5
+        if wval != NULL:
+            wval[0] = weight
+        return value
 
     def __dealloc__(self):
         cdef int i, j
