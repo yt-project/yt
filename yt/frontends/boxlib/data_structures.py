@@ -784,25 +784,23 @@ class CastroDataset(BoxlibDataset):
         super(CastroDataset, self)._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, "job_info")
         line = ""
-        try:
-            with open(jobinfo_filename, "r") as f:
-                while not line.startswith(" Inputs File Parameters"):
-                    # boundary condition info starts with -x:, etc.
-                    bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
-                    if any(b in line for b in bcs):
-                        p, v = line.strip().split(":")
-                        self.parameters[p] = v.strip()
-                    line = next(f)
-            
-                # runtime parameters that we overrode follow "Inputs File Parameters"
-                # skip the "====..." line
-                line = next(f)
-                for line in f:
-                    p, v = line.strip().split("=")
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" Inputs File Parameters"):
+                # boundary condition info starts with -x:, etc.
+                bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
+                if any(b in line for b in bcs):
+                    p, v = line.strip().split(":")
                     self.parameters[p] = v.strip()
+                line = next(f)
+            
+            # runtime parameters that we overrode follow "Inputs File
+            # Parameters"
+            # skip the "====..." line
+            line = next(f)
+            for line in f:
+                p, v = line.strip().split("=")
+                self.parameters[p] = v.strip()
 
-        except IOError:
-            sys.exit("error opening job_info file")
             
         # hydro method is set by the base class -- override it here
         self.parameters["HydroMethod"] = "Castro"
