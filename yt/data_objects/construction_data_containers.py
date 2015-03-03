@@ -877,15 +877,20 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         LL = self.left_edge - self.ds.domain_left_edge
         # Nudge in case we're on the edge
         LL += LL.uq * np.finfo(np.float64).eps
-        cell_start = LL / dds # This is the cell we're inside.
-        # Give us one buffer
-        start_index = (np.floor(cell_start).d - 1).astype("int64")
-        # How many root cells do we occupy?
         LS = self.right_edge - self.ds.domain_left_edge
-        LS += LL.uq * np.finfo(np.float64).eps
+        LS += LS.uq * np.finfo(np.float64).eps
+        cell_start = LL / dds  # This is the cell we're inside
         cell_end = LS / dds
-        end_index = np.ceil(cell_end).d + 1
-        dims = end_index - start_index + 1
+        if self.level == 0:
+            start_index = np.array(np.floor(cell_start), dtype="int64")
+            end_index = np.array(np.ceil(cell_end), dtype="int64")
+            dims = np.rint((self.ActiveDimensions * self.dds) / dds).astype("int64")
+        else:
+            # Give us one buffer
+            start_index = (np.floor(cell_start).d - 1).astype("int64")
+            # How many root cells do we occupy?
+            end_index = np.ceil(cell_end).d + 1
+            dims = end_index - start_index + 1
         return start_index, end_index.astype("int64"), dims.astype("int32")
 
     def _update_level_state(self, level_state):
