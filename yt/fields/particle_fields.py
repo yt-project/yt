@@ -387,7 +387,7 @@ def standard_particle_fields(registry, ptype,
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         pos = pos.T
         L, pos = modify_reference_frame(center, normal, P=pos)
-        return pos
+        return pos.T
 
     registry.add_field(
         (ptype, "particle_position_relative"),
@@ -487,7 +487,7 @@ def standard_particle_fields(registry, ptype,
         vel = vel - np.reshape(bv, (3, 1))
         vel = vel.T
         L, vel = modify_reference_frame(center, normal, V=vel)
-        return vel
+        return vel.T
 
     registry.add_field((ptype, "particle_velocity_relative"),
               function=_particle_velocity_relative,
@@ -561,7 +561,7 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         vel = svel
         vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        bv = vel = np.reshape(bv, (3, 1))
+        bv = vel - np.reshape(bv, (3, 1))
         vel = vel.T
         L, vel = modify_reference_frame(center, normal, V=vel)
         vel = vel.T
@@ -617,7 +617,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_position_theta"),
               function=_particle_spherical_position_theta,
-              particle_type=True, units="cm",
+              particle_type=True, units="",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 

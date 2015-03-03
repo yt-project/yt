@@ -72,8 +72,11 @@ class IOHandlerStream(BaseIOHandler):
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
                 for ptype, field_list in sorted(ptf.items()):
-                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
-                                for ax in 'xyz')
+                    if (ptype, "particle_position") in gf:
+                        x, y, z = gf[ptype, "particle_position"].T
+                    else:
+                        x, y, z = (gf[ptype, "particle_position_%s" % ax] for
+                                   ax in 'xyz')
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -83,8 +86,11 @@ class IOHandlerStream(BaseIOHandler):
                 if g.NumberOfParticles == 0: continue
                 gf = self.fields[g.id]
                 for ptype, field_list in sorted(ptf.items()):
-                    x, y, z  = (gf[ptype, "particle_position_%s" % ax]
-                                for ax in 'xyz')
+                    if (ptype, "particle_position") in gf:
+                        x, y, z = gf[ptype, "particle_position"].T
+                    else:
+                        x, y, z = (gf[ptype, "particle_position_%s" % ax] for
+                                   ax in 'xyz')
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
