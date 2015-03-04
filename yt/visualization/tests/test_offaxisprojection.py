@@ -49,7 +49,7 @@ def test_oap(tmpdir=True):
     oap_kwargs = {}
     oap_kwargs['weight'] = (None, 'cell_mass')
     oap_kwargs['no_ghost'] = (True, False)
-    oap_kwargs['interpolated'] = (True, False)
+    oap_kwargs['interpolated'] = (False,)
     oap_kwargs['north_vector'] = ((1,0,0), (0,0.5,1.0))
     oap_kwargs_list = expand_keywords(oap_kwargs)
 

@@ -536,6 +536,27 @@ class Camera(ParallelAnalysisInterface):
         self.orienter.switch_orientation(normal_vector=normal_vector,
                                          north_vector = north_vector)
 
+    def switch_orientation(self, normal_vector=None, north_vector=None):
+        r"""
+        Change the view direction based on any of the orientation parameters.
+
+        This will recalculate all the necessary vectors and vector planes
+        related to an orientable object.
+
+        Parameters
+        ----------
+        normal_vector: array_like, optional
+            The new looking vector.
+        north_vector : array_like, optional
+            The 'up' direction for the plane of rays.  If not specific,
+            calculated automatically.
+        """
+        if north_vector is None:
+            north_vector = self.north_vector
+        if normal_vector is None:
+            normal_vector = self.normal_vector
+        self.orienter._setup_normalized_vectors(normal_vector, north_vector)
+
     def switch_view(self, normal_vector=None, width=None, center=None, north_vector=None):
         r"""Change the view based on any of the view parameters.
 
@@ -566,7 +587,7 @@ class Camera(ParallelAnalysisInterface):
             north_vector = self.orienter.north_vector
         if normal_vector is None:
             normal_vector = self.orienter.normal_vector
-        self.orienter.switch_orientation(normal_vector = normal_vector,
+        self.switch_orientation(normal_vector = normal_vector,
                                          north_vector = north_vector)
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
         
@@ -1516,6 +1537,7 @@ class FisheyeCamera(Camera):
         self.light_rgba = None
         if rotation is None: rotation = np.eye(3)
         self.rotation_matrix = rotation
+        self.no_ghost = no_ghost
         if ds is not None: self.ds = ds
         self.center = np.array(center, dtype='float64')
         self.radius = radius
@@ -1527,12 +1549,16 @@ class FisheyeCamera(Camera):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         if fields is None: fields = ["density"]
+        dd = self.ds.all_data()
+        fields = dd._determine_fields(fields)
         self.fields = fields
-        self.sub_samples = sub_samples
+        if log_fields is None:
+            log_fields = [self.ds._get_field_info(*f).take_log for f in fields]
         self.log_fields = log_fields
+        self.sub_samples = sub_samples
         if volume is None:
-            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
+            volume = AMRKDTree(self.ds)
+            volume.set_fields(fields, log_fields, no_ghost)
         self.volume = volume
 
     def get_information(self):
