@@ -72,7 +72,7 @@ def test_ghost_zone_extrapolation():
     for i, ax in enumerate('xyz'):
         xc = g[ax]
 
-        xv = g.get_vertex_centered_data("x", no_ghost=True)
+        xv = g.get_vertex_centered_data(ax, no_ghost=True)
         tf = lin.TrilinearFieldInterpolator(xc,
                 (g.LeftEdge[0] + g.dds[0]/2.0,
                     g.RightEdge[0] - g.dds[0]/2.0,
