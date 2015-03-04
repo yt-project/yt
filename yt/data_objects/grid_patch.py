@@ -265,7 +265,9 @@ class AMRGridPatch(YTSelectionContainer):
         new_field = np.zeros(self.ActiveDimensions + 1, dtype='float64')
 
         if no_ghost:
-            old_field = self[field]
+            # Ensure we have the native endianness in this array.  Avoid making
+            # a copy if possible.
+            old_field = np.asarray(self[field], dtype="=f8")
             # We'll use the ghost zone routine, which will naturally
             # extrapolate here.
             input_left = np.array([0.5, 0.5, 0.5], dtype="float64")
