@@ -15,7 +15,7 @@ from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, \
     create_sky_wcs
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
 import yt.units.dimensions as ytdims
@@ -185,12 +185,12 @@ class PPVCube(object):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
-                buf = off_axis_projection(ds, self.center, normal, width,
+                buf, sc = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny, depth_res), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
-                                          method=method).swapaxes(0,1)
+                                          method=method)
             sto.result_id = i
-            sto.result = buf
+            sto.result = buf.swapaxes(0,1)
             pbar.update(i)
         pbar.finish()
 
