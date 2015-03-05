@@ -210,8 +210,8 @@ There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
 
   1. Wavelength :math:`(\text{\AA})`
-  2. Flux (Luminosity per unit wavelength, :math:`(\mathrm{\rm{L}_\odot / \text{\AA}})`, where 
-       :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^{33}\, \mathrm{ergs / s}`).
+  2. Flux (Luminosity per unit wavelength, :math:`(\mathrm{\rm{L}_\odot} / \text{\AA})`, where 
+       :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^{33}\, \mathrm{ergs / s}` ).
 
 and can be called simply, specifying the output file:
 
