@@ -208,7 +208,6 @@ class PlotWindow(ImagePlotContainer):
             self.ds = data_source.ds
             ts = self._initialize_dataset(self.ds)
             self.ts = ts
-        self._initfinished = False
         self._axes_unit_names = None
         self.center = None
         self._periodic = periodic
@@ -242,23 +241,6 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._setup_plots()
-        self._initfinished = True
-
-    _frb = None
-    def frb():
-        doc = "The frb property."
-        def fget(self):
-            if self._frb is None:
-                self._frb = {}
-                self._recreate_frb()
-            return self._frb
-        def fset(self, value):
-            self._frb = value
-        def fdel(self):
-            del self._frb
-            self._frb = None
-        return locals()
-    frb = property(**frb())
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
@@ -277,11 +259,32 @@ class PlotWindow(ImagePlotContainer):
             self._switch_ds(ds)
             yield self
 
+    _frb = None
+    def frb():
+        doc = "The frb property."
+        def fget(self):
+            if self._frb is None:
+                self._recreate_frb()
+            return self._frb
+
+        def fset(self, value):
+            self._frb = value
+
+        def fdel(self):
+            del self._frb
+            self._frb = None
+
+        return locals()
+    frb = property(**frb())
+
     def _recreate_frb(self):
         old_fields = None
-        if self.frb is not None:
+        # If we are regenerating an frb, we want to know what fields we had before
+        if self._frb is not None:
             old_fields = self.frb.keys()
             old_units = [str(self.frb[of].units) for of in old_fields]
+
+        # Set the bounds
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
@@ -289,17 +292,23 @@ class PlotWindow(ImagePlotContainer):
         if self._frb_generator is ObliqueFixedResolutionBuffer:
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
-        self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
-                                       self.antialias, periodic=self._periodic)
-        if old_fields is None:
-            self.frb._get_data_source_fields()
-        else:
-            for key, unit in zip(old_fields, old_units):
-                self.frb[key]
-                self.frb[key].convert_to_units(unit)
-        for key in self.override_fields:
-            self.frb[key]
+        # Generate the FRB
+        self._frb = self._frb_generator(self.data_source, bounds, self.buff_size,
+                                    self.antialias, periodic=self._periodic)
+
+        # At this point the frb has the valid bounds, size, aliasing, etc.
         self._data_valid = True
+        if old_fields is None:
+            self._frb._get_data_source_fields()
+        else:
+            # Restore the old fields
+            for key, unit in zip(old_fields, old_units):
+                self._frb[key]
+                self._frb[key].convert_to_units(unit)
+
+        # Restore the override fields
+        for key in self.override_fields:
+            self._frb[key]
 
     @property
     def width(self):
@@ -713,6 +722,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        if self._plot_valid: return
         self._colorbar_valid = True
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis

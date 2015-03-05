@@ -68,7 +68,7 @@ def invalidate_plot(f):
 def validate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        if not args[0]._data_valid:
+        if not args[0]._data_valid and hasattr(args[0], '_recreate_frb'):
             args[0]._recreate_frb()
         if not args[0]._plot_valid:
             args[0]._setup_plots()
@@ -415,7 +415,6 @@ class ImagePlotContainer(object):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
-        self._recreate_frb()
         self._setup_plots()
 
     @validate_plot
