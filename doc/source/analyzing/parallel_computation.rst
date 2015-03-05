@@ -92,7 +92,7 @@ in the simulation and then makes a plot of the projected density:
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
-finding of the maximum density and the projection will be calulcated in
+finding of the maximum density and the projection will be calculated in
 parallel.  If we save the script as ``my_script.py``, we would run it on 16 MPI
 processes using the following Bash command:
 
