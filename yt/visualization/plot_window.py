@@ -36,7 +36,8 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
-    invalidate_data, invalidate_plot, apply_callback
+    invalidate_data, invalidate_plot, apply_callback, \
+    validate_plot
 
 from yt.data_objects.time_series import \
     DatasetSeries
@@ -199,7 +200,7 @@ class PlotWindow(ImagePlotContainer):
         including the margins but not the colorbar.
 
     """
-    frb = None
+    _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False, 
                  window_size=8.0, fields=None, fontsize=18, aspect=None, 
@@ -234,7 +235,7 @@ class PlotWindow(ImagePlotContainer):
                 self.data_source.center, ax)
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
-        for field in self.data_source._determine_fields(self.frb.data.keys()):
+        for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -242,6 +243,12 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._initfinished = True
+
+    @property
+    def frb(self):
+        if self._frb is None:
+            self._recreate_frb()
+        return self._frb
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
@@ -262,9 +269,9 @@ class PlotWindow(ImagePlotContainer):
 
     def _recreate_frb(self):
         old_fields = None
-        if self.frb is not None:
-            old_fields = self.frb.keys()
-            old_units = [str(self.frb[of].units) for of in old_fields]
+        if self._frb is not None:
+            old_fields = self._frb.keys()
+            old_units = [str(self._frb[of].units) for of in old_fields]
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
@@ -272,16 +279,16 @@ class PlotWindow(ImagePlotContainer):
         if self._frb_generator is ObliqueFixedResolutionBuffer:
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
-        self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
+        self._frb = self._frb_generator(self.data_source, bounds, self.buff_size,
                                        self.antialias, periodic=self._periodic)
         if old_fields is None:
-            self.frb._get_data_source_fields()
+            self._frb._get_data_source_fields()
         else:
             for key, unit in zip(old_fields, old_units):
-                self.frb[key]
-                self.frb[key].convert_to_units(unit)
+                self._frb[key]
+                self._frb[key].convert_to_units(unit)
         for key in self.override_fields:
-            self.frb[key]
+            self._frb[key]
         self._data_valid = True
 
     @property
@@ -617,14 +624,6 @@ class PlotWindow(ImagePlotContainer):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
-
-    @property
-    def _frb(self):
-        # Note we use SyntaxWarning because DeprecationWarning is not shown
-        # by default
-        warnings.warn("_frb is deprecated, use frb instead.",
-                      SyntaxWarning)
-        return self.frb
 
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.

@@ -35,26 +35,12 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
-def ensure_callbacks(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        try:
-            args[0].run_callbacks()
-        except NotImplementedError:
-            pass
-        return f(*args, **kwargs)
-    return newfunc
-
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._data_valid = False
         args[0]._plot_valid = False
-        if hasattr(args[0], '_recreate_frb'):
-            args[0]._recreate_frb()
-        if args[0]._initfinished:
-            args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -76,10 +62,19 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
-        args[0]._setup_plots()
         return rv
     return newfunc
 
+def validate_plot(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        if not args[0]._plot_valid:
+            args[0]._setup_plots()
+            args[0]._recreate_frb()
+            args[0].run_callbacks()
+        rv = f(*args, **kwargs)
+        return rv 
+    return newfunc
 
 def apply_callback(f):
     @wraps(f)
@@ -422,6 +417,7 @@ class ImagePlotContainer(object):
         self._recreate_frb()
         self._setup_plots()
 
+    @validate_plot
     def __getitem__(self, item):
         return self.plots[item]
 
@@ -536,7 +532,7 @@ class ImagePlotContainer(object):
         self.figure_size = float(size)
         return self
 
-    @ensure_callbacks
+    @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         """saves the plot to disk.
 
@@ -599,6 +595,7 @@ class ImagePlotContainer(object):
         # invalidate_data will take care of everything
         return self
 
+    @validate_plot
     def _send_zmq(self):
         try:
             # pre-IPython v1.0
@@ -612,6 +609,7 @@ class ImagePlotContainer(object):
             canvas = FigureCanvasAgg(v.figure)  # NOQA
             display(v.figure)
 
+    @validate_plot
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
 
@@ -640,6 +638,7 @@ class ImagePlotContainer(object):
         else:
             raise YTNotInsideNotebook
 
+    @validate_plot
     def display(self, name=None, mpl_kwargs=None):
         """Will attempt to show the plot in in an IPython notebook.
         Failing that, the plot will be saved to disk."""
@@ -648,7 +647,7 @@ class ImagePlotContainer(object):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    @ensure_callbacks
+    @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
