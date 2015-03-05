@@ -22,7 +22,7 @@ render_source = sc.get_source(0)
 render_source.transfer_function.clear()
 # Map a range of density values (in log space) to the Reds_r colormap
 render_source.transfer_function.map_to_colormap(
-        np.log10(ds.quan(1.0e-30, 'g/cm**3')),
-        np.log10(ds.quan(1.0e-26, 'g/cm**3')),
-        scale=10.0, colormap='Reds_r')
+        np.log10(ds.quan(5.0e-31, 'g/cm**3')),
+        np.log10(ds.quan(1.0e-29, 'g/cm**3')),
+        scale=30.0, colormap='RdBu_r')
 im = sc.render(fname='new_tf.png', clip_ratio=None)
