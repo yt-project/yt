@@ -5,14 +5,6 @@ Star Particle Analysis
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.6
 
-.. note:: 
-
-    As of :code:`yt-3.0`, the star particle analysis module is not currently
-    functional.  This functionality is still available in :code:`yt-2.x`.  If
-    you would like to use these features in :code:`yt-3.x`, help is needed to
-    port them over.  Contact the yt-users mailing list if you are interested in
-    doing this.
-
 This document describes tools in yt for analyzing star particles.
 The Star Formation Rate tool bins stars by time to produce star formation
 statistics over several metrics.
@@ -50,11 +42,12 @@ simulation volume with radius 10% the box size:
   sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
   sfr = StarFormationRate(ds, data_source=sp)
 
-If the stars to be analyzed cannot be defined by a data_source, arrays can be
-passed. In this case, the units for the ``star_mass`` must be in Msun,
-the ``star_creation_time`` in code units, and the volume must be specified
-in mpc as a float
-(but it doesn't have to be correct depending on which statistic is important).
+If the stars to be analyzed cannot be defined by a ``data_source``, YTArrays can
+be passed. For backward compatibility it is also possible to pass generic numpy
+arrays. In this case, the units for the ``star_mass`` must be in
+:math:`(\mathrm{\rm{M}_\odot})`, the ``star_creation_time`` in code units, and
+the volume must be specified in :math:`(\mathrm{\rm{Mpc}})` as a float (but it
+doesn't have to be correct depending on which statistic is important).
 
 .. code-block:: python
 
@@ -94,13 +87,15 @@ To output the data to a text file, use the command ``.write_out``:
 
 In the file ``StarFormationRate.out``, there are seven columns of data:
 
-  1. Time (yrs)
-  2. Look-back time (yrs)
+  1. Time (yr)
+  2. Look-back time (yr)
   3. Redshift
-  4. Star formation rate in this bin per year (Msol/yr)
-  5. Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
-  6. Stars formed in this time bin (Msol)
-  7. Cumulative stars formed up to this time bin (Msol)
+  4. Star formation rate in this bin per year :math:`(\mathrm{\rm{M}_\odot /
+       \rm{yr}})`
+  5. Star formation rate in this bin per year per Mpc**3
+       :math:`(\mathrm{\rm{M}_\odot / \rm{h} / \rm{Mpc}^3})`
+  6. Stars formed in this time bin :math:`(\mathrm{\rm{M}_\odot})`
+  7. Cumulative stars formed up to this time bin :math:`(\mathrm{\rm{M}_\odot})`
 
 The output is easily plotted. This is a plot for some test data (that may or may not 
 correspond to anything physical) using columns #2 and #4 for the x and y
@@ -141,7 +136,7 @@ This analysis toolkit reads in the B&C data from HDF5 files that have been
 converted from the original ASCII files (available at the link above). The
 HDF5 files are one-quarter the size of the ASCII files, and greatly reduce
 the time required to read the data off disk. The HDF5 files are available from
-the main yt website `here <http://yt-project.org/files/bc03/>`_.
+the main yt website `here <http://yt-project.org/data/bc03.tar.gz>`_.
 Both the Salpeter and Chabrier models have been converted,
 and it is simplest to download all the files to the same location.
 Please read the original B&C sources for information on the differences between
@@ -151,7 +146,7 @@ In order to analyze stars, first the Bruzual & Charlot data tables need to be
 read in from disk. This is accomplished by initializing ``SpectrumBuilder`` and
 specifying the location of the HDF5 files with the ``bcdir`` parameter.
 The models are chosen with the ``model`` parameter, which is either
-"chabrier" or "salpeter".
+*"chabrier"* or *"salpeter"*.
 
 .. code-block:: python
 
@@ -161,7 +156,7 @@ The models are chosen with the ``model`` parameter, which is either
   spec = SpectrumBuilder(ds, bcdir="bc", model="chabrier")
 
 In order to analyze a set of stars, use the ``calculate_spectrum`` command.
-It accepts either a ``data_source``, or a set of arrays with the star 
+It accepts either a ``data_source``, or a set of YTarrays with the star 
 information. Continuing from the above example:
 
 .. code-block:: python
@@ -170,9 +165,7 @@ information. Continuing from the above example:
   sp = ds.sphere(center, (50, "kpc"))
   spec.calculate_spectrum(data_source=sp)
 
-If a subset of stars are desired, call it like this. ``star_mass`` is in units
-of Msun, ``star_creation_time`` and ``star_metallicity_fraction`` in code
-units.
+If a subset of stars are desired, call it like this:
 
 .. code-block:: python
 
@@ -192,6 +185,9 @@ units.
   spec.calculate_spectrum(star_mass=mass_old, star_creation_time=ct_old,
                           star_metallicity_fraction=metal_old)
 
+For backward compatibility numpy arrays can be used instead for ``star_mass``
+(in units :math:`(\mathrm{\rm{M}_\odot})`), ``star_creation_time`` and
+``star_metallicity_fraction`` (in code units).
 Alternatively, when using either a ``data_source`` or individual arrays,
 the option ``star_metallicity_constant`` can be specified to force all the
 stars to have the same metallicity. If arrays are being used, the
@@ -215,8 +211,9 @@ The default is zero, which is equivalent to including all stars.
 There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
 
-  1. Wavelength (Angstrom)
-  2. Flux (Luminosity per unit wavelength, L_sun Ang^-1, L_sun = 3.826 * 10^33 ergs s^-1.)
+  1. Wavelength :math:`(\mathrm{\AA})`
+  2. Flux (Luminosity per unit wavelength, :math:`(\mathrm{\rm{L}_\odot / \AA})`, where 
+       :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^33 \mathrm{ergs / s}`).
 
 and can be called simply, specifying the output file:
 
@@ -230,7 +227,7 @@ which is the wavelength in Angstroms of the flux to normalize the
 distribution to. The default is 5200 Angstroms. This command outputs the data
 in two columns:
 
-  1. Wavelength (Angstrom)
+  1. Wavelength :math:`(\mathrm{\AA})`
   2. Relative flux normalized to the flux at *flux_norm*.
 
 .. code-block:: python
@@ -261,10 +258,10 @@ And the plot:
    :width: 640
    :height: 480
 
-Iterate Over a Number of Haloes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Iterate Over a Number of Halos
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this example below, the haloes for a dataset are found, and the SED is calculated
+In this example below, the halos for a dataset are found, and the SED is calculated
 and written out for each.
 
 .. code-block:: python
@@ -281,12 +278,12 @@ and written out for each.
 
   ds = yt.load("enzo_tiny_cosmology/RD0009/RD0009")
   ds.add_particle_filter('stars')
-  haloes = HaloFinder(ds, dm_only=False)
+  halos = HaloFinder(ds, dm_only=False)
   # Set up the spectrum builder.
   spec = SpectrumBuilder(ds, bcdir="bc", model="salpeter")
 
-  # Iterate over the haloes.
-  for halo in haloes:
+  # Iterate over the halos.
+  for halo in halos:
       sp = halo.get_sphere()
       spec.calculate_spectrum(
           star_mass=sp[("stars", "particle_mass")],
