@@ -350,10 +350,11 @@ class SpectrumBuilder(object):
                            star_metallicity_fraction=None,
                            star_metallicity_constant=None,
                            min_age=YTQuantity(0.0, 'yr')):
+
         r"""For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
         final_spec: The collective spectrum in units of flux binned in
-                    wavelength.
+            wavelength.
         wavelength: The wavelength for the spectrum bins, in Angstroms.
         total_mass: Total mass of all the stars.
         avg_mass: Average mass of all the stars.
@@ -370,7 +371,7 @@ class SpectrumBuilder(object):
             An array of star creation times in code units.
         star_metallicity_fraction : Array or list of floats
             An array of star metallicity fractions, in code
-                units (which is not Z/Zsun, rather just Z).
+            units (which is not Z/Zsun, rather just Z).
         star_metallicity_constant : Float
             If desired, override the star
             metallicity fraction of all the stars to the given value.
@@ -385,7 +386,7 @@ class SpectrumBuilder(object):
         >>> ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
         >>> spec = SpectrumBuilder(ds, "bc", model="salpeter")
         >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
-        >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
+        >>> spec.calculate_spectrum(data_source=sp, min_age=1.e6)
         """
         # Initialize values
         self.final_spec = np.zeros(self.wavelength.size, dtype='float64')
