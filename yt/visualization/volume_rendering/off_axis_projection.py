@@ -113,7 +113,14 @@ def off_axis_projection(data_source, center, normal_vector,
     if interpolated == True:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
 
+
     data_source = data_source_or_all(data_source)
+    # Sanitize units
+    if not hasattr(center, "units"):
+        center = data_source.ds.arr(center, 'code_length')
+    if not hasattr(width, "units"):
+        width = data_source.ds.arr(width, 'code_length')
+
     sc = Scene()
     data_source.ds.index
     if item is None:

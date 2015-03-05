@@ -77,6 +77,7 @@ class VolumeSource(RenderSource):
         #mylog.debug("Entering %s" % str(self))
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
+        field = self.data_source._determine_fields(field)[0]
         self.field = field
         self.volume = None
         self.current_image = None
@@ -308,3 +309,68 @@ class BoxSource(LineSource):
         for i in xrange(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
+
+
+class CoordinateVectorSource(OpaqueSource):
+    """Add coordinate vectors to the scene"""
+    def __init__(self, colors=None, alpha=1.0):
+        super(CoordinateVectorSource, self).__init__()
+        # If colors aren't individually set, make black with full opacity
+        if colors is None:
+            colors =  np.zeros((3, 4))
+            colors[0,0] = alpha # x is red
+            colors[1,1] = alpha # y is green 
+            colors[2,2] = alpha # z is blue 
+            colors[:,3] = alpha
+        self.colors = colors
+        self.color_stride = 2
+
+    def render(self, camera, zbuffer=None):
+        camera.lens.setup_box_properties(camera)
+        center = camera.focus
+        # Get positions at the focus
+        positions = np.zeros([6, 3])
+        positions[:] = center
+
+        # Create vectors in the x,y,z directions
+        for i in range(3):
+            positions[2*i+1, i] += camera.width.d[i] / 16.0
+
+        # Project to the image plane 
+        px, py, dz = camera.lens.project_to_plane(camera, positions)
+        dpx = px[1::2] - px[::2]
+        dpy = py[1::2] - py[::2]
+
+        # Set the center of the coordinates to be in the lower left of the image 
+        lpx = camera.resolution[0] / 8
+        lpy = camera.resolution[1] - camera.resolution[1] / 8 # Upside-downsies
+
+        # Offset the pixels according to the projections above
+        px[ ::2] = lpx
+        px[1::2] = lpx + dpx
+        py[ ::2] = lpy
+        py[1::2] = lpy + dpy
+        dz[:] = 0.0
+        vertices = positions
+
+        # Create a zbuffer if needed 
+        if zbuffer is None:
+            empty = camera.lens.new_image(camera)
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        else:
+            empty = zbuffer.rgba
+            z = zbuffer.z
+
+        # Draw the vectors 
+        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        # Set the new zbuffer
+        self.zbuffer = zbuffer
+        return zbuffer
+
+    def __repr__(self):
+        disp = "<Coordinates Source>"
+        return disp

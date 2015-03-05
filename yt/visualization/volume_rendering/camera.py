@@ -59,7 +59,7 @@ class Camera(Orientation):
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
-            self.width = data_source.ds.domain_width
+            self.width = 1.5*data_source.ds.domain_width
             self.focus = data_source.ds.domain_center
             self.position = data_source.ds.domain_right_edge 
         if auto:

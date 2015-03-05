@@ -1,6 +1,6 @@
 import yt
 import numpy as np
-from yt.visualization.volume_rendering.api import BoxSource
+from yt.visualization.volume_rendering.api import BoxSource, CoordinateVectorSource
 
 # Load the dataset.
 ds = yt.load("Enzo_64/DD0043/data0043")
@@ -21,5 +21,6 @@ im.write_png("%s_vr_grids.png" % ds)
 
 # Here we can draw the coordinate vectors on top of the image by processing
 # it through the camera. Then save it out.
-raise NotImplementedError("Need to implement CoordinateSource")
-sc.add_source(CoordinateVectorSource(ds))
+sc.add_source(CoordinateVectorSource(alpha=0.001))
+im = sc.composite()
+im.write_png("%s_vr_coords.png" % ds)
