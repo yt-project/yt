@@ -90,10 +90,8 @@ In the file ``StarFormationRate.out``, there are seven columns of data:
   1. Time (yr)
   2. Look-back time (yr)
   3. Redshift
-  4. Star formation rate in this bin per year :math:`(\mathrm{\rm{M}_\odot /
-       \rm{yr}})`
-  5. Star formation rate in this bin per year per Mpc**3
-       :math:`(\mathrm{\rm{M}_\odot / \rm{h} / \rm{Mpc}^3})`
+  4. Star formation rate in this bin per year :math:`(\mathrm{\rm{M}_\odot / \rm{yr}})`
+  5. Star formation rate in this bin per year per Mpc**3 :math:`(\mathrm{\rm{M}_\odot / \rm{h} / \rm{Mpc}^3})`
   6. Stars formed in this time bin :math:`(\mathrm{\rm{M}_\odot})`
   7. Cumulative stars formed up to this time bin :math:`(\mathrm{\rm{M}_\odot})`
 
@@ -186,7 +184,7 @@ If a subset of stars are desired, call it like this:
                           star_metallicity_fraction=metal_old)
 
 For backward compatibility numpy arrays can be used instead for ``star_mass``
-(in units :math:`(\mathrm{\rm{M}_\odot})`), ``star_creation_time`` and
+(in units :math:`\mathrm{\rm{M}_\odot}`), ``star_creation_time`` and
 ``star_metallicity_fraction`` (in code units).
 Alternatively, when using either a ``data_source`` or individual arrays,
 the option ``star_metallicity_constant`` can be specified to force all the
@@ -211,9 +209,9 @@ The default is zero, which is equivalent to including all stars.
 There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
 
-  1. Wavelength :math:`(\mathrm{\AA})`
-  2. Flux (Luminosity per unit wavelength, :math:`(\mathrm{\rm{L}_\odot / \AA})`, where 
-       :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^33 \mathrm{ergs / s}`).
+  1. Wavelength :math:`(\text{\AA})`
+  2. Flux (Luminosity per unit wavelength, :math:`(\mathrm{\rm{L}_\odot / \text{\AA}})`, where 
+       :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^33\, \mathrm{ergs / s}`).
 
 and can be called simply, specifying the output file:
 
@@ -227,7 +225,7 @@ which is the wavelength in Angstroms of the flux to normalize the
 distribution to. The default is 5200 Angstroms. This command outputs the data
 in two columns:
 
-  1. Wavelength :math:`(\mathrm{\AA})`
+  1. Wavelength :math:`(\text{\AA})`
   2. Relative flux normalized to the flux at *flux_norm*.
 
 .. code-block:: python
