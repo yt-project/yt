@@ -31,5 +31,5 @@ def write_docstring(f, name, func):
 
 dd = ds.all_data()
 for n,func in sorted(dd.quantities.functions.items()):
-    print n, func
+    print(n, func)
     write_docstring(output, n, func[1])
