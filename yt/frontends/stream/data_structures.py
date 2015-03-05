@@ -416,10 +416,13 @@ def assign_particle_data(ds, pdata) :
     
     if len(ds.stream_handler.fields) > 1:
 
-        try:
-            x, y, z = (pdata["io","particle_position_%s" % ax] for ax in 'xyz')
-        except KeyError:
-            raise KeyError("Cannot decompose particle data without position fields!")
+        if ("io", "particle_position_x") in pdata:
+            x, y, z = (pdata["io", "particle_position_%s" % ax] for ax in 'xyz')
+        elif ("io", "particle_position") in pdata:
+            x, y, z = pdata["io", "particle_position"].T
+        else:
+            raise KeyError(
+                "Cannot decompose particle data without position fields!")
         num_grids = len(ds.stream_handler.fields)
         parent_ids = ds.stream_handler.parent_ids
         num_children = np.zeros(num_grids, dtype='int64')
@@ -449,7 +452,7 @@ def assign_particle_data(ds, pdata) :
     
         pdata.pop("number_of_particles", None) 
         grid_pdata = []
-        for i, pcount in enumerate(particle_grid_count) :
+        for i, pcount in enumerate(particle_grid_count):
             grid = {}
             grid["number_of_particles"] = pcount
             start = particle_indices[i]
@@ -611,7 +614,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
-            if len(data[key].shape) == 1 :
+            if len(data[key].shape) == 1 or key[0] == 'io':
                 if not isinstance(key, tuple):
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
@@ -682,12 +685,17 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     sds = StreamDataset(handler, geometry = geometry)
 
+    check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
+
     # Now figure out where the particles go
-    if number_of_particles > 0 :
-        if ("io", "particle_position_x") not in pdata:
+    if number_of_particles > 0:
+        if all(f not in pdata for f in check_fields):
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"): continue
+                if not hasattr(pdata[f], "shape"):
+                    continue
+                if f == 'number_of_particles':
+                    continue
                 mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
                 pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)

@@ -189,3 +189,10 @@ if __name__=="__main__":
     for i in test_add_particles_random():
         i[0](*i[1:])
     time.sleep(1)
+
+os33 = "snapshot_033/snap_033.0.hdf5"
+@requires_file(os33)
+def test_get_smallest_dx():
+    ds = yt.load(os33)
+    yield assert_equal, ds.index.get_smallest_dx(), \
+        ds.domain_width / (ds.domain_dimensions*2.**(ds.index.max_level))

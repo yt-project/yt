@@ -31,6 +31,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
+from yt.fields.derived_field import \
+    ValidateSpatial
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
@@ -251,15 +253,53 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v):
+    def get_smallest_appropriate_unit(self, v, quantity='distance', 
+                                      return_quantity=False):
+        """
+        Returns the largest whole unit smaller than the YTQuantity passed to 
+        it as a string.
+
+        The quantity keyword can be equal to `distance` or `time`.  In the 
+        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr', 
+        's', 'ms', etc.
+        
+        If return_quantity is set to True, it finds the largest YTQuantity 
+        object with a whole unit and a power of ten as the coefficient, and it 
+        returns this YTQuantity.
+        """
         good_u = None
-        for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
+        if quantity == 'distance':
+            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+                        'km', 'cm', 'um', 'nm', 'pm']
+        elif quantity == 'time':
+            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr', 
+                        'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
+        else:
+            raise SyntaxError("Specified quantity must be equal to 'distance'"\
+                              "or 'time'.")
+        for unit in unit_list:
             uq = self.quan(1.0, unit)
-            if uq < v:
+            if uq <= v:
                 good_u = unit
                 break
-        if good_u is None : good_u = 'cm'
-        return good_u
+        if good_u is None and quantity == 'distance': good_u = 'cm'
+        if good_u is None and quantity == 'time': good_u = 's'
+        if return_quantity:
+            unit_index = unit_list.index(good_u)
+            # This avoids indexing errors
+            if unit_index == 0: return self.quan(1, unit_list[0])
+            # Number of orders of magnitude between unit and next one up
+            OOMs = np.ceil(np.log10(self.quan(1, unit_list[unit_index-1]) /
+                                    self.quan(1, unit_list[unit_index])))
+            # Backwards order of coefficients (e.g. [100, 10, 1])
+            coeffs = 10**np.arange(OOMs)[::-1]
+            for j in coeffs:
+                uq = self.quan(j, good_u)
+                if uq <= v:
+                    return uq
+        else:            
+            return good_u
 
     def has_key(self, key):
         """
@@ -768,6 +808,60 @@ class Dataset(object):
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
+
+    def add_deposited_particle_field(self, deposit_field, method):
+        """Add a new deposited particle field
+
+        Creates a new deposited field based on the particle *deposit_field*.
+
+        Parameters
+        ----------
+
+        deposit_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        method : one of 'count', 'sum', or 'cic'
+           The particle deposition method to use.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+        """
+        self.index
+        if isinstance(deposit_field, tuple):
+            ptype, deposit_field = deposit_field[0], deposit_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ptype, deposit_field].units
+
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle wuantities weighted by particle
+            mass, using cloud-in-cell deposition.
+            """
+            pos = data[ptype, "particle_position"]
+            # get back into density
+            pden = data[ptype, "particle_mass"]
+            top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
+                               method=method)
+            bottom = data.deposit(pos, [pden], method=method)
+            top[bottom == 0] = 0.0
+            bnz = bottom.nonzero()
+            top[bnz] /= bottom[bnz]
+            d = data.ds.arr(top, input_units=units)
+            return d
+        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+        self.add_field(
+            ("deposit", field_name),
+            function=_deposit_field,
+            units=units,
+            take_log=False,
+            validators=[ValidateSpatial()])
+        return ("deposit", field_name)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

@@ -145,6 +145,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       if (oysp < y_min) {yiter[1] = +1; yiterv[1] = period_y;}
       else if (oysp > y_max) {yiter[1] = -1; yiterv[1] = -period_y;}
     }
+    overlap1 = overlap2 = 1.0;
     for(xi = 0; xi < 2; xi++) {
       if(xiter[xi] == 999)continue;
       xsp = oxsp + xiterv[xi];
@@ -160,12 +161,17 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
         for (i=lr;i<rr;i++) {
           lypx = px_dy * i + y_min;
           rypx = px_dy * (i+1) + y_min;
-          overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))*ipx_dy);
+          if (antialias == 1) {
+              overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))*ipx_dy);
+          }
+          if (overlap2 < 0.0) continue;
           for (j=lc;j<rc;j++) {
             lxpx = px_dx * j + x_min;
             rxpx = px_dx * (j+1) + x_min;
-            overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))*ipx_dx);
-            if (overlap1 < 0.0 || overlap2 < 0.0) continue;
+            if (antialias == 1) {
+                overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))*ipx_dx);
+            }
+            if (overlap1 < 0.0) continue;
             if (antialias == 1)
               *(npy_float64*) PyArray_GETPTR2(my_array, j, i) +=
                     (dsp*overlap1)*overlap2;
