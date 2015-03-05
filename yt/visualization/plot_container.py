@@ -129,12 +129,10 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
     """
     if vmin >= 0 or vmax <= 0:
-        raise RuntimeError(
-            '''attempting to set minorticks for
-              a symlog plot with one-sided data:
-              got vmin = %s, vmax = %s''' % (vmin, vmax))
-    return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
-                        get_log_minorticks(linthresh, vmax)) )
+        return get_log_minorticks(vmin, vmax)
+    else:
+        return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                            get_log_minorticks(linthresh, vmax)) )
 
 field_transforms = {}
 
