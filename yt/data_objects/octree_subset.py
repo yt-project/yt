@@ -261,7 +261,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.data_files = ensure_list(data_files)
         if len(self.data_files) != 1:
             raise NotImplementedError
-        self.domain_id = self.data_files[0].file_id
+        self.domain_id = -1
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
