@@ -5,10 +5,11 @@
 # with 8 levels of refinement and only use levels 0-3 to render the dataset.
 
 # Currently this cookbook is flawed in that the data that is covered by the
-# higher resolution data gets masked during the rendering. Therefore images
-# v1-v5 look empty. This should be fixed by changing either the data source
-# or the code in yt/utilities/amr_kdtree.py where data is being masked for
-# the partitioned grid.
+# higher resolution data gets masked during the rendering.  This should be
+# fixed by changing either the data source or the code in
+# yt/utilities/amr_kdtree.py where data is being masked for the partitioned
+# grid.  Right now the quick fix is to create a data_collection, but this
+# will only work for patch based simulations that have ds.index.grids.
 
 # We begin by loading up yt, and importing the AMRKDTree
 import numpy as np
@@ -28,7 +29,8 @@ kd=render_source.volume
 print "Total volume of all bricks = %i" % kd.count_volume()
 print "Total number of cells = %i" % kd.count_cells()
 
-kd_low_res = AMRKDTree(ds, max_level=3)
+new_source = ds.data_collection([g for g in ds.index.grids if g.Level <= 3])
+kd_low_res = AMRKDTree(ds, data_source=new_source)
 print kd_low_res.count_volume()
 print kd_low_res.count_cells()
 
@@ -59,11 +61,11 @@ sc.render("v3.png", clip_ratio=6.0)
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
               alpha=10.0 * np.ones(4, dtype='float64'), colormap='RdBu_r')
-sc.render("v5.png", clip_ratio=6.0)
+sc.render("v4.png", clip_ratio=6.0)
 #
 ## This looks pretty good, now lets go back to the full resolution AMRKDTree
 #
 render_source.set_volume(kd)
-sc.render("v6.png", clip_ratio=6.0)
+sc.render("v5.png", clip_ratio=6.0)
 
 # This looks great!
