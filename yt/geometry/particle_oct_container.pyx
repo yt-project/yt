@@ -106,7 +106,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def allocate_domains(self, domain_counts):
         pass
 
-    def finalize(self):
+    def finalize(self, int domain_id = 0):
         #This will sort the octs in the oct list
         #so that domains appear consecutively
         #And then find the oct index/offset for
@@ -125,7 +125,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
-            self.oct_list[i].domain = 0
+            self.oct_list[i].domain = domain_id
             self.oct_list[i].file_ind = -1
         self.max_level = max_level
 

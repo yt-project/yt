@@ -196,7 +196,9 @@ cdef class ParticleSmoothOperation:
             for j in range(3):
                 pos[j] = positions[i, j]
             oct = particle_octree.get(pos)
-            if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
+            if oct == NULL:
+                continue
+            if oct.domain > -1 and domain_id > 0 and oct.domain != domain_id:
                 continue
             # Note that this has to be our local index, not our in-file index.
             # This is the particle count, which we'll use once we have sorted

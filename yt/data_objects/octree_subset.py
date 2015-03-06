@@ -179,7 +179,7 @@ class OctreeSubset(YTSelectionContainer):
                 over_refine = self._oref)
             particle_octree.n_ref = nneighbors / 2
             particle_octree.add(morton)
-            particle_octree.finalize()
+            particle_octree.finalize(-1)
             pdom_ind = particle_octree.domain_ind(self.selector)
         else:
             particle_octree = self.oct_handler
