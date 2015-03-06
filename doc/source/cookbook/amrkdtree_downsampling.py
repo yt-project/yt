@@ -4,6 +4,12 @@
 # In this example we will show how to use the AMRKDTree to take a simulation
 # with 8 levels of refinement and only use levels 0-3 to render the dataset.
 
+# Currently this cookbook is flawed in that the data that is covered by the
+# higher resolution data gets masked during the rendering. Therefore images
+# v1-v5 look empty. This should be fixed by changing either the data source
+# or the code in yt/utilities/amr_kdtree.py where data is being masked for
+# the partitioned grid.
+
 # We begin by loading up yt, and importing the AMRKDTree
 import numpy as np
 
@@ -14,7 +20,7 @@ from yt.utilities.amr_kdtree.api import AMRKDTree
 ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 im, sc = yt.volume_render(ds, 'density', fname='v0.png')
 cam = sc.get_default_camera()
-cam.set_width(ds.arr(1, 'Mpc'))
+cam.set_width(ds.arr(100, 'kpc'))
 render_source = sc.get_source(0)
 kd=render_source.volume
 
