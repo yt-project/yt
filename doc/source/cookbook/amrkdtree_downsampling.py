@@ -29,7 +29,8 @@ kd=render_source.volume
 print "Total volume of all bricks = %i" % kd.count_volume()
 print "Total number of cells = %i" % kd.count_cells()
 
-new_source = ds.data_collection([g for g in ds.index.grids if g.Level <= 3])
+new_source = ds.all_data()
+new_source.max_level=3
 kd_low_res = AMRKDTree(ds, data_source=new_source)
 print kd_low_res.count_volume()
 print kd_low_res.count_cells()

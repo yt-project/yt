@@ -231,7 +231,7 @@ class SZProjection(object):
             sigma1, _sc  = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")/dens
             sigma1       = sigma1/Te - bpar
             kappa1, _sc  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")/dens
-            kappa1,     -= bpar
+            kappa1      -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
             sigma1 = np.zeros((nx,nx))
