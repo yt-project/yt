@@ -30,7 +30,8 @@ from io import BytesIO
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
-    log_transform, linear_transform, get_log_minorticks
+    log_transform, linear_transform, get_log_minorticks, \
+    validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
 from yt.utilities.exceptions import \
@@ -57,15 +58,6 @@ def get_canvas(name):
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
-
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._plot_valid = False
-        args[0]._setup_plots()
-        return rv
-    return newfunc
 
 class FigureContainer(dict):
     def __init__(self):
@@ -229,6 +221,7 @@ class ProfilePlot(object):
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
+    @validate_plot
     def save(self, name=None, suffix=None):
         r"""
         Saves a 1d profile plot.
@@ -278,6 +271,7 @@ class ProfilePlot(object):
             canvas.print_figure(fns[-1])
         return fns
 
+    @validate_plot
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
 
@@ -307,6 +301,7 @@ class ProfilePlot(object):
         else:
             raise YTNotInsideNotebook
 
+    @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
@@ -805,6 +800,7 @@ class PhasePlot(ImagePlotContainer):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
+        if self._plot_valid: return
         for f, data in self.profile.items():
             fig = None
             axes = None
@@ -965,6 +961,7 @@ class PhasePlot(ImagePlotContainer):
             self._text_kwargs[f] = text_kwargs
         return self
 
+    @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.

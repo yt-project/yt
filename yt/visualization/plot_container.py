@@ -68,7 +68,9 @@ def invalidate_plot(f):
 def validate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        if not args[0]._data_valid and hasattr(args[0], '_recreate_frb'):
+        if hasattr(args[0], '_data_valid') and \
+                not args[0]._data_valid and \
+                hasattr(args[0], '_recreate_frb'):
             args[0]._recreate_frb()
         if not args[0]._plot_valid:
             args[0]._setup_plots()

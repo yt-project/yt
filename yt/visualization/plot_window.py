@@ -293,8 +293,9 @@ class PlotWindow(ImagePlotContainer):
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
         # Generate the FRB
-        self._frb = self._frb_generator(self.data_source, bounds, self.buff_size,
-                                    self.antialias, periodic=self._periodic)
+        self._frb = self._frb_generator(self.data_source, bounds,
+                                        self.buff_size, self.antialias,
+                                        periodic=self._periodic)
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
         self._data_valid = True
