@@ -98,10 +98,7 @@ class Scene(object):
         build a default camera. If no useful source is
         available, create a default Camera at 1,1,1 in the
         1,0,0 direction"""
-        for k, source in self.sources.iteritems():
-            cam = source.get_default_camera()
-            if cam is not None:
-                break
+        cam = self.default_camera
         if cam is None:
             cam = Camera()
         self.default_camera = cam

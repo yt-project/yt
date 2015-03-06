@@ -110,8 +110,13 @@ class Camera(Orientation):
         self._moved = True
 
     def set_width(self, width):
+        """This must have been created using ds.arr"""
+        assert isinstance(width, YTArray), 'Width must be created with ds.arr'
+        if isinstance(width, YTArray):
+            width = width.in_units('code_length')
+
         if not iterable(width):
-            width = YTArray([width]*3)  # Can't get code units.
+            width = YTArray([width.d]*3, width.units )  # Can't get code units.
         self.width = width
         self.switch_orientation()
 
