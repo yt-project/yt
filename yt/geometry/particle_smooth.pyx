@@ -17,6 +17,7 @@ Particle smoothing in cells
 cimport numpy as np
 import numpy as np
 from libc.stdlib cimport malloc, free, realloc
+from libc.string cimport memmove
 cimport cython
 from libc.math cimport sqrt, fabs, sin, cos
 
@@ -52,9 +53,9 @@ cdef np.float64_t r2dist(np.float64_t ppos[3],
         DR = (ppos[i] - cpos[i])
         if not periodicity[i]:
             pass
-        elif (DR > DW[i]/2.0):
+        elif (DR > DW[i]*0.5):
             DR -= DW[i]
-        elif (DR < -DW[i]/2.0):
+        elif (DR < -DW[i]*0.5):
             DR += DW[i]
         r2 += DR * DR
         if max_dist2 >= 0.0 and r2 > max_dist2:
@@ -319,30 +320,21 @@ cdef class ParticleSmoothOperation:
                       Neighbor_compare)
             return
         # This will go (curn - 1) through 0.
-        r2_o = self.neighbors[self.curn - 1].r2
         r2_c = r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
         # Early terminate
         if r2_c < 0: return
         pn_c = pn
-        for i in range((self.curn - 1), -1, -1):
-            # First we evaluate against i.  If our candidate radius is greater
-            # than the one we're inspecting, we quit.
-            cur = &self.neighbors[i]
-            r2_o = cur.r2
-            pn_o = cur.pn
-            if r2_c >= r2_o:
-                break
-            # Now we know we need to swap them.  First we assign our candidate
-            # values to cur.
-            cur.r2 = r2_c
-            cur.pn = pn_c
-            if i + 1 >= self.maxn:
-                continue # No swapping
-            cur = &self.neighbors[i + 1]
-            cur.r2 = r2_o
-            cur.pn = pn_o
-        # At this point, we've evaluated all the particles and we should have a
-        # sorted set of values.  So, we're done.
+        i = self.curn - 1
+        while i > 0 and self.neighbors[i].r2 > r2_c:
+            i -= 1
+        # i is now our insertion point
+        #print "COPYING", i, self.curn, self.curn - (i + 1)
+        if i + 1 < self.curn:
+            memmove(<void *> (&self.neighbors + i + 1),
+                    <void *> (&self.neighbors + i), 
+                    sizeof(NeighborList) * (self.curn - (i + 1)))
+        self.neighbors[i].r2 = r2_c
+        self.neighbors[i].pn = pn_c
 
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
