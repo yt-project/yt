@@ -300,7 +300,7 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3]):
         cdef NeighborList *cur
-        cdef int i
+        cdef int i, j
         # _c means candidate (what we're evaluating)
         # _o means other (the item in the list)
         cdef np.float64_t r2_c, r2_o
@@ -324,17 +324,16 @@ cdef class ParticleSmoothOperation:
         # Early terminate
         if r2_c < 0: return
         pn_c = pn
-        i = self.curn - 1
-        while i > 0 and self.neighbors[i].r2 > r2_c:
-            i -= 1
-        # i is now our insertion point
-        #print "COPYING", i, self.curn, self.curn - (i + 1)
-        if i + 1 < self.curn:
-            memmove(<void *> (&self.neighbors + i + 1),
-                    <void *> (&self.neighbors + i), 
-                    sizeof(NeighborList) * (self.curn - (i + 1)))
-        self.neighbors[i].r2 = r2_c
-        self.neighbors[i].pn = pn_c
+        # http://jeffreystedfast.blogspot.com/2007/02/insertion-sort.html
+        # just for clarity, using j here
+        j = 0
+        while j >= 0 and self.neighbors[j].r2 > r2_c:
+            j -= 1
+        memmove(self.neighbors + j + 2,
+                self.neighbors + j + 1,
+                sizeof(NeighborList) * ((self.curn - 1) - j))
+        self.neighbors[j].r2 = r2_c
+        self.neighbors[j].pn = pn_c
 
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
