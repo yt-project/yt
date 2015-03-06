@@ -758,6 +758,7 @@ class ProfileND(ParallelAnalysisInterface):
     def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
         self.ds = data_source.ds
+        self.field_map = {}
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
@@ -864,8 +865,7 @@ class ProfileND(ParallelAnalysisInterface):
 
         self.weight = all_weight
         self.weight[blank] = 0.0
-            
-        self.field_map = {}
+
         for i, field in enumerate(fields):
             if self.weight_field is None:
                 self.field_data[field] = \

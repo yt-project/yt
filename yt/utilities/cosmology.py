@@ -361,7 +361,7 @@ class Cosmology(object):
         
         """
         return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
-                       self.omega_curvature * np.sqrt(1 + z) + 
+                       self.omega_curvature * ((1 + z)**2.0) + 
                        self.omega_lambda)
 
     def inverse_expansion_factor(self, z):
