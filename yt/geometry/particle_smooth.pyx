@@ -297,42 +297,39 @@ cdef class ParticleSmoothOperation:
 
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3]):
-        cdef NeighborList *cur
-        cdef int i, j
-        # _c means candidate (what we're evaluating)
-        # _o means other (the item in the list)
-        cdef np.float64_t r2_c, r2_o
-        cdef np.int64_t pn_c, pn_o
-        # If we're less than the maximum number of neighbors, we simply append.
-        # After that, we will sort, and then only compare against the rightmost
-        # entries.
-        if self.curn < self.maxn:
-            cur = &self.neighbors[self.curn]
-            cur.pn = pn
-            cur.r2 = r2dist(ppos, cpos, self.DW, self.periodicity, -1)
-            self.curn += 1
-            if self.curn == self.maxn:
-                # This time we sort it, so that future insertions will be able
-                # to be done in order.
-                qsort(self.neighbors, self.curn, sizeof(NeighborList), 
-                      Neighbor_compare)
+        # Here's a python+numpy simulator of this:
+        # http://paste.yt-project.org/show/5445/
+        cdef int i, di
+        cdef np.float64_t r2, r2_trunc
+        if self.curn == self.maxn:
+            # Truncate calculation if it's bigger than this in any dimension
+            r2_trunc = self.neighbors[self.curn - 1].r2
+        else:
+            # Don't truncate our calculation
+            r2_trunc = -1
+        r2 = r2dist(ppos, cpos, self.DW, self.periodicity, r2_trunc)
+        if r2 < 0:
             return
-        r2_o = self.neighbors[self.curn - 1].r2
-        # This will go (curn - 1) through 0.
-        r2_c = r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
-        # Early terminate
-        if r2_c < 0: return
-        pn_c = pn
-        # http://jeffreystedfast.blogspot.com/2007/02/insertion-sort.html
-        # just for clarity, using j here
-        j = self.curn - 1
-        while j >= 0 and self.neighbors[j].r2 > r2_c:
-            j -= 1
-        memmove(self.neighbors + j + 2,
-                self.neighbors + j + 1,
-                sizeof(NeighborList) * ((self.curn - 2) - j))
-        self.neighbors[j + 1].r2 = r2_c
-        self.neighbors[j + 1].pn = pn_c
+        if self.curn == 0:
+            self.neighbors[0].r2 = r2
+            self.neighbors[0].pn = pn
+            self.curn += 1
+            return
+        # Now insert in a sorted way
+        di = -1
+        for i in range(self.curn - 1, -2, -1):
+            if self.neighbors[i].r2 < r2:
+                di = i
+                break
+        if di >= self.maxn - 1:
+            return
+        memmove(<void *> (&self.neighbors + di + 2),
+                <void *> (&self.neighbors + di + 1),
+                sizeof(NeighborList) * (self.curn - (di + 2)))
+        self.neighbors[i + 1].r2 = r2
+        self.neighbors[i + 1].pn = pn
+        if self.curn < self.maxn:
+            self.curn += 1
 
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
@@ -381,7 +378,7 @@ cdef class ParticleSmoothOperation:
                     self.neighbor_find(nneighbors, nind, doffs, pcounts,
                         pinds, ppos, opos)
                     # Now we have all our neighbors in our neighbor list.
-                    if self.curn <-1*self.maxn:
+                    if self.curn < -1*self.maxn:
                         ntot = nntot = 0
                         for m in range(nneighbors):
                             if nind[m] < 0: continue
@@ -405,16 +402,18 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             # ensure mass conservation, then the field we're smoothing.
             raise RuntimeError
         cdef np.ndarray tarr
+        # We allocate room for at least two fields here
         self.fp = <np.float64_t **> malloc(
-            sizeof(np.float64_t *) * (self.nfields - 3))
+            sizeof(np.float64_t *) * (self.nfields - 2))
         self.vals = []
-        for i in range(self.nfields - 3):
+        for i in range(self.nfields - 2):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
             self.vals.append(tarr)
             self.fp[i] = <np.float64_t *> tarr.data
 
     def finalize(self):
         free(self.fp)
+        # vv is the final field, which is weight
         vv = self.vals.pop(-1)
         for v in self.vals:
             v /= vv
@@ -451,9 +450,11 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             if dens == 0.0: continue
             weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
             # Mass of the particle times the value 
+            # We do this for all the non-weight fields
             for fi in range(self.nfields - 3):
                 val = fields[fi + 3][pn]
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
+            # Our final field is the weight field.
             self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] += weight
         return
 
