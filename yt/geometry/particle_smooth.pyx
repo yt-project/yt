@@ -457,7 +457,7 @@ cdef class ParticleSmoothOperation:
             # Don't truncate our calculation
             r2_trunc = -1
         r2 = r2dist(ppos, cpos, self.DW, self.periodicity, r2_trunc)
-        if r2 < 0:
+        if r2 == -1:
             return
         if self.curn == 0:
             self.neighbors[0].r2 = r2
@@ -466,18 +466,21 @@ cdef class ParticleSmoothOperation:
             return
         # Now insert in a sorted way
         di = -1
-        for i in range(self.curn, -1, -1):
+        for i in range(self.curn - 1, -1, -1):
+            # We are checking if i is less than us, to see if we should insert
+            # to the right (i.e., i+1).
             if self.neighbors[i].r2 < r2:
                 di = i
                 break
-        if di >= self.maxn - 1:
+        # The outermost one is already too small.
+        if di == self.maxn - 1:
             return
-        if (self.curn - (di + 2)) > 0:
+        if (self.maxn - (di + 2)) > 0:
             memmove(<void *> (self.neighbors + di + 2),
                     <void *> (self.neighbors + di + 1),
-                    sizeof(NeighborList) * (self.curn - (di + 2)))
-        self.neighbors[i + 1].r2 = r2
-        self.neighbors[i + 1].pn = pn
+                    sizeof(NeighborList) * (self.maxn - (di + 2)))
+        self.neighbors[di + 1].r2 = r2
+        self.neighbors[di + 1].pn = pn
         if self.curn < self.maxn:
             self.curn += 1
 
