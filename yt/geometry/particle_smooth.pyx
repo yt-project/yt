@@ -597,7 +597,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         self.fp = <np.float64_t **> malloc(
             sizeof(np.float64_t *) * (self.nfields - 3))
         self.vals = []
-        for i in range(self.nfields - 2):
+        for i in range(self.nfields - 3):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
             self.vals.append(tarr)
             self.fp[i] = <np.float64_t *> tarr.data
