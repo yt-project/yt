@@ -317,15 +317,16 @@ cdef class ParticleSmoothOperation:
             return
         # Now insert in a sorted way
         di = -1
-        for i in range(self.curn - 1, -2, -1):
+        for i in range(self.curn, -1, -1):
             if self.neighbors[i].r2 < r2:
                 di = i
                 break
         if di >= self.maxn - 1:
             return
-        memmove(<void *> (&self.neighbors + di + 2),
-                <void *> (&self.neighbors + di + 1),
-                sizeof(NeighborList) * (self.curn - (di + 2)))
+        if (self.curn - (di + 2)) > 0:
+            memmove(<void *> (self.neighbors + di + 2),
+                    <void *> (self.neighbors + di + 1),
+                    sizeof(NeighborList) * (self.curn - (di + 2)))
         self.neighbors[i + 1].r2 = r2
         self.neighbors[i + 1].pn = pn
         if self.curn < self.maxn:
