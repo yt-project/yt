@@ -207,8 +207,6 @@ cdef class ParticleSmoothOperation:
             offset = oct.domain_ind - moff_p
             pcount[offset] += 1
             pdoms[i] = offset # We store the *actual* offset.
-            oct = mesh_octree.get(pos)
-            offset = oct.domain_ind - moff_m
         # Now we have oct assignments.  Let's sort them.
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
@@ -300,7 +298,7 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3]):
         cdef NeighborList *cur
-        cdef int i
+        cdef int i, j
         # _c means candidate (what we're evaluating)
         # _o means other (the item in the list)
         cdef np.float64_t r2_c, r2_o
@@ -319,22 +317,22 @@ cdef class ParticleSmoothOperation:
                 qsort(self.neighbors, self.curn, sizeof(NeighborList), 
                       Neighbor_compare)
             return
+        r2_o = self.neighbors[self.curn - 1].r2
         # This will go (curn - 1) through 0.
         r2_c = r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
         # Early terminate
         if r2_c < 0: return
         pn_c = pn
-        i = self.curn - 1
-        while i > 0 and self.neighbors[i].r2 > r2_c:
-            i -= 1
-        # i is now our insertion point
-        #print "COPYING", i, self.curn, self.curn - (i + 1)
-        if i + 1 < self.curn:
-            memmove(<void *> (&self.neighbors + i + 1),
-                    <void *> (&self.neighbors + i), 
-                    sizeof(NeighborList) * (self.curn - (i + 1)))
-        self.neighbors[i].r2 = r2_c
-        self.neighbors[i].pn = pn_c
+        # http://jeffreystedfast.blogspot.com/2007/02/insertion-sort.html
+        # just for clarity, using j here
+        j = self.curn - 1
+        while j >= 0 and self.neighbors[j].r2 > r2_c:
+            j -= 1
+        memmove(self.neighbors + j + 2,
+                self.neighbors + j + 1,
+                sizeof(NeighborList) * ((self.curn - 2) - j))
+        self.neighbors[j + 1].r2 = r2_c
+        self.neighbors[j + 1].pn = pn_c
 
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
@@ -401,7 +399,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     cdef public object vals
     def initialize(self):
         cdef int i
-        if self.nfields < 3:
+        if self.nfields < 4:
             # We need four fields -- the mass should be the first, then the
             # smoothing length for particles, the normalization factor to
             # ensure mass conservation, then the field we're smoothing.
@@ -410,7 +408,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         self.fp = <np.float64_t **> malloc(
             sizeof(np.float64_t *) * (self.nfields - 3))
         self.vals = []
-        for i in range(self.nfields - 2):
+        for i in range(self.nfields - 3):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
             self.vals.append(tarr)
             self.fp[i] = <np.float64_t *> tarr.data
