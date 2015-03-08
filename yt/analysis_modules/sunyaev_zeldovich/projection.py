@@ -221,17 +221,17 @@ class SZProjection(object):
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens  , _sc = off_axis_projection(self.ds, ctr, L, w, nx, "density")
-        Te    , _sc = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")/dens
-        bpar  , _sc = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par")/dens
-        omega1, _sc = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")/dens
-        omega1, _sc = omega1/(Te*Te) - 1.
+        dens   = off_axis_projection(self.ds, ctr, L, w, nx, "density")[0]
+        Te     = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")[0]/dens
+        bpar   = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par"[0])/dens
+        omega1 = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")[0]/dens
+        omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2, _sc  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")/dens
-            sigma1, _sc  = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")/dens
-            sigma1       = sigma1/Te - bpar
-            kappa1, _sc  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")/dens
-            kappa1      -= bpar
+            bperp2 = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")[0]/dens
+            sigma1 = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")[0]/dens
+            sigma1 = sigma1/Te - bpar
+            kappa1 = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")[0]/dens
+            kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
             sigma1 = np.zeros((nx,nx))
