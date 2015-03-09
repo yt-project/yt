@@ -314,7 +314,6 @@ class FieldInfoContainer(dict):
             try:
                 fd = fi.get_dependencies(ds = self.ds)
             except Exception as e:
-                raise
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
