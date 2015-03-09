@@ -13,22 +13,12 @@ def setup():
     global base_ds
     # Make this super teeny tiny
     fields, units = [], []
-    particle_fields, particle_field_units = [], []
-
-    particle_fields = \
-        ['particle_position', 'particle_position_x', 'particle_position_y',
-         'particle_position_z', 'particle_velocity', 'particle_velocity_x',
-         'particle_velocity_y', 'particle_velocity_z', 'particle_mass']
-    particle_field_units = \
-        ['code_length']*4 + ['code_velocity']*4 + ['code_mass']
 
     for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
         fields.append(("gas", fname))
         units.append(code_units)
 
-    base_ds = fake_random_ds(
-        4, fields=fields, units=units, particle_fields=particle_fields,
-        particle_field_units=particle_field_units, particles=10)
+    base_ds = fake_random_ds(4, fields=fields, units=units, particles=10)
 
     base_ds.index
     base_ds.cosmological_simulation = 1
@@ -127,9 +117,9 @@ class TestFieldAccess(object):
         deps = field.get_dependencies(ds = base_ds)
         requested = deps.requested
         particle_fields = \
-            ['particle_position', 'particle_position_x', 'particle_position_y',
-             'particle_position_z', 'particle_velocity', 'particle_velocity_x',
-             'particle_velocity_y', 'particle_velocity_z', 'particle_mass']
+            ['particle_position_x', 'particle_position_y', 'particle_position_z',
+             'particle_velocity_x', 'particle_velocity_y', 'particle_velocity_z',
+             'particle_mass']
         fields = list(_base_fields)
 
         for rf in requested:
@@ -173,7 +163,7 @@ class TestFieldAccess(object):
                 g.field_parameters.update(sp)
                 r1 = field._function(field, g)
                 if field.particle_type:
-                    assert_equal(v1.shape[-1], g.NumberOfParticles)
+                    assert_equal(v1.shape[0], g.NumberOfParticles)
                 else:
                     assert_array_equal(r1.shape, v1.shape)
                     for ax in 'xyz':
@@ -187,10 +177,6 @@ class TestFieldAccess(object):
 def test_all_fields():
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
-            continue
-        if field[0] == "deposit":
-            # I see segmentation faults during garbage collection if I include
-            # deposit fields
             continue
         if field in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
