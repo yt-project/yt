@@ -21,7 +21,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.units.yt_array import YTQuantity
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.api import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt import units
