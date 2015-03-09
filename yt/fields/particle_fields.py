@@ -51,6 +51,14 @@ sph_whitelist_fields = (
     'temperature',
     'metallicity',
     'thermal_energy',
+    'He_fraction',
+    'C_fraction',
+    'N_fraction',
+    'O_fraction',
+    'Ne_fraction',
+    'Mg_fraction',
+    'Si_fraction',
+    'Fe_fraction',
 )
 
 
