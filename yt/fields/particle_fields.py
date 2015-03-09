@@ -43,7 +43,17 @@ from .vector_operations import \
 from .field_functions import \
     get_radius
 
-    
+sph_whitelist_fields = (
+    'particle_velocity_x',
+    'particle_velocity_y',
+    'particle_velocity_z',
+    'density',
+    'temperature',
+    'metallicity',
+    'thermal_energy',
+)
+
+
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
