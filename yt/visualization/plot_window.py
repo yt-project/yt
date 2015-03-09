@@ -18,7 +18,6 @@ import numpy as np
 import matplotlib
 import types
 import sys
-import warnings
 
 from distutils.version import LooseVersion
 from matplotlib.mathtext import MathTextParser
@@ -36,8 +35,8 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
-    invalidate_data, invalidate_plot, apply_callback, \
-    validate_plot
+    invalidate_data, invalidate_plot, apply_callback
+from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.time_series import \
     DatasetSeries
@@ -652,6 +651,7 @@ class PWViewerMPL(PlotWindow):
     _current_field = None
     _frb_generator = None
     _plot_type = None
+    _data_valid = False
 
     def __init__(self, *args, **kwargs):
         if self._frb_generator is None:
@@ -965,6 +965,19 @@ class PWViewerMPL(PlotWindow):
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+
+    def run_callbacks(self):
+        for f in self.fields:
+            keys = self.frb.keys()
+            for name, (args, kwargs) in self._callbacks:
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
+                CallbackMaker = callback_registry[name]
+                callback = CallbackMaker(*args[1:], **kwargs)
+                callback(cbw)
+            for key in self.frb.keys():
+                if key not in keys:
+                    del self.frb[key]
 
     def hide_colorbar(self, field=None):
         """

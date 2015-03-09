@@ -18,9 +18,7 @@ from __future__ import absolute_import
 import __builtin__
 import base64
 import os
-import types
 
-from functools import wraps
 from itertools import izip
 import matplotlib
 import numpy as np
@@ -322,6 +320,8 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
+        if self._plot_valid is True:
+            return
         for f in self.axes:
             self.axes[f].cla()
         for i, profile in enumerate(self.profiles):
@@ -779,7 +779,7 @@ class PhasePlot(ImagePlotContainer):
         else:
             label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
-        
+
     def _get_field_log(self, field_z, profile):
         ds = profile.data_source.ds
         zf, = profile.data_source._determine_fields([field_z])
@@ -800,7 +800,8 @@ class PhasePlot(ImagePlotContainer):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
-        if self._plot_valid: return
+        if self._plot_valid:
+            return
         for f, data in self.profile.items():
             fig = None
             axes = None
@@ -1034,7 +1035,7 @@ class PhasePlot(ImagePlotContainer):
         --------
 
         >>> plot.set_title("cell_mass", "This is a phase plot")
-        
+
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title
         return self
@@ -1194,11 +1195,6 @@ class PhasePlot(ImagePlotContainer):
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
-
-    def run_callbacks(self, *args):
-        raise NotImplementedError
-    def setup_callbacks(self, *args):
-        raise NotImplementedError
 
 
 class PhasePlotMPL(ImagePlotMPL):

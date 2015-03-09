@@ -17,16 +17,12 @@ import base64
 import numpy as np
 import matplotlib
 import os
-import types
+
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
 from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
-from .color_maps import yt_colormaps, is_colormap
-from .plot_modifications import \
-    callback_registry
-from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
@@ -68,13 +64,13 @@ def invalidate_plot(f):
 def validate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        if hasattr(args[0], '_data_valid') and \
-                not args[0]._data_valid and \
-                hasattr(args[0], '_recreate_frb'):
-            args[0]._recreate_frb()
+        if hasattr(args[0], '_data_valid'):
+            if not args[0]._data_valid:
+                args[0]._recreate_frb()
         if not args[0]._plot_valid:
             args[0]._setup_plots()
-            args[0].run_callbacks()
+            if hasattr(args[0], 'run_callbacks'):
+                args[0].run_callbacks()
         rv = f(*args, **kwargs)
         return rv
     return newfunc
@@ -388,10 +384,6 @@ class ImagePlotContainer(object):
                 self._cbar_minorticks[field] = False
         return self
 
-    def setup_callbacks(self):
-        # Left blank to be overriden in subclasses
-        pass
-
     def _setup_plots(self):
         # Left blank to be overriden in subclasses
         pass
@@ -422,19 +414,6 @@ class ImagePlotContainer(object):
     @validate_plot
     def __getitem__(self, item):
         return self.plots[item]
-
-    def run_callbacks(self):
-        for f in self.fields:
-            keys = self.frb.keys()
-            for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
-                                      self._font_properties, self._font_color)
-                CallbackMaker = callback_registry[name]
-                callback = CallbackMaker(*args[1:], **kwargs)
-                callback(cbw)
-            for key in self.frb.keys():
-                if key not in keys:
-                    del self.frb[key]
 
     def _set_font_properties(self):
         for f in self.plots:
