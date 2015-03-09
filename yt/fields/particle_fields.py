@@ -975,9 +975,11 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         kwargs = {}
         if nneighbors:
             kwargs['nneighbors'] = nneighbors
+        # We only supply a *single* field here, so we will always get back a
+        # single numpy array.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
-                         create_octree = True)[0]
+                         create_octree = True)
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         rv = data.apply_units(rv, field_units)
