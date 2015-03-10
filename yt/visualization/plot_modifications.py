@@ -33,6 +33,7 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from matplotlib.transforms import IdentityTransform 
 
 from . import _MPL
 
@@ -55,9 +56,6 @@ class PlotCallback(object):
         and can either be specified as a YTArray or as a list or array in
         code_length units.  Projected data units are 2D versions of the
         simulation data units relative to the axes of the final plot.
-
-        If two-dimensional simulation data coordinates are provided,
-        it is assumed that they are the correct projected coordinates.
         """
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
@@ -74,7 +72,6 @@ class PlotCallback(object):
             # we have to calculate where the data coords fall in the projected
             # plane
             elif ax == 4:
-                width = plot.data.width
                 coord_vectors = coord - plot.data.center
                 x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
                 y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
@@ -86,8 +83,8 @@ class PlotCallback(object):
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
-        elif len(coord) == 2:
-            pass
+        else:
+            raise SyntaxError("coord must be 3 dimensions")
         return coord
 
     def convert_to_plot(self, plot, coord, offset = True):
@@ -131,7 +128,7 @@ class PlotCallback(object):
             return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
-    def put_in_correct_coord_system(self, plot, coord, coord_system="XXX"):
+    def put_in_correct_coord_system(self, plot, coord, coord_system):
         """
         Given a set of x,y (or x,y,z) coordinates, put them in the appropriate
         coordinate system.
@@ -142,20 +139,21 @@ class PlotCallback(object):
             coord = self.convert_to_plot(plot, coord)
         if coord_system == "data" or coord_system == "projected_data" or \
            coord_system == "axis":
-            self.transform = plot._axes.transData,
+            self.transform = plot._axes.transData
             return coord
         if coord_system == "canvas":
             self.transform = plot._axes.transAxes
+            if len(coord) > 2:
+                raise SyntaxError("Coordinates in canvas coordinate system " 
+                                  "need to be in 2D")
             return coord
         elif coord_system == "figure":
             self.transform = plot._figure.transFigure
             return coord
-        elif coord_system == "pixel":
-            self.transform = None
-            return coord
         else:
             raise SyntaxError("Argument coord_system must have a value of "
-                              "'data', 'projected_data', 'axis', or 'canvas'.")
+                              "'data', 'projected_data', 'axis', 'canvas',"
+                              "or 'figure'.")
 
     def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
@@ -683,23 +681,36 @@ class LabelCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(x, y, plot_args = None)
+    annotate_line(p1, p2, coord_system="axis", plot_args = None)
 
-    Over plot *x* and *y* with *plot_args* fed into the plot.
+    Overplot a line with endpoints at p1 and p2.  p1 and p2
+    should be 2D or 3D coordinates consistent with the coordinate
+    system denoted in the "coord_system" keyword.
     """
     _type_name = "line"
-    def __init__(self, x, y, plot_args = None):
+    _plot_args = {'color':'white', 'linewidth':2}
+    def __init__(self, p1, p2, data_coords=False, coord_system="axis", 
+                 plot_args=None):
         PlotCallback.__init__(self)
-        self.x = x
-        self.y = y
-        if plot_args is None: plot_args = {}
+        self.p1 = p1
+        self.p2 = p2
+        if plot_args is None: plot_args = self._plot_args
         self.plot_args = plot_args
+        if data_coords:
+            coord_system = "data"
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
+        p1 = self.put_in_correct_coord_system(plot, self.p1,
+                            coord_system=self.coord_system)
+        p2 = self.put_in_correct_coord_system(plot, self.p2,
+                            coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        plot._axes.plot(self.x, self.y, **self.plot_args)
+        plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, 
+                        **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -712,42 +723,13 @@ class ImageLineCallback(LinePlotCallback):
     with *plot_args* fed into the plot.
     """
     _type_name = "image_line"
-    _plot_args = {'color':'white', 'linewidth':2}
-    def __init__(self, p1, p2, data_coords=False, plot_args = None):
-        PlotCallback.__init__(self)
-        self.p1 = p1
-        self.p2 = p2
-        if plot_args is None: plot_args = self._plot_args
-        self.plot_args = plot_args
-        self._ids = []
-        self.data_coords = data_coords
+    def __init__(self, p1, p2, data_coords=False, coord_system='canvas',
+                 plot_args = None):
+        super(ImageLineCallback, self).__init__(p1, p2, data_coords, 
+                                                coord_system, plot_args)
 
     def __call__(self, plot):
-        # We manually clear out any previous calls to this callback:
-        plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
-        kwargs = self.plot_args.copy()
-        #pos = self.project_coords(plot, self.pos)
-        #x,y = self.convert_to_plot(plot, pos)
-        if self.data_coords and len(plot.image._A.shape) == 2:
-            p1 = self.convert_to_plot(plot, self.p1)
-            p2 = self.convert_to_plot(plot, self.p2)
-        else:
-            p1, p2 = self.p1, self.p2
-            if not self.data_coords:
-                kwargs["transform"] = plot._axes.transAxes
-
-        px, py = (p1[0], p2[0]), (p1[1], p2[1])
-
-        # Save state
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        ii = plot._axes.plot(px, py, **kwargs)
-        self._ids.append(id(ii[0]))
-        # Reset state
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
+        super(ImageLineCallback, self).__call__(plot)
 
 class CuttingQuiverCallback(PlotCallback):
     """
@@ -1010,6 +992,7 @@ class TextLabelCallback(PlotCallback):
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
+        import pdb; pdb.set_trace()
         if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
                 ax = plot.data.axis
@@ -1576,24 +1559,23 @@ class MarkerAnnotateCallback(PlotCallback):
     that will be forwarded to the plot command.
     """
     _type_name = "marker"
-    def __init__(self, pos, marker='x', coord_system=None, plot_args=None):
+    def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         self.pos = pos
         self.marker = marker
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
-        if coord_system is None: coord_system = "data"
         self.coord_system = coord_system
         self.transform = None
 
     def __call__(self, plot):
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
         x,y = self.put_in_correct_coord_system(plot, self.pos, 
                                coord_system=self.coord_system)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
         plot._axes.scatter(x, y, marker = self.marker, color='w', 
                            transform=self.transform,
-                           s=50,**self.plot_args)
+                           s=50, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
