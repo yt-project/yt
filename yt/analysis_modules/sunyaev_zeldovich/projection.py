@@ -258,7 +258,7 @@ class SZProjection(object):
         comm = communication_system.communicators[-1]
 
         nx, ny = self.nx,self.nx
-        signal = np.zeros(self.num_freqs,nx,ny)
+        signal = np.zeros((self.num_freqs,nx,ny))
         xo = np.zeros(self.num_freqs)
 
         k = int(0)
