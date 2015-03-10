@@ -725,8 +725,7 @@ class ImageLineCallback(LinePlotCallback):
     _type_name = "image_line"
     def __init__(self, p1, p2, data_coords=False, coord_system='canvas',
                  plot_args = None):
-        super(ImageLineCallback, self).__init__(p1, p2, data_coords, 
-                                                coord_system, plot_args)
+        super(ImageLineCallback, self).__init__(p1, p2, data_coords, coord_system, plot_args)
 
     def __call__(self, plot):
         super(ImageLineCallback, self).__call__(plot)
@@ -858,37 +857,6 @@ class ArrowCallback(PlotCallback):
         plot._axes.hold(False)
 
 
-class PointAnnotateCallback(PlotCallback):
-    """
-    annotate_point(pos, text, text_args = None)
-
-    This adds *text* at position *pos*, where *pos* is in code-space.
-    *text_args* is a dict fed to the text placement code.
-    """
-    _type_name = "point"
-    def __init__(self, pos, text, coord_system='data', text_args=None):
-        self.pos = pos
-        self.text = text
-        if text_args is None: text_args = {}
-        self.text_args = text_args
-        self.coord_system = coord_system
-        self.transform = None
-
-    def __call__(self, plot):
-        x,y = self.put_in_correct_coord_system(plot, self.pos, 
-                               coord_system=self.coord_system)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        # Set the font properties of text from this callback to be
-        # consistent with other text labels in this figure
-        label = plot._axes.text(x, y, self.text, transform=self.transform, 
-                                **self.text_args)
-        self._set_font_properties(plot, [label], **self.text_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-
 class MarkerAnnotateCallback(PlotCallback):
     """
     annotate_marker(pos, marker='x', plot_args=None)
@@ -981,8 +949,8 @@ class TextLabelCallback(PlotCallback):
     keyword.
     """
     _type_name = "text"
-    def __init__(self, pos, text, data_coords=False, text_args=None, 
-                 inset_box_args=None):
+    def __init__(self, pos, text, data_coords=False, coord_system='data', 
+                 text_args=None, inset_box_args=None):
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
@@ -990,27 +958,38 @@ class TextLabelCallback(PlotCallback):
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = {}
         self.inset_box_args = inset_box_args
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
-        import pdb; pdb.set_trace()
-        if self.data_coords and len(plot.image._A.shape) == 2:
-            if len(self.pos) == 3:
-                ax = plot.data.axis
-                (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                            plot.data.ds.coordinates.y_axis[ax])
-                pos = self.pos[xi], self.pos[yi]
-            else: pos = self.pos
-            x,y = self.convert_to_plot(plot, pos)
-        else:
-            x, y = self.pos
-            if not self.data_coords:
-                kwargs["transform"] = plot._axes.transAxes
+        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+                               coord_system=self.coord_system)
 
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
         label = plot._axes.text(x, y, self.text, bbox=self.inset_box_args, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
+class PointAnnotateCallback(TextLabelCallback):
+    """
+    annotate_point is a wrapper around annotate_text()
+    """
+    _type_name = "point"
+    def __init__(self, pos, text, data_coords=False, coord_system='data', 
+                 text_args=None, inset_box_args=None):
+        super(PointAnnotateCallback, self).__init__(pos, text, data_coords, 
+                                                    coord_system, text_args, 
+                                                    inset_box_args)
+
+    def __call__(self, plot):
+        super(PointAnnotateCallback, self).__call__(plot)
 
 class HaloCatalogCallback(PlotCallback):
     """
