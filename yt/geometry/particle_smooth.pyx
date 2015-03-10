@@ -588,14 +588,14 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     cdef public object vals
     def initialize(self):
         cdef int i
-        if self.nfields < 3:
+        if self.nfields < 4:
             # We need four fields -- the mass should be the first, then the
             # smoothing length for particles, the normalization factor to
             # ensure mass conservation, then the field we're smoothing.
             raise RuntimeError
         cdef np.ndarray tarr
         self.fp = <np.float64_t **> malloc(
-            sizeof(np.float64_t *) * (self.nfields - 3))
+            sizeof(np.float64_t *) * (self.nfields - 2))
         self.vals = []
         for i in range(self.nfields - 2):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
