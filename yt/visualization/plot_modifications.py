@@ -971,7 +971,8 @@ class TextLabelCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        label = plot._axes.text(x, y, self.text, bbox=self.inset_box_args, **kwargs)
+        label = plot._axes.text(x, y, self.text, transform=self.transform, 
+                                bbox=self.inset_box_args, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1314,7 +1315,8 @@ class TimestampCallback(PlotCallback):
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
                  redshift=False, time_format="t = {time:.1f} {units}", 
                  time_unit=None, redshift_format="z = {redshift:.2f}", 
-                 draw_inset_box=False, text_args=None, inset_box_args=None):
+                 draw_inset_box=False, coord_system='canvas', 
+                 text_args=None, inset_box_args=None):
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -1324,8 +1326,11 @@ class TimestampCallback(PlotCallback):
         self.time_format = time_format
         self.redshift_format = redshift_format
         self.time_unit = time_unit
+        self.coord_system = coord_system
         if text_args is None: self.text_args = self._text_args
         else: self.text_args = text_args
+        self.text_args['horizontalalignment'] = 'center'
+        self.text_args['verticalalignment'] = 'top'
         if inset_box_args is None: self.inset_box_args = self._inset_box_args
         else: self.inset_box_args = inset_box_args
 
@@ -1388,7 +1393,9 @@ class TimestampCallback(PlotCallback):
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
+        print self.pos
         tcb = TextLabelCallback(self.pos, self.text, 
+                                coord_system=self.coord_system,
                                 text_args=self.text_args, 
                                 inset_box_args=self.inset_box_args)
         return tcb(plot)
@@ -1451,13 +1458,11 @@ class ScaleCallback(PlotCallback):
     """
     _type_name = "scale"
     # Defaults
-    _text_args = {'horizontalalignment':'center', \
-                  'verticalalignment':'top', \
-                  'color':'white'}
+    _text_args = {'color':'white'}
     _plot_args = {'color':'white', 'linewidth':3}
 
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
-                 max_frac=0.20, min_frac=0.018,
+                 max_frac=0.20, min_frac=0.018, coord_system='canvas',
                  text_args=None, plot_args=None):
 
         # Set position based on corner argument.
@@ -1467,8 +1472,12 @@ class ScaleCallback(PlotCallback):
         self.pos = pos
         self.max_frac = max_frac
         self.min_frac = min_frac
+        self.coord_system = coord_system
         if text_args is None: self.text_args = self._text_args
         else: self.text_args = text_args
+        # This assures the line and the text are aligned
+        self.text_args['horizontalalignment'] = 'center'
+        self.text_args['verticalalignment'] = 'top'
         if plot_args is None: self.plot_args = self._plot_args
         else: self.plot_args = plot_args
 
@@ -1525,9 +1534,12 @@ class ScaleCallback(PlotCallback):
         # ImageLineCallback
         pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
         pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
-        icb = ImageLineCallback(pos_line_start, pos_line_end, plot_args=self.plot_args)
+        icb = ImageLineCallback(pos_line_start, pos_line_end, 
+                                coord_system=self.coord_system, 
+                                plot_args=self.plot_args)
         icb(plot)
         tcb = TextLabelCallback(self.pos, self.text, 
+                                coord_system=self.coord_system,
                                 text_args=self.text_args)
         return tcb(plot)
 
