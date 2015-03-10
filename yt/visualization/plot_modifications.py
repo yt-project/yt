@@ -866,25 +866,28 @@ class PointAnnotateCallback(PlotCallback):
     *text_args* is a dict fed to the text placement code.
     """
     _type_name = "point"
-    def __init__(self, pos, text, text_args = None):
+    def __init__(self, pos, text, coord_system='data', text_args=None):
         self.pos = pos
         self.text = text
         if text_args is None: text_args = {}
         self.text_args = text_args
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
-        if len(self.pos) == 3:
-            ax = plot.data.axis
-            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                        plot.data.ds.coordinates.y_axis[ax])
-            pos = self.pos[xi], self.pos[yi]
-        else: pos = self.pos
-        x,y = self.convert_to_plot(plot, pos)
-        
+        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+                               coord_system=self.coord_system)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
-        label = plot._axes.text(x, y, self.text, **self.text_args)
+        label = plot._axes.text(x, y, self.text, transform=self.transform, 
+                                **self.text_args)
         self._set_font_properties(plot, [label], **self.text_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
 
 class MarkerAnnotateCallback(PlotCallback):
     """
@@ -894,25 +897,23 @@ class MarkerAnnotateCallback(PlotCallback):
     that will be forwarded to the plot command.
     """
     _type_name = "marker"
-    def __init__(self, pos, marker='x', plot_args=None):
+    def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         self.pos = pos
         self.marker = marker
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
+        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+                               coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        if len(self.pos) == 3:
-            ax = plot.data.axis
-            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                        plot.data.ds.coordinates.y_axis[ax])
-            pos = self.pos[xi], self.pos[yi]
-        elif len(self.pos) == 2:
-            pos = self.pos
-        x,y = self.convert_to_plot(plot, pos)
         plot._axes.hold(True)
-        plot._axes.scatter(x,y, marker = self.marker, **self.plot_args)
+        plot._axes.scatter(x, y, marker = self.marker, color='w', 
+                           transform=self.transform,
+                           s=50, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -927,8 +928,8 @@ class SphereCallback(PlotCallback):
     *text_args*.
     """
     _type_name = "sphere"
-    def __init__(self, center, radius, circle_args = None,
-                 text = None, text_args = None):
+    def __init__(self, center, radius, circle_args=None,
+                 text=None, coord_system='data', text_args=None):
         self.center = center
         self.radius = radius
         if circle_args is None: circle_args = {}
@@ -937,6 +938,8 @@ class SphereCallback(PlotCallback):
         self.text = text
         self.text_args = text_args
         if self.text_args is None: self.text_args = {}
+        self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -947,20 +950,23 @@ class SphereCallback(PlotCallback):
 
         radius = self.radius * self.pixel_scale(plot)[0]
 
-        if plot.data.axis == 4:
-            (xi, yi) = (0, 1)
-        else:
-            ax = plot.data.axis
-            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                        plot.data.ds.coordinates.y_axis[ax])
+        x,y = self.put_in_correct_coord_system(plot, self.center, 
+                               coord_system=self.coord_system)
 
-        (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
-        
-        cir = Circle((center_x, center_y), radius, **self.circle_args)
+        cir = Circle((x, y), radius, **self.circle_args)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+
         plot._axes.add_patch(cir)
         if self.text is not None:
-            plot._axes.text(center_x, center_y, self.text,
-                            **self.text_args)
+            label = plot._axes.text(x, y, self.text, transform=self.transform, 
+                                    **self.text_args)
+            self._set_font_properties(plot, [label], **self.text_args)
+
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
 
 
 class TextLabelCallback(PlotCallback):
@@ -1546,31 +1552,3 @@ class ScaleCallback(PlotCallback):
                                 text_args=self.text_args)
         return tcb(plot)
 
-class MarkerAnnotateCallback(PlotCallback):
-    """
-    annotate_marker(pos, marker='x', plot_args=None)
-
-    Adds text *marker* at *pos* in code units.  *plot_args* is a dict
-    that will be forwarded to the plot command.
-    """
-    _type_name = "marker"
-    def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
-        self.pos = pos
-        self.marker = marker
-        if plot_args is None: plot_args = {}
-        self.plot_args = plot_args
-        self.coord_system = coord_system
-        self.transform = None
-
-    def __call__(self, plot):
-        x,y = self.put_in_correct_coord_system(plot, self.pos, 
-                               coord_system=self.coord_system)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        plot._axes.scatter(x, y, marker = self.marker, color='w', 
-                           transform=self.transform,
-                           s=50, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
