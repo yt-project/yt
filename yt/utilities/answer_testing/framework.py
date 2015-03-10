@@ -170,8 +170,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if ds_name in self.cache: return self.cache[ds_name]
         url = _url_path.format(self.reference_name, ds_name)
         try:
-            resp = urllib.urlopen(url)
-        except urllib.HTTPError as ex:
+            resp = urllib.request.urlopen(url)
+        except urllib.error.HTTPError as ex:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):

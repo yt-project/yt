@@ -355,14 +355,14 @@ def bb_apicall(endpoint, data, use_pass = True):
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
-        data = urllib.urlencode(data)
-    req = urllib.Request(uri, data)
+        data = urllib.parse.urlencode(data)
+    req = urllib.request.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib.urlopen(req).read()
+    return urllib.request.urlopen(req).read()
 
 class YTBugreportCmd(YTCommand):
     name = "bugreport"
@@ -540,12 +540,12 @@ class YTHubRegisterCmd(YTCommand):
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
-        data = urllib.urlencode(data)
+        data = urllib.parse.urlencode(data)
         hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib.Request(hub_url, data)
+        req = urllib.request.Request(hub_url, data)
         try:
-            status = urllib.urlopen(req).read()
-        except urllib.HTTPError as exc:
+            status = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
                 print("You can't register duplicate users, which is the most")
@@ -1050,11 +1050,11 @@ class YTUploadImageCmd(YTCommand):
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.urlencode(parameters)
-        req = urllib.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters)
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib.urlopen(req).read()
-        except urllib.HTTPError as e:
+            response = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)

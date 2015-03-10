@@ -398,11 +398,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         image_data = image_data[len(prefix):]
         parameters = {'key':self._api_key, 'image':image_data, type:'base64',
                       'caption': caption, 'title': "Uploaded Image from reason"}
-        data = urllib.urlencode(parameters)
-        req = urllib.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters)
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib.urlopen(req).read()
-        except urllib.HTTPError as e:
+            response = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)

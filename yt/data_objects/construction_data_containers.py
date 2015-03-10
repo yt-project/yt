@@ -1744,14 +1744,15 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data):
-        import urllib2, json
+        import json
+        from yt.extern.six.moves import urllib
         from yt.utilities.poster.encode import multipart_encode
         from yt.utilities.poster.streaminghttp import register_openers
         register_openers()
         datamulti, headers = multipart_encode(data)
-        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+        request = urllib.request.Request("https://api.sketchfab.com/v1/models",
                         datamulti, headers)
-        rv = urllib2.urlopen(request).read()
+        rv = urllib.request.urlopen(request).read()
         rv = json.loads(rv)
         upload_id = rv.get("result", {}).get("id", None)
         if upload_id:

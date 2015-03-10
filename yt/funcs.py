@@ -552,14 +552,14 @@ def bb_apicall(endpoint, data, use_pass = True):
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
-        data = urllib.urlencode(data)
-    req = urllib.Request(uri, data)
+        data = urllib.parse.urlencode(data)
+    req = urllib.request.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib.urlopen(req).read()
+    return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
