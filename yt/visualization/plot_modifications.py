@@ -833,35 +833,30 @@ class ArrowCallback(PlotCallback):
     units.  *plot_args* is a dict fed to matplotlib with arrow properties.
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size, plot_args = None):
+    def __init__(self, pos, length=0.03, coord_system='data', plot_args = None):
         self.pos = pos
-        if isinstance(code_size, YTArray):
-            code_size = code_size.in_units('code_length')
-        if not iterable(code_size):
-            code_size = (code_size, code_size)
-        self.code_size = code_size
+        self.length = length
+        self.coord_system = coord_system
+        self.transform = None
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        if len(self.pos) == 3:
-            ax = plot.data.axis
-            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                        plot.data.ds.coordinates.y_axis[ax])
-            pos = self.pos[xi], self.pos[yi]
-        else: pos = self.pos
-        if isinstance(self.code_size[1], basestring):
-            code_size = plot.data.ds.quan(*self.code_size)
-            code_size = code_size.in_units('code_length').value
-            self.code_size = (code_size, code_size)
+        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+                               coord_system=self.coord_system)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        dx = (xx1-xx0) * self.length
+        dy = (yy1-yy0) * self.length
+        plot._axes.hold(True)
         from matplotlib.patches import Arrow
-        # Now convert the pixels to code information
-        x, y = self.convert_to_plot(plot, pos)
-        x1, y1 = pos[0]+self.code_size[0], pos[1]+self.code_size[1]
-        x1, y1 = self.convert_to_plot(plot, (x1, y1), False)
-        dx, dy = x1 - x, y1 - y
-        arrow = Arrow(x-dx, y-dy, dx, dy, **self.plot_args)
+        arrow = Arrow(x-dx, y-dy, dx, dy, 
+                      transform=self.transform, **self.plot_args)
         plot._axes.add_patch(arrow)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 
 class PointAnnotateCallback(PlotCallback):
     """
