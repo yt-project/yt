@@ -1136,6 +1136,55 @@ _cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
 _cis.shape = (8, 3)
 
 def hexahedral_connectivity(xgrid, ygrid, zgrid):
+    r"""Define the cell coordinates and cell neighbors of a hexahedral mesh
+    for a semistructured grid. Used to specify the connectivity and
+    coordinates parameters used in
+    :function:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
+
+    Parameters
+    ----------
+    xgrid : array_like
+       x-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+    ygrid : array_like
+       y-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+    zgrid : array_like
+       z-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+
+    Returns
+    -------
+    coords : array_like
+        The list of (x,y,z) coordinates of the vertices of the mesh.
+        Is of size (M,3) where M is the number of vertices.
+    connectivity : array_like
+        For each hexahedron h in the mesh, gives the index of each of h's
+        neighbors. Is of size (N,8), where N is the number of hexahedra.
+
+    Examples
+    --------
+
+    >>> xgrid = np.array([-1,-0.25,0,0.25,1])
+    >>> coords, conn = hexahedral_connectivity(xgrid,xgrid,xgrid)
+    >>> coords
+    array([[-1.  , -1.  , -1.  ],
+           [-1.  , -1.  , -0.25],
+           [-1.  , -1.  ,  0.  ],
+           ..., 
+           [ 1.  ,  1.  ,  0.  ],
+           [ 1.  ,  1.  ,  0.25],
+           [ 1.  ,  1.  ,  1.  ]])
+
+    >>> conn
+    array([[  0,   1,   5,   6,  25,  26,  30,  31],
+           [  1,   2,   6,   7,  26,  27,  31,  32],
+           [  2,   3,   7,   8,  27,  28,  32,  33],
+           ...,
+           [ 91,  92,  96,  97, 116, 117, 121, 122],
+           [ 92,  93,  97,  98, 117, 118, 122, 123],
+           [ 93,  94,  98,  99, 118, 119, 123, 124]])
+    """
     nx = len(xgrid)
     ny = len(ygrid)
     nz = len(zgrid)
@@ -1205,7 +1254,9 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     ----------
     data : dict
         This is a dict of numpy arrays, where the keys are the field names.
-        There must only be one.
+        There must only be one. Note that the data in the numpy arrays should
+        define the cell-averaged value for of the quantity in in the hexahedral
+        cell.
     connectivity : array_like
         This should be of size (N,8) where N is the number of zones.
     coordinates : array_like
