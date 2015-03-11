@@ -692,7 +692,7 @@ class OrionHierarchy(BoxlibHierarchy):
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
-                for i in xrange(len(coord)):
+                for i in range(len(coord)):
                     np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
                     np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
                 ind = np.where(mask == 1)

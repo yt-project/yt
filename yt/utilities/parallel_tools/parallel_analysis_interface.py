@@ -856,7 +856,7 @@ class Communicator(object):
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in xrange(len(hooks)):
+        for i in range(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
 

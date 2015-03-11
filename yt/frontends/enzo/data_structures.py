@@ -293,7 +293,7 @@ class EnzoHierarchy(GridIndex):
         else:
             active_particles = False
             nap = None
-        for grid_id in xrange(self.num_grids):
+        for grid_id in range(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
@@ -368,7 +368,7 @@ class EnzoHierarchy(GridIndex):
         self.grid_levels[sgi] = second_grid.Level
 
     def _rebuild_top_grids(self, level = 0):
-        #for level in xrange(self.max_level+1):
+        #for level in range(self.max_level+1):
         mylog.info("Rebuilding grids on level %s", level)
         cmask = (self.grid_levels.flat == (level + 1))
         cmsum = cmask.sum()

@@ -1309,7 +1309,7 @@ class SDFIndex(object):
 
         # Need to get all of these
         low_key, high_key = self.get_key_bounds(level, cell_iarr)
-        for k in xrange(low_key, high_key):
+        for k in range(low_key, high_key):
             yield k
 
         # Bottom & Top

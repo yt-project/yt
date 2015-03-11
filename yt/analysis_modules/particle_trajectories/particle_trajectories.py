@@ -158,7 +158,7 @@ class ParticleTrajectories(object):
         the different particles, returning dicts
         of fields for each trajectory
         """
-        for idx in xrange(self.num_indices):
+        for idx in range(self.num_indices):
             traj = {}
             traj["particle_index"] = self.indices[idx]
             traj["particle_time"] = self.times
@@ -307,9 +307,9 @@ class ParticleTrajectories(object):
         num_fields = len(fields)
         first_str = "# particle_time\t" + "\t".join(fields)+"\n"
         template_str = "%g\t"*num_fields+"%g\n"
-        for ix in xrange(self.num_indices):
+        for ix in range(self.num_indices):
             outlines = [first_str]
-            for it in xrange(self.num_steps):
+            for it in range(self.num_steps):
                 outlines.append(template_str %
                                 tuple([self.times[it]]+[self[field][ix,it] for field in fields]))
             fid = open(filename_base + "_%d.dat" % self.indices[ix], "w")

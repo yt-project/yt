@@ -237,7 +237,7 @@ class ProfilePlot(object):
             self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            iters = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(range(len(unique)), sorted(unique))
         else:
             iters = iteritems(self.figures)
         if not suffix:
@@ -307,7 +307,7 @@ class ProfilePlot(object):
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            iters = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(range(len(unique)), sorted(unique))
         else:
             iters = iteritems(self.figures)
         for uid, fig in iters:

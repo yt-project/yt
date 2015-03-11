@@ -784,7 +784,7 @@ class ARTDomainFile(object):
         Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
         iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
         iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-        for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+        for Lev in range(MinLev + 1, MaxLevelNow+1):
             level_oct_offsets.append(f.tell())
 
             # Get the info for this level, skip the rest

@@ -469,7 +469,7 @@ class Halo(object):
                 self.mass_bins[index] += \
                 np.sum(self["particle_mass"][inds == index]).in_units('Msun')
         # Now forward sum the masses in the bins.
-        for i in xrange(self.bin_count):
+        for i in range(self.bin_count):
             self.mass_bins[i + 1] += self.mass_bins[i]
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \

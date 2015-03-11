@@ -75,7 +75,7 @@ class PhotonList(object):
     def __getitem__(self, key):
         if key == "Energy":
             return [self.photons["Energy"][self.p_bins[i]:self.p_bins[i+1]]
-                    for i in xrange(self.num_cells)]
+                    for i in range(self.num_cells)]
         else:
             return self.photons[key]
 
