@@ -21,7 +21,6 @@ import base64
 import os
 
 from functools import wraps
-from itertools import izip
 import matplotlib
 import numpy as np
 from io import BytesIO

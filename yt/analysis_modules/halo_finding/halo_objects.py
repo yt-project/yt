@@ -15,7 +15,6 @@ HOP-output data handling
 
 import gc
 import h5py
-import itertools
 import math
 import numpy as np
 import random
@@ -25,6 +24,7 @@ import os
 import os.path as path
 from collections import defaultdict
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
 from yt.funcs import mylog, ensure_dir_exists
@@ -452,7 +452,7 @@ class Halo(object):
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
         # yt.math.
-        for pos in itertools.izip(self["particle_position_x"],
+        for pos in izip(self["particle_position_x"],
                 self["particle_position_y"], self["particle_position_z"]):
             dist[mark] = periodic_dist(cen, pos, period)
             mark += 1
