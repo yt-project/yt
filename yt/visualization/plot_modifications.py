@@ -686,21 +686,36 @@ class StreamlineCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
-class LabelCallback(PlotCallback):
+class AxisLabelCallback(PlotCallback):
     """
-    This adds a label to the plot.
+    annotate_axis_label(axis, label):
+
+    This adds custom axis labels to the plot.
+
+    Parameters
+    ----------
+    axis : string
+        'x' or 'y'
+
+    label : string
+        The text to use as the custom axis.
     """
     _type_name = "axis_label"
-    def __init__(self, label):
+    def __init__(self, axis, label):
         PlotCallback.__init__(self)
+        self.axis = axis
         self.label = label
 
     def __call__(self, plot):
         plot._figure.subplots_adjust(hspace=0, wspace=0,
                                      bottom=0.1, top=0.9,
                                      left=0.0, right=1.0)
-        plot._axes.set_xlabel(self.label)
-        plot._axes.set_ylabel(self.label)
+        if self.axis == 'x':
+            plot._axes.set_xlabel(self.label)
+        elif self.axis == 'y':
+            plot._axes.set_ylabel(self.label)
+        else:
+            raise SyntaxError("axis must be either 'x' or 'y'")
 
 class LinePlotCallback(PlotCallback):
     """
