@@ -95,7 +95,7 @@ class PlotCallback(object):
         although still in simulation units.  PlotWindow plot coordinates
         are locations as found in the final plot, usually with the origin
         in the center of the image and the extent of the image defined by
-        the final axis markers.
+        the final plot axis markers.
         """
         # coord should be a 2 x ncoord array-like datatype.
         try:
@@ -132,27 +132,50 @@ class PlotCallback(object):
         """
         Given a set of x,y (or x,y,z) coordinates, put them in the appropriate
         coordinate system.
+
+        Coordinate systems
+        ------------------
+
+        data : 3D data coordinates relative to original dataset
+
+        projected_data : 2D data coordinates in projected/sliced frame
+
+        plot : 2D coordinates as defined by the final axis locations
+
+        axis : 2D coordinates within the axis object from (0,0) in lower left 
+               to (1,1) in upper right.  Same as matplotlib axis coords.
+
+        figure : 2D coordinates within figure object from (0,0) in lower left 
+                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
+        # if in data coords, project them to projected_data coords
         if coord_system == "data":
+            if len(coord) < 3:
+                raise SyntaxError("Coordinates in data coordinate system " 
+                                  "need to be in 3D")
             coord = self.project_coords(plot, coord)
+        # if in projected data coords, convert to coords defined by plot axes
         if coord_system == "data" or coord_system == "projected_data":
             coord = self.convert_to_plot(plot, coord)
+        # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "projected_data" or \
-           coord_system == "axis":
+           coord_system == "plot":
             self.transform = plot._axes.transData
             return coord
-        if coord_system == "canvas":
+        # if in axis coords, define the transform correctly
+        if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError("Coordinates in canvas coordinate system " 
+                raise SyntaxError("Coordinates in axis coordinate system " 
                                   "need to be in 2D")
             return coord
+        # if in figure coords, define the transform correctly
         elif coord_system == "figure":
             self.transform = plot._figure.transFigure
             return coord
         else:
             raise SyntaxError("Argument coord_system must have a value of "
-                              "'data', 'projected_data', 'axis', 'canvas',"
+                              "'data', 'projected_data', 'plot', 'axis',"
                               "or 'figure'.")
 
     def pixel_scale(self, plot):
@@ -681,7 +704,7 @@ class LabelCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(p1, p2, coord_system="axis", plot_args = None)
+    annotate_line(p1, p2, coord_system="plot", plot_args = None)
 
     Overplot a line with endpoints at p1 and p2.  p1 and p2
     should be 2D or 3D coordinates consistent with the coordinate
@@ -689,7 +712,7 @@ class LinePlotCallback(PlotCallback):
     """
     _type_name = "line"
     _plot_args = {'color':'white', 'linewidth':2}
-    def __init__(self, p1, p2, data_coords=False, coord_system="axis", 
+    def __init__(self, p1, p2, data_coords=False, coord_system="plot", 
                  plot_args=None):
         PlotCallback.__init__(self)
         self.p1 = p1
@@ -723,7 +746,7 @@ class ImageLineCallback(LinePlotCallback):
     with *plot_args* fed into the plot.
     """
     _type_name = "image_line"
-    def __init__(self, p1, p2, data_coords=False, coord_system='canvas',
+    def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args = None):
         super(ImageLineCallback, self).__init__(p1, p2, data_coords, coord_system, plot_args)
 
@@ -1315,7 +1338,7 @@ class TimestampCallback(PlotCallback):
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
                  redshift=False, time_format="t = {time:.1f} {units}", 
                  time_unit=None, redshift_format="z = {redshift:.2f}", 
-                 draw_inset_box=False, coord_system='canvas', 
+                 draw_inset_box=False, coord_system='axis', 
                  text_args=None, inset_box_args=None):
 
         # Set position based on corner argument.
@@ -1462,7 +1485,7 @@ class ScaleCallback(PlotCallback):
     _plot_args = {'color':'white', 'linewidth':3}
 
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
-                 max_frac=0.20, min_frac=0.018, coord_system='canvas',
+                 max_frac=0.20, min_frac=0.018, coord_system='axis',
                  text_args=None, plot_args=None):
 
         # Set position based on corner argument.
@@ -1542,4 +1565,3 @@ class ScaleCallback(PlotCallback):
                                 coord_system=self.coord_system,
                                 text_args=self.text_args)
         return tcb(plot)
-
