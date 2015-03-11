@@ -1251,8 +1251,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     if len(data) > 0:
         fn = sorted(data.keys())[0]
         array_values = data[fn]
-        xd, yd, zd = array_values.shape
-        if (xd + 1) * (yd + 1) * (zd + 1) != coord.shape[0]:
+        if array_values.size != connectivity.shape[0]:
             mylog.error("Dimensions of array must be one fewer than the" +
                         " coordinate set.")
             raise RuntimeError
