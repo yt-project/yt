@@ -33,7 +33,7 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from matplotlib.transforms import IdentityTransform 
+import warnings
 
 from . import _MPL
 
@@ -719,11 +719,33 @@ class AxisLabelCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(p1, p2, coord_system="plot", plot_args = None)
+    annotate_line(p1, p2, coord_system="plot", plot_args=None):
 
     Overplot a line with endpoints at p1 and p2.  p1 and p2
     should be 2D or 3D coordinates consistent with the coordinate
     system denoted in the "coord_system" keyword.
+
+    Parameters
+    ----------
+    p1, p2 : 2- or 3-element tuples, lists, or arrays
+        These are the coordinates of the endpoints of the line.
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates p1 and p2.
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL plot function for generating
+        the line.  By default, it is: {'color':'white', 'linewidth':2}
+
     """
     _type_name = "line"
     _plot_args = {'color':'white', 'linewidth':2}
@@ -755,15 +777,22 @@ class LinePlotCallback(PlotCallback):
 
 class ImageLineCallback(LinePlotCallback):
     """
-    annotate_image_line(p1, p2, data_coords=False, plot_args = None)
+    annotate_image_line(p1, p2, coord_system="axis", plot_args=None):
 
-    Plot from *p1* to *p2* (image plane coordinates)
-    with *plot_args* fed into the plot.
+    This callback is deprecated, as it is simply a wrapper around
+    the LinePlotCallback (ie annotate_image()).  The only difference is
+    that it uses coord_system="axis" by default. Please see LinePlotCallback
+    for more information.
+
     """
     _type_name = "image_line"
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args = None):
-        super(ImageLineCallback, self).__init__(p1, p2, data_coords, coord_system, plot_args)
+        super(ImageLineCallback, self).__init__(p1, p2, data_coords, 
+                                                coord_system, plot_args)
+        warnings.warn("The ImageLineCallback (annotate_image_line()) is "
+                      "deprecated.  Please use the LinePlotCallback "
+                      "(annotate_line()) instead.")
 
     def __call__(self, plot):
         super(ImageLineCallback, self).__call__(plot)
@@ -864,18 +893,45 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, code_size, plot_args = None)
+    annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
 
-    This adds an arrow pointing at *pos* with size *code_size* in code
-    units.  *plot_args* is a dict fed to matplotlib with arrow properties.
+    Overplot a arrow pointing at a position for highlighting specific features.
+    Arrow points from lower left to the designated position with arrow length 
+    "length".
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates to which the arrow is pointing
+
+    length : float, optional
+        The length, in axis units, of the arrow.
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL arrow function for generating
+        the arrow.  By default, it is: {'color':'white', 'linewidth':2}
+
     """
     _type_name = "arrow"
-    def __init__(self, pos, length=0.03, coord_system='data', plot_args = None):
+    _plot_args = {'color':'white', 'linewidth':2}
+    def __init__(self, pos, length=0.03, coord_system='data', plot_args=None):
         self.pos = pos
         self.length = length
         self.coord_system = coord_system
         self.transform = None
-        if plot_args is None: plot_args = {}
+        if plot_args is None: plot_args = self._plot_args
         self.plot_args = plot_args
 
     def __call__(self, plot):
@@ -894,19 +950,40 @@ class ArrowCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
-
 class MarkerAnnotateCallback(PlotCallback):
     """
-    annotate_marker(pos, marker='x', plot_args=None)
+    annotate_marker(pos, marker='x', coord_system="data", plot_args=None):
 
-    Adds text *marker* at *pos* in code units.  *plot_args* is a dict
-    that will be forwarded to the plot command.
+    Overplot a marker on a position for highlighting specific features.
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates where the marker will be overplot
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL scatter function for generating
+        the marker.  By default, it is: {'color':'white', 's':50}
+
     """
     _type_name = "marker"
+    _plot_args = {'color':'w', 's':50}
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         self.pos = pos
         self.marker = marker
-        if plot_args is None: plot_args = {}
+        if plot_args is None: plot_args = self._plot_args
         self.plot_args = plot_args
         self.coord_system = coord_system
         self.transform = None
@@ -917,33 +994,64 @@ class MarkerAnnotateCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        plot._axes.scatter(x, y, marker = self.marker, color='w', 
-                           transform=self.transform,
-                           s=50, **self.plot_args)
+        plot._axes.scatter(x, y, marker = self.marker, 
+                           transform=self.transform, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
 class SphereCallback(PlotCallback):
     """
-    annotate_sphere(center, radius, circle_args = None,
-                    text = None, text_args = None)
-    
-    A sphere centered at *center* in code units with radius *radius* in
-    code units will be created, with optional *circle_args*, *text*, and
-    *text_args*.
+    annotate_sphere(center, radius, circle_args=None, 
+                    coord_system='data', text=None, text_args=None):
+
+    Overplot a circle with designated center and radius with optional text.
+
+    Parameters
+    ----------
+    center : 2- or 3-element tuple, list, or array
+        These are the coordinates where the circle will be overplot
+
+    radius : YTArray, float, or (1, ('kpc')) style tuple
+        The radius of the circle in code coordinates
+
+    circle_args : dict, optional
+        This dictionary is passed to the MPL circle object. By default, 
+        {'color':'white'}
+        
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    text : string, optional
+        Optional text to include next to the circle.
+
+    text_args : dictionary, optional
+        This dictionary is passed to the MPL text function. By default, 
+        it is: {'color':'white'}
+
     """
     _type_name = "sphere"
+    _text_args = {'color':'white'}
+    _circle_args = {'color':'white'}
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
         self.center = center
         self.radius = radius
-        if circle_args is None: circle_args = {}
+        if circle_args is None: circle_args = self._circle_args
         if 'fill' not in circle_args: circle_args['fill'] = False
         self.circle_args = circle_args
         self.text = text
+        if text_args is None: text_args = self._text_args
         self.text_args = text_args
-        if self.text_args is None: self.text_args = {}
         self.coord_system = coord_system
         self.transform = None
 
@@ -977,14 +1085,42 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, data_coords=False, text_args=None, 
-                  inset_box_args=None)
+    annotate_text(pos, text, coord_system='data', text_args=None, 
+                  inset_box_args=None):
 
-    Accepts a position in (0..1, 0..1) of the image, some text and
-    optionally some text arguments. If data_coords is True,
-    position will be in code units instead of image coordinates.  If you desire
-    an inset box around your text, set one with the inset_box_args dictionary 
+    Overplot text on the plot at a specified position. If you desire an inset 
+    box around your text, set one with the inset_box_args dictionary 
     keyword.
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates where the text will be overplot
+
+    text : string
+        The text you wish to include
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    text_args : dictionary, optional
+        This dictionary is passed to the MPL text function for generating
+        the text.  By default, it is: {} and uses the defaults for the
+        other fonts in the image.
+
+    inset_box_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the inset box around the text.  Default: {}
+
     """
     _type_name = "text"
     def __init__(self, pos, text, data_coords=False, coord_system='data', 
@@ -1018,7 +1154,13 @@ class TextLabelCallback(PlotCallback):
 
 class PointAnnotateCallback(TextLabelCallback):
     """
-    annotate_point is a wrapper around annotate_text()
+    annotate_point(pos, text, coord_system='data', text_args=None, 
+                   inset_box_args=None)
+
+    This callback is deprecated, as it is simply a wrapper around
+    the TextLabelCallback (ie annotate_text()).  Please see TextLabelCallback
+    for more information.
+
     """
     _type_name = "point"
     def __init__(self, pos, text, data_coords=False, coord_system='data', 
@@ -1026,6 +1168,9 @@ class PointAnnotateCallback(TextLabelCallback):
         super(PointAnnotateCallback, self).__init__(pos, text, data_coords, 
                                                     coord_system, text_args, 
                                                     inset_box_args)
+        warnings.warn("The PointAnnotateCallback (annotate_point()) is "
+                      "deprecated.  Please use the TextLabelCallback "
+                      "(annotate_point()) instead.")
 
     def __call__(self, plot):
         super(PointAnnotateCallback, self).__call__(plot)
@@ -1284,7 +1429,8 @@ class TimestampCallback(PlotCallback):
     annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True, 
                        redshift=False, time_format="t = {time:.0f} {units}", 
                        time_unit=None, redshift_format="z = {redshift:.2f}", 
-                       draw_inset_box=False, text_args=None, inset_box_args=None)
+                       draw_inset_box=False, coord_system='axis', 
+                       text_args=None, inset_box_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
@@ -1296,8 +1442,9 @@ class TimestampCallback(PlotCallback):
     Parameters
     ----------
     x_pos, y_pos : floats, optional
-        The image location of the timestamp in image coords (i.e. (x,y) = 
-        (0..1, 0..1).  Setting x_pos and y_pos overrides the corner parameter.
+        The image location of the timestamp in the coord system defined by the
+        coord_system kwarg.  Setting x_pos and y_pos overrides the corner 
+        parameter.
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
@@ -1327,6 +1474,17 @@ class TimestampCallback(PlotCallback):
         Whether or not an inset box should be included around the text
         If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch 
         object.  
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white'}.
@@ -1441,7 +1599,7 @@ class TimestampCallback(PlotCallback):
 class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
-                   max_frac=0.2, min_frac=0.018,
+                   max_frac=0.2, min_frac=0.018, coord_system='axis',
                    text_args=None, plot_args=None)
 
     Annotates the scale of the plot at a specified location in the image
@@ -1469,16 +1627,27 @@ class ScaleCallback(PlotCallback):
         unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
         'kpc', etc.) or set to None.  If set to None, will be automatically
         determined to be the best-fit to the data.
-    pos : tuple of floats, optional
-        The image location of the timestamp in image coords (i.e. (x,y) = 
-        (0..1, 0..1).  Setting pos overrides the corner parameter.
+    pos : 2- or 3-element tuples, lists, or arrays, optional
+        The image location of the timestamp in the coord system defined by the
+        coord_system kwarg.  Setting pos overrides the corner parameter.
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to 
         extend. A value of 1 would allow the scale bar to extend across the
         entire axis width.  Only used for automatically calculating 
         best-fit coeff and unit when neither is specified, otherwise 
         disregarded.
-    text_args : dictionary, optional
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "projected_data" -- the 2D dataset coordinates projected on to
+                                the current plot
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white', 
         'horizontalalignment':'center', 'verticalalignment':'top'}.
@@ -1572,9 +1741,9 @@ class ScaleCallback(PlotCallback):
         # ImageLineCallback
         pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
         pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
-        icb = ImageLineCallback(pos_line_start, pos_line_end, 
-                                coord_system=self.coord_system, 
-                                plot_args=self.plot_args)
+        icb = LinePlotCallback(pos_line_start, pos_line_end, 
+                               coord_system=self.coord_system, 
+                               plot_args=self.plot_args)
         icb(plot)
         tcb = TextLabelCallback(self.pos, self.text, 
                                 coord_system=self.coord_system,
