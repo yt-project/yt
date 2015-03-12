@@ -21,7 +21,8 @@ class SmallFlashSuite:
         proj = self.ds.proj("density", 0, "density")
 
     def time_ghostzones(self):
-        dd = self.ds.all_data()
+        dd = self.ds.sphere(self.ds.domain_center,
+                            self.ds.domain_width[0] * 0.25)
         dd["velocity_divergence"]
 
     def time_gas_quantites(self):
