@@ -25,16 +25,6 @@ class PKDGravTipsySuite:
         dd = self.ds.all_data()
         dd["all", "particle_velocity_magnitude"]
 
-    def time_all_sph_kernel(self):
-        dd = self.ds.all_data()
-        dd["gas", "density"]
-
-    def time_project_unweight(self):
-        proj = self.ds.proj("density", 0)
-
-    def time_project_weight(self):
-        proj = self.ds.proj("density", 0, "density")
-
     def time_particle_quantities(self):
         dd = self.ds.all_data()
         dd.quantities.extrema("particle_mass")
