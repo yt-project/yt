@@ -17,6 +17,7 @@ Particle smoothing in cells
 cimport numpy as np
 import numpy as np
 from libc.stdlib cimport malloc, free, realloc
+from libc.string cimport memmove
 cimport cython
 from libc.math cimport sqrt, fabs, sin, cos
 
@@ -445,52 +446,43 @@ cdef class ParticleSmoothOperation:
 
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3]):
-        cdef NeighborList *cur
-        cdef int i, j
-        # _c means candidate (what we're evaluating)
-        # _o means other (the item in the list)
-        cdef np.float64_t r2_c, r2_o
-        cdef np.int64_t pn_c, pn_o
-        # If we're less than the maximum number of neighbors, we simply append.
-        # After that, we will sort, and then only compare against the rightmost
-        # entries.
-        if self.curn < self.maxn:
-            cur = &self.neighbors[self.curn]
-            cur.pn = pn
-            cur.r2 = r2dist(ppos, cpos, self.DW, self.periodicity, -1)
-            self.curn += 1
-            if self.curn == self.maxn:
-                # This time we sort it, so that future insertions will be able
-                # to be done in order.
-                qsort(self.neighbors, self.curn, sizeof(NeighborList),
-                      Neighbor_compare)
+        # Here's a python+numpy simulator of this:
+        # http://paste.yt-project.org/show/5445/
+        cdef int i, di
+        cdef np.float64_t r2, r2_trunc
+        if self.curn == self.maxn:
+            # Truncate calculation if it's bigger than this in any dimension
+            r2_trunc = self.neighbors[self.curn - 1].r2
+        else:
+            # Don't truncate our calculation
+            r2_trunc = -1
+        r2 = r2dist(ppos, cpos, self.DW, self.periodicity, r2_trunc)
+        if r2 == -1:
             return
-        # This will go (curn - 1) through 0.
-        r2_o = self.neighbors[self.curn - 1].r2
-        r2_c = r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
-        # Early terminate
-        if r2_c < 0: return
-        pn_c = pn
-        for j in range(1, self.maxn + 1):
-            i = self.maxn - j
-            # First we evaluate against i.  If our candidate radius is greater
-            # than the one we're inspecting, we quit.
-            cur = &self.neighbors[i]
-            r2_o = cur.r2
-            pn_o = cur.pn
-            if r2_c > r2_o:
+        if self.curn == 0:
+            self.neighbors[0].r2 = r2
+            self.neighbors[0].pn = pn
+            self.curn += 1
+            return
+        # Now insert in a sorted way
+        di = -1
+        for i in range(self.curn - 1, -1, -1):
+            # We are checking if i is less than us, to see if we should insert
+            # to the right (i.e., i+1).
+            if self.neighbors[i].r2 < r2:
+                di = i
                 break
-            # Now we know we need to swap them.  First we assign our candidate
-            # values to cur.
-            cur.r2 = r2_c
-            cur.pn = pn_c
-            if i + 1 >= self.maxn:
-                continue # No swapping
-            cur = &self.neighbors[i + 1]
-            cur.r2 = r2_o
-            cur.pn = pn_o
-        # At this point, we've evaluated all the particles and we should have a
-        # sorted set of values.  So, we're done.
+        # The outermost one is already too small.
+        if di == self.maxn - 1:
+            return
+        if (self.maxn - (di + 2)) > 0:
+            memmove(<void *> (self.neighbors + di + 2),
+                    <void *> (self.neighbors + di + 1),
+                    sizeof(NeighborList) * (self.maxn - (di + 2)))
+        self.neighbors[di + 1].r2 = r2
+        self.neighbors[di + 1].pn = pn
+        if self.curn < self.maxn:
+            self.curn += 1
 
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
