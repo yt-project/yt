@@ -171,7 +171,7 @@ def keyPressed(*args):
     global c_tbrightness, c_tdensity
     # If escape is pressed, kill everything.
     if args[0] == '\033':
-        print 'Closing..'
+        print('Closing..')
         destroy_PBOs()
         destroy_texture()
         exit()
@@ -318,5 +318,5 @@ def scale_func(v, mi, ma):
 
 # Print message to console, and kick off the main to get it rolling.
 if __name__ == "__main__":
-    print "Hit ESC key to quit, 'a' to toggle animation, and 'e' to toggle cuda"
+    print("Hit ESC key to quit, 'a' to toggle animation, and 'e' to toggle cuda")
     main()

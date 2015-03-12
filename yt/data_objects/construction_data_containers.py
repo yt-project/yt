@@ -95,7 +95,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
     
     """
     _type_name = "streamline"
-    _con_args = ('positions')
+    _con_args = ('positions',)
     sort_by = 't'
     def __init__(self, positions, length = 1.0, fields=None, ds=None, **kwargs):
         YTSelectionContainer1D.__init__(self, ds, fields, **kwargs)
@@ -270,8 +270,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         xd = self.ds.domain_dimensions[xax]
         yd = self.ds.domain_dimensions[yax]
         bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[yax],
-                  self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         bounds, method = self.method)
@@ -347,6 +347,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
+        self.tree = tree
 
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords
@@ -510,16 +511,16 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def _sanitize_dims(self, dims):
         if not iterable(dims):
-            dims = [dims]*self.ds.dimensionality
-        if len(dims) != self.ds.dimensionality:
+            dims = [dims]*len(self.ds.domain_left_edge)
+        if len(dims) != len(self.ds.domain_left_edge):
             raise RuntimeError(
                 "Length of dims must match the dimensionality of the dataset")
         return np.array(dims, dtype='int32')
 
     def _sanitize_edge(self, edge):
         if not iterable(edge):
-            edge = [edge]*self.ds.dimensionality
-        if len(edge) != self.ds.dimensionality:
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
                 "Length of edges must match the dimensionality of the "
                 "dataset")
@@ -829,15 +830,18 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
             domain_dims = self.ds.domain_dimensions.astype("int64") \
-                        * self.ds.relative_refinement(0, self.level)
+                        * self.ds.relative_refinement(0, ls.current_level)
+            tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
                 # NOTE: This usage of "refine_by" is actually *okay*, because it's
                 # being used with respect to iref, which is *already* scaled!
-                fill_region(input_fields, ls.fields, ls.current_level,
+                tot -= fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
                             chunk.ires, domain_dims, self.ds.refine_by)
+            if level == 0 and tot != 0:
+                raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
@@ -849,30 +853,46 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls.domain_width = self.ds.domain_width
         ls.domain_left_edge = self.ds.domain_left_edge
         ls.domain_right_edge = self.ds.domain_right_edge
-        ls.left_edge = self.left_edge
-        ls.right_edge = self.right_edge
         ls.base_dx = self._base_dx
         ls.dds = self.dds
+        ls.left_edge = self.left_edge
+        ls.right_edge = self.right_edge
         for att in ("domain_width", "domain_left_edge", "domain_right_edge",
                     "left_edge", "right_edge", "base_dx", "dds"):
             setattr(ls, att, getattr(ls, att).in_units("code_length").d)
         ls.current_dx = ls.base_dx
         ls.current_level = 0
-        LL = self.left_edge - self.ds.domain_left_edge
-        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.global_startindex, end_index, idims = \
+            self._minimal_box(ls.current_dx)
+        ls.current_dims = idims.astype("int32")
+        ls.left_edge = ls.global_startindex * ls.current_dx \
+                     + self.ds.domain_left_edge.d
+        ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
         ls.domain_iwidth = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/ls.current_dx).astype('int64')
-        if self.level > 0:
-            # We use one grid cell at LEAST, plus one buffer on all sides
-            width = self.right_edge-self.left_edge
-            idims = np.rint(width/ls.current_dx).astype('int64') + 2
-        elif self.level == 0:
-            ls.global_startindex = np.array(np.floor(LL/ls.current_dx), dtype='int64')
-            idims = np.rint((self.ActiveDimensions*self.dds)/ls.current_dx).astype('int64')
-        ls.current_dims = idims.astype("int32")
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
         self._setup_data_source(ls)
         return ls
+
+    def _minimal_box(self, dds):
+        LL = self.left_edge - self.ds.domain_left_edge
+        # Nudge in case we're on the edge
+        LL += LL.uq * np.finfo(np.float64).eps
+        LS = self.right_edge - self.ds.domain_left_edge
+        LS += LS.uq * np.finfo(np.float64).eps
+        cell_start = LL / dds  # This is the cell we're inside
+        cell_end = LS / dds
+        if self.level == 0:
+            start_index = np.array(np.floor(cell_start), dtype="int64")
+            end_index = np.array(np.ceil(cell_end), dtype="int64")
+            dims = np.rint((self.ActiveDimensions * self.dds) / dds).astype("int64")
+        else:
+            # Give us one buffer
+            start_index = np.rint(cell_start.d).astype('int64') - 1
+            # How many root cells do we occupy?
+            end_index = np.rint(cell_end.d).astype('int64')
+            dims = end_index - start_index + 1
+        return start_index, end_index.astype("int64"), dims.astype("int32")
 
     def _update_level_state(self, level_state):
         ls = level_state
@@ -882,23 +902,24 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls.current_level += 1
         ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
-        self._setup_data_source(ls)
         LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
-        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.global_startindex, end_index, ls.current_dims = \
+            self._minimal_box(ls.current_dx)
+        ls.left_edge = ls.global_startindex * ls.current_dx \
+                     + self.ds.domain_left_edge.d
+        ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
         ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64') 
-        input_left = (level_state.old_global_startindex + 0.5) * rf 
-        width = (self.ActiveDimensions*ls.dds)
-        output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
-        level_state.current_dims = output_dims
+        input_left = (level_state.old_global_startindex) * rf  + 1
         new_fields = []
         for input_field in level_state.fields:
-            output_field = np.zeros(output_dims, dtype="float64")
+            output_field = np.zeros(ls.current_dims, dtype="float64")
             output_left = level_state.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
             new_fields.append(output_field)
         level_state.fields = new_fields
+        self._setup_data_source(ls)
 
 class YTSurfaceBase(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,

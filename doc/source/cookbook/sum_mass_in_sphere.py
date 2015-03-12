@@ -11,6 +11,6 @@ sp = ds.sphere("max", (1.0, "Mpc"))
 # within the sphere.
 baryon_mass, particle_mass = sp.quantities.total_quantity(["cell_mass", "particle_mass"])
 
-print "Total mass in sphere is %0.3e Msun (gas = %0.3e Msun, particles = %0.3e Msun)" % \
+print("Total mass in sphere is %0.3e Msun (gas = %0.3e Msun, particles = %0.3e Msun)" % \
       ((baryon_mass + particle_mass).in_units('Msun'), \
-       baryon_mass.in_units('Msun'), particle_mass.in_units('Msun'))
+       baryon_mass.in_units('Msun'), particle_mass.in_units('Msun')))

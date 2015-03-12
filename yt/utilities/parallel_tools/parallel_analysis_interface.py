@@ -914,7 +914,7 @@ class Communicator(object):
         if self.comm.rank == 0:
             return open(fn, "w")
         else:
-            return cStringIO.StringIO()
+            return cStringIO()
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix

@@ -416,10 +416,13 @@ def assign_particle_data(ds, pdata) :
     
     if len(ds.stream_handler.fields) > 1:
 
-        try:
-            x, y, z = (pdata["io","particle_position_%s" % ax] for ax in 'xyz')
-        except KeyError:
-            raise KeyError("Cannot decompose particle data without position fields!")
+        if ("io", "particle_position_x") in pdata:
+            x, y, z = (pdata["io", "particle_position_%s" % ax] for ax in 'xyz')
+        elif ("io", "particle_position") in pdata:
+            x, y, z = pdata["io", "particle_position"].T
+        else:
+            raise KeyError(
+                "Cannot decompose particle data without position fields!")
         num_grids = len(ds.stream_handler.fields)
         parent_ids = ds.stream_handler.parent_ids
         num_children = np.zeros(num_grids, dtype='int64')
@@ -449,7 +452,7 @@ def assign_particle_data(ds, pdata) :
     
         pdata.pop("number_of_particles", None) 
         grid_pdata = []
-        for i, pcount in enumerate(particle_grid_count) :
+        for i, pcount in enumerate(particle_grid_count):
             grid = {}
             grid["number_of_particles"] = pcount
             start = particle_indices[i]
@@ -611,7 +614,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
         for key in data.keys() :
-            if len(data[key].shape) == 1 :
+            if len(data[key].shape) == 1 or key[0] == 'io':
                 if not isinstance(key, tuple):
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
@@ -682,12 +685,17 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     sds = StreamDataset(handler, geometry = geometry)
 
+    check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
+
     # Now figure out where the particles go
-    if number_of_particles > 0 :
-        if ("io", "particle_position_x") not in pdata:
+    if number_of_particles > 0:
+        if all(f not in pdata for f in check_fields):
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"): continue
+                if not hasattr(pdata[f], "shape"):
+                    continue
+                if f == 'number_of_particles':
+                    continue
                 mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
                 pdata_ftype["io",f] = pdata.pop(f)
             pdata_ftype.update(pdata)
@@ -1128,6 +1136,55 @@ _cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
 _cis.shape = (8, 3)
 
 def hexahedral_connectivity(xgrid, ygrid, zgrid):
+    r"""Define the cell coordinates and cell neighbors of a hexahedral mesh
+    for a semistructured grid. Used to specify the connectivity and
+    coordinates parameters used in
+    :function:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
+
+    Parameters
+    ----------
+    xgrid : array_like
+       x-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+    ygrid : array_like
+       y-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+    zgrid : array_like
+       z-coordinates of boundaries of the hexahedral cells. Should be a
+       one-dimensional array.
+
+    Returns
+    -------
+    coords : array_like
+        The list of (x,y,z) coordinates of the vertices of the mesh.
+        Is of size (M,3) where M is the number of vertices.
+    connectivity : array_like
+        For each hexahedron h in the mesh, gives the index of each of h's
+        neighbors. Is of size (N,8), where N is the number of hexahedra.
+
+    Examples
+    --------
+
+    >>> xgrid = np.array([-1,-0.25,0,0.25,1])
+    >>> coords, conn = hexahedral_connectivity(xgrid,xgrid,xgrid)
+    >>> coords
+    array([[-1.  , -1.  , -1.  ],
+           [-1.  , -1.  , -0.25],
+           [-1.  , -1.  ,  0.  ],
+           ..., 
+           [ 1.  ,  1.  ,  0.  ],
+           [ 1.  ,  1.  ,  0.25],
+           [ 1.  ,  1.  ,  1.  ]])
+
+    >>> conn
+    array([[  0,   1,   5,   6,  25,  26,  30,  31],
+           [  1,   2,   6,   7,  26,  27,  31,  32],
+           [  2,   3,   7,   8,  27,  28,  32,  33],
+           ...,
+           [ 91,  92,  96,  97, 116, 117, 121, 122],
+           [ 92,  93,  97,  98, 117, 118, 122, 123],
+           [ 93,  94,  98,  99, 118, 119, 123, 124]])
+    """
     nx = len(xgrid)
     ny = len(ygrid)
     nz = len(zgrid)
@@ -1197,7 +1254,9 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     ----------
     data : dict
         This is a dict of numpy arrays, where the keys are the field names.
-        There must only be one.
+        There must only be one. Note that the data in the numpy arrays should
+        define the cell-averaged value for of the quantity in in the hexahedral
+        cell.
     connectivity : array_like
         This should be of size (N,8) where N is the number of zones.
     coordinates : array_like
