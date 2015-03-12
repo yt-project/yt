@@ -423,7 +423,7 @@ class PlotWindow(ImagePlotContainer):
             'center'.  Finally, the whether the origin is applied in 'domain'
             space, plot 'window' space or 'native' simulation coordinate system
             is given. For example, both 'upper-right-domain' and ['upper',
-            'right', 'domain'] both place the origin in the upper right hand
+            'right', 'domain'] place the origin in the upper right hand
             corner of domain space. If x or y are not given, a value is inferred.
             For instance, 'left-domain' corresponds to the lower-left hand corner
             of the simulation domain, 'center-domain' corresponds to the center
@@ -1156,7 +1156,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
+         'right', 'domain'] place the origin in the upper right hand
          corner of domain space. If x or y are not given, a value is inferred.
          For instance, 'left-domain' corresponds to the lower-left hand corner
          of the simulation domain, 'center-domain' corresponds to the center
@@ -1283,7 +1283,7 @@ class ProjectionPlot(PWViewerMPL):
          'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
+         'right', 'domain'] place the origin in the upper right hand
          corner of domain space. If x or y are not given, a value is inferred.
          For instance, 'left-domain' corresponds to the lower-left hand corner
          of the simulation domain, 'center-domain' corresponds to the center
@@ -1982,7 +1982,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          x-location, given as 'left', 'right', or 'center'.  Finally,
          whether the origin is applied in 'domain' space, plot 'window' space
          or 'native' simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] both place the
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
          origin in the upper right hand corner of domain space. If x or y are
          not given, a value is inferred.  For instance, 'left-domain'
          corresponds to the lower-left hand corner of the simulation domain,
