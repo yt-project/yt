@@ -1,5 +1,6 @@
 import numpy as np
 import yt
+from yt.utilities.answer_testing.framework import data_dir_load
 
 class PKDGravTipsySuite:
     dsname = "halo1e11_run1.00400/halo1e11_run1.00400"
@@ -12,7 +13,7 @@ class PKDGravTipsySuite:
                       cosmology_parameters = cosmology_parameters,
                       unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                       n_ref = 64)
-        self.ds = yt.TipsyDataset(self.dsname, **kwargs)
+        self.ds = data_dir_load(self.dsname, yt.TipsyDataset, (), kwargs)
 
     def time_all_particles(self):
         dd = self.ds.all_data()
@@ -50,4 +51,4 @@ class GasolineTipsySuite(PKDGravTipsySuite):
         kwargs = dict(cosmology_parameters = cosmology_parameters,
                       unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                       n_ref = 64)
-        self.ds = yt.TipsyDataset(self.dsname, **kwargs)
+        self.ds = data_dir_load(self.dsname, yt.TipsyDataset, (), kwargs)
