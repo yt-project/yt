@@ -83,8 +83,8 @@ used internally.
 * ``pluginfilename``  (default ``'my_plugins.py'``) The name of our plugin file.
 * ``logfile`` (default: ``'False'``): Should we output to a log file in the
   filesystem?
-* ``loglevel`` (default: ``'20'``): What is the threshold (0 to 50) for outputting
-log files?
+* ``loglevel`` (default: ``'20'``): What is the threshold (0 to 50) for
+  outputting log files?
 * ``test_data_dir`` (default: ``'/does/not/exist'``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
   current directory.
