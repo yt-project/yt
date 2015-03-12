@@ -368,7 +368,6 @@ class EnzoHierarchy(GridIndex):
         self.grid_levels[sgi] = second_grid.Level
 
     def _rebuild_top_grids(self, level = 0):
-        #for level in range(self.max_level+1):
         mylog.info("Rebuilding grids on level %s", level)
         cmask = (self.grid_levels.flat == (level + 1))
         cmsum = cmask.sum()
