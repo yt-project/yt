@@ -750,6 +750,8 @@ class LinePlotCallback(PlotCallback):
         self.plot_args = plot_args
         if data_coords:
             coord_system = "data"
+            warnings.warn("The data_coords keyword is deprecated.  Please set "
+                          "the keyword coord_system='data' instead.")
         self.coord_system = coord_system
         self.transform = None
 
@@ -1112,7 +1114,10 @@ class TextLabelCallback(PlotCallback):
                  text_args=None, inset_box_args=None):
         self.pos = pos
         self.text = text
-        self.data_coords = data_coords
+        if data_coords:
+            coord_system = 'data'
+            warnings.warn("The data_coords keyword is deprecated.  Please set "
+                          "the keyword coord_system='data' instead.")
         if text_args is None: text_args = self._text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = {}
