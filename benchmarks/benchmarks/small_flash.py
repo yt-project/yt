@@ -1,7 +1,7 @@
 import numpy as np
 import yt
 
-class SmallEnzoSuite:
+class SmallFlashSuite:
     dsname = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0690"
     def setup(self):
         self.ds = yt.load(self.dsname)
