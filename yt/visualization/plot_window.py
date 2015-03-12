@@ -1153,7 +1153,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] both place the origin in the upper right hand
@@ -1280,7 +1280,7 @@ class ProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] both place the origin in the upper right hand
@@ -1979,7 +1979,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          this parameter is discarded.  This is represented by '-' separated
          string or a tuple of strings.  In the first index the y-location is
          given by 'lower', 'upper', or 'center'.  The second index is the
-         x-location, given as 'left', 'right', or 'center'.  Finally, the
+         x-location, given as 'left', 'right', or 'center'.  Finally,
          whether the origin is applied in 'domain' space, plot 'window' space
          or 'native' simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] both place the
