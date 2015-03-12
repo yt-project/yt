@@ -138,8 +138,6 @@ class PlotCallback(object):
 
         data : 3D data coordinates relative to original dataset
 
-        projected_data : 2D data coordinates in projected/sliced frame
-
         plot : 2D coordinates as defined by the final axis locations
 
         axis : 2D coordinates within the axis object from (0,0) in lower left 
@@ -148,18 +146,15 @@ class PlotCallback(object):
         figure : 2D coordinates within figure object from (0,0) in lower left 
                  to (1,1) in upper right.  Same as matplotlib figure coords.
         """
-        # if in data coords, project them to projected_data coords
+        # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
                 raise SyntaxError("Coordinates in data coordinate system " 
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
-        # if in projected data coords, convert to coords defined by plot axes
-        if coord_system == "data" or coord_system == "projected_data":
             coord = self.convert_to_plot(plot, coord)
         # if in plot coords, define the transform correctly
-        if coord_system == "data" or coord_system == "projected_data" or \
-           coord_system == "plot":
+        if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
             return coord
         # if in axis coords, define the transform correctly
@@ -175,8 +170,7 @@ class PlotCallback(object):
             return coord
         else:
             raise SyntaxError("Argument coord_system must have a value of "
-                              "'data', 'projected_data', 'plot', 'axis',"
-                              "or 'figure'.")
+                              "'data', 'plot', 'axis', or 'figure'.")
 
     def pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
@@ -734,8 +728,6 @@ class LinePlotCallback(PlotCallback):
         This string defines the coordinate system of the coordinates p1 and p2.
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -911,8 +903,6 @@ class ArrowCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -965,8 +955,6 @@ class MarkerAnnotateCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -1023,8 +1011,6 @@ class SphereCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -1104,8 +1090,6 @@ class TextLabelCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -1114,8 +1098,8 @@ class TextLabelCallback(PlotCallback):
 
     text_args : dictionary, optional
         This dictionary is passed to the MPL text function for generating
-        the text.  By default, it is: {} and uses the defaults for the
-        other fonts in the image.
+        the text.  By default, it is: {'color':'white'} and uses the defaults 
+        for the other fonts in the image.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -1123,12 +1107,13 @@ class TextLabelCallback(PlotCallback):
 
     """
     _type_name = "text"
+    _text_args = {'color':'white'}
     def __init__(self, pos, text, data_coords=False, coord_system='data', 
                  text_args=None, inset_box_args=None):
         self.pos = pos
         self.text = text
         self.data_coords = data_coords
-        if text_args is None: text_args = {}
+        if text_args is None: text_args = self._text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = {}
         self.inset_box_args = inset_box_args
@@ -1478,8 +1463,6 @@ class TimestampCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
@@ -1640,8 +1623,6 @@ class ScaleCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
             "data" -- the 3D dataset coordinates
-            "projected_data" -- the 2D dataset coordinates projected on to
-                                the current plot
             "plot" -- the 2D coordinates defined by the actual plot limits
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
