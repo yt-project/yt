@@ -128,10 +128,10 @@ class PlotCallback(object):
             return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                     (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
-    def put_in_correct_coord_system(self, plot, coord, coord_system):
+    def sanitize_coord_system(self, plot, coord, coord_system):
         """
-        Given a set of x,y (or x,y,z) coordinates, put them in the appropriate
-        coordinate system.
+        Given a set of x,y (and z) coordinates and a coordinate system, 
+        convert the coordinates (and transformation) ready for final plotting.
 
         Coordinate systems
         ------------------
@@ -680,37 +680,6 @@ class StreamlineCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
-class AxisLabelCallback(PlotCallback):
-    """
-    annotate_axis_label(axis, label):
-
-    This adds custom axis labels to the plot.
-
-    Parameters
-    ----------
-    axis : string
-        'x' or 'y'
-
-    label : string
-        The text to use as the custom axis.
-    """
-    _type_name = "axis_label"
-    def __init__(self, axis, label):
-        PlotCallback.__init__(self)
-        self.axis = axis
-        self.label = label
-
-    def __call__(self, plot):
-        plot._figure.subplots_adjust(hspace=0, wspace=0,
-                                     bottom=0.1, top=0.9,
-                                     left=0.0, right=1.0)
-        if self.axis == 'x':
-            plot._axes.set_xlabel(self.label)
-        elif self.axis == 'y':
-            plot._axes.set_ylabel(self.label)
-        else:
-            raise SyntaxError("axis must be either 'x' or 'y'")
-
 class LinePlotCallback(PlotCallback):
     """
     annotate_line(p1, p2, coord_system="plot", plot_args=None):
@@ -756,9 +725,9 @@ class LinePlotCallback(PlotCallback):
         self.transform = None
 
     def __call__(self, plot):
-        p1 = self.put_in_correct_coord_system(plot, self.p1,
+        p1 = self.sanitize_coord_system(plot, self.p1,
                             coord_system=self.coord_system)
-        p2 = self.put_in_correct_coord_system(plot, self.p2,
+        p2 = self.sanitize_coord_system(plot, self.p2,
                             coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -889,7 +858,7 @@ class ArrowCallback(PlotCallback):
     """
     annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
 
-    Overplot a arrow pointing at a position for highlighting specific features.
+    Overplot an arrow pointing at a position for highlighting specific features.
     Arrow points from lower left to the designated position with arrow length 
     "length".
 
@@ -897,10 +866,6 @@ class ArrowCallback(PlotCallback):
     ----------
     pos : 2- or 3-element tuple, list, or array
         These are the coordinates to which the arrow is pointing
-
-    code_size : YTArray, float, or (1, ('kpc')) style tuple, optional
-        The length of the arrow in code coordinates. Retained for backwards
-        compatibility.  Setting code_size overrides 'length' keyword.
 
     length : float, optional
         The length, in axis units, of the arrow.
@@ -932,12 +897,15 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos, 
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
         if self.code_size is not None:
+            warnings.warn("The code_size keyword is deprecated.  Please use "
+                          "the length keyword in 'axis' units instead. "
+                          "Setting code_size overrides length value.")
             if iterable(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
@@ -964,7 +932,7 @@ class MarkerAnnotateCallback(PlotCallback):
     Parameters
     ----------
     pos : 2- or 3-element tuple, list, or array
-        These are the coordinates where the marker will be overplot
+        These are the coordinates where the marker will be overplotted
 
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
@@ -992,7 +960,7 @@ class MarkerAnnotateCallback(PlotCallback):
         self.transform = None
 
     def __call__(self, plot):
-        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos, 
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1013,7 +981,7 @@ class SphereCallback(PlotCallback):
     Parameters
     ----------
     center : 2- or 3-element tuple, list, or array
-        These are the coordinates where the circle will be overplot
+        These are the coordinates where the circle will be overplotted
 
     radius : YTArray, float, or (1, ('kpc')) style tuple
         The radius of the circle in code coordinates
@@ -1065,7 +1033,7 @@ class SphereCallback(PlotCallback):
 
         radius = self.radius * self.pixel_scale(plot)[0]
 
-        x,y = self.put_in_correct_coord_system(plot, self.center, 
+        x,y = self.sanitize_coord_system(plot, self.center, 
                                coord_system=self.coord_system)
 
         cir = Circle((x, y), radius, **self.circle_args)
@@ -1096,7 +1064,7 @@ class TextLabelCallback(PlotCallback):
     Parameters
     ----------
     pos : 2- or 3-element tuple, list, or array
-        These are the coordinates where the text will be overplot
+        These are the coordinates where the text will be overplotted
 
     text : string
         The text you wish to include
@@ -1140,7 +1108,7 @@ class TextLabelCallback(PlotCallback):
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
-        x,y = self.put_in_correct_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos, 
                                coord_system=self.coord_system)
 
         # Set the font properties of text from this callback to be
@@ -1621,7 +1589,7 @@ class ScaleCallback(PlotCallback):
         optional 'pos' keyword.
     coeff : float, optional
         The coefficient of the unit defining the distance scale (e.g. 10 kpc or
-        100 Mpc) to be overplot.  If set to None along with unit keyword, 
+        100 Mpc) for overplotting.  If set to None along with unit keyword, 
         coeff will be automatically determined to be a power of 10
         relative to the best-fit unit.
     unit : string, optional

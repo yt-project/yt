@@ -950,11 +950,9 @@ class PWViewerMPL(PlotWindow):
 
     def setup_callbacks(self):
         for key in callback_registry:
-            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
-                       'UnitBoundaryCallback']
+            ignored = ['PlotCallback']
             if self._plot_type.startswith('OffAxis'):
-                ignored += ['HopCirclesCallback','HopParticleCallback',
-                            'ParticleCallback','ClumpContourCallback',
+                ignored += ['ParticleCallback','ClumpContourCallback',
                             'GridBoundaryCallback']
             if self._plot_type == 'OffAxisProjection':
                 ignored += ['VelocityCallback','MagFieldCallback',
