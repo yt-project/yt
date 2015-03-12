@@ -15,6 +15,7 @@ from yt.testing import *
 import numpy as np
 from yt.frontends.sdf.api import SDFDataset
 from yt.visualization.api import ProjectionPlot
+from yt.testing import requires_module
 
 _fields = (('deposit','all_cic'))
 
@@ -30,6 +31,7 @@ def internet_on():
     except urllib2.URLError as err: pass
     return False
 
+@requires_module('thingking')
 def test_scivis():
     if not internet_on(): return
     ds = SDFDataset(scivis_data)
