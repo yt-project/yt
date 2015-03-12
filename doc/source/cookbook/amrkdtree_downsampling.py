@@ -26,14 +26,14 @@ render_source = sc.get_source(0)
 kd=render_source.volume
 
 # Print out specifics of KD Tree
-print "Total volume of all bricks = %i" % kd.count_volume()
-print "Total number of cells = %i" % kd.count_cells()
+print("Total volume of all bricks = %i" % kd.count_volume())
+print("Total number of cells = %i" % kd.count_cells())
 
 new_source = ds.all_data()
 new_source.max_level=3
 kd_low_res = AMRKDTree(ds, data_source=new_source)
-print kd_low_res.count_volume()
-print kd_low_res.count_cells()
+print(kd_low_res.count_volume())
+print(kd_low_res.count_cells())
 
 # Now we pass this in as the volume to our camera, and render the snapshot
 # again.

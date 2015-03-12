@@ -843,14 +843,18 @@ class Dataset(object):
             """
             pos = data[ptype, "particle_position"]
             # get back into density
-            pden = data[ptype, "particle_mass"]
-            top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                               method=method)
-            bottom = data.deposit(pos, [pden], method=method)
-            top[bottom == 0] = 0.0
-            bnz = bottom.nonzero()
-            top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, input_units=units)
+            if method != 'count':
+                pden = data[ptype, "particle_mass"]
+                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
+                                   method=method)
+                bottom = data.deposit(pos, [pden], method=method)
+                top[bottom == 0] = 0.0
+                bnz = bottom.nonzero()
+                top[bnz] /= bottom[bnz]
+                d = data.ds.arr(top, input_units=units)
+            else:
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
+                                             method=method))
             return d
         name_map = {"cic": "cic", "sum": "nn", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"

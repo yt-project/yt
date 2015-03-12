@@ -123,7 +123,7 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
                 cblinthresh = (data.max()-data.min())/10.
-            norm = matplotlib.colors.SymLogNorm(cblinthresh,vmin=data.min(), vmax=data.max())
+            norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
         if isinstance(cmap, tuple):
             if has_brewer:

@@ -468,7 +468,7 @@ class HTTPSDFRead(SDFRead):
         # Pre-process
         ascfile = HTTPArray(self.header)
         max_header_size = 1024*1024
-        lines = cStringIO.StringIO(ascfile[:max_header_size].data[:])
+        lines = cStringIO(ascfile[:max_header_size].data[:])
         while True:
             l = lines.readline()
             if self._eof in l: break
