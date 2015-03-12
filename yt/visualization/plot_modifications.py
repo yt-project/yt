@@ -898,6 +898,10 @@ class ArrowCallback(PlotCallback):
     pos : 2- or 3-element tuple, list, or array
         These are the coordinates to which the arrow is pointing
 
+    code_size : YTArray, float, or (1, ('kpc')) style tuple, optional
+        The length of the arrow in code coordinates. Retained for backwards
+        compatibility.  Setting code_size overrides 'length' keyword.
+
     length : float, optional
         The length, in axis units, of the arrow.
 
@@ -918,8 +922,9 @@ class ArrowCallback(PlotCallback):
     """
     _type_name = "arrow"
     _plot_args = {'color':'white', 'linewidth':2}
-    def __init__(self, pos, length=0.03, coord_system='data', plot_args=None):
+    def __init__(self, pos, code_size=None, length=0.03, coord_system='data', plot_args=None):
         self.pos = pos
+        self.code_size = code_size
         self.length = length
         self.coord_system = coord_system
         self.transform = None
@@ -931,8 +936,16 @@ class ArrowCallback(PlotCallback):
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        dx = (xx1-xx0) * self.length
-        dy = (yy1-yy0) * self.length
+
+        if self.code_size is not None:
+            if iterable(self.code_size):
+                self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
+                self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
+            self.code_size = self.code_size * self.pixel_scale(plot)[0]
+            dx = dy = self.code_size
+        else:
+            dx = (xx1-xx0) * self.length
+            dy = (yy1-yy0) * self.length
         plot._axes.hold(True)
         from matplotlib.patches import Arrow
         arrow = Arrow(x-dx, y-dy, dx, dy, 
