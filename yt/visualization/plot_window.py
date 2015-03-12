@@ -1187,7 +1187,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     Examples
     --------
 
-    This will save an image the the file 'sliceplot_Density
+    This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
