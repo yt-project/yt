@@ -1259,6 +1259,33 @@ class PerspectiveCamera(Camera):
             image[:,:,3]=1.0
         return image
 
+    def project_to_plane(self, pos, res=None):
+        if res is None:
+            res = self.resolution
+        sight_vector = pos - self.center
+        pos1 = sight_vector
+        for i in range(0, sight_vector.shape[0]):
+            sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
+            sight_vector[i] = sight_vector[i]/sight_vector_norm
+        sight_vector = self.ds.arr(sight_vector.value, input_units='dimensionless')
+        sight_center = self.center + self.width[2] * self.orienter.unit_vectors[2]
+
+        for i in range(0, sight_vector.shape[0]):
+            sight_angle_cos = np.dot(sight_vector[i], self.orienter.unit_vectors[2])
+            if np.arccos(sight_angle_cos) < 0.5 * np.pi:
+                sight_length = self.width[2] / sight_angle_cos
+            else: # The point is on the backwards
+                sight_length = self.width.max() * 1.e2
+            pos1[i] = self.center + sight_length * sight_vector[i]
+
+        dx = np.dot(pos1 - sight_center, self.orienter.unit_vectors[0])
+        dy = np.dot(pos1 - sight_center, self.orienter.unit_vectors[1])
+        dz = np.dot(pos1 - sight_center, self.orienter.unit_vectors[2])
+        # Transpose into image coords.
+        px = (res[0]*0.5 + res[0]/self.width[0]*dx).astype('int')
+        py = (res[1]*0.5 + res[1]/self.width[1]*dy).astype('int')
+        return px, py, dz
+
 data_object_registry["perspective_camera"] = PerspectiveCamera
 
 def corners(left_edge, right_edge):
