@@ -1274,8 +1274,12 @@ class PerspectiveCamera(Camera):
             sight_angle_cos = np.dot(sight_vector[i], self.orienter.unit_vectors[2])
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
                 sight_length = self.width[2] / sight_angle_cos
-            else: # The point is on the backwards
-                sight_length = self.width.max() * 1.e2
+            else:
+            # The corner is on the backwards, then put it outside of the image
+            # It can not be simply removed because it may connect to other corner
+            # within the image, which produces visible domian boundary line
+                sight_length = np.sqrt(self.width[0]**2+self.width[1]**2) / \
+                               np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = self.center + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, self.orienter.unit_vectors[0])
