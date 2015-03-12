@@ -420,7 +420,7 @@ class YTBugreportCmd(YTCommand):
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
             loki = raw_input()
-            tf = temdsile.NamedTemporaryFile(delete=False)
+            tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
             popen = subprocess.call("$EDITOR %s" % fn, shell = True)
