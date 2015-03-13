@@ -19,7 +19,7 @@ import struct
 import os
 import os.path
 import sys
-if sys.version > '3':
+if sys.version_info >= (3,0,0):
     long = int
     
 from yt.funcs import *
