@@ -28,7 +28,7 @@ scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128
 # Better answer on http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python
 def internet_on():
     try:
-        urllib2.urlopen("http://www.example.com", timeout = 1)
+        urllib2.urlopen(scivis_data, timeout = 1)
         return True
     except urllib2.URLError, e:
         # For Python 2.6
