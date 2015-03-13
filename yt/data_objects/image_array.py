@@ -57,8 +57,8 @@ class ImageArray(YTArray):
     a plot collection, 'c' for a center, and 'L' for a vector.
 
     >>> im = np.zeros([64,128,3])
-    >>> for i in xrange(im.shape[0]):
-    ...     for k in xrange(im.shape[2]):
+    >>> for i in range(im.shape[0]):
+    ...     for k in range(im.shape[2]):
     ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
     >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
@@ -97,8 +97,8 @@ class ImageArray(YTArray):
         Examples
         --------
         >>> im = np.zeros([64,128,3])
-        >>> for i in xrange(im.shape[0]):
-        ...     for k in xrange(im.shape[2]):
+        >>> for i in range(im.shape[0]):
+        ...     for k in range(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
         >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
@@ -145,8 +145,8 @@ class ImageArray(YTArray):
         Examples
         --------
         >>> im = np.zeros([64,128,4])
-        >>> for i in xrange(im.shape[0]):
-        ...     for k in xrange(im.shape[2]):
+        >>> for i in range(im.shape[0]):
+        ...     for k in range(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
@@ -207,8 +207,8 @@ class ImageArray(YTArray):
         Examples
         --------
         >>> im = np.zeros([64,128,4])
-        >>> for i in xrange(im.shape[0]):
-        ...     for k in xrange(im.shape[2]):
+        >>> for i in range(im.shape[0]):
+        ...     for k in range(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
         >>> im = ImageArray(im)
@@ -266,8 +266,8 @@ class ImageArray(YTArray):
         Examples
         --------
         >>> im = np.zeros([64,128,4])
-        >>> for i in xrange(im.shape[0]):
-        ...     for k in xrange(im.shape[2]):
+        >>> for i in range(im.shape[0]):
+        ...     for k in range(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
@@ -330,7 +330,7 @@ class ImageArray(YTArray):
         --------
 
         >>> im = np.zeros([64,128])
-        >>> for i in xrange(im.shape[0]):
+        >>> for i in range(im.shape[0]):
         ...     im[i,:] = np.linspace(0.,0.3*i, im.shape[1])
 
         >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),

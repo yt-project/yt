@@ -18,9 +18,10 @@ import h5py
 import numpy as np
 import string, re, gc, time
 from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain, izip
+from itertools import chain
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog

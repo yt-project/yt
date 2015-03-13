@@ -100,7 +100,7 @@ class IOHandlerFITS(BaseIOHandler):
                         start[self.ds.spec_axis] += my_off
                         end[self.ds.spec_axis] += my_off
                         mylog.debug("Reading from " + str(start) + str(end))
-                    slices = [slice(start[i],end[i]) for i in xrange(3)]
+                    slices = [slice(start[i],end[i]) for i in range(3)]
                     if self.ds.reversed:
                         new_start = self.ds.dims[self.ds.spec_axis]-1-start[self.ds.spec_axis]
                         new_end = max(self.ds.dims[self.ds.spec_axis]-1-end[self.ds.spec_axis],0)

@@ -506,7 +506,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                     les[0], res[0], gids[0], nids[0]) 
 
         N = nids.shape[0]
-        for i in xrange(N):
+        for i in range(N):
             n = self.get_node(nids[i])
             n.set_left_edge(les[i])
             n.set_right_edge(res[i])

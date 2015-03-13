@@ -43,7 +43,25 @@ from .vector_operations import \
 from .field_functions import \
     get_radius
 
-    
+sph_whitelist_fields = (
+    'particle_velocity_x',
+    'particle_velocity_y',
+    'particle_velocity_z',
+    'density',
+    'temperature',
+    'metallicity',
+    'thermal_energy',
+    'He_fraction',
+    'C_fraction',
+    'N_fraction',
+    'O_fraction',
+    'Ne_fraction',
+    'Mg_fraction',
+    'Si_fraction',
+    'Fe_fraction',
+)
+
+
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -260,7 +278,7 @@ def standard_particle_fields(registry, ptype,
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
         v_vec = YTArray([xv,yv,zv], dtype=np.float64)
-        return np.cross(r_vec, v_vec, axis=0)
+        return np.cross(r_vec, v_vec, axis=0).T
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
               function=_particle_specific_angular_momentum,
@@ -347,8 +365,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-            * data[ptype, "particle_specific_angular_momentum"]
+        return (data[ptype, "particle_mass"] *
+                data[ptype, "particle_specific_angular_momentum"].T).T
     registry.add_field((ptype, "particle_angular_momentum"),
               function=_particle_angular_momentum,
               particle_type=True,
@@ -387,7 +405,7 @@ def standard_particle_fields(registry, ptype,
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         pos = pos.T
         L, pos = modify_reference_frame(center, normal, P=pos)
-        return pos.T
+        return pos
 
     registry.add_field(
         (ptype, "particle_position_relative"),
@@ -487,7 +505,7 @@ def standard_particle_fields(registry, ptype,
         vel = vel - np.reshape(bv, (3, 1))
         vel = vel.T
         L, vel = modify_reference_frame(center, normal, V=vel)
-        return vel.T
+        return vel
 
     registry.add_field((ptype, "particle_velocity_relative"),
               function=_particle_velocity_relative,
@@ -965,6 +983,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         kwargs = {}
         if nneighbors:
             kwargs['nneighbors'] = nneighbors
+        # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
                          create_octree = True)[0]

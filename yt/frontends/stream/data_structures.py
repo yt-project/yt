@@ -70,7 +70,7 @@ from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
-
+from yt.extern.six import string_types, iteritems
 from .fields import \
     StreamFieldInfo
 
@@ -181,7 +181,7 @@ class StreamHierarchy(GridIndex):
         mylog.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
-        for id in xrange(self.num_grids):
+        for id in range(self.num_grids):
             self.grids.append(self.grid(id, self))
             self.grids[id].Level = self.grid_levels[id, 0]
         parent_ids = self.stream_handler.parent_ids
@@ -340,7 +340,7 @@ class StreamDataset(Dataset):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit', 'magnetic_unit')
         cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, basestring):
+            if isinstance(unit, string_types):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -428,7 +428,7 @@ def assign_particle_data(ds, pdata) :
         num_children = np.zeros(num_grids, dtype='int64')
         # We're going to do this the slow way
         mask = np.empty(num_grids, dtype="bool")
-        for i in xrange(num_grids):
+        for i in range(num_grids):
             np.equal(parent_ids, i, mask)
             num_children[i] = mask.sum()
         levels = ds.stream_handler.levels.astype("int64").ravel()
@@ -481,11 +481,11 @@ def unitify_data(data):
         new_data, field_units = {}, {}
         for field in data:
             try:
-                assert isinstance(field, (basestring, tuple)), \
+                assert isinstance(field, (string_types, tuple)), \
                   "Field name is not a string!"
                 assert isinstance(data[field][0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(data[field][1], basestring), \
+                assert isinstance(data[field][1], string_types), \
                   "Unit specification is not a string!"
                 field_units[field] = data[field][1]
                 new_data[field] = data[field][0]
@@ -495,7 +495,7 @@ def unitify_data(data):
         data = new_data
     elif all([iterable(val) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
-        data = dict((field, np.asarray(val)) for field, val in data.iteritems())
+        data = dict((field, np.asarray(val)) for field, val in iteritems(data))
     else:
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
@@ -609,11 +609,11 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
 
-    if number_of_particles > 0 :
+    if number_of_particles > 0:
         particle_types = set_particle_types(data)
         pdata = {} # Used much further below.
         pdata["number_of_particles"] = number_of_particles
-        for key in data.keys() :
+        for key in list(data.keys()):
             if len(data[key].shape) == 1 or key[0] == 'io':
                 if not isinstance(key, tuple):
                     field = ("io", key)
@@ -622,10 +622,10 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                     field = key
                 sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
-    else :
+    else:
         particle_types = {}
     update_field_names(data)
-    
+
     if nprocs > 1:
         temp = {}
         new_data = {}
@@ -1298,6 +1298,14 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates,
                 0: data})
+    # Simple check for axis length correctness
+    if len(data) > 0:
+        fn = list(sorted(data))[0]
+        array_values = data[fn]
+        if array_values.size != connectivity.shape[0]:
+            mylog.error("Dimensions of array must be one fewer than the" +
+                        " coordinate set.")
+            raise RuntimeError
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
