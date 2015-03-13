@@ -402,7 +402,7 @@ class ContourCallback(PlotCallback):
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args = None, label = False, take_log = None, 
-                 label_args = None, data_source = None):
+                 text_args = None, data_source = None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'k'}
         def_text_args = {'color':'w'}
