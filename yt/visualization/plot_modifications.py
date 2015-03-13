@@ -388,7 +388,7 @@ class QuiverCallback(PlotCallback):
 class ContourCallback(PlotCallback):
     """
     annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args=None, label=False, label_args=None,
+                     plot_args=None, label=False, text_args=None,
                      data_source=None):
 
     Add contours in *field* to the plot.  *ncont* governs the number of
@@ -403,17 +403,18 @@ class ContourCallback(PlotCallback):
                  plot_args = None, label = False, take_log = None, 
                  label_args = None, data_source = None):
         PlotCallback.__init__(self)
+        def_plot_args = {'color':'k'}
+        def_text_args = {'color':'w'}
         self.ncont = ncont
         self.field = field
         self.factor = factor
         self.clim = clim
         self.take_log = take_log
-        if plot_args is None: plot_args = {'colors':'k'}
+        if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
         self.label = label
-        if label_args is None:
-            label_args = {}
-        self.label_args = label_args
+        if text_args is None: text_args = def_text_args
+        self.text_args = text_args
         self.data_source = data_source
 
     def __call__(self, plot):
@@ -503,7 +504,7 @@ class ContourCallback(PlotCallback):
         plot._axes.hold(False)
         
         if self.label:
-            plot._axes.clabel(cset, **self.label_args)
+            plot._axes.clabel(cset, **self.text_args)
         
 
 class GridBoundaryCallback(PlotCallback):
@@ -641,11 +642,12 @@ class StreamlineCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor = 16,
                  density = 1, plot_args=None):
         PlotCallback.__init__(self)
+        def_plot_args = {}
         self.field_x = field_x
         self.field_y = field_y
         self.factor = factor
         self.dens = density
-        if plot_args is None: plot_args = {}
+        if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
         
     def __call__(self, plot):
@@ -709,13 +711,13 @@ class LinePlotCallback(PlotCallback):
 
     """
     _type_name = "line"
-    _plot_args = {'color':'white', 'linewidth':2}
     def __init__(self, p1, p2, data_coords=False, coord_system="plot", 
                  plot_args=None):
         PlotCallback.__init__(self)
+        def_plot_args = {'color':'white', 'linewidth':2}
         self.p1 = p1
         self.p2 = p2
-        if plot_args is None: plot_args = self._plot_args
+        if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
         if data_coords:
             coord_system = "data"
@@ -886,14 +888,14 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    _plot_args = {'color':'white', 'linewidth':2}
     def __init__(self, pos, code_size=None, length=0.03, coord_system='data', plot_args=None):
+        def_plot_args = {'color':'white', 'linewidth':2}
         self.pos = pos
         self.code_size = code_size
         self.length = length
         self.coord_system = coord_system
         self.transform = None
-        if plot_args is None: plot_args = self._plot_args
+        if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
     def __call__(self, plot):
@@ -950,11 +952,11 @@ class MarkerAnnotateCallback(PlotCallback):
 
     """
     _type_name = "marker"
-    _plot_args = {'color':'w', 's':50}
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
+        def_plot_args = {'color':'w', 's':50}
         self.pos = pos
         self.marker = marker
-        if plot_args is None: plot_args = self._plot_args
+        if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
         self.coord_system = coord_system
         self.transform = None
@@ -1009,17 +1011,17 @@ class SphereCallback(PlotCallback):
 
     """
     _type_name = "sphere"
-    _text_args = {'color':'white'}
-    _circle_args = {'color':'white'}
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
+        def_text_args = {'color':'white'}
+        def_circle_args = {'color':'white'}
         self.center = center
         self.radius = radius
-        if circle_args is None: circle_args = self._circle_args
+        if circle_args is None: circle_args = def_circle_args
         if 'fill' not in circle_args: circle_args['fill'] = False
         self.circle_args = circle_args
         self.text = text
-        if text_args is None: text_args = self._text_args
+        if text_args is None: text_args = def_text_args
         self.text_args = text_args
         self.coord_system = coord_system
         self.transform = None
@@ -1090,16 +1092,16 @@ class TextLabelCallback(PlotCallback):
 
     """
     _type_name = "text"
-    _text_args = {'color':'white'}
     def __init__(self, pos, text, data_coords=False, coord_system='data', 
                  text_args=None, inset_box_args=None):
+        def_text_args = {'color':'white'}
         self.pos = pos
         self.text = text
         if data_coords:
             coord_system = 'data'
             warnings.warn("The data_coords keyword is deprecated.  Please set "
                           "the keyword coord_system='data' instead.")
-        if text_args is None: text_args = self._text_args
+        if text_args is None: text_args = def_text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = {}
         self.inset_box_args = inset_box_args
@@ -1148,15 +1150,15 @@ class PointAnnotateCallback(TextLabelCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_kwargs=None,
+    annotate_halos(halo_catalog, circle_args=None,
         width=None, annotate_field=None,
-        font_kwargs=None, factor = 1.0)
+        text_args=None, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
     virial radius of each halo. 
 
-    circle_kwargs: Contains the arguments controlling the
+    circle_args: Contains the arguments controlling the
         appearance of the circles, supplied to the 
         Matplotlib patch Circle.
     width: the width over which to select halos to plot,
@@ -1166,7 +1168,7 @@ class HaloCatalogCallback(PlotCallback):
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
-    font_kwargs: Contains the arguments controlling the text
+    text_args: Contains the arguments controlling the text
         appearance of the annotated field.
     factor: A number the virial radius is multiplied by for
         plotting the circles. Ex: factor = 2.0 will plot
@@ -1177,21 +1179,21 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs=None, 
+    def __init__(self, halo_catalog, circle_args=None, 
             width=None, annotate_field=None,
-            font_kwargs=None, factor = 1.0):
+            text_args=None, factor = 1.0):
 
         PlotCallback.__init__(self)
+        def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
+        def_text_args = {'color':'white'}
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
-        if font_kwargs is None:
-            font_kwargs = {'color':'white'}
-        self.font_kwargs = font_kwargs
+        if text_args is None: text_args = def_text_args
+        self.text_args = text_args
         self.factor = factor
-        if circle_kwargs is None:
-            circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
-        self.circle_kwargs = circle_kwargs
+        if circle_args is None: circle_args = def_circle_args
+        self.circle_args = circle_args
 
     def __call__(self, plot):
         data = plot.data
@@ -1241,7 +1243,7 @@ class HaloCatalogCallback(PlotCallback):
 
         for x,y,r in zip(px, py, radius):
             plot._axes.add_artist(Circle(xy=(x,y), 
-                radius = r, **self.circle_kwargs)) 
+                radius = r, **self.circle_args)) 
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1252,11 +1254,11 @@ class HaloCatalogCallback(PlotCallback):
             texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts): 
-                labels.append(plot._axes.text(pos_x, pos_y, t, **self.font_kwargs))
+                labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
 
             # Set the font properties of text from this callback to be
             # consistent with other text labels in this figure
-            self._set_font_properties(plot, labels, **self.font_kwargs)
+            self._set_font_properties(plot, labels, **self.text_args)
 
 class ParticleCallback(PlotCallback):
     """
@@ -1472,16 +1474,15 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
-    # Defaults
-    _text_args = {'color':'white'}
-    _inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
-                       'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
-
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
                  redshift=False, time_format="t = {time:.1f} {units}", 
                  time_unit=None, redshift_format="z = {redshift:.2f}", 
                  draw_inset_box=False, coord_system='axis', 
                  text_args=None, inset_box_args=None):
+
+        def_text_args = {'color':'white'}
+        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+                              'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -1492,12 +1493,12 @@ class TimestampCallback(PlotCallback):
         self.redshift_format = redshift_format
         self.time_unit = time_unit
         self.coord_system = coord_system
-        if text_args is None: self.text_args = self._text_args
-        else: self.text_args = text_args
+        if text_args is None: text_args = def_text_args
+        self.text_args = text_args
         self.text_args['horizontalalignment'] = 'center'
         self.text_args['verticalalignment'] = 'top'
-        if inset_box_args is None: self.inset_box_args = self._inset_box_args
-        else: self.inset_box_args = inset_box_args
+        if inset_box_args is None: inset_box_args = def_inset_box_args
+        self.inset_box_args = inset_box_args
 
         # if inset box is not desired, set inset_box_args to {}
         if not draw_inset_box: self.inset_box_args = {}
@@ -1631,13 +1632,12 @@ class ScaleCallback(PlotCallback):
     >>> s.annotate_scale()
     """
     _type_name = "scale"
-    # Defaults
-    _text_args = {'color':'white'}
-    _plot_args = {'color':'white', 'linewidth':3}
-
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
                  max_frac=0.20, min_frac=0.018, coord_system='axis',
                  text_args=None, plot_args=None):
+
+        def_text_args = {'color':'white'}
+        def_plot_args = {'color':'white', 'linewidth':3}
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1647,13 +1647,13 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
-        if text_args is None: self.text_args = self._text_args
-        else: self.text_args = text_args
+        if text_args is None: text_args = def_text_args
+        self.text_args = text_args
         # This assures the line and the text are aligned
         self.text_args['horizontalalignment'] = 'center'
         self.text_args['verticalalignment'] = 'top'
-        if plot_args is None: self.plot_args = self._plot_args
-        else: self.plot_args = plot_args
+        if plot_args is None: plot_args = def_plot_args
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
