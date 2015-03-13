@@ -1045,15 +1045,15 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
+        image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.parse.urlencode(parameters)
+        data = urllib.parse.urlencode(parameters).encode('utf-8')
         req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib.request.urlopen(req).read()
+            response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
