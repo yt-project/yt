@@ -973,9 +973,9 @@ the hexahedral cells, and thus should have the shape,
 
 .. code-block:: python
 
-   bbox = numpyp.array([[numpy.min(xgrid),numpy.max(xgrid)],
-		        [numpy.min(ygrid),numpy.max(ygrid)],
-		        [numpy.min(zgrid),numpy.max(zgrid)]])
+   bbox = numpy.array([[numpy.min(xgrid),numpy.max(xgrid)],
+	               [numpy.min(ygrid),numpy.max(ygrid)],
+	               [numpy.min(zgrid),numpy.max(zgrid)]])
    data = {"density" : arr}
    ds = yt.load_hexahedral_mesh(data,conn,coords,1.0,bbox=bbox)
 
