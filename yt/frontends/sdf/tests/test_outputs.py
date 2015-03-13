@@ -31,14 +31,8 @@ def internet_on():
         urllib2.urlopen(scivis_data, timeout = 1)
         return True
     except urllib2.URLError, e:
-        # For Python 2.6
-        if isinstance(e.reason, socket.timeout):
-            return False
-        else:
-            # reraise the original error
-            raise
+        return False
     except socket.timeout, e:
-        # For Python 2.7
         return False
 
 @requires_module('thingking')
