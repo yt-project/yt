@@ -30,7 +30,8 @@ from __future__ import print_function
 import os
 import sys
 from optparse import OptionParser
-
+if sys.version_info >= (3,0,0):
+    unicode = str
 
 SCRIPT_NAME = os.path.basename(sys.argv[0])
 VERSION = '0.3'
@@ -109,11 +110,11 @@ def make_utf8(text, encoding):
 def get_xmlrpc_service():
     """Create the XMLRPC server proxy and cache it."""
     global _xmlrpc_service
-    import xmlrpclib
+    from yt.extern.six.moves import xmlrpc_client
     if _xmlrpc_service is None:
         try:
-            _xmlrpc_service = xmlrpclib.ServerProxy(SERVICE_URL + 'xmlrpc/',
-                                                    allow_none=True)
+            _xmlrpc_service = xmlrpc_client.ServerProxy(SERVICE_URL + 'xmlrpc/',
+                                                        allow_none=True)
         except Exception as err:
             fail('Could not connect to Pastebin: %s' % err, -1)
     return _xmlrpc_service
@@ -305,6 +306,8 @@ def main( filename, languages=False, language=None, encoding='utf-8',
 
     # create paste
     code = make_utf8(data, encoding)
+    if sys.version_info >= (3,0,0):
+        code = code.decode('utf-8')
     pid = create_paste(code, language, filename, mimetype, private)
     url = '%sshow/%s/' % (SERVICE_URL, pid)
     print(url)
