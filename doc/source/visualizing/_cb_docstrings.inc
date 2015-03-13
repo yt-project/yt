@@ -64,7 +64,7 @@ Overplot Contours
 
 .. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,\
                                clim=None, plot_args=None, label=False, \
-                               label_args=None, data_source=None):
+                               text_args=None, data_source=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)

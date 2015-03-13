@@ -166,7 +166,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
-            label_args={'text-size':'x-large'})
+            text_args={'text-size':'x-large'})
         p.save(prefix)
 
         p = SlicePlot(ds, "x", "density")
@@ -174,7 +174,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
-            label_args={'text-size':'x-large'},
+            text_args={'text-size':'x-large'},
             data_source=s2)
         p.save(prefix)
 
