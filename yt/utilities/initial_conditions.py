@@ -34,7 +34,7 @@ class TopHatSphere(FluidOperator):
         ind = (r <= self.radius)
         if sub_select is not None:
             ind &= sub_select
-        for field, val in self.fields.iteritems():
+        for field, val in self.fields.items():
             grid[field][ind] = val
 
 class CoredSphere(FluidOperator):
@@ -54,7 +54,7 @@ class CoredSphere(FluidOperator):
         ind = (r <= r2)
         if sub_select is not None:
             ind &= sub_select
-        for field, (outer_val, inner_val) in self.fields.iteritems():
+        for field, (outer_val, inner_val) in self.fields.items():
             val = ((r[ind] - cr2) / (r2 - cr2))**0.5 * (outer_val - inner_val)
             grid[field][ind] = val + inner_val
 
@@ -75,7 +75,7 @@ class BetaModelSphere(FluidOperator):
         ind = (r <= r2)
         if sub_select is not None:
             ind &= sub_select            
-        for field, core_val in self.fields.iteritems() :
+        for field, core_val in self.fields.items() :
             val = core_val*(1.+r[ind]/cr2)**(-1.5*self.beta)
             grid[field][ind] = val
 
@@ -95,7 +95,7 @@ class NFWModelSphere(FluidOperator):
         r /= self.scale_radius
         if sub_select is not None:
             ind &= sub_select
-        for field, scale_val in self.fields.iteritems() :
+        for field, scale_val in self.fields.items() :
             val = scale_val/(r[ind]*(1.+r[ind])**2)
             grid[field][ind] = val
             
@@ -106,7 +106,7 @@ class RandomFluctuation(FluidOperator):
     def __call__(self, grid, sub_select = None):
         if sub_select is None:
             sub_select = Ellipsis
-        for field, mag in self.fields.iteritems():
+        for field, mag in self.fields.items():
             vals = grid[field][sub_select]
             rc = 1.0 + (np.random.random(vals.shape) - 0.5) * mag
             grid[field][sub_select] *= rc

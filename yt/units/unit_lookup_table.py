@@ -229,7 +229,7 @@ cgs_conversions = {
     "A":"statA",
 }
 
-for conv in cgs_conversions.keys():
+for conv in list(cgs_conversions.keys()):
     if conv in prefixable_units:
         for p in unit_prefixes:
             cgs_conversions[p+conv] = p+cgs_conversions[conv]
