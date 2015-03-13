@@ -966,6 +966,19 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    def annotate_clear(self, index=None):
+        """
+        Clear callbacks from the plot.  If index is not set, clear all 
+        callbacks.  If index is set, clear that index (ie 0 is the first one
+        created, 1 is the 2nd one created, -1 is the last one created, etc.)
+        """
+        if index is None:
+            self._callbacks = []
+        else:
+            del self._callbacks[index]
+        self.setup_callbacks()
+        
+
     def run_callbacks(self):
         for f in self.fields:
             keys = self.frb.keys()
