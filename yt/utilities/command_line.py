@@ -1075,6 +1075,15 @@ class YTUploadImageCmd(YTCommand):
 
 def run_main():
     args = parser.parse_args()
+    # The following is a workaround for a nasty Python 3 bug:
+    # http://bugs.python.org/issue16308
+    # http://bugs.python.org/issue9253
+    try:
+        getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        sys.exit(0)
+        
     args.func(args)
 
 if __name__ == "__main__": run_main()
