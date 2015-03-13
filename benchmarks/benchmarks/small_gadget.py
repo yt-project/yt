@@ -3,6 +3,7 @@ import yt
 
 class SmallGadgetSuite:
     dsname = "snapshot_033/snap_033.0.hdf5"
+    timeout = 240.0
     def setup(self):
         self.ds = yt.load(self.dsname)
 
