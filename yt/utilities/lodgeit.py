@@ -197,7 +197,11 @@ def download_paste(uid):
     paste = xmlrpc.pastes.getPaste(uid)
     if not paste:
         fail('Paste "%s" does not exist.' % uid, 5)
-    print(paste['code'].encode('utf-8'))
+    if sys.version_info >= (3,0,0):
+        code = paste['code']
+    else:
+        code = paste['code'].encode('utf-8')
+    print(code)
 
 
 def create_paste(code, language, filename, mimetype, private):
