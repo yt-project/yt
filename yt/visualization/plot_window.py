@@ -2036,7 +2036,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     """
     # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatability
+    # we check the axis keyword for backwards compatibility
     if normal is None: normal = axis
     if normal is None:
         raise AssertionError("Must pass a normal vector to the slice!")
