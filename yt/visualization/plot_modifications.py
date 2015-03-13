@@ -401,8 +401,8 @@ class ContourCallback(PlotCallback):
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args = None, label = False, take_log = None, 
-                 text_args = None, data_source = None):
+                 plot_args=None, label=False, take_log=None, 
+                 label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'k'}
         def_text_args = {'color':'w'}
@@ -414,6 +414,10 @@ class ContourCallback(PlotCallback):
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
         self.label = label
+        if label_args is not None:
+            text_args = label_args
+            warnings.warn("The label_args keyword is deprecated.  Please use "
+                          "the text_args keyword instead.")
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
         self.data_source = data_source
@@ -1180,9 +1184,9 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_args=None, 
+    def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
             width=None, annotate_field=None,
-            text_args=None, factor = 1.0):
+            text_args=None, font_kwargs=None, factor = 1.0):
 
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
@@ -1190,11 +1194,19 @@ class HaloCatalogCallback(PlotCallback):
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
+        if circle_kwargs is not None:
+            circle_args = circle_kwargs
+            warnings.warn("The circle_kwargs keyword is deprecated.  Please "
+                          "use the circle_args keyword instead.")
+        if font_kwargs is not None:
+            text_args = font_kwargs
+            warnings.warn("The font_kwargs keyword is deprecated.  Please use "
+                          "the text_args keyword instead.")
+        if circle_args is None: circle_args = def_circle_args
+        self.circle_args = circle_args
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
         self.factor = factor
-        if circle_args is None: circle_args = def_circle_args
-        self.circle_args = circle_args
 
     def __call__(self, plot):
         data = plot.data
