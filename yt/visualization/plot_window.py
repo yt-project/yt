@@ -1158,10 +1158,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] place the origin in the upper right hand
          corner of domain space. If x or y are not given, a value is inferred.
-         For instance, 'left-domain' corresponds to the lower-left hand corner
-         of the simulation domain, 'center-domain' corresponds to the center
-         of the simulation domain, or 'center-window' for the center of the
-         plot window. Further examples:
+         For instance, the default location 'center-window' corresponds to
+         the center of the plot window, 'left-domain' corresponds to the
+         lower-left hand corner of the simulation domain, or 'center-domain'
+         for the center of the simulation domain. Further examples:
 
          ==================================     ============================
          format                                 example
