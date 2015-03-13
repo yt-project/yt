@@ -675,6 +675,7 @@ See also :ref:`callbacks`.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
@@ -695,7 +696,6 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.TimestampCallback
    ~yt.visualization.plot_modifications.TitleCallback
    ~yt.visualization.plot_modifications.TriangleFacetsCallback
-   ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
 -------------
