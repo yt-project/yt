@@ -259,17 +259,17 @@ class SZProjection(object):
 
         nx, ny = self.nx,self.nx
         signal = np.zeros((self.num_freqs,nx,ny))
-        xo = np.zeros((self.num_freqs))
+        xo = np.zeros(self.num_freqs)
 
         k = int(0)
 
-        start_i = comm.rank*nx/comm.size
-        end_i = (comm.rank+1)*nx/comm.size
+        start_i = comm.rank*nx//comm.size
+        end_i = (comm.rank+1)*nx//comm.size
 
         pbar = get_pbar("Computing SZ signal.", nx*nx)
 
-        for i in xrange(start_i, end_i):
-            for j in xrange(ny):
+        for i in range(start_i, end_i):
+            for j in range(ny):
                 xo[:] = self.xinit[:]
                 SZpack.compute_combo_means(xo, tau[i,j], Te[i,j],
                                            bpar[i,j], omega1[i,j],

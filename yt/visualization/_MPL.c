@@ -140,10 +140,10 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
     dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
     xiter[1] = yiter[1] = 999;
     if(check_period == 1) {
-      if (oxsp < x_min) {xiter[1] = +1; xiterv[1] = period_x;}
-      else if (oxsp > x_max) {xiter[1] = -1; xiterv[1] = -period_x;}
-      if (oysp < y_min) {yiter[1] = +1; yiterv[1] = period_y;}
-      else if (oysp > y_max) {yiter[1] = -1; yiterv[1] = -period_y;}
+      if (oxsp - dxsp < x_min) {xiter[1] = +1; xiterv[1] = period_x;}
+      else if (oxsp + dxsp > x_max) {xiter[1] = -1; xiterv[1] = -period_x;}
+      if (oysp - dysp < y_min) {yiter[1] = +1; yiterv[1] = period_y;}
+      else if (oysp + dysp > y_max) {yiter[1] = -1; yiterv[1] = -period_y;}
     }
     overlap1 = overlap2 = 1.0;
     for(xi = 0; xi < 2; xi++) {

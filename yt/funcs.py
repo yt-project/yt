@@ -14,6 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six import string_types
 import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
@@ -22,7 +23,7 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import builtins
+from yt.extern.six.moves import builtins, urllib
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 import yt.extern.progressbar as pb
@@ -537,7 +538,6 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
-    import urllib
     class MyURLopener(urllib.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
@@ -547,20 +547,19 @@ def download_file(url, filename):
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
-    import urllib, urllib2
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
-        data = urllib.urlencode(data)
-    req = urllib2.Request(uri, data)
+        data = urllib.parse.urlencode(data)
+    req = urllib.request.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib2.urlopen(req).read()
+    return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
@@ -670,7 +669,7 @@ def ensure_dir(path):
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], string_types):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
@@ -752,7 +751,9 @@ def enable_plugins():
         mylog.info("Loading plugins from %s", _fn)
         execdict = yt.__dict__.copy()
         execdict['add_field'] = my_plugins_fields.add_field
-        execfile(_fn, execdict)
+        with open(_fn) as f:
+            code = compile(f.read(), _fn, 'exec')
+            exec(code, execdict)
 
 def fix_unitary(u):
     if u == '1':

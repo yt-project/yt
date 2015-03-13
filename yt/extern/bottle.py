@@ -46,6 +46,8 @@ from traceback import format_exc
 from urllib import quote as urlquote
 from urlparse import urlunsplit, urljoin
 
+from yt.extern.six import string_types
+
 try: from collections import MutableMapping as DictMixin
 except ImportError: # pragma: no cover
     from UserDict import DictMixin
@@ -952,7 +954,7 @@ class Response(threading.local):
         '''
         if secret:
             value = touni(cookie_encode((key, value), secret))
-        elif not isinstance(value, basestring):
+        elif not isinstance(value, string_types):
             raise TypeError('Secret missing for non-string Cookie.')
             
         self.COOKIES[key] = value
@@ -1569,9 +1571,9 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
         :param options: Options passed to the server adapter.
      """
     app = app or default_app()
-    if isinstance(app, basestring):
+    if isinstance(app, string_types):
         app = load_app(app)
-    if isinstance(server, basestring):
+    if isinstance(server, string_types):
         server = server_names.get(server)
     if isinstance(server, type):
         server = server(host=host, port=port, **kargs)

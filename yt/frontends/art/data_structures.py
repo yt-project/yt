@@ -202,7 +202,7 @@ class ARTDataset(Dataset):
         base_prefix, base_suffix = filename_pattern['amr']
         aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
-        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+        for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue
@@ -784,7 +784,7 @@ class ARTDomainFile(object):
         Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
         iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
         iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-        for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+        for Lev in range(MinLev + 1, MaxLevelNow+1):
             level_oct_offsets.append(f.tell())
 
             # Get the info for this level, skip the rest

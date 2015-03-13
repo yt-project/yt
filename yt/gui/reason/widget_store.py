@@ -231,7 +231,7 @@ class SceneWidget(object):
         ph = PayloadHandler()
         vert = get_isocontour(self.ds, field, value, rel_val)
         normals = np.empty(vert.shape)
-        for i in xrange(vert.shape[0]/3):
+        for i in range(vert.shape[0]/3):
             n = np.cross(vert[i*3,:], vert[i*3+1,:])
             normals[i*3:i*3+3,:] = n[None,:]
         ph.widget_payload(self, {'ptype':'isocontour',
