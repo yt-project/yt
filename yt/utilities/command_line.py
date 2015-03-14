@@ -679,6 +679,9 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
+        if sys.version_info >= (3,0,0):
+            print("yt mapserver is disabled for Python 3.")
+            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
