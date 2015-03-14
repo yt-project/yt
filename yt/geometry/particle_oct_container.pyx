@@ -433,19 +433,21 @@ cdef class ParticleForest:
            hash(selector.base_selector) == self._last_selector:
             return self._last_return_values
         cdef int i, j, k, n
-        cdef np.uint64_t fmask, offset, fcheck, pcount
+        cdef np.uint64_t fmask, bmask, offset, fcheck, pcount
         cdef np.float64_t LE[3], RE[3]
-        cdef np.ndarray[np.uint64_t, ndim=3] mask
+        cdef np.ndarray[np.uint64_t, ndim=3] mask, buffer_mask
         cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
         cdef np.ndarray[np.uint8_t, ndim=3] omask
         omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
                          dtype="uint8")
-        files = []
-        pcount = fmask = 0
+        buffer_files, files = [], []
+        pcount = fmask = bmask = 0
         for n in range(len(self.masks)):
             pcount = 0 # Each loop
             fmask = 0
+            bmask = 0
             mask = self.masks[n]
+            buffer_mask = self.buffer_masks[n]
             LE[0] = self.left_edge[0]
             RE[0] = LE[0] + self.dds[0]
             for i in range(self.dims[0]):
@@ -458,6 +460,7 @@ cdef class ParticleForest:
                         if selector.select_grid(LE, RE, 0) == 1:
                             omask[i, j, k] = 1
                             fmask |= mask[i,j,k]
+                            bmask |= buffer_mask[i,j,k]
                             pcount += counts[i,j,k]
                         LE[2] += self.dds[2]
                         RE[2] += self.dds[2]
@@ -467,11 +470,14 @@ cdef class ParticleForest:
                 RE[0] += self.dds[0]
             # Now we iterate through...
             for fcheck in range(64):
+                if ((bmask >> fcheck) & ONEBIT) == ONEBIT:
+                    buffer_files.append(fcheck + n * 64)
                 if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
                     files.append(fcheck + n * 64)
         self._last_selector = hash(selector)
-        self._last_return_values = (files, pcount, omask)
-        return files, pcount, omask
+        self._last_return_values = (files, pcount, omask, buffer_files)
+        print buffer_files
+        return files, pcount, omask, buffer_files
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -485,7 +491,7 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=3] omask
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
-        files, pcount, omask = data_file_info
+        files, pcount, omask, buffer_files = data_file_info
         cdef np.float64_t LE[3], RE[3]
         cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t selected, fcheck, fmask

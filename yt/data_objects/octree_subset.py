@@ -15,6 +15,7 @@ Subsets of octrees
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import contextlib
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
@@ -254,11 +255,14 @@ class ParticleOctreeSubset(OctreeSubset):
     _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
     domain_id = -1
     def __init__(self, base_region, data_files, ds, 
-                 min_ind = 0, max_ind = 0, over_refine_factor = 1):
+                 min_ind = 0, max_ind = 0, over_refine_factor = 1,
+                 buffer_files = None):
         # The first attempt at this will not work in parallel.
+        if buffer_files is None: buffer_files = []
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.data_files = ensure_list(data_files)
+        self.buffer_files = ensure_list(buffer_files)
         if len(self.data_files) != 1:
             raise NotImplementedError
         self.domain_id = -1
@@ -276,6 +280,17 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
+    @contextlib.contextmanager
+    def _expand_data_files(self, ghost_particles):
+        if ghost_particles:
+            old_data_files = self.data_files
+            self.data_files = list(set(self.data_files + self.buffer_files))
+            self.data_files.sort()
+            yield self
+            self.data_files = old_data_files
+        else:
+            yield self
+
     @property
     def domain_ind(self):
         if self._domain_ind is None:
@@ -289,14 +304,14 @@ class ParticleOctreeSubset(OctreeSubset):
             return self._index.regions._last_oct_handler
         cache = self._index.regions._cached_octrees
         if self.data_files[0].file_id not in cache:
-            dfi, count, omask = self._index.regions.identify_data_files(
+            dfi, count, omask, bfi = self._index.regions.identify_data_files(
                                     self.base_selector)
         else:
-            dfi = count = omask = None
+            dfi = count = omask = bfi = None
         oct_handler = self._index.regions.construct_forest(
                 self.data_files[0].file_id, self.base_selector,
                 self._index.io, self._index.data_files,
-                (dfi, count, omask))
+                (dfi, count, omask, bfi))
         self._index.regions._last_octree_subset = id(self)
         self._index.regions._last_oct_handler = oct_handler
         return oct_handler

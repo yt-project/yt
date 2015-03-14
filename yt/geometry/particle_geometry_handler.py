@@ -120,23 +120,27 @@ class ParticleIndex(Index):
             self._initialize_coarse_index()
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
+            buffer_files = getattr(dobj, "buffer_files", None)
             if data_files is None:
-                dfi, count, omask = self.regions.identify_data_files(
+                dfi, count, omask, bdfi = self.regions.identify_data_files(
                                         dobj.selector)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
+                buffer_files = [self.data_files[i] for i in bdfi]
                 mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
-                over_refine_factor = self.ds.over_refine_factor)
-                for df in data_files]
+                over_refine_factor = self.ds.over_refine_factor,
+                buffer_files = bf)
+                for df, bf in zip(data_files, buffer_files)]
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
+    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
+                       ghost_particles = False):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.
@@ -148,7 +152,8 @@ class ParticleIndex(Index):
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
-            yield YTDataChunk(dobj, "spatial", [g])
+            with g._expand_data_files(ghost_particles):
+                yield YTDataChunk(dobj, "spatial", [g])
 
     def old_chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         dfi, count, omask = self.regions.identify_data_files(

@@ -297,7 +297,7 @@ class YTDataContainer(object):
             rv = finfo(gen_obj)
         return rv
 
-    def _generate_spatial_fluid(self, field, ngz):
+    def _generate_spatial_fluid(self, field, ngz, ghost_particles = False):
         rv = np.empty(self.ires.size, dtype="float64")
         ind = 0
         if ngz == 0:
@@ -310,7 +310,8 @@ class YTDataContainer(object):
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
-            chunks = self.index._chunk(self, "spatial", ngz = ngz)
+            chunks = self.index._chunk(self, "spatial", ngz = ngz,
+                                       ghost_particles = ghost_particles)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
