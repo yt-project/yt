@@ -983,7 +983,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(np.pi/4)
+        >>> cam.pitch(np.pi/4)
         """
         rot_vector = self.orienter.unit_vectors[0]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1007,7 +1007,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(np.pi/4)
+        >>> cam.yaw(np.pi/4)
         """
         rot_vector = self.orienter.unit_vectors[1]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1121,6 +1121,9 @@ class PerspectiveCamera(Camera):
     the camera and end on the image plane, which generates a perspective
     view.
 
+    Note: at the moment, this results in a left-handed coordinate
+    system view
+
     Parameters
     ----------
     center : array_like
@@ -1189,7 +1192,7 @@ class PerspectiveCamera(Camera):
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
-        east_vec = -self.orienter.unit_vectors[0].reshape(3,1)
+        east_vec = self.orienter.unit_vectors[0].reshape(3,1)
         north_vec = self.orienter.unit_vectors[1].reshape(3,1)
 
         px = np.mat(np.linspace(-.5, .5, self.resolution[0]))
@@ -1290,6 +1293,40 @@ class PerspectiveCamera(Camera):
         py = (res[1]*0.5 + res[1]/self.width[1]*dy).astype('int')
         return px, py, dz
 
+    def yaw(self, theta, rot_center):
+        r"""Rotate by a given angle about the vertical axis through the
+        point center.  This is accomplished by rotating the 
+        focal point and then setting the looking vector to point
+        to the center.
+
+        Yaw the view.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to yaw the view.
+
+        center : a tuple (x, y, z) 
+             The point to rotate about
+
+        Examples
+        --------
+
+        >>> cam.yaw(np.pi/4, (0., 0., 0.))
+        """
+
+        rot_vector = self.orienter.unit_vectors[1]
+
+        focal_point = self.center - rot_center
+        R = get_rotation_matrix(theta, rot_vector)
+        focal_point = np.dot(R, focal_point) + rot_center
+
+        normal_vector = rot_center - focal_point
+        normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
+
+        self.switch_view(normal_vector=normal_vector, center=focal_point)
+
+    
 data_object_registry["perspective_camera"] = PerspectiveCamera
 
 def corners(left_edge, right_edge):
