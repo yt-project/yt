@@ -3,21 +3,19 @@ The volume rendering Scene class.
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 from yt.funcs import mylog
 from camera import Camera
-from render_source import VolumeSource, OpaqueSource
-from yt.data_objects.api import ImageArray
+from render_source import OpaqueSource
 from zbuffer_array import ZBuffer
-from .utils import data_source_or_all
 import numpy as np
 
 
@@ -58,12 +56,20 @@ class Scene(object):
     _current = None
 
     def __init__(self):
-        """
-        Create a new Scene instance.
+        r"""Create a new Scene instance.
 
         This sets up the basics needed to add sources and cameras.
         This does very little setup, and requires additional input
         to do anything useful.
+
+        Parameters
+        ----------
+        None
+
+        Examples
+        --------
+        >>> sc = Scene()
+
         """
         super(Scene, self).__init__()
         self.sources = {}
@@ -78,9 +84,8 @@ class Scene(object):
         returning a tuple of (key, source)
         """
         for k, source in self.sources.iteritems():
-            #print source, issubclass(OpaqueSource, type(source))
-            #print source, issubclass(VolumeSource, type(source))
-            if isinstance(source, OpaqueSource) or issubclass(OpaqueSource, type(source)):
+            if isinstance(source, OpaqueSource) or \
+                    issubclass(OpaqueSource, type(source)):
                 yield k, source
 
     def iter_transparent_sources(self):
@@ -117,6 +122,33 @@ class Scene(object):
         return self
 
     def render(self, fname=None, clip_ratio=None, camera=None):
+        r"""Render all sources in the Scene.
+
+        Use the current state of the Scene object to render all sources
+        currently in the scene.
+
+        Parameters
+        ----------
+        fname: string, optional
+            If specified, save the rendering as a bitmap to the file "fname".
+            Default: None
+        clip_ratio: float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
+        camera: :class:`Camera`, optional
+            If specified, use a different :class:`Camera` to render the scene.
+
+        Returns
+        -------
+        bmp: :class:`ImageArray`
+            ImageArray instance of the current rendering image.
+
+        Examples
+        --------
+        >>> sc = Scene()
+        >>> # Add sources/camera/etc
+        >>> im = sc.render('rendering.png')
+        """
         if camera is None:
             camera = self.camera
         assert(camera is not None)
@@ -138,20 +170,10 @@ class Scene(object):
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self.iter_opaque_sources():
-            #print "Adding opaque source:", source
             source.render(camera, zbuffer=opaque)
-            #print opaque.z.min(), opaque.z.max()
-            #print opaque.rgba[:, :, :3].max()
-            #if source.zbuffer is not None:
-            #    opaque = opaque + source.zbuffer
-        #im = opaque.rgba
 
         for k, source in self.iter_transparent_sources():
-            #print "Adding transparent source:", source
-            #print opaque.z.min(), opaque.z.max()
-            #print opaque.rgba[:, :, :3].max()
             im = source.render(camera, zbuffer=opaque)
-            #opaque = opaque + source.zbuffer
         return im
 
     def set_camera(self, camera):
