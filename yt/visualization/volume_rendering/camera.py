@@ -25,6 +25,9 @@ class Camera(Orientation):
     r"""    """
 
     _moved = True
+    _width = None
+    _focus = None
+    _position = None
 
     def __init__(self, data_source=None, lens_type='plane-parallel',
                  auto=False):
@@ -69,6 +72,52 @@ class Camera(Orientation):
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
+
+    def position():
+        doc = "The position property."
+
+        def fget(self):
+            return self._position
+
+        def fset(self, value):
+            self._position = value
+            self.switch_orientation()
+
+        def fdel(self):
+            del self._position
+        return locals()
+    position = property(**position())
+
+    def width():
+        doc = "The width property."
+
+        def fget(self):
+            return self._width
+
+        def fset(self, value):
+            self._width = value
+            self.switch_orientation()
+
+        def fdel(self):
+            del self._width
+            self._width = None
+        return locals()
+    width = property(**width())
+
+    def focus():
+        doc = "The focus property."
+
+        def fget(self):
+            return self._focus
+
+        def fset(self, value):
+            self._focus = value
+            self.switch_orientation()
+
+        def fdel(self):
+            del self._focus
+        return locals()
+    focus = property(**focus())
 
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
