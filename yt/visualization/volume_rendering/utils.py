@@ -35,6 +35,7 @@ def new_volume_render_sampler(camera, render_source):
     sampler = VolumeRenderSampler(*args, **kwargs)
     return sampler
 
+
 def new_interpolated_projection_sampler(camera, render_source):
     params = camera._get_sampler_params(render_source)
     params.update(transfer_function=render_source.transfer_function)
@@ -55,6 +56,7 @@ def new_interpolated_projection_sampler(camera, render_source):
         kwargs['zbuffer'] = render_source.zbuffer.z
     sampler = InterpolatedProjectionSampler(*args)
     return sampler
+
 
 def new_projection_sampler(camera, render_source):
     params = camera._get_sampler_params(render_source)
@@ -77,6 +79,7 @@ def new_projection_sampler(camera, render_source):
     sampler = ProjectionSampler(*args)
     return sampler
 
+
 def get_corners(le, re):
     return np.array([
         [le[0], le[1], le[2]],
@@ -88,4 +91,3 @@ def get_corners(le, re):
         [re[0], re[1], re[2]],
         [le[0], re[1], re[2]],
         ], dtype='float64')
-
