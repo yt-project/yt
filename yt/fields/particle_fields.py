@@ -254,12 +254,11 @@ def standard_particle_fields(registry, ptype,
         yv = data[ptype, svel % 'y'] - bv[1]
         zv = data[ptype, svel % 'z'] - bv[2]
         center = data.get_field_parameter('center')
-        coords = YTArray([data[ptype, spos % 'x'],
-                           data[ptype, spos % 'y'],
-                           data[ptype, spos % 'z']], dtype=np.float64)
+        coords = self.ds.arr([data[ptype, spos % d] for d in 'xyz'],
+                             dtype=np.float64, units='cm')
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
-        v_vec = YTArray([xv,yv,zv], dtype=np.float64)
+        v_vec = self.ds.arr([xv,yv,zv], dtype=np.float64, units='cm/s')
         return np.cross(r_vec, v_vec, axis=0)
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
