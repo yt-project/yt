@@ -45,7 +45,7 @@ class Camera(Orientation):
         auto: boolean
             If True, build smart defaults using the data source extent. This
             can be time-consuming to iterate over the entire dataset to find
-            the positional bounds. Default: False 
+            the positional bounds. Default: False
 
         """
         #mylog.debug("Entering %s" % str(self))
@@ -53,15 +53,15 @@ class Camera(Orientation):
         self.north_vector = None
         self.resolution = (512, 512)
         self.light = None
-        self.width = 1.0 
-        self.focus = np.array([0.0]*3) 
-        self.position = np.array([1.0]*3) 
+        self.width = 1.0
+        self.focus = np.array([0.0]*3)
+        self.position = np.array([1.0]*3)
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
             self.width = 1.5*data_source.ds.domain_width
             self.focus = data_source.ds.domain_center
-            self.position = data_source.ds.domain_right_edge 
+            self.position = data_source.ds.domain_right_edge
         if auto:
             self.set_defaults_from_data_source(data_source)
 
@@ -78,6 +78,7 @@ class Camera(Orientation):
             mylog.error("Lens type not available")
             raise RuntimeError()
         self.lens = lenses[lens_type]()
+        self.lens.camera = self
 
     def set_defaults_from_data_source(self, data_source):
         self.position = data_source.pf.domain_right_edge
@@ -193,7 +194,7 @@ class Camera(Orientation):
         else:
             rot_vector = ensure_numpy_array(rot_vector)
             rot_vector = rot_vector/np.linalg.norm(rot_vector)
-          
+
         R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.unit_vectors[2]
@@ -298,7 +299,7 @@ class Camera(Orientation):
 
         Parameters
         ----------
-        final : YTArray 
+        final : YTArray
             The final center to move to after `n_steps`
         n_steps : int
             The number of look_at snapshots to make.
@@ -323,7 +324,7 @@ class Camera(Orientation):
                 self.set_position(self.position * dx)
             else:
                 self.set_position(self.position + dx)
-            yield i 
+            yield i
 
     def zoom(self, factor):
         r"""Change the distance to the focal point.

@@ -27,13 +27,13 @@ def test_composite_vr():
     sc = Scene()
     cam = Camera(ds)
     cam.resolution = (512,512)
-    sc.set_camera(cam)
+    sc.camera = cam
     vr = VolumeSource(dd, field=ds.field_list[0])
     vr.transfer_function.clear()
     vr.transfer_function.grey_opacity=True
     vr.transfer_function.map_to_colormap(0.0, 1.0, scale=10.0, colormap="Reds")
     sc.add_source(vr)
-    
+
     cam.set_width( 1.8*ds.domain_width )
     cam.lens.setup_box_properties(cam)
 

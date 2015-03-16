@@ -68,11 +68,11 @@ def off_axis_projection(data_source, center, normal_vector,
         less notable when the transfer function is smooth and
         broad. Default: True
     interpolated : optional, default False
-        If True, the data is first interpolated to vertex-centered data, 
-        then tri-linearly interpolated along the ray. Not suggested for 
+        If True, the data is first interpolated to vertex-centered data,
+        then tri-linearly interpolated along the ray. Not suggested for
         quantitative studies.
     north_vector : optional, array_like, default None
-        A vector that, if specified, restrics the orientation such that the 
+        A vector that, if specified, restrics the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
     num_threads: integer, optional, default 1
         Use this many OpenMP threads during projection.
@@ -134,11 +134,10 @@ def off_axis_projection(data_source, center, normal_vector,
         vol.set_fields([item])
     else:
         vol.set_fields([item, weight])
-    camera = Camera(data_source)
-    sc.set_camera(camera)
+    sc.camera = Camera(data_source)
     sc.add_source(vol)
 
-    camera.lens.set_camera(camera)
+    camera.lens.camera = camera
     vol.set_sampler(camera)
     assert (vol.sampler is not None)
 
@@ -155,9 +154,9 @@ def off_axis_projection(data_source, center, normal_vector,
     north_vector = camera.unit_vectors[0]
     east_vector = camera.unit_vectors[1]
     normal_vector = camera.unit_vectors[2]
-    fields = vol.field 
+    fields = vol.field
     if not iterable(width):
-        width = data_source.ds.arr([width]*3) 
+        width = data_source.ds.arr([width]*3)
 
     mi = ds.domain_right_edge.copy()
     ma = ds.domain_left_edge.copy()

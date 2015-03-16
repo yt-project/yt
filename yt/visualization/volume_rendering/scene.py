@@ -54,6 +54,7 @@ class Scene(object):
     """
 
     _current = None
+    _camera = None
 
     def __init__(self):
         r"""Create a new Scene instance.
@@ -97,18 +98,6 @@ class Scene(object):
             if not isinstance(source, OpaqueSource):
                 yield k, source
 
-    def get_camera(self):
-        """
-        Use exisiting sources and their data sources to
-        build a default camera. If no useful source is
-        available, create a default Camera at 1,1,1 in the
-        1,0,0 direction"""
-        cam = self.camera
-        if cam is None:
-            cam = Camera()
-        self.camera = cam
-        return cam
-
     def add_source(self, render_source, keyname=None):
         """
         Add a render source to the scene.  This will autodetect the
@@ -148,6 +137,7 @@ class Scene(object):
         >>> sc = Scene()
         >>> # Add sources/camera/etc
         >>> im = sc.render('rendering.png')
+
         """
         if camera is None:
             camera = self.camera
@@ -159,11 +149,36 @@ class Scene(object):
         return bmp
 
     def _validate(self):
+        r"""Validate the current state of the scene."""
         for k, source in self.sources.iteritems():
             source._validate()
         return
 
     def composite(self, camera=None):
+        r"""Create a composite image of the current scene.
+
+        First iterate over the opaque sources and set the ZBuffer.
+        Then iterate over the transparent sources, rendering from the value
+        of the zbuffer to the front of the box. Typically this function is
+        accessed through the .render() command.
+
+        Parameters
+        ----------
+        camera: :class:`Camera`, optional
+            If specified, use a specific :class:`Camera` to render the scene.
+
+        Returns
+        -------
+        im: :class:`ImageArray`
+            ImageArray instance of the current rendering image.
+
+        Examples
+        --------
+        >>> sc = Scene()
+        >>> # Add sources/camera/etc
+        >>> im = sc.composite(')
+
+        """
         if camera is None:
             camera = self.camera
         empty = camera.lens.new_image(camera)
@@ -176,8 +191,29 @@ class Scene(object):
             im = source.render(camera, zbuffer=opaque)
         return im
 
-    def set_camera(self, camera):
-        self.camera = camera
+    def camera():
+        doc = r"""The camera property.
+
+        This is the default camera that will be used when rendering. Can be set
+        manually, but Camera type will be checked for validity.
+        """
+
+        def fget(self):
+            cam = self._camera
+            if cam is None:
+                cam = Camera()
+            self._camera = cam
+            return self._camera
+
+        def fset(self, value):
+            assert isinstance(value, Camera)
+            self._camera = value
+
+        def fdel(self):
+            del self._camera
+            self._camera = None
+        return locals()
+    camera = property(**camera())
 
     def get_handle(self, key=None):
         """docstring for get_handle"""

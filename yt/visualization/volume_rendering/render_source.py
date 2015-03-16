@@ -166,7 +166,6 @@ class VolumeSource(RenderSource):
         assert(self.sampler is not None)
 
     def render(self, camera, zbuffer=None):
-        camera.lens.set_camera(camera)
         self.zbuffer = zbuffer
         self.set_sampler(camera)
         assert (self.sampler is not None)

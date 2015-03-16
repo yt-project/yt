@@ -19,6 +19,7 @@ from yt.data_objects.api import ImageArray
 import numpy as np
 np.random.seed(0)
 
+
 def test_composite_vr():
     ds = fake_random_ds(64)
     dd = ds.sphere(ds.domain_center, 0.45*ds.domain_width[0])
@@ -27,13 +28,13 @@ def test_composite_vr():
     sc = Scene()
     cam = Camera(ds)
     cam.resolution = (512,512)
-    sc.set_camera(cam)
+    sc.camera = cam
     vr = VolumeSource(dd, field=ds.field_list[0])
     vr.transfer_function.clear()
     vr.transfer_function.grey_opacity=True
     vr.transfer_function.map_to_colormap(0.0, 1.0, scale=3.0, colormap="Reds")
     sc.add_source(vr)
-    
+
     cam.set_width( 1.8*ds.domain_width )
     cam.lens.setup_box_properties(cam)
 
@@ -45,12 +46,12 @@ def test_composite_vr():
 
     box_source = BoxSource(ds.domain_left_edge, ds.domain_right_edge, color=[1.,1.,1.,1.0])
     sc.add_source(box_source)
-    
+
     box_source = BoxSource(ds.domain_left_edge + np.array([0.1,0.,0.3])*ds.domain_left_edge.uq,
-            ds.domain_right_edge-np.array([0.1,0.2,0.3])*ds.domain_left_edge.uq, 
+            ds.domain_right_edge-np.array([0.1,0.2,0.3])*ds.domain_left_edge.uq,
             color=np.array([0.0, 1.0, 0.0, 0.10]))
     sc.add_source(box_source)
-    
+
     line_source = LineSource(vertices, colors)
     sc.add_source(line_source)
 
