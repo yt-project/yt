@@ -696,6 +696,7 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.TimestampCallback
    ~yt.visualization.plot_modifications.TitleCallback
    ~yt.visualization.plot_modifications.TriangleFacetsCallback
+   ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
 -------------
