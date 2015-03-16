@@ -734,7 +734,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # If the field returns an ndarray, coerce to a
                         # dimensionless YTArray and verify that field is
                         # supposed to be unitless
-                        fd = self.ds.arr(fd, 'dimensionless')
+                        fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
                     except YTUnitConversionError:
