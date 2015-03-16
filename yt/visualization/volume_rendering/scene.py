@@ -132,7 +132,8 @@ class Scene(object):
         return
 
     def composite(self, camera=None):
-        # TODO: Sam, does this look right?
+        if camera is None:
+            camera = self.camera
         empty = camera.lens.new_image(camera)
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
