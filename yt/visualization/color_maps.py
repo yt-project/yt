@@ -11,7 +11,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-from itertools import izip
+from yt.extern.six.moves import zip as izip
 
 import matplotlib
 import matplotlib.colors as cc
@@ -146,7 +146,7 @@ add_cmap("cubehelix", _cubehelix_data)
 
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0,1,256)
-for k,v in _cm.color_map_luts.iteritems():
+for k,v in list(_cm.color_map_luts.items()):
     if k not in yt_colormaps and k not in mcm.cmap_d:
         cdict = { 'red': zip(_vs,v[0],v[0]),
                   'green': zip(_vs,v[1],v[1]),

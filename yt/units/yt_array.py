@@ -4,7 +4,7 @@ YTArray class.
 
 
 """
-
+from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -494,7 +494,7 @@ class YTArray(np.ndarray):
         """
         for k,v in equivalence_registry.items():
             if self.has_equivalent(k):
-                print v()
+                print(v())
 
     def has_equivalent(self, equiv):
         """
@@ -610,7 +610,7 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
+        for k, v in info.items():
             d.attrs[k] = v
         f.close()
 
@@ -1129,7 +1129,7 @@ class YTQuantity(YTArray):
 
     and strip them when it would be annoying to deal with them.
 
-    >>> print np.log10(a)
+    >>> print(np.log10(a))
     1.07918124605
 
     YTQuantity is tightly integrated with yt datasets:

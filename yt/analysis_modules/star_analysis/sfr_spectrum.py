@@ -21,6 +21,7 @@ import math
 import itertools
 
 from yt.config import ytcfg
+from yt.extern.six.moves import zip as izip
 from yt.funcs import \
     get_pbar
 from yt.units import \
@@ -516,8 +517,8 @@ class SpectrumBuilder(object):
 
         # Interpolate the flux for each star, adding to the total by weight.
         pbar = get_pbar("Calculating fluxes", len(self.star_mass))
-        for i, star in enumerate(itertools.izip(Mname, Aindex, ratio1, ratio2,
-                                                self.star_mass)):
+        for i, star in enumerate(izip(Mname, Aindex, ratio1, ratio2,
+                                      self.star_mass)):
             # Pick the right age bin for the right flux array.
             flux = self.flux[star[0]][star[1], :]
             # Get the one just before the one above.

@@ -125,7 +125,7 @@ class FLASHHierarchy(GridIndex):
         # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
         self.grids = np.empty(self.num_grids, dtype='object')
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
         
 
@@ -153,7 +153,7 @@ class FLASHHierarchy(GridIndex):
             return
 
         # Now, for cartesian data.
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
@@ -368,7 +368,7 @@ class FLASHDataset(Dataset):
         self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
-            for d in [dimensionality]+range(3-dimensionality):
+            for d in [dimensionality]+list(range(3-dimensionality)):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)

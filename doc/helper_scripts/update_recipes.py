@@ -35,15 +35,15 @@ commands.pull(uii, repo, "http://hg.yt-project.org/cookbook/")
 ctx = repo["tip"]
 for file in ctx:
     if not file.startswith("recipes/"): continue
-    print "Parsing %s" % (file)
+    print("Parsing %s" % (file))
     lines = ctx[file].data().split("\n")
     fn = file[8:-3]
     title = fn.replace("_", " ").capitalize()
     title += "\n" + "-" * len(title) + "\n"*2
     title = ".. _cookbook-%s:\n\n%s" % (fn, title)
     if lines[0] != '"""':
-        print "    Bad docstring: breaking."
-        print file
+        print("    Bad docstring: breaking.")
+        print(file)
     di = lines[1:].index('"""')
     docstring = lines[1:di+1]
     recipe = lines[di+2:]

@@ -80,7 +80,7 @@ sphere = ds.sphere(ds.domain_center, (100., "kpc"))
 
 # Print out the total luminosity at 1 keV for the sphere
 
-print "L_E (1 keV, primordial) = ", sphere.quantities["FreeFree_Luminosity"]()
+print("L_E (1 keV, primordial) = ", sphere.quantities["FreeFree_Luminosity"]())
 
 # The defaults for the field assume a H/He primordial plasma.
 # Let's set the appropriate parameters for a pure hydrogen plasma.
@@ -89,17 +89,17 @@ sphere.set_field_parameter("mue", 1.0)
 sphere.set_field_parameter("mui", 1.0)
 sphere.set_field_parameter("Z", 1.0)
 
-print "L_E (1 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]()
+print("L_E (1 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]())
 
 # Now let's print the luminosity at an energy of E = 10 keV
 
 sphere.set_field_parameter("Ephoton", 10.0)
 
-print "L_E (10 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]()
+print("L_E (10 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]())
 
 # Finally, let's set the flag for photon emission, to get the total number
 # of photons emitted at this energy:
 
 sphere.set_field_parameter("photon_emission", True)
 
-print "L_ph (10 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]()
+print("L_ph (10 keV, pure hydrogen) = ", sphere.quantities["FreeFree_Luminosity"]())

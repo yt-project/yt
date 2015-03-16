@@ -298,7 +298,7 @@ class AbsorptionSpectrum(object):
         print("Writing spectrum to ascii file: %s." % filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
-        for i in xrange(self.lambda_bins.size):
+        for i in range(self.lambda_bins.size):
             f.write("%e %e %e\n" % (self.lambda_bins[i],
                                     self.tau_field[i], self.flux_field[i]))
         f.close()

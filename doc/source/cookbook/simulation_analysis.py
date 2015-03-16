@@ -29,8 +29,8 @@ for ds in ts.piter():
 od = collections.OrderedDict(sorted(data.items()))
 
 # Print out all the values we calculated.
-print "Dataset      Redshift        Density Min      Density Max"
-print "---------------------------------------------------------"
+print("Dataset      Redshift        Density Min      Density Max")
+print("---------------------------------------------------------")
 for key, val in od.iteritems(): 
-    print "%s       %05.3f          %5.3g g/cm^3   %5.3g g/cm^3" % \
-           (key, val[1], val[0][0], val[0][1])
+    print("%s       %05.3f          %5.3g g/cm^3   %5.3g g/cm^3" % \
+           (key, val[1], val[0][0], val[0][1]))

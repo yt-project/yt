@@ -42,6 +42,7 @@ from yt.data_objects.time_series import \
     DatasetSeries
 from yt.extern.six.moves import \
     StringIO
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, validate_width_tuple, \
@@ -152,7 +153,7 @@ def get_axes_unit(width, ds):
     if ds.no_cgs_equiv_length:
         return ("code_length",)*2
     if iterable(width):
-        if isinstance(width[1], basestring):
+        if isinstance(width[1], string_types):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
@@ -280,7 +281,7 @@ class PlotWindow(ImagePlotContainer):
         old_fields = None
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
-            old_fields = self.frb.keys()
+            old_fields = list(self.frb.keys())
             old_units = [str(self.frb[of].units) for of in old_fields]
 
         # Set the bounds
@@ -423,8 +424,8 @@ class PlotWindow(ImagePlotContainer):
             'center'.  Finally, the whether the origin is applied in 'domain'
             space, plot 'window' space or 'native' simulation coordinate system
             is given. For example, both 'upper-right-domain' and ['upper',
-            'right', 'domain'] both place the origin in the upper right hand
-            corner of domain space. If x or y are not given, a value is inffered.
+            'right', 'domain'] place the origin in the upper right hand
+            corner of domain space. If x or y are not given, a value is inferred.
             For instance, 'left-domain' corresponds to the lower-left hand corner
             of the simulation domain, 'center-domain' corresponds to the center
             of the simulation domain, or 'center-window' for the center of the
@@ -634,7 +635,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, basestring):
+            if isinstance(unit_name, string_types):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
@@ -663,7 +664,7 @@ class PWViewerMPL(PlotWindow):
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
-        if isinstance(origin, basestring):
+        if isinstance(origin, string_types):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
             origin = ('lower', 'left') + origin
@@ -1153,15 +1154,15 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inffered.
-         For instance, 'left-domain' corresponds to the lower-left hand corner
-         of the simulation domain, 'center-domain' corresponds to the center
-         of the simulation domain, or 'center-window' for the center of the
-         plot window. Further examples:
+         'right', 'domain'] place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inferred.
+         For instance, the default location 'center-window' corresponds to
+         the center of the plot window, 'left-domain' corresponds to the
+         lower-left hand corner of the simulation domain, or 'center-domain'
+         for the center of the simulation domain. Further examples:
 
          ==================================     ============================
          format                                 example
@@ -1187,7 +1188,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     Examples
     --------
 
-    This will save an image the the file 'sliceplot_Density
+    This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -1280,11 +1281,11 @@ class ProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inffered.
+         'right', 'domain'] place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inferred.
          For instance, 'left-domain' corresponds to the lower-left hand corner
          of the simulation domain, 'center-domain' corresponds to the center
          of the simulation domain, or 'center-window' for the center of the
@@ -1979,12 +1980,12 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          this parameter is discarded.  This is represented by '-' separated
          string or a tuple of strings.  In the first index the y-location is
          given by 'lower', 'upper', or 'center'.  The second index is the
-         x-location, given as 'left', 'right', or 'center'.  Finally, the
+         x-location, given as 'left', 'right', or 'center'.  Finally,
          whether the origin is applied in 'domain' space, plot 'window' space
          or 'native' simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] both place the
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
          origin in the upper right hand corner of domain space. If x or y are
-         not given, a value is inffered.  For instance, 'left-domain'
+         not given, a value is inferred.  For instance, 'left-domain'
          corresponds to the lower-left hand corner of the simulation domain,
          'center-domain' corresponds to the center of the simulation domain,
          or 'center-window' for the center of the plot window. Further
@@ -2035,7 +2036,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     """
     # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatability
+    # we check the axis keyword for backwards compatibility
     if normal is None: normal = axis
     if normal is None:
         raise AssertionError("Must pass a normal vector to the slice!")
@@ -2047,7 +2048,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -2055,7 +2056,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
