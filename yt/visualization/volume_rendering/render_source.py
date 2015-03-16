@@ -1,8 +1,6 @@
 """
 RenderSource Class
 
-
-
 """
 
 # -----------------------------------------------------------------------------
@@ -71,6 +69,27 @@ class VolumeSource(RenderSource):
     data_source = None
 
     def __init__(self, data_source, field, auto=True):
+        r"""Initialize a new volumetric source for rendering.
+
+        A :class:`VolumeSource` provides the framework to decompose an arbitrary
+        yt data source into bricks that can be traversed and volume rendered.
+
+        Parameters
+        ----------
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
+        fields : string
+            The name of the field(s) to be rendered.
+        auto: bool, optional
+            If True, will build a default AMRKDTree and transfer function based
+            on the data.
+
+        Examples
+        --------
+        >>> source = RenderSource(ds, 'density')
+
+        """
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]

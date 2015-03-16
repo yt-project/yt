@@ -8,8 +8,8 @@ Known Issues:
 
 Documentation:
 
-* Scene
-* Camera
+* ~~Scene~~
+* ~~Camera~~
 * Lens
 * Narrative
 * Cookbooks
