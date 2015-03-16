@@ -1,17 +1,15 @@
 """
-Import the components of the volume rendering extension
-
-
+Volume Rendering Camera Class
 
 """
 
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 from yt.funcs import iterable, mylog, ensure_numpy_array
 from yt.utilities.orientation import Orientation
@@ -29,17 +27,18 @@ class Camera(Orientation):
     _moved = True
 
     def __init__(self, data_source=None, lens_type='plane-parallel',
-            auto=False):
+                 auto=False):
         """
         Initialize a Camera Instance
 
         Parameters
         ----------
-        data_source: :class:`yt.data_objects.data_containers.AMR3DData`, optional
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
             This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
         lens_type: string, optional
-            This specifies the type of lens to use for rendering. Current options
-            are 'plane-parallel', 'perspective', and 'fisheye'. See
+            This specifies the type of lens to use for rendering. Current
+            options are 'plane-parallel', 'perspective', and 'fisheye'. See
             :class:`yt.visualization.volume_rendering.lens.Lens` for details.
             Default: 'plane-parallel'
         auto: boolean
@@ -47,8 +46,11 @@ class Camera(Orientation):
             can be time-consuming to iterate over the entire dataset to find
             the positional bounds. Default: False
 
+        Examples
+        --------
+        >>> cam = Camera(ds)
+
         """
-        #mylog.debug("Entering %s" % str(self))
         self.lens = None
         self.north_vector = None
         self.resolution = (512, 512)
@@ -68,8 +70,8 @@ class Camera(Orientation):
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
 
-    def get_sampler_params(self, render_source):
-        lens_params = self.lens.get_sampler_params(self, render_source)
+    def _get_sampler_params(self, render_source):
+        lens_params = self.lens._get_sampler_params(self, render_source)
         lens_params.update(width=self.width)
         return lens_params
 
@@ -117,7 +119,7 @@ class Camera(Orientation):
             width = width.in_units('code_length')
 
         if not iterable(width):
-            width = YTArray([width.d]*3, width.units )  # Can't get code units.
+            width = YTArray([width.d]*3, width.units)  # Can't get code units.
         self.width = width
         self.switch_orientation()
 
@@ -206,7 +208,6 @@ class Camera(Orientation):
                 north_vector=np.dot(R, self.unit_vectors[1]))
         else:
             self.switch_view(normal_vector=np.dot(R, normal_vector))
-
 
     def pitch(self, theta):
         r"""Rotate by a given angle about the horizontal axis
@@ -384,9 +385,9 @@ class Camera(Orientation):
         return px, py, dz
 
     def __repr__(self):
-        disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t"+\
-                "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n")\
-                % (self.position, self.focus, self.north_vector, self.width,
-                        self.light, self.resolution)
+        disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t" +
+                "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n") \
+            % (self.position, self.focus, self.north_vector, self.width,
+               self.light, self.resolution)
         disp += "Lens: %s" % self.lens
         return disp

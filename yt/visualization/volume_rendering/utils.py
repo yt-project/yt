@@ -11,7 +11,7 @@ def data_source_or_all(data_source):
 
 
 def new_volume_render_sampler(camera, render_source):
-    params = camera.get_sampler_params(render_source)
+    params = camera._get_sampler_params(render_source)
     params.update(transfer_function=render_source.transfer_function)
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
@@ -36,7 +36,7 @@ def new_volume_render_sampler(camera, render_source):
     return sampler
 
 def new_interpolated_projection_sampler(camera, render_source):
-    params = camera.get_sampler_params(render_source)
+    params = camera._get_sampler_params(render_source)
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
     args = (
@@ -57,7 +57,7 @@ def new_interpolated_projection_sampler(camera, render_source):
     return sampler
 
 def new_projection_sampler(camera, render_source):
-    params = camera.get_sampler_params(render_source)
+    params = camera._get_sampler_params(render_source)
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
     args = (

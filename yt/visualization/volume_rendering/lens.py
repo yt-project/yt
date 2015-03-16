@@ -81,7 +81,7 @@ class PlaneParallelLens(Lens):
         #mylog.debug("Entering %s" % str(self))
         super(PlaneParallelLens, self).__init__()
 
-    def get_sampler_params(self, camera, render_source):
+    def _get_sampler_params(self, camera, render_source):
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
@@ -138,7 +138,7 @@ class PerspectiveLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera, render_source):
+    def _get_sampler_params(self, camera, render_source):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
         # We might have a different width and back_center
@@ -224,7 +224,7 @@ class FisheyeLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera, render_source):
+    def _get_sampler_params(self, camera, render_source):
         vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
         vp.shape = (camera.resolution[0]**2, 1, 3)
         vp = vp.dot(np.linalg.inv(self.rotation_matrix))
@@ -312,7 +312,7 @@ class SphericalLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera, render_source):
+    def _get_sampler_params(self, camera, render_source):
         px = np.linspace(-np.pi, np.pi, camera.resolution[0], endpoint=True)[:,None]
         py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1], endpoint=True)[None,:]
         

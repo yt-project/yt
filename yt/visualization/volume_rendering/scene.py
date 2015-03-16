@@ -215,6 +215,13 @@ class Scene(object):
         return locals()
     camera = property(**camera())
 
+    # Are these useful?
+    def set_camera(self, camera):
+        self.camera = camera
+
+    def get_camera(self, camera):
+        return self.camera
+
     def get_handle(self, key=None):
         """docstring for get_handle"""
 
