@@ -100,6 +100,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
+             units = '',
              display_name = r"\mathrm{%s Count}" % ptype_dn)
 
     def particle_mass(field, data):
@@ -192,6 +193,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field((ptype, "mesh_id"),
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
+            units = '',
             particle_type = True)
 
     return list(set(registry.keys()).difference(orig))
