@@ -727,6 +727,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         units = str(getattr(fd, 'units', ''))
                         self.ds.field_info[fi.name].units = units
                         self.field_data[field] = self.ds.arr(fd, units)
+                        msg = ("Field %s was added without specifying units, "
+                               "assuming units are %s")
+                        mylog.warn(msg % (fi.name, units))
                         continue
                     try:
                         fd.convert_to_units(fi.units)
