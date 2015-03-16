@@ -207,6 +207,25 @@ class YTIterableUnitCoercionError(YTException):
               "%s" % self.quantity_list
         return err
 
+class YTFieldUnitError(YTException):
+    def __init__(self, field_info, returned_units):
+        self.msg = ("Field %s was added with units %s but field function "
+                    "returned data with units %s")
+        self.msg = self.msg % (field_info.name, field_info.units, returned_units)
+
+    def __str__(self):
+        return self.msg
+
+class YTSpatialFieldUnitError(YTException):
+    def __init__(self, field):
+        self.msg = ("Field %s is a spatial field but has undefined units. "
+                    "Spatial fields must have explicitly defined units. Did "
+                    "you remember to use the units keyword argument of "
+                    "add_field?" % field)
+
+    def __str__(self):
+        return self.msg
+
 class YTHubRegisterError(YTException):
     def __str__(self):
         return "You must create an API key before uploading.  See " + \

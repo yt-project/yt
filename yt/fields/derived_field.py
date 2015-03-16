@@ -106,7 +106,7 @@ class DerivedField(object):
 
         # handle units
         if units is None:
-            self.units = ""
+            self.units = units
         elif isinstance(units, str):
             self.units = units
         elif isinstance(units, Unit):
