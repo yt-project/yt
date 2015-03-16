@@ -352,7 +352,7 @@ class YTDataContainer(object):
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
             size = self._count_particles(ftype)
-            rv = np.empty(size, dtype="float64")
+            rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
             for io_chunk in self.chunks([], "io", cache = False):
                 for i, chunk in enumerate(self.chunks(field, "spatial")):
