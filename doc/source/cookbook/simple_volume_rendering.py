@@ -12,7 +12,7 @@ ds = yt.load("Enzo_64/DD0043/data0043")
 im, sc = yt.volume_render(ds, field=('gas','density'), fname="%s_density_volume_rendered.png" % ds, clip_ratio=8.0)
 
 # Now increase the resolution
-sc.default_camera.resolution = (512, 512)
+sc.camera.resolution = (512, 512)
 im = sc.render(fname='big.png', clip_ratio=8.0)
 
 # Now modify the transfer function

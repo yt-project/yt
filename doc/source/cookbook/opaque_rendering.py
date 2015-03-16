@@ -7,7 +7,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 im, sc = yt.volume_render(ds, field=("gas","density"), fname="v0.png", clip_ratio=6.0)
 
-sc.default_camera.set_width(ds.arr(0.1,'code_length'))
+sc.camera.set_width(ds.arr(0.1,'code_length'))
 tf = sc.get_source(0).transfer_function 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],

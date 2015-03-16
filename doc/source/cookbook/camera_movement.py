@@ -4,7 +4,7 @@ import numpy as np
 # Follow the simple_volume_rendering cookbook for the first part of this.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")  # load data
 im, sc = yt.volume_render(ds)
-cam = sc.default_camera
+cam = sc.camera
 cam.resolution = (512, 512)
 cam.set_width(ds.domain_width/20.0)
 
