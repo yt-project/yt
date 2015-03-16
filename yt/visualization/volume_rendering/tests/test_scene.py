@@ -52,5 +52,5 @@ def test_rotation():
     
     nrot = 2 
     for i in range(nrot):
-        sc.default_camera.pitch(2*np.pi/nrot)
+        sc.camera.pitch(2*np.pi/nrot)
         sc.render('test_rot_%04i.png' % i, clip_ratio=6.0)

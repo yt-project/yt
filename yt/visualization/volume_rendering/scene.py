@@ -67,7 +67,7 @@ class Scene(object):
         """
         super(Scene, self).__init__()
         self.sources = {}
-        self.default_camera = None
+        self.camera = None
 
     def get_source(self, source_num):
         return self.sources.values()[source_num]
@@ -92,16 +92,16 @@ class Scene(object):
             if not isinstance(source, OpaqueSource):
                 yield k, source
 
-    def get_default_camera(self):
+    def get_camera(self):
         """
         Use exisiting sources and their data sources to
         build a default camera. If no useful source is
         available, create a default Camera at 1,1,1 in the
         1,0,0 direction"""
-        cam = self.default_camera
+        cam = self.camera
         if cam is None:
             cam = Camera()
-        self.default_camera = cam
+        self.camera = cam
         return cam
 
     def add_source(self, render_source, keyname=None):
@@ -118,7 +118,7 @@ class Scene(object):
 
     def render(self, fname=None, clip_ratio=None, camera=None):
         if camera is None:
-            camera = self.default_camera
+            camera = self.camera
         assert(camera is not None)
         self.validate()
         ims = {}
@@ -144,7 +144,7 @@ class Scene(object):
 
     def composite(self):
         # TODO: Sam, does this look right?
-        cam = self.default_camera
+        cam = self.camera
         empty = cam.lens.new_image(cam)
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
@@ -165,8 +165,8 @@ class Scene(object):
             #opaque = opaque + source.zbuffer
         return im
 
-    def set_default_camera(self, camera):
-        self.default_camera = camera
+    def set_camera(self, camera):
+        self.camera = camera
 
     def get_handle(self, key=None):
         """docstring for get_handle"""
@@ -183,5 +183,5 @@ class Scene(object):
         for k, v in self.sources.iteritems():
             disp += "    %s: %s\n" % (k, v)
         disp += "Camera: \n"
-        disp += "    %s" % self.default_camera
+        disp += "    %s" % self.camera
         return disp

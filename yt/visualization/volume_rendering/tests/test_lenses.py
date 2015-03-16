@@ -26,7 +26,7 @@ def test_prospective_lens():
     vol = VolumeSource(ds, field=field)
     tf = vol.transfer_function
     tf.grey_opacity = True
-    sc.set_default_camera(cam)
+    sc.set_camera(cam)
     sc.add_source(vol)
     sc.render('test_perspective_%s.png' % field[1], clip_ratio=6.0)
 
@@ -44,7 +44,7 @@ def test_fisheye_lens():
     vol = VolumeSource(dd, field=field)
     tf = vol.transfer_function
     tf.grey_opacity = True
-    sc.set_default_camera(cam)
+    sc.set_camera(cam)
     sc.add_source(vol)
     sc.render('test_fisheye_%s.png' % field[1], clip_ratio=6.0)
 
@@ -60,6 +60,6 @@ def test_plane_lens():
     vol = VolumeSource(dd, field=field)
     tf = vol.transfer_function
     tf.grey_opacity = True
-    sc.set_default_camera(cam)
+    sc.set_camera(cam)
     sc.add_source(vol)
     sc.render('test_plane_%s.png' % field[1], clip_ratio=6.0)

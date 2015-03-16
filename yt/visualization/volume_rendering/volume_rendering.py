@@ -78,7 +78,7 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
 
     vol = VolumeSource(data_source, field=field)
     cam = Camera(data_source)
-    sc.set_default_camera(cam)
+    sc.set_camera(cam)
     sc.add_source(vol)
     im = sc.render(fname=fname, clip_ratio=clip_ratio)
     return im, sc

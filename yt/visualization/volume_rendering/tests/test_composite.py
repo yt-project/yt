@@ -27,7 +27,7 @@ def test_composite_vr():
     sc = Scene()
     cam = Camera(ds)
     cam.resolution = (512,512)
-    sc.set_default_camera(cam)
+    sc.set_camera(cam)
     vr = VolumeSource(dd, field=ds.field_list[0])
     vr.transfer_function.clear()
     vr.transfer_function.grey_opacity=True
