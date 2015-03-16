@@ -54,7 +54,7 @@ def test_composite_vr():
     line_source = LineSource(vertices, colors)
     sc.add_source(line_source)
 
-    im = sc.composite()
+    im = sc.render()
     im = ImageArray(im.d)
     im.write_png("composite.png")
     return im

@@ -45,8 +45,7 @@ def test_points_vr():
 
     points_source = PointsSource(vertices, colors=colors)
     sc.add_source(points_source)
-    im = sc.composite()
-    im = ImageArray(im.d)
+    im = sc.render()
     im.write_png("points.png")
     return im
 

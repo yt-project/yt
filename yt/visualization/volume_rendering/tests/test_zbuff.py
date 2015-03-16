@@ -49,9 +49,7 @@ def test_composite_vr():
     zsource.set_zbuffer(zbuffer)
     sc.add_source(zsource)
 
-    # Now we call sc.composite() instead of render.
-    im = sc.composite()
-    im = ImageArray(im.d)
+    im = sc.render()
     im.write_png("composite.png")
     return im
 

@@ -1,5 +1,5 @@
 """
-
+The volume rendering Scene class.
 
 """
 
@@ -121,18 +121,7 @@ class Scene(object):
             camera = self.camera
         assert(camera is not None)
         self.validate()
-        ims = {}
-        for k, v in self.sources.iteritems():
-            v.validate()
-            #print 'Running', k, v
-            ims[k] = v.render(camera)
-
-        bmp = np.zeros_like(ims.values()[0])
-        for k, v in ims.iteritems():
-            bmp += v
-        bmp = ImageArray(bmp.d)
-        assert(isinstance(bmp, ImageArray))
-
+        bmp = self.composite(camera=camera)
         if fname is not None:
             bmp.write_png(fname, clip_ratio=clip_ratio)
         return bmp
@@ -142,15 +131,14 @@ class Scene(object):
             source.validate()
         return
 
-    def composite(self):
+    def composite(self, camera=None):
         # TODO: Sam, does this look right?
-        cam = self.camera
-        empty = cam.lens.new_image(cam)
+        empty = camera.lens.new_image(camera)
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self.iter_opaque_sources():
             #print "Adding opaque source:", source
-            source.render(cam, zbuffer=opaque)
+            source.render(camera, zbuffer=opaque)
             #print opaque.z.min(), opaque.z.max()
             #print opaque.rgba[:, :, :3].max()
             #if source.zbuffer is not None:
@@ -161,7 +149,7 @@ class Scene(object):
             #print "Adding transparent source:", source
             #print opaque.z.min(), opaque.z.max()
             #print opaque.rgba[:, :, :3].max()
-            im = source.render(cam, zbuffer=opaque)
+            im = source.render(camera, zbuffer=opaque)
             #opaque = opaque + source.zbuffer
         return im
 
