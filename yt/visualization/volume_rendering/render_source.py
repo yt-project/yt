@@ -5,29 +5,28 @@ RenderSource Class
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 import numpy as np
 from yt.funcs import mylog, ensure_numpy_array
-from yt.units import yt_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
 from transfer_functions import TransferFunction, \
-        ProjectionTransferFunction, ColorTransferFunction
+    ProjectionTransferFunction, ColorTransferFunction
 from utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
-    lines, zlines, zpoints
+    zlines, zpoints
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -36,7 +35,6 @@ class RenderSource(ParallelAnalysisInterface):
        streamlines, etc"""
 
     def __init__(self):
-        #mylog.debug("Entering %s" % str(self))
         super(RenderSource, self).__init__()
         self.opaque = False
         self.zbuffer = None
@@ -44,14 +42,13 @@ class RenderSource(ParallelAnalysisInterface):
     def render(self, camera, zbuffer=None):
         pass
 
-    def validate(self):
+    def _validate(self):
         pass
 
 
 class OpaqueSource(RenderSource):
     """docstring for OpaqueSource"""
     def __init__(self):
-        #mylog.debug("Entering %s" % str(self))
         super(OpaqueSource, self).__init__()
         self.opaque = True
 
@@ -74,7 +71,6 @@ class VolumeSource(RenderSource):
     data_source = None
 
     def __init__(self, data_source, field, auto=True):
-        #mylog.debug("Entering %s" % str(self))
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
@@ -104,7 +100,9 @@ class VolumeSource(RenderSource):
         """
         Set transfer function for this source
         """
-        if not isinstance(transfer_function, (TransferFunction, ColorTransferFunction, ProjectionTransferFunction)):
+        if not isinstance(transfer_function,
+                          (TransferFunction, ColorTransferFunction,
+                           ProjectionTransferFunction)):
             raise RuntimeError("transfer_function not of correct type")
         if isinstance(transfer_function, ProjectionTransferFunction):
             self.sampler_type = 'projection'
@@ -112,7 +110,7 @@ class VolumeSource(RenderSource):
         self.transfer_function = transfer_function
         return self
 
-    def validate(self):
+    def _validate(self):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
             raise RuntimeError("Data source not initialized")
@@ -151,7 +149,8 @@ class VolumeSource(RenderSource):
 
     def set_fields(self, fields, no_ghost=True):
         fields = self.data_source._determine_fields(fields)
-        log_fields = [self.data_source.pf.field_info[f].take_log for f in fields]
+        log_fields = [self.data_source.ds.field_info[f].take_log
+                      for f in fields]
         self.volume.set_fields(fields, log_fields, no_ghost)
         self.field = fields
 
@@ -162,7 +161,7 @@ class VolumeSource(RenderSource):
         elif self.sampler_type == 'projection':
             sampler = new_projection_sampler(camera, self)
         else:
-            NotImplementedError("%s not implemented yet" % sampler_type)
+            NotImplementedError("%s not implemented yet" % self.sampler_type)
         self.sampler = sampler
         assert(self.sampler is not None)
 
@@ -190,15 +189,9 @@ class VolumeSource(RenderSource):
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
                                    np.inf*np.ones(self.current_image.shape[:2]))
-        #else:
-        #    newz = zbuffer.z.copy()
-        #    newz[:] = 0.0
-        #    self.zbuffer = ZBuffer(self.current_image, newz)
-
         return self.current_image
 
     def finalize_image(self, camera, image):
-        #image.shape = camera.resolution[0], camera.resolution[1], 4
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         if self.transfer_function.grey_opacity is False:
@@ -210,6 +203,7 @@ class VolumeSource(RenderSource):
         disp += "transfer_function:%s" % str(self.transfer_function)
         return disp
 
+
 class PointsSource(OpaqueSource):
 
     """Add set of opaque points to a scene."""
@@ -220,8 +214,8 @@ class PointsSource(OpaqueSource):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
-            colors =  np.ones((len(positions), 4))
-            colors[:,3] = 1.
+            colors = np.ones((len(positions), 4))
+            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -238,7 +232,6 @@ class PointsSource(OpaqueSource):
             z = zbuffer.z
 
         # DRAW SOME LINES
-        #print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
         zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
@@ -262,8 +255,8 @@ class LineSource(OpaqueSource):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
-            colors =  np.ones((len(positions), 4))
-            colors[:,3] = 1.
+            colors = np.ones((len(positions), 4))
+            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -280,13 +273,10 @@ class LineSource(OpaqueSource):
             z = zbuffer.z
 
         # DRAW SOME LINES
-        #print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
         zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
 
-        #print 'When rendering opaque lines: dz range:', dz.min(), dz.max()
-        #print 'When rendering opaque lines:', z.min(), z.max()
         self.zbuffer = zbuffer
         return zbuffer
 
@@ -294,20 +284,21 @@ class LineSource(OpaqueSource):
         disp = "<Line Source>"
         return disp
 
+
 class BoxSource(LineSource):
     """Add a box to the scene"""
     def __init__(self, left_edge, right_edge, color=None):
         if color is None:
-            color = np.array([1.0,1.0,1.0,1.0]) 
+            color = np.array([1.0, 1.0, 1.0, 1.0])
         color = ensure_numpy_array(color)
         color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
-        order  = [0, 1, 1, 2, 2, 3, 3, 0]
+        order = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]
         order += [0, 4, 1, 5, 2, 6, 3, 7]
-        vertices = np.empty([24,3])
+        vertices = np.empty([24, 3])
         for i in xrange(3):
-            vertices[:,i] = corners[order,i,...].ravel(order='F')
+            vertices[:, i] = corners[order, i, ...].ravel(order='F')
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
 
@@ -317,11 +308,11 @@ class CoordinateVectorSource(OpaqueSource):
         super(CoordinateVectorSource, self).__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
-            colors =  np.zeros((3, 4))
-            colors[0,0] = alpha # x is red
-            colors[1,1] = alpha # y is green 
-            colors[2,2] = alpha # z is blue 
-            colors[:,3] = alpha
+            colors = np.zeros((3, 4))
+            colors[0, 0] = alpha  # x is red
+            colors[1, 1] = alpha  # y is green
+            colors[2, 2] = alpha  # z is blue
+            colors[:, 3] = alpha
         self.colors = colors
         self.color_stride = 2
 
@@ -336,24 +327,23 @@ class CoordinateVectorSource(OpaqueSource):
         for i in range(3):
             positions[2*i+1, i] += camera.width.d[i] / 16.0
 
-        # Project to the image plane 
+        # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
         dpx = px[1::2] - px[::2]
         dpy = py[1::2] - py[::2]
 
-        # Set the center of the coordinates to be in the lower left of the image 
+        # Set the center of the coordinates to be in the lower left of the image
         lpx = camera.resolution[0] / 8
-        lpy = camera.resolution[1] - camera.resolution[1] / 8 # Upside-downsies
+        lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
 
         # Offset the pixels according to the projections above
-        px[ ::2] = lpx
+        px[::2] = lpx
         px[1::2] = lpx + dpx
-        py[ ::2] = lpy
+        py[::2] = lpy
         py[1::2] = lpy + dpy
         dz[:] = 0.0
-        vertices = positions
 
-        # Create a zbuffer if needed 
+        # Create a zbuffer if needed
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
             z = np.empty(empty.shape[:2], dtype='float64')
@@ -364,7 +354,7 @@ class CoordinateVectorSource(OpaqueSource):
             empty = zbuffer.rgba
             z = zbuffer.z
 
-        # Draw the vectors 
+        # Draw the vectors
         zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
 
         # Set the new zbuffer

@@ -78,7 +78,7 @@ class Scene(object):
     def get_source(self, source_num):
         return self.sources.values()[source_num]
 
-    def iter_opaque_sources(self):
+    def _iter_opaque_sources(self):
         """
         Iterate over opaque RenderSource objects,
         returning a tuple of (key, source)
@@ -88,7 +88,7 @@ class Scene(object):
                     issubclass(OpaqueSource, type(source)):
                 yield k, source
 
-    def iter_transparent_sources(self):
+    def _iter_transparent_sources(self):
         """
         Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
@@ -152,15 +152,15 @@ class Scene(object):
         if camera is None:
             camera = self.camera
         assert(camera is not None)
-        self.validate()
+        self._validate()
         bmp = self.composite(camera=camera)
         if fname is not None:
             bmp.write_png(fname, clip_ratio=clip_ratio)
         return bmp
 
-    def validate(self):
+    def _validate(self):
         for k, source in self.sources.iteritems():
-            source.validate()
+            source._validate()
         return
 
     def composite(self, camera=None):
@@ -169,10 +169,10 @@ class Scene(object):
         empty = camera.lens.new_image(camera)
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
-        for k, source in self.iter_opaque_sources():
+        for k, source in self._iter_opaque_sources():
             source.render(camera, zbuffer=opaque)
 
-        for k, source in self.iter_transparent_sources():
+        for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
         return im
 
