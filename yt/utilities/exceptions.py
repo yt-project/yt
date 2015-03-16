@@ -209,9 +209,9 @@ class YTIterableUnitCoercionError(YTException):
 
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):
-        self.msg = ("Field %s was added with units %s but field function "
-                    "returned data with units %s")
-        self.msg = self.msg % (field_info.name, field_info.units, returned_units)
+        self.msg = ("The field function associated with the field '%s' returned "
+                    "data with units '%s' but was defined with units '%s'")
+        self.msg = self.msg % (field_info.name, returned_units, field_info.units)
 
     def __str__(self):
         return self.msg

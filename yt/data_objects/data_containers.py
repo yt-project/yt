@@ -721,25 +721,25 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     fd = self._generate_field(field)
                     if fd is None:
                         raise RuntimeError
-                    self.field_data[field] = fd
+                    if fi.units is None:
+                        # first time calling a field with undefined units, so we
+                        # infer and cache the units from the field definition
+                        units = str(getattr(fd, 'units', ''))
+                        self.ds.field_info[fi.name].units = units
+                        self.field_data[field] = self.ds.arr(fd, units)
+                        continue
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
-                        # fd is an ndarray and should be coerced to YTArray
+                        # If the field returns an ndarray, coerce to a
+                        # dimensionless YTArray and verify that field is
+                        # supposed to be unitless
                         fd = self.ds.arr(fd, 'dimensionless')
-                    except (YTUnitConversionError, UnitParseError):
-                        if fi.units is None:
-                            # first time calling a field with undefined units,
-                            # so we infer from the units of whatever was returned
-                            # by the field function
-                            fi.units = fd.units.copy()
-                            self.ds.field_info[fi.name].units = fi.units.copy()
-                            continue
-                        if not hasattr(fd, 'units'):
-                            returned_units = 'dimensionless'
-                        else:
-                            returned_units = fd.units
-                        raise YTFieldUnitError(fi, returned_units)
+                        if fi.units != '':
+                            raise YTFieldUnitError(fi, fd.units)
+                    except YTUnitConversionError:
+                        raise YTFieldUnitError(fi, fd.units)
+                    self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
