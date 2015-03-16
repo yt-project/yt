@@ -360,6 +360,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _initialize_projected_units(self, fields):
         for field in fields:
+            units = self.ds.field_info[field].units
+            if units is None:
+                units = self.data_source[field].units
             field_unit = Unit(self.ds.field_info[field].units,
                               registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
