@@ -215,9 +215,13 @@ def test_add_field_unit_semantics():
                  units='unknown')
     ds.add_field('density_alias_wrong_units', function=density_alias,
                  units='m/s')
+    ds.add_field('density_alias_unparseable_units', function=density_alias,
+                 units='dragons')
 
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_no_units')
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_wrong_units')
+    assert_raises(YTFieldUnitParseError, get_data, ds,
+                  'density_alias_unparseable_units')
 
     dens = ad['density_alias_unknown']
     assert_equal(str(dens.units), 'g/cm**3')

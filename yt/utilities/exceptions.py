@@ -216,6 +216,14 @@ class YTFieldUnitError(YTException):
     def __str__(self):
         return self.msg
 
+class YTFieldUnitParseError(YTException):
+    def __init__(self, field_info):
+        self.msg = ("The field '%s' has unparseable units '%s'.")
+        self.msg % (field_info.name, field_info.units)
+
+    def __str__(self):
+        return self.msg
+
 class YTSpatialFieldUnitError(YTException):
     def __init__(self, field):
         msg = ("Field '%s' is a spatial field but has unknown units but "

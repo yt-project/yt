@@ -32,6 +32,7 @@ from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
+    YTFieldUnitParseError, \
     YTSpatialFieldUnitError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
@@ -742,6 +743,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                             raise YTFieldUnitError(fi, fd.units)
                     except YTUnitConversionError:
                         raise YTFieldUnitError(fi, fd.units)
+                    except UnitParseError:
+                        raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:
