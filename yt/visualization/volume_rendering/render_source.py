@@ -21,6 +21,7 @@ from transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
+from yt.visualization.image_writer import apply_colormap
 
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
@@ -318,6 +319,55 @@ class BoxSource(LineSource):
         for i in xrange(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
+
+
+class GridsSource(LineSource):
+    """Add grids to the scene"""
+    def __init__(self, data_source, alpha=0.3, cmap='alage',
+                 min_level=None, max_level=None):
+        data_source = data_source_or_all(data_source)
+        corners = []
+        levels = []
+        for block, mask in data_source.blocks:
+            block_corners = np.array([
+                [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
+            ], dtype='float64')
+            corners.append(block_corners)
+            levels.append(block.Level)
+        corners = np.dstack(corners)
+        levels = np.array(levels)
+
+        if max_level is not None:
+            subset = levels <= max_level
+            levels = levels[subset]
+            corners = corners[:, :, subset]
+        if min_level is not None:
+            subset = levels >= min_level
+            levels = levels[subset]
+            corners = corners[:, :, subset]
+
+        colors = apply_colormap(
+            levels*1.0,
+            color_bounds=[0, data_source.ds.index.max_level],
+            cmap_name=cmap)[0, :, :]*1.0/255.
+        colors[:, 3] = alpha
+
+        order = [0, 1, 1, 2, 2, 3, 3, 0]
+        order += [4, 5, 5, 6, 6, 7, 7, 4]
+        order += [0, 4, 1, 5, 2, 6, 3, 7]
+
+        vertices = np.empty([corners.shape[2]*2*12, 3])
+        for i in range(3):
+            vertices[:, i] = corners[order, i, ...].ravel(order='F')
+
+        super(GridsSource, self).__init__(vertices, colors, color_stride=24)
 
 
 class CoordinateVectorSource(OpaqueSource):

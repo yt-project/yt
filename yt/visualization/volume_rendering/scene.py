@@ -14,7 +14,8 @@ The volume rendering Scene class.
 
 from yt.funcs import mylog
 from camera import Camera
-from render_source import OpaqueSource
+from render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
+    GridsSource
 from zbuffer_array import ZBuffer
 import numpy as np
 
@@ -230,6 +231,27 @@ class Scene(object):
         handle = SceneHandle(self, self.camera, self.sources[key],
                              self.sources[key].lens)
         return handle
+
+    def annotate_domain(self, ds, color=None):
+        """docstring for annotate_domain"""
+        box_source = BoxSource(ds.domain_left_edge,
+                               ds.domain_right_edge,
+                               color=None)
+        self.add_source(box_source)
+        return self
+
+    def annotate_grids(self, data_source, alpha=0.3, cmap='algae',
+                       min_level=None, max_level=None):
+        grids = GridsSource(data_source, alpha=alpha, cmap=cmap,
+                            min_level=min_level, max_level=max_level)
+        self.add_source(grids)
+        return self
+
+    def annotate_axes(self, colors=None, alpha=1.0):
+        """docstring for annotate_axes"""
+        coords = CoordinateVectorSource(colors, alpha)
+        self.add_source(coords)
+        return self
 
     def __repr__(self):
         disp = "<Scene Object>:"
