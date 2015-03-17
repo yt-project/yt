@@ -221,7 +221,7 @@ class YTSpatialFieldUnitError(YTException):
         msg = ("Field %s is a spatial field but has undefined units. Spatial "
                "fields must have explicitly defined units. Did you remember to "
                "use the units keyword argument of add_field?")
-        self.msg = msg % field
+        self.msg = msg % (field,)
 
     def __str__(self):
         return self.msg
