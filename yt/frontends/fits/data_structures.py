@@ -146,7 +146,7 @@ class FITSHierarchy(GridIndex):
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
         known_units = dict([(unit.lower(),unit) for unit in self.ds.unit_registry.lut])
-        for unit in known_units.values():
+        for unit in list(known_units.values()):
             if unit in prefixable_units:
                 for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
