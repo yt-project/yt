@@ -3,13 +3,13 @@ Volume rendering
 
 """
 
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
 from scene import Scene
@@ -65,20 +65,22 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     if field is None:
         data_source.ds.index
         for ftype, f in sorted(data_source.ds.field_list):
-            if ftype == "all": continue
-            print ftype, f
-            if f == 'Density': field = (ftype, f)
-            elif f == 'density': field = (ftype, f)
-            elif ftype != 'index' and not 'particle' in f:
+            if ftype == "all":
+                continue
+            if f == 'Density':
+                field = (ftype, f)
+            elif f == 'density':
+                field = (ftype, f)
+            elif ftype != 'index' and 'particle' not in f:
                 field = (ftype, f)
                 break
         else:
-            raise RuntimeError("Could not find default field. Please set explicitly in volume_render call")
+            raise RuntimeError("Could not find default field." +
+                               " Please set explicitly in volume_render call")
         mylog.info('Setting default field to %s' % field.__repr__())
 
     vol = VolumeSource(data_source, field=field)
-    cam = Camera(data_source)
-    sc.set_camera(cam)
     sc.add_source(vol)
+    sc.camera = Camera(data_source)
     im = sc.render(fname=fname, clip_ratio=clip_ratio)
     return im, sc
