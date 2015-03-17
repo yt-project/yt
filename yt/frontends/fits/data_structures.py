@@ -19,6 +19,7 @@ import warnings
 import re
 import uuid
 
+from yt.extern.six import iteritems
 from yt.config import ytcfg
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -207,7 +208,7 @@ class FITSHierarchy(GridIndex):
         # For now, we pick off the first field from the field list.
         line_db = self.dataset.line_database
         primary_fname = self.field_list[0][1]
-        for k, v in line_db.iteritems():
+        for k, v in iteritems(line_db):
             mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
             self.field_list.append((self.dataset_type, k))
             self._ext_map[k] = self._ext_map[primary_fname]
