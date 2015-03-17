@@ -167,7 +167,7 @@ class GadgetDataset(ParticleDataset):
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
-            self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+            self.current_time = hvals["Time"] 
         else:
             # Now we calculate our time based on the cosmology, because in
             # ComovingIntegration hvals["Time"] will in fact be the expansion
