@@ -210,7 +210,7 @@ class YTIterableUnitCoercionError(YTException):
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):
         self.msg = ("The field function associated with the field '%s' returned "
-                    "data with units '%s' but was defined with units '%s'")
+                    "data with units '%s' but was defined with units '%s'.")
         self.msg = self.msg % (field_info.name, returned_units, field_info.units)
 
     def __str__(self):
@@ -218,9 +218,9 @@ class YTFieldUnitError(YTException):
 
 class YTSpatialFieldUnitError(YTException):
     def __init__(self, field):
-        msg = ("Field %s is a spatial field but has undefined units. Spatial "
-               "fields must have explicitly defined units. Did you remember to "
-               "use the units keyword argument of add_field?")
+        msg = ("Field '%s' is a spatial field but has unknown units but "
+               "spatial fields must have explicitly defined units. Add the "
+               "field with explicit 'units' to clear this error.")
         self.msg = msg % (field,)
 
     def __str__(self):
