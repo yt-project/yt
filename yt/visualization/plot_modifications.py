@@ -88,7 +88,7 @@ class PlotCallback(object):
             raise SyntaxError("coord must be 3 dimensions")
         return coord
 
-    def convert_to_plot(self, plot, coord, offset = True):
+    def convert_to_plot(self, plot, coord, offset=True):
         """
         Convert coordinates from projected data coordinates to PlotWindow 
         plot coordinates.  Projected data coordinates are two dimensional
@@ -322,7 +322,8 @@ class QuiverCallback(PlotCallback):
     (see matplotlib.axes.Axes.quiver for more info)
     """
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor=16, scale=None, scale_units=None, normalize=False, bv_x=0, bv_y=0):
+    def __init__(self, field_x, field_y, factor=16, scale=None, 
+                 scale_units=None, normalize=False, bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -636,8 +637,8 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     """
-    annotate_streamlines(field_x, field_y, factor = 16,
-                         density = 1, plot_args=None):
+    annotate_streamlines(field_x, field_y, factor=16,
+                         density=1, plot_args=None):
 
     Add streamlines to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints like
@@ -689,7 +690,7 @@ class StreamlineCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(p1, p2, coord_system="plot", plot_args=None):
+    annotate_line(p1, p2, coord_system="data", plot_args=None):
 
     Overplot a line with endpoints at p1 and p2.  p1 and p2
     should be 2D or 3D coordinates consistent with the coordinate
@@ -714,9 +715,29 @@ class LinePlotCallback(PlotCallback):
         This dictionary is passed to the MPL plot function for generating
         the line.  By default, it is: {'color':'white', 'linewidth':2}
 
+    Examples
+    -------- 
+
+    >>> # Overplot a diagonal white line from the lower left corner to upper 
+    >>> # right corner
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_line([0,0], [1,1], coord_system='axis')
+    >>> s.save()
+ 
+    >>> # Overplot a red dashed line from data coordinate (0.1, 0.2, 0.3) to 
+    >>> # (0.5, 0.6, 0.7)
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_line([0.1, 0.2, 0.3], [0.5, 0.6, 0.7], coord_system='data',
+                        plot_args={'color':'red', 'lineStyles':'--'})
+    >>> s.save()
+ 
     """
     _type_name = "line"
-    def __init__(self, p1, p2, data_coords=False, coord_system="plot", 
+    def __init__(self, p1, p2, data_coords=False, coord_system="data", 
                  plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'white', 'linewidth':2}
@@ -757,7 +778,7 @@ class ImageLineCallback(LinePlotCallback):
     """
     _type_name = "image_line"
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
-                 plot_args = None):
+                 plot_args=None):
         super(ImageLineCallback, self).__init__(p1, p2, data_coords, 
                                                 coord_system, plot_args)
         warnings.warn("The ImageLineCallback (annotate_image_line()) is "
@@ -813,12 +834,12 @@ class CuttingQuiverCallback(PlotCallback):
 
 class ClumpContourCallback(PlotCallback):
     """
-    annotate_clumps(clumps, plot_args = None)
+    annotate_clumps(clumps, plot_args=None)
 
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
-    def __init__(self, clumps, plot_args = None):
+    def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
@@ -865,9 +886,9 @@ class ArrowCallback(PlotCallback):
     """
     annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
 
-    Overplot an arrow pointing at a position for highlighting specific features.
-    Arrow points from lower left to the designated position with arrow length 
-    "length".
+    Overplot an arrow pointing at a position for highlighting a specific 
+    feature.  Arrow points from lower left to the designated position with 
+    arrow length "length".
 
     Parameters
     ----------
@@ -891,9 +912,29 @@ class ArrowCallback(PlotCallback):
         This dictionary is passed to the MPL arrow function for generating
         the arrow.  By default, it is: {'color':'white', 'linewidth':2}
 
+    Examples
+    -------- 
+
+    >>> # Overplot an arrow pointing to feature at data coord: (0.2, 0.3, 0.4)
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_arrow([0.2,0.3,0.4])
+    >>> s.save()
+ 
+    >>> # Overplot a red arrow with longer length pointing to plot coordinate 
+    >>> # (0.1, -0.1)
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_arrow([0.1, -0.1, length=0.06, coord_system='plot', 
+    ...                  plot_args={'color':'red'})
+    >>> s.save()
+ 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, coord_system='data', plot_args=None):
+    def __init__(self, pos, code_size=None, length=0.03, coord_system='data', 
+                 plot_args=None):
         def_plot_args = {'color':'white', 'linewidth':2}
         self.pos = pos
         self.code_size = code_size
@@ -923,7 +964,7 @@ class ArrowCallback(PlotCallback):
             dy = (yy1-yy0) * self.length
         plot._axes.hold(True)
         from matplotlib.patches import Arrow
-        arrow = Arrow(x-dx, y-dy, dx, dy, 
+        arrow = Arrow(x-dx, y-dy, dx, dy, width=dx,
                       transform=self.transform, **self.plot_args)
         plot._axes.add_patch(arrow)
         plot._axes.set_xlim(xx0,xx1)
@@ -955,6 +996,24 @@ class MarkerAnnotateCallback(PlotCallback):
         This dictionary is passed to the MPL scatter function for generating
         the marker.  By default, it is: {'color':'white', 's':50}
 
+    Examples
+    -------- 
+
+    >>> # Overplot a white X on a feature at data location (0.5, 0.5, 0.5)
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_marker([0.4, 0.5, 0.6])
+    >>> s.save()
+ 
+    >>> # Overplot a big yellow circle at axis location (0.1, 0.2)
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_marker([0.1, 0.2], marker='o', coord_system='axis',
+    ...                   plot_args={'color':'yellow', 's':200})
+    >>> s.save()
+ 
     """
     _type_name = "marker"
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
@@ -1014,6 +1073,16 @@ class SphereCallback(PlotCallback):
         This dictionary is passed to the MPL text function. By default, 
         it is: {'color':'white'}
 
+    Examples
+    -------- 
+
+    >>> # Overplot a white circle of radius 100 kpc over the central galaxy
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_sphere([0.5, 0.5, 0.5], radius=(100, 'kpc'))
+    >>> s.save()
+ 
     """
     _type_name = "sphere"
     def __init__(self, center, radius, circle_args=None,
@@ -1095,6 +1164,28 @@ class TextLabelCallback(PlotCallback):
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.  Default: {}
 
+    Examples
+    -------- 
+
+    >>> # Overplot white text at data location [0.55, 0.7, 0.4] 
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_text([0.55, 0.7, 0.4], "Here is a galaxy")
+    >>> s.save()
+
+    >>> # Overplot yellow text at axis location [0.2, 0.8] with
+    >>> # a shaded inset box
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_text([0.2, 0.8], "Here is a galaxy", coord_system='axis',
+    ...                 text_args={'color':'yellow'}, 
+    ...                 inset_box_args={'boxstyle':'square,pad=0.3', 
+    ...                                 'facecolor':'black', 
+    ...                                 'linewidth':3, 
+    ...                                 'edgecolor':'white', 'alpha':0.5})
+    >>> s.save()
     """
     _type_name = "text"
     def __init__(self, pos, text, data_coords=False, coord_system='data', 
@@ -1185,8 +1276,8 @@ class HaloCatalogCallback(PlotCallback):
     _descriptor = None
 
     def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
-            width=None, annotate_field=None,
-            text_args=None, font_kwargs=None, factor = 1.0):
+                 width=None, annotate_field=None, text_args=None, 
+                 font_kwargs=None, factor=1.0):
 
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
@@ -1476,7 +1567,7 @@ class TimestampCallback(PlotCallback):
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.  
         Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
-                  'linewidth':3, 'edgecolor':'white', 'alpha':'0.5'}
+                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
     Example
     ------- 
@@ -1628,7 +1719,7 @@ class ScaleCallback(PlotCallback):
                       upper right
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
-     text_args : dictionary, optional
+    text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white', 
         'horizontalalignment':'center', 'verticalalignment':'top'}.
