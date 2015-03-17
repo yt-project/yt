@@ -1248,7 +1248,7 @@ class HaloCatalogCallback(PlotCallback):
     """
     annotate_halos(halo_catalog, circle_args=None,
         width=None, annotate_field=None,
-        text_args=None, factor = 1.0)
+        text_args=None, factor=1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the

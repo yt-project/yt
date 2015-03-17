@@ -3,21 +3,44 @@
 Arrow callback
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_arrow(self, pos, code_size, plot_args=None):
+.. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', \
+                             plot_args=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ArrowCallback`.)
 
-   This adds an arrow pointing at ``pos`` with size
-   ``code_size`` in code units.  ``plot_args`` is a dict fed to
-   matplotlib with arrow properties.
+    Overplot an arrow pointing at a position for highlighting a specific
+    feature.  Arrow points from lower left to the designated position with
+    arrow length "length".
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates to which the arrow is pointing
+
+    length : float, optional
+        The length, in axis units, of the arrow.
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+ 
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL arrow function for generating
+        the arrow.  By default, it is: {'color':'white', 'linewidth':2}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='c')
-   slc.annotate_arrow((0.5, 0.5, 0.5), (1, 'kpc'))
+   slc.annotate_arrow((0.5, 0.5, 0.5))
    slc.save()
 
 .. _annotate-clumps:
@@ -160,8 +183,8 @@ Overplot grids
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_halos(self, halo_catalog, circle_kwargs=None, width=None, \ 
-                             annotate_field=None, font_kwargs=None, factor=1.0):
+.. function:: annotate_halos(self, halo_catalog, circle_args=None, width=None, \ 
+                             annotate_field=None, text_args=None, factor=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
@@ -203,44 +226,41 @@ Overplot Halo Annotations
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_image_line(self, p1, p2, data_coords=False, plot_args=None):
+.. function:: annotate_line(self, p1, p2, coord_system='data', plot_args=None):
 
    (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.ImageLineCallback`.)
+   :class:`~yt.visualization.plot_modifications.LinePlotCallback`.)
 
-   Plot from ``p1`` to ``p2`` (normalized image plane coordinates) with
-   ``plot_args`` fed into the plot.
+    Overplot a line with endpoints at p1 and p2.  p1 and p2
+    should be 2D or 3D coordinates consistent with the coordinate
+    system denoted in the "coord_system" keyword.
+
+    Parameters
+    ----------
+    p1, p2 : 2- or 3-element tuples, lists, or arrays
+        These are the coordinates of the endpoints of the line.
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates p1 and p2.
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL plot function for generating
+        the line.  By default, it is: {'color':'white', 'linewidth':2}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
-   p.annotate_image_line((0.3, 0.4), (0.8, 0.9), plot_args={'linewidth':5})
-   p.save()
-
-.. _annotate-line:
-
-Overplot a line plot
-~~~~~~~~~~~~~~~~~~~~
-
-.. function:: annotate_line(self, x, y, plot_args=None):
-
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.LinePlotCallback`.)
-
-   Over plot numpy arrays or lists ``x`` and ``y`` (in code units) with
-   ``plot_args`` fed into the plot.
-
-.. python-script::
-
-   import yt
-   import numpy as np
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(20, 'kpc'))
-   x = np.array([-6, -4, -2, 0, 2, 4, 6])
-   y = x**2/10
-   p.annotate_line(x, y, plot_args={'linewidth':5})
+   p.annotate_line((0.3, 0.4), (0.8, 0.9), coord_system='axis', \
+                   plot_args={'linewidth':5})
    p.save()
 
 .. _annotate-magnetic-field:
@@ -276,21 +296,39 @@ Overplot Magnetic Field Quivers
 Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_marker(self, pos, marker='x', plot_args=None):
+.. function:: annotate_marker(self, pos, marker='x', coord_system='data', \
+                              plot_args=None):
 
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.MarkerAnnotateCallback`.)
+    (This is a proxy for
+    :class:`~yt.visualization.plot_modifications.MarkerAnnotateCallback`.)
 
-   Adds ``marker`` at ``pos`` in code coordinates.
-   ``plot_args`` is a dict that will be forwarded to the plot
-   command.
+    Overplot a marker on a position for highlighting specific features.
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates where the marker will be overplotted
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    plot_args : dictionary, optional
+        This dictionary is passed to the MPL scatter function for generating
+        the marker.  By default, it is: {'color':'white', 's':50}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(10, 'kpc'))
-   s.annotate_marker([0.5, 0.5, 0.5], plot_args={'s':10000})
+   s.annotate_marker([0.4, 0.5, 0.6])
    s.save()
 
 .. _annotate-particles:
@@ -319,49 +357,54 @@ Overplotting Particle Positions
    p.annotate_particles((10, 'Mpc'))
    p.save()
 
-.. _annotate-point:
-
-Annotate a point with text
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. function:: annotate_point(self, pos, text, text_args=None):
-
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.PointAnnotateCallback`.)
-
-   This adds ``text`` at position ``pos``, where ``pos`` is in
-   code-space. ``text_args`` is a dict fed to the text placement code.
-
-.. python-script::
-
-   import yt
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
-   p.annotate_point([0.5, 0.496, 0.5], "What's going on here?",
-                    text_args={'size':'xx-large', 'color':'w'})
-   p.save()
-
 .. _annotate-sphere:
 
 Overplot a circle on a plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_sphere(self, center, radius, circle_args=None, text=None, \
-                              text_args=None):
+.. function:: annotate_sphere(self, center, radius, circle_args=None, \
+                              coord_system='data', text=None, text_args=None):
 
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.SphereCallback`.)
+    (This is a proxy for
+    :class:`~yt.visualization.plot_modifications.SphereCallback`.)
 
-   A sphere centered at ``center`` in code units with radius ``radius`` in code
-   units will be created, with optional ``circle_args``, ``text``, and
-   ``text_args``.
+    Overplot a circle with designated center and radius with optional text.
+
+    Parameters
+    ----------
+    center : 2- or 3-element tuple, list, or array
+        These are the coordinates where the circle will be overplotted
+
+    radius : YTArray, float, or (1, ('kpc')) style tuple
+        The radius of the circle in code coordinates
+
+    circle_args : dict, optional
+        This dictionary is passed to the MPL circle object. By default,
+        {'color':'white'}
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    text : string, optional
+        Optional text to include next to the circle.
+
+    text_args : dictionary, optional
+        This dictionary is passed to the MPL text function. By default,
+        it is: {'color':'white'}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_sphere([0.5, 0.5, 0.5], (2, 'kpc'), {'fill':True})
+   p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, 'kpc'))
    p.save()
 
 .. _annotate-streamlines:
@@ -392,27 +435,54 @@ Overplot streamlines
 
 .. _annotate-text:
 
-Add text
-~~~~~~~~
+Add text to a plot
+~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_text(self, pos, text, data_coords=False, text_args=None,
-                            inset_box_args=None):
+.. function:: annotate_text(self, pos, text, coord_system='data', \
+                            text_args=None, inset_box_args=None):
 
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.TextLabelCallback`.)
+    (This is a proxy for
+    :class:`~yt.visualization.plot_modifications.TextLabelCallback`.)
 
-   Accepts a position in (0..1, 0..1) of the image, some text and optionally
-   some text arguments. If data_coords is True, position will be in code units
-   instead of image coordinates.  If you desire an inset box around your
-   text, set one with the inset_box_args dictionary keyword.
+    Overplot text on the plot at a specified position. If you desire an inset
+    box around your text, set one with the inset_box_args dictionary
+    keyword.
+
+    Parameters
+    ----------
+    pos : 2- or 3-element tuple, list, or array
+        These are the coordinates where the text will be overplotted
+
+    text : string
+        The text you wish to include
+
+    coord_system : string, optional
+        This string defines the coordinate system of the coordinates of pos
+        Valid coordinates are:
+            "data" -- the 3D dataset coordinates
+            "plot" -- the 2D coordinates defined by the actual plot limits
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
+                      upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
+                        is upper right
+
+    text_args : dictionary, optional
+        This dictionary is passed to the MPL text function for generating
+        the text.  By default, it is: {'color':'white'} and uses the defaults
+        for the other fonts in the image.
+
+    inset_box_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the inset box around the text.  Default: {}
+        One possible value is: {'boxstyle':'square,pad=0.3', 
+        'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
-   s.annotate_text((0.5, 0.5), 'Sample text',
-                   text_args={'size':'xx-large', 'color':'w'})
+   s.annotate_text((0.5, 0.5, 0.5), 'Galaxy!')
    s.save()
 
 .. _annotate-title:
@@ -522,7 +592,8 @@ Add the current time and/or redshift to the plot
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', \
+                   'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
 
 .. python-script::
 
