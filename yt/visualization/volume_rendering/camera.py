@@ -28,6 +28,7 @@ class Camera(Orientation):
     _width = None
     _focus = None
     _position = None
+    _resolution = None
 
     def __init__(self, data_source=None, lens_type='plane-parallel',
                  auto=False):
@@ -57,8 +58,8 @@ class Camera(Orientation):
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
-        self.resolution = (512, 512)
         self.light = None
+        self._resolution = (512, 512)
         self._width = 1.0
         self._focus = np.array([0.0]*3)
         self._position = np.array([1.0]*3)
@@ -122,6 +123,25 @@ class Camera(Orientation):
             del self._focus
         return locals()
     focus = property(**focus())
+
+    def resolution():
+        doc = "The resolution property."
+
+        def fget(self):
+            return self._resolution
+
+        def fset(self, value):
+            if iterable(value):
+                assert (len(value) == 2)
+            else:
+                value = (value, value)
+            self._resolution = value
+
+        def fdel(self):
+            del self._resolution
+            self._resolution = None
+        return locals()
+    resolution = property(**resolution())
 
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
