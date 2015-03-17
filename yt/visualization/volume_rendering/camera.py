@@ -56,19 +56,23 @@ class Camera(Orientation):
         """
         self.lens = None
         self.north_vector = None
+        self.normal_vector = None
         self.resolution = (512, 512)
         self.light = None
-        self.width = 1.0
-        self.focus = np.array([0.0]*3)
-        self.position = np.array([1.0]*3)
+        self._width = 1.0
+        self._focus = np.array([0.0]*3)
+        self._position = np.array([1.0]*3)
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
-            self.width = 1.5*data_source.ds.domain_width
-            self.focus = data_source.ds.domain_center
-            self.position = data_source.ds.domain_right_edge
+            self._focus = data_source.ds.domain_center
+            self._position = data_source.ds.domain_right_edge
+            self._width = 1.5*data_source.ds.domain_width
         if auto:
             self.set_defaults_from_data_source(data_source)
+
+        # This should be run on-demand if certain attributes are not set.
+        self.lens.setup_box_properties(self)
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)

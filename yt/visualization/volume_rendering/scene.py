@@ -206,7 +206,7 @@ class Scene(object):
             return self._camera
 
         def fset(self, value):
-            assert isinstance(value, Camera)
+            # Should add better validation here
             self._camera = value
 
         def fdel(self):
