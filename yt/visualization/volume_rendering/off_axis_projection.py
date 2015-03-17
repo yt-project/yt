@@ -134,10 +134,10 @@ def off_axis_projection(data_source, center, normal_vector,
         vol.set_fields([item])
     else:
         vol.set_fields([item, weight])
-    sc.camera = Camera(data_source)
+    camera = Camera(data_source)
+    sc.camera = camera
     sc.add_source(vol)
 
-    camera.lens.camera = camera
     vol.set_sampler(camera)
     assert (vol.sampler is not None)
 

@@ -71,11 +71,11 @@ class Camera(Orientation):
         if auto:
             self.set_defaults_from_data_source(data_source)
 
-        # This should be run on-demand if certain attributes are not set.
-        self.lens.setup_box_properties(self)
-
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
+
+        # This should be run on-demand if certain attributes are not set.
+        self.lens.setup_box_properties(self)
 
     def position():
         doc = "The position property."
