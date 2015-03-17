@@ -106,9 +106,12 @@ class DerivedField(object):
 
         # handle units
         if units is None:
-            self.units = units
+            self.units = ''
         elif isinstance(units, str):
-            self.units = units
+            if units.lower() == 'unknown':
+                self.units = None
+            else:
+                self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
         else:

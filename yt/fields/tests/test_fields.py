@@ -194,39 +194,42 @@ def test_add_deposited_particle_field():
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
+def get_data(ds, field_name):
+    # Need to create a new data object otherwise the errors we are
+    # intentionally raising lead to spurious GenerationInProgress errors
+    ad = ds.all_data()
+    return ad[field_name]
+
 def test_add_field_unit_semantics():
     ds = fake_random_ds(16)
+    ad = ds.all_data()
 
     def density_alias(field, data):
         return data['density'].in_cgs()
 
-    ds.add_field('density_alias', function=density_alias)
-    dens = ds.all_data()['density_alias']
-
-    assert_equal(str(dens.units), 'g/cm**3')
-
-    def oopsy_daisy(field, data):
-        return data['density']
-
-    ds.add_field('oopsy_daisy', function=oopsy_daisy, units='m/s')
-    ad = ds.all_data()
-
-    def get_data(ds, field_name):
-        # Need to create a new data object otherwise the errors we are
-        # intentionally raising lead to spurious GenerationInProgress errors
-        ad = ds.all_data()
-        return ad[field_name]
-
-    assert_raises(YTFieldUnitError, get_data, ds, 'oopsy_daisy')
-
     def unitless_data(field, data):
             return np.ones(data['density'].shape)
 
+    ds.add_field('density_alias_no_units', function=density_alias)
+    ds.add_field('density_alias_unknown', function=density_alias,
+                 units='unknown')
+    ds.add_field('density_alias_wrong_units', function=density_alias,
+                 units='m/s')
+
+    assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_no_units')
+    assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_wrong_units')
+
+    dens = ad['density_alias_unknown']
+    assert_equal(str(dens.units), 'g/cm**3')
+
     ds.add_field('dimensionless', function=unitless_data)
+    ds.add_field('dimensionless_unknown', function=unitless_data,
+                 units='unknown')
     ds.add_field('dimensionless_explicit', function=unitless_data, units='')
     ds.add_field('dimensionful', function=unitless_data, units='g/cm**3')
 
     assert_equal(str(ad['dimensionless'].units), 'dimensionless')
+    assert_equal(str(ad['dimensionless_unknown'].units), 'dimensionless')
     assert_equal(str(ad['dimensionless_explicit'].units), 'dimensionless')
     assert_raises(YTFieldUnitError, get_data, ds, 'dimensionful')
 
