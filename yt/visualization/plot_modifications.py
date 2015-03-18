@@ -1107,12 +1107,20 @@ class SphereCallback(PlotCallback):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
 
-        radius = self.radius * self.pixel_scale(plot)[0]
-
+        # This assures the radius has the appropriate size in 
+        # the different coordinate systems, since one cannot simply
+        # apply a different transform for a length in the same way
+        # you can for a coordinate.
+        if self.coord_system == 'data' or self.coord_system == 'plot':
+            self.radius = self.radius * self.pixel_scale(plot)[0]
+        else:
+            self.radius /= (plot.xlim[1]-plot.xlim[0]).v
+        
         x,y = self.sanitize_coord_system(plot, self.center, 
                                coord_system=self.coord_system)
 
-        cir = Circle((x, y), radius, **self.circle_args)
+        cir = Circle((x, y), self.radius, transform=self.transform, 
+                     **self.circle_args)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
@@ -1663,7 +1671,6 @@ class TimestampCallback(PlotCallback):
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
-        print self.pos
         tcb = TextLabelCallback(self.pos, self.text, 
                                 coord_system=self.coord_system,
                                 text_args=self.text_args, 
