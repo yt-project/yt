@@ -4,7 +4,7 @@ Arrow callback
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', \
-                             plot_args=None):
+                             plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ArrowCallback`.)
@@ -13,34 +13,12 @@ Arrow callback
     feature.  Arrow points from lower left to the designated position with
     arrow length "length".
 
-    Parameters
-    ----------
-    pos : 2- or 3-element tuple, list, or array
-        These are the coordinates to which the arrow is pointing
-
-    length : float, optional
-        The length, in axis units, of the arrow.
-
-    coord_system : string, optional
-        This string defines the coordinate system of the coordinates of pos
-        Valid coordinates are:
-            "data" -- the 3D dataset coordinates
-            "plot" -- the 2D coordinates defined by the actual plot limits
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
- 
-    plot_args : dictionary, optional
-        This dictionary is passed to the MPL arrow function for generating
-        the arrow.  By default, it is: {'color':'white', 'linewidth':2}
-
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='c')
-   slc.annotate_arrow((0.5, 0.5, 0.5))
+   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={'color','blue'})
    slc.save()
 
 .. _annotate-clumps:
@@ -48,7 +26,7 @@ Arrow callback
 Clump Finder Callback
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clumps(self, clumps, plot_args=None):
+.. function:: annotate_clumps(self, clumps, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ClumpContourCallback`.)
@@ -87,7 +65,7 @@ Overplot Contours
 
 .. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,\
                                clim=None, plot_args=None, label=False, \
-                               text_args=None, data_source=None):
+                               text_args=None, data_source=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)
@@ -114,7 +92,7 @@ Axis-Aligned data sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: annotate_quiver(self, field_x, field_y, factor, scale=None, \
-                              scale_units=None, normalize=False):
+                              scale_units=None, normalize=False)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
@@ -136,7 +114,7 @@ Axis-Aligned data sources
 Off-axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_cquiver(self, field_x, field_y, factor):
+.. function:: annotate_cquiver(self, field_x, field_y, factor)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CuttingQuiverCallback`.)
@@ -158,10 +136,10 @@ Off-axis Data Sources
 Overplot grids
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
-                             draw_ids=False, periodic=True, min_level=None, 
-                             max_level=None, cmap='B-W Linear_r', 
-                             edgecolors=None, linewidth=1.0):
+.. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, \
+                             draw_ids=False, periodic=True, min_level=None, \
+                             max_level=None, cmap='B-W Linear_r', \
+                             edgecolors=None, linewidth=1.0)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.GridBoundaryCallback`.)
@@ -183,8 +161,9 @@ Overplot grids
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_halos(self, halo_catalog, circle_args=None, width=None, \ 
-                             annotate_field=None, text_args=None, factor=1.0):
+.. function:: annotate_halos(self, halo_catalog, circle_args=None, \
+                             width=None, annotate_field=None, text_args=None, \
+                             factor=1.0)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
@@ -226,7 +205,7 @@ Overplot Halo Annotations
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_line(self, p1, p2, coord_system='data', plot_args=None):
+.. function:: annotate_line(self, p1, p2, coord_system='data', plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.LinePlotCallback`.)
@@ -235,32 +214,12 @@ Overplot a Straight Line
     should be 2D or 3D coordinates consistent with the coordinate
     system denoted in the "coord_system" keyword.
 
-    Parameters
-    ----------
-    p1, p2 : 2- or 3-element tuples, lists, or arrays
-        These are the coordinates of the endpoints of the line.
-
-    coord_system : string, optional
-        This string defines the coordinate system of the coordinates p1 and p2.
-        Valid coordinates are:
-            "data" -- the 3D dataset coordinates
-            "plot" -- the 2D coordinates defined by the actual plot limits
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
-
-    plot_args : dictionary, optional
-        This dictionary is passed to the MPL plot function for generating
-        the line.  By default, it is: {'color':'white', 'linewidth':2}
-
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
-   p.annotate_line((0.3, 0.4), (0.8, 0.9), coord_system='axis', \
-                   plot_args={'linewidth':5})
+   p.annotate_line((0.3, 0.4), (0.8, 0.9), coord_system='axis')
    p.save()
 
 .. _annotate-magnetic-field:
@@ -269,7 +228,7 @@ Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_magnetic_field(self, factor=16, scale=None, \
-                                      scale_units=None, normalize=False):
+                                      scale_units=None, normalize=False)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MagFieldCallback`.)
@@ -297,38 +256,20 @@ Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_marker(self, pos, marker='x', coord_system='data', \
-                              plot_args=None):
+                              plot_args=None)
 
     (This is a proxy for
     :class:`~yt.visualization.plot_modifications.MarkerAnnotateCallback`.)
 
     Overplot a marker on a position for highlighting specific features.
 
-    Parameters
-    ----------
-    pos : 2- or 3-element tuple, list, or array
-        These are the coordinates where the marker will be overplotted
-
-    coord_system : string, optional
-        This string defines the coordinate system of the coordinates of pos
-        Valid coordinates are:
-            "data" -- the 3D dataset coordinates
-            "plot" -- the 2D coordinates defined by the actual plot limits
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
-
-    plot_args : dictionary, optional
-        This dictionary is passed to the MPL scatter function for generating
-        the marker.  By default, it is: {'color':'white', 's':50}
-
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(10, 'kpc'))
-   s.annotate_marker([0.4, 0.5, 0.6])
+   s.annotate_marker((-2,-2), coord_system='plot', 
+                     plot_args={'color':'blue','s':500})
    s.save()
 
 .. _annotate-particles:
@@ -336,9 +277,9 @@ Annotate a Point With a Marker
 Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o', \
+.. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
                                  stride=1.0, ptype=None, minimum_mass=None, \
-                                 alpha=1.0):
+                                 alpha=1.0)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -363,41 +304,12 @@ Overplot a circle on a plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_sphere(self, center, radius, circle_args=None, \
-                              coord_system='data', text=None, text_args=None):
+                              coord_system='data', text=None, text_args=None)
 
     (This is a proxy for
     :class:`~yt.visualization.plot_modifications.SphereCallback`.)
 
     Overplot a circle with designated center and radius with optional text.
-
-    Parameters
-    ----------
-    center : 2- or 3-element tuple, list, or array
-        These are the coordinates where the circle will be overplotted
-
-    radius : YTArray, float, or (1, ('kpc')) style tuple
-        The radius of the circle in code coordinates
-
-    circle_args : dict, optional
-        This dictionary is passed to the MPL circle object. By default,
-        {'color':'white'}
-
-    coord_system : string, optional
-        This string defines the coordinate system of the coordinates of pos
-        Valid coordinates are:
-            "data" -- the 3D dataset coordinates
-            "plot" -- the 2D coordinates defined by the actual plot limits
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
-
-    text : string, optional
-        Optional text to include next to the circle.
-
-    text_args : dictionary, optional
-        This dictionary is passed to the MPL text function. By default,
-        it is: {'color':'white'}
 
 .. python-script::
 
@@ -413,7 +325,7 @@ Overplot streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
-                                   density = 1, plot_args=None):
+                                   density = 1, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -439,7 +351,7 @@ Add text to a plot
 ~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_text(self, pos, text, coord_system='data', \
-                            text_args=None, inset_box_args=None):
+                            text_args=None, inset_box_args=None)
 
     (This is a proxy for
     :class:`~yt.visualization.plot_modifications.TextLabelCallback`.)
@@ -448,40 +360,11 @@ Add text to a plot
     box around your text, set one with the inset_box_args dictionary
     keyword.
 
-    Parameters
-    ----------
-    pos : 2- or 3-element tuple, list, or array
-        These are the coordinates where the text will be overplotted
-
-    text : string
-        The text you wish to include
-
-    coord_system : string, optional
-        This string defines the coordinate system of the coordinates of pos
-        Valid coordinates are:
-            "data" -- the 3D dataset coordinates
-            "plot" -- the 2D coordinates defined by the actual plot limits
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
-
-    text_args : dictionary, optional
-        This dictionary is passed to the MPL text function for generating
-        the text.  By default, it is: {'color':'white'} and uses the defaults
-        for the other fonts in the image.
-
-    inset_box_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        FancyBboxPatch object as the inset box around the text.  Default: {}
-        One possible value is: {'boxstyle':'square,pad=0.3', 
-        'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
-
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   s = yt.SlicePlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
+   s = yt.SlicePlot(ds, 'z', 'density', center='max', width=(10, 'kpc'))
    s.annotate_text((0.5, 0.5, 0.5), 'Galaxy!')
    s.save()
 
@@ -490,7 +373,7 @@ Add text to a plot
 Add a title to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_title(self, title='Plot'):
+.. function:: annotate_title(self, title='Plot')
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TitleCallback`.)
@@ -510,8 +393,8 @@ Add a title to the plot
 Overplot quivers for the velocity field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None, \
-                                normalize=False):
+.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None,\
+                                normalize=False)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.VelocityCallback`.)
@@ -555,46 +438,6 @@ Add the current time and/or redshift to the plot
     custom formatting of the time and redshift information, as well as the
     specification of an inset box around the text.
 
-    x_pos, y_pos : floats, optional
-        The image location of the timestamp in image coords (i.e. (x,y) =
-        (0..1, 0..1).  Setting x_pos, y_pos overrides the corner parameter.
-    corner : string, optional
-        Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be overridden by the
-        optional x_pos and y_pos keywords.
-    time : boolean, optional
-        Whether or not to show the ds.current_time of the data output.  Can
-        be used solo or in conjunction with redshift parameter.
-    redshift : boolean, optional
-        Whether or not to show the ds.current_time of the data output.  Can
-        be used solo or in conjunction with the time parameter.
-    time_format : string, optional
-        This specifies the format of the time output assuming "time" is the
-        number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
-        The time can be specified to arbitrary precision according to printf
-        formatting codes (defaults to .1f -- a float with 1 digits after
-        decimal).
-    time_unit : string, optional
-        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr',
-        'Myr', etc.).  If not specified, finds best unit for dataset.
-    redshift_format : string, optional
-        This specifies the format of the redshift output.  The redshift can
-        be specified to arbitrary precision according to printf formatting
-        codes (defaults to 0.2f -- a float with 2 digits after decimal).
-    use_inset_box : boolean, optional
-        Whether or not an inset box should be included around the text
-        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch
-        object.
-    text_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white'}.
-    inset_box_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        FancyBboxPatch object as the inset box around the text.
-        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', \
-                   'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
-
 .. python-script::
 
    import yt
@@ -624,35 +467,6 @@ Add the physical scale to the plot
     smaller than min_frac or greater than max_frac of your plottable axis
     length.  For additional text and plot arguments for the text and line,
     include them as dictionaries to pass to text_args and plot_args.
-
-    corner : string, optional
-        Corner sets up one of 4 predeterimined locations for the timestamp
-        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be overridden by the
-        optional 'pos' keyword.
-    coeff : float, optional
-        The coefficient before the unit scale.  If set to None along with
-        unit keyword, will be automatically determined to be a power of 10
-        relative to the best-fit scale.
-    unit : string, optional
-        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc',
-        'kpc', etc.) or set to None.  If set to None, will be automatically
-        determined to be the best-fit to the data.
-    pos : tuple of floats, optional
-        The image location of the timestamp in image coords (i.e. (x,y) =
-        (0..1, 0..1).  Setting pos overrides the corner parameter.
-    min_frac, max_frac: float, optional
-        The minimum/maximum fraction of the axis width for the scale bar to
-        extend. A value of 1 would allow the scale bar to extend across the
-        entire axis width.  Only used for automatically calculating
-        best-fit coeff and unit when neither is specified, otherwise
-        disregarded.
-    text_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white'}.
-    plot_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        line object.  Defaults: {'color':'white', 'linewidth':3}.
 
 .. python-script::
 
@@ -707,7 +521,7 @@ Annotate Triangle Facets Callback
 Clear Annotations (Some or All)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clear(index=None):
+.. function:: annotate_clear(index=None)
 
     This function will clear previous annotations to the plot.  If
     no index is provided, it will clear all annotations to the plot.

@@ -683,7 +683,6 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.GridBoundaryCallback
    ~yt.visualization.plot_modifications.HaloCatalogCallback
    ~yt.visualization.plot_modifications.ImageLineCallback
-   ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
