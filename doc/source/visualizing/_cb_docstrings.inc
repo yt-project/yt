@@ -630,3 +630,40 @@ Annotate Triangle Facets Callback
    # Annotate slice-triangle intersection contours to the plot
    s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
    s.save()
+
+.. _annotate-clear:
+
+Clear Annotations (Some or All)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_clear(index=None):
+
+    This function will clear previous annotations to the plot.  If
+    no index is provided, it will clear all annotations to the plot.
+    If an index is provided, it will clear only the Nth annotation
+    to the plot.  Note that the index goes from 0..N, and you can 
+    specify the index of the last added annotation as -1.
+ 
+.. python-script::
+
+    import yt 
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+
+    # Oops, I didn't want any of that.
+    p.annotate_clear()
+    p.save()
+
+.. python-script::
+
+    import yt 
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+
+    # Oops, I only wanted the scale.
+    p.annotate_clear(-1)
+    p.save()
