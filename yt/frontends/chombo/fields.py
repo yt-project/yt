@@ -46,13 +46,13 @@ class ChomboFieldInfo(FieldInfoContainer):
 # subclass it and that can be somewhat tricky.
 class Orion2FieldInfo(ChomboFieldInfo):
     known_other_fields = (
-        ("density", (rho_units, ["density"], None)),
+        ("density", (rho_units, [], None)),
         ("energy-density", (eden_units, ["energy_density"], None)),
         ("radiation-energy-density", (eden_units, ["radiation_energy_density"], None)),
         ("X-momentum", (mom_units, ["momentum_x"], None)),
         ("Y-momentum", (mom_units, ["momentum_y"], None)),
         ("Z-momentum", (mom_units, ["momentum_z"], None)),
-        ("temperature", ("K", ["temperature"], None)),
+        ("temperature", ("K", [], None)),
         ("X-magnfield", ("gauss", ["magnetic_field_x"], None)),
         ("Y-magnfield", ("gauss", ["magnetic_field_y"], None)),
         ("Z-magnfield", ("gauss", ["magnetic_field_z"], None)),
@@ -150,8 +150,8 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
 class ChomboPICFieldInfo3D(FieldInfoContainer):
     known_other_fields = (
-        ("density", (rho_units, ["density", "Density"], None)),
-        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("density", (rho_units, ["Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["Potential"], None)),
         ("gravitational_field_x", ("code_length / code_time**2", [], None)),
         ("gravitational_field_y", ("code_length / code_time**2", [], None)),
         ("gravitational_field_z", ("code_length / code_time**2", [], None)),
@@ -243,8 +243,8 @@ particle_field_types = ['io', 'all']
 
 class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     known_other_fields = (
-        ("density", (rho_units, ["density", "Density"], None)),
-        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("density", (rho_units, ["Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["Potential"], None)),
         ("gravitational_field_x", ("code_length / code_time**2", [], None)),
         ("gravitational_field_y", ("code_length / code_time**2", [], None)),
     )
@@ -275,8 +275,8 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
 
 class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     known_other_fields = (
-        ("density", (rho_units, ["density", "Density"], None)),
-        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("density", (rho_units, ["Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["Potential"], None)),
         ("gravitational_field_x", ("code_length / code_time**2", [], None)),
     )
     known_particle_fields = (

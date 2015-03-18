@@ -53,12 +53,12 @@ def _temperature(field, data):
 
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("density", (rho_units, ["density"], None)),
+        ("density", (rho_units, [], None)),
         ("eden", (eden_units, ["energy_density"], None)),
         ("xmom", (mom_units, ["momentum_x"], None)),
         ("ymom", (mom_units, ["momentum_y"], None)),
         ("zmom", (mom_units, ["momentum_z"], None)),
-        ("temperature", ("K", ["temperature"], None)),
+        ("temperature", ("K", [], None)),
         ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
         ("y_velocity", ("cm/s", ["velocity_y"], None)),
@@ -131,7 +131,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
 class CastroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
-        ("density", ("g/cm**3", ["density"], r"\rho")),
+        ("density", ("g/cm**3", [], r"\rho")),
         ("xmom", ("g/(cm**2 * s)", ["momentum_x"], r"\rho u")),
         ("ymom", ("g/(cm**2 * s)", ["momentum_y"], r"\rho v")),
         ("zmom", ("g/(cm**2 * s)", ["momentum_z"], r"\rho w")),
@@ -153,7 +153,7 @@ class CastroFieldInfo(FieldInfoContainer):
         ("kineng", ("erg/cm**3", ["kinetic_energy"], r"\frac{1}{2}\rho|\mathbf{U}|^2")),
         ("soundspeed", ("cm/s", ["sound_speed"], "Sound Speed")),
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
-        ("entropy", ("erg/(g*K)", ["entropy"], r"s")),
+        ("entropy", ("erg/(g*K)", [], r"s")),
         ("magvort", ("1/s", ["vorticity_magnitude"],
                      r"|\nabla \times \mathbf{U}|")),
         ("divu", ("1/s", ["velocity_divergence"], r"\nabla \cdot \mathbf{U}")),
@@ -192,13 +192,13 @@ class CastroFieldInfo(FieldInfoContainer):
 class MaestroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
-        ("density", ("g/cm**3", ["density"], None)),
+        ("density", ("g/cm**3", [], None)),
         ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
         ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
         ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
         ("magvel", ("cm/s", ["velocity_magnitude"],
                     r"|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|")),
-        ("radial_velocity", ("cm/s", ["radial_velocity"], r"\mathbf{U}\cdot \mathbf{e}_r")),
+        ("radial_velocity", ("cm/s", [], r"\mathbf{U}\cdot \mathbf{e}_r")),
         ("circum_velocity", ("cm/s", ["tangential_velocity"], r"U - U\cdot e_r")),
         ("tfromp", ("K", [], "T(\\rho,p,X)")),
         ("tfromh", ("K", [], "T(\\rho,h,X)")),
@@ -210,7 +210,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
         ("divw0", ("1/s", [], r"\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
-        ("entropy", ("erg/(g*K)", ["entropy"], "s")),
+        ("entropy", ("erg/(g*K)", [], "s")),
         ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
         ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon}_{nuc}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),

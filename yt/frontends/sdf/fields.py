@@ -69,5 +69,3 @@ class SDFFieldInfo(FieldInfoContainer):
             (mnf, ('code_mass', ['particle_mass'], None)),
         )
         super(SDFFieldInfo, self).__init__(ds, field_list)
-
-

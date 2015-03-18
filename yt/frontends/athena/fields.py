@@ -32,7 +32,7 @@ def velocity_field(comp):
 
 class AthenaFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("density", ("code_mass/code_length**3", ["density"], None)),
+        ("density", ("code_mass/code_length**3", [], None)),
         ("cell_centered_B_x", (b_units, ["magnetic_field_x"], None)),
         ("cell_centered_B_y", (b_units, ["magnetic_field_y"], None)),
         ("cell_centered_B_z", (b_units, ["magnetic_field_z"], None)),
