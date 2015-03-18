@@ -95,7 +95,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("particle_vely", ("code_length/code_time", ["particle_velocity_y"], None)),
         ("particle_velz", ("code_length/code_time", ["particle_velocity_z"], None)),
         ("particle_tag", ("", ["particle_index"], None)),
-        ("particle_mass", ("code_mass", [], None)),
+        ("particle_mass", ("code_mass", ["particle_mass"], None)),
     )
 
     def setup_fluid_fields(self):
@@ -161,3 +161,5 @@ class FLASHFieldInfo(FieldInfoContainer):
             return (data["nele"]+data["nion"])
         self.add_field(("gas","number_density"), function=_number_density,
                        units="cm**-3")
+
+
