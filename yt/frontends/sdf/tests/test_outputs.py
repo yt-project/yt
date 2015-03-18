@@ -20,16 +20,20 @@ from yt.testing import requires_module
 _fields = (('deposit','all_cic'))
 
 import urllib2
+import socket
 
 scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
 
 # Answer on http://stackoverflow.com/questions/3764291/checking-network-connection
+# Better answer on http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python
 def internet_on():
     try:
-        response=urllib2.urlopen(scivis_data,timeout=1)
+        urllib2.urlopen(scivis_data, timeout = 1)
         return True
-    except urllib2.URLError as err: pass
-    return False
+    except urllib2.URLError, e:
+        return False
+    except socket.timeout, e:
+        return False
 
 @requires_module('thingking')
 def test_scivis():

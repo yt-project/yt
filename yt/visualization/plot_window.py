@@ -967,6 +967,19 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    def annotate_clear(self, index=None):
+        """
+        Clear callbacks from the plot.  If index is not set, clear all 
+        callbacks.  If index is set, clear that index (ie 0 is the first one
+        created, 1 is the 2nd one created, -1 is the last one created, etc.)
+        """
+        if index is None:
+            self._callbacks = []
+        else:
+            del self._callbacks[index]
+        self.setup_callbacks()
+        
+
     def run_callbacks(self):
         for f in self.fields:
             keys = self.frb.keys()
@@ -1159,10 +1172,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] place the origin in the upper right hand
          corner of domain space. If x or y are not given, a value is inferred.
-         For instance, 'left-domain' corresponds to the lower-left hand corner
-         of the simulation domain, 'center-domain' corresponds to the center
-         of the simulation domain, or 'center-window' for the center of the
-         plot window. Further examples:
+         For instance, the default location 'center-window' corresponds to
+         the center of the plot window, 'left-domain' corresponds to the
+         lower-left hand corner of the simulation domain, or 'center-domain'
+         for the center of the simulation domain. Further examples:
 
          ==================================     ============================
          format                                 example
@@ -1188,7 +1201,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     Examples
     --------
 
-    This will save an image the the file 'sliceplot_Density
+    This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -2037,7 +2050,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     """
     # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatability
+    # we check the axis keyword for backwards compatibility
     if normal is None: normal = axis
     if normal is None:
         raise AssertionError("Must pass a normal vector to the slice!")

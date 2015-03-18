@@ -30,6 +30,9 @@ would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to
 the plot object.  All of the callbacks listed below are available via 
 similar ``annotate_`` functions.
 
+To clear one or more annotations from an existing plot, see the 
+:ref:`annotate_clear() function <annotate-clear>`.
+
 Available Callbacks
 -------------------
 

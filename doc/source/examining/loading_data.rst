@@ -936,6 +936,60 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
 
+Semi-Structured Grid Data
+-------------------------
+
+See :ref:`loading-numpy-array`,
+:func:`~yt.frontends.stream.data_structures.hexahedral_connectivity`,
+:func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh` for
+more detail.
+
+In addition to uniform grids as described above, you can load in data
+with non-uniform spacing between datapoints. To load this type of
+data, you must first specify a hexahedral mesh, a mesh of six-sided
+cells, on which it will live. You define this by specifying the x,y,
+and z locations of the corners of the hexahedral cells. The following
+code:
+
+.. code-block:: python
+
+   import yt
+   import numpy
+
+   xgrid = numpy.array([-1, -0.65, 0, 0.65, 1])
+   ygrid = numpy.array([-1, 0, 1])
+   zgrid = numpy.array([-1, -0.447, 0.447, 1])
+
+   coordinates,connectivity = yt.hexahedral_connectivity(xgrid,ygrid,zgrid)
+
+will define the (x,y,z) coordinates of the hexahedral cells and
+information about that cell's neighbors such that the celll corners
+will be a grid of points constructed as the Cartesion product of
+xgrid, ygrid, and zgrid.
+
+Then, to load your data, which should be defined on the interiors of
+the hexahedral cells, and thus should have the shape,
+``(len(xgrid)-1, len(ygrid)-1, len(zgrid)-1)``, you can use the following code:
+
+.. code-block:: python
+
+   bbox = numpy.array([[numpy.min(xgrid),numpy.max(xgrid)],
+	               [numpy.min(ygrid),numpy.max(ygrid)],
+	               [numpy.min(zgrid),numpy.max(zgrid)]])
+   data = {"density" : arr}
+   ds = yt.load_hexahedral_mesh(data,conn,coords,1.0,bbox=bbox)
+
+to load your data into the dataset ``ds`` as described above, where we
+have assumed your data is stored in the three-dimensional array
+``arr``.
+
+.. rubric:: Caveats
+
+* Units will be incorrect unless the data has already been converted to cgs.
+* Integration is not implemented.
+* Some functions may behave oddly or not work at all.
+* Data must already reside in memory.
+
 Generic Particle Data
 ---------------------
 
