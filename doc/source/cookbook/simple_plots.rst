@@ -182,6 +182,8 @@ information.
 
 .. yt_cookbook:: image_background_colors.py
 
+.. _annotations-recipe:
+
 Annotating Plots to Include Lines, Text, Shapes, etc.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
