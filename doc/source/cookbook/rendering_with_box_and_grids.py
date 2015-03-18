@@ -17,6 +17,6 @@ im.write_png("%s_vr_grids.png" % ds)
 
 # Here we can draw the coordinate vectors on top of the image by processing
 # it through the camera. Then save it out.
-sc.annotate_axes(ds)
+sc.annotate_axes()
 im = sc.render()
 im.write_png("%s_vr_coords.png" % ds)
