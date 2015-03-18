@@ -982,6 +982,11 @@ class MarkerAnnotateCallback(PlotCallback):
     pos : 2- or 3-element tuple, list, or array
         These are the coordinates where the marker will be overplotted
 
+    marker : string, optional
+        The shape of the marker to be passed to the MPL scatter function.
+        By default, it is 'x', but other acceptable values are: '.', 'o', 'v',
+        '^', 's', 'p' '*', etc.  See matplotlib.markers for more information.
+
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
