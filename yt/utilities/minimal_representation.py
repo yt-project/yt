@@ -16,6 +16,7 @@ Skeleton objects that represent a few fundamental yt data types.
 import numpy as np
 import abc
 import json
+import sys
 from yt.extern.six.moves import urllib
 from tempfile import TemporaryFile
 from yt.config import ytcfg
@@ -23,9 +24,14 @@ from yt.funcs import *
 from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
 
-from .poster.streaminghttp import register_openers
-from .poster.encode import multipart_encode
-register_openers()
+if sys.version[0] < 3:
+    from .poster.streaminghttp import register_openers
+    from .poster.encode import multipart_encode
+    register_openers()
+else:
+    # We don't yet have a solution for this, but it won't show up very often
+    # anyway.
+    pass
 
 class UploaderBar(object):
     pbar = None
