@@ -182,6 +182,18 @@ information.
 
 .. yt_cookbook:: image_background_colors.py
 
+Annotating Plots to Include Lines, Text, Shapes, etc.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It can be useful to add annotations to plots to show off certain features
+and make it easier for your audience to understand the plot's purpose.  There
+are a variety of available :ref:`plot modifications <callbacks>` one can use 
+to add annotations to their plots.  Below includes just a handful, but please
+look at the other :ref:`plot modifications <callbacks>` to get a full 
+description of what you can do to highlight your figures.
+
+.. yt_cookbook:: annotations.py
+
 Annotating Plots with a Timestamp and Physical Scale
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
