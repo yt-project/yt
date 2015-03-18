@@ -24,13 +24,13 @@ from yt.fields.field_info_container import \
 
 class GDFFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("density", ("g/cm**3", ["density"], None)),
+        ("density", ("g/cm**3", [], None)),
         ("specific_energy", ("erg/g", ["thermal_energy"], None)),
-        ("pressure", ("erg/cm**3", ["pressure"], None)),
-        ("temperature", ("K", ["temperature"], None)),
-        ("velocity_x", ("cm/s", ["velocity_x"], None)),
-        ("velocity_y", ("cm/s", ["velocity_y"], None)),
-        ("velocity_z", ("cm/s", ["velocity_z"], None)),
+        ("pressure", ("erg/cm**3", [], None)),
+        ("temperature", ("K", [], None)),
+        ("velocity_x", ("cm/s", [], None)),
+        ("velocity_y", ("cm/s", [], None)),
+        ("velocity_z", ("cm/s", [], None)),
         ("mag_field_x", ("gauss", ["magnetic_field_x"], None)),
         ("mag_field_y", ("gauss", ["magnetic_field_y"], None)),
         ("mag_field_z", ("gauss", ["magnetic_field_z"], None)),
