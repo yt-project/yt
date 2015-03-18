@@ -731,6 +731,7 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
    ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
    ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
+   ~yt.visualization.plot_modifications.sanitize_coord_system
 
 Math Utilities
 --------------

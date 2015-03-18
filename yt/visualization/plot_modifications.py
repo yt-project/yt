@@ -704,10 +704,14 @@ class LinePlotCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates p1 and p2.
         Valid coordinates are:
+            
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
@@ -901,10 +905,14 @@ class ArrowCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
@@ -990,10 +998,14 @@ class MarkerAnnotateCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
@@ -1064,10 +1076,14 @@ class SphereCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
@@ -1161,10 +1177,14 @@ class TextLabelCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
@@ -1531,51 +1551,66 @@ class TimestampCallback(PlotCallback):
 
     Parameters
     ----------
+
     x_pos, y_pos : floats, optional
         The image location of the timestamp in the coord system defined by the
         coord_system kwarg.  Setting x_pos and y_pos overrides the corner 
         parameter.
+
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
         'lower_right' (also allows None). This value will be overridden by the 
         optional x_pos and y_pos keywords.
+
     time : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with redshift parameter.
+
     redshift : boolean, optional
         Whether or not to show the ds.current_time of the data output.  Can
         be used solo or in conjunction with the time parameter.
+
     time_format : string, optional
         This specifies the format of the time output assuming "time" is the 
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
         The time can be specified to arbitrary precision according to printf
         formatting codes (defaults to .1f -- a float with 1 digits after 
         decimal).  Example: "Age = {time:.2f} {units}". 
+
     time_unit : string, optional
         time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
         'Myr', etc.)
+
     redshift_format : string, optional
         This specifies the format of the redshift output.  The redshift can
         be specified to arbitrary precision according to printf formatting 
         codes (defaults to 0.2f -- a float with 2 digits after decimal).
         Example: "REDSHIFT = {redshift:03.3g}", 
+
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the text
         If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch 
         object.  
+
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
+
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white'}.
+
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.  
@@ -1699,42 +1734,54 @@ class ScaleCallback(PlotCallback):
     
     Parameters
     ----------
+
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
         'lower_right' (also allows None). This value will be overridden by the 
         optional 'pos' keyword.
+
     coeff : float, optional
         The coefficient of the unit defining the distance scale (e.g. 10 kpc or
         100 Mpc) for overplotting.  If set to None along with unit keyword, 
         coeff will be automatically determined to be a power of 10
         relative to the best-fit unit.
+
     unit : string, optional
         unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
         'kpc', etc.) or set to None.  If set to None, will be automatically
         determined to be the best-fit to the data.
+
     pos : 2- or 3-element tuples, lists, or arrays, optional
         The image location of the timestamp in the coord system defined by the
         coord_system kwarg.  Setting pos overrides the corner parameter.
+
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to 
         extend. A value of 1 would allow the scale bar to extend across the
         entire axis width.  Only used for automatically calculating 
         best-fit coeff and unit when neither is specified, otherwise 
         disregarded.
+
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
+
             "data" -- the 3D dataset coordinates
+
             "plot" -- the 2D coordinates defined by the actual plot limits
+
             "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
                       upper right
+
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
+
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: {'color':'white', 
         'horizontalalignment':'center', 'verticalalignment':'top'}.
+
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':3}.

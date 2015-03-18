@@ -44,13 +44,16 @@ Many of the callbacks (e.g.
 to occur at user-defined coordinate locations (like where to place a marker 
 or text on the plot).  There are several different coordinate systems used 
 to identify these locations.  These coordinate systems can be specified with 
-the `coord_system` keyword in the relevant callback, which is by default 
-set to `data`.  The valid coordinate systems are:
+the ``coord_system`` keyword in the relevant callback, which is by default 
+set to ``data``.  The valid coordinate systems are:
 
-    `data` – the 3D dataset coordinates 
-    `plot` – the 2D coordinates defined by the actual plot limits 
-    `axis` – the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
-    `figure` – the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
+    ``data`` – the 3D dataset coordinates 
+
+    ``plot`` – the 2D coordinates defined by the actual plot limits 
+
+    ``axis`` – the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
+
+    ``figure`` – the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
 Here we will demonstrate these different coordinate systems for an projection 
 of the x-plane (i.e. with axes in the y and z directions):
@@ -90,13 +93,13 @@ The underlying functions are more thoroughly documented in :ref:`callback-api`.
 
 .. _annotate-clear:
 
-Clear Annotations (Some or All)
+Clear Callbacks (Some or All)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_clear(index=None)
 
-    This function will clear previous annotations to the plot.  If
-    no index is provided, it will clear all annotations to the plot.
+    This function will clear previous annotations (callbacks) in the plot.  
+    If no index is provided, it will clear all annotations to the plot.
     If an index is provided, it will clear only the Nth annotation
     to the plot.  Note that the index goes from 0..N, and you can 
     specify the index of the last added annotation as -1.
@@ -113,21 +116,9 @@ Clear Annotations (Some or All)
     p.annotate_clear()
     p.save()
 
-.. python-script::
-
-    import yt 
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-    p.annotate_scale()
-    p.annotate_timestamp()
-
-    # Oops, I only wanted the scale.
-    p.annotate_clear(-1)
-    p.save()
-
 .. _annotate-arrow:
 
-Arrow callback
+Overplot Arrow
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', \
@@ -212,10 +203,10 @@ Overplot Contours
 
 .. _annotate-quivers:
 
-Overplot quivers
+Overplot Quivers
 ~~~~~~~~~~~~~~~~
 
-Axis-Aligned data sources
+Axis-Aligned Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: annotate_quiver(self, field_x, field_y, factor, scale=None, \
@@ -238,7 +229,7 @@ Axis-Aligned data sources
    p.annotate_quiver('velocity_x', 'velocity_y', 16)
    p.save()
 
-Off-axis Data Sources
+Off-Axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. function:: annotate_cquiver(self, field_x, field_y, factor)
@@ -260,7 +251,7 @@ Off-axis Data Sources
 
 .. _annotate-grids:
 
-Overplot grids
+Overplot Grids
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, \
@@ -427,7 +418,7 @@ Overplotting Particle Positions
 
 .. _annotate-sphere:
 
-Overplot a circle on a plot
+Overplot a Circle on a Plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_sphere(self, center, radius, circle_args=None, \
@@ -448,7 +439,7 @@ Overplot a circle on a plot
 
 .. _annotate-streamlines:
 
-Overplot streamlines
+Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
@@ -474,8 +465,8 @@ Overplot streamlines
 
 .. _annotate-text:
 
-Add text to a plot
-~~~~~~~~~~~~~~~~~~
+Overplot Text
+~~~~~~~~~~~~~
 
 .. function:: annotate_text(self, pos, text, coord_system='data', \
                             text_args=None, inset_box_args=None)
@@ -497,8 +488,8 @@ Add text to a plot
 
 .. _annotate-title:
 
-Add a title to the plot
-~~~~~~~~~~~~~~~~~~~~~~~
+Add a Title
+~~~~~~~~~~~
 
 .. function:: annotate_title(self, title='Plot')
 
@@ -517,7 +508,7 @@ Add a title to the plot
 
 .. _annotate-velocity:
 
-Overplot quivers for the velocity field
+Overplot Quivers for the Velocity Field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None,\
@@ -544,8 +535,8 @@ Overplot quivers for the velocity field
 
 .. _annotate-timestamp:
 
-Add the current time and/or redshift to the plot
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add the Current Time and/or Redshift
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left',\
                                  time=True, redshift=False, \
@@ -575,8 +566,8 @@ Add the current time and/or redshift to the plot
 
 .. _annotate-scale:
 
-Add the physical scale to the plot
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add a Physical Scale Bar
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
                              unit=None, pos=None, max_frac=0.2, \
