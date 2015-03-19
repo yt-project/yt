@@ -63,10 +63,11 @@ class OWLSFieldInfo(SPHFieldInfo):
             )
 
         self.known_particle_fields += new_particle_fields
-        
+
         super(OWLSFieldInfo,self).__init__( *args, **kwargs )
 
-
+        # This enables the machinery in yt.fields.species_fields
+        self.species_names += list(self._elements)
 
     def setup_particle_fields(self, ptype):
         """ additional particle fields derived from those in snapshot.
