@@ -6,11 +6,10 @@ Plot Modifications: Overplotting Contours, Velocities, Particles, and More
 Adding callbacks to plots
 -------------------------
 
-Because the plots in yt are considered to be "volatile" -- existing
-independent of the canvas on which they are plotted -- before they are saved,
-you can have a set of "callbacks" run that modify them before saving to disk.
-By adding a callback, you are telling the plot that whatever it does it itself,
-your callback gets the last word.
+After a plot is generated using the standard tools (e.g. SlicePlot, 
+ProjectionPlot, etc.), it can be annotated with any number of ``callbacks``
+before being saved to disk.  These callbacks can modify the plots by adding
+lines, text, markers, streamlines, velocity vectors, contours, and more.
 
 Callbacks can be applied to plots created with
 :class:`~yt.visualization.plot_window.SlicePlot`,
