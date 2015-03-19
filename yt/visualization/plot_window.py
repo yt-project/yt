@@ -61,6 +61,8 @@ from yt.utilities.definitions import \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
+from yt.utilities.orientation import \
+    Orientation
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
@@ -949,11 +951,9 @@ class PWViewerMPL(PlotWindow):
 
     def setup_callbacks(self):
         for key in callback_registry:
-            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
-                       'UnitBoundaryCallback']
+            ignored = ['PlotCallback']
             if self._plot_type.startswith('OffAxis'):
-                ignored += ['HopCirclesCallback','HopParticleCallback',
-                            'ParticleCallback','ClumpContourCallback',
+                ignored += ['ParticleCallback','ClumpContourCallback',
                             'GridBoundaryCallback']
             if self._plot_type == 'OffAxisProjection':
                 ignored += ['VelocityCallback','MagFieldCallback',
@@ -1510,6 +1510,7 @@ class OffAxisProjectionDummyDataSource(object):
         self.re = re
         self.north_vector = north_vector
         self.method = method
+        self.orienter = Orientation(normal_vector, north_vector=north_vector)
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
