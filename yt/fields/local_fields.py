@@ -28,7 +28,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, **kwargs):
         if not isinstance(name, tuple):
             name = ('gas', name)
-        override = kwargs.pop("force_override", False)
+        override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
         if not override and name in self:
             mylog.warning("Field %s already exists. To override use " +
