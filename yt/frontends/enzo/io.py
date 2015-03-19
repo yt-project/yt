@@ -21,6 +21,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import mask_fill, AlwaysSelector
+from yt.extern.six import u, b
 import h5py
 
 import numpy as np
@@ -46,7 +47,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         dtypes = set([])
         add_io = "io" in grid.ds.particle_types
-        for name, v in group.iteritems():
+        for name, v in group.items():
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
             # are of the same size.  So, let's grab one.
@@ -84,7 +85,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (count) %s" % g.filename
-                    f = h5py.File(g.filename.encode('ascii'), "r")
+                    f = h5py.File(b(g.filename), "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -113,7 +114,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (read) %s" % g.filename
-                    f = h5py.File(g.filename.encode('ascii'), "r")
+                    f = h5py.File(b(g.filename), "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -145,7 +146,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
-            f = h5py.File(g.filename.encode('ascii'), 'r')
+            f = h5py.File(u(g.filename), 'r')
             if g.id in self._cached_fields:
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
@@ -184,7 +185,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             for g in chunk.objs:
                 if g.filename is None: continue
                 if fid is None:
-                    fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
+                    fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 gf = self._cached_fields.get(g.id, {})
                 data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
                 data_view = data.swapaxes(0,2)
@@ -198,7 +199,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     ftype, fname = field
                     try:
                         node = "/Grid%08i/%s" % (g.id, fname)
-                        dg = h5py.h5d.open(fid, node.encode('ascii'))
+                        dg = h5py.h5d.open(fid, b(node))
                     except KeyError:
                         if fname == "Dark_Matter_Density": continue
                         raise
@@ -275,7 +276,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if fid is not None: fid.close()
                 fid = None
             if fid is None:
-                fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
+                fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 fn = g.filename
             data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
             data_view = data.swapaxes(0,2)
@@ -287,7 +288,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 ftype, fname = field
                 try:
                     node = "/Grid%08i/%s" % (g.id, fname)
-                    dg = h5py.h5d.open(fid, node.encode('ascii'))
+                    dg = h5py.h5d.open(fid, b(node))
                 except KeyError:
                     if fname == "Dark_Matter_Density": continue
                     raise

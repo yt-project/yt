@@ -37,9 +37,9 @@ class PythonScriptDirective(Directive):
             f.write(content)
 
         # Use sphinx logger?
-        print ""
-        print content
-        print ""
+        print("")
+        print(content)
+        print("")
 
         subprocess.call(['python', 'temp.py'])
 

@@ -1,3 +1,5 @@
+.. _annotate-arrow:
+
 Arrow callback
 ~~~~~~~~~~~~~~
 
@@ -17,6 +19,8 @@ Arrow callback
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='c')
    slc.annotate_arrow((0.5, 0.5, 0.5), (1, 'kpc'))
    slc.save()
+
+.. _annotate-clumps:
 
 Clump Finder Callback
 ~~~~~~~~~~~~~~~~~~~~~
@@ -77,6 +81,8 @@ Overplot Contours
    s = yt.SlicePlot(ds, "x", "density", center="max")
    s.annotate_contour("temperature")
    s.save()
+
+.. _annotate-quivers:
 
 Overplot quivers
 ~~~~~~~~~~~~~~~~
@@ -192,6 +198,8 @@ Overplot Halo Annotations
    prj.annotate_halos(hc, annotate_field='particle_identifier')
    prj.save()
 
+.. _annotate-image-line:
+
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -210,6 +218,8 @@ Overplot a Straight Line
    p = yt.ProjectionPlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_image_line((0.3, 0.4), (0.8, 0.9), plot_args={'linewidth':5})
    p.save()
+
+.. _annotate-line:
 
 Overplot a line plot
 ~~~~~~~~~~~~~~~~~~~~
@@ -232,6 +242,8 @@ Overplot a line plot
    y = x**2/10
    p.annotate_line(x, y, plot_args={'linewidth':5})
    p.save()
+
+.. _annotate-magnetic-field:
 
 Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -258,6 +270,8 @@ Overplot Magnetic Field Quivers
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(300, 'kpc'))
    p.annotate_magnetic_field()
    p.save()
+
+.. _annotate-marker:
 
 Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,6 +319,8 @@ Overplotting Particle Positions
    p.annotate_particles((10, 'Mpc'))
    p.save()
 
+.. _annotate-point:
+
 Annotate a point with text
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -324,6 +340,8 @@ Annotate a point with text
    p.annotate_point([0.5, 0.496, 0.5], "What's going on here?",
                     text_args={'size':'xx-large', 'color':'w'})
    p.save()
+
+.. _annotate-sphere:
 
 Overplot a circle on a plot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -345,6 +363,8 @@ Overplot a circle on a plot
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_sphere([0.5, 0.5, 0.5], (2, 'kpc'), {'fill':True})
    p.save()
+
+.. _annotate-streamlines:
 
 Overplot streamlines
 ~~~~~~~~~~~~~~~~~~~~
@@ -370,17 +390,21 @@ Overplot streamlines
    s.annotate_streamlines('velocity_x', 'velocity_y')
    s.save()
 
+.. _annotate-text:
+
 Add text
 ~~~~~~~~
 
-.. function:: annotate_text(self, pos, text, data_coords=False, text_args=None):
+.. function:: annotate_text(self, pos, text, data_coords=False, text_args=None,
+                            inset_box_args=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TextLabelCallback`.)
 
    Accepts a position in (0..1, 0..1) of the image, some text and optionally
    some text arguments. If data_coords is True, position will be in code units
-   instead of image coordinates.
+   instead of image coordinates.  If you desire an inset box around your
+   text, set one with the inset_box_args dictionary keyword.
 
 .. python-script::
 
@@ -390,6 +414,8 @@ Add text
    s.annotate_text((0.5, 0.5), 'Sample text',
                    text_args={'size':'xx-large', 'color':'w'})
    s.save()
+
+.. _annotate-title:
 
 Add a title to the plot
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,34 +462,136 @@ Overplot quivers for the velocity field
    p.annotate_velocity()
    p.save()
 
-Add a Timestamp Inset Box
-~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _annotate-timestamp:
 
-.. function:: annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", \
-                                 **kwargs, normalized=False, bbox_dict=None)
+Add the current time and/or redshift to the plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left',\
+                                 time=True, redshift=False, \
+                                 time_format='t = {time:.0f} {units}', \
+                                 time_unit=None, \
+                                 redshift_format='z = {redshift:.2f}', \
+                                 use_inset_box=False, text_args=None, \
+                                 inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TimestampCallback`.)
 
-   Adds the current time to the plot at point given by *x* and *y*.  If *units*
-   is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
-   *units* is None, it will attempt to figure out the correct value by which to
-   scale.  The *format* keyword is a template string that will be evaluated and
-   displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
-   as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
-   otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
-   is an optional dict of arguments for the bbox that frames the timestamp, see
-   matplotlib's text annotation guide for more details. All other *kwargs* will
-   be passed to the text() method on the plot axes.  See matplotlib's text()
-   functions for more information.
+    Annotates the timestamp and/or redshift of the data output at a specified
+    location in the image (either in a present corner, or by specifying (x,y)
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
+    specified, it will automatically choose appropriate units.  It allows for 
+    custom formatting of the time and redshift information, as well as the
+    specification of an inset box around the text.
+
+    x_pos, y_pos : floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) =
+        (0..1, 0..1).  Setting x_pos, y_pos overrides the corner parameter.
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be overridden by the
+        optional x_pos and y_pos keywords.
+    time : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with redshift parameter.
+    redshift : boolean, optional
+        Whether or not to show the ds.current_time of the data output.  Can
+        be used solo or in conjunction with the time parameter.
+    time_format : string, optional
+        This specifies the format of the time output assuming "time" is the
+        number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
+        The time can be specified to arbitrary precision according to printf
+        formatting codes (defaults to .1f -- a float with 1 digits after
+        decimal).
+    time_unit : string, optional
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr',
+        'Myr', etc.).  If not specified, finds best unit for dataset.
+    redshift_format : string, optional
+        This specifies the format of the redshift output.  The redshift can
+        be specified to arbitrary precision according to printf formatting
+        codes (defaults to 0.2f -- a float with 2 digits after decimal).
+    use_inset_box : boolean, optional
+        Whether or not an inset box should be included around the text
+        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch
+        object.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white'}.
+    inset_box_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        FancyBboxPatch object as the inset box around the text.
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':'0.3'}
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_timestamp(-9, -9)
+   p.annotate_timestamp()
    p.save()
+
+.. _annotate-scale:
+
+Add the physical scale to the plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_scale(corner='lower_right', coeff=None, \
+                             unit=None, pos=None, max_frac=0.2, \
+                             min_frac=0.018, text_args=None, \
+                             inset_box_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
+
+    Annotates the scale of the plot at a specified location in the image
+    (either in a preset corner, or by specifying (x,y) image coordinates with
+    the pos argument.  Coeff and units (e.g. 1 Mpc) refer to the distance scale
+    you desire to show on the plot.  If no coeff and units are specified,
+    an appropriate pair will be determined such that your scale bar is never
+    smaller than min_frac or greater than max_frac of your plottable axis
+    length.  For additional text and plot arguments for the text and line,
+    include them as dictionaries to pass to text_args and plot_args.
+
+    corner : string, optional
+        Corner sets up one of 4 predeterimined locations for the timestamp
+        to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
+        'lower_right' (also allows None). This value will be overridden by the
+        optional 'pos' keyword.
+    coeff : float, optional
+        The coefficient before the unit scale.  If set to None along with
+        unit keyword, will be automatically determined to be a power of 10
+        relative to the best-fit scale.
+    unit : string, optional
+        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc',
+        'kpc', etc.) or set to None.  If set to None, will be automatically
+        determined to be the best-fit to the data.
+    pos : tuple of floats, optional
+        The image location of the timestamp in image coords (i.e. (x,y) =
+        (0..1, 0..1).  Setting pos overrides the corner parameter.
+    min_frac, max_frac: float, optional
+        The minimum/maximum fraction of the axis width for the scale bar to
+        extend. A value of 1 would allow the scale bar to extend across the
+        entire axis width.  Only used for automatically calculating
+        best-fit coeff and unit when neither is specified, otherwise
+        disregarded.
+    text_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        text object.  Defaults: {'color':'white'}.
+    plot_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        line object.  Defaults: {'color':'white', 'linewidth':3}.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+   p.annotate_scale()
+   p.save()
+
+.. _annotate-triangle-facets:
 
 Annotate Triangle Facets Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -502,3 +630,40 @@ Annotate Triangle Facets Callback
    # Annotate slice-triangle intersection contours to the plot
    s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
    s.save()
+
+.. _annotate-clear:
+
+Clear Annotations (Some or All)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_clear(index=None):
+
+    This function will clear previous annotations to the plot.  If
+    no index is provided, it will clear all annotations to the plot.
+    If an index is provided, it will clear only the Nth annotation
+    to the plot.  Note that the index goes from 0..N, and you can 
+    specify the index of the last added annotation as -1.
+ 
+.. python-script::
+
+    import yt 
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+
+    # Oops, I didn't want any of that.
+    p.annotate_clear()
+    p.save()
+
+.. python-script::
+
+    import yt 
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+
+    # Oops, I only wanted the scale.
+    p.annotate_clear(-1)
+    p.save()

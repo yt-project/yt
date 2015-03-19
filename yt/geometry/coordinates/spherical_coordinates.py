@@ -13,7 +13,7 @@ Spherical fields
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from __future__ import print_function
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
@@ -233,7 +233,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             width = [2.0*self.ds.domain_width[0],
                      2.0*self.ds.domain_width[0]]
         elif axis == 2:
-            width = [self.ds.domain_width[0],
+            width = [self.ds.domain_right_edge[0] / 2.0,
                      2.0*self.ds.domain_width[0]]
         return width
 
@@ -245,8 +245,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
         r0 = self.ds.domain_left_edge[0]
         r1 = self.ds.domain_right_edge[0]
         v1 = 4.0 * np.pi / 3.0 * (r1**3 - r0**3)
-        print "Total volume should be 4*pi*r**3 = %0.16e" % (v1)
+        print("Total volume should be 4*pi*r**3 = %0.16e" % (v1))
         v2 = dd.quantities.total_quantity("cell_volume")
-        print "Actual volume is                   %0.16e" % (v2)
-        print "Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1))
+        print("Actual volume is                   %0.16e" % (v2))
+        print("Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1)))
 

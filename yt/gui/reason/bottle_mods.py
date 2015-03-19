@@ -20,7 +20,7 @@ import uuid
 import json
 import logging, threading
 import sys
-import urllib, urllib2
+from yt.extern.six.moves import urllib
 import numpy as np
 
 from yt.extern.bottle import \
@@ -150,13 +150,13 @@ class PayloadHandler(object):
             if widget_id not in self.multicast_payloads: continue
             server_id, session_token = self.multicast_ids[widget_id]
             # Now we execute a post to the correct location
-            data = urllib.urlencode({
+            data = urllib.parse.urlencode({
                 'payload_session_id': server_id,
                 'payload_session_token': session_token,
                 'payload_data': self.multicast_payloads[widget_id],
                 'payload_metadata': {}
             })
-            urllib2.urlopen("http://localhost:8080/UpdatePayload", data = data)
+            urllib.request.urlopen("http://localhost:8080/UpdatePayload", data = data)
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars

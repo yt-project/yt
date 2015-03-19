@@ -28,7 +28,8 @@ except:
 
 
 class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field):
+    def __init__(self, viewer, window_plot, frb, field, font_properties, 
+                 font_color):
         self.frb = frb
         self.data = frb.data_source
         self._axes = window_plot.axes
@@ -47,7 +48,8 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
-
+        self.font_properties = font_properties
+        self.font_color = font_color
 
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
@@ -121,7 +123,7 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
                 cblinthresh = (data.max()-data.min())/10.
-            norm = matplotlib.colors.SymLogNorm(cblinthresh,vmin=data.min(), vmax=data.max())
+            norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
         if isinstance(cmap, tuple):
             if has_brewer:
@@ -164,6 +166,9 @@ class ImagePlotMPL(PlotMPL):
             if self._aspect < 1.0:
                 x_fig_size = self._figure_size*self._aspect
                 y_fig_size = self._figure_size
+
+        if hasattr(self, '_unit_aspect'):
+            y_fig_size = y_fig_size * self._unit_aspect
 
         if self._draw_colorbar:
             cb_size = self._cb_size

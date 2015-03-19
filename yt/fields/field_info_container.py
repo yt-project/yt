@@ -16,29 +16,25 @@ native.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import types
 from numbers import Number as numeric_type
 
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
     NullFunc, \
-    TranslationFunc, \
-    ValidateSpatial
+    TranslationFunc
 from yt.utilities.exceptions import \
     YTFieldNotFound
 from .field_plugin_registry import \
     field_plugins
-from yt.units.unit_object import \
-    Unit
 from .particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
     particle_scalar_functions, \
     standard_particle_fields, \
-    add_volume_weighted_smoothed_field
+    add_volume_weighted_smoothed_field, \
+    sph_whitelist_fields
 
 class FieldInfoContainer(dict):
     """
@@ -131,13 +127,16 @@ class FieldInfoContainer(dict):
             sml_name = None
         new_aliases = []
         for ptype2, alias_name in self.keys():
-            if ptype2 != ptype: continue
-            if alias_name in ("particle_position", "particle_velocity"):
+            if ptype2 != ptype:
                 continue
-            fn = add_volume_weighted_smoothed_field(ptype,
-                "particle_position", "particle_mass",
+            if alias_name not in sph_whitelist_fields:
+                continue
+            fn = add_volume_weighted_smoothed_field(
+                ptype, "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
                 num_neighbors)
+            if 'particle_' in alias_name:
+                alias_name = alias_name.replace('particle_', '')
             new_aliases.append(((ftype, alias_name), fn[0]))
         for alias, source in new_aliases:
             #print "Aliasing %s => %s" % (alias, source)
@@ -301,13 +300,13 @@ class FieldInfoContainer(dict):
     def keys(self):
         keys = dict.keys(self)
         if self.fallback:
-            keys += self.fallback.keys()
+            keys += list(self.fallback.keys())
         return keys
 
     def check_derived_fields(self, fields_to_check = None):
         deps = {}
         unavailable = []
-        fields_to_check = fields_to_check or self.keys()
+        fields_to_check = fields_to_check or list(self.keys())
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError

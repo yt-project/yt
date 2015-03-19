@@ -37,7 +37,7 @@ class TestParticleExtrema(YTDatasetTest):
         max = min.copy()
         dims = ["particle_position_x","particle_position_y",
             "particle_position_z"]
-        for i in xrange(3):
+        for i in range(3):
             min[i] = np.min(all[dims[i]])
             max[i] = np.max(all[dims[i]])
         self.result = (min,max)
