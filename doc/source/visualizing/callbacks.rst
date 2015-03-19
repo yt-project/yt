@@ -136,7 +136,7 @@ Overplot Arrow
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='c')
-   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={'color','blue'})
+   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={'color':'blue'})
    slc.save()
 
 .. _annotate-clumps:
@@ -434,7 +434,8 @@ Overplot a Circle on a Plot
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, 'kpc'))
+   p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, 'kpc'), 
+                     circle_args={'color':'black'})
    p.save()
 
 .. _annotate-streamlines:
@@ -483,7 +484,7 @@ Overplot Text
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='max', width=(10, 'kpc'))
-   s.annotate_text((0.5, 0.5, 0.5), 'Galaxy!')
+   s.annotate_text((2, 2), coord_system='plot', 'Galaxy!')
    s.save()
 
 .. _annotate-title:
