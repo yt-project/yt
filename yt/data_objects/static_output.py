@@ -804,6 +804,11 @@ class Dataset(object):
 
         """
         self.index
+        override = kwargs.get("force_override", False)
+        # Handle the case where the field has already been added.
+        if not override and name in self.field_info:
+            mylog.warning("Field %s already exists. To override use " +
+                          "force_override=True.", name)
         self.field_info.add_field(name, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])

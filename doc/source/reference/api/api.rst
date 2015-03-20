@@ -683,13 +683,13 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.GridBoundaryCallback
    ~yt.visualization.plot_modifications.HaloCatalogCallback
    ~yt.visualization.plot_modifications.ImageLineCallback
-   ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
@@ -731,6 +731,7 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
    ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
    ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
+   ~yt.visualization.plot_modifications.sanitize_coord_system
 
 Math Utilities
 --------------
