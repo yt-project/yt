@@ -7870,9 +7870,9 @@ def _make_custom_colormap(colors, spacings):
         index += spacings[i]
     return (cm[:,0], cm[:,1], cm[:,2], np.ones(256))
 
-color_map_luts['chum'] = _make_custom_colormap([black, dblue, blue, purple, dpurple, dred, red, orange, dorange, dyellow, yellow, green, dgreen, dgray, gray, white], [20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 20, 12, 32])
+color_map_luts['chum'] = _make_custom_colormap([black, dblue, blue, purple, dpurple, dred, red, red, orange, orange, dorange, dyellow, yellow, yellow, green, green, dgreen, dgray, gray, white], [20, 12, 20, 12, 20, 12, 15, 10, 7, 10, 20, 12, 15, 16, 3, 8, 20, 12, 12])
 # Very similar to STD GAMMA-II, but it includes green in the top instead of just a long expanse of yellow/white.
-color_map_luts['STDGREEN'] = _make_custom_colormap([black, blue, purple, dpurple, dred, red, orange, orange, yellow, yellow, yellow, white, dgreen], [51, 15, 10, 26, 15, 31, 10, 22, 10, 4, 22, 40])
+color_map_luts['STDGREEN'] = _make_custom_colormap([black, blue, purple, dpurple, dred, red, orange, orange, yellow, yellow, green, white], [51, 15, 10, 26, 15, 31, 10, 22, 18, 28, 30])
 
 # Aliases
 color_map_luts['B-W LINEAR'] = color_map_luts['idl00']
