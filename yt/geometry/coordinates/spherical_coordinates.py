@@ -27,9 +27,11 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def __init__(self, ds, ordering = ('r', 'theta', 'phi')):
         super(SphericalCoordinateHandler, self).__init__(ds, ordering)
-        self.default_unit_label = {}
-        self.default_unit_label[self.axis_id['theta']] = "rad"
-        self.default_unit_label[self.axis_id['phi']] = "rad"
+        # Generate 
+        self.image_units = {}
+        self.image_units[self.axis_id['r']] = ("rad", "rad")
+        self.image_units[self.axis_id['theta']] = (None, None)
+        self.image_units[self.axis_id['phi']] = (None, None)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta

@@ -32,8 +32,10 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     def __init__(self, ds, ordering = ('r', 'z', 'theta')):
         super(CylindricalCoordinateHandler, self).__init__(ds, ordering)
-        self.default_unit_label = {}
-        self.default_unit_label[self.axis_id['theta']] = "rad"
+        self.image_units = {}
+        self.image_units[self.axis_id['r']] = ("rad", None)
+        self.image_units[self.axis_id['theta']] = (None, None)
+        self.image_units[self.axis_id['z']] = (None, None)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -126,7 +128,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                                  size, data_source[field], bounds)
         return buff
 
-    _x_pairs = (('r', 'z'), ('z', 'r'), ('theta', 'r'))
+    _x_pairs = (('r', 'theta'), ('z', 'r'), ('theta', 'r'))
     _y_pairs = (('r', 'z'), ('z', 'theta'), ('theta', 'z'))
 
     _image_axis_name = None
