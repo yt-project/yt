@@ -30,9 +30,8 @@ from yt.utilities.lib.misc_utilities import \
 
 class CylindricalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, ds, ordering = 'rzt'):
-        if ordering != 'rzt': raise NotImplementedError
-        super(CylindricalCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('r', 'z', 'theta')):
+        super(CylindricalCoordinateHandler, self).__init__(ds, ordering)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -40,7 +39,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "dy"), function=_unknown_coord)
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
-        f1, f2 = _get_coord_fields(0)
+        f1, f2 = _get_coord_fields(self.axis_id['r'])
         registry.add_field(("index", "dr"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -125,18 +124,8 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                                  size, data_source[field], bounds)
         return buff
 
-    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
-                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
-                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
-
-    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
-
-    x_axis = { 'r' : 2, 'z' : 0, 'theta' : 0,
-                0  : 2,  1  : 0,  2  : 0}
-
-    y_axis = { 'r' : 1, 'z' : 2, 'theta' : 1,
-                0  : 1,  1  : 2,  2  : 1}
+    _x_pairs = (('r', 'z'), ('z', 'r'), ('theta', 'r'))
+    _y_pairs = (('r', 'z'), ('z', 'theta'), ('theta', 'z'))
 
     _image_axis_name = None
 

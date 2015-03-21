@@ -22,8 +22,8 @@ from .coordinate_handler import \
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
-    def __init__(self, ds):
-        super(SpectralCubeCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('x', 'y', 'z')):
+        super(SpectralCubeCoordinateHandler, self).__init__(ds, None)
 
         self.default_unit_label = {}
         if ds.lon_name == "X" and ds.lat_name == "Y":
@@ -101,8 +101,3 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     def image_axis_name(self):
         return self._image_axis_name
 
-    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
-                0  : 2,  1  : 2,  2  : 1}

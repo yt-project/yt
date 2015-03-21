@@ -25,9 +25,8 @@ from yt.utilities.lib.misc_utilities import \
 
 class GeographicCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, ds, ordering = 'latlonalt'):
-        if ordering != 'latlonalt': raise NotImplementedError
-        super(GeographicCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('latitude', 'longitude', 'altitude')):
+        super(GeographicCoordinateHandler, self).__init__(ds, ordering)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -37,7 +36,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
         registry.add_field(("index", "z"), function=_unknown_coord)
-        f1, f2 = _get_coord_fields(0, "")
+        f1, f2 = _get_coord_fields(self.axis_id['latitude'], "")
         registry.add_field(("index", "dlatitude"), function = f1,
                            display_field = False,
                            units = "")
@@ -45,7 +44,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "")
 
-        f1, f2 = _get_coord_fields(1, "")
+        f1, f2 = _get_coord_fields(self.axis_id['longitude'], "")
         registry.add_field(("index", "dlongitude"), function = f1,
                            display_field = False,
                            units = "")
@@ -53,7 +52,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "")
 
-        f1, f2 = _get_coord_fields(2)
+        f1, f2 = _get_coord_fields(self.axis_id['altitude'])
         registry.add_field(("index", "daltitude"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -136,10 +135,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        if dimension in (0, 1):
+        if self.axis_names[dimension] in ('latitude', 'longitude'):
             return self._cyl_pixelize(data_source, field, bounds, size,
                                           antialias, dimension)
-        elif dimension == 2:
+        elif self.axis_names[dimension] == 'altitude':
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
@@ -229,24 +228,26 @@ class GeographicCoordinateHandler(CoordinateHandler):
         # This is the x and y axes labels that get displayed.  For
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
-        rv = {0: ('x / \\sin(\mathrm{latitude})',
+        rv = {self.axis_id['latitude']:
+                 ('x / \\sin(\mathrm{latitude})',
                   'y / \\sin(\mathrm{latitude})'),
-              1: ('R', 'z'),
-              2: ('longitude', 'latitude')}
+              self.axis_id['longitude']:
+                 ('R', 'z'),
+              self.axis_id['altitude']:
+                 ('longitude', 'latitude')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
-            rv[self.axis_name[i].upper()] = rv[i]
+            rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv
         return rv
 
-    axis_id = { 'latitude' : 0, 'longitude' : 1, 'altitude' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
+    _x_pairs = (('latitude', 'longitude'),
+                ('longitude', 'latitude'),
+                ('altitude', 'latitude'))
 
-    x_axis = { 'latitude' : 1, 'longitude' : 0, 'altitude' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'latitude' : 2, 'longitude' : 2, 'altitude' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    _y_pairs = (('latitude', 'altitude'),
+                ('longitude', 'altitude'),
+                ('altitude', 'longitude'))
 
     @property
     def period(self):
@@ -255,28 +256,34 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def sanitize_center(self, center, axis):
         center, display_center = super(
             GeographicCoordinateHandler, self).sanitize_center(center, axis)
-        if axis == 2:
+        name = self.axis_name[axis]
+        if name == 'altitude':
             display_center = center
-        elif axis == 0:
+        elif name == 'latitude':
             display_center = (0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2])
-        elif axis == 1:
-            display_center = (self.ds.domain_right_edge[2]/2.0,
-                              0.0 * display_center[2],
-                              0.0 * display_center[2])
+        elif name == 'longitude':
+            c = self.ds.domain_right_edge[self.axis_id['altitude']]/2.0
+            display_center = [0.0 * display_center[0], 
+                              0.0 * display_center[1],
+                              0.0 * display_center[2]]
+            display_center[self.axis_id['latitude']] = c
         return center, display_center
 
     def convert_to_cartesian(self, coord):
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
-            r = coord[:,2] + self.ds.surface_height
-            theta = coord[:,1] * np.pi/180
-            phi = coord[:,0] * np.pi/180
+            alt = self.axis_id['altitude']
+            lon = self.axis_id['longitude']
+            lat = self.axis_id['latitude']
+            r = coord[:,alt] + self.ds.surface_height
+            theta = coord[:,lon] * np.pi/180
+            phi = coord[:,lat] * np.pi/180
             nc = np.zeros_like(coord)
             # r, theta, phi
-            nc[:,0] = np.cos(phi) * np.sin(theta)*r
-            nc[:,1] = np.sin(phi) * np.sin(theta)*r
-            nc[:,2] = np.cos(theta) * r
+            nc[:,lat] = np.cos(phi) * np.sin(theta)*r
+            nc[:,lon] = np.sin(phi) * np.sin(theta)*r
+            nc[:,alt] = np.cos(theta) * r
         else:
             a, b, c = coord
             theta = b * np.pi/180
