@@ -127,7 +127,7 @@ class CoordinateHandler(object):
         ai = {}
         for axi, ax in enumerate(self.axis_order):
             ai[ax] = ai[axi] = axi
-        self._axis_name = ai
+        self._axis_id = ai
         return ai
 
     @property
@@ -150,7 +150,7 @@ class CoordinateHandler(object):
         xa = {}
         for a1, a2 in self._x_pairs:
             xa[a1] = xa[ai[a1]] = ai[a2]
-        self.x_axis = xa
+        self._x_axis = xa
         return xa
 
     _y_axis = None
@@ -162,7 +162,7 @@ class CoordinateHandler(object):
         ya = {}
         for a1, a2 in self._y_pairs:
             ya[a1] = ya[ai[a1]] = ai[a2]
-        self.y_axis = ya
+        self._y_axis = ya
         return ya
 
     @property
