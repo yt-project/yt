@@ -42,8 +42,8 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         self._image_axis_name = ian = {}
         for ax in 'xyz':
             axi = self.axis_id[ax]
-            xax = self.axis_names[self.x_axis[ax]]
-            yax = self.axis_names[self.y_axis[ax]]
+            xax = self.axis_name[self.x_axis[ax]]
+            yax = self.axis_name[self.y_axis[ax]]
             ian[axi] = ian[ax] = ian[ax.upper()] = (
                 names.get(xax, xax), names.get(yax, yax))
 
