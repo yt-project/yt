@@ -27,6 +27,9 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def __init__(self, ds, ordering = ('latitude', 'longitude', 'altitude')):
         super(GeographicCoordinateHandler, self).__init__(ds, ordering)
+        self.default_unit_label = {}
+        self.default_unit_label[self.axis_id['latitude']] = 'deg'
+        self.default_unit_label[self.axis_id['longitude']] = 'deg'
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta

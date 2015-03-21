@@ -30,3 +30,4 @@ class PolarCoordinateHandler(CylindricalCoordinateHandler):
 
   def __init__(self, ds, ordering = ('r', 'theta', 'z')):
         super(PolarCoordinateHandler, self).__init__(ds, ordering)
+        # No need to set labels here
