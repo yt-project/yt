@@ -423,8 +423,9 @@ class Unit(Expr):
         else:
             units = self
         units_string = units._get_system_unit_string(mks_base_units)
-        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
-                     get_conversion_factor(units, Unit(units_string))[0])
+        cgs_value = get_conversion_factor(units, units.get_cgs_equivalent())[0]
+        if not self.is_mks:
+            cgs_value /= get_conversion_factor(units, Unit(units_string))[0]
         return Unit(units_string, cgs_value=cgs_value,
                     dimensions=units.dimensions, registry=self.registry)
 
