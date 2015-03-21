@@ -122,8 +122,8 @@ class CoordinateHandler(object):
     _axis_id = None
     @property
     def axis_id(self):
-        if self._axis_name is not None:
-            return self._axis_name
+        if self._axis_id is not None:
+            return self._axis_id
         ai = {}
         for axi, ax in enumerate(self.axis_order):
             ai[ax] = ai[axi] = axi
