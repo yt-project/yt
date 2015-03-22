@@ -647,7 +647,7 @@ class PhasePlot(ImagePlotContainer):
     y field, and z field (or fields), this will create a two-dimensional 
     profile of the average (or total) value of the z field in bins of the 
     x and y fields.
-    
+
     Parameters
     ----------
     data_source : YTSelectionContainer Object
@@ -705,7 +705,7 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
     >>> plot.set_title("cell_mass", "This is a phase plot")
-    
+
     """
     x_log = None
     y_log = None
@@ -787,7 +787,7 @@ class PhasePlot(ImagePlotContainer):
         else:
             label = field_name+r'$\ \ ('+field_unit+r')$'
         return label
-        
+
     def _get_field_log(self, field_z, profile):
         ds = profile.data_source.ds
         zf, = profile.data_source._determine_fields([field_z])
@@ -933,14 +933,13 @@ class PhasePlot(ImagePlotContainer):
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
 
-
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
         Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
         (see example below).
-                
+
         Parameters
         ----------
         field: str or tuple
@@ -983,7 +982,7 @@ class PhasePlot(ImagePlotContainer):
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
-        
+
         """
         names = []
         if not self._plot_valid:
@@ -1040,7 +1039,7 @@ class PhasePlot(ImagePlotContainer):
         --------
 
         >>> plot.set_title("cell_mass", "This is a phase plot")
-        
+
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title
         return self
@@ -1107,7 +1106,7 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        
+
         xmin : float or None
           The new x minimum.  Defaults to None, which leaves the xmin
           unchanged.
@@ -1203,6 +1202,7 @@ class PhasePlot(ImagePlotContainer):
 
     def run_callbacks(self, *args):
         raise NotImplementedError
+
     def setup_callbacks(self, *args):
         raise NotImplementedError
 
