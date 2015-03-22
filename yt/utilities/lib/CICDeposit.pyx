@@ -47,9 +47,16 @@ def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
     for n in range(npositions):
 
         # Compute the position of the central cell
-        xpos = fmin(fmax((posx[n] - le0)*fact, 0.5001), edge0)
-        ypos = fmin(fmax((posy[n] - le1)*fact, 0.5001), edge1)
-        zpos = fmin(fmax((posz[n] - le2)*fact, 0.5001), edge2)
+        xpos = (posx[n] - le0)*fact
+        ypos = (posy[n] - le1)*fact
+        zpos = (posz[n] - le2)*fact
+
+        if (xpos < 0.5001) or (xpos > edge0):
+            continue
+        if (ypos < 0.5001) or (ypos > edge1):
+            continue
+        if (zpos < 0.5001) or (zpos > edge2):
+            continue
 
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
@@ -99,8 +106,13 @@ def CICDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
     for n in range(npositions):
 
         # Compute the position of the central cell
-        xpos = fmin(fmax((posx[n] - le0)/cellSize[0], 0.5001), edge0)
-        ypos = fmin(fmax((posy[n] - le1)/cellSize[1], 0.5001), edge1)
+        xpos = (posx[n] - le0)/cellSize[0]
+        ypos = (posy[n] - le1)/cellSize[1]
+
+        if (xpos < 0.5001) or (xpos > edge0):
+            continue
+        if (ypos < 0.5001) or (ypos > edge1):
+            continue
 
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
@@ -143,8 +155,13 @@ def NGPDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
     for n in range(npositions):
 
         # Compute the position of the central cell
-        xpos = fmin(fmax((posx[n] - le0)/cellSize[0], 0.5001), edge0)
-        ypos = fmin(fmax((posy[n] - le1)/cellSize[1], 0.5001), edge1)
+        xpos = (posx[n] - le0)/cellSize[0]
+        ypos = (posy[n] - le1)/cellSize[1]
+
+        if (xpos < 0.5001) or (xpos > edge0):
+            continue
+        if (ypos < 0.5001) or (ypos > edge1):
+            continue
 
         i1  = <int> (xpos + 0.5)
         j1  = <int> (ypos + 0.5)
