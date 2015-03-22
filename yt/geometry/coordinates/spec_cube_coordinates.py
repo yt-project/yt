@@ -89,6 +89,9 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
              ("index", "x"), ("index", "y"), ("index", "z"),
              ("index", "cell_volume")])
 
+    _x_pairs = ( ('x', 'y'), ('y', 'x'), ('z', 'x') )
+    _y_pairs = ( ('x', 'z'), ('y', 'z'), ('z', 'y') )
+
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
 
