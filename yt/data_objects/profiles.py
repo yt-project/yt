@@ -1141,6 +1141,8 @@ class ParticleProfile(Profile2D):
         "cic" : cloud-in-cell interpolation
 
     """
+    accumulation = False
+    fractional = False
 
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max,
@@ -1171,8 +1173,8 @@ class ParticleProfile(Profile2D):
                                                  y_n, y_min, y_max, False,
                                                  weight_field=None)
 
-    # instead of sticking the particle field in the nearest bin,
-    # we spread it out using the 2D CIC deposition function
+    # Either stick the particle field in the nearest bin,
+    # or spread it out using the 2D CIC deposition function
     def _bin_chunk(self, chunk, fields, storage):
         rv = self._get_data(chunk, fields)
         if rv is None: return
@@ -1506,4 +1508,3 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             else:
                 obj.set_field_unit(field, unit)
     return obj
-
