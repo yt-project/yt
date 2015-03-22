@@ -33,13 +33,15 @@ from .plot_container import \
     log_transform, linear_transform, get_log_minorticks
 from yt.data_objects.profiles import \
     create_profile, \
-    ParticleProfile
+    ParticleProfile, \
+    sanitize_field_tuple_keys
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
+    iterable, \
     get_image_suffix, \
     get_ipython_api_version
 
@@ -710,14 +712,14 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
-
+    _create_profile = create_profile
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
 
-        profile = create_profile(
+        profile = self._create_profile(
             data_source,
             [x_field, y_field],
             ensure_list(z_fields),
@@ -1135,7 +1137,7 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
                    p.y_field: ((p.y_bins.min(), str(p.y.units)),
                                (p.y_bins.max(), str(p.y.units)))}
-        self.profile = create_profile(
+        self.profile = self._create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
@@ -1185,7 +1187,7 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
                                (p.x_bins.max(), str(p.x.units))),
                    p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
-        self.profile = create_profile(
+        self.profile = self._create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
@@ -1264,21 +1266,115 @@ class ParticlePhasePlot(PhasePlot):
     """
     _plot_type = 'ParticlePhase'
 
+    def _create_profile(self, data_source, bin_fields, fields,
+                        n_bins=128, extrema=None, units=None,
+                        weight_field=None, **kwargs):
+
+        bin_fields = data_source._determine_fields(bin_fields)
+        assert(len(bin_fields) == 2)
+
+        fields = data_source._determine_fields(fields)
+        units = sanitize_field_tuple_keys(units, data_source)
+        extrema = sanitize_field_tuple_keys(extrema, data_source)
+
+        if weight_field is not None:
+            weight_field, = data_source._determine_fields([weight_field])
+        if not iterable(n_bins):
+            n_bins = [n_bins] * len(bin_fields)
+
+        logs = [False, False]
+
+        if extrema is None:
+            ex = [data_source.quantities["Extrema"](f, non_zero=l)
+                  for f, l in zip(bin_fields, logs)]
+        else:
+            ex = []
+            for bin_field in bin_fields:
+                bf_units = data_source.ds.field_info[bin_field].units
+                try:
+                    field_ex = list(extrema[bin_field[-1]])
+                except KeyError:
+                    field_ex = list(extrema[bin_field])
+                if units is not None and bin_field in units:
+                    if isinstance(field_ex[0], tuple):
+                        field_ex = [data_source.ds.quan(*f) for f in field_ex]
+                    fe = data_source.ds.arr(field_ex, units[bin_field])
+                    fe.convert_to_units(bf_units)
+                    field_ex = [fe[0].v, fe[1].v]
+                if iterable(field_ex[0]):
+                    field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
+                    field_ex[0] = field_ex[0].in_units(bf_units)
+                if iterable(field_ex[1]):
+                    field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
+                    field_ex[1] = field_ex[1].in_units(bf_units)
+                ex.append(field_ex)
+        args = [data_source]
+        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
+            args += [f, n, mi, ma]
+        obj = ParticleProfile(*args, method=self.method)
+        if fields is not None:
+            obj.add_fields([field for field in fields])
+        if units is not None:
+            for field, unit in units.iteritems():
+                field = data_source._determine_fields(field)[0]
+                if field == obj.x_field:
+                    obj.set_x_unit(unit)
+                elif field == getattr(obj, "y_field", None):
+                    obj.set_y_unit(unit)
+                elif field == getattr(obj, "z_field", None):
+                    obj.set_z_unit(unit)
+                else:
+                    obj.set_field_unit(field, unit)
+        return obj
+
     def __init__(self, data_source, x_field, y_field, z_fields,
                  x_bins=128, y_bins=128, method='ngp',
                  fontsize=18, figure_size=8.0):
 
-        x_min, x_max = data_source.quantities["Extrema"](x_field,
-                                                         non_zero=False)
-        y_min, y_max = data_source.quantities["Extrema"](y_field,
-                                                         non_zero=False)
-
-        profile = ParticleProfile(data_source, x_field, x_bins, x_min, x_max,
-                                  y_field, y_bins, y_min, y_max, method=method)
-
-        profile.add_fields(ensure_list(z_fields))
+        self.method = method
+        profile = self._create_profile(
+            data_source,
+            [x_field, y_field],
+            ensure_list(z_fields),
+            n_bins=[x_bins, y_bins])
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
+    @classmethod
+    def from_profile(cls, profile, fontsize=18, figure_size=8.0):
+        r"""
+        Instantiate a PhasePlot object from a profile object created
+        with :func:`~yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        profile : An instance of :class:`~yt.data_objects.profiles.ProfileND`
+             A single profile object.
+        fontsize : float
+             The fontsize to use, in points.
+        figure_size : float
+             The figure size to use, in inches.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> extrema = {
+        ... 'density': (1e-31, 1e-24),
+        ... 'temperature': (1e1, 1e8),
+        ... 'cell_mass': (1e-6, 1e-1),
+        ... }
+        >>> profile = yt.create_profile(ds.all_data(), ['density', 'temperature'],
+        ...                             fields=['cell_mass'],extrema=extrema,
+        ...                             fractional=True)
+        >>> ph = yt.PhasePlot.from_profile(profile)
+        >>> ph.save()
+        """
+        obj = cls.__new__(cls)
+        obj.method = profile.method
+        data_source = profile.data_source
+        return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
 
 
@@ -1326,6 +1422,7 @@ class PhasePlotMPL(ImagePlotMPL):
                                           np.array(image_data.T),
                                           norm=norm,
                                           cmap=cmap)
+
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)
         self.cb = self.figure.colorbar(self.image, self.cax)
