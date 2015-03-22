@@ -4,6 +4,7 @@ from yt.utilities.answer_testing.framework import data_dir_load
 
 class PKDGravTipsySuite:
     dsname = "halo1e11_run1.00400/halo1e11_run1.00400"
+    timeout = 360.0
     def setup(self):
         cosmology_parameters = dict(current_redshift = 0.0,
                                     omega_lambda = 0.728,
@@ -25,6 +26,12 @@ class PKDGravTipsySuite:
         dd = self.ds.all_data()
         dd["all", "particle_velocity_magnitude"]
 
+    def time_project_unweight(self):
+        proj = self.ds.proj("all_density", 0)
+
+    def time_project_weight(self):
+        proj = self.ds.proj("all_density", 0, "all_density")
+
     def time_particle_quantities(self):
         dd = self.ds.all_data()
         dd.quantities.extrema("particle_mass")
@@ -33,6 +40,7 @@ class PKDGravTipsySuite:
 
 class GasolineTipsySuite(PKDGravTipsySuite):
     dsname = "agora_1e11.00400/agora_1e11.00400"
+    timeout = 360.0
     def setup(self):
         cosmology_parameters = dict(current_redshift = 0.0,
                                     omega_lambda = 0.728,
