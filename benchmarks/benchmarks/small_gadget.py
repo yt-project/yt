@@ -3,7 +3,8 @@ import yt
 
 class SmallGadgetSuite:
     dsname = "snapshot_033/snap_033.0.hdf5"
-    timeout = 240.0
+    timeout = 360.0
+
     def setup(self):
         self.ds = yt.load(self.dsname)
 
@@ -25,7 +26,7 @@ class SmallGadgetSuite:
         proj = self.ds.proj(("deposit", "all_density"), 0)
 
     def time_project_weight(self):
-        proj = self.ds.proj(("deposit", "all_density"), 0, "density")
+        proj = self.ds.proj(("deposit", "all_density"), 0, ("gas", "density"))
 
     def time_particle_quantities(self):
         dd = self.ds.all_data()
