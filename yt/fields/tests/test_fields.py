@@ -211,8 +211,8 @@ def test_add_field_unit_semantics():
             return np.ones(data['density'].shape)
 
     ds.add_field('density_alias_no_units', function=density_alias)
-    ds.add_field('density_alias_unknown', function=density_alias,
-                 units='unknown')
+    ds.add_field('density_alias_auto', function=density_alias,
+                 units='auto')
     ds.add_field('density_alias_wrong_units', function=density_alias,
                  units='m/s')
     ds.add_field('density_alias_unparseable_units', function=density_alias,
@@ -223,17 +223,17 @@ def test_add_field_unit_semantics():
     assert_raises(YTFieldUnitParseError, get_data, ds,
                   'density_alias_unparseable_units')
 
-    dens = ad['density_alias_unknown']
+    dens = ad['density_alias_auto']
     assert_equal(str(dens.units), 'g/cm**3')
 
     ds.add_field('dimensionless', function=unitless_data)
-    ds.add_field('dimensionless_unknown', function=unitless_data,
-                 units='unknown')
+    ds.add_field('dimensionless_auto', function=unitless_data,
+                 units='auto')
     ds.add_field('dimensionless_explicit', function=unitless_data, units='')
     ds.add_field('dimensionful', function=unitless_data, units='g/cm**3')
 
     assert_equal(str(ad['dimensionless'].units), 'dimensionless')
-    assert_equal(str(ad['dimensionless_unknown'].units), 'dimensionless')
+    assert_equal(str(ad['dimensionless_auto'].units), 'dimensionless')
     assert_equal(str(ad['dimensionless_explicit'].units), 'dimensionless')
     assert_raises(YTFieldUnitError, get_data, ds, 'dimensionful')
 
