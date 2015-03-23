@@ -708,7 +708,6 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
-    _create_profile = create_profile
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
@@ -726,6 +725,9 @@ class PhasePlot(ImagePlotContainer):
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
+
+    def _create_profile(self, *args, **kwargs):
+        return create_profile(*args, **kwargs)
 
     @classmethod
     def _initialize_instance(cls, obj, data_source, profile, fontsize,
@@ -1269,6 +1271,19 @@ class ParticlePhasePlot(PhasePlot):
     """
     _plot_type = 'ParticlePhase'
 
+    def __init__(self, data_source, x_field, y_field, z_fields,
+                 x_bins=128, y_bins=128, deposition='ngp',
+                 fontsize=18, figure_size=8.0):
+
+        profile = self._create_profile(
+            data_source,
+            [x_field, y_field],
+            ensure_list(z_fields),
+            n_bins=[x_bins, y_bins])
+
+        type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
+
     def _create_profile(self, data_source, bin_fields, fields,
                         n_bins=128, extrema=None, units=None,
                         weight_field=None, **kwargs):
@@ -1327,19 +1342,6 @@ class ParticlePhasePlot(PhasePlot):
                 else:
                     obj.set_field_unit(field, unit)
         return obj
-
-    def __init__(self, data_source, x_field, y_field, z_fields,
-                 x_bins=128, y_bins=128, deposition='ngp',
-                 fontsize=18, figure_size=8.0):
-
-        profile = self._create_profile(
-            data_source,
-            [x_field, y_field],
-            ensure_list(z_fields),
-            n_bins=[x_bins, y_bins])
-
-        type(self)._initialize_instance(self, data_source, profile, fontsize,
-                                        figure_size)
 
 
 class PhasePlotMPL(ImagePlotMPL):
