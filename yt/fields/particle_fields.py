@@ -43,7 +43,26 @@ from .vector_operations import \
 from .field_functions import \
     get_radius
 
-    
+sph_whitelist_fields = (
+    'particle_velocity_x',
+    'particle_velocity_y',
+    'particle_velocity_z',
+    'density',
+    'temperature',
+    'metallicity',
+    'thermal_energy',
+    'H_fraction',
+    'He_fraction',
+    'C_fraction',
+    'N_fraction',
+    'O_fraction',
+    'Ne_fraction',
+    'Mg_fraction',
+    'Si_fraction',
+    'Fe_fraction',
+)
+
+
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -275,7 +294,7 @@ def standard_particle_fields(registry, ptype,
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
         v_vec = YTArray([xv,yv,zv], dtype=np.float64)
-        return np.cross(r_vec, v_vec, axis=0)
+        return np.cross(r_vec, v_vec, axis=0).T
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
               function=_particle_specific_angular_momentum,
@@ -362,8 +381,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-            * data[ptype, "particle_specific_angular_momentum"]
+        return (data[ptype, "particle_mass"] *
+                data[ptype, "particle_specific_angular_momentum"].T).T
     registry.add_field((ptype, "particle_angular_momentum"),
               function=_particle_angular_momentum,
               particle_type=True,
@@ -576,7 +595,7 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         vel = svel
         vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        bv = vel = np.reshape(bv, (3, 1))
+        bv = vel - np.reshape(bv, (3, 1))
         vel = vel.T
         L, vel = modify_reference_frame(center, normal, V=vel)
         vel = vel.T
@@ -632,7 +651,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_position_theta"),
               function=_particle_spherical_position_theta,
-              particle_type=True, units="cm",
+              particle_type=True, units="",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -980,6 +999,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         kwargs = {}
         if nneighbors:
             kwargs['nneighbors'] = nneighbors
+        # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
                          create_octree = True)[0]

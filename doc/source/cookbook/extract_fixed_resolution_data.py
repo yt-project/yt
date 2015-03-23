@@ -30,4 +30,4 @@ f.close()
 
 # If we want to then access this datacube in the h5 file, we can now...
 f = h5py.File("my_data.h5", "r")
-print f["density"].value
+print(f["density"].value)

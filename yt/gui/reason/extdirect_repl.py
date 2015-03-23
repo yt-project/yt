@@ -15,6 +15,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six.moves import urllib
 import json
 import os
 import stat
@@ -23,8 +24,6 @@ import logging
 import uuid
 import numpy as np
 import time
-import urllib
-import urllib2
 import pprint
 import traceback
 import tempfile
@@ -399,11 +398,11 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         image_data = image_data[len(prefix):]
         parameters = {'key':self._api_key, 'image':image_data, type:'base64',
                       'caption': caption, 'title': "Uploaded Image from reason"}
-        data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters)
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
+            response = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)

@@ -15,7 +15,6 @@ Data structures for BoxLib Codes
 
 import os
 import re
-import itertools
 
 from stat import ST_CTIME
 
@@ -23,6 +22,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import AMRGridPatch
+from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
 
@@ -692,7 +692,7 @@ class OrionHierarchy(BoxlibHierarchy):
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
-                for i in xrange(len(coord)):
+                for i in range(len(coord)):
                     np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
                     np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
                 ind = np.where(mask == 1)
@@ -780,6 +780,39 @@ class CastroDataset(BoxlibDataset):
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
+    def _parse_parameter_file(self):
+        super(CastroDataset, self)._parse_parameter_file()
+        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        line = ""
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" Inputs File Parameters"):
+                # boundary condition info starts with -x:, etc.
+                bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
+                if any(b in line for b in bcs):
+                    p, v = line.strip().split(":")
+                    self.parameters[p] = v.strip()
+                line = next(f)
+            
+            # runtime parameters that we overrode follow "Inputs File
+            # Parameters"
+            # skip the "====..." line
+            line = next(f)
+            for line in f:
+                p, v = line.strip().split("=")
+                self.parameters[p] = v.strip()
+
+            
+        # hydro method is set by the base class -- override it here
+        self.parameters["HydroMethod"] = "Castro"
+
+        # set the periodicity based on the runtime parameters
+        periodicity = [True, True, True]
+        if not self.parameters['-x'] == "interior": periodicity[0] = False
+        if not self.parameters['-y'] == "interior": periodicity[1] = False
+        if not self.parameters['-z'] == "interior": periodicity[2] = False
+
+        self.periodicity = ensure_tuple(periodicity)
+    
 
 class MaestroDataset(BoxlibDataset):
 
@@ -870,7 +903,7 @@ class NyxHierarchy(BoxlibHierarchy):
                                 count=3*self.num_grids).reshape((self.num_grids, 3))
         # we need grid_info in `populate_grid_objects`, so save it to self
 
-        for g, pg in itertools.izip(self.grids, grid_info):
+        for g, pg in izip(self.grids, grid_info):
             g.particle_filename = os.path.join(self.ds.output_dir, "DM",
                                                "Level_%s" % (g.Level),
                                                "DATA_%04i" % pg[0])

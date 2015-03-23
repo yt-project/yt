@@ -27,7 +27,8 @@ provides the :class:`~yt.visualization.plot_window.PlotWindow` interface for
 generating annotated 2D visualizations of simulation data.  You can create a 
 :class:`~yt.visualization.plot_window.PlotWindow` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
-create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, 
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 

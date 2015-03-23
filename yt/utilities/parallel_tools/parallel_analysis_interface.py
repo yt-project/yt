@@ -856,7 +856,7 @@ class Communicator(object):
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in xrange(len(hooks)):
+        for i in range(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
 
@@ -914,7 +914,7 @@ class Communicator(object):
         if self.comm.rank == 0:
             return open(fn, "w")
         else:
-            return cStringIO.StringIO()
+            return cStringIO()
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix

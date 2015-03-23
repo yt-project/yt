@@ -14,14 +14,13 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-
-import __builtin__
+from yt.extern.six.moves import builtins
+from yt.extern.six.moves import zip as izip
+from yt.extern.six import string_types, iteritems
 import base64
 import os
-import types
 
 from functools import wraps
-from itertools import izip
 import matplotlib
 import numpy as np
 from io import BytesIO
@@ -30,7 +29,8 @@ from io import BytesIO
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
-    log_transform, linear_transform, get_log_minorticks
+    log_transform, linear_transform, get_log_minorticks, \
+    validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile, \
     ParticleProfile, \
@@ -60,15 +60,6 @@ def get_canvas(name):
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
-
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._plot_valid = False
-        args[0]._setup_plots()
-        return rv
-    return newfunc
 
 class FigureContainer(dict):
     def __init__(self):
@@ -104,7 +95,7 @@ def sanitize_label(label, nprofiles):
         raise RuntimeError("Number of labels must match number of profiles")
 
     for l in label:
-        if l is not None and not isinstance(l, basestring):
+        if l is not None and not isinstance(l, string_types):
             raise RuntimeError("All labels must be None or a string")
 
     return label
@@ -232,6 +223,7 @@ class ProfilePlot(object):
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
+    @validate_plot
     def save(self, name=None, suffix=None):
         r"""
         Saves a 1d profile plot.
@@ -248,9 +240,9 @@ class ProfilePlot(object):
             self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            iters = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = self.figures.iteritems()
+            iters = iteritems(self.figures)
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
@@ -281,6 +273,7 @@ class ProfilePlot(object):
             canvas.print_figure(fns[-1])
         return fns
 
+    @validate_plot
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
 
@@ -300,7 +293,7 @@ class ProfilePlot(object):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
@@ -310,26 +303,29 @@ class ProfilePlot(object):
         else:
             raise YTNotInsideNotebook
 
+    @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            iters = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = self.figures.iteritems()
+            iters = iteritems(self.figures)
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
             f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
-            img = base64.b64encode(f.read())
+            img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
-                   r'src="data:image/png;base64,%s"><br>' % img
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     def _setup_plots(self):
+        if self._plot_valid is True:
+            return
         for f in self.axes:
             self.axes[f].cla()
         for i, profile in enumerate(self.profiles):
@@ -808,6 +804,8 @@ class PhasePlot(ImagePlotContainer):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
+        if self._plot_valid:
+            return
         for f, data in self.profile.items():
             fig = None
             axes = None
@@ -967,6 +965,7 @@ class PhasePlot(ImagePlotContainer):
             self._text_kwargs[f] = text_kwargs
         return self
 
+    @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
@@ -1014,7 +1013,7 @@ class PhasePlot(ImagePlotContainer):
             if suffix is None:
                 suffix = get_image_suffix(name)
                 if suffix != '':
-                    for k, v in self.plots.iteritems():
+                    for k, v in iteritems(self.plots):
                         names.append(v.save(name, mpl_kwargs))
                     return names
                 else:
@@ -1209,12 +1208,6 @@ class PhasePlot(ImagePlotContainer):
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
-
-    def run_callbacks(self, *args):
-        raise NotImplementedError
-
-    def setup_callbacks(self, *args):
-        raise NotImplementedError
 
 
 class ParticlePhasePlot(PhasePlot):

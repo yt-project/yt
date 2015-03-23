@@ -226,7 +226,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
                       "mass fraction.")
         def _nh(field, data):
             return primordial_H_mass_fraction*data["gas","density"]/mp
-        ds.add_field(("gas","H_number_density"), function=_nh, units="cm**-3")
+        ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
 
     def _emissivity_field(field, data):
         dd = {"log_nH" : np.log10(data["gas","H_number_density"]),
@@ -244,7 +244,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(emiss_name, function=_emissivity_field,
+    ds.add_field(("gas", emiss_name), function=_emissivity_field,
                  display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
                  units="erg/cm**3/s")
 
@@ -252,7 +252,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         return data[emiss_name] * data["cell_volume"]
 
     lum_name = "xray_luminosity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(lum_name, function=_luminosity_field,
+    ds.add_field(("gas", lum_name), function=_luminosity_field,
                  display_name=r"\rm{L}_{X}\ (%s-%s\ keV)" % (e_min, e_max),
                  units="erg/s")
 
@@ -272,7 +272,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(phot_name, function=_photon_emissivity_field,
+    ds.add_field(("gas", phot_name), function=_photon_emissivity_field,
                  display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
                  units="photons/cm**3/s")
 

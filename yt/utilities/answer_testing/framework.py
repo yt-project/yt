@@ -18,9 +18,8 @@ import logging
 import os
 import hashlib
 import contextlib
-import urllib2
 import sys
-from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import cPickle, urllib
 import shelve
 import zlib
 import tempfile
@@ -171,8 +170,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if ds_name in self.cache: return self.cache[ds_name]
         url = _url_path.format(self.reference_name, ds_name)
         try:
-            resp = urllib2.urlopen(url)
-        except urllib2.HTTPError as ex:
+            resp = urllib.request.urlopen(url)
+        except urllib.error.HTTPError as ex:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
@@ -655,7 +654,7 @@ def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
     num_images = len(old_result)
     assert(num_images > 0)
-    for i in xrange(num_images):
+    for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
         assert compare_images(fns[0], fns[1], 10**(decimals)) == None
