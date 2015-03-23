@@ -63,8 +63,8 @@ class DerivedField(object):
        arguments (field, data)
     units : str
        A plain text string encoding the unit.  Powers must be in
-       python syntax (** instead of ^). If "unknown" the units will be
-       inferred from the units of the return value of the function.
+       python syntax (** instead of ^). If set to "auto" the units will be
+       inferred from the units of the return value of the field function.
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -109,7 +109,7 @@ class DerivedField(object):
         if units is None:
             self.units = ''
         elif isinstance(units, str):
-            if units.lower() == 'unknown':
+            if units.lower() == 'auto':
                 self.units = None
             else:
                 self.units = units
