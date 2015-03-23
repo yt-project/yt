@@ -206,6 +206,9 @@ There are a number of options available, but the only mandatory ones are ``name`
      (*Advanced*) For fields that exist on disk, which we may want to convert to other
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
+``force_override``
+     (*Advanced*) Overrides the definition of an old fild if a field with the
+     same name has already been defined, 
 
 Debugging a Derived Field
 -------------------------
