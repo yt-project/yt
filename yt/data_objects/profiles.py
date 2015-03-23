@@ -1134,7 +1134,7 @@ class ParticleProfile(Profile2D):
         The minimum value of the y profile field.
     y_max : float
         The maximum value of the y profile field.
-    method : string, optional
+    deposition : string, optional
         The interpolation kernal to be used for
         deposition. Valid choices:
         "ngp" : nearest grid point interpolation
@@ -1147,7 +1147,7 @@ class ParticleProfile(Profile2D):
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max,
                  y_field, y_n, y_min, y_max,
-                 method="ngp"):
+                 deposition="ngp"):
 
         self.LeftEdge = np.array([x_min, y_min], dtype=np.float64)
         self.dx = (x_max - x_min) / x_n
@@ -1156,10 +1156,9 @@ class ParticleProfile(Profile2D):
         self.CellVolume = np.product(self.CellSize)
         self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
         self.known_styles = ["ngp", "cic"]
-        if method not in self.known_styles:
-            raise NotImplementedError(method)
-        self.method = method
-        self.fractional = False
+        if deposition not in self.known_styles:
+            raise NotImplementedError(deposition)
+        self.deposition = deposition
 
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
@@ -1182,14 +1181,14 @@ class ParticleProfile(Profile2D):
         for fi, field in enumerate(fields):
             Np = fdata[:, fi].size
 
-            if self.method == "ngp":
+            if self.deposition == "ngp":
                 NGPDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
                              storage.values[:, :, fi],
                              self.LeftEdge,
                              self.GridDimensions,
                              self.CellSize)
 
-            if self.method == "cic":
+            if self.deposition == "cic":
                 CICDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
                              storage.values[:, :, fi],
                              self.LeftEdge,

@@ -1234,7 +1234,7 @@ class ParticlePhasePlot(PhasePlot):
     y_bins : int
         The number of bins in y field for the mesh.
         Default: 128.
-    method : str
+    deposition : str
         Either 'ngp' or 'cic'. Controls what type of
         interpolation will be used to deposit the
         particle z_fields onto the mesh.
@@ -1311,7 +1311,7 @@ class ParticlePhasePlot(PhasePlot):
         args = [data_source]
         for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
             args += [f, n, mi, ma]
-        obj = ParticleProfile(*args, method=self.method)
+        obj = ParticleProfile(*args, deposition=self.deposition)
         if fields is not None:
             obj.add_fields([field for field in fields])
         if units is not None:
@@ -1328,10 +1328,10 @@ class ParticlePhasePlot(PhasePlot):
         return obj
 
     def __init__(self, data_source, x_field, y_field, z_fields,
-                 x_bins=128, y_bins=128, method='ngp',
+                 x_bins=128, y_bins=128, deposition='ngp',
                  fontsize=18, figure_size=8.0):
 
-        self.method = method
+        self.deposition = deposition
         profile = self._create_profile(
             data_source,
             [x_field, y_field],
@@ -1372,7 +1372,7 @@ class ParticlePhasePlot(PhasePlot):
         >>> ph.save()
         """
         obj = cls.__new__(cls)
-        obj.method = profile.method
+        obj.deposition = profile.deposition
         data_source = profile.data_source
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
