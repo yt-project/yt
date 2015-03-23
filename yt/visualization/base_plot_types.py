@@ -160,12 +160,8 @@ class ImagePlotMPL(PlotMPL):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:
-            if self._aspect >= 1.0:
-                x_fig_size = self._figure_size
-                y_fig_size = self._figure_size/self._aspect
-            if self._aspect < 1.0:
-                x_fig_size = self._figure_size*self._aspect
-                y_fig_size = self._figure_size
+            x_fig_size = self._figure_size
+            y_fig_size = self._figure_size/self._aspect
 
         if hasattr(self, '_unit_aspect'):
             y_fig_size = y_fig_size * self._unit_aspect
