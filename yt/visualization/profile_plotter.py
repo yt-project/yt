@@ -1136,16 +1136,21 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
                    p.y_field: ((p.y_bins.min(), str(p.y.units)),
                                (p.y_bins.max(), str(p.y.units)))}
+        deposition = getattr(self.profile, "deposition", None)
+        if deposition is None:
+            additional_kwargs = {'accumulation': p.accumulation,
+                                 'fractional': p.fractional}
+        else:
+            additional_kwargs = {'deposition': p.deposition}
         self.profile = self._create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
             n_bins=[len(p.x_bins)-2, len(p.y_bins)-2],
             weight_field=p.weight_field,
-            accumulation=p.accumulation,
-            fractional=p.fractional,
             units=units,
-            extrema=extrema)
+            extrema=extrema,
+            **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
@@ -1186,16 +1191,21 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
                                (p.x_bins.max(), str(p.x.units))),
                    p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        deposition = getattr(self.profile, "deposition", None)
+        if deposition is None:
+            additional_kwargs = {'accumulation': p.accumulation,
+                                 'fractional': p.fractional}
+        else:
+            additional_kwargs = {'deposition': p.deposition}
         self.profile = self._create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
-            n_bins=[len(p.x_bins), len(p.y_bins)],
+            n_bins=[len(p.x_bins)-2, len(p.y_bins)-2],
             weight_field=p.weight_field,
-            accumulation=p.accumulation,
-            fractional=p.fractional,
             units=units,
-            extrema=extrema)
+            extrema=extrema,
+            **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
@@ -1270,6 +1280,8 @@ class ParticlePhasePlot(PhasePlot):
                         n_bins=128, extrema=None, units=None,
                         weight_field=None, **kwargs):
 
+        deposition = kwargs.get('deposition')
+
         bin_fields = data_source._determine_fields(bin_fields)
         assert(len(bin_fields) == 2)
 
@@ -1311,7 +1323,7 @@ class ParticlePhasePlot(PhasePlot):
         args = [data_source]
         for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
             args += [f, n, mi, ma]
-        obj = ParticleProfile(*args, deposition=self.deposition)
+        obj = ParticleProfile(*args, deposition=deposition)
         if fields is not None:
             obj.add_fields([field for field in fields])
         if units is not None:
@@ -1331,7 +1343,6 @@ class ParticlePhasePlot(PhasePlot):
                  x_bins=128, y_bins=128, deposition='ngp',
                  fontsize=18, figure_size=8.0):
 
-        self.deposition = deposition
         profile = self._create_profile(
             data_source,
             [x_field, y_field],
@@ -1339,42 +1350,6 @@ class ParticlePhasePlot(PhasePlot):
             n_bins=[x_bins, y_bins])
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
-                                        figure_size)
-    @classmethod
-    def from_profile(cls, profile, fontsize=18, figure_size=8.0):
-        r"""
-        Instantiate a PhasePlot object from a profile object created
-        with :func:`~yt.data_objects.profiles.create_profile`.
-
-        Parameters
-        ----------
-        profile : An instance of :class:`~yt.data_objects.profiles.ProfileND`
-             A single profile object.
-        fontsize : float
-             The fontsize to use, in points.
-        figure_size : float
-             The figure size to use, in inches.
-
-        Examples
-        --------
-
-        >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> extrema = {
-        ... 'density': (1e-31, 1e-24),
-        ... 'temperature': (1e1, 1e8),
-        ... 'cell_mass': (1e-6, 1e-1),
-        ... }
-        >>> profile = yt.create_profile(ds.all_data(), ['density', 'temperature'],
-        ...                             fields=['cell_mass'],extrema=extrema,
-        ...                             fractional=True)
-        >>> ph = yt.PhasePlot.from_profile(profile)
-        >>> ph.save()
-        """
-        obj = cls.__new__(cls)
-        obj.deposition = profile.deposition
-        data_source = profile.data_source
-        return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
 
 
