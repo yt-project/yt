@@ -9,10 +9,9 @@ fields.  These are fields that describe a value at each cell in a simulation.
 Defining a New Field
 --------------------
 
-So once a new field has been conceived of, the best way to create it is to
+Once a new field has been conceived of, the best way to create it is to
 construct a function that performs an array operation -- operating on a 
-collection of data, neutral to its size, shape, and type. (All fields should
-be provided as 64-bit floats.)
+collection of data, neutral to its size, shape, and type.
 
 A simple example of this is the pressure field, which demonstrates the ease of
 this approach.
@@ -28,8 +27,11 @@ this approach.
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
 the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived 
-field!  We don't do any loops, we don't do any
-type-checking, we can simply multiply the three items together.
+field!  We don't do any loops, we don't do any type-checking, we can simply
+multiply the three items together.
+
+In this example, the ``density`` field will return data with units of ``g/cm**3``
+and the ``thermal_energy`` field will return data units of ``erg/g``, so the result will automatically have units of pressure, ``erg/cm**3``.
 
 Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
@@ -53,6 +55,24 @@ unit names, numbers, and mathematical operators in the string, and using
 :ref:`cosmological-units`.  We suggest that you name the function that creates 
 a derived field with the intended field name prefixed by a single underscore, 
 as in the ``_pressure`` example above.
+
+As we see above, fields return array data with units. Since, floats and NumPy
+arrays are interpreted as unitless by yt , you will need to make sure that you
+apply units to floating point constants or arrays that should have units.  If
+the field function returns data in a dimensionally equivalent unit (e.g. a
+``dyne`` versus a ``N``), the field data will be converted to the units
+specified in ``add_field`` before being returned in a data object selection. If
+the field function returns data with dimensions that are incompatibible with
+units specified in ``add_field``, you will see an error.
+
+To clear this error, you must ensure that your field function returns data in
+the correct units. Often, this means importing physical constants from
+``yt.utilities.physical_constants`` rather than defining them as floating point
+constants.  You can also convert floats or NumPy arrays into
+:class:`~yt.units.yt_array.YTArray` or :class:`~yt.units.yt_array.YTQuantity`
+instances by making use of the
+:func:`~yt.data_objects.static_output.Dataset.arr` and
+:func:`~yt.data_objects.static_output.Dataset.quan` convenience functions.
 
 :func:`add_field` can be invoked in two other ways. The first is by the 
 function decorator :func:`derived_field`. The following code is equivalent to 
