@@ -723,8 +723,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     if fd is None:
                         raise RuntimeError
                     if fi.units is None:
-                        # first time calling a field with undefined units, so we
-                        # infer and cache the units from the field definition
+                        # first time calling a field with units='auto', so we
+                        # infer the units from the units of the data we get back
+                        # from the field function and use these units for future
+                        # field accesses
                         units = str(getattr(fd, 'units', ''))
                         self.ds.field_info[fi.name].units = units
                         self.field_data[field] = self.ds.arr(fd, units)
