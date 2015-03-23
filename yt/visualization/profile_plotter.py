@@ -1283,14 +1283,10 @@ class ParticlePhasePlot(PhasePlot):
         deposition = kwargs.get('deposition')
 
         bin_fields = data_source._determine_fields(bin_fields)
-        assert(len(bin_fields) == 2)
-
         fields = data_source._determine_fields(fields)
         units = sanitize_field_tuple_keys(units, data_source)
         extrema = sanitize_field_tuple_keys(extrema, data_source)
 
-        if weight_field is not None:
-            weight_field, = data_source._determine_fields([weight_field])
         if not iterable(n_bins):
             n_bins = [n_bins] * len(bin_fields)
 
