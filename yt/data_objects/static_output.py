@@ -803,8 +803,7 @@ class Dataset(object):
     _quan = None
     @property
     def quan(self):
-        """Converts an an integer or a float into a
-        :class:`yt.units.yt_array.YTQuantity`
+        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
         cast to arbitray units using the ``input_units`` keyword argument.
