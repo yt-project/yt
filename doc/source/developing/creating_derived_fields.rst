@@ -56,23 +56,31 @@ unit names, numbers, and mathematical operators in the string, and using
 a derived field with the intended field name prefixed by a single underscore, 
 as in the ``_pressure`` example above.
 
-As we see above, fields return array data with units. Since, floats and NumPy
-arrays are interpreted as unitless by yt , you will need to make sure that you
-apply units to floating point constants or arrays that should have units.  If
-the field function returns data in a dimensionally equivalent unit (e.g. a
-``dyne`` versus a ``N``), the field data will be converted to the units
-specified in ``add_field`` before being returned in a data object selection. If
-the field function returns data with dimensions that are incompatibible with
-units specified in ``add_field``, you will see an error.
+Field definitions return array data with units. If the field function returns
+data in a dimensionally equivalent unit (e.g. a ``dyne`` versus a ``N``), the
+field data will be converted to the units specified in ``add_field`` before
+being returned in a data object selection. If the field function returns data
+with dimensions that are incompatibible with units specified in ``add_field``,
+you will see an error. To clear this error, you must ensure that your field
+function returns data in the correct units. Often, this means applying units to
+a dimensionless float or array.
 
-To clear this error, you must ensure that your field function returns data in
-the correct units. Often, this means importing physical constants from
-``yt.utilities.physical_constants`` rather than defining them as floating point
-constants.  You can also convert floats or NumPy arrays into
+If your field definition influcdes physical constants rather than defining a
+constant as a float, you can import it from ``yt.utilities.physical_constants``
+to get a predefined version of the constant with the correct units. If you know
+the units your data is supposed to have ahead of time, you can import unit
+symbols like ``g`` or ``cm`` from the ``yt.units`` namespace and multiply the
+return value of your field function by the appropriate compbination of unit
+symbols for your field's units. You can also convert floats or NumPy arrays into
 :class:`~yt.units.yt_array.YTArray` or :class:`~yt.units.yt_array.YTQuantity`
 instances by making use of the
 :func:`~yt.data_objects.static_output.Dataset.arr` and
 :func:`~yt.data_objects.static_output.Dataset.quan` convenience functions.
+
+Lastly, if you do not know the units of your field ahead of time, you can
+specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
+automatically determine the appropriate units base don the units of the data
+returned by the field function.
 
 :func:`add_field` can be invoked in two other ways. The first is by the 
 function decorator :func:`derived_field`. The following code is equivalent to 
