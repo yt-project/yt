@@ -219,7 +219,7 @@ class YTFieldUnitError(YTException):
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
         self.msg = ("The field '%s' has unparseable units '%s'.")
-        self.msg % (field_info.name, field_info.units)
+        self.msg = self.msg % (field_info.name, field_info.units)
 
     def __str__(self):
         return self.msg
