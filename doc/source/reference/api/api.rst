@@ -137,15 +137,20 @@ These objects generate an "index" into multiresolution data.
 Units
 -----
 
-These classes enable yt's symbolic unit handling system.
+These classes and functions enable yt's symbolic unit handling system.
 
 .. autosummary::
    :toctree: generated/
 
+   ~yt.data_objects.static_output.Dataset.arr
+   ~yt.data_objects.static_output.Dataset.quan
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
+   ~yt.units
+   ~yt.utilities.physical_constants
+
 
 Frontends
 ---------
