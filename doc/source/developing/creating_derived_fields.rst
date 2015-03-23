@@ -79,7 +79,7 @@ instances by making use of the
 
 Lastly, if you do not know the units of your field ahead of time, you can
 specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
-automatically determine the appropriate units base don the units of the data
+automatically determine the appropriate units based on the units of the data
 returned by the field function.
 
 :func:`add_field` can be invoked in two other ways. The first is by the 
@@ -215,8 +215,8 @@ There are a number of options available, but the only mandatory ones are ``name`
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
 ``force_override``
-     (*Advanced*) Overrides the definition of an old fild if a field with the
-     same name has already been defined, 
+     (*Advanced*) Overrides the definition of an old field if a field with the
+     same name has already been defined.
 
 Debugging a Derived Field
 -------------------------
