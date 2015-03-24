@@ -47,7 +47,7 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 We feed it the name of the field, the name of the function, and the
 units.  Note that the units parameter is a "raw" string, in the format that yt 
-uses in its `symbolic units implementation <units>`_ (e.g., employing only 
+uses in its :ref:`symbolic units implementation <units>` (e.g., employing only 
 unit names, numbers, and mathematical operators in the string, and using 
 ``"**"`` for exponentiation). For cosmological datasets and fields, see 
 :ref:`cosmological-units`.  We suggest that you name the function that creates 
