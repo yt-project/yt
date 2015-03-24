@@ -1279,7 +1279,8 @@ class ParticlePhasePlot(PhasePlot):
             data_source,
             [x_field, y_field],
             ensure_list(z_fields),
-            n_bins=[x_bins, y_bins])
+            n_bins=[x_bins, y_bins],
+            deposition=deposition)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
