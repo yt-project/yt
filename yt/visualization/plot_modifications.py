@@ -34,6 +34,7 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.data_objects.selection_data_containers import YTOrthoRayBase, YTRayBase
 import warnings
 
 from . import _MPL
@@ -1879,3 +1880,41 @@ class ScaleCallback(PlotCallback):
                                 coord_system=self.coord_system,
                                 text_args=self.text_args)
         return tcb(plot)
+
+class RayCallback(PlotCallback):
+    """
+    """
+    _type_name = "ray"
+    def __init__(self, ray, plot_args=None):
+        PlotCallback.__init__(self)
+        def_plot_args = {'color':'white', 'linewidth':2}
+        self.ray = ray
+        if plot_args is None: plot_args = def_plot_args
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        # assume ray is a YTRayBase object
+        try:
+            start_coord = self.ray.start_point
+            end_coord = self.ray.end_point
+        except:
+            # assume ray is a YTOrthoRayBase object
+            # (defined by an axis and an intersecting coordinate)
+            # then set the start and end coords accordingly
+            try:
+                start_coord = np.zeros(3)
+                end_coord = np.zeros(3)
+                start_coord[self.ray.axis] = self.ray.ds.domain_left_edge[self.ray.axis]
+                end_coord[self.ray.axis] = self.ray.ds.domain_right_edge[self.ray.axis]
+                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = self.ray.coords[0]
+                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = self.ray.coords[0]
+                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = self.ray.coords[1]
+                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = self.ray.coords[1]
+            except:
+                raise SyntaxError("ray must be a YTRayBase or YTOrthoRayBase "
+                                  "object")
+
+        lcb = LinePlotCallback(start_coord, end_coord,
+                               coord_system='data',
+                               plot_args=self.plot_args)
+        return lcb(plot)
