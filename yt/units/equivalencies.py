@@ -198,7 +198,7 @@ class ElectromagneticSI(Equivalence):
         return x.in_cgs().v*convert_factor, new_units
     
     def __str__(self):
-        return "EM CGS unit -> EM SI unit"
+        return "em_SI: EM CGS unit -> EM SI unit"
 
 class ElectromagneticCGS(Equivalence):
     _type_name = "em_CGS"
@@ -213,5 +213,5 @@ class ElectromagneticCGS(Equivalence):
         return x.in_mks().v*convert_factor, new_units
 
     def __str__(self):
-        return "EM SI unit -> EM CGS unit"
+        return "em_CGS: EM SI unit -> EM CGS unit"
 

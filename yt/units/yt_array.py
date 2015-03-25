@@ -505,7 +505,7 @@ class YTArray(np.ndarray):
         """
         for k,v in equivalence_registry.items():
             if self.has_equivalent(k):
-                print(k,v())
+                print(v())
 
     def has_equivalent(self, equiv):
         """
