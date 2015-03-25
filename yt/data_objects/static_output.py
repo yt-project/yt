@@ -48,6 +48,7 @@ from yt.units.yt_array import \
     YTQuantity
 
 from yt.geometry.coordinates.api import \
+    CoordinateHandler, \
     CartesianCoordinateHandler, \
     PolarCoordinateHandler, \
     CylindricalCoordinateHandler, \
@@ -390,20 +391,33 @@ class Dataset(object):
         self.field_info.find_dependencies(added)
 
     def _setup_coordinate_handler(self):
-        if self.geometry == "cartesian":
-            self.coordinates = CartesianCoordinateHandler(self)
+        kwargs = {}
+        if isinstance(self.geometry, tuple):
+            self.geometry, ordering = self.geometry
+            kwargs['ordering'] = ordering
+        if isinstance(self.geometry, CoordinateHandler):
+            # I kind of dislike this.  The geometry field should always be a
+            # string, but the way we're set up with subclassing, we can't
+            # mandate that quite the way I'd like.
+            self.coordinates = self.geometry
+            return
+        elif callable(self.geometry):
+            cls = self.geometry
+        elif self.geometry == "cartesian":
+            cls = CartesianCoordinateHandler
         elif self.geometry == "cylindrical":
-            self.coordinates = CylindricalCoordinateHandler(self)
+            cls = CylindricalCoordinateHandler
         elif self.geometry == "polar":
-            self.coordinates = PolarCoordinateHandler(self)
+            cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
-            self.coordinates = SphericalCoordinateHandler(self)
+            cls = SphericalCoordinateHandler
         elif self.geometry == "geographic":
-            self.coordinates = GeographicCoordinateHandler(self)
+            cls = GeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
-            self.coordinates = SpectralCubeCoordinateHandler(self)
+            cls = SpectralCubeCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
+        self.coordinates = cls(self, **kwargs)
 
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
