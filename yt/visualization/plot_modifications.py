@@ -1883,6 +1883,33 @@ class ScaleCallback(PlotCallback):
 
 class RayCallback(PlotCallback):
     """
+    annotate_ray(ray, plot_args=None)
+
+    Adds a line representing the projected path of a ray across the plot.
+    The ray can be either a YTOrthoRayBase or YTRayBase class object.
+    
+    Parameters
+    ----------
+
+    ray : YTOrthoRayBase or YTRayBase
+        Ray is the object that we want to include.  We overplot the projected
+        trajectory of the ray.
+
+    plot_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        line object.  Defaults: {'color':'white', 'linewidth':2}.
+
+    Example
+    ------- 
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> oray = ds.ortho_ray(1, (0.3, 0.4)) # orthoray down the y axis
+    >>> ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8)) # arbitrary ray
+    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> p.annotate_ray(oray)
+    >>> p.annotate_ray(ray)
+    >>> p.save()
     """
     _type_name = "ray"
     def __init__(self, ray, plot_args=None):
