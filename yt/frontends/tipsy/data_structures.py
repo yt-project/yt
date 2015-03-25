@@ -68,6 +68,7 @@ class TipsyDataset(ParticleDataset):
                  parameter_file=None,
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
+                 bounding_box = None,
                  units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
@@ -92,6 +93,17 @@ class TipsyDataset(ParticleDataset):
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
+
+        if bounding_box is not None:
+            bbox = np.array(bounding_box, dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+        else:
+            self.domain_left_edge = self.domain_right_edge = None
+ 
+
         self._cosmology_parameters = cosmology_parameters
         if parameter_file is not None:
             parameter_file = os.path.abspath(parameter_file)
