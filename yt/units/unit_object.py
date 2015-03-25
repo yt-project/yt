@@ -24,7 +24,7 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless, current_mks
+    dimensionless
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \

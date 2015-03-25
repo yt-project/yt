@@ -71,6 +71,7 @@ electric_field = electric_field_cgs
 magnetic_field = magnetic_field_cgs
 electric_potential = electric_potential_cgs
 resistance = resistance_cgs
+current = current_cgs
 
 solid_angle = angle * angle
 
@@ -82,3 +83,12 @@ derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop,
                       resistance_cgs, resistance_mks]
 
 dimensions = base_dimensions + derived_dimensions
+
+em_dimensions = {magnetic_field_mks:magnetic_field_cgs,
+                 charge_mks:charge_cgs,
+                 current_mks:current_cgs,
+                 electric_potential_mks:electric_potential_cgs,
+                 resistance_mks:resistance_cgs}
+
+for k,v in list(em_dimensions.items()):
+    em_dimensions[v] = k

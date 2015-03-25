@@ -30,11 +30,12 @@ from numpy import \
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
-from yt.units.dimensions import dimensionless, current_mks
+from yt.units.dimensions import dimensionless, current_mks, em_dimensions
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence, YTUnitsNotReducible
+    YTInvalidUnitEquivalence, YTUnitsNotReducible, \
+    YTEquivalentDimsError
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -369,6 +370,14 @@ class YTArray(np.ndarray):
         # let Unit() handle units arg if it's not already a Unit obj.
         if not isinstance(units, Unit):
             units = Unit(units, registry=self.units.registry)
+
+        equiv_dims = em_dimensions.get(self.units.dimensions,None)
+        if equiv_dims == units.dimensions:
+            if current_mks in equiv_dims.free_symbols:
+                base = "SI"
+            else:
+                base = "CGS"
+            raise YTEquivalentDimsError(self.units, units, base)
 
         if not self.units.same_dimensions_as(units):
             raise YTUnitConversionError(
