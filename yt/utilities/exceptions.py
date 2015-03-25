@@ -185,13 +185,13 @@ class YTUnitConversionError(YTException):
         return err
 
 class YTUnitsNotReducible(YTException):
-    def __init__(self, units, units_base):
+    def __init__(self, unit, units_base):
         self.unit = unit
         self.units_base = units_base
         YTException.__init__(self)
         
     def __str__(self):
-        err = "The unit %s cannot be reduced to a single expression within " \
+        err = "The unit '%s' cannot be reduced to a single expression within " \
           "the %s base system of units." % (self.unit, self.units_base)
         return err
     
