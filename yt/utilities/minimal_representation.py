@@ -24,7 +24,7 @@ from yt.funcs import *
 from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
 
-if sys.version[0] < 3:
+if int(sys.version[0]) < 3:
     from .poster.streaminghttp import register_openers
     from .poster.encode import multipart_encode
     register_openers()
