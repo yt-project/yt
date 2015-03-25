@@ -30,11 +30,11 @@ from numpy import \
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
-from yt.units.dimensions import dimensionless
+from yt.units.dimensions import dimensionless, current_mks
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence
+    YTInvalidUnitEquivalence, YTUnitsNotReducible
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -402,6 +402,8 @@ class YTArray(np.ndarray):
         Convert the array and units to the equivalent cgs units.
 
         """
+        if current_mks in self.units.dimensions.free_symbols:
+            raise YTUnitsNotReducible(self.units, "cgs")
         return self.convert_to_units(self.units.get_cgs_equivalent())
 
     def convert_to_mks(self):
@@ -447,6 +449,8 @@ class YTArray(np.ndarray):
         Quantity object with data converted to cgs units.
 
         """
+        if current_mks in self.units.dimensions.free_symbols:
+            raise YTUnitsNotReducible(self.units, "cgs")
         return self.in_units(self.units.get_cgs_equivalent())
 
     def in_mks(self):

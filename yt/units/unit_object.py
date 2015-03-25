@@ -380,8 +380,6 @@ class Unit(Expr):
         """
         Create and return dimensionally-equivalent cgs units.
         """
-        #if current_mks in self.dimensions:
-        #    raise RuntimeError("Not reducible to cgs dimensions.")
         units_string = self._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
