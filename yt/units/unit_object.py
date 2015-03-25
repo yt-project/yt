@@ -24,12 +24,11 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless
+    dimensionless, current_mks
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, \
-    cgs_conversions
+    mks_base_units, latex_prefixes
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -119,7 +118,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry", "cgs_conversion", "is_mks"]
+                 "registry"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -217,21 +216,6 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
-
-        check_atoms = [atom for atom in unit_expr.free_symbols
-                       if str(atom) in cgs_conversions]
-        if len(check_atoms) > 0:
-            conversions = []
-            for atom in check_atoms:
-                conversions.append((atom,symbols(cgs_conversions[str(atom)])))
-            conversion = Unit(unit_expr=unit_expr.subs(conversions),
-                              registry=registry)
-            is_mks = True
-        else:
-            conversion = None
-            is_mks = False
-        obj.cgs_conversion = conversion
-        obj.is_mks = is_mks
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -365,14 +349,6 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
-        first_check = False
-        second_check = False
-        if self.cgs_conversion:
-            first_check = self.cgs_conversion.dimensions / other_unit.dimensions == sympy_one
-        if other_unit.cgs_conversion:
-            second_check = other_unit.cgs_conversion.dimensions / self.dimensions == sympy_one
-        if first_check or second_check:
-            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
@@ -403,31 +379,22 @@ class Unit(Expr):
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
-
         """
-        if self.cgs_conversion:
-            units = self.cgs_conversion
-        else:
-            units = self
-        units_string = units._get_system_unit_string(cgs_base_units)
+        #if current_mks in self.dimensions:
+        #    raise RuntimeError("Not reducible to cgs dimensions.")
+        units_string = self._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
-                    dimensions=units.dimensions, registry=self.registry)
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
-
         """
-        if self.cgs_conversion and not self.is_mks:
-            units = self.cgs_conversion
-        else:
-            units = self
-        units_string = units._get_system_unit_string(mks_base_units)
-        cgs_value = get_conversion_factor(units, units.get_cgs_equivalent())[0]
-        if not self.is_mks:
-            cgs_value /= get_conversion_factor(units, Unit(units_string))[0]
+        units_string = self._get_system_unit_string(mks_base_units)
+        cgs_value = get_conversion_factor(self, self.get_cgs_equivalent())[0]
+        cgs_value /= get_conversion_factor(self, Unit(units_string))[0]
         return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=units.dimensions, registry=self.registry)
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)

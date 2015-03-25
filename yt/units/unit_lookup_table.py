@@ -42,6 +42,8 @@ default_unit_symbol_lut = {
     "gauss": (1.0, dimensions.magnetic_field_cgs),
     "degC": (1.0, dimensions.temperature, -273.15),
     "statA": (1.0, dimensions.current_cgs),
+    "statV": (1.0, dimensions.electric_potential_cgs),
+    "statohm": (1.0, dimensions.resistance_cgs),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -49,10 +51,12 @@ default_unit_symbol_lut = {
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
     "N": (1.0e5, dimensions.force),
-    "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_mks),
-    "A": (0.1*speed_of_light_cm_per_s, dimensions.current_mks),
-    "T": (1.0e4, dimensions.magnetic_field_mks),
+    "C": (1.0, dimensions.charge_mks),
+    "A": (1.0, dimensions.current_mks),
+    "T": (1000.0, dimensions.magnetic_field_mks),
     "Pa": (10.0, dimensions.pressure),
+    "V": (1.0e7, dimensions.electric_potential_mks),
+    "ohm": (1.0e7, dimensions.resistance_mks),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -204,6 +208,10 @@ prefixable_units = (
     "C",
     "statA",
     "Pa",
+    "V",
+    "statV",
+    "ohm",
+    "statohm",
 )
 
 cgs_base_units = {
@@ -222,14 +230,3 @@ mks_base_units = {
     dimensions.angle:'radian',
     dimensions.current_mks:'A',
 }
-
-cgs_conversions = {
-    "C":"esu",
-    "T":"gauss",
-    "A":"statA",
-}
-
-for conv in list(cgs_conversions.keys()):
-    if conv in prefixable_units:
-        for p in unit_prefixes:
-            cgs_conversions[p+conv] = p+cgs_conversions[conv]

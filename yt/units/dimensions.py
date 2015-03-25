@@ -55,16 +55,22 @@ charge_cgs  = (energy * length)**Rational(1, 2)  # proper 1/2 power
 current_cgs = charge_cgs / time
 electric_field_cgs = charge_cgs / length**2
 magnetic_field_cgs = electric_field_cgs
+electric_potential_cgs = energy / charge_cgs
+resistance_cgs = electric_potential_cgs / current_cgs
 
 # SI electromagnetic units
 charge_mks = current_mks * time
 electric_field_mks = force / charge_mks
 magnetic_field_mks = electric_field_mks / velocity
+electric_potential_mks = energy / charge_mks
+resistance_mks = electric_potential_mks / current_mks
 
 # Since cgs is our default, I'm adding these aliases for backwards-compatibility
 charge = charge_cgs
 electric_field = electric_field_cgs
 magnetic_field = magnetic_field_cgs
+electric_potential = electric_potential_cgs
+resistance = resistance_cgs
 
 solid_angle = angle * angle
 
@@ -72,6 +78,7 @@ derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop,
                       momentum, force, energy, power, charge_cgs, electric_field_cgs,
                       magnetic_field_cgs, solid_angle, flux, specific_flux, volume,
                       area, current_cgs, charge_mks, electric_field_mks,
-                      magnetic_field_mks]
+                      magnetic_field_mks, electric_potential_cgs, electric_potential_mks,
+                      resistance_cgs, resistance_mks]
 
 dimensions = base_dimensions + derived_dimensions

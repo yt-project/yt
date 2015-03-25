@@ -441,7 +441,7 @@ class YTInvalidUnitEquivalence(Exception):
         self.unit2 = unit2
 
     def __str__(self):
-        return "The unit equivalence '%s' does not exist for the units '%s' and '%s.'" % (self.equiv,
+        return "The unit equivalence '%s' does not exist for the units '%s' and '%s'." % (self.equiv,
                                                                                           self.unit1,
                                                                                           self.unit2)
 

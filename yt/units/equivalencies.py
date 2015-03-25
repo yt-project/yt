@@ -12,7 +12,12 @@ Equivalencies between different kinds of units
 #-----------------------------------------------------------------------------
 
 from yt.units.dimensions import temperature, mass, energy, length, rate, \
-    velocity, dimensionless, density, number_density, flux
+    velocity, dimensionless, density, number_density, flux, current_cgs, \
+    current_mks, charge_cgs, charge_mks, magnetic_field_cgs, magnetic_field_mks, \
+    electric_potential_cgs, electric_potential_mks, electric_field_cgs, \
+    electric_field_mks, resistance_cgs, resistance_mks
+
+from yt.utilities.physical_ratios import speed_of_light_cm_per_s
 from yt.extern.six import add_metaclass
 import numpy as np
 
@@ -27,7 +32,7 @@ class RegisteredEquivalence(type):
 @add_metaclass(RegisteredEquivalence)
 class Equivalence(object):
     _skip_add = False
-
+    _one_way = False
     def __init__(self):
         import yt.utilities.physical_constants as pc
         self.pc = pc
@@ -166,4 +171,47 @@ class EffectiveTemperature(Equivalence):
 
     def __str__(self):
         return "effective_temperature: flux <-> temperature"
+
+em_conversions = {
+    charge_mks:("esu", 0.1*speed_of_light_cm_per_s),
+    magnetic_field_mks:("gauss", 1.0e4),
+    current_mks:("statA", 0.1*speed_of_light_cm_per_s),
+    electric_potential_mks:("statV", speed_of_light_cm_per_s),
+    resistance_mks:("statohm", speed_of_light_cm_per_s**2),
+    charge_cgs:("C", 10.0/speed_of_light_cm_per_s),
+    magnetic_field_cgs:("T", 1.0e-4),
+    current_cgs:("A", 10.0/speed_of_light_cm_per_s),
+    electric_potential_cgs:("V", 1.0/speed_of_light_cm_per_s),
+    resistance_cgs:("ohm", 1.0/(speed_of_light_cm_per_s**2)),
+}
+
+class ElectromagneticSI(Equivalence):
+    _type_name = "em_SI"
+    _one_way = True
+    dims = (current_cgs, charge_cgs, magnetic_field_cgs,
+            electric_field_cgs, electric_potential_cgs,
+            resistance_cgs)
+    
+    def convert(self, x, new_dims):
+        old_dims = x.units.dimensions
+        new_units, convert_factor = em_conversions[old_dims]
+        return x.in_cgs().v*convert_factor, new_units
+    
+    def __str__(self):
+        return "EM CGS unit -> EM SI unit"
+
+class ElectromagneticCGS(Equivalence):
+    _type_name = "em_CGS"
+    _one_way = True
+    dims = (current_mks, charge_mks, magnetic_field_mks,
+            electric_field_mks, electric_potential_mks,
+            resistance_mks)
+
+    def convert(self, x, new_dims):
+        old_dims = x.units.dimensions
+        new_units, convert_factor = em_conversions[old_dims]
+        return x.in_mks().v*convert_factor, new_units
+
+    def __str__(self):
+        return "EM SI unit -> EM CGS unit"
 
