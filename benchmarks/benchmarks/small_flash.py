@@ -1,20 +1,10 @@
 import numpy as np
 import yt
 
-class SmallEnzoSuite:
+class SmallFlashSuite:
     dsname = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0690"
     def setup(self):
         self.ds = yt.load(self.dsname)
-
-    def time_all_particles(self):
-        dd = self.ds.all_data()
-        dd["all", "particle_velocity_x"]
-        dd["all", "particle_velocity_y"]
-        dd["all", "particle_velocity_z"]
-
-    def time_all_particles_derived(self):
-        dd = self.ds.all_data()
-        dd["all", "particle_velocity_magnitude"]
 
     def time_gas_read(self):
         dd = self.ds.all_data()
@@ -31,14 +21,9 @@ class SmallEnzoSuite:
         proj = self.ds.proj("density", 0, "density")
 
     def time_ghostzones(self):
-        dd = self.ds.all_data()
+        dd = self.ds.sphere(self.ds.domain_center,
+                            self.ds.domain_width[0] * 0.25)
         dd["velocity_divergence"]
-
-    def time_particle_quantities(self):
-        dd = self.ds.all_data()
-        dd.quantities.extrema("particle_mass")
-        dd.quantities.extrema("particle_velocity_magnitude")
-        dd.quantities.extrema(["particle_velocity_%s" % ax for ax in 'xyz'])
 
     def time_gas_quantites(self):
         dd = self.ds.all_data()

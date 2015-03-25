@@ -7,7 +7,7 @@ How to Develop yt
    with handling it yourself, the quickest way to contribute to yt is to `fork
    us on BitBucket <http://hg.yt-project.org/yt/fork>`_, `make your changes
    <http://mercurial.selenic.com/>`_, and issue a `pull request
-   <http://hg.yt-project.org/yt/pull>`_.  The rest of this document is just an
+   <http://hg.yt-project.org/yt/pull-requests>`_.  The rest of this document is just an
    explanation of how to do that.
 
 yt is a community project!
@@ -134,7 +134,7 @@ for using mercurial with yt:
   process from BitBucket's website.
 * In all likelihood, you only need one fork.  To keep it in sync, you can
   sync from the website.  (See Bitbucket's `Blog Post
-  <http://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
+  <https://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
   about this.)
 * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
   list.
