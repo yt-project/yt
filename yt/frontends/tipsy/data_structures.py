@@ -110,8 +110,6 @@ class TipsyDataset(ParticleDataset):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
-        else:
-            self.domain_left_edge = self.domain_right_edge = None
 
 
     def __repr__(self):
