@@ -176,13 +176,13 @@ em_conversions = {
     charge_mks:("esu", 0.1*speed_of_light_cm_per_s),
     magnetic_field_mks:("gauss", 1.0e4),
     current_mks:("statA", 0.1*speed_of_light_cm_per_s),
-    electric_potential_mks:("statV", speed_of_light_cm_per_s),
-    resistance_mks:("statohm", speed_of_light_cm_per_s**2),
+    electric_potential_mks:("statV", 1.0e-8*speed_of_light_cm_per_s),
+    resistance_mks:("statohm", 1.0e9/(speed_of_light_cm_per_s**2)),
     charge_cgs:("C", 10.0/speed_of_light_cm_per_s),
     magnetic_field_cgs:("T", 1.0e-4),
     current_cgs:("A", 10.0/speed_of_light_cm_per_s),
-    electric_potential_cgs:("V", 1.0/speed_of_light_cm_per_s),
-    resistance_cgs:("ohm", 1.0/(speed_of_light_cm_per_s**2)),
+    electric_potential_cgs:("V", 1.0e8/speed_of_light_cm_per_s),
+    resistance_cgs:("ohm", speed_of_light_cm_per_s**2*1.0e-9),
 }
 
 class ElectromagneticSI(Equivalence):
