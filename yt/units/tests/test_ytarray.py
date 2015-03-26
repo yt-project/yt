@@ -874,27 +874,6 @@ def test_h5_io():
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
-def test_cgs_conversions():
-    from yt.utilities.physical_constants import qp, eps_0, clight
-    from yt.units.dimensions import current_mks, time
-
-    qp_mks = qp.in_units("C")
-    yield assert_equal, qp_mks.units.dimensions, current_mks*time
-    yield assert_array_almost_equal, qp_mks.in_cgs(), qp
-    qp_mks_k = qp_mks.in_units("kC")
-    yield assert_equal, qp_mks.units.dimensions, current_mks*time
-    yield assert_array_almost_equal, qp_mks_k.in_cgs(), qp
-    yield assert_array_almost_equal, qp_mks_k.in_units("kesu"), qp.in_units("kesu")
-
-    K = 1.0/(4*np.pi*eps_0)
-    yield assert_array_almost_equal, K.in_cgs(), 1.0
-
-    B = YTQuantity(1.0, "T")
-    yield assert_array_almost_equal, B.in_units("gauss"), YTQuantity(1.0e4, "gauss")
-
-    I = YTQuantity(1.0, "A")
-    yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
-
 def test_equivalencies():
     from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh, me, \
         mass_sun_cgs, G, stefan_boltzmann_constant_cgs
@@ -981,7 +960,55 @@ def test_equivalencies():
     yield assert_equal, F, stefan_boltzmann_constant_cgs*T**4
     yield assert_allclose, T, F.to_equivalent("K", "effective_temperature")
 
+def test_electromagnetic():
+    from yt.units.dimensions import charge_mks, pressure, current_cgs, \
+        magnetic_field_mks, magnetic_field_cgs, power
+    from yt.utilities.physical_constants import mu_0, qp
+    from yt.utilities.physical_ratios import speed_of_light_cm_per_s
 
+    # Various tests of SI and CGS electromagnetic units
+
+    qp_mks = qp.to_equivalent("C", "em_SI")
+    yield assert_equal, qp_mks.units.dimensions, charge_mks
+    yield assert_array_almost_equal, qp_mks.v, 10.0*qp.v/speed_of_light_cm_per_s
+
+    qp_cgs = qp_mks.to_equivalent("esu", "em_CGS")
+    yield assert_array_almost_equal, qp_cgs, qp
+    yield assert_equal, qp_cgs.units.dimensions, qp.units.dimensions
+    
+    qp_mks_k = qp.to_equivalent("kC", "em_SI")
+    yield assert_array_almost_equal, qp_mks_k.v, 1.0e-2*qp.v/speed_of_light_cm_per_s
+
+    B = YTQuantity(1.0, "T")
+    B_cgs = B.to_equivalent("gauss", "em_CGS")
+    yield assert_equal, B.units.dimensions, magnetic_field_mks
+    yield assert_equal, B_cgs.units.dimensions, magnetic_field_cgs
+    yield assert_array_almost_equal, B_cgs, YTQuantity(1.0e4, "gauss")
+
+    u_mks = B*B/(2*mu_0)
+    yield assert_equal, u_mks.units.dimensions, pressure
+    u_cgs = B_cgs*B_cgs/(8*np.pi)
+    yield assert_equal, u_cgs.units.dimensions, pressure
+    yield assert_array_almost_equal, u_mks.in_cgs(), u_cgs
+    
+    I = YTQuantity(1.0, "A")
+    I_cgs = I.to_equivalent("statA", "em_CGS")
+    yield assert_array_almost_equal, I_cgs, YTQuantity(0.1*speed_of_light_cm_per_s, "statA")
+    yield assert_array_almost_equal, I_cgs.to_equivalent("mA", "em_SI"), I.in_units("mA")
+    yield assert_equal, I_cgs.units.dimensions, current_cgs
+    
+    R = YTQuantity(1.0, "ohm")
+    R_cgs = R.to_equivalent("statohm", "em_CGS")
+    P_mks = I*I*R
+    P_cgs = I_cgs*I_cgs*R_cgs
+    yield assert_equal, P_mks.units.dimensions, power
+    yield assert_equal, P_cgs.units.dimensions, power
+    yield assert_array_almost_equal, P_cgs.in_mks(), YTQuantity(1.0, "W")
+    
+    V = YTQuantity(1.0, "statV")
+    V_mks = V.to_equivalent("V", "em_SI")
+    yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
+    
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
