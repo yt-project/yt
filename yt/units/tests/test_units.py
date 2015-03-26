@@ -263,7 +263,7 @@ def test_create_fail_on_dimensions_content():
     except UnitParseError:
         pass
     else:
-        yield asser_true, False
+        yield assert_true, False
 
 
 def test_create_fail_on_cgs_value_type():
