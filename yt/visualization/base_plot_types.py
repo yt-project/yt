@@ -134,7 +134,8 @@ class ImagePlotMPL(PlotMPL):
                     "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
+                                      aspect=aspect, vmax=self.zmax, cmap=cmap,
+                                      interpolation='nearest')
         if (cbnorm == 'symlog'):
             formatter = matplotlib.ticker.LogFormatterMathtext()
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
