@@ -1950,17 +1950,17 @@ class RayCallback(PlotCallback):
             try:
                 start_coord = self.ray.ds.arr([0,0,0], 'code_length')
                 end_coord = self.ray.ds.arr([0,0,0], 'code_length')
-                start_coord[self.ray.axis] = 
+                start_coord[self.ray.axis] = \
                     self.ray.ds.domain_left_edge[self.ray.axis]
-                end_coord[self.ray.axis] = 
+                end_coord[self.ray.axis] = \
                     self.ray.ds.domain_right_edge[self.ray.axis]
-                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = 
+                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = \
                     self.ray.coords[0]
-                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = 
+                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = \
                     self.ray.coords[0]
-                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = 
+                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = \
                     self.ray.coords[1]
-                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = 
+                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = \
                     self.ray.coords[1]
             except:
                 # assume ray is a LightRay object; in which case, identify if 
