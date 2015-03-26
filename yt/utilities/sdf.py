@@ -1,4 +1,5 @@
-import cStringIO
+from __future__ import print_function
+from yt.extern.six.moves import cStringIO
 import re
 import os
 import numpy as np
@@ -25,7 +26,7 @@ _types = {
 }
 
 _rev_types = {}
-for v, t in _types.iteritems():
+for v, t in _types.items():
     _rev_types[t] = v
 _rev_types['<f8'] = 'double'
 _rev_types['<f4'] = 'float'
@@ -468,7 +469,7 @@ class HTTPSDFRead(SDFRead):
         # Pre-process
         ascfile = HTTPArray(self.header)
         max_header_size = 1024*1024
-        lines = cStringIO.StringIO(ascfile[:max_header_size].data[:])
+        lines = cStringIO(ascfile[:max_header_size].data[:])
         while True:
             l = lines.readline()
             if self._eof in l: break
@@ -1308,7 +1309,7 @@ class SDFIndex(object):
 
         # Need to get all of these
         low_key, high_key = self.get_key_bounds(level, cell_iarr)
-        for k in xrange(low_key, high_key):
+        for k in range(low_key, high_key):
             yield k
 
         # Bottom & Top

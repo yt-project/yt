@@ -20,6 +20,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
+def sanitize_length(length, ds):
+    # Ensure that lengths passed in with units are returned as code_length
+    # magnitudes without units
+    if isinstance(length, YTArray):
+        return ds.arr(length).in_units('code_length').d
+    else:
+        return length
+
 class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 
@@ -63,21 +71,27 @@ class Streamlines(ParallelAnalysisInterface):
     
     Examples
     --------
-    >>> from yt.mods import *
+    >>> import yt
+    >>> import numpy as np
+    >>> import matplotlib.pylab as pl
+    >>>
     >>> from yt.visualization.api import Streamlines
-    >>> ds = load('DD1701') # Load ds
-
+    >>> from mpl_toolkits.mplot3d import Axes3D
+    >>>
+    >>> # Load the dataset and set some parameters
+    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> c = np.array([0.5]*3)
     >>> N = 100
     >>> scale = 1.0
     >>> pos_dx = np.random.random((N,3))*scale-scale/2.
     >>> pos = c+pos_dx
-    
-    >>> streamlines = Streamlines(ds,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+    >>>
+    >>> # Define and construct streamlines
+    >>> streamlines = Streamlines(
+            ds,pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
     >>> streamlines.integrate_through_volume()
-    
-    >>> import matplotlib.pylab as pl
-    >>> from mpl_toolkits.mplot3d import Axes3D
+    >>>
+    >>> # Make a 3D plot of the streamlines and save it to disk
     >>> fig=pl.figure() 
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
@@ -91,11 +105,14 @@ class Streamlines(ParallelAnalysisInterface):
                  get_magnitude=False):
         ParallelAnalysisInterface.__init__(self)
         self.ds = ds
-        self.start_positions = np.array(positions)
+        self.start_positions = sanitize_length(positions, ds)
         self.N = self.start_positions.shape[0]
-        self.xfield = xfield
-        self.yfield = yfield
-        self.zfield = zfield
+        # I need a data object to resolve the field names to field tuples
+        # via _determine_fields()
+        ad = self.ds.all_data()
+        self.xfield = ad._determine_fields(xfield)[0]
+        self.yfield = ad._determine_fields(yfield)[0]
+        self.zfield = ad._determine_fields(zfield)[0]
         self.get_magnitude=get_magnitude
         self.direction = np.sign(direction)
         if volume is None:
@@ -107,10 +124,10 @@ class Streamlines(ParallelAnalysisInterface):
         self.volume = volume
         if dx is None:
             dx = self.ds.index.get_smallest_dx()
-        self.dx = dx
+        self.dx = sanitize_length(dx, ds)
         if length is None:
             length = np.max(self.ds.domain_right_edge-self.ds.domain_left_edge)
-        self.length = length
+        self.length = sanitize_length(length, ds)
         self.steps = int(length/dx)+1
         # Fix up the dx.
         self.dx = 1.0*self.length/self.steps
@@ -122,7 +139,8 @@ class Streamlines(ParallelAnalysisInterface):
     def integrate_through_volume(self):
         nprocs = self.comm.size
         my_rank = self.comm.rank
-        self.streamlines[my_rank::nprocs,0,:] = self.start_positions[my_rank::nprocs]
+        self.streamlines[my_rank::nprocs,0,:] = \
+            self.start_positions[my_rank::nprocs]
 
         pbar = get_pbar("Streamlining", self.N)
         for i,stream in enumerate(self.streamlines[my_rank::nprocs]):
@@ -132,17 +150,23 @@ class Streamlines(ParallelAnalysisInterface):
             step = self.steps
             while (step > 1):
                 this_node = self.volume.locate_node(stream[-step,:])
-                step = self._integrate_through_brick(this_node, stream, step, mag=thismag)
+                step = self._integrate_through_brick(
+                    this_node, stream, step, mag=thismag)
             pbar.update(i)
         pbar.finish()
         
         self._finalize_parallel(None)
+        self.streamlines = self.ds.arr(self.streamlines, 'code_length')
+        if self.get_magnitude:
+            self.magnitudes = self.ds.arr(
+                self.magnitudes, self.ds.field_info[self.xfield].units)
        
     @parallel_passthrough
     def _finalize_parallel(self,data):
         self.streamlines = self.comm.mpi_allreduce(self.streamlines, op='sum')
         if self.get_magnitude:
-            self.magnitudes = self.comm.mpi_allreduce(self.magnitudes, op='sum')
+            self.magnitudes = self.comm.mpi_allreduce(
+                self.magnitudes, op='sum')
         
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):
@@ -151,10 +175,12 @@ class Streamlines(ParallelAnalysisInterface):
             brick = node.data
             stream[-step+1] = stream[-step]
             if mag is None:
-                brick.integrate_streamline(stream[-step+1], self.direction*self.dx, None)
+                brick.integrate_streamline(
+                    stream[-step+1], self.direction*self.dx, None)
             else:
                 marr = [mag]
-                brick.integrate_streamline(stream[-step+1], self.direction*self.dx, marr)
+                brick.integrate_streamline(
+                    stream[-step+1], self.direction*self.dx, marr)
                 mag[-step+1] = marr[0]
                 
             if np.any(stream[-step+1,:] <= self.ds.domain_left_edge) | \
@@ -202,5 +228,5 @@ class Streamlines(ParallelAnalysisInterface):
         
         """
         return YTStreamlineBase(self.streamlines[streamline_id], ds=self.ds,
-                                    length = self.length)
+                                length = self.length)
         

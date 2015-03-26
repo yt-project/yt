@@ -5,6 +5,7 @@ commands through ExtDirect calls
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -14,6 +15,7 @@ commands through ExtDirect calls
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six.moves import urllib
 import json
 import os
 import stat
@@ -22,8 +24,6 @@ import logging
 import uuid
 import numpy as np
 import time
-import urllib
-import urllib2
 import pprint
 import traceback
 import tempfile
@@ -87,10 +87,10 @@ class ExecutionThread(threading.Thread):
             except Queue.Empty:
                 if self.repl.stopped: return
                 continue
-            print "Received the task", task
+            print("Received the task", task)
             if task['type'] != 'code':
                 raise NotImplementedError
-            print task
+            print(task)
             self.execute_one(task['code'], task['hide'], task['result_id'])
             self.queue.task_done()
 
@@ -101,11 +101,11 @@ class ExecutionThread(threading.Thread):
         self.repl.executed_cell_texts.append(code)
         result = ProgrammaticREPL.execute(self.repl, code)
         if self.repl.debug:
-            print "==================== Cell Execution ===================="
-            print code
-            print "====================                ===================="
-            print result
-            print "========================================================"
+            print("==================== Cell Execution ====================")
+            print(code)
+            print("====================                ====================")
+            print(result)
+            print("========================================================")
         self.payload_handler.add_payload(
             {'type': 'cell',
              'output': result,
@@ -130,7 +130,7 @@ class PyroExecutionThread(ExecutionThread):
 
     def execute_one(self, code, hide, result_id):
         self.repl.executed_cell_texts.append(code)
-        print code
+        print(code)
         result = self.executor.execute(code)
         if not hide:
             self.repl.payload_handler.add_payload(
@@ -266,18 +266,18 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
 
     def heartbeat(self):
         self.last_heartbeat = time.time()
-        if self.debug: print "### Heartbeat ... started: %s" % (time.ctime())
+        if self.debug: print("### Heartbeat ... started: %s" % (time.ctime()))
         for i in range(30):
             # Check for stop
-            if self.debug: print "    ###"
+            if self.debug: print("    ###")
             if self.stopped: return {'type':'shutdown'} # No race condition
             if self.payload_handler.event.wait(1): # One second timeout
-                if self.debug: print "    ### Delivering payloads"
+                if self.debug: print("    ### Delivering payloads")
                 rv = self.payload_handler.deliver_payloads()
-                if self.debug: print "    ### Got back, returning"
+                if self.debug: print("    ### Got back, returning")
                 return rv
             self.execution_thread.heartbeat()
-        if self.debug: print "### Heartbeat ... finished: %s" % (time.ctime())
+        if self.debug: print("### Heartbeat ... finished: %s" % (time.ctime()))
         return []
 
     def _check_heartbeat(self):
@@ -286,7 +286,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
                 self.shutdown()
                 return
         if time.time() - self.last_heartbeat > self.timeout:
-            print "Shutting down after a timeout of %s" % (self.timeout)
+            print("Shutting down after a timeout of %s" % (self.timeout))
             #sys.exit(0)
             # Still can't shut down yet, because bottle doesn't return the
             # server instance by default.
@@ -305,7 +305,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         for v in self.server.values():
             v.stop()
         for t in threading.enumerate():
-            print "Found a living thread:", t
+            print("Found a living thread:", t)
 
     def _help_html(self):
         root = os.path.join(local_dir, "html")
@@ -359,7 +359,8 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
             f = open(filename, 'w')
             f.write("\n######\n".join(self.executed_cell_texts))
             f.close()
-        except IOError as (errno, strerror):
+        except IOError as xxx_todo_changeme:
+            (errno, strerror) = xxx_todo_changeme.args
             return {'status': 'FAIL', 'filename': filename,
                     'error': strerror}
         except:
@@ -397,12 +398,12 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
         image_data = image_data[len(prefix):]
         parameters = {'key':self._api_key, 'image':image_data, type:'base64',
                       'caption': caption, 'title': "Uploaded Image from reason"}
-        data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters)
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
-            print "ERROR", e
+            response = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as e:
+            print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
         rv['uploaded'] = True
@@ -464,7 +465,7 @@ else:
     ico = os.path.join(local_dir, "html", "resources", "images")
 @route("/favicon.ico", method="GET")
 def _favicon_ico():
-    print ico
+    print(ico)
     return static_file("favicon.ico", ico)
 
 class ExtProgressBar(object):

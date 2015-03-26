@@ -67,29 +67,29 @@ def test_slice():
                     os.close(tmpfd)
                     p.save(name=tmpname)
                     fns.append(tmpname)
-                frb = slc.to_frb((1.0, 'unitary'), 64)
-                shifted_frb = shifted_slc.to_frb((1.0, 'unitary'), 64)
-                for slc_field in ['ones', 'density']:
-                    fi = ds._get_field_info(slc_field)
-                    yield assert_equal, frb[slc_field].info['data_source'], \
-                        slc.__str__()
-                    yield assert_equal, frb[slc_field].info['axis'], \
-                        ax
-                    yield assert_equal, frb[slc_field].info['field'], \
-                        slc_field
-                    yield assert_equal, frb[slc_field].units, \
-                        Unit(fi.units)
-                    yield assert_equal, frb[slc_field].info['xlim'], \
-                        frb.bounds[:2]
-                    yield assert_equal, frb[slc_field].info['ylim'], \
-                        frb.bounds[2:]
-                    yield assert_equal, frb[slc_field].info['center'], \
-                        slc.center
-                    yield assert_equal, frb[slc_field].info['coord'], \
-                        slc_pos
-                    yield assert_equal, frb[slc_field], \
-                        shifted_frb[slc_field]
-            # wf == None
+                for width in [(1.0, 'unitary'), 1.0, ds.quan(0.5, 'code_length')]:
+                    frb = slc.to_frb((1.0, 'unitary'), 64)
+                    shifted_frb = shifted_slc.to_frb((1.0, 'unitary'), 64)
+                    for slc_field in ['ones', 'density']:
+                        fi = ds._get_field_info(slc_field)
+                        yield assert_equal, frb[slc_field].info['data_source'], \
+                            slc.__str__()
+                        yield assert_equal, frb[slc_field].info['axis'], \
+                            ax
+                        yield assert_equal, frb[slc_field].info['field'], \
+                            slc_field
+                        yield assert_equal, frb[slc_field].units, \
+                            Unit(fi.units)
+                        yield assert_equal, frb[slc_field].info['xlim'], \
+                            frb.bounds[:2]
+                        yield assert_equal, frb[slc_field].info['ylim'], \
+                            frb.bounds[2:]
+                        yield assert_equal, frb[slc_field].info['center'], \
+                            slc.center
+                        yield assert_equal, frb[slc_field].info['coord'], \
+                            slc_pos
+                        yield assert_equal, frb[slc_field], \
+                            shifted_frb[slc_field]
             yield assert_equal, wf, None
     teardown_func(fns)
 

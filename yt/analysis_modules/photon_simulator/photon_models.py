@@ -22,6 +22,7 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import *
 from yt.utilities.physical_constants import mp, kboltz
@@ -114,7 +115,7 @@ class ThermalPhotonModel(PhotonModel):
             EM = (chunk["density"]/mp).v**2
             EM *= 0.5*(1.+self.X_H)*self.X_H*vol
 
-            if isinstance(self.Zmet, basestring):
+            if isinstance(self.Zmet, string_types):
                 metalZ = chunk[self.Zmet].v
             else:
                 metalZ = self.Zmet
@@ -155,7 +156,7 @@ class ThermalPhotonModel(PhotonModel):
                 cem = cell_em[ibegin:iend]
 
                 em_sum_c = cem.sum()
-                if isinstance(self.Zmet, basestring):
+                if isinstance(self.Zmet, string_types):
                     em_sum_m = (metalZ[ibegin:iend]*cem).sum()
                 else:
                     em_sum_m = metalZ*em_sum_c
@@ -177,7 +178,7 @@ class ThermalPhotonModel(PhotonModel):
                 cell_norm_c = tot_ph_c*cem/em_sum_c
                 cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= u)
             
-                if isinstance(self.Zmet, basestring):
+                if isinstance(self.Zmet, string_types):
                     cell_norm_m = tot_ph_m*metalZ[ibegin:iend]*cem/em_sum_m
                 else:
                     cell_norm_m = tot_ph_m*metalZ*cem/em_sum_m
@@ -217,7 +218,8 @@ class ThermalPhotonModel(PhotonModel):
             photons["dx"].append(chunk["dx"][idxs].in_units("kpc"))
 
         for key in photons:
-            photons[key] = uconcatenate(photons[key])
+            if len(photons[key]) > 0:
+                photons[key] = uconcatenate(photons[key])
 
         return photons
 

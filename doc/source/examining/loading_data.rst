@@ -11,32 +11,46 @@ some important caveats about different data formats.
 ART Data
 --------
 
-ART data enjoys preliminary support and has been supported in the past by
-Christopher Moody.  Please contact the ``yt-dev`` mailing list if you are
-interested in using yt for ART data, or if you are interested in assisting with
-development of yt to work with ART data.
+ART data has been supported in the past by Christopher Moody and is currently
+cared for by Kenza Arraki.  Please contact the ``yt-dev`` mailing list if you
+are interested in using yt for ART data, or if you are interested in assisting
+with development of yt to work with ART data.
 
 To load an ART dataset you can use the ``yt.load`` command and provide it the
 gas mesh file. It will search for and attempt to find the complementary dark
 matter and stellar particle header and data files. However, your simulations may
 not follow the same naming convention.
 
-So for example, a single snapshot might have a series of files looking like
-this:
+.. code-block:: python
+    
+   import yt
+
+   ds = yt.load("D9p_500/10MpcBox_HartGal_csf_a0.500.d")
+
+
+It will search for and attempt to find the complementary dark matter and stellar
+particle header and data files. However, your simulations may not follow the
+same naming convention.
+
+For example, the single snapshot given in the sample data has a series of files
+that look like this:
 
 .. code-block:: none
 
-   10MpcBox_csf512_a0.300.d    #Gas mesh
-   PMcrda0.300.DAT             #Particle header
-   PMcrs0a0.300.DAT            #Particle data (positions,velocities)
-   stars_a0.300.dat            #Stellar data (metallicities, ages, etc.)
+   10MpcBox_HartGal_csf_a0.500.d  #Gas mesh
+   PMcrda0.500.DAT                #Particle header
+   PMcrs0a0.500.DAT               #Particle data (positions,velocities)
+   stars_a0.500.dat               #Stellar data (metallicities, ages, etc.)
 
-The ART frontend tries to find the associated files matching the above, but
-if that fails you can specify ``file_particle_data``,``file_particle_data``,
-``file_star_data`` in addition to the specifying the gas mesh. You also have 
-the option of gridding particles, and assigning them onto the meshes.
-This process is in beta, and for the time being it's probably  best to leave
-``do_grid_particles=False`` as the default.
+The ART frontend tries to find the associated files matching the
+above, but if that fails you can specify ``file_particle_header``,
+``file_particle_data``, and ``file_particle_stars``, in addition to
+specifying the gas mesh. Note that the ``pta0.500.dat`` or ``pt.dat``
+file containing particle time steps is not loaded by yt.
+
+You also have the option of gridding particles and assigning them onto the
+meshes.  This process is in beta, and for the time being it's probably best to
+leave ``do_grid_particles=False`` as the default.
 
 To speed up the loading of an ART file, you have a few options. You can turn 
 off the particles entirely by setting ``discover_particles=False``. You can
@@ -46,13 +60,22 @@ when debugging by artificially creating a 'smaller' dataset to work with.
 Finally, when stellar ages are computed we 'spread' the ages evenly within a
 smoothing window. By default this is turned on and set to 10Myr. To turn this 
 off you can set ``spread=False``, and you can tweak the age smoothing window
-by specifying the window in seconds, ``spread=1.0e7*265*24*3600``. 
+by specifying the window in seconds, ``spread=1.0e7*365*24*3600``. 
+
+There is currently preliminary support for dark matter only ART data. To load a
+dataset use the ``yt.load`` command and provide it the particle data file. It
+will search for the complementary particle header file.
 
 .. code-block:: python
     
    import yt
 
-   ds = yt.load("SFG1/10MpcBox_csf512_a0.460.d")
+   ds = yt.load("PMcrs0a0.500.DAT")
+
+Important: This should not be used for loading just the dark matter
+data for a 'regular' hydrodynamical data set as the units and IO are
+different!
+
 
 .. _loading-artio-data:
 
@@ -521,7 +544,7 @@ and add them to the field registry for the dataset ``ds``.
 
 This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and creates a "cut region"
 data container from it, that can be used to select the cells in the FITS dataset that fall within
-the region. To use this functionality, the `pyregion <http://leejjoon.github.io/pyregion/>`_
+the region. To use this functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
 package must be installed.
 
 .. code-block:: python
@@ -911,6 +934,60 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 
 * Units will be incorrect unless the data has already been converted to cgs.
 * Particles may be difficult to integrate.
+* Data must already reside in memory.
+
+Semi-Structured Grid Data
+-------------------------
+
+See :ref:`loading-numpy-array`,
+:func:`~yt.frontends.stream.data_structures.hexahedral_connectivity`,
+:func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh` for
+more detail.
+
+In addition to uniform grids as described above, you can load in data
+with non-uniform spacing between datapoints. To load this type of
+data, you must first specify a hexahedral mesh, a mesh of six-sided
+cells, on which it will live. You define this by specifying the x,y,
+and z locations of the corners of the hexahedral cells. The following
+code:
+
+.. code-block:: python
+
+   import yt
+   import numpy
+
+   xgrid = numpy.array([-1, -0.65, 0, 0.65, 1])
+   ygrid = numpy.array([-1, 0, 1])
+   zgrid = numpy.array([-1, -0.447, 0.447, 1])
+
+   coordinates,connectivity = yt.hexahedral_connectivity(xgrid,ygrid,zgrid)
+
+will define the (x,y,z) coordinates of the hexahedral cells and
+information about that cell's neighbors such that the celll corners
+will be a grid of points constructed as the Cartesion product of
+xgrid, ygrid, and zgrid.
+
+Then, to load your data, which should be defined on the interiors of
+the hexahedral cells, and thus should have the shape,
+``(len(xgrid)-1, len(ygrid)-1, len(zgrid)-1)``, you can use the following code:
+
+.. code-block:: python
+
+   bbox = numpy.array([[numpy.min(xgrid),numpy.max(xgrid)],
+	               [numpy.min(ygrid),numpy.max(ygrid)],
+	               [numpy.min(zgrid),numpy.max(zgrid)]])
+   data = {"density" : arr}
+   ds = yt.load_hexahedral_mesh(data,conn,coords,1.0,bbox=bbox)
+
+to load your data into the dataset ``ds`` as described above, where we
+have assumed your data is stored in the three-dimensional array
+``arr``.
+
+.. rubric:: Caveats
+
+* Units will be incorrect unless the data has already been converted to cgs.
+* Integration is not implemented.
+* Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
 
 Generic Particle Data

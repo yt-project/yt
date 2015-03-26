@@ -307,7 +307,7 @@ class Camera(ParallelAnalysisInterface):
         
         vertices = np.empty([corners.shape[2]*2*12,3])
         vertices = self.ds.arr(vertices, "code_length")
-        for i in xrange(3):
+        for i in range(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
@@ -319,7 +319,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(nim, px, py, colors, 24, flip=1)
+        lines(nim.d, px.d, py.d, colors, 24, flip=1)
 
         return nim
 
@@ -378,7 +378,7 @@ class Camera(ParallelAnalysisInterface):
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
-            lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
+            lines(im.d, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
                   np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
@@ -430,7 +430,7 @@ class Camera(ParallelAnalysisInterface):
 
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, np.array([px0, px1]), np.array([py0, py1]),
+        lines(im.d, np.array([px0, px1]), np.array([py0, py1]),
               np.array([color,color]), flip=1)
 
     def draw_domain(self,im,alpha=0.3):
@@ -508,14 +508,14 @@ class Camera(ParallelAnalysisInterface):
         
         vertices = np.empty([24,3])
         vertices = self.ds.arr(vertices, "code_length")
-        for i in xrange(3):
+        for i in range(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
        
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im, px, py, color.reshape(1,4), 24, flip=1)
+        lines(im.d, px.d, py.d, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -648,7 +648,7 @@ class Camera(ParallelAnalysisInterface):
         cb = self._pylab.colorbar(ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9)
         label = self.ds._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
-            label = '$\\rm{log}\\/ $' + label
+            label = r'$\rm{log}\ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):
@@ -861,7 +861,7 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.zoom(f)
             yield self.snapshot(clip_ratio = clip_ratio)
 
@@ -923,7 +923,7 @@ class Camera(ParallelAnalysisInterface):
             else:
                 dW = self.ds.arr([0.0,0.0,0.0], "code_length")
             dx = (final-self.center)*1.0/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             if exponential:
                 self.switch_view(center=self.center*dx, width=self.width*dW)
             else:
@@ -983,7 +983,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(np.pi/4)
+        >>> cam.pitch(np.pi/4)
         """
         rot_vector = self.orienter.unit_vectors[0]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1007,7 +1007,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(np.pi/4)
+        >>> cam.yaw(np.pi/4)
         """
         rot_vector = self.orienter.unit_vectors[1]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1066,7 +1066,7 @@ class Camera(ParallelAnalysisInterface):
         """
 
         dtheta = (1.0*theta)/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot(clip_ratio = clip_ratio)
 
@@ -1120,6 +1120,9 @@ class PerspectiveCamera(Camera):
     generate ray-cast volume renderings of the domain. The rays start from
     the camera and end on the image plane, which generates a perspective
     view.
+
+    Note: at the moment, this results in a left-handed coordinate
+    system view
 
     Parameters
     ----------
@@ -1189,7 +1192,7 @@ class PerspectiveCamera(Camera):
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
-        east_vec = -self.orienter.unit_vectors[0].reshape(3,1)
+        east_vec = self.orienter.unit_vectors[0].reshape(3,1)
         north_vec = self.orienter.unit_vectors[1].reshape(3,1)
 
         px = np.mat(np.linspace(-.5, .5, self.resolution[0]))
@@ -1259,6 +1262,71 @@ class PerspectiveCamera(Camera):
             image[:,:,3]=1.0
         return image
 
+    def project_to_plane(self, pos, res=None):
+        if res is None:
+            res = self.resolution
+        sight_vector = pos - self.center
+        pos1 = sight_vector
+        for i in range(0, sight_vector.shape[0]):
+            sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
+            sight_vector[i] = sight_vector[i]/sight_vector_norm
+        sight_vector = self.ds.arr(sight_vector.value, input_units='dimensionless')
+        sight_center = self.center + self.width[2] * self.orienter.unit_vectors[2]
+
+        for i in range(0, sight_vector.shape[0]):
+            sight_angle_cos = np.dot(sight_vector[i], self.orienter.unit_vectors[2])
+            if np.arccos(sight_angle_cos) < 0.5 * np.pi:
+                sight_length = self.width[2] / sight_angle_cos
+            else:
+            # The corner is on the backwards, then put it outside of the image
+            # It can not be simply removed because it may connect to other corner
+            # within the image, which produces visible domian boundary line
+                sight_length = np.sqrt(self.width[0]**2+self.width[1]**2) / \
+                               np.sqrt(1 - sight_angle_cos**2)
+            pos1[i] = self.center + sight_length * sight_vector[i]
+
+        dx = np.dot(pos1 - sight_center, self.orienter.unit_vectors[0])
+        dy = np.dot(pos1 - sight_center, self.orienter.unit_vectors[1])
+        dz = np.dot(pos1 - sight_center, self.orienter.unit_vectors[2])
+        # Transpose into image coords.
+        px = (res[0]*0.5 + res[0]/self.width[0]*dx).astype('int')
+        py = (res[1]*0.5 + res[1]/self.width[1]*dy).astype('int')
+        return px, py, dz
+
+    def yaw(self, theta, rot_center):
+        r"""Rotate by a given angle about the vertical axis through the
+        point center.  This is accomplished by rotating the 
+        focal point and then setting the looking vector to point
+        to the center.
+
+        Yaw the view.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to yaw the view.
+
+        center : a tuple (x, y, z) 
+             The point to rotate about
+
+        Examples
+        --------
+
+        >>> cam.yaw(np.pi/4, (0., 0., 0.))
+        """
+
+        rot_vector = self.orienter.unit_vectors[1]
+
+        focal_point = self.center - rot_center
+        R = get_rotation_matrix(theta, rot_vector)
+        focal_point = np.dot(R, focal_point) + rot_center
+
+        normal_vector = rot_center - focal_point
+        normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
+
+        self.switch_view(normal_vector=normal_vector, center=focal_point)
+
+    
 data_object_registry["perspective_camera"] = PerspectiveCamera
 
 def corners(left_edge, right_edge):
@@ -2081,7 +2149,7 @@ class MosaicFisheyeCamera(Camera):
         """
 
         dtheta = (1.0*theta)/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector, keep_focus=keep_focus)
             yield self.snapshot()
 
@@ -2112,7 +2180,7 @@ class MosaicFisheyeCamera(Camera):
             dx = position_diff**(1.0/n_steps)
         else:
             dx = (np.array(final) - self.center)*1.0/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             if exponential:
                 self.center *= dx
             else:

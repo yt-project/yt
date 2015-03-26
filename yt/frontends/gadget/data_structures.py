@@ -5,6 +5,7 @@ Data structures for Gadget frontend
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -24,8 +25,6 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
     ParticleDataset
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -40,8 +39,11 @@ from .definitions import \
     gadget_field_specs, \
     gadget_ptype_specs
 
+from .fields import \
+    GadgetFieldInfo
+
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], types.StringTypes):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -63,7 +65,7 @@ class GadgetBinaryFile(ParticleFile):
 class GadgetDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
-    _field_info_class = SPHFieldInfo
+    _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -107,7 +109,7 @@ class GadgetDataset(ParticleDataset):
         super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
-        if isinstance(spec, types.StringTypes):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
@@ -165,7 +167,7 @@ class GadgetDataset(ParticleDataset):
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
-            self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+            self.current_time = hvals["Time"] 
         else:
             # Now we calculate our time based on the cosmology, because in
             # ComovingIntegration hvals["Time"] will in fact be the expansion
@@ -247,7 +249,7 @@ class GadgetDataset(ParticleDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
-    _field_info_class = SPHFieldInfo
+    _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
@@ -316,7 +318,11 @@ class GadgetHDF5Dataset(GadgetDataset):
                          os.path.basename(self.parameter_filename).split(".", 1)[0]))
 
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        if self.parameters["NumFiles"] > 1:
+            self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        else:
+            self.filename_template = self.parameter_filename
+
         self.file_count = self.parameters["NumFilesPerSnapshot"]
 
     def _set_owls_eagle_units(self):

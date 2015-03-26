@@ -16,7 +16,7 @@ ARTIO-specific data structures
 import numpy as np
 import stat
 import weakref
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 from .definitions import ARTIOconstants
 from ._artio_caller import \
@@ -316,13 +316,17 @@ class ARTIODataset(Dataset):
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024,
                  units_override=None):
+        from sys import version
         if self._handle is not None:
             return
         self.max_range = max_range
         self.fluid_types += ("artio",)
         self._filename = filename
         self._fileset_prefix = filename[:-4]
-        self._handle = artio_fileset(self._fileset_prefix)
+        if version < '3':
+            self._handle = artio_fileset(self._fileset_prefix)
+        else:
+            self._handle = artio_fileset(bytes(self._fileset_prefix,'utf-8'))
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
         Dataset.__init__(self, filename, dataset_type,
@@ -339,6 +343,7 @@ class ARTIODataset(Dataset):
         # hard-coded -- not provided by headers
         self.dimensionality = 3
         self.refine_by = 2
+        print(self.parameters)
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1.  # default unit is 1...
 
@@ -426,7 +431,11 @@ class ARTIODataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        from sys import version
         # a valid artio header file starts with a prefix and ends with .art
         if not args[0].endswith(".art"):
             return False
-        return artio_is_valid(args[0][:-4])
+        if version < '3':
+            return artio_is_valid(args[0][:-4])
+        else:
+            return artio_is_valid(bytes(args[0][:-4],'utf-8'))

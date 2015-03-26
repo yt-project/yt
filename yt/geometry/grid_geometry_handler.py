@@ -4,6 +4,7 @@ AMR index container class
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -15,10 +16,12 @@ AMR index container class
 
 import h5py
 import numpy as np
-import string, re, gc, time, cPickle
+import string, re, gc, time
+from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain, izip
+from itertools import chain
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -135,7 +138,7 @@ class GridIndex(Index):
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
-        for level in xrange(self.max_level+1):
+        for level in range(self.max_level+1):
             self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
@@ -176,31 +179,31 @@ class GridIndex(Index):
         """
         header = "%3s\t%6s\t%14s\t%14s" % ("level","# grids", "# cells",
                                            "# cells^3")
-        print header
-        print "%s" % (len(header.expandtabs())*"-")
-        for level in xrange(MAXLEVEL):
+        print(header)
+        print("%s" % (len(header.expandtabs())*"-"))
+        for level in range(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
-            print "% 3i\t% 6i\t% 14i\t% 14i" % \
+            print("% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level],
-                   np.ceil(self.level_stats['numcells'][level]**(1./3)))
+                   np.ceil(self.level_stats['numcells'][level]**(1./3))))
             dx = self.select_grids(level)[0].dds[0]
-        print "-" * 46
-        print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
-        print "\n"
+        print("-" * 46)
+        print("   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum()))
+        print("\n")
         try:
-            print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
+            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
         except:
             pass
-        print "t = %0.8e = %0.8e s = %0.8e years" % \
+        print("t = %0.8e = %0.8e s = %0.8e years" % \
             (self.ds.current_time.in_units("code_time"),
              self.ds.current_time.in_units("s"),
-             self.ds.current_time.in_units("yr"))
-        print "\nSmallest Cell:"
+             self.ds.current_time.in_units("yr")))
+        print("\nSmallest Cell:")
         u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
-            print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
+            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.
@@ -217,7 +220,7 @@ class GridIndex(Index):
         # create point -> grid mapping
         grid_index = {}
         for coord_index, grid in enumerate(grids):
-            if not grid_index.has_key(grid):
+            if grid not in grid_index:
                 grid_index[grid] = []
             grid_index[grid].append(coord_index)
 
@@ -277,6 +280,10 @@ class GridIndex(Index):
 
     def _identify_base_chunk(self, dobj):
         fast_index = None
+        def _gsort(g):
+            if g.filename is None:
+                return g.id
+            return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
             dobj._chunk_info[0] = dobj
@@ -284,7 +291,7 @@ class GridIndex(Index):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
                                             self.grid_levels)
-            grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
+            grids = list(sorted(self.grids[gi], key = _gsort))
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
@@ -335,9 +342,13 @@ class GridIndex(Index):
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
     _grid_chunksize = 1000
-    def _chunk_io(self, dobj, cache = True, local_only = False):
+    def _chunk_io(self, dobj, cache = True, local_only = False,
+                  preload_fields = None):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
+        if preload_fields is None:
+            preload_fields = []
+        preload_fields, _ = self._split_fields(preload_fields)
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = dobj._current_chunk._fast_index
@@ -350,8 +361,11 @@ class GridIndex(Index):
             size = self._grid_chunksize
             
             for grids in (gs[pos:pos + size] for pos
-                          in xrange(0, len(gs), size)):
-                yield YTDataChunk(dobj, "io", grids,
+                          in range(0, len(gs), size)):
+                dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
                         cache = cache, fast_index = fast_index)
-
+                # We allow four full chunks to be included.
+                with self.io.preload(dc, preload_fields, 
+                            4.0 * self._grid_chunksize):
+                    yield dc

@@ -11,7 +11,6 @@ yt/analysis_modules/halo_finding/rockstar/rockstar_groupies.c
 yt/analysis_modules/halo_finding/rockstar/rockstar_interface.c
 yt/analysis_modules/ppv_cube/ppv_utils.c
 yt/frontends/ramses/_ramses_reader.cpp
-yt/frontends/sph/smoothing_kernel.c
 yt/geometry/fake_octree.c
 yt/geometry/grid_container.c
 yt/geometry/oct_container.c

@@ -1,8 +1,7 @@
 import os
-import sys
 import yt
 from yt.analysis_modules.cosmological_observation.api import \
-     LightRay
+    LightRay
 
 # Create a directory for the light rays
 if not os.path.isdir("LR"): 

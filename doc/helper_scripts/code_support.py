@@ -82,14 +82,14 @@ codes = dict(
                          LevelOfSupport = "None")
 )
 
-print "|| . ||",
+print("|| . ||", end=' ')
 for c in code_names:
-    print "%s || " % (c),
-print 
+    print("%s || " % (c), end=' ')
+print() 
 
 for vn in vals:
-    print "|| !%s ||" % (vn),
+    print("|| !%s ||" % (vn), end=' ')
     for c in code_names:
-        print "%s || " % (codes[c].support[vn]),
-    print
+        print("%s || " % (codes[c].support[vn]), end=' ')
+    print()
 

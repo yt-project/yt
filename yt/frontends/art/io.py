@@ -26,6 +26,8 @@ from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
 from yt.utilities.physical_constants import sec_per_year
+from yt.utilities.lib.geometry_utils import compute_morton
+from yt.geometry.oct_container import _ORDER_MAX
 
 
 class IOHandlerART(BaseIOHandler):
@@ -85,6 +87,7 @@ class IOHandlerART(BaseIOHandler):
             return mask
 
     def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
         for chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
@@ -93,6 +96,7 @@ class IOHandlerART(BaseIOHandler):
                 yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
         for chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
@@ -176,6 +180,106 @@ class IOHandlerART(BaseIOHandler):
             return self.cache[field]
         else:
             return tr[field]
+
+class IOHandlerDarkMatterART(IOHandlerART):
+    _dataset_type = "dm_art"
+    def _count_particles(self, data_file):
+        return self.ds.parameters['lspecies'][-1]
+
+    def _initialize_index(self, data_file, regions):
+        totcount = 4096**2 #file is always this size
+        count = data_file.ds.parameters['lspecies'][-1]
+        DLE = data_file.ds.domain_left_edge
+        DRE = data_file.ds.domain_right_edge
+        dx = (DRE - DLE) / 2**_ORDER_MAX
+        with open(data_file.filename, "rb") as f:
+            # The first total_particles * 3 values are positions
+            pp = np.fromfile(f, dtype = '>f4', count = totcount*3)
+            pp.shape = (3, totcount)
+            pp = pp[:,:count] #remove zeros
+            pp = np.transpose(pp).astype(np.float32) #cast as float32 for compute_morton
+            pp = (pp - 1.)/data_file.ds.parameters['ng'] #correct the dm particle units
+        regions.add_data_file(pp, data_file.file_id)
+        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
+        return morton
+
+    def _identify_fields(self, domain):
+        field_list = []
+        tp = domain.total_particles
+        self.particle_field_list = [f for f in particle_fields]
+        for ptype in self.ds.particle_types_raw:
+            for pfield in self.particle_field_list:
+                pfn = (ptype, pfield)
+                field_list.append(pfn)
+        return field_list, {}
+
+    def _get_field(self,  field):
+        if field in self.cache.keys() and self.caching:
+            mylog.debug("Cached %s", str(field))
+            return self.cache[field]
+        mylog.debug("Reading %s", str(field))
+        tr = {}
+        ftype, fname = field
+        ptmax = self.ws[-1]
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
+                                                  self.ls, ptmax)
+        npa = idxb - idxa
+        sizes = np.diff(np.concatenate(([0], self.ls)))
+        rp = lambda ax: read_particles(
+            self.file_particle, self.Nrow, idxa=idxa,
+            idxb=idxb, fields=ax)
+        for i, ax in enumerate('xyz'):
+            if fname.startswith("particle_position_%s" % ax):
+                # This is not the same as domain_dimensions
+                dd = self.ds.parameters['ng']
+                off = 1.0/dd
+                tr[field] = rp([ax])[0]/dd - off
+            if fname.startswith("particle_velocity_%s" % ax):
+                tr[field], = rp(['v'+ax])
+        if fname == "particle_mass":
+            a = 0
+            data = np.zeros(npa, dtype='f8')
+            for ptb, size, m in zip(pbool, sizes, self.ws):
+                if ptb:
+                    data[a:a+size] = m
+                    a += size
+            tr[field] = data
+        elif fname == "particle_index":
+            tr[field] = np.arange(idxa, idxb)
+        elif fname == "particle_type":
+            a = 0
+            data = np.zeros(npa, dtype='int')
+            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+                if ptb:
+                    data[a: a + size] = i
+                    a += size
+            tr[field] = data
+        if fname == "particle_creation_time":
+            self.tb, self.ages, data = interpolate_ages(
+                tr[field][-nstars:],
+                self.file_stars,
+                self.tb,
+                self.ages,
+                self.ds.current_time)
+            temp = tr.get(field, np.zeros(npa, 'f8'))
+            temp[-nstars:] = data
+            tr[field] = temp
+            del data
+        # We check again, after it's been filled
+        if fname == "particle_mass":
+            # We now divide by NGrid in order to make this match up.  Note that
+            # this means that even when requested in *code units*, we are
+            # giving them as modified by the ng value.  This only works for
+            # dark_matter -- stars are regular matter.
+            tr[field] /= self.ds.domain_dimensions.prod()
+        if tr == {}:
+            tr[field] = np.array([])
+        if self.caching:
+            self.cache[field] = tr[field]
+            return self.cache[field]
+        else:
+            return tr[field]
+
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")

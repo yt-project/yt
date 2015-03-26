@@ -331,7 +331,7 @@ class multipart_yielder:
         of parameters"""
         if self.param_iter is not None:
             try:
-                block = self.param_iter.next()
+                block = next(self.param_iter)
                 self.current += len(block)
                 if self.cb:
                     self.cb(self.p, self.current, self.total)
@@ -355,7 +355,7 @@ class multipart_yielder:
         self.p = self.params[self.i]
         self.param_iter = self.p.iter_encode(self.boundary)
         self.i += 1
-        return self.next()
+        return next(self)
 
     def reset(self):
         self.i = 0

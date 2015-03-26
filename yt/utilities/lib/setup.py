@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
@@ -29,6 +30,7 @@ def check_for_openmp():
             "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
             "}"
             )
+        file.flush()
         with open(os.devnull, 'w') as fnull:
             exit_code = subprocess.call([compiler, '-fopenmp', filename],
                                         stdout=fnull, stderr=fnull)
@@ -153,7 +155,7 @@ def configuration(parent_package='',top_path=None):
         gpd = os.environ["GPERFTOOLS"]
         idir = os.path.join(gpd, "include")
         ldir = os.path.join(gpd, "lib")
-        print("INCLUDE AND LIB DIRS", idir, ldir)
+        print(("INCLUDE AND LIB DIRS", idir, ldir))
         config.add_extension("perftools_wrap",
                 ["yt/utilities/lib/perftools_wrap.pyx"],
                 libraries=["profiler"],

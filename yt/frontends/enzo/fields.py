@@ -88,16 +88,16 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
-        ("particle_velocity_x", (vel_units, ["particle_velocity_x"], None)),
-        ("particle_velocity_y", (vel_units, ["particle_velocity_y"], None)),
-        ("particle_velocity_z", (vel_units, ["particle_velocity_z"], None)),
+        ("particle_velocity_x", (vel_units, [], None)),
+        ("particle_velocity_y", (vel_units, [], None)),
+        ("particle_velocity_z", (vel_units, [], None)),
         ("creation_time", ("code_time", [], None)),
         ("dynamical_time", ("code_time", [], None)),
         ("metallicity_fraction", ("code_metallicity", [], None)),
         ("metallicity", ("", [], None)),
         ("particle_type", ("", [], None)),
         ("particle_index", ("", [], None)),
-        ("particle_mass", ("code_mass", ["particle_mass"], None)),
+        ("particle_mass", ("code_mass", [], None)),
         ("GridID", ("", [], None)),
         ("identifier", ("", ["particle_index"], None)),
         ("level", ("", [], None)),
@@ -229,6 +229,13 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_energy"),
                 function = _tot_minus_kin,
                 units = "erg/g")
+        if multi_species == 0 and 'Mu' in params:
+            def _number_density(field, data):
+                return data['gas', 'density']/(mp*params['Mu'])
+            self.add_field(
+                ("gas", "number_density"),
+                function = _number_density,
+                units="1/cm**3")
 
     def setup_particle_fields(self, ptype):
 

@@ -4,7 +4,7 @@ YTArray class.
 
 
 """
-
+from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -289,7 +289,7 @@ class YTArray(np.ndarray):
             dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
-        if registry is None and isinstance(input_units, basestring):
+        if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
                     "Code units used without referring to a dataset. \n"
@@ -494,7 +494,7 @@ class YTArray(np.ndarray):
         """
         for k,v in equivalence_registry.items():
             if self.has_equivalent(k):
-                print v()
+                print(v())
 
     def has_equivalent(self, equiv):
         """
@@ -591,7 +591,7 @@ class YTArray(np.ndarray):
             info = {}
 
         info['units'] = str(self.units)
-        info['unit_registry'] = pickle.dumps(self.units.registry.lut)
+        info['unit_registry'] = np.void(pickle.dumps(self.units.registry.lut))
 
         if dataset_name is None:
             dataset_name = 'array_data'
@@ -610,8 +610,8 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
-            d.attrs.create(k, v)
+        for k, v in info.items():
+            d.attrs[k] = v
         f.close()
 
     @classmethod
@@ -639,7 +639,7 @@ class YTArray(np.ndarray):
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
-            unit_lut = pickle.loads(dataset.attrs['unit_registry'])
+            unit_lut = pickle.loads(dataset.attrs['unit_registry'].tostring())
         else:
             unit_lut = None
         f.close()
@@ -1129,7 +1129,7 @@ class YTQuantity(YTArray):
 
     and strip them when it would be annoying to deal with them.
 
-    >>> print np.log10(a)
+    >>> print(np.log10(a))
     1.07918124605
 
     YTQuantity is tightly integrated with yt datasets:

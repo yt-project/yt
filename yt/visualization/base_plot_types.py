@@ -4,6 +4,7 @@ This is a place for base classes of the various plot types.
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -12,8 +13,8 @@ This is a place for base classes of the various plot types.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from io import BytesIO
 import matplotlib
-from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
@@ -27,7 +28,8 @@ except:
 
 
 class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field):
+    def __init__(self, viewer, window_plot, frb, field, font_properties, 
+                 font_color):
         self.frb = frb
         self.data = frb.data_source
         self._axes = window_plot.axes
@@ -46,7 +48,8 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
-
+        self.font_properties = font_properties
+        self.font_color = font_color
 
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
@@ -120,7 +123,7 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
                 cblinthresh = (data.max()-data.min())/10.
-            norm = matplotlib.colors.SymLogNorm(cblinthresh,vmin=data.min(), vmax=data.max())
+            norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
         if isinstance(cmap, tuple):
             if has_brewer:
@@ -131,7 +134,8 @@ class ImagePlotMPL(PlotMPL):
                     "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
+                                      aspect=aspect, vmax=self.zmax, cmap=cmap,
+                                      interpolation='nearest')
         if (cbnorm == 'symlog'):
             formatter = matplotlib.ticker.LogFormatterMathtext()
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
@@ -145,42 +149,46 @@ class ImagePlotMPL(PlotMPL):
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = StringIO()
+        f = BytesIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
 
     def _get_best_layout(self):
-        if self._draw_colorbar:
-            cb_size = self._cb_size
-            cb_text_size = self._ax_text_size[1] + 0.45
-        else:
-            cb_size = 0.0
-            cb_text_size = 0.0
-
-        if self._draw_axes:
-            x_axis_size = self._ax_text_size[0]
-            y_axis_size = self._ax_text_size[1]
-        else:
-            x_axis_size = 0.0
-            y_axis_size = 0.0
-
-        if self._draw_axes or self._draw_colorbar:
-            top_buff_size = self._top_buff_size
-        else:
-            top_buff_size = 0.0
 
         # Ensure the figure size along the long axis is always equal to _figure_size
         if iterable(self._figure_size):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:
-            if self._aspect >= 1.0:
-                x_fig_size = self._figure_size
-                y_fig_size = self._figure_size/self._aspect
-            if self._aspect < 1.0:
-                x_fig_size = self._figure_size*self._aspect
-                y_fig_size = self._figure_size
+            x_fig_size = self._figure_size
+            y_fig_size = self._figure_size/self._aspect
+
+        if hasattr(self, '_unit_aspect'):
+            y_fig_size = y_fig_size * self._unit_aspect
+
+        if self._draw_colorbar:
+            cb_size = self._cb_size
+            cb_text_size = self._ax_text_size[1] + 0.45
+        else:
+            cb_size = x_fig_size*0.04
+            cb_text_size = 0.0
+
+        if self._draw_axes:
+            x_axis_size = self._ax_text_size[0]
+            y_axis_size = self._ax_text_size[1]
+        else:
+            x_axis_size = x_fig_size*0.04
+            y_axis_size = y_fig_size*0.04
+
+        top_buff_size = self._top_buff_size
+
+        if not self._draw_axes and not self._draw_colorbar:
+            x_axis_size = 0.0
+            y_axis_size = 0.0
+            cb_size = 0.0
+            cb_text_size = 0.0
+            top_buff_size = 0.0
 
         xbins = np.array([x_axis_size, x_fig_size, cb_size, cb_text_size])
         ybins = np.array([y_axis_size, y_fig_size, top_buff_size])
@@ -190,6 +198,12 @@ class ImagePlotMPL(PlotMPL):
         x_frac_widths = xbins/size[0]
         y_frac_widths = ybins/size[1]
 
+        # axrect is the rectangle defining the area of the 
+        # axis object of the plot.  Its range goes from 0 to 1 in 
+        # x and y directions.  The first two values are the x,y 
+        # start values of the axis object (lower left corner), and the 
+        # second two values are the size of the axis object.  To get
+        # the upper right corner, add the first x,y to the second x,y.
         axrect = (
             x_frac_widths[0],
             y_frac_widths[0],
@@ -197,6 +211,9 @@ class ImagePlotMPL(PlotMPL):
             y_frac_widths[1],
         )
 
+        # caxrect is the rectangle defining the area of the colorbar
+        # axis object of the plot.  It is defined just as the axrect
+        # tuple is.
         caxrect = (
             x_frac_widths[0]+x_frac_widths[1],
             y_frac_widths[0],
@@ -207,16 +224,27 @@ class ImagePlotMPL(PlotMPL):
         return size, axrect, caxrect
 
     def _toggle_axes(self, choice):
+        """
+        Turn on/off displaying the axis ticks and labels for a plot.
+
+        choice = True or False
+        """
+
         self._draw_axes = choice
+        self.axes.set_frame_on(choice)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
-        self.axes.set_frame_on(choice)
         size, axrect, caxrect = self._get_best_layout()
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
 
     def _toggle_colorbar(self, choice):
+        """
+        Turn on/off displaying the colorbar for a plot
+
+        choice = True or False
+        """
         self._draw_colorbar = choice
         self.cax.set_visible(choice)
         size, axrect, caxrect = self._get_best_layout()
@@ -225,18 +253,30 @@ class ImagePlotMPL(PlotMPL):
         self.figure.set_size_inches(*size)
 
     def hide_axes(self):
+        """
+        Hide the axes for a plot including ticks and labels
+        """
         self._toggle_axes(False)
         return self
 
     def show_axes(self):
+        """
+        Show the axes for a plot including ticks and labels
+        """
         self._toggle_axes(True)
         return self
 
     def hide_colorbar(self):
+        """
+        Hide the colorbar for a plot including ticks and labels
+        """
         self._toggle_colorbar(False)
         return self
 
     def show_colorbar(self):
+        """
+        Show the colorbar for a plot including ticks and labels
+        """
         self._toggle_colorbar(True)
         return self
 
@@ -290,7 +330,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
         fudge_x = 1.0
         fudge_y = ny/(cbar_padding+ny)
     fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    from _mpl_imports import FigureCanvasAgg
+    from ._mpl_imports import FigureCanvasAgg
     fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,

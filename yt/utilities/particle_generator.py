@@ -2,6 +2,7 @@ import numpy as np
 from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
 from yt.units.yt_array import uconcatenate, YTArray
+from yt.extern.six import string_types
 
 class ParticleGenerator(object):
 
@@ -19,7 +20,7 @@ class ParticleGenerator(object):
         """
         self.ds = ds
         self.num_particles = num_particles
-        self.field_list = [("io",fd) if isinstance(fd,basestring) else fd
+        self.field_list = [("io",fd) if isinstance(fd,string_types) else fd
                            for fd in field_list]
         self.field_list.append(("io", "particle_index"))
         self.field_units = dict(
@@ -113,7 +114,7 @@ class ParticleGenerator(object):
             self.ParticleGridIndices[1] = self.NumberOfParticles.squeeze()
         if setup_fields is not None:
             for key, value in setup_fields.items():
-                field = ("io",key) if isinstance(key, basestring) else key
+                field = ("io",key) if isinstance(key, string_types) else key
                 if field not in self.default_fields:
                     self.particles[:,self.field_list.index(field)] = value[idxs]
     
@@ -145,7 +146,7 @@ class ParticleGenerator(object):
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i+1]
                 # Note we add one ghost zone to the grid!
-                cube = grid.retrieve_ghost_zones(1, mapping_dict.keys())
+                cube = grid.retrieve_ghost_zones(1, list(mapping_dict.keys()))
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
                 for gfield, pfield in mapping_dict.items():

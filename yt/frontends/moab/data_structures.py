@@ -126,7 +126,8 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
-        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        
+        ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.getVtxCoords(ents).astype("float64")
         vind = self.pyne_mesh.mesh.rootSet.getAdjEntIndices(
             iBase.Type.region, iMesh.Topology.hexahedron,
@@ -167,7 +168,8 @@ class PyneMoabHex8Dataset(Dataset):
 
     def _parse_parameter_file(self):
         from itaps import iBase
-        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+
+        ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.getVtxCoords(ents)
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]

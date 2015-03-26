@@ -247,7 +247,7 @@ and you can access the contents:
 
     yt.enable_parallelism()
     my_dictionary = {}
-    for dataset in dataset_series.piter(storage=my_dictionary):
+    for sto, dataset in dataset_series.piter(storage=my_dictionary):
         <process>
         sto.result = <some information processed for this dataset>
         sto.result_id = <some identfier for this dataset>

@@ -15,7 +15,6 @@ HOP-output data handling
 
 import gc
 import h5py
-import itertools
 import math
 import numpy as np
 import random
@@ -25,6 +24,7 @@ import os
 import os.path as path
 from collections import defaultdict
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
 from yt.funcs import mylog, ensure_dir_exists
@@ -110,8 +110,8 @@ class Halo(object):
             ds = self.ds.sphere(self.CoM, self._radjust * self.max_radius)
         elif self._name == "LoadedHalo":
             ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.ds.quan(self.max_radius, 'code_length'), \
-	    self.ds.index.get_smallest_dx()))
+            self.ds.quan(self.max_radius, 'code_length'), \
+            self.ds.index.get_smallest_dx()))
         sp_pid = ds['particle_index']
         self._ds_sort = sp_pid.argsort()
         sp_pid = sp_pid[self._ds_sort]
@@ -333,8 +333,8 @@ class Halo(object):
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
                    + ["particle_index"]:
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
-	handle.create_dataset("/%s/particle_mass" % gn,
-		data=self["particle_mass"].in_units('Msun'))
+        handle.create_dataset("/%s/particle_mass" % gn,
+                              data=self["particle_mass"].in_units('Msun'))
         if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
@@ -452,7 +452,7 @@ class Halo(object):
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
         # yt.math.
-        for pos in itertools.izip(self["particle_position_x"],
+        for pos in izip(self["particle_position_x"],
                 self["particle_position_y"], self["particle_position_z"]):
             dist[mark] = periodic_dist(cen, pos, period)
             mark += 1
@@ -469,7 +469,7 @@ class Halo(object):
                 self.mass_bins[index] += \
                 np.sum(self["particle_mass"][inds == index]).in_units('Msun')
         # Now forward sum the masses in the bins.
-        for i in xrange(self.bin_count):
+        for i in range(self.bin_count):
             self.mass_bins[i + 1] += self.mass_bins[i]
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
@@ -745,7 +745,7 @@ class LoadedHalo(Halo):
         self._saved_fields = {}
         self._ds_sort = None
         self._particle_mask = None
-	self._pid_sort = None
+        self._pid_sort = None
 
 
     def __getitem__(self, key):
@@ -764,26 +764,26 @@ class LoadedHalo(Halo):
         if field_data is not None:
             if key == 'particle_index':
                 #this is an index for turning data sorted by particle index 
-		#into the same order as the fields on disk
-		self._pid_sort = field_data.argsort().argsort()
-	    #convert to YTArray using the data from disk
-	    if key == 'particle_mass':
-		field_data = self.ds.arr(field_data, 'Msun')
-	    else:
-	        field_data = self.ds.arr(field_data, 
-		    self.ds._get_field_info('unknown',key).units)
+                #into the same order as the fields on disk
+                self._pid_sort = field_data.argsort().argsort()
+            #convert to YTArray using the data from disk
+            if key == 'particle_mass':
+                field_data = self.ds.arr(field_data, 'Msun')
+            else:
+                field_data = self.ds.arr(field_data, 
+                    self.ds._get_field_info('unknown',key).units)
             self._saved_fields[key] = field_data
             return self._saved_fields[key]
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
         ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.ds.quan(self.max_radius, 'code_length'), \
-	    self.ds.index.get_smallest_dx()))
-	# If particle_mask hasn't been called once then _ds_sort won't have
-	# the proper values set yet
+            self.ds.quan(self.max_radius, 'code_length'), \
+            self.ds.index.get_smallest_dx()))
+        # If particle_mask hasn't been called once then _ds_sort won't have
+        # the proper values set yet
         if self._particle_mask is None:
-	    self.particle_mask
+            self.particle_mask
         return ds[key][self._ds_sort][self.particle_mask][self._pid_sort]
 
     def _get_particle_data(self, halo, fnames, size, field):

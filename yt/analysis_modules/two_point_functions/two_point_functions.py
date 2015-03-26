@@ -351,7 +351,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         if self.mine != 0:
             return
         self.recv_done = {}
-        for task in xrange(self.size):
+        for task in range(self.size):
             if task == self.mine: continue
             self.recv_done[task] = np.zeros(1, dtype='int64')
             self.done_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_done[task], \
@@ -738,7 +738,7 @@ class FcnSet(TwoPointFunctions):
         input = [bin_type, bin_number, bin_range]
         lists = 0
         for thing in input:
-            if type(thing) == types.ListType:
+            if type(thing) == list:
                 lists += 1
         if lists > 1 and lists < 3:
             mylog.error("Either all the inputs need to be lists, or only one.")

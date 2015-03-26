@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##
 ## This is a modified version of the LogLocator used in Matplotlib.
 ## It is subject to the terms of the BSD license, and copyright is held by the
@@ -154,10 +155,10 @@ class LinearLocator(object):
 
 if __name__ == "__main__":
     ll = LogLocator()
-    print ll(1e-24, 5e-25)
-    print ll(1e-24, 1e-28)
-    print ll(1e-24, 1e-35)
+    print(ll(1e-24, 5e-25))
+    print(ll(1e-24, 1e-28))
+    print(ll(1e-24, 1e-35))
     lll = LinearLocator()
-    print lll(-1e-24, 1e-24)
-    print lll(-2.3, 1.3)
-    print lll(10,23.)
+    print(lll(-1e-24, 1e-24))
+    print(lll(-2.3, 1.3))
+    print(lll(10,23.))

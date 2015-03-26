@@ -14,11 +14,14 @@ Enzo-specific IO functions
 #-----------------------------------------------------------------------------
 
 import os
+import random
+from contextlib import contextmanager
 
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import mask_fill, AlwaysSelector
+from yt.extern.six import u, b
 import h5py
 
 import numpy as np
@@ -32,6 +35,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
     _dataset_type = "enzo_packed_3d"
     _base = slice(None)
+    _field_dtype = "float64"
 
     def _read_field_names(self, grid):
         if grid.filename is None: return []
@@ -41,9 +45,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         except KeyError:
             group = f
         fields = []
+        dtypes = set([])
         add_io = "io" in grid.ds.particle_types
-        for name, v in group.iteritems():
+        for name, v in group.items():
             # NOTE: This won't work with 1D datasets or references.
+            # For all versions of Enzo I know about, we can assume all floats
+            # are of the same size.  So, let's grab one.
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             elif len(v.dims) == 1:
@@ -53,6 +60,16 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
+                dtypes.add(v.dtype)
+
+        if len(dtypes) == 1:
+            # Now, if everything we saw was the same dtype, we can go ahead and
+            # set it here.  We do this because it is a HUGE savings for 32 bit
+            # floats, since our numpy copying/casting is way faster than
+            # h5py's, for some reason I don't understand.  This does *not* need
+            # to be correct -- it will get fixed later -- it just needs to be
+            # okay for now.
+            self._field_dtype = list(dtypes)[0]
         f.close()
         return fields
 
@@ -68,7 +85,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (count) %s" % g.filename
-                    f = h5py.File(g.filename.encode('ascii'), "r")
+                    f = h5py.File(b(g.filename), "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -97,7 +114,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (read) %s" % g.filename
-                    f = h5py.File(g.filename.encode('ascii'), "r")
+                    f = h5py.File(b(g.filename), "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -129,13 +146,26 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
-            f = h5py.File(g.filename.encode('ascii'), 'r')
+            f = h5py.File(u(g.filename), 'r')
+            if g.id in self._cached_fields:
+                gf = self._cached_fields[g.id]
+                rv.update(gf)
+            if len(rv) == len(fields): return rv
             gds = f.get("/Grid%08i" % g.id)
-            for ftype, fname in fields:
+            for field in fields:
+                if field in rv:
+                    self._hits += 1
+                    continue
+                self._misses += 1
+                ftype, fname = field
                 if fname in gds:
                     rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
                 else:
                     rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
+            if self._cache_on:
+                for gid in rv:
+                    self._cached_fields.setdefault(gid, {})
+                    self._cached_fields[gid].update(rv[gid])
             f.close()
             return rv
         if size is None:
@@ -149,28 +179,76 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
+        h5_type = self._field_dtype
         for chunk in chunks:
             fid = None
             for g in chunk.objs:
                 if g.filename is None: continue
                 if fid is None:
-                    fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
-                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+                    fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
+                gf = self._cached_fields.get(g.id, {})
+                data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
                 data_view = data.swapaxes(0,2)
                 nd = 0
                 for field in fields:
+                    if field in gf:
+                        nd = g.select(selector, gf[field], rv[field], ind)
+                        self._hits += 1
+                        continue
+                    self._misses += 1
                     ftype, fname = field
                     try:
                         node = "/Grid%08i/%s" % (g.id, fname)
-                        dg = h5py.h5d.open(fid, node.encode('ascii'))
+                        dg = h5py.h5d.open(fid, b(node))
                     except KeyError:
                         if fname == "Dark_Matter_Density": continue
                         raise
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                    if self._cache_on:
+                        self._cached_fields.setdefault(g.id, {})
+                        # Copy because it's a view into an empty temp array
+                        self._cached_fields[g.id][field] = data_view.copy()
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
             if fid: fid.close()
         return rv
+
+    @contextmanager
+    def preload(self, chunk, fields, max_size):
+        if len(fields) == 0:
+            yield self
+            return
+        old_cache_on = self._cache_on
+        old_cached_fields = self._cached_fields
+        self._cached_fields = cf = {}
+        self._cache_on = True
+        for gid in old_cached_fields:
+            # Will not copy numpy arrays, which is good!
+            cf[gid] = old_cached_fields[gid].copy() 
+        self._hits = self._misses = 0
+        self._cached_fields = self._read_chunk_data(chunk, fields)
+        mylog.debug("(1st) Hits = % 10i Misses = % 10i",
+            self._hits, self._misses)
+        self._hits = self._misses = 0
+        yield self
+        mylog.debug("(2nd) Hits = % 10i Misses = % 10i",
+            self._hits, self._misses)
+        self._cached_fields = old_cached_fields
+        self._cache_on = old_cache_on
+        # Randomly remove some grids from the cache.  Note that we're doing
+        # this on a grid basis, not a field basis.  Performance will be
+        # slightly non-deterministic as a result of this, but it should roughly
+        # be statistically alright, assuming (as we do) that this will get
+        # called during largely unbalanced stuff.
+        if len(self._cached_fields) > max_size:
+            to_remove = random.sample(self._cached_fields.keys(),
+                len(self._cached_fields) - max_size)
+            mylog.debug("Purging from cache %s", len(to_remove))
+            for k in to_remove:
+                self._cached_fields.pop(k)
+        else:
+            mylog.warning("Cache size % 10i (max % 10i)",
+                len(self._cached_fields), max_size)
 
     def _read_chunk_data(self, chunk, fields):
         fid = fn = None
@@ -188,28 +266,39 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             rv.update(self._read_particle_selection(
               [chunk], selector, particle_fields))
         if len(fluid_fields) == 0: return rv
+        h5_type = self._field_dtype
         for g in chunk.objs:
             rv[g.id] = gf = {}
+            if g.id in self._cached_fields:
+                rv[g.id].update(self._cached_fields[g.id])
             if g.filename is None: continue
             elif g.filename != fn:
                 if fid is not None: fid.close()
                 fid = None
             if fid is None:
-                fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
+                fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 fn = g.filename
-            data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
+            data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
             data_view = data.swapaxes(0,2)
             for field in fluid_fields:
+                if field in gf:
+                    self._hits += 1
+                    continue
+                self._misses += 1
                 ftype, fname = field
                 try:
                     node = "/Grid%08i/%s" % (g.id, fname)
-                    dg = h5py.h5d.open(fid, node.encode('ascii'))
+                    dg = h5py.h5d.open(fid, b(node))
                 except KeyError:
                     if fname == "Dark_Matter_Density": continue
                     raise
                 dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                 gf[field] = data_view.copy()
         if fid: fid.close()
+        if self._cache_on:
+            for gid in rv:
+                self._cached_fields.setdefault(gid, {})
+                self._cached_fields[gid].update(rv[gid])
         return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):

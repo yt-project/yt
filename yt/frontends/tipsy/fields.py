@@ -5,6 +5,7 @@ Tipsy fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -14,30 +15,29 @@ Tipsy fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.frontends.sph.fields import SPHFieldInfo
 
 class TipsyFieldInfo(SPHFieldInfo):
     aux_particle_fields = {
-        'uDotFB':("uDotFB", ("code_mass * code_velocity**2", ["uDotFB"], None)),
-        'uDotAV':("uDotAV", ("code_mass * code_velocity**2", ["uDotAV"], None)),
-        'uDotPdV':("uDotPdV", ("code_mass * code_velocity**2", ["uDotPdV"], None)),
-        'uDotHydro':("uDotHydro", ("code_mass * code_velocity**2", ["uDotHydro"], None)),
-        'uDotDiff':("uDotDiff", ("code_mass * code_velocity**2", ["uDotDiff"], None)),
-        'uDot':("uDot", ("code_mass * code_velocity**2", ["uDot"], None)),
-        'coolontime':("coolontime", ("code_time", ["coolontime"], None)),
-        'timeform':("timeform", ("code_time", ["timeform"], None)),
-        'massform':("massform", ("code_mass", ["massform"], None)),
-        'HI':("HI", ("dimensionless", ["HI"], None)),
-        'HII':("HII", ("dimensionless", ["HII"], None)),
-        'HeI':("HeI", ("dimensionless", ["HeI"], None)),
-        'HeII':("HeII", ("dimensionless", ["HeII"], None)),
-        'OxMassFrac':("OxMassFrac", ("dimensionless", ["OxMassFrac"], None)),
-        'FeMassFrac':("FeMassFrac", ("dimensionless", ["FeMassFrac"], None)),
-        'c':("c", ("code_velocity", ["c"], None)),
-        'acc':("acc", ("code_velocity / code_time", ["acc"], None)),
-        'accg':("accg", ("code_velocity / code_time", ["accg"], None))}
-    
+        'uDotFB':("uDotFB", ("code_mass * code_velocity**2", [""], None)),
+        'uDotAV':("uDotAV", ("code_mass * code_velocity**2", [""], None)),
+        'uDotPdV':("uDotPdV", ("code_mass * code_velocity**2", [""], None)),
+        'uDotHydro':("uDotHydro", ("code_mass * code_velocity**2", [""], None)),
+        'uDotDiff':("uDotDiff", ("code_mass * code_velocity**2", [""], None)),
+        'uDot':("uDot", ("code_mass * code_velocity**2", [""], None)),
+        'coolontime':("coolontime", ("code_time", [""], None)),
+        'timeform':("timeform", ("code_time", [""], None)),
+        'massform':("massform", ("code_mass", [""], None)),
+        'HI':("HI", ("dimensionless", ["H_fraction"], None)),
+        'HII':("HII", ("dimensionless", ["H_p1_fraction"], None)),
+        'HeI':("HeI", ("dimensionless", ["He_fraction"], None)),
+        'HeII':("HeII", ("dimensionless", ["He_p2_fraction"], None)),
+        'OxMassFrac':("OxMassFrac", ("dimensionless", ["O_fraction"], None)),
+        'FeMassFrac':("FeMassFrac", ("dimensionless", ["Fe_fraction"], None)),
+        'c':("c", ("code_velocity", [""], None)),
+        'acc':("acc", ("code_velocity / code_time", [""], None)),
+        'accg':("accg", ("code_velocity / code_time", [""], None))}
+
     def __init__(self, ds, field_list, slice_info = None):
         for field in field_list:
             if field[1] in self.aux_particle_fields.keys() and \

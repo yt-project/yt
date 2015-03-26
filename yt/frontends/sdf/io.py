@@ -156,9 +156,9 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
                                 raise RuntimeError
                             data = pm * np.ones(mask.sum(), dtype="float64")
                         else:
-                            data = self._handle[self.ds.field_info._mass_field][mask]
+                            data = self._handle[self.ds.field_info._mass_field][:][mask]
                     else:
-                        data = self._handle[field][mask]
+                        data = self._handle[field][:][mask]
                     yield (ptype, field), data
 
     def _count_particles(self, data_file):
