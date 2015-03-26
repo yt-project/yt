@@ -36,7 +36,7 @@ from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.data_objects.selection_data_containers import YTOrthoRayBase, YTRayBase
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-     import periodic_ray
+     import LightRay, periodic_ray
 import warnings
 
 from . import _MPL
@@ -1939,44 +1939,38 @@ class RayCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        # assume ray is a YTRayBase object
-        try:
+
+        # when ray is a YTRayBase object
+        if isinstance(self.ray, YTRayBase):
             start_coord = self.ray.start_point
             end_coord = self.ray.end_point
-        except AttributeError:
-            # assume ray is a YTOrthoRayBase object
-            # (defined by an axis and an intersecting coordinate)
-            # then set the start and end coords accordingly
-            try:
-                start_coord = self.ray.ds.arr([0,0,0], 'code_length')
-                end_coord = self.ray.ds.arr([0,0,0], 'code_length')
-                start_coord[self.ray.axis] = \
-                    self.ray.ds.domain_left_edge[self.ray.axis]
-                end_coord[self.ray.axis] = \
-                    self.ray.ds.domain_right_edge[self.ray.axis]
-                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = \
-                    self.ray.coords[0]
-                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = \
-                    self.ray.coords[0]
-                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = \
-                    self.ray.coords[1]
-                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = \
-                    self.ray.coords[1]
-            except AttributeError:
-                # assume ray is a LightRay object; in which case, identify if 
-                # any of the sections of the LightRay are in the dataset that
-                # is currently being plotted.  If so, use the start and end
-                # of the corresponding ray to add the line to the plot.
-                try:
-                    for ray_ds in self.ray.light_ray_solution:
-                        if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
-                            start_coord = ray_ds['start']
-                            end_coord = ray_ds['end']
-                            break
 
-                except AttributeError:
-                    raise SyntaxError("ray must be a YTRayBase, "
-                                      "YTOrthoRayBase, or LightRay object.")
+        # if ray is a YTOrthoRayBase object
+        # (defined by an axis and an intersecting coordinate)
+        # then set the start and end coords accordingly
+        elif isinstance(self.ray, YTOrthoRayBase):
+            start_coord = self.ray.ds.domain_left_edge.copy()
+            end_coord = self.ray.ds.domain_right_edge.copy()
+
+            xax = self.ray.ds.coordinates.x_axis[self.ray.axis]
+            yax = self.ray.ds.coordinates.y_axis[self.ray.axis]
+            start_coord[xax] = end_coord[xax] = self.ray.coords[0]
+            start_coord[yax] = end_coord[yax] = self.ray.coords[1]
+
+        # if ray is a LightRay object; in which case, identify if 
+        # any of the sections of the LightRay are in the dataset that
+        # is currently being plotted.  If so, use the start and end
+        # of the corresponding ray to add the line to the plot.
+        elif isinstance(self.ray, LightRay):
+            for ray_ds in self.ray.light_ray_solution:
+                if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
+                    start_coord = ray_ds['start']
+                    end_coord = ray_ds['end']
+                    break
+
+        else:
+            raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
+                              "LightRay object.")
 
         # if possible, break periodic ray into non-periodic 
         # segments and add each of them individually
