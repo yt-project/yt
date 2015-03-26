@@ -1974,11 +1974,17 @@ class RayCallback(PlotCallback):
 
         # if possible, break periodic ray into non-periodic 
         # segments and add each of them individually
-        segments = periodic_ray(start_coord, end_coord,
-                                left=plot.ds.domain_left_edge,
-                                right=plot.ds.domain_right_edge)
-        for segment in segments:
-            lcb = LinePlotCallback(segment[0], segment[1],
+        if any(plot.ds.periodicity):
+            segments = periodic_ray(start_coord, end_coord,
+                                    left=plot.ds.domain_left_edge,
+                                    right=plot.ds.domain_right_edge)
+            for segment in segments:
+                lcb = LinePlotCallback(segment[0], segment[1],
+                                       coord_system='data',
+                                       plot_args=self.plot_args)
+                lcb(plot)
+        else:
+            lcb = LinePlotCallback(start_coord, end_coord,
                                    coord_system='data',
                                    plot_args=self.plot_args)
             lcb(plot)
