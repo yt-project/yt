@@ -1003,6 +1003,7 @@ def test_electromagnetic():
     P_cgs = I_cgs*I_cgs*R_cgs
     yield assert_equal, P_mks.units.dimensions, power
     yield assert_equal, P_cgs.units.dimensions, power
+    yield assert_array_almost_equal, P_cgs.in_cgs(), P_mks.in_cgs()
     yield assert_array_almost_equal, P_cgs.in_mks(), YTQuantity(1.0, "W")
     
     V = YTQuantity(1.0, "statV")
