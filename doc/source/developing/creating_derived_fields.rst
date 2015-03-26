@@ -30,8 +30,10 @@ the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
 field!  We don't do any loops, we don't do any type-checking, we can simply
 multiply the three items together.
 
-In this example, the ``density`` field will return data with units of ``g/cm**3``
-and the ``thermal_energy`` field will return data units of ``erg/g``, so the result will automatically have units of pressure, ``erg/cm**3``.
+In this example, the ``density`` field will return data with units of
+``g/cm**3`` and the ``thermal_energy`` field will return data units of
+``erg/g``, so the result will automatically have units of pressure,
+``erg/cm**3``.
 
 Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
