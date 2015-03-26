@@ -162,7 +162,7 @@ class LightRay(CosmologySplice):
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
-                    raise RuntimeError("LightRay Error: trajectory must have lenght 3.")
+                    raise RuntimeError("LightRay Error: trajectory must have length 3.")
                 r, theta, phi = trajectory
                 self.light_ray_solution[0]['end'] = self.light_ray_solution[0]['start'] + \
                   r * np.array([np.cos(phi) * np.sin(theta),
@@ -355,6 +355,7 @@ class LightRay(CosmologySplice):
             # Load dataset for segment.
             ds = load(my_segment['filename'])
 
+            my_segment['unique_identifier'] = ds.unique_identifier
             if redshift is not None:
                 if ds.cosmological_simulation and redshift != ds.current_redshift:
                     mylog.warn("Generating light ray with different redshift than " +

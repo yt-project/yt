@@ -35,6 +35,8 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.data_objects.selection_data_containers import YTOrthoRayBase, YTRayBase
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
+     import periodic_ray
 import warnings
 
 from . import _MPL
@@ -1886,22 +1888,27 @@ class RayCallback(PlotCallback):
     annotate_ray(ray, plot_args=None)
 
     Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase or YTRayBase class object.
+    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    annotate_ray() will properly account for periodic rays across the volume.
     
     Parameters
     ----------
 
-    ray : YTOrthoRayBase or YTRayBase
+    ray : YTOrthoRayBase, YTRayBase, or LightRay
         Ray is the object that we want to include.  We overplot the projected
-        trajectory of the ray.
+        trajectory of the ray.  If the object is a 
+        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay 
+        object, it will only plot the segment of the LightRay that intersects
+        the dataset currently displayed.
 
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':2}.
 
-    Example
-    ------- 
+    Examples
+    -------- 
 
+    >>> # Overplot a ray and an ortho_ray object on a projection
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> oray = ds.ortho_ray(1, (0.3, 0.4)) # orthoray down the y axis
@@ -1910,6 +1917,18 @@ class RayCallback(PlotCallback):
     >>> p.annotate_ray(oray)
     >>> p.annotate_ray(ray)
     >>> p.save()
+
+    >>> # Overplot a LightRay object on a projection
+    >>> import yt
+    >>> from yt.analysis_modules.cosmological_observation.api import LightRay
+    >>> ds = yt.load('enzo_cosmology_plus/RD0004/RD0004')
+    >>> lr = LightRay("enzo_cosmology_plus/AMRCosmology.enzo",
+    ...               'Enzo', 0.0, 0.1, time_data=False)
+    >>> lray = lr.make_light_ray(seed=1)
+    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> p.annotate_ray(lr)
+    >>> p.save()
+
     """
     _type_name = "ray"
     def __init__(self, ray, plot_args=None):
@@ -1929,19 +1948,44 @@ class RayCallback(PlotCallback):
             # (defined by an axis and an intersecting coordinate)
             # then set the start and end coords accordingly
             try:
-                start_coord = np.zeros(3)
-                end_coord = np.zeros(3)
-                start_coord[self.ray.axis] = self.ray.ds.domain_left_edge[self.ray.axis]
-                end_coord[self.ray.axis] = self.ray.ds.domain_right_edge[self.ray.axis]
-                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = self.ray.coords[0]
-                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = self.ray.coords[0]
-                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = self.ray.coords[1]
-                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = self.ray.coords[1]
+                start_coord = self.ray.ds.arr([0,0,0], 'code_length')
+                end_coord = self.ray.ds.arr([0,0,0], 'code_length')
+                start_coord[self.ray.axis] = 
+                    self.ray.ds.domain_left_edge[self.ray.axis]
+                end_coord[self.ray.axis] = 
+                    self.ray.ds.domain_right_edge[self.ray.axis]
+                start_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = 
+                    self.ray.coords[0]
+                end_coord[self.ray.ds.coordinates.x_axis[self.ray.axis]] = 
+                    self.ray.coords[0]
+                start_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = 
+                    self.ray.coords[1]
+                end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = 
+                    self.ray.coords[1]
             except:
-                raise SyntaxError("ray must be a YTRayBase or YTOrthoRayBase "
-                                  "object")
+                # assume ray is a LightRay object; in which case, identify if 
+                # any of the sections of the LightRay are in the dataset that
+                # is currently being plotted.  If so, use the start and end
+                # of the corresponding ray to add the line to the plot.
+                try:
+                    for ray_ds in self.ray.light_ray_solution:
+                        if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
+                            start_coord = ray_ds['start']
+                            end_coord = ray_ds['end']
+                            break
 
-        lcb = LinePlotCallback(start_coord, end_coord,
-                               coord_system='data',
-                               plot_args=self.plot_args)
-        return lcb(plot)
+                except:
+                    raise SyntaxError("ray must be a YTRayBase, "
+                                      "YTOrthoRayBase, or LightRay object.")
+
+        # if possible, break periodic ray into non-periodic 
+        # segments and add each of them individually
+        segments = periodic_ray(start_coord, end_coord,
+                                left=plot.ds.domain_left_edge,
+                                right=plot.ds.domain_right_edge)
+        for segment in segments:
+            lcb = LinePlotCallback(segment[0], segment[1],
+                                   coord_system='data',
+                                   plot_args=self.plot_args)
+            lcb(plot)
+        return plot
