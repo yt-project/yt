@@ -34,9 +34,8 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.data_objects.selection_data_containers import YTOrthoRayBase, YTRayBase
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-     import LightRay, periodic_ray
+     import periodic_ray
 import warnings
 
 from . import _MPL
@@ -1938,39 +1937,62 @@ class RayCallback(PlotCallback):
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
+    def _process_ray(self):
+        """
+        Get the start_coord and end_coord of a ray object
+        """
+        return (self.ray.start_point, self.ray.end_point)
+
+    def _process_ortho_ray(self):
+        """
+        Get the start_coord and end_coord of an ortho_ray object
+        """
+        start_coord = self.ray.ds.domain_left_edge.copy()
+        end_coord = self.ray.ds.domain_right_edge.copy()
+
+        xax = self.ray.ds.coordinates.x_axis[self.ray.axis]
+        yax = self.ray.ds.coordinates.y_axis[self.ray.axis]
+        start_coord[xax] = end_coord[xax] = self.ray.coords[0]
+        start_coord[yax] = end_coord[yax] = self.ray.coords[1]
+        return (start_coord, end_coord)
+
+    def _process_light_ray(self, plot):
+        """
+        Get the start_coord and end_coord of a LightRay object.
+        Identify which of the sections of the LightRay is in the 
+        dataset that is currently being plotted.  If there is one, return the 
+        start and end of the corresponding ray segment
+        """
+
+        for ray_ds in self.ray.light_ray_solution:
+            if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
+                start_coord = ray_ds['start']
+                end_coord = ray_ds['end']
+                return (start_coord, end_coord)
+        # if no intersection between the plotted dataset and the LightRay
+        # return a false tuple to pass to start_coord
+        return ((False, False), (False, False))
+
     def __call__(self, plot):
+        type_name = getattr(self.ray, "_type_name", None)
 
-        # when ray is a YTRayBase object
-        if isinstance(self.ray, YTRayBase):
-            start_coord = self.ray.start_point
-            end_coord = self.ray.end_point
+        if type_name == "ray":
+            start_coord, end_coord = self._process_ray()
 
-        # if ray is a YTOrthoRayBase object
-        # (defined by an axis and an intersecting coordinate)
-        # then set the start and end coords accordingly
-        elif isinstance(self.ray, YTOrthoRayBase):
-            start_coord = self.ray.ds.domain_left_edge.copy()
-            end_coord = self.ray.ds.domain_right_edge.copy()
+        elif type_name == "ortho_ray":
+            start_coord, end_coord = self._process_ortho_ray()
 
-            xax = self.ray.ds.coordinates.x_axis[self.ray.axis]
-            yax = self.ray.ds.coordinates.y_axis[self.ray.axis]
-            start_coord[xax] = end_coord[xax] = self.ray.coords[0]
-            start_coord[yax] = end_coord[yax] = self.ray.coords[1]
-
-        # if ray is a LightRay object; in which case, identify if 
-        # any of the sections of the LightRay are in the dataset that
-        # is currently being plotted.  If so, use the start and end
-        # of the corresponding ray to add the line to the plot.
-        elif isinstance(self.ray, LightRay):
-            for ray_ds in self.ray.light_ray_solution:
-                if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
-                    start_coord = ray_ds['start']
-                    end_coord = ray_ds['end']
-                    break
+        elif hasattr(self.ray, "light_ray_solution"):
+            start_coord, end_coord = self._process_light_ray(plot)
 
         else:
             raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
                               "LightRay object.")
+
+        # if start_coord and end_coord are all False, it means no intersecting 
+        # ray segment with this plot.
+        if not all(start_coord) and not all(end_coord):
+            return plot
 
         # if possible, break periodic ray into non-periodic 
         # segments and add each of them individually
@@ -1978,14 +2000,13 @@ class RayCallback(PlotCallback):
             segments = periodic_ray(start_coord, end_coord,
                                     left=plot.ds.domain_left_edge,
                                     right=plot.ds.domain_right_edge)
-            for segment in segments:
-                lcb = LinePlotCallback(segment[0], segment[1],
-                                       coord_system='data',
-                                       plot_args=self.plot_args)
-                lcb(plot)
         else:
-            lcb = LinePlotCallback(start_coord, end_coord,
+            segments = [[start_coord, end_coord]]
+
+        for segment in segments:
+            lcb = LinePlotCallback(segment[0], segment[1],
                                    coord_system='data',
                                    plot_args=self.plot_args)
             lcb(plot)
+
         return plot
