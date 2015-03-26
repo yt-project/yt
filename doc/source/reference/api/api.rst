@@ -689,6 +689,7 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.RayCallback
    ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
