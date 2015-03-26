@@ -94,16 +94,6 @@ class TipsyDataset(ParticleDataset):
 
         self._unit_base = unit_base or {}
 
-        if bounding_box is not None:
-            bbox = np.array(bounding_box, dtype="float64")
-            if bbox.shape == (2, 3):
-                bbox = bbox.transpose()
-            self.domain_left_edge = bbox[:,0]
-            self.domain_right_edge = bbox[:,1]
-        else:
-            self.domain_left_edge = self.domain_right_edge = None
- 
-
         self._cosmology_parameters = cosmology_parameters
         if parameter_file is not None:
             parameter_file = os.path.abspath(parameter_file)
@@ -113,6 +103,16 @@ class TipsyDataset(ParticleDataset):
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
         super(TipsyDataset, self).__init__(filename, dataset_type)
+
+        if bounding_box is not None:
+            bbox = self.arr(bounding_box, 'code_length', dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+        else:
+            self.domain_left_edge = self.domain_right_edge = None
+
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
