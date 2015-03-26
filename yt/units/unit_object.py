@@ -24,12 +24,13 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless
+    dimensionless, current_mks
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes
+    mks_base_units, latex_prefixes, yt_base_units
 from yt.units.unit_registry import UnitRegistry
+from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
 import string
@@ -375,11 +376,20 @@ class Unit(Expr):
             units.append("".join([unit_string, power_string]))
         return " * ".join(units)
 
-
+    def get_base_equivalent(self):
+        """
+        Create and return dimensionally-equivalent base units.
+        """
+        units_string = self._get_system_unit_string(yt_base_units)
+        return Unit(units_string, cgs_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
+    
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
         """
+        if current_mks in self.dimensions.free_symbols:
+            raise YTUnitsNotReducible(self.units, "cgs")
         units_string = self._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
@@ -389,9 +399,9 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
         """
         units_string = self._get_system_unit_string(mks_base_units)
-        cgs_value = get_conversion_factor(self, self.get_cgs_equivalent())[0]
-        cgs_value /= get_conversion_factor(self, Unit(units_string))[0]
-        return Unit(units_string, cgs_value=cgs_value,
+        base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
+        base_value /= get_conversion_factor(self, Unit(units_string))[0]
+        return Unit(units_string, cgs_value=base_value,
                     dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
