@@ -1943,7 +1943,7 @@ class RayCallback(PlotCallback):
         try:
             start_coord = self.ray.start_point
             end_coord = self.ray.end_point
-        except:
+        except AttributeError:
             # assume ray is a YTOrthoRayBase object
             # (defined by an axis and an intersecting coordinate)
             # then set the start and end coords accordingly
@@ -1962,7 +1962,7 @@ class RayCallback(PlotCallback):
                     self.ray.coords[1]
                 end_coord[self.ray.ds.coordinates.y_axis[self.ray.axis]] = \
                     self.ray.coords[1]
-            except:
+            except AttributeError:
                 # assume ray is a LightRay object; in which case, identify if 
                 # any of the sections of the LightRay are in the dataset that
                 # is currently being plotted.  If so, use the start and end
@@ -1974,7 +1974,7 @@ class RayCallback(PlotCallback):
                             end_coord = ray_ds['end']
                             break
 
-                except:
+                except AttributeError:
                     raise SyntaxError("ray must be a YTRayBase, "
                                       "YTOrthoRayBase, or LightRay object.")
 
