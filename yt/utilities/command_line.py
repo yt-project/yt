@@ -679,6 +679,9 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
+        if sys.version_info >= (3,0,0):
+            print("yt mapserver is disabled for Python 3.")
+            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
@@ -1045,15 +1048,15 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
+        image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.parse.urlencode(parameters)
+        data = urllib.parse.urlencode(parameters).encode('utf-8')
         req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib.request.urlopen(req).read()
+            response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
@@ -1075,6 +1078,15 @@ class YTUploadImageCmd(YTCommand):
 
 def run_main():
     args = parser.parse_args()
+    # The following is a workaround for a nasty Python 3 bug:
+    # http://bugs.python.org/issue16308
+    # http://bugs.python.org/issue9253
+    try:
+        getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        sys.exit(0)
+        
     args.func(args)
 
 if __name__ == "__main__": run_main()
