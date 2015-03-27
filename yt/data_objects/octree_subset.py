@@ -303,9 +303,16 @@ class ParticleOctreeSubset(OctreeSubset):
         if self._index.regions._last_octree_subset == id(self):
             return self._index.regions._last_oct_handler
         cache = self._index.regions._cached_octrees
+        # TODO Change this to use a primary file ID for forest owners
         if self.data_files[0].file_id not in cache:
             dfi, count, omask, bfi = self._index.regions.identify_data_files(
-                                    self.base_selector)
+                                    self.base_selector,
+                                    self.data_files[0].file_id)
+            primary_file = self.data_files[0]
+            # Reset our data files
+            self.data_files = [primary_file] + \
+                    [self._index.data_files[i] for i in dfi
+                     if i != primary_file.file_id]
         else:
             dfi = count = omask = bfi = None
         oct_handler = self._index.regions.construct_forest(

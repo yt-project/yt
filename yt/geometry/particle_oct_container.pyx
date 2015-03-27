@@ -360,7 +360,7 @@ cdef class ParticleForest:
             for i in range(3):
                 ppos[i] = pos[p, i]
                 off_ind[i][0] = 0
-                off_count[i] = 0
+                off_count[i] = 1
                 if rel_buffer == 0.0: continue
                 # http://cboard.cprogramming.com/c-programming/105096-fmod.html
                 # fmod(x, y) => x-((int)(x/y))*y
@@ -424,7 +424,8 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector):
+    def identify_data_files(self, SelectorObject selector,
+                            np.int64_t primary_data_file = -1):
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
         if hash(selector) == self._last_selector:
@@ -438,6 +439,7 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint64_t, ndim=3] mask, buffer_mask
         cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
         cdef np.ndarray[np.uint8_t, ndim=3] omask
+        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
         omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
                          dtype="uint8")
         buffer_files, files = [], []
@@ -457,6 +459,9 @@ cdef class ParticleForest:
                     LE[2] = self.left_edge[2]
                     RE[2] = LE[2] + self.dds[2]
                     for k in range(self.dims[2]):
+                        if primary_data_file > -1 and \
+                           owners[i,j,k] != primary_data_file:
+                            continue
                         if selector.select_grid(LE, RE, 0) == 1:
                             omask[i, j, k] = 1
                             fmask |= mask[i,j,k]
@@ -476,7 +481,6 @@ cdef class ParticleForest:
                     files.append(fcheck + n * 64)
         self._last_selector = hash(selector)
         self._last_return_values = (files, pcount, omask, buffer_files)
-        print buffer_files
         return files, pcount, omask, buffer_files
 
     @cython.boundscheck(False)

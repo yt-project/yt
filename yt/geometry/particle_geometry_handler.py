@@ -126,13 +126,11 @@ class ParticleIndex(Index):
                                         dobj.selector)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
-                buffer_files = [self.data_files[i] for i in bdfi]
                 mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
-                over_refine_factor = self.ds.over_refine_factor,
-                buffer_files = bf)
-                for df, bf in zip(data_files, buffer_files)]
+                over_refine_factor = self.ds.over_refine_factor)
+                for df in data_files]
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
@@ -141,6 +139,7 @@ class ParticleIndex(Index):
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
                        ghost_particles = False):
+        ghost_particles = False
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.
