@@ -311,7 +311,7 @@ class YTDataContainer(object):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        finfo = self.ds.field_info[field]
+        finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
@@ -728,7 +728,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # from the field function and use these units for future
                         # field accesses
                         units = str(getattr(fd, 'units', ''))
-                        self.ds.field_info[fi.name].units = units
+                        fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")

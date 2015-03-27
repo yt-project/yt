@@ -361,13 +361,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _initialize_projected_units(self, fields, chunk):
-        for field in self.ds.data_source._determine_fields(fields):
-            if self.ds.field_info[field].units is None:
+        for field in self.data_source._determine_fields(fields):
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
-                self.ds.field_info[field].units = chunk[field].units
-            field_unit = Unit(self.ds.field_info[field].units,
-                              registry=self.ds.unit_registry)
+                finfo.units = str(chunk[field].units)
+                import pdb; pdb.set_trace()
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
