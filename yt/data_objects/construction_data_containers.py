@@ -298,6 +298,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                             chunk.ires.size, get_memory_usage()/1024.)
                 if _units_initialized is False:
                     self._initialize_projected_units(fields, chunk)
+                    _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.method == "mip":
