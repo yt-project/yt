@@ -89,7 +89,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         for key, val in self._handle.attrs.items():
             if key.startswith('particle_'):
                 comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
-                field_dict[val] = comp_number
+                field_dict[val.decode("ascii")] = comp_number
         self._particle_field_index = field_dict
         return self._particle_field_index
 

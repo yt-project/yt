@@ -227,7 +227,7 @@ class FromListParticleGenerator(ParticleGenerator):
         >>> particles = FromListParticleGenerator(ds, num_p, data)
         """
 
-        field_list = data.keys()
+        field_list = list(data.keys())
         if "particle_position_x" in data:
             x = data.pop("particle_position_x")
             y = data.pop("particle_position_y")

@@ -10,8 +10,8 @@ from yt.units.yt_array import uconcatenate
 def setup() :
     pass
 
-def test_particle_generator() :
-    # First generate our pf
+def test_particle_generator():
+    # First generate our dataset
     domain_dims = (128, 128, 128)
     dens = np.zeros(domain_dims) + 0.1
     temp = 4.*np.ones(domain_dims)

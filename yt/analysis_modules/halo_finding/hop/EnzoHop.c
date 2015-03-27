@@ -445,7 +445,7 @@ initEnzoHop(void)
 
     kDTreeTypeDict.tp_new = PyType_GenericNew;
     if (PyType_Ready(&kDTreeTypeDict) < 0) {
-       return;
+       return _RETVAL;
     }
 
    Py_INCREF(&kDTreeTypeDict);
