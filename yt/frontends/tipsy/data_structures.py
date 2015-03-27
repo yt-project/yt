@@ -70,6 +70,8 @@ class TipsyDataset(ParticleDataset):
                  n_ref=64, over_refine_factor=1,
                  bounding_box = None,
                  units_override=None):
+        self.bounding_box = bounding_box
+        self.filter_bbox = (bounding_box is not None)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
@@ -203,7 +205,9 @@ class TipsyDataset(ParticleDataset):
         f.close()
 
     def _set_derived_attrs(self):
-        if self.domain_left_edge is None or self.domain_right_edge is None:
+        if self.bounding_box is None and (
+                self.domain_left_edge is None or
+                self.domain_right_edge is None):
             self.domain_left_edge = np.nan
             self.domain_right_edge = np.nan
             self.index
