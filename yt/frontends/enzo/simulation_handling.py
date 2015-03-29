@@ -13,8 +13,6 @@ EnzoSimulation class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
-
 import numpy as np
 import glob
 import os
@@ -25,22 +23,20 @@ from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
 from yt.units import dimensions
 from yt.units.unit_registry import \
-     UnitRegistry
+    UnitRegistry
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    YTArray, YTQuantity
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
+from yt.utilities.logger import ytLogger as \
+    mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-from yt.utilities.physical_constants import \
-    gravitational_constant_cgs as G
-
+    
 class EnzoSimulation(SimulationTimeSeries):
     r"""Initialize an Enzo Simulation object.
 
