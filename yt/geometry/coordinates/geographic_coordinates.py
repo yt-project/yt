@@ -139,10 +139,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        if self.axis_names[dimension] in ('latitude', 'longitude'):
+        if self.axis_name[dimension] in ('latitude', 'longitude'):
             return self._cyl_pixelize(data_source, field, bounds, size,
                                           antialias, dimension)
-        elif self.axis_names[dimension] == 'altitude':
+        elif self.axis_name[dimension] == 'altitude':
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
