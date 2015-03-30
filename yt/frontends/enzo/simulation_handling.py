@@ -392,8 +392,9 @@ class EnzoSimulation(SimulationTimeSeries):
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
         else:
+            self.cosmological_simulation = 0
             self.omega_lambda = self.omega_matter = \
-                self.hubble_constant = self.cosmological_simulation = 0.0
+                self.hubble_constant = 0.0
 
         # make list of redshift outputs
         self.all_redshift_outputs = []
