@@ -38,7 +38,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
     
 class EnzoSimulation(SimulationTimeSeries):
-    r"""Initialize an Enzo Simulation object.
+    r"""
+    Initialize an Enzo Simulation object.
 
     Upon creation, the parameter file is parsed and the time and redshift
     are calculated and stored in all_outputs.  A time units dictionary is
@@ -222,7 +223,8 @@ class EnzoSimulation(SimulationTimeSeries):
         if (initial_redshift is not None or \
             final_redshift is not None) and \
             not self.cosmological_simulation:
-            raise InvalidSimulationTimeSeries('An initial or final redshift has been given for a noncosmological simulation.')
+            raise InvalidSimulationTimeSeries(
+                'An initial or final redshift has been given for a noncosmological simulation.')
 
         if time_data and redshift_data:
             my_all_outputs = self.all_outputs
@@ -270,7 +272,8 @@ class EnzoSimulation(SimulationTimeSeries):
                 elif isinstance(initial_time, tuple) and len(initial_time) == 2:
                     initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, YTArray):
-                    raise RuntimeError("Error: initial_time must be given as a float or tuple of (value, units).")
+                    raise RuntimeError(
+                        "Error: initial_time must be given as a float or tuple of (value, units).")
             elif initial_redshift is not None:
                 my_initial_time = self.enzo_cosmology.t_from_z(initial_redshift)
             else:
@@ -282,7 +285,8 @@ class EnzoSimulation(SimulationTimeSeries):
                 elif isinstance(final_time, tuple) and len(final_time) == 2:
                     final_time = self.quan(*final_time)
                 elif not isinstance(final_time, YTArray):
-                    raise RuntimeError("Error: final_time must be given as a float or tuple of (value, units).")
+                    raise RuntimeError(
+                        "Error: final_time must be given as a float or tuple of (value, units).")
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.enzo_cosmology.t_from_z(final_redshift)
@@ -404,7 +408,9 @@ class EnzoSimulation(SimulationTimeSeries):
         self.all_redshift_outputs = redshift_outputs
 
     def _calculate_redshift_dump_times(self):
-        "Calculates time from redshift of redshift outputs."
+        """
+        Calculates time from redshift of redshift outputs.
+        """
 
         if not self.cosmological_simulation: return
         for output in self.all_redshift_outputs:
@@ -412,7 +418,9 @@ class EnzoSimulation(SimulationTimeSeries):
         self.all_redshift_outputs.sort(key=lambda obj:obj['time'])
 
     def _calculate_time_outputs(self):
-        "Calculate time outputs and their redshifts if cosmological."
+        """
+        Calculate time outputs and their redshifts if cosmological.
+        """
 
         self.all_time_outputs = []
         if self.final_time is None or \
@@ -438,7 +446,9 @@ class EnzoSimulation(SimulationTimeSeries):
             index += 1
 
     def _calculate_cycle_outputs(self):
-        "Calculate cycle outputs."
+        """
+        Calculate cycle outputs.
+        """
 
         mylog.warn('Calculating cycle outputs.  Dataset times will be unavailable.')
 
@@ -458,7 +468,9 @@ class EnzoSimulation(SimulationTimeSeries):
             index += 1
 
     def _get_all_outputs(self, find_outputs=False):
-        "Get all potential datasets and combine into a time-sorted list."
+        """
+        Get all potential datasets and combine into a time-sorted list.
+        """
 
         # Create the set of outputs from which further selection will be done.
         if find_outputs:
@@ -466,8 +478,12 @@ class EnzoSimulation(SimulationTimeSeries):
 
         elif self.parameters['dtDataDump'] > 0 and \
           self.parameters['CycleSkipDataDump'] > 0:
-            mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set.", self.parameter_filename )
-            mylog.info("    Unable to calculate datasets.  Attempting to search in the current directory")
+            mylog.info(
+                "Simulation %s has both dtDataDump and CycleSkipDataDump set.",
+                self.parameter_filename )
+            mylog.info(
+                "    Unable to calculate datasets.  " + \
+                "Attempting to search in the current directory")
             self._find_outputs()
 
         else:
@@ -514,11 +530,15 @@ class EnzoSimulation(SimulationTimeSeries):
                     'StopCycle' in self.parameters):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warn('Simulation %s has no stop time set, stopping condition will be based only on cycles.',
-                           self.parameter_filename)
+                mylog.warn(
+                    "Simulation %s has no stop time set, stopping condition " + \
+                    "will be based only on cycles.",
+                    self.parameter_filename)
 
     def _set_parameter_defaults(self):
-        "Set some default parameters to avoid problems if they are not in the parameter file."
+        """
+        Set some default parameters to avoid problems if they are not in the parameter file.
+        """
 
         self.parameters['GlobalDir'] = self.directory
         self.parameters['DataDumpName'] = "data"
@@ -568,7 +588,9 @@ class EnzoSimulation(SimulationTimeSeries):
                 self.final_redshift = self.all_outputs[-1]['redshift']
 
     def _check_for_outputs(self, potential_outputs):
-        r"""Check a list of files to see if they are valid datasets."""
+        """
+        Check a list of files to see if they are valid datasets.
+        """
 
         only_on_root(mylog.info, "Checking %d potential outputs.", 
                      len(potential_outputs))
@@ -603,7 +625,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _write_cosmology_outputs(self, filename, outputs, start_index,
                                  decimals=3):
-        r"""Write cosmology output parameters for a cosmology splice.
+        """
+        Write cosmology output parameters for a cosmology splice.
         """
 
         mylog.info("Writing redshift output list to %s.", filename)
