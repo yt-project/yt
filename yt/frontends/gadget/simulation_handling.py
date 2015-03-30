@@ -236,12 +236,14 @@ class GadgetSimulation(SimulationTimeSeries):
 
         # Apply selection criteria to the set.
         if times is not None:
-            my_outputs = self._get_outputs_by_time(times, tolerance=tolerance,
-                                                   outputs=my_all_outputs)
+            my_outputs = self._get_outputs_by_key("time", times,
+                                                  tolerance=tolerance,
+                                                  outputs=my_all_outputs)
 
         elif redshifts is not None:
-            my_outputs = self._get_outputs_by_redshift(redshifts, tolerance=tolerance,
-                                                       outputs=my_all_outputs)
+            my_outputs = self._get_outputs_by_key("redshift",
+                                                  redshifts, tolerance=tolerance,
+                                                  outputs=my_all_outputs)
 
         elif initial_cycle is not None or final_cycle is not None:
             if initial_cycle is None:
@@ -526,109 +528,6 @@ class GadgetSimulation(SimulationTimeSeries):
                       if my_output is not None]
 
         return my_outputs
-
-    def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
-        r"""Get datasets at or near to given values.
-
-        Parameters
-        ----------
-        key: str
-            The key by which to retrieve outputs, usually "time" or
-            "redshift".
-        values: array_like
-            A list of values, given as floats.
-        tolerance : float
-            If not None, do not return a dataset unless the value is
-            within the tolerance value.  If None, simply return the
-            nearest dataset.
-            Default: None.
-        outputs : list
-            The list of outputs from which to choose.  If None,
-            self.all_outputs is used.
-            Default: None.
-
-        Examples
-        --------
-        >>> datasets = es.get_outputs_by_key("redshift", [0, 1, 2], tolerance=0.1)
-
-        """
-
-        if not isinstance(values, np.ndarray):
-            values = ensure_list(values)
-        if outputs is None:
-            outputs = self.all_outputs
-        my_outputs = []
-        if not outputs:
-            return my_outputs
-        for value in values:
-            outputs.sort(key=lambda obj:np.abs(value - obj[key]))
-            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
-                    and outputs[0] not in my_outputs:
-                my_outputs.append(outputs[0])
-            else:
-                mylog.error("No dataset added for %s = %f.", key, value)
-
-        outputs.sort(key=lambda obj: obj["time"])
-        return my_outputs
-
-    def _get_outputs_by_redshift(self, redshifts, tolerance=None, outputs=None):
-        r"""Get datasets at or near to given redshifts.
-
-        Parameters
-        ----------
-        redshifts: array_like
-            A list of redshifts, given as floats.
-        tolerance : float
-            If not None, do not return a dataset unless the value is
-            within the tolerance value.  If None, simply return the
-            nearest dataset.
-            Default: None.
-        outputs : list
-            The list of outputs from which to choose.  If None,
-            self.all_outputs is used.
-            Default: None.
-
-        Examples
-        --------
-        >>> datasets = es.get_outputs_by_redshift([0, 1, 2], tolerance=0.1)
-
-        """
-
-        return self._get_outputs_by_key("redshift", redshifts, tolerance=tolerance,
-                                     outputs=outputs)
-
-    def _get_outputs_by_time(self, times, tolerance=None, outputs=None):
-        r"""Get datasets at or near to given times.
-
-        Parameters
-        ----------
-        times: tuple of type (float array, str)
-            A list of times for which outputs will be found and the units 
-            of those values.  For example, ([0, 1, 2, 3], "s").
-        tolerance : float
-            If not None, do not return a dataset unless the time is
-            within the tolerance value.  If None, simply return the
-            nearest dataset.
-            Default = None.
-        outputs : list
-            The list of outputs from which to choose.  If None,
-            self.all_outputs is used.
-            Default: None.
-
-        Examples
-        --------
-        >>> datasets = es.get_outputs_by_time([600, 500, 400], tolerance=10.)
-
-        """
-
-        if not isinstance(times, YTArray):
-            if isinstance(times, tuple) and len(times) == 2:
-                times = self.arr(*times)
-            else:
-                times = self.arr(times, "code_time")
-        times = times.in_units("s")
-        return self._get_outputs_by_key("time", times, tolerance=tolerance,
-                                        outputs=outputs)
 
     def _write_cosmology_outputs(self, filename, outputs, start_index,
                                  decimals=3):
