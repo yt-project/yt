@@ -662,9 +662,11 @@ def compare_image_lists(new_result, old_result, decimals):
             
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
-    _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
+    _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
+              'callback_id')
     def __init__(self, ds_fn, plot_field, plot_axis, attr_name, attr_args,
-                 decimals, plot_type = 'SlicePlot'):
+                 decimals, plot_type = 'SlicePlot', callback_id = "",
+                 callback_runners = None):
         super(PlotWindowAttributeTest, self).__init__(ds_fn)
         self.plot_type = plot_type
         self.plot_field = plot_field
@@ -673,10 +675,18 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         self.attr_name = attr_name
         self.attr_args = attr_args
         self.decimals = decimals
+        # callback_id is so that we don't have to hash the actual callbacks
+        # run, but instead we call them something
+        self.callback_id = callback_id
+        if callback_runners is None:
+            callback_runners = []
+        self.callback_runners = callback_runners
 
     def run(self):
         plot = self.create_plot(self.ds, self.plot_type, self.plot_field,
                                 self.plot_axis, self.plot_kwargs)
+        for r in self.callback_runners:
+            r(self, plot)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
         tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
