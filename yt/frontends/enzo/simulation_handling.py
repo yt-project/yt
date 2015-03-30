@@ -483,7 +483,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 "Simulation %s has both dtDataDump and CycleSkipDataDump set.",
                 self.parameter_filename )
             mylog.info(
-                "    Unable to calculate datasets.  " + \
+                "    Unable to calculate datasets.  " +
                 "Attempting to search in the current directory")
             self._find_outputs()
 
@@ -532,7 +532,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
                 mylog.warn(
-                    "Simulation %s has no stop time set, stopping condition " + \
+                    "Simulation %s has no stop time set, stopping condition " +
                     "will be based only on cycles.",
                     self.parameter_filename)
 
