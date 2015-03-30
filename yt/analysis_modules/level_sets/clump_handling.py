@@ -42,7 +42,8 @@ def add_contour_field(ds, contour_key):
                  function=_contours,
                  validators=[ValidateSpatial(0)],
                  take_log=False,
-                 display_field=False)
+                 display_field=False,
+                 units='')
 
 class Clump(object):
     children = None

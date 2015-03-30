@@ -9,10 +9,9 @@ fields.  These are fields that describe a value at each cell in a simulation.
 Defining a New Field
 --------------------
 
-So once a new field has been conceived of, the best way to create it is to
+Once a new field has been conceived of, the best way to create it is to
 construct a function that performs an array operation -- operating on a 
-collection of data, neutral to its size, shape, and type. (All fields should
-be provided as 64-bit floats.)
+collection of data, neutral to its size, shape, and type.
 
 A simple example of this is the pressure field, which demonstrates the ease of
 this approach.
@@ -28,8 +27,13 @@ this approach.
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
 the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived 
-field!  We don't do any loops, we don't do any
-type-checking, we can simply multiply the three items together.
+field!  We don't do any loops, we don't do any type-checking, we can simply
+multiply the three items together.
+
+In this example, the ``density`` field will return data with units of
+``g/cm**3`` and the ``thermal_energy`` field will return data units of
+``erg/g``, so the result will automatically have units of pressure,
+``erg/cm**3``.
 
 Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
@@ -53,6 +57,32 @@ unit names, numbers, and mathematical operators in the string, and using
 :ref:`cosmological-units`.  We suggest that you name the function that creates 
 a derived field with the intended field name prefixed by a single underscore, 
 as in the ``_pressure`` example above.
+
+Field definitions return array data with units. If the field function returns
+data in a dimensionally equivalent unit (e.g. a ``dyne`` versus a ``N``), the
+field data will be converted to the units specified in ``add_field`` before
+being returned in a data object selection. If the field function returns data
+with dimensions that are incompatibible with units specified in ``add_field``,
+you will see an error. To clear this error, you must ensure that your field
+function returns data in the correct units. Often, this means applying units to
+a dimensionless float or array.
+
+If your field definition influcdes physical constants rather than defining a
+constant as a float, you can import it from ``yt.utilities.physical_constants``
+to get a predefined version of the constant with the correct units. If you know
+the units your data is supposed to have ahead of time, you can import unit
+symbols like ``g`` or ``cm`` from the ``yt.units`` namespace and multiply the
+return value of your field function by the appropriate compbination of unit
+symbols for your field's units. You can also convert floats or NumPy arrays into
+:class:`~yt.units.yt_array.YTArray` or :class:`~yt.units.yt_array.YTQuantity`
+instances by making use of the
+:func:`~yt.data_objects.static_output.Dataset.arr` and
+:func:`~yt.data_objects.static_output.Dataset.quan` convenience functions.
+
+Lastly, if you do not know the units of your field ahead of time, you can
+specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
+automatically determine the appropriate units based on the units of the data
+returned by the field function.
 
 :func:`add_field` can be invoked in two other ways. The first is by the 
 function decorator :func:`derived_field`. The following code is equivalent to 
@@ -186,6 +216,9 @@ There are a number of options available, but the only mandatory ones are ``name`
      (*Advanced*) For fields that exist on disk, which we may want to convert to other
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
+``force_override``
+     (*Advanced*) Overrides the definition of an old field if a field with the
+     same name has already been defined.
 
 Debugging a Derived Field
 -------------------------
