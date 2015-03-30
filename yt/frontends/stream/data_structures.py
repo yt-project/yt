@@ -570,8 +570,13 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    geometry : string
-        "cartesian", "cylindrical" or "polar"
+    geometry : string or tuple
+        "cartesian", "cylindrical", "polar", "spherical", "geographic" or
+        "spectral_cube".  Optionally, a tuple can be provided to specify the
+        axis ordering -- for instance, to specify that the axis ordering should
+        be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
+        can be done for other coordinates, for instance: 
+        ("spherical", ("theta", "phi", "r")).
 
     Examples
     --------
@@ -757,8 +762,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    geometry : string
-        "cartesian", "cylindrical" or "polar"
+    geometry : string or tuple
+        "cartesian", "cylindrical", "polar", "spherical", "geographic" or
+        "spectral_cube".  Optionally, a tuple can be provided to specify the
+        axis ordering -- for instance, to specify that the axis ordering should
+        be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
+        can be done for other coordinates, for instance: 
+        ("spherical", ("theta", "phi", "r")).
     refine_by : integer
         Specifies the refinement ratio between levels.  Defaults to 2.
 
@@ -1277,8 +1287,13 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    geometry : string
-        "cartesian", "cylindrical" or "polar"
+    geometry : string or tuple
+        "cartesian", "cylindrical", "polar", "spherical", "geographic" or
+        "spectral_cube".  Optionally, a tuple can be provided to specify the
+        axis ordering -- for instance, to specify that the axis ordering should
+        be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
+        can be done for other coordinates, for instance: 
+        ("spherical", ("theta", "phi", "r")).
 
     """
 
