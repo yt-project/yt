@@ -582,8 +582,8 @@ def test_ytarray_pickle():
         yield assert_equal, data.units, loaded_data.units
         yield assert_array_equal, array(data.in_cgs()), \
             array(loaded_data.in_cgs())
-        yield assert_equal, float(data.units.cgs_value), \
-            float(loaded_data.units.cgs_value)
+        yield assert_equal, float(data.units.base_value), \
+            float(loaded_data.units.base_value)
 
 
 def test_copy():
@@ -1032,8 +1032,8 @@ def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')
     b = a.in_units('Zsun')
     a.convert_to_units('Zsun')
-    yield assert_true, a.units.cgs_value == metallicity_sun
-    yield assert_true, b.units.cgs_value == metallicity_sun
+    yield assert_true, a.units.base_value == metallicity_sun
+    yield assert_true, b.units.base_value == metallicity_sun
 
 def test_modified_unit_division():
     ds1 = fake_random_ds(64)
@@ -1049,4 +1049,4 @@ def test_modified_unit_division():
     ret = a/b
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
-    yield assert_true, ret.units.cgs_value == 1.0
+    yield assert_true, ret.units.base_value == 1.0

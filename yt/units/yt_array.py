@@ -405,6 +405,13 @@ class YTArray(np.ndarray):
 
         return self
 
+    def convert_to_base(self):
+        """
+        Convert the array and units to the equivalent base units.
+
+        """
+        return self.convert_to_units(self.units.get_base_equivalent())
+
     def convert_to_cgs(self):
         """
         Convert the array and units to the equivalent cgs units.
@@ -444,6 +451,18 @@ class YTArray(np.ndarray):
             np.subtract(new_array, offset*new_array.uq, new_array)
 
         return new_array
+
+    def in_base(self):
+        """
+        Creates a copy of this array with the data in the equivalent cgs units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to cgs units.
+
+        """
+        return self.in_units(self.units.get_base_equivalent())
 
     def in_cgs(self):
         """
@@ -1046,11 +1065,11 @@ class YTArray(np.ndarray):
                         raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = self._ufunc_registry[context[0]](unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
-                if unit.is_dimensionless and unit.cgs_value != 1.0:
+                if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
                         if unit1.dimensions == unit2.dimensions:
                             np.multiply(out_arr.view(np.ndarray),
-                                        unit.cgs_value, out=out_arr)
+                                        unit.base_value, out=out_arr)
                             unit = Unit(registry=unit.registry)
         else:
             raise RuntimeError("Operation is not defined.")
