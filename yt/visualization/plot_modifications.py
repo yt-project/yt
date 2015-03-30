@@ -80,12 +80,13 @@ class PlotCallback(object):
                 # right-handed coord system
                 coord = (y, x)
             else:
-                raise SyntaxError("Object must have an axis defined")
+                raise SyntaxError("Object being plot must have a `data.axis` "
+                                  "defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
-            raise SyntaxError("coord must be 3 dimensions")
+            raise SyntaxError("'data' coordinates must be 3 dimensions")
         return coord
 
     def convert_to_plot(self, plot, coord, offset=True):
@@ -150,7 +151,7 @@ class PlotCallback(object):
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError("Coordinates in data coordinate system " 
+                raise SyntaxError("Coordinates in 'data' coordinate system " 
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
@@ -162,7 +163,7 @@ class PlotCallback(object):
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError("Coordinates in axis coordinate system " 
+                raise SyntaxError("Coordinates in 'axis' coordinate system " 
                                   "need to be in 2D")
             return coord
         # if in figure coords, define the transform correctly
@@ -1824,8 +1825,8 @@ class ScaleCallback(PlotCallback):
         ysize = plot.ylim[1] - plot.ylim[0]
         if xsize != ysize:
             raise RuntimeError("Scale callback only works for plots with "
-                               "axis ratios of 1: xsize = %s, ysize = %s." %
-                               (xsize, ysize))
+                               "axis ratios of 1. Here: xsize = %s, ysize "
+                               " = %s." % (xsize, ysize))
 
         # Setting pos overrides corner argument
         if self.pos is None:
