@@ -42,7 +42,8 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G
 
 class GadgetSimulation(SimulationTimeSeries):
-    r"""Initialize an Gadget Simulation object.
+    r"""
+    Initialize an Gadget Simulation object.
 
     Upon creation, the parameter file is parsed and the time and redshift
     are calculated and stored in all_outputs.  A time units dictionary is
@@ -78,14 +79,21 @@ class GadgetSimulation(SimulationTimeSeries):
     """
 
     def __init__(self, parameter_filename, find_outputs=False):
+        self.simulation_type = "particle"
         self.dimensionality = 3
         SimulationTimeSeries.__init__(self, parameter_filename,
                                       find_outputs=find_outputs)
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()
-        self.unit_registry.lut["code_time"] = (1.0, dimensions.time)
+        self.time_unit = self.quan(1.0, "s")
         if self.cosmological_simulation:
+            # Instantiate EnzoCosmology object for units and time conversions.
+            self.cosmology = \
+              Cosmology(hubble_constant=self.hubble_constant,
+                        omega_matter=self.omega_matter,
+                        omega_lambda=self.omega_lambda,
+                        unit_registry=self.unit_registry)
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
@@ -94,12 +102,9 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.unit_registry.add(
                     new_unit, self.unit_registry.lut[my_unit][0],
                     dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
-            self.length_unit = self.quan(self.box_size, "Mpccm / h",
-                                         registry=self.unit_registry)
-            self.box_size = self.length_unit
-        else:
-            self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
-        self.unit_registry.modify("code_time", self.time_unit)
+            self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
+                                         "cmcm / h", registry=self.unit_registry)
+            self.box_size *= self.length_unit.in_units("Mpccm / h")
 
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None,
@@ -218,7 +223,8 @@ class GadgetSimulation(SimulationTimeSeries):
         if (initial_redshift is not None or \
             final_redshift is not None) and \
             not self.cosmological_simulation:
-            raise InvalidSimulationTimeSeries("An initial or final redshift has been given for a noncosmological simulation.")
+            raise InvalidSimulationTimeSeries(
+                "An initial or final redshift has been given for a noncosmological simulation.")
 
         if time_data and redshift_data:
             my_all_outputs = self.all_outputs
@@ -266,9 +272,10 @@ class GadgetSimulation(SimulationTimeSeries):
                 elif isinstance(initial_time, tuple) and len(initial_time) == 2:
                     initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, YTArray):
-                    raise RuntimeError("Error: initial_time must be given as a float or tuple of (value, units).")
+                    raise RuntimeError(
+                        "Error: initial_time must be given as a float or tuple of (value, units).")
             elif initial_redshift is not None:
-                my_initial_time = self.enzo_cosmology.t_from_z(initial_redshift)
+                my_initial_time = self.cosmology.t_from_z(initial_redshift)
             else:
                 my_initial_time = self.initial_time
 
@@ -278,10 +285,11 @@ class GadgetSimulation(SimulationTimeSeries):
                 elif isinstance(final_time, tuple) and len(final_time) == 2:
                     final_time = self.quan(*final_time)
                 elif not isinstance(final_time, YTArray):
-                    raise RuntimeError("Error: final_time must be given as a float or tuple of (value, units).")
+                    raise RuntimeError(
+                        "Error: final_time must be given as a float or tuple of (value, units).")
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
-                my_final_time = self.enzo_cosmology.t_from_z(final_redshift)
+                my_final_time = self.cosmology.t_from_z(final_redshift)
             else:
                 my_final_time = self.final_time
 
@@ -340,6 +348,13 @@ class GadgetSimulation(SimulationTimeSeries):
             # Now we figure out what to do with it.
             if param.startswith("Unit"):
                 self.unit_base[param] = float(vals[0])
+            if len(vals) == 0:
+                vals = ""
+            elif len(vals) == 1:
+                vals = pcast(vals[0])
+            else:
+                vals = np.array([pcast(i) for i in vals])
+
             self.parameters[param] = vals
 
         if self.parameters["ComovingIntegrationOn"]:
@@ -347,8 +362,8 @@ class GadgetSimulation(SimulationTimeSeries):
                           "omega_lambda": "OmegaLambda",
                           "omega_matter": "Omega0",
                           "hubble_constant": "HubbleParam"}
-            self.initial_redshift = 1 / self.parameters["TimeBegin"] - 1.0
-            self.final_redshift = 1 / self.parameters["TimeMax"] - 1.0
+            self.initial_redshift = 1.0 / self.parameters["TimeBegin"] - 1.0
+            self.final_redshift = 1.0 / self.parameters["TimeMax"] - 1.0
             self.cosmological_simulation = 1
             for a, v in cosmo_attr.items():
                 if not v in self.parameters:
@@ -359,55 +374,20 @@ class GadgetSimulation(SimulationTimeSeries):
             self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = 0.0
 
-        # make list of redshift outputs
-        self.all_redshift_outputs = []
-        if not self.cosmological_simulation: return
-        for output in redshift_outputs:
-            output["filename"] = os.path.join(
-                self.parameters["OutputDir"],
-                "%s%04d" % (self.parameters["RedshiftDumpDir"],
-                            output["index"]),
-                "%s%04d" % (self.parameters["RedshiftDumpName"],
-                            output["index"]))
-            del output["index"]
-        self.all_redshift_outputs = redshift_outputs
-
     def _calculate_redshift_dump_times(self):
-        "Calculates time from redshift of redshift outputs."
+        """
+        Calculates time from redshift of redshift outputs.
+        """
 
         if not self.cosmological_simulation: return
         for output in self.all_redshift_outputs:
-            output["time"] = self.enzo_cosmology.t_from_z(output["redshift"])
+            output["time"] = self.cosmology.t_from_z(output["redshift"])
         self.all_redshift_outputs.sort(key=lambda obj:obj["time"])
 
-    def _calculate_time_outputs(self):
-        "Calculate time outputs and their redshifts if cosmological."
-
-        self.all_time_outputs = []
-        if self.final_time is None or \
-            not "dtDataDump" in self.parameters or \
-            self.parameters["dtDataDump"] <= 0.0: return []
-
-        index = 0
-        current_time = self.initial_time.copy()
-        dt_datadump = self.quan(self.parameters["dtDataDump"], "code_time")
-        while current_time <= self.final_time + dt_datadump:
-            filename = os.path.join(self.parameters["GlobalDir"],
-                                    "%s%04d" % (self.parameters["DataDumpDir"], index),
-                                    "%s%04d" % (self.parameters["DataDumpName"], index))
-
-            output = {"index": index, "filename": filename, "time": current_time.copy()}
-            output["time"] = min(output["time"], self.final_time)
-            if self.cosmological_simulation:
-                output["redshift"] = self.enzo_cosmology.z_from_t(current_time)
-
-            self.all_time_outputs.append(output)
-            if np.abs(self.final_time - current_time) / self.final_time < 1e-4: break
-            current_time += dt_datadump
-            index += 1
-
     def _get_all_outputs(self, find_outputs=False):
-        "Get all potential datasets and combine into a time-sorted list."
+        """
+        Get all potential datasets and combine into a time-sorted list.
+        """
 
         # Create the set of outputs from which further selection will be done.
         if find_outputs:
@@ -415,8 +395,12 @@ class GadgetSimulation(SimulationTimeSeries):
 
         elif self.parameters["dtDataDump"] > 0 and \
           self.parameters["CycleSkipDataDump"] > 0:
-            mylog.info("Simulation %s has both dtDataDump and CycleSkipDataDump set.", self.parameter_filename )
-            mylog.info("    Unable to calculate datasets.  Attempting to search in the current directory")
+            mylog.info(
+                "Simulation %s has both dtDataDump and CycleSkipDataDump set.",
+                self.parameter_filename )
+            mylog.info(
+                "    Unable to calculate datasets.  " +
+                "Attempting to search in the current directory")
             self._find_outputs()
 
         else:
@@ -440,27 +424,27 @@ class GadgetSimulation(SimulationTimeSeries):
 
         # Convert initial/final redshifts to times.
         if self.cosmological_simulation:
-            self.initial_time = self.enzo_cosmology.t_from_z(self.initial_redshift)
+            self.initial_time = self.cosmology.t_from_z(self.initial_redshift)
             self.initial_time.units.registry = self.unit_registry
-            self.final_time = self.enzo_cosmology.t_from_z(self.final_redshift)
+            self.final_time = self.cosmology.t_from_z(self.final_redshift)
             self.final_time.units.registry = self.unit_registry
 
         # If not a cosmology simulation, figure out the stopping criteria.
         else:
-            if "InitialTime" in self.parameters:
-                self.initial_time = self.quan(self.parameters["InitialTime"], "code_time")
+            if "TimeBegin" in self.parameters:
+                self.initial_time = self.quan(self.parameters["TimeBegin"], "code_time")
             else:
                 self.initial_time = self.quan(0., "code_time")
 
-            if "StopTime" in self.parameters:
-                self.final_time = self.quan(self.parameters["StopTime"], "code_time")
+            if "TimeMax" in self.parameters:
+                self.final_time = self.quan(self.parameters["TimeMax"], "code_time")
             else:
                 self.final_time = None
-            if not ("StopTime" in self.parameters or
-                    "StopCycle" in self.parameters):
+            if not "TimeMax" in self.parameters:
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warn("Simulation %s has no stop time set, stopping condition will be based only on cycles.",
+                mylog.warn("Simulation %s has no stop time set, " +
+                           "stopping condition will be based only on cycles.",
                            self.parameter_filename)
 
     def _find_outputs(self):
@@ -496,7 +480,9 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.final_redshift = self.all_outputs[-1]["redshift"]
 
     def _check_for_outputs(self, potential_outputs):
-        r"""Check a list of files to see if they are valid datasets."""
+        r"""
+        Check a list of files to see if they are valid datasets.
+        """
 
         only_on_root(mylog.info, "Checking %d potential outputs.", 
                      len(potential_outputs))
@@ -531,7 +517,8 @@ class GadgetSimulation(SimulationTimeSeries):
 
     def _write_cosmology_outputs(self, filename, outputs, start_index,
                                  decimals=3):
-        r"""Write cosmology output parameters for a cosmology splice.
+        r"""
+        Write cosmology output parameters for a cosmology splice.
         """
 
         mylog.info("Writing redshift output list to %s.", filename)

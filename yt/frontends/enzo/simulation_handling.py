@@ -75,7 +75,8 @@ class EnzoSimulation(SimulationTimeSeries):
     """
 
     def __init__(self, parameter_filename, find_outputs=False):
-
+        self.simulation_type = "grid"
+        self.key_parameters = ["stop_cycle"]
         SimulationTimeSeries.__init__(self, parameter_filename,
                                       find_outputs=find_outputs)
 

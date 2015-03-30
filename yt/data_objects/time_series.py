@@ -398,6 +398,7 @@ class SimulationTimeSeries(DatasetSeries):
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
         self.parameters = {}
+        self.key_parameters = []
 
         # Set some parameter defaults.
         self._set_parameter_defaults()
@@ -405,10 +406,10 @@ class SimulationTimeSeries(DatasetSeries):
         self._parse_parameter_file()
         # Set units
         self._set_units()
-        # Figure out the starting and stopping times and redshift.
+        # # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
-        # Get all possible datasets.
-        self._get_all_outputs(find_outputs=find_outputs)
+        # # Get all possible datasets.
+        # self._get_all_outputs(find_outputs=find_outputs)
         
         self.print_key_parameters()
 
@@ -452,25 +453,32 @@ class SimulationTimeSeries(DatasetSeries):
         """
         Print out some key parameters for the simulation.
         """
-        for a in ["domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "initial_time", "final_time",
-                  "stop_cycle", "cosmological_simulation"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in dataset definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+        if self.simulation_type == "grid":
+            for a in ["domain_dimensions", "domain_left_edge",
+                      "domain_right_edge"]:
+                self._print_attr(a)
+        for a in ["initial_time", "final_time",
+                  "cosmological_simulation"]:
+            self._print_attr(a)
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
             for a in ["box_size", "omega_lambda",
                       "omega_matter", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
-                if not hasattr(self, a):
-                    mylog.error("Missing %s in dataset definition!", a)
-                    continue
-                v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
-        mylog.info("Total datasets: %d." % len(self.all_outputs))
+                self._print_attr(a)
+        for a in self.key_parameters:
+            self._print_attr(a)
+        #mylog.info("Total datasets: %d." % len(self.all_outputs))
+
+    def _print_attr(self, a):
+        """
+        Print the attribute or warn about it missing.
+        """
+        if not hasattr(self, a):
+            mylog.error("Missing %s in dataset definition!", a)
+            return
+        v = getattr(self, a)
+        mylog.info("Parameters: %-25s = %s", a, v)
 
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
         r"""
