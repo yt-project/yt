@@ -84,14 +84,14 @@ class EnzoSimulation(SimulationTimeSeries):
         self.unit_registry.lut["code_time"] = (1.0, dimensions.time)
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
-            self.enzo_cosmology = \
+            self.cosmology = \
               EnzoCosmology(self.parameters['CosmologyHubbleConstantNow'],
                             self.parameters['CosmologyOmegaMatterNow'],
                             self.parameters['CosmologyOmegaLambdaNow'],
                             0.0, self.parameters['CosmologyInitialRedshift'],
                             unit_registry=self.unit_registry)
 
-            self.time_unit = self.enzo_cosmology.time_unit.in_units("s")
+            self.time_unit = self.cosmology.time_unit.in_units("s")
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
@@ -275,7 +275,7 @@ class EnzoSimulation(SimulationTimeSeries):
                     raise RuntimeError(
                         "Error: initial_time must be given as a float or tuple of (value, units).")
             elif initial_redshift is not None:
-                my_initial_time = self.enzo_cosmology.t_from_z(initial_redshift)
+                my_initial_time = self.cosmology.t_from_z(initial_redshift)
             else:
                 my_initial_time = self.initial_time
 
@@ -289,7 +289,7 @@ class EnzoSimulation(SimulationTimeSeries):
                         "Error: final_time must be given as a float or tuple of (value, units).")
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
-                my_final_time = self.enzo_cosmology.t_from_z(final_redshift)
+                my_final_time = self.cosmology.t_from_z(final_redshift)
             else:
                 my_final_time = self.final_time
 
@@ -415,7 +415,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         if not self.cosmological_simulation: return
         for output in self.all_redshift_outputs:
-            output['time'] = self.enzo_cosmology.t_from_z(output['redshift'])
+            output['time'] = self.cosmology.t_from_z(output['redshift'])
         self.all_redshift_outputs.sort(key=lambda obj:obj['time'])
 
     def _calculate_time_outputs(self):
@@ -439,7 +439,7 @@ class EnzoSimulation(SimulationTimeSeries):
             output = {'index': index, 'filename': filename, 'time': current_time.copy()}
             output['time'] = min(output['time'], self.final_time)
             if self.cosmological_simulation:
-                output['redshift'] = self.enzo_cosmology.z_from_t(current_time)
+                output['redshift'] = self.cosmology.z_from_t(current_time)
 
             self.all_time_outputs.append(output)
             if np.abs(self.final_time - current_time) / self.final_time < 1e-4: break
@@ -511,9 +511,9 @@ class EnzoSimulation(SimulationTimeSeries):
 
         # Convert initial/final redshifts to times.
         if self.cosmological_simulation:
-            self.initial_time = self.enzo_cosmology.t_from_z(self.initial_redshift)
+            self.initial_time = self.cosmology.t_from_z(self.initial_redshift)
             self.initial_time.units.registry = self.unit_registry
-            self.final_time = self.enzo_cosmology.t_from_z(self.final_redshift)
+            self.final_time = self.cosmology.t_from_z(self.final_redshift)
             self.final_time.units.registry = self.unit_registry
 
         # If not a cosmology simulation, figure out the stopping criteria.
