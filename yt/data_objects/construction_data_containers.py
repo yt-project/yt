@@ -993,7 +993,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         self.get_data(field)
         return self[field]
 
-    def get_data(self, fields = None, sample_type = "face"):
+    def get_data(self, fields = None, sample_type = "face", no_ghost = False):
         if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
@@ -1010,7 +1010,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
             for block, mask in self.data_source.blocks:
                 my_verts = self._extract_isocontours_from_grid(
                                 block, self.surface_field, self.field_value,
-                                mask, fields, sample_type)
+                                mask, fields, sample_type, no_ghost=no_ghost)
                 if fields is not None:
                     my_verts, svals = my_verts
                     samples.append(svals)
@@ -1029,8 +1029,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        mask, sample_values = None,
-                                       sample_type = "face"):
-        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+                                       sample_type = "face",
+                                       no_ghost = False):
+        vals = grid.get_vertex_centered_data(field, no_ghost = no_ghost)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
@@ -1537,7 +1538,8 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face"):
+                   color_map = "algae", color_log = True, sample_type = "face",
+                   no_ghost=False):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
 
@@ -1568,14 +1570,14 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
-            self.get_data(color_field, sample_type)
+            self.get_data(color_field, sample_type, no_ghost=no_ghost)
         elif color_field is not None:
             if sample_type == "face" and \
                 color_field not in self.field_data:
                 self[color_field]
             elif sample_type == "vertex" and \
                 color_field not in self.vertex_data:
-                self.get_data(color_field, sample_type)
+                self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(filename, bounds, color_field, color_map, color_log,
                          sample_type)
 
@@ -1654,7 +1656,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
     def export_sketchfab(self, title, description, api_key = None,
                             color_field = None, color_map = "algae",
-                            color_log = True, bounds = None):
+                            color_log = True, bounds = None, no_ghost = False):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
 
@@ -1719,7 +1721,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
         ply_file = TemporaryFile()
         self.export_ply(ply_file, bounds, color_field, color_map, color_log,
-                        sample_type = "vertex")
+                        sample_type = "vertex", no_ghost = no_ghost)
         ply_file.seek(0)
         # Greater than ten million vertices and we throw an error but dump
         # to a file.
