@@ -657,9 +657,9 @@ def compare_image_lists(new_result, old_result, decimals):
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
         for fn in fns: os.remove(fn)
-            
+
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
