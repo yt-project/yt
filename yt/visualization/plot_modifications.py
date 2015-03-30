@@ -1611,7 +1611,8 @@ class TimestampCallback(PlotCallback):
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white'}.
+        text object.  Defaults: {'color':'white', 
+        'horizontalalignment':'center', 'verticalalignment':'top'}.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -1634,7 +1635,8 @@ class TimestampCallback(PlotCallback):
                  draw_inset_box=False, coord_system='axis', 
                  text_args=None, inset_box_args=None):
 
-        def_text_args = {'color':'white'}
+        def_text_args = {'color':'white', 'horizontalalignment':'center',
+                         'verticalalignment':'top'}
         def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                               'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
@@ -1649,8 +1651,6 @@ class TimestampCallback(PlotCallback):
         self.coord_system = coord_system
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
-        self.text_args['horizontalalignment'] = 'center'
-        self.text_args['verticalalignment'] = 'top'
         if inset_box_args is None: inset_box_args = def_inset_box_args
         self.inset_box_args = inset_box_args
 

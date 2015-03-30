@@ -348,6 +348,9 @@ class Unit(Expr):
         return \
           (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def __deepcopy__(self, memodict=None):
         if memodict is None:
             memodict = {}

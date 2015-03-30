@@ -21,7 +21,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import mask_fill, AlwaysSelector
-from yt.extern.six import u, b
+from yt.extern.six import u, b, iteritems
 import h5py
 
 import numpy as np
@@ -47,7 +47,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         dtypes = set([])
         add_io = "io" in grid.ds.particle_types
-        for name, v in group.items():
+        for name, v in iteritems(group):
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
             # are of the same size.  So, let's grab one.
@@ -85,7 +85,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (count) %s" % g.filename
-                    f = h5py.File(b(g.filename), "r")
+                    f = h5py.File(g.filename, "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -114,7 +114,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print "Opening (read) %s" % g.filename
-                    f = h5py.File(b(g.filename), "r")
+                    f = h5py.File(g.filename, "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue

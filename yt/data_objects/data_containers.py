@@ -28,6 +28,12 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.units.unit_object import UnitParseError
+from yt.utilities.exceptions import \
+    YTUnitConversionError, \
+    YTFieldUnitError, \
+    YTFieldUnitParseError, \
+    YTSpatialFieldUnitError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -39,8 +45,6 @@ from yt.utilities.amr_kdtree.api import \
 from .derived_quantities import DerivedQuantityCollection
 from yt.fields.field_exceptions import \
     NeedsGridType
-from yt.fields.derived_field import \
-    ValidateSpatial
 import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
@@ -307,7 +311,11 @@ class YTDataContainer(object):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        rv = np.empty(self.ires.size, dtype="float64")
+        finfo = self.ds._get_field_info(*field)
+        if finfo.units is None:
+            raise YTSpatialFieldUnitError(field)
+        units = finfo.units
+        rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
@@ -345,7 +353,7 @@ class YTDataContainer(object):
             if ngt_exception.ghost_zones != 0:
                 raise NotImplementedError
             size = self._count_particles(ftype)
-            rv = np.empty(size, dtype="float64")
+            rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
             for io_chunk in self.chunks([], "io", cache = False):
                 for i, chunk in enumerate(self.chunks(field, "spatial")):
@@ -712,12 +720,34 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fi = self.ds._get_field_info(*field)
                 try:
                     fd = self._generate_field(field)
-                    if type(fd) == np.ndarray:
-                        fd = self.ds.arr(fd, fi.units)
                     if fd is None:
                         raise RuntimeError
+                    if fi.units is None:
+                        # first time calling a field with units='auto', so we
+                        # infer the units from the units of the data we get back
+                        # from the field function and use these units for future
+                        # field accesses
+                        units = str(getattr(fd, 'units', ''))
+                        fi.units = units
+                        self.field_data[field] = self.ds.arr(fd, units)
+                        msg = ("Field %s was added without specifying units, "
+                               "assuming units are %s")
+                        mylog.warn(msg % (fi.name, units))
+                        continue
+                    try:
+                        fd.convert_to_units(fi.units)
+                    except AttributeError:
+                        # If the field returns an ndarray, coerce to a
+                        # dimensionless YTArray and verify that field is
+                        # supposed to be unitless
+                        fd = self.ds.arr(fd, '')
+                        if fi.units != '':
+                            raise YTFieldUnitError(fi, fd.units)
+                    except YTUnitConversionError:
+                        raise YTFieldUnitError(fi, fd.units)
+                    except UnitParseError:
+                        raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
-                    fd.convert_to_units(fi.units)
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
