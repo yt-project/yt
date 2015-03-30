@@ -67,7 +67,8 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError
+    YTUnitConversionError, \
+    YTPlotCallbackError
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -988,7 +989,10 @@ class PWViewerMPL(PlotWindow):
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
-                callback(cbw)
+                try:
+                    callback(cbw)
+                except Exception as e:
+                    raise YTPlotCallbackError(name, e)
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]

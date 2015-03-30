@@ -445,3 +445,10 @@ class YTInvalidUnitEquivalence(Exception):
                                                                                           self.unit1,
                                                                                           self.unit2)
 
+class YTPlotCallbackError(Exception):
+    def __init__(self, callback, error):
+        self.callback = callback
+        self.error = error
+
+    def __str__(self):
+        return '''%s failed to execute with this error: %s''' % (self.callback, self.error)
