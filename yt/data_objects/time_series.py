@@ -473,7 +473,8 @@ class SimulationTimeSeries(DatasetSeries):
         mylog.info("Total datasets: %d." % len(self.all_outputs))
 
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
-        r"""Get datasets at or near to given values.
+        r"""
+        Get datasets at or near to given values.
 
         Parameters
         ----------
