@@ -408,8 +408,8 @@ class SimulationTimeSeries(DatasetSeries):
         self._set_units()
         # # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
-        # # Get all possible datasets.
-        # self._get_all_outputs(find_outputs=find_outputs)
+        # Get all possible datasets.
+        self._get_all_outputs(find_outputs=find_outputs)
         
         self.print_key_parameters()
 
@@ -468,7 +468,7 @@ class SimulationTimeSeries(DatasetSeries):
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
-        #mylog.info("Total datasets: %d." % len(self.all_outputs))
+        mylog.info("Total datasets: %d." % len(self.all_outputs))
 
     def _print_attr(self, a):
         """
