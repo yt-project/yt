@@ -936,7 +936,7 @@ class EnzoDataset(Dataset):
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_velocity", self.velocity_unit)
         DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+        self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                DW.units.dimensions)
 
     def cosmology_get_units(self):
