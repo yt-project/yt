@@ -992,7 +992,9 @@ class PWViewerMPL(PlotWindow):
                 try:
                     callback(cbw)
                 except Exception as e:
-                    raise YTPlotCallbackError(name, e)
+                    raise YTPlotCallbackError, \
+                          YTPlotCallbackError(callback._type_name, e), \
+                          sys.exc_info()[2]
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
