@@ -203,7 +203,7 @@ class PlotWindow(ImagePlotContainer):
 
     """
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, 
+                 periodic=True, origin='native', oblique=False, 
                  window_size=8.0, fields=None, fontsize=18, aspect=None, 
                  setup=False):
         if not hasattr(self, "ds"):
@@ -1213,7 +1213,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None,
+                 origin='native', fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -1368,7 +1368,7 @@ class ProjectionPlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
-                 weight_field=None, max_level=None, origin='center-window',
+                 weight_field=None, max_level=None, origin='native',
                  fontsize=18, field_parameters=None, data_source=None,
                  method = "integrate", proj_style = None, window_size=8.0, 
                  aspect=None):
@@ -1480,7 +1480,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
-                             origin='center-window',periodic=False,
+                             origin='native',periodic=False,
                              oblique=True, fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1621,7 +1621,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
-            self, OffAxisProj, bounds, fields=fields, origin='center-window',
+            self, OffAxisProj, bounds, fields=fields, origin='native',
             periodic=False, oblique=True, fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
