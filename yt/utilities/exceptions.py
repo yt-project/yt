@@ -451,5 +451,5 @@ class YTPlotCallbackError(Exception):
         self.error = error
 
     def __str__(self):
-        msg = '%s callback failed to with the following error: %s'
+        msg = '%s callback failed with the following error: %s'
         return msg % (self.callback, self.error)
