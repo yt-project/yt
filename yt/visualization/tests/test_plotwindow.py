@@ -180,7 +180,7 @@ def test_attributes_wt():
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
 
-class TestSetWidth(unittest.TestCase):
+class TestHideAxesColorbar(unittest.TestCase):
 
     ds = None
 
