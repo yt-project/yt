@@ -21,10 +21,10 @@ from yt.funcs import \
     get_image_suffix, mylog, iterable
 import numpy as np
 try:
-    import brewer2mpl
-    has_brewer = True
+    import palettable
+    has_palettable = True
 except:
-    has_brewer = False
+    has_palettable = False
 
 
 class CallbackWrapper(object):
@@ -126,12 +126,12 @@ class ImagePlotMPL(PlotMPL):
             norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
         if isinstance(cmap, tuple):
-            if has_brewer:
-                bmap = brewer2mpl.get_map(*cmap)
+            if has_palettable:
+                bmap = palettable.colorbrewer.get_map(*cmap)
                 cmap = bmap.get_mpl_colormap(N=cmap[2])
             else:
                 raise RuntimeError(
-                    "Please install brewer2mpl to use colorbrewer colormaps")
+                    "Please install palettable to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,

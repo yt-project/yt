@@ -26,10 +26,10 @@ import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
 try:
-    import brewer2mpl
-    has_brewer = True
+    import palettable
+    has_palettable = True
 except:
-    has_brewer = False
+    has_palettable = False
 
 
 def scale_image(image, mi=None, ma=None):
@@ -257,11 +257,11 @@ def map_to_colors(buff, cmap_name):
     except KeyError:
         try:
             if isinstance(cmap_name, tuple):
-                if has_brewer:
-                    bmap = brewer2mpl.get_map(*cmap_name)
+                if has_palettable:
+                    bmap = palettable.colorbrewer.get_map(*cmap_name)
                     cmap = bmap.get_mpl_colormap(N=cmap_name[2])
                 else:
-                    raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
+                    raise RuntimeError("Please install palettable to use colorbrewer colormaps")
             else:
                 cmap = mcm.get_cmap(cmap_name)
             dummy = cmap(0.0)
@@ -271,7 +271,7 @@ def map_to_colors(buff, cmap_name):
                 " colormap file or matplotlib colormaps")
             raise KeyError(cmap_name)
 
-    if isinstance(cmap_name, tuple) and has_brewer:
+    if isinstance(cmap_name, tuple) and has_palettable:
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
