@@ -1759,7 +1759,7 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     depth : A tuple or a float
          A tuple containing the depth to project through and the string
          key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed
+         are assumed. Defaults to the entire domain.
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
     axes_unit : A string
