@@ -1192,7 +1192,7 @@ class ParticleProfile(Profile2D):
                  self.GridDimensions,
                  self.CellSize)
 
-            locs = np.where(storage.values[:, :, fi] > 0.0)
+            locs = storage.values[:, :, fi] > 0.0
             storage.used[locs] = True
             storage.weight_values[locs] = 1.0
         # We've binned it!
