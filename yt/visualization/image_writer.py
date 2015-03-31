@@ -25,11 +25,17 @@ from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
+import warnings
 try:
     import palettable
     has_palettable = True
 except:
     has_palettable = False
+try:
+    import brewer2mpl
+    has_brewer = True
+except:
+    has_brewer = False
 
 
 def scale_image(image, mi=None, ma=None):
@@ -256,12 +262,19 @@ def map_to_colors(buff, cmap_name):
         lut = cmd.color_map_luts[cmap_name]
     except KeyError:
         try:
+            # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
             if isinstance(cmap_name, tuple):
                 if has_palettable:
                     bmap = palettable.colorbrewer.get_map(*cmap_name)
-                    cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+                elif has_brewer:
+                    warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                                  "Please install the successor to brewer2mpl, "
+                                  "palettable, with `pip install palettable`. "
+                                  "Colormap tuple names remain unchanged.")
+                    bmap = brewer2mpl.get_map(*cmap_name)
                 else:
                     raise RuntimeError("Please install palettable to use colorbrewer colormaps")
+                cmap = bmap.get_mpl_colormap(N=cmap_name[2])
             else:
                 cmap = mcm.get_cmap(cmap_name)
             dummy = cmap(0.0)
@@ -271,7 +284,7 @@ def map_to_colors(buff, cmap_name):
                 " colormap file or matplotlib colormaps")
             raise KeyError(cmap_name)
 
-    if isinstance(cmap_name, tuple) and has_palettable:
+    if isinstance(cmap_name, tuple) and (has_palettable or has_brewer):
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
