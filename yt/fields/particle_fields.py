@@ -195,21 +195,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             validators = [ValidateSpatial()],
             particle_type = True)
 
-    def particle_levels(field, data):
-        ds = data.ds
-        offset = ds.index.grids[0]._id_offset
-        grid_levels = np.zeros(ds.index.num_grids + offset, dtype=np.int64)
-        for g in ds.index.grids:
-            grid_levels[g.id] = g.Level
-        glevels = np.array([grid_levels[np.int64(index)]
-                            for index in data[('io', 'mesh_id')]],
-                           dtype=np.int64)
-        return data.apply_units(glevels, "")
-    registry.add_field((ptype, "levels"),
-                       function=particle_levels,
-                       validators=[ValidateSpatial()],
-                       particle_type=True)
-
     return list(set(registry.keys()).difference(orig))
 
 def particle_scalar_functions(ptype, coord_name, vel_name, registry):
