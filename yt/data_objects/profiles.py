@@ -1111,7 +1111,7 @@ class ParticleProfile(Profile2D):
     """An object that represents a *deposited* 2D profile. This is like a
     Profile2D, except that it is intended for particle data. Instead of just
     binning the particles, the added fields will be deposited onto the mesh
-    using Cloud-in-Cell interpolation.
+    using either the nearest-grid-point or cloud-in-cell interpolation kernels.
 
     Parameters
     ----------
@@ -1182,18 +1182,15 @@ class ParticleProfile(Profile2D):
             Np = fdata[:, fi].size
 
             if self.deposition == "ngp":
-                NGPDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
-                             storage.values[:, :, fi],
-                             self.LeftEdge,
-                             self.GridDimensions,
-                             self.CellSize)
+                func = NGPDeposit_2
+            elif self.deposition == 'cic':
+                func = CICDeposit_2
 
-            if self.deposition == "cic":
-                CICDeposit_2(bf_x, bf_y, fdata[:, fi], Np,
-                             storage.values[:, :, fi],
-                             self.LeftEdge,
-                             self.GridDimensions,
-                             self.CellSize)
+            func(bf_x, bf_y, fdata[:, fi], Np,
+                 storage.values[:, :, fi],
+                 self.LeftEdge,
+                 self.GridDimensions,
+                 self.CellSize)
 
             locs = np.where(storage.values[:, :, fi] > 0.0)
             storage.used[locs] = True
