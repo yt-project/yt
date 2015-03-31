@@ -441,11 +441,16 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     def __init__(self, data_source, bounds, buff_size, antialias=True,
                  periodic=False):
         self.data = {}
-        self._particle_spatial_fields = ['particle_position_x',
-                                         'particle_position_y',
-                                         'particle_position_z']
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size,
                                        antialias, periodic)
+
+        # set up the axis field names
+        axis = self.axis
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
+        ax_field_template = 'particle_position_%s'
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
 
     def __getitem__(self, item):
         if item in self.data: 
@@ -460,11 +465,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
-        axis = self.data_source.axis
-        x_field, y_field = self._get_particle_axes_fields(axis)
-
-        x_data = self.data_source.dd[x_field]
-        y_data = self.data_source.dd[y_field]
+        x_data = self.data_source.dd[self.x_field]
+        y_data = self.data_source.dd[self.y_field]
         data = self.data_source.dd[item]
 
         # convert to pixels
@@ -512,12 +514,3 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         for f in fields:
             if f not in exclude:
                 self[f]
-
-    def _get_particle_axes_fields(self, axis):
-        x_coord = self.ds.coordinates.x_axis[axis]
-        y_coord = self.ds.coordinates.y_axis[axis]
-
-        x_field = self._particle_spatial_fields[x_coord]
-        y_field = self._particle_spatial_fields[y_coord]
-
-        return x_field, y_field
