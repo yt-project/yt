@@ -144,7 +144,6 @@ def NGPDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
     cdef np.float64_t xpos, ypos
     cdef np.float64_t edge0, edge1
     cdef np.float64_t le0, le1
-    cdef np.float64_t dx, dy, dx2, dy2
 
     edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
     edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
