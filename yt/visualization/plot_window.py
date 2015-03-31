@@ -1717,8 +1717,15 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     axis : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
-    fields : string
-         The name of the particle field(s) to be plotted.
+    fields : string, list or None
+         If a string or list, the name of the particle field(s) to be used 
+         one the colorbar. If None, the particle positions will be indicated
+         using a fixed color, instead. Default is None.
+    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
+         One the matplotlib-recognized color strings.
+         The color that will indicate the particle locations
+         on the mesh. This argument is ignored if z_fields is
+         not None. Default is 'b'.
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
@@ -1811,11 +1818,10 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     _plot_type = 'Particle'
     _frb_generator = ParticleImageBuffer
 
-    def __init__(self, ds, axis, fields=None, center='c', width=None,
+    def __init__(self, ds, axis, fields=None, color='b', center='c', width=None,
                  depth=(1, '1'), weight_field=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None,
-                 color='b'):
+                 window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
