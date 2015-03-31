@@ -849,9 +849,17 @@ class PhasePlot(ImagePlotContainer):
             font_size = self._font_properties.get_size()
             f = self.profile.data_source._determine_fields(f)[0]
 
+            # if this is a Particle Phase Plot AND if we using a single color,
+            # override the colorbar here.
+            splat_color = getattr(self, "splat_color", None)
+            if splat_color is not None:
+                cmap = matplotlib.colors.ListedColormap(splat_color, 'dummy')
+            else:
+                cmap = self._colormaps[f]
+
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], zlim,
+                                         cmap, zlim,
                                          self.figure_size, font_size,
                                          fig, axes, cax)
 
@@ -894,6 +902,10 @@ class PhasePlot(ImagePlotContainer):
                 self.plots[f].cax.minorticks_off()
 
         self._set_font_properties()
+
+        # if this is a particle plot with one color only, hide the cbar here
+        if hasattr(self, "use_cbar") and self.use_cbar is False:
+            self.plots[f].hide_colorbar()
 
         self._plot_valid = True
 
@@ -1231,19 +1243,29 @@ class ParticlePhasePlot(PhasePlot):
         The x field for the mesh.
     y_field : str
         The y field for the mesh.
-    z_fields : str or list
-        The field or fields to be deposited.
+    z_fields : None, str, or list
+        If None, particles will be splatted onto the mesh,
+        but no colormap will be used.
+        If str or list, the name of the field or fields to
+        be displayed on the colorbar.
+        Default: None.
     x_bins : int
         The number of bins in x field for the mesh.
-        Default: 128.
+        Default: 800.
     y_bins : int
         The number of bins in y field for the mesh.
-        Default: 128.
+        Default: 800.
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of
         interpolation will be used to deposit the
         particle z_fields onto the mesh.
         Default: 'ngp'
+    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
+        One the matplotlib-recognized color strings.
+        The color that will indicate the particle locations
+        on the mesh. This argument is ignored if z_fields is
+        not None.
+        Default : 'b'
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
@@ -1271,9 +1293,15 @@ class ParticlePhasePlot(PhasePlot):
     """
     _plot_type = 'ParticlePhase'
 
-    def __init__(self, data_source, x_field, y_field, z_fields,
-                 x_bins=128, y_bins=128, deposition='ngp',
+    def __init__(self, data_source, x_field, y_field, z_fields=None,
+                 x_bins=800, y_bins=800, deposition='ngp', color='b',
                  fontsize=18, figure_size=8.0):
+
+        # if no z_fields are passed in, use a constant color
+        if z_fields is None:
+            self.use_cbar = False
+            self.splat_color = color
+            z_fields = ['particle_ones']
 
         profile = self._create_profile(
             data_source,
