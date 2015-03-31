@@ -179,6 +179,8 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
         Whether or not to log the bin_fields for the profiles.
         The keys correspond to the field names. Defaults to the take_log
         attribute of the field.
+    units : dict of strings
+        The units of the fields in the profiles, including the bin_fields.
     weight_field : string
         Weight field for profiling.
         Default : "cell_mass"
