@@ -474,14 +474,13 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # select only the particles that will actually show up in the image
         mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),
                               np.logical_and(py >= 0.0, py <= 1.0))
-        indices = np.where(mask)
 
         # splat particles
         buff = np.zeros(self.buff_size)
         add_points_to_greyscale_image(buff,
-                                      px[indices],
-                                      py[indices],
-                                      data[indices])
+                                      px[mask],
+                                      py[mask],
+                                      data[mask])
         ia = ImageArray(buff, input_units=data.units,
                         info=self._get_info(item))
 
@@ -491,9 +490,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             weight_data = self.data_source.dd[weight_field]
             weight_buff = np.zeros(self.buff_size)
             add_points_to_greyscale_image(weight_buff,
-                                          px[indices],
-                                          py[indices],
-                                          weight_data[indices])
+                                          px[mask],
+                                          py[mask],
+                                          weight_data[mask])
             weight_array = ImageArray(weight_buff,
                                       input_units=weight_data.units,
                                       info=self._get_info(item))
