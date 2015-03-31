@@ -17,7 +17,7 @@ While colormaps that employ a variety of colors often look attractive,
 they are not always the best choice to convey information to one's audience.
 There are numerous `articles <https://eagereyes.org/basics/rainbow-color-map>`_ 
 and 
-`presentations <http://pong.tamu.edu/~kthyng/presentations/visualization.pdf`_ 
+`presentations <http://pong.tamu.edu/~kthyng/presentations/visualization.pdf>`_ 
 that discuss how rainbow-based colormaps fail with regard to black-and-white 
 reproductions, colorblind audience members, and confusing in color ordering.
 Depending on the application, the consensus seems to be that gradients between
