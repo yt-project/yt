@@ -7816,14 +7816,6 @@ array([
 np.ones(256),
 )
 
-#color_map_luts['test'] = make_colormap([('black', 5), ('green', 5), ('blue', 10)])
-#color_map_luts['test_n'] = make_colormap([('black', 5), ('green', 5), ('blue', 10)], interpolate=False)
-#color_map_luts['chum'] = make_colormap([('black', 20), ('dblue', 12), ('blue', 20), ('purple', 12), ('dpurple', 20), ('dred', 12), ('red', 15), ('red', 10), ('orange', 7), ('orange', 10), ('dorange', 20), ('dyellow', 12), ('yellow', 15), ('yellow', 16), ('green', 3), ('green', 8), ('dgreen', 20), ('dgray', 12), ('gray', 12), ('white', 0)])
-#color_map_luts['chum_n'] = make_colormap([('black', 20), ('dblue', 12), ('blue', 20), ('purple', 12), ('dpurple', 20), ('dred', 12), ('red', 15), ('red', 10), ('orange', 7), ('orange', 10), ('dorange', 20), ('dyellow', 12), ('yellow', 15), ('yellow', 16), ('green', 3), ('green', 8), ('dgreen', 20), ('dgray', 12), ('gray', 12), ('white', 0)], interpolate=False)
-## Very similar to STD GAMMA-II, but it includes green in the top instead of just a long expanse of yellow/white.
-#color_map_luts['STDGREEN'] = make_colormap([('black', 41), ('blue', 25), ('purple', 10), ('dpurple', 26), ('dred', 15), ('red', 31), ('orange', 10), ('orange', 22), ('yellow', 18), ('yellow', 28), ('dgreen', 30), ('white', 0)])
-#color_map_luts['STDGREEN_n'] = make_colormap([('black', 41), ('blue', 25), ('purple', 10), ('dpurple', 26), ('dred', 15), ('red', 31), ('orange', 10), ('orange', 22), ('yellow', 18), ('yellow', 28), ('dgreen', 30), ('white', 0)], interpolate=False)
-
 # Aliases
 color_map_luts['B-W LINEAR'] = color_map_luts['idl00']
 color_map_luts['BLUE'] = color_map_luts['idl01']
