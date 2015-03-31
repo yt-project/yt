@@ -448,7 +448,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                        antialias, periodic)
 
     def __getitem__(self, item):
-        if item in self.data: return self.data[item]
+        if item in self.data: 
+            return self.data[item]
 
         mylog.info("Splatting (%s) onto a %d by %d mesh" %
                 (item, self.buff_size[0], self.buff_size[1]))
@@ -497,7 +498,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                       input_units=weight_data.units,
                                       info=self._get_info(item))
 
-            ia /= weight_array
+            locs = np.where(ia > 0)
+            ia[locs] /= weight_array[locs]
 
         self.data[item] = ia
         return self.data[item]
