@@ -41,6 +41,8 @@ from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.time_series import \
     DatasetSeries
+from yt.data_objects.image_array import \
+    ImageArray
 from yt.extern.six.moves import \
     StringIO
 from yt.extern.six import string_types
@@ -662,6 +664,7 @@ class PWViewerMPL(PlotWindow):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
+        self._splat_color = kwargs.pop("splat_color", None)
         PlotWindow.__init__(self, *args, **kwargs)
 
     def _setup_origin(self):
@@ -803,8 +806,25 @@ class PWViewerMPL(PlotWindow):
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
+            # This is for splatting particle positions with a single
+            # color instead of a colormap
+            if self._splat_color is not None:
+                # make image a rgba array, using the splat color
+                greyscale_image = self.frb[f]
+                ia = np.zeros((greyscale_image.shape[0],
+                               greyscale_image.shape[1],
+                               4))
+                ia[:, :, 3] = 0.0  # set alpha to 0.0
+                locs = np.where(greyscale_image > 0.0)
+                to_rgba = matplotlib.colors.colorConverter.to_rgba
+                color_tuple = to_rgba(self._splat_color)
+                ia[locs] = color_tuple
+                ia = ImageArray(ia)
+            else:
+                ia = image
+
             self.plots[f] = WindowPlotMPL(
-                image, self._field_transform[f].name,
+                ia, self._field_transform[f].name,
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
@@ -986,7 +1006,6 @@ class PWViewerMPL(PlotWindow):
         else:
             del self._callbacks[index]
         self.setup_callbacks()
-        
 
     def run_callbacks(self):
         for f in self.fields:
@@ -1792,10 +1811,11 @@ class AxisAlignedParticlePlot(PWViewerMPL):
     _plot_type = 'Particle'
     _frb_generator = ParticleImageBuffer
 
-    def __init__(self, ds, axis, fields, center='c', width=None,
+    def __init__(self, ds, axis, fields=None, center='c', width=None,
                  depth=(1, '1'), weight_field=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None):
+                 window_size=8.0, aspect=None, data_source=None,
+                 color='b'):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
@@ -1805,6 +1825,18 @@ class AxisAlignedParticlePlot(PWViewerMPL):
             get_window_parameters(axis, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
+
+        # if no fields are passed in, we simply mark the x and
+        # y fields using a given color. Use the 'particle_ones'
+        # field to do this. We also turn off the colorbar in
+        # this case.
+        self._use_cbar = True
+        splat_color = None
+        if fields is None:
+            fields = ['particle_ones']
+            weight_field = 'particle_ones'
+            self._use_cbar = False
+            splat_color = color
 
         depth = ds.coordinates.sanitize_depth(depth)
 
@@ -1823,10 +1855,14 @@ class AxisAlignedParticlePlot(PWViewerMPL):
 
         PWViewerMPL.__init__(self, ParticleSource, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect)
+                             window_size=window_size, aspect=aspect,
+                             splat_color=splat_color)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
+
+        if self._use_cbar is False:
+            self.hide_colorbar()
 
     def _recreate_frb(self):
         super(AxisAlignedParticlePlot, self)._recreate_frb()
