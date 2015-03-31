@@ -815,7 +815,7 @@ class PWViewerMPL(PlotWindow):
                                greyscale_image.shape[1],
                                4))
                 ia[:, :, 3] = 0.0  # set alpha to 0.0
-                locs = np.where(greyscale_image > 0.0)
+                locs = greyscale_image > 0.0
                 to_rgba = matplotlib.colors.colorConverter.to_rgba
                 color_tuple = to_rgba(self._splat_color)
                 ia[locs] = color_tuple
