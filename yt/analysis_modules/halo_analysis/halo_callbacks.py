@@ -17,6 +17,8 @@ import h5py
 import numpy as np
 import os
 
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
+     periodic_distance
 from yt.data_objects.profiles import \
      create_profile
 from yt.units.yt_array import \
