@@ -225,7 +225,7 @@ class YTSliceBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
+    axis : int or char
         The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coord : float
         The coordinate along the axis at which to slice.  This is in

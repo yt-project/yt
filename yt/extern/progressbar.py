@@ -55,6 +55,7 @@ __version__ = "2.2"
 # 2004-??-??: v0.1 first version
 
 
+from yt.extern.six import string_types
 import sys, time
 from array import array
 try:
@@ -156,7 +157,7 @@ class Bar(ProgressBarWidgetHFill):
         self.left = left
         self.right = right
     def _format_marker(self, pbar):
-        if isinstance(self.marker, (str, unicode)):
+        if isinstance(self.marker, string_types):
             return self.marker
         else:
             return self.marker.update(pbar)
@@ -250,7 +251,7 @@ class ProgressBar(object):
                 r.append(w)
                 hfill_inds.append(i)
                 num_hfill += 1
-            elif isinstance(w, (str, unicode)):
+            elif isinstance(w, string_types):
                 r.append(w)
                 currwidth += len(w)
             else:

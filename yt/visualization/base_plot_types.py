@@ -134,7 +134,8 @@ class ImagePlotMPL(PlotMPL):
                     "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
+                                      aspect=aspect, vmax=self.zmax, cmap=cmap,
+                                      interpolation='nearest')
         if (cbnorm == 'symlog'):
             formatter = matplotlib.ticker.LogFormatterMathtext()
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
@@ -160,12 +161,8 @@ class ImagePlotMPL(PlotMPL):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:
-            if self._aspect >= 1.0:
-                x_fig_size = self._figure_size
-                y_fig_size = self._figure_size/self._aspect
-            if self._aspect < 1.0:
-                x_fig_size = self._figure_size*self._aspect
-                y_fig_size = self._figure_size
+            x_fig_size = self._figure_size
+            y_fig_size = self._figure_size/self._aspect
 
         if hasattr(self, '_unit_aspect'):
             y_fig_size = y_fig_size * self._unit_aspect
