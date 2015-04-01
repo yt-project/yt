@@ -979,6 +979,165 @@ setting ``accumulation`` to ``-True``.  For ``PhasePlot``, the accumulation can
 be set independently for each axis by setting ``accumulation`` to a list of
 ``True``/ ``-True`` /``False`` values.
 
+.. _particle-plots:
+
+Particle Plots
+--------------
+
+Slice and projection plots both provide a callback for over-plotting particle
+positions onto gas fields. However, sometimes you want to plot the particle 
+quantities by themselves, perhaps because the gas fields are not relevant to 
+the point you're trying to make with your plot, or perhaps because your dataset
+doesn't contain any gas fields in the first place. Additionally, you may want to
+plot your particles with a third field, such as particle mass or age,  mapped to 
+a colorbar. ``ParticlePlot`` provides a convenient way to do this in yt. 
+
+The easiest way to make a ``ParticlePlot`` is to use the convenience routine,
+analagous to ``SlicePlot``. This has the syntax:
+
+.. code-block:: python
+
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.save()
+
+Here, ``ds`` is a dataset we've previously opened. The commands create a particle
+plot that shows the x and y positions of all the particles in ``ds`` and save the 
+result to a file on the disk. The type of plot returned depends on the fields you 
+pass in; in this case, ``p`` will be an ``AxisAlignedSlicePlot``, because the 
+fields are aligned to the coordinate system of the simulation. 
+
+Most of the callbacks the work for slice and projection plots also work for 
+``ParticlePlot``. For instance, we can zoom in:
+
+.. code-block:: python
+   
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.zoom(10)
+   p.save('zoom')
+
+change the width:
+
+.. code-block:: python
+
+   p.set_width((500, 'kpc'))
+
+or change the axis units:
+
+.. code-block:: python
+
+   p.set_unit('particle_position_x', 'Mpc')
+
+Here is a full example that shows the simplest way to use ``ParticlePlot``:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.save()
+
+In the above examples, we are simply splatting particle x and y positions onto 
+a plot using some color. We can also supply an additional particle field, and map
+that to a colorbar. For instance:
+
+.. code-block:: python
+
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y', 
+                           'particle_mass', width=(0.5, 0.5))
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+will create a plot with the particle mass used to set the colorbar. 
+Specifically, ``ParticlePlot`` shows the total ``z_field`` for all the 
+partices in each pixel on the colorbar axis; to plot average quantities 
+instead, one can supply a ``weight_field`` argument. 
+
+Here is a complete example that uses the ``particle_mass`` field
+to set the colorbar and shows off some of the modification functions for 
+``AxisAlignedParticlePlot``:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y', 
+                       'particle_mass', width=(0.5, 0.5))
+   p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
+   p.annotate_title('Zoomed-in Particle Plot')
+   p.save()
+
+If the fields passed in to ``ParticlePlot`` do not correspond to a valid
+``AxisAlignedParticlePlot``, a ``ParticlePhasePlot`` will be returned instead.
+``ParticlePhasePlot``s are used to plot arbitrary particle fields against each
+other, and do not support some of the callbacks available in ``AxisAlignedParticlePlot`` -
+for instance, ``pan()`` and ``zoom()`` don't make much sense when of your axes is a position
+and the other is a velocity. The modification functions defined for ``PhasePlots`` 
+should all work, however. 
+
+Here is an example of making a ``ParticlePhasePlot`` of ``particle_position_x`` 
+versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z', ['particle_mass'])
+   p.set_unit('particle_position_x', 'Mpc')
+   p.set_unit('particle_velocity_z', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+and here is one with the particle x and y velocities on the plot axes:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_velocity_x', 'particle_velocity_y', 'particle_mass')
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+   p.save()
+
+If you want more control over the details of the ``AxisAlignedParticlePlot`` or 
+``ParticlePhasePlot``, you can always use these classes directly. For instance, 
+here is an example of using the ``depth`` argument to ``AxisAlignedParticlePlot``
+to only plot the particles that live in a thin slice around the center of the
+domain:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   p = yt.AxisAlignedParticlePlot(ds, 2, ['particle_mass'], width=(0.5, 0.5), depth=0.01)
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+and here is an example of using the ``data_source`` argument to ``ParticlePhasePlot``
+to only consider the particles that lie within a 50 kpc sphere around the domain
+center:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   my_sphere = ds.sphere("c", (5.0, "kpc"))
+
+   p = yt.ParticlePhasePlot(my_sphere, "particle_velocity_x", "particle_velocity_y",
+                            "particle_mass")
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+
+   p.save()
+
 .. _interactive-plotting:
 
 Interactive Plotting
