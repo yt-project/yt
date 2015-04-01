@@ -990,10 +990,12 @@ quantities by themselves, perhaps because the gas fields are not relevant to
 the point you're trying to make with your plot, or perhaps because your dataset
 doesn't contain any gas fields in the first place. Additionally, you may want to
 plot your particles with a third field, such as particle mass or age,  mapped to 
-a colorbar. ``ParticlePlot`` provides a convenient way to do this in yt. 
+a colorbar. :class:`~yt.visualization.particle_plots.ParticlePlot` provides a 
+convenient way to do this in yt. 
 
-The easiest way to make a ``ParticlePlot`` is to use the convenience routine,
-analagous to ``SlicePlot``. This has the syntax:
+The easiest way to make a :class:`~yt.visualization.particle_plots.ParticlePlot` 
+is to use the convenience routine, analagous to :class:`~yt.visualization.plot_window.SlicePlot`. 
+This has the syntax:
 
 .. code-block:: python
 
@@ -1003,11 +1005,11 @@ analagous to ``SlicePlot``. This has the syntax:
 Here, ``ds`` is a dataset we've previously opened. The commands create a particle
 plot that shows the x and y positions of all the particles in ``ds`` and save the 
 result to a file on the disk. The type of plot returned depends on the fields you 
-pass in; in this case, ``p`` will be an ``AxisAlignedSlicePlot``, because the 
-fields are aligned to the coordinate system of the simulation. 
+pass in; in this case, ``p`` will be an :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, 
+because the fields are aligned to the coordinate system of the simulation. 
 
 Most of the callbacks the work for slice and projection plots also work for 
-``ParticlePlot``. For instance, we can zoom in:
+:class:`~yt.visualization.particle_plots.ParticlePlot`. For instance, we can zoom in:
 
 .. code-block:: python
    
@@ -1027,7 +1029,8 @@ or change the axis units:
 
    p.set_unit('particle_position_x', 'Mpc')
 
-Here is a full example that shows the simplest way to use ``ParticlePlot``:
+Here is a full example that shows the simplest way to use 
+:class:`~yt.visualization.particle_plots.ParticlePlot`:
 
 .. python-script::
 
@@ -1048,13 +1051,14 @@ that to a colorbar. For instance:
    p.save()
 
 will create a plot with the particle mass used to set the colorbar. 
-Specifically, ``ParticlePlot`` shows the total ``z_field`` for all the 
-partices in each pixel on the colorbar axis; to plot average quantities 
-instead, one can supply a ``weight_field`` argument. 
+Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot` 
+shows the total ``z_field`` for all the partices in each pixel on the 
+colorbar axis; to plot average quantities instead, one can supply a 
+``weight_field`` argument. 
 
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for 
-``AxisAlignedParticlePlot``:
+:class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`:
 
 .. python-script::
 
@@ -1067,16 +1071,19 @@ to set the colorbar and shows off some of the modification functions for
    p.annotate_title('Zoomed-in Particle Plot')
    p.save()
 
-If the fields passed in to ``ParticlePlot`` do not correspond to a valid
-``AxisAlignedParticlePlot``, a ``ParticlePhasePlot`` will be returned instead.
-``ParticlePhasePlot``s are used to plot arbitrary particle fields against each
-other, and do not support some of the callbacks available in ``AxisAlignedParticlePlot`` -
-for instance, ``pan()`` and ``zoom()`` don't make much sense when of your axes is a position
-and the other is a velocity. The modification functions defined for ``PhasePlots`` 
+If the fields passed in to :class:`~yt.visualization.particle_plots.ParticlePlot` 
+do not correspond to a valid :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`, 
+a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` will be returned instead.
+:class:`~yt.visualization.profile_plotter.ParticlePhasePlot`s are used to plot arbitrary particle 
+fields against each other, and do not support some of the callbacks available in 
+:class:`~yt.visualization.plot_window.AxisAlignedParticlePlot` -
+for instance, :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` and 
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` don't make much sense when of your axes is a position
+and the other is a velocity. The modification functions defined for :class:`~yt.visualization.profile_plotter.PhasePlot` 
 should all work, however. 
 
-Here is an example of making a ``ParticlePhasePlot`` of ``particle_position_x`` 
-versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
+Here is an example of making a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` 
+of ``particle_position_x`` versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
 
 .. python-script::
 
@@ -1103,8 +1110,8 @@ and here is one with the particle x and y velocities on the plot axes:
    p.save()
 
 If you want more control over the details of the ``AxisAlignedParticlePlot`` or 
-``ParticlePhasePlot``, you can always use these classes directly. For instance, 
-here is an example of using the ``depth`` argument to ``AxisAlignedParticlePlot``
+:class:`~yt.visualization.profile_plotter.ParticlePhasePlot`, you can always use these classes directly. For instance, 
+here is an example of using the ``depth`` argument to :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`
 to only plot the particles that live in a thin slice around the center of the
 domain:
 
@@ -1117,9 +1124,8 @@ domain:
    p.set_unit('particle_mass', 'Msun')
    p.save()
 
-and here is an example of using the ``data_source`` argument to ``ParticlePhasePlot``
-to only consider the particles that lie within a 50 kpc sphere around the domain
-center:
+and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.profile_plotter.ParticlePhasePlot`
+to only consider the particles that lie within a 50 kpc sphere around the domain center:
 
 .. python-script::
 

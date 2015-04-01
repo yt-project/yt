@@ -19,6 +19,8 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
    ~yt.visualization.plot_window.PlotWindow
+   ~yt.visualization.plot_window.AxisAlignedParticlePlot
+   ~yt.visualization.particle_plots.ParticlePlot
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -29,6 +31,7 @@ ProfilePlot and PhasePlot
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
    ~yt.visualization.profile_plotter.PhasePlotMPL
+   ~yt.visualization.profile_plotter.ParticlePhasePlot
 
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -37,6 +40,7 @@ Fixed Resolution Pixelization
    :toctree: generated/
 
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.ParticleImageBuffer
    ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
