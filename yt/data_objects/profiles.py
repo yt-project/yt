@@ -1149,7 +1149,7 @@ class ParticleProfile(Profile2D):
                  y_field, y_n, y_min, y_max,
                  deposition="ngp"):
 
-        self.LeftEdge = YTArray([x_min, y_min])
+        self.LeftEdge = [x_min, y_min]
         self.dx = (x_max - x_min) / x_n
         self.dy = (y_max - y_min) / y_n
         self.CellSize = YTArray([self.dx, self.dy])
@@ -1184,6 +1184,7 @@ class ParticleProfile(Profile2D):
         bf_y_units = self.LeftEdge[1].units
         bf_x = bf_x.in_units(bf_x_units)
         bf_y = bf_y.in_units(bf_y_units)
+        LE = np.array([self.LeftEdge[0].v, self.LeftEdge[1].v])
         for fi, field in enumerate(fields):
             Np = fdata[:, fi].size
 
@@ -1194,7 +1195,7 @@ class ParticleProfile(Profile2D):
 
             func(bf_x, bf_y, fdata[:, fi], Np,
                  storage.values[:, :, fi],
-                 self.LeftEdge,
+                 LE,
                  self.GridDimensions,
                  self.CellSize)
 
