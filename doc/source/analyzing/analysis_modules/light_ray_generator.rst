@@ -125,4 +125,7 @@ The keyword arguments are:
 What Can I do with this?
 ------------------------
 
-Try :ref:`absorption_spectrum`.
+Once you have created a `LightRay`, you can use it to generate an 
+:ref:`absorption_spectrum`.  In addition, you can use the 
+:class:`~yt.visualization.plot_modifications.RayCallback` to 
+:ref:`annotate-ray` on your plots.

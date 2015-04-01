@@ -51,6 +51,7 @@ import contextlib
 #  X timestamp
 #  X scale
 #    material_boundary
+#  X ray
 
 @contextlib.contextmanager
 def _cleanup_fname():
@@ -115,6 +116,31 @@ def test_line_callback():
         p = SlicePlot(ds, "x", "density")
         p.annotate_line([0.1,0.1],[0.5,0.5], coord_system='axis', 
                         plot_args={'color':'red'})
+        p.save(prefix)
+
+def test_ray_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        ray = ds.ray((0.1, 0.2, 0.3), (1.6, 1.8, 1.5))
+        oray = ds.ortho_ray(0, (0.3, 0.4))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_ray(oray)
+        p.annotate_ray(ray)
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_ray(oray)
+        p.annotate_ray(ray)
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_ray(oray)
+        p.annotate_ray(ray)
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_ray(oray)
+        p.annotate_ray(ray, plot_args={'color':'red'})
         p.save(prefix)
 
 def test_arrow_callback():

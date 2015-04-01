@@ -290,12 +290,15 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if communication_system.communicators[-1].size > 1:
             for chunk in self.data_source.chunks([], "io", local_only = False):
                 self._initialize_chunk(chunk, tree)
-        self._initialize_projected_units(fields)
+        _units_initialized = False
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
-                    get_memory_usage()/1024.)
+                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                            chunk.ires.size, get_memory_usage()/1024.)
+                if _units_initialized is False:
+                    self._initialize_projected_units(fields, chunk)
+                    _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.method == "mip":
@@ -358,10 +361,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires * self.ds.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
 
-    def _initialize_projected_units(self, fields):
-        for field in fields:
-            field_unit = Unit(self.ds.field_info[field].units,
-                              registry=self.ds.unit_registry)
+    def _initialize_projected_units(self, fields, chunk):
+        for field in self.data_source._determine_fields(fields):
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
+                # First time calling a units="auto" field, infer units and cache
+                # for future field accesses.
+                finfo.units = str(chunk[field].units)
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:

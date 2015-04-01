@@ -28,42 +28,6 @@ from yt.utilities.lib.misc_utilities import \
 
 class PolarCoordinateHandler(CylindricalCoordinateHandler):
 
-    def __init__(self, ds, ordering = 'rtz'):
-        if ordering != 'rtz': raise NotImplementedError
-        super(PolarCoordinateHandler, self).__init__(ds)
-
-    axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',
-                 'r' : 'r', 'theta' : 'theta', 'z' : 'z',
-                 'R' : 'r', 'Theta' : 'theta', 'Z' : 'z'}
-
-    axis_id = { 'r' : 0, 'theta' : 1, 'z' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
-
-    x_axis = { 'r' : 1, 'theta' : 0, 'z' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'r' : 2, 'theta' : 2, 'z' : 1,
-                0  : 2,  1  : 2,  2  : 1}
-
-    def convert_from_cartesian(self, coord):
-        return cartesian_to_cylindrical(coord)
-
-    def convert_to_cartesian(self, coord):
-        return cylindrical_to_cartesian(coord)
-
-    def convert_to_cylindrical(self, coord):
-        return coord
-
-    def convert_from_cylindrical(self, coord):
-        return coord
-
-    def convert_to_spherical(self, coord):
-        raise NotImplementedError
-
-    def convert_from_spherical(self, coord):
-        raise NotImplementedError
-
-    @property
-    def period(self):
-        return np.array([0.0, 0.0, 2.0*np.pi])
-
+  def __init__(self, ds, ordering = ('r', 'theta', 'z')):
+        super(PolarCoordinateHandler, self).__init__(ds, ordering)
+        # No need to set labels here

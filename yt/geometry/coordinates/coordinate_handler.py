@@ -70,8 +70,9 @@ def validate_iterable_width(width, ds, unit=None):
 
 class CoordinateHandler(object):
     
-    def __init__(self, ds):
+    def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
+        self.axis_order = ordering
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
@@ -105,9 +106,29 @@ class CoordinateHandler(object):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
+    _axis_name = None
     @property
     def axis_name(self):
-        raise NotImplementedError
+        if self._axis_name is not None:
+            return self._axis_name
+        an = {}
+        for axi, ax in enumerate(self.axis_order):
+            an[axi] = ax
+            an[ax] = ax
+            an[ax.capitalize()] = ax
+        self._axis_name = an
+        return an
+
+    _axis_id = None
+    @property
+    def axis_id(self):
+        if self._axis_id is not None:
+            return self._axis_id
+        ai = {}
+        for axi, ax in enumerate(self.axis_order):
+            ai[ax] = ai[axi] = axi
+        self._axis_id = ai
+        return ai
 
     @property
     def image_axis_name(self):
@@ -117,20 +138,32 @@ class CoordinateHandler(object):
             rv[i] = (self.axis_name[self.x_axis[i]],
                      self.axis_name[self.y_axis[i]])
             rv[self.axis_name[i]] = rv[i]
-            rv[self.axis_name[i].upper()] = rv[i]
+            rv[self.axis_name[i].capitalize()] = rv[i]
         return rv
 
-    @property
-    def axis_id(self):
-        raise NotImplementedError
-
+    _x_axis = None
     @property
     def x_axis(self):
-        raise NotImplementedError
+        if self._x_axis is not None:
+            return self._x_axis
+        ai = self.axis_id
+        xa = {}
+        for a1, a2 in self._x_pairs:
+            xa[a1] = xa[ai[a1]] = ai[a2]
+        self._x_axis = xa
+        return xa
 
+    _y_axis = None
     @property
     def y_axis(self):
-        raise NotImplementedError
+        if self._y_axis is not None:
+            return self._y_axis
+        ai = self.axis_id
+        ya = {}
+        for a1, a2 in self._y_pairs:
+            ya[a1] = ya[ai[a1]] = ai[a2]
+        self._y_axis = ya
+        return ya
 
     @property
     def period(self):

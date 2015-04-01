@@ -7816,6 +7816,7 @@ array([
 np.ones(256),
 )
 
+# Aliases
 color_map_luts['B-W LINEAR'] = color_map_luts['idl00']
 color_map_luts['BLUE'] = color_map_luts['idl01']
 color_map_luts['GRN-RED-BLU-WHT'] = color_map_luts['idl02']
