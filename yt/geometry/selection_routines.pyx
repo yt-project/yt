@@ -479,6 +479,11 @@ cdef class SelectorObject:
     cdef void visit_grid_cells(self, GridVisitorData *data,
                               grid_visitor_function *func,
                               np.uint8_t *cached_mask = NULL):
+        # This function accepts a grid visitor function, the data that
+        # corresponds to the current grid being examined (the most important
+        # aspect of which is the .grid attribute, along with index values and
+        # void* pointers to arrays) and a possibly-pre-generated cached mask.
+        # Each cell is visited with the grid visitor function.
         cdef np.float64_t left_edge[3], right_edge[3]
         cdef np.float64_t dds[3]
         cdef int dim[3], level, i
