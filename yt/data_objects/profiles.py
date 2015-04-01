@@ -1456,10 +1456,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
-    arguments = [data_source]
+    args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-        arguments += [f, n, mi, ma, l]
-    obj = cls(*arguments, weight_field = weight_field)
+        args += [f, n, mi, ma, l]
+    obj = cls(*args, weight_field = weight_field)
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)
     if fields is not None:
