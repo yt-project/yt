@@ -40,6 +40,55 @@ from .profile_plotter import \
 
 
 def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **kwargs):
+    r"""
+    A factory function for
+    :class:`yt.visualization.plot_window.AxisAlignedParticlePlot`
+    and :class:`yt.visualization.profile_plotter.ParticlePhasePlot` objects. This
+    essentially allows for a single entry point to both types of particle plots,
+    the distinction being determined by the fields passed in. 
+
+    If the x_field and y_field combination corresponds to a valid, right-handed
+    spatial plot, an 'AxisAlignedParticlePlot` will be returned. This plot object 
+    can be updated using one of the many helper functions defined in PlotWindow.
+
+    If the x_field and y_field combo do not correspond to a valid 
+    'AxisAlignedParticlePlot`, then a `ParticlePhasePlot`. This object can be
+    modified by its own set of  helper functions defined in PhasePlot.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.api.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    x_field : string
+        This is the particle field that will be plotted on the x-axis.
+    y_field : string
+        This is the particle field that will be plotted on the y-axis.
+    z_fields : string, list, or None.
+        If None, particles will be splatted onto the plot, but no colormap
+        will be used. The particle color will instead be determined by
+        the 'color' argument. If str or list, the name of the field or fields
+        to be displayed on the colorbar.
+        Default: None.
+    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
+         One the matplotlib-recognized color strings.
+         The color that will indicate the particle locations
+         on the plot. This argument is ignored if z_fields is
+         not None. Default is 'b'.
+
+    Examples
+    --------
+
+    >>> from yt import load
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
+    ...                     'particle_mass', width=(0.5, 0.5))
+    >>> p.set_unit('particle_mass', 'Msun')
+    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z',
+    ...                     color='g')
+
+    """
 
     direction = 3
     # try potential axes for a AxisAlignedParticlePlot:
