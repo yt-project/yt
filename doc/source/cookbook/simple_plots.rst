@@ -124,6 +124,41 @@ See :ref:`off-axis-projections` for more information.
 
 .. yt_cookbook:: simple_off_axis_projection.py
 
+.. _cookbook-simple-particle-plot:
+
+Simple Particle Plot
+~~~~~~~~~~~~~~~~~~~~
+
+You can also use yt to make particle-only plots. This script shows how to
+plot all the particle x and y positions in a dataset, using the particle mass
+to set the color scale.
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_xy_plot.py
+
+.. _cookbook-non-spatial-particle-plot:
+
+Non-spatial Particle Plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are not limited to plotting spatial fields on the x and y axes. This
+example shows how to plot the particle x-coordinates versus their z-velocities,
+again using the particle mass to set the colorbar. 
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_xvz_plot.py
+
+.. _cookbook-single-color-particle-plot:
+
+Single-color Particle Plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you don't want to display a third field on the color bar axis, simply pass
+in a color string instead of a particle field.
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_one_color_plot.py
+
 .. _cookbook-simple_volume_rendering:
 
 Simple Volume Rendering
