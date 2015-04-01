@@ -295,6 +295,7 @@ class GridIndex(Index):
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
+        # These next two lines, when uncommented, turn "on" the fast index.
         #if dobj._type_name != "grid":
         #    fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
