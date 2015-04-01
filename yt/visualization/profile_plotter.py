@@ -27,6 +27,7 @@ from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
+from yt.units.yt_array import YTArray
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
@@ -1345,13 +1346,15 @@ class ParticlePhasePlot(PhasePlot):
                         field_ex = [data_source.ds.quan(*f) for f in field_ex]
                     fe = data_source.ds.arr(field_ex, units[bin_field])
                     fe.convert_to_units(bf_units)
-                    field_ex = [fe[0].v, fe[1].v]
+                    field_ex = [fe[0], fe[1]]
                 if iterable(field_ex[0]):
                     field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
-                    field_ex[0] = field_ex[0].in_units(bf_units)
+                    field_ex[0] = YTArray(field_ex[0].in_units(bf_units),
+                                          bf_units)
                 if iterable(field_ex[1]):
                     field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
-                    field_ex[1] = field_ex[1].in_units(bf_units)
+                    field_ex[1] = YTArray(field_ex[1].in_units(bf_units),
+                                          bf_units)
                 ex.append(field_ex)
         arguments = [data_source]
         for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
@@ -1366,8 +1369,6 @@ class ParticlePhasePlot(PhasePlot):
                     obj.set_x_unit(unit)
                 elif field == getattr(obj, "y_field", None):
                     obj.set_y_unit(unit)
-                elif field == getattr(obj, "z_field", None):
-                    obj.set_z_unit(unit)
                 else:
                     obj.set_field_unit(field, unit)
         return obj

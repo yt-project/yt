@@ -1149,10 +1149,10 @@ class ParticleProfile(Profile2D):
                  y_field, y_n, y_min, y_max,
                  deposition="ngp"):
 
-        self.LeftEdge = np.array([x_min, y_min], dtype=np.float64)
+        self.LeftEdge = YTArray([x_min, y_min])
         self.dx = (x_max - x_min) / x_n
         self.dy = (y_max - y_min) / y_n
-        self.CellSize = np.array([self.dx, self.dy], dtype=np.float64)
+        self.CellSize = YTArray([self.dx, self.dy])
         self.CellVolume = np.product(self.CellSize)
         self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
         self.known_styles = ["ngp", "cic"]
@@ -1178,6 +1178,12 @@ class ParticleProfile(Profile2D):
         rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y) = rv
+        # make sure everything has the same units before deposition.
+        # the units will be scaled to the correct values later.
+        bf_x_units = self.LeftEdge[0].units
+        bf_y_units = self.LeftEdge[1].units
+        bf_x = bf_x.in_units(bf_x_units)
+        bf_y = bf_y.in_units(bf_y_units)
         for fi, field in enumerate(fields):
             Np = fdata[:, fi].size
 
