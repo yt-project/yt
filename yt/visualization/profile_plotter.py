@@ -1249,6 +1249,12 @@ class ParticlePhasePlot(PhasePlot):
         If str or list, the name of the field or fields to
         be displayed on the colorbar.
         Default: None.
+    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
+        One the matplotlib-recognized color strings.
+        The color that will indicate the particle locations
+        on the mesh. This argument is ignored if z_fields is
+        not None.
+        Default : 'b'
     x_bins : int
         The number of bins in x field for the mesh.
         Default: 800.
@@ -1260,12 +1266,6 @@ class ParticlePhasePlot(PhasePlot):
         interpolation will be used to deposit the
         particle z_fields onto the mesh.
         Default: 'ngp'
-    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
-        One the matplotlib-recognized color strings.
-        The color that will indicate the particle locations
-        on the mesh. This argument is ignored if z_fields is
-        not None.
-        Default : 'b'
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
@@ -1294,7 +1294,7 @@ class ParticlePhasePlot(PhasePlot):
     _plot_type = 'ParticlePhase'
 
     def __init__(self, data_source, x_field, y_field, z_fields=None,
-                 x_bins=800, y_bins=800, deposition='ngp', color='b',
+                 color='b', x_bins=800, y_bins=800, deposition='ngp',
                  fontsize=18, figure_size=8.0):
 
         # if no z_fields are passed in, use a constant color
@@ -1353,10 +1353,10 @@ class ParticlePhasePlot(PhasePlot):
                     field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                     field_ex[1] = field_ex[1].in_units(bf_units)
                 ex.append(field_ex)
-        args = [data_source]
+        arguments = [data_source]
         for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
-            args += [f, n, mi, ma]
-        obj = ParticleProfile(*args, deposition=deposition)
+            arguments += [f, n, mi, ma]
+        obj = ParticleProfile(*arguments, deposition=deposition)
         if fields is not None:
             obj.add_fields([field for field in fields])
         if units is not None:

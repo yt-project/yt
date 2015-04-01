@@ -17,6 +17,9 @@ from .color_maps import \
     add_cmap, \
     show_colormaps
 
+from .particle_plots import \
+    ParticlePlot
+
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
@@ -57,4 +60,3 @@ from .profile_plotter import \
 
 from .base_plot_types import \
     get_multi_plot
-

@@ -150,7 +150,7 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, ProfilePlot, PhasePlot, \
     ParticlePhasePlot, AxisAlignedParticlePlot, \
-    ParticleImageBuffer
+    ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \
