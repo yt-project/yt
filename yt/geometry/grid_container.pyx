@@ -125,6 +125,7 @@ cdef class GridTree:
         return indices, levels, nchild, children
 
     cdef void setup_data(self, GridVisitorData *data):
+        # Being handed a new GVD object, we initialize it to sane defaults.
         data.index = 0
         data.global_index = 0
         data.n_tuples = 0
@@ -135,6 +136,8 @@ cdef class GridTree:
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector):
+        # This iterates over all root grids, given a selector+data, and then
+        # visits each one and its children.
         cdef int i, n
         # Because of confusion about mapping of children to parents, we are
         # going to do this the stupid way for now.
@@ -152,6 +155,8 @@ cdef class GridTree:
                                      SelectorObject selector,
                                      GridTreeNode *grid,
                                      np.uint8_t *buf = NULL):
+        # Visit this grid and all of its child grids, with a given grid visitor
+        # function.  We early terminate if we are not selected by the selector.
         cdef int i
         data.grid = grid
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
@@ -164,6 +169,7 @@ cdef class GridTree:
                                         buf)
 
     def count(self, SelectorObject selector):
+        # Use the counting grid visitor
         cdef GridVisitorData data
         self.setup_data(&data)
         cdef np.uint64_t size = 0
@@ -183,6 +189,7 @@ cdef class GridTree:
         return size
 
     def select_icoords(self, SelectorObject selector, np.uint64_t size = -1):
+        # Fill icoords with a selector
         cdef GridVisitorData data
         self.setup_data(&data)
         if size == -1:
@@ -196,6 +203,7 @@ cdef class GridTree:
         return icoords
 
     def select_ires(self, SelectorObject selector, np.uint64_t size = -1):
+        # Fill ires with a selector
         cdef GridVisitorData data
         self.setup_data(&data)
         if size == -1:
@@ -209,6 +217,7 @@ cdef class GridTree:
         return ires
 
     def select_fcoords(self, SelectorObject selector, np.uint64_t size = -1):
+        # Fill fcoords with a selector
         cdef GridVisitorData data
         self.setup_data(&data)
         if size == -1:
@@ -222,6 +231,7 @@ cdef class GridTree:
         return fcoords
 
     def select_fwidth(self, SelectorObject selector, np.uint64_t size = -1):
+        # Fill fwidth with a selector
         cdef GridVisitorData data
         self.setup_data(&data)
         if size == -1:
