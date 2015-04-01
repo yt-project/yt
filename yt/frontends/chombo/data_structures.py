@@ -18,7 +18,6 @@ import re
 import os
 import weakref
 import numpy as np
-import six
 
 from stat import \
     ST_CTIME
@@ -26,6 +25,7 @@ from stat import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
