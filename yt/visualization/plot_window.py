@@ -1881,8 +1881,6 @@ class AxisAlignedParticlePlot(PWViewerMPL):
         if self._use_cbar is False:
             self.hide_colorbar()
 
-    def _recreate_frb(self):
-        super(AxisAlignedParticlePlot, self)._recreate_frb()
 
 _metadata_template = """
 %(ds)s<br>
