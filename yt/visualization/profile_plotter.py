@@ -715,7 +715,7 @@ class PhasePlot(ImagePlotContainer):
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
 
-        profile = self._create_profile(
+        profile = create_profile(
             data_source,
             [x_field, y_field],
             ensure_list(z_fields),
@@ -726,9 +726,6 @@ class PhasePlot(ImagePlotContainer):
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
-
-    def _create_profile(self, *args, **kwargs):
-        return create_profile(*args, **kwargs)
 
     @classmethod
     def _initialize_instance(cls, obj, data_source, profile, fontsize,
@@ -1156,7 +1153,7 @@ class PhasePlot(ImagePlotContainer):
                                  'fractional': p.fractional}
         else:
             additional_kwargs = {'deposition': p.deposition}
-        self.profile = self._create_profile(
+        self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
@@ -1211,7 +1208,7 @@ class PhasePlot(ImagePlotContainer):
                                  'fractional': p.fractional}
         else:
             additional_kwargs = {'deposition': p.deposition}
-        self.profile = self._create_profile(
+        self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
@@ -1304,7 +1301,7 @@ class ParticlePhasePlot(PhasePlot):
             self.splat_color = color
             z_fields = ['particle_ones']
 
-        profile = self._create_profile(
+        profile = create_profile(
             data_source,
             [x_field, y_field],
             ensure_list(z_fields),
@@ -1313,65 +1310,6 @@ class ParticlePhasePlot(PhasePlot):
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
-
-    def _create_profile(self, data_source, bin_fields, fields,
-                        n_bins=128, extrema=None, units=None,
-                        weight_field=None, **kwargs):
-
-        deposition = kwargs.get('deposition')
-
-        bin_fields = data_source._determine_fields(bin_fields)
-        fields = data_source._determine_fields(fields)
-        units = sanitize_field_tuple_keys(units, data_source)
-        extrema = sanitize_field_tuple_keys(extrema, data_source)
-
-        if not iterable(n_bins):
-            n_bins = [n_bins] * len(bin_fields)
-
-        logs = [False, False]
-
-        if extrema is None:
-            ex = [data_source.quantities["Extrema"](f, non_zero=l)
-                  for f, l in zip(bin_fields, logs)]
-        else:
-            ex = []
-            for bin_field in bin_fields:
-                bf_units = data_source.ds.field_info[bin_field].units
-                try:
-                    field_ex = list(extrema[bin_field[-1]])
-                except KeyError:
-                    field_ex = list(extrema[bin_field])
-                if units is not None and bin_field in units:
-                    if isinstance(field_ex[0], tuple):
-                        field_ex = [data_source.ds.quan(*f) for f in field_ex]
-                    fe = data_source.ds.arr(field_ex, units[bin_field])
-                    fe.convert_to_units(bf_units)
-                    field_ex = [fe[0], fe[1]]
-                if iterable(field_ex[0]):
-                    field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
-                    field_ex[0] = YTArray(field_ex[0].in_units(bf_units),
-                                          bf_units)
-                if iterable(field_ex[1]):
-                    field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
-                    field_ex[1] = YTArray(field_ex[1].in_units(bf_units),
-                                          bf_units)
-                ex.append(field_ex)
-        arguments = [data_source]
-        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
-            arguments += [f, n, mi, ma]
-        obj = ParticleProfile(*arguments, deposition=deposition)
-        if fields is not None:
-            obj.add_fields([field for field in fields])
-        if units is not None:
-            for field, unit in units.iteritems():
-                field = data_source._determine_fields(field)[0]
-                if field == obj.x_field:
-                    obj.set_x_unit(unit)
-                elif field == getattr(obj, "y_field", None):
-                    obj.set_y_unit(unit)
-                else:
-                    obj.set_field_unit(field, unit)
-        return obj
 
 
 class PhasePlotMPL(ImagePlotMPL):

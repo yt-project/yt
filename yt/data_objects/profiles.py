@@ -1149,28 +1149,28 @@ class ParticleProfile(Profile2D):
                  y_field, y_n, y_min, y_max,
                  deposition="ngp"):
 
-        self.LeftEdge = [x_min, y_min]
-        self.dx = (x_max - x_min) / x_n
-        self.dy = (y_max - y_min) / y_n
-        self.CellSize = YTArray([self.dx, self.dy])
-        self.CellVolume = np.product(self.CellSize)
-        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
-        self.known_styles = ["ngp", "cic"]
-        if deposition not in self.known_styles:
-            raise NotImplementedError(deposition)
-        self.deposition = deposition
-
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
         super(ParticleProfile, self).__init__(data_source,
-                                                 x_field,
-                                                 x_n, x_min, x_max, False,
-                                                 y_field,
-                                                 y_n, y_min, y_max, False,
-                                                 weight_field=None)
+                                              x_field,
+                                              x_n, x_min, x_max, False,
+                                              y_field,
+                                              y_n, y_min, y_max, False,
+                                              weight_field=None)
+
+        self.LeftEdge = [self.x_bins[0], self.y_bins[0]]
+        self.dx = (self.x_bins[-1] - self.x_bins[0]) / x_n
+        self.dy = (self.y_bins[-1] - self.y_bins[0]) / y_n
+        self.CellSize = [self.dx, self.dy]
+        self.CellVolume = np.product(self.CellSize)
+        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
+        self.known_styles = ["ngp", "cic"]
+        if deposition not in self.known_styles:
+            raise NotImplementedError(deposition)
+        self.deposition = deposition
 
     # Either stick the particle field in the nearest bin,
     # or spread it out using the 2D CIC deposition function
@@ -1180,11 +1180,10 @@ class ParticleProfile(Profile2D):
         fdata, wdata, (bf_x, bf_y) = rv
         # make sure everything has the same units before deposition.
         # the units will be scaled to the correct values later.
-        bf_x_units = self.LeftEdge[0].units
-        bf_y_units = self.LeftEdge[1].units
-        bf_x = bf_x.in_units(bf_x_units)
-        bf_y = bf_y.in_units(bf_y_units)
-        LE = np.array([self.LeftEdge[0].v, self.LeftEdge[1].v])
+        LE = np.array([self.LeftEdge[0].in_units(bf_x.units),
+                       self.LeftEdge[1].in_units(bf_y.units)])
+        cell_size = np.array([self.CellSize[0].in_units(bf_x.units),
+                              self.CellSize[1].in_units(bf_y.units)])
         for fi, field in enumerate(fields):
             Np = fdata[:, fi].size
 
@@ -1197,7 +1196,7 @@ class ParticleProfile(Profile2D):
                  storage.values[:, :, fi],
                  LE,
                  self.GridDimensions,
-                 self.CellSize)
+                 cell_size)
 
             locs = storage.values[:, :, fi] > 0.0
             storage.used[locs] = True
@@ -1346,10 +1345,12 @@ def sanitize_field_tuple_keys(input_dict, data_source):
     else:
         return input_dict
 
+
 def create_profile(data_source, bin_fields, fields, n_bins=64,
                    extrema=None, logs=None, units=None,
                    weight_field="cell_mass",
-                   accumulation=False, fractional=False):
+                   accumulation=False, fractional=False,
+                   deposition='ngp'):
     r"""
     Create a 1, 2, or 3D profile object.
 
@@ -1402,7 +1403,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     >>> ds = load("DD0046/DD0046")
     >>> ad = ds.h.all_data()
-    >>> profile = create_profile(ad, [("gas", "density")], 
+    >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
     >>> print profile.x
@@ -1411,8 +1412,19 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     """
     bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
+    is_pfield = [data_source.ds._get_field_info(f) for f in bin_fields
+                 + fields]
+
     if len(bin_fields) == 1:
         cls = Profile1D
+    elif len(bin_fields) == 2 and np.all(is_pfield):
+        # log bin_fields set to False for Particle Profiles.
+        # doesn't make much sense for CIC deposition.
+        # accumulation and fractional set to False as well.
+        logs = {bin_fields[0]: False, bin_fields[1]: False}
+        accumulation = False
+        fractional = False
+        cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
     elif len(bin_fields) == 3:
@@ -1463,12 +1475,18 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
-    args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-        args += [f, n, mi, ma, l]
-    obj = cls(*args, weight_field = weight_field)
-    setattr(obj, "accumulation", accumulation)
-    setattr(obj, "fractional", fractional)
+    if cls is ParticleProfile:
+        args = [data_source]
+        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
+            args += [f, n, mi, ma]
+        obj = cls(*args, deposition=deposition)
+    else:
+        args = [data_source]
+        for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+            args += [f, n, mi, ma, l]
+        obj = cls(*args, weight_field = weight_field)
+        setattr(obj, "accumulation", accumulation)
+        setattr(obj, "fractional", fractional)
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:
