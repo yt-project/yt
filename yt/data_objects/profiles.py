@@ -1134,6 +1134,8 @@ class ParticleProfile(Profile2D):
         The minimum value of the y profile field.
     y_max : float
         The maximum value of the y profile field.
+    weight_field : string field name
+        The field to use for weighting. Default is None.
     deposition : string, optional
         The interpolation kernal to be used for
         deposition. Valid choices:
@@ -1147,7 +1149,7 @@ class ParticleProfile(Profile2D):
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max,
                  y_field, y_n, y_min, y_max,
-                 deposition="ngp"):
+                 weight_field=None, deposition="ngp"):
 
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
@@ -1159,7 +1161,7 @@ class ParticleProfile(Profile2D):
                                               x_n, x_min, x_max, False,
                                               y_field,
                                               y_n, y_min, y_max, False,
-                                              weight_field=None)
+                                              weight_field=weight_field)
 
         self.LeftEdge = [self.x_bins[0], self.y_bins[0]]
         self.dx = (self.x_bins[-1] - self.x_bins[0]) / x_n
@@ -1200,7 +1202,17 @@ class ParticleProfile(Profile2D):
 
             locs = storage.values[:, :, fi] > 0.0
             storage.used[locs] = True
-            storage.weight_values[locs] = 1.0
+
+            if self.weight_field is not None:
+                func(bf_x, bf_y, wdata, Np,
+                     storage.weight_values,
+                     LE,
+                     self.GridDimensions,
+                     cell_size)
+            else:
+                storage.weight_values[locs] = 1.0
+            storage.mvalues[locs, fi] = storage.values[locs, fi] \
+                                        / storage.weight_values[locs]
         # We've binned it!
 
 
@@ -1412,8 +1424,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     """
     bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
-    is_pfield = [data_source.ds._get_field_info(f) for f in bin_fields
-                 + fields]
+    is_pfield = [data_source.ds._get_field_info(f).particle_type
+                 for f in bin_fields + fields]
 
     if len(bin_fields) == 1:
         cls = Profile1D
@@ -1436,8 +1448,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     units = sanitize_field_tuple_keys(units, data_source)
     extrema = sanitize_field_tuple_keys(extrema, data_source)
     logs = sanitize_field_tuple_keys(logs, data_source)
-    if weight_field is not None:
+    if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
+        if not data_source.ds._get_field_info(weight_field).particle_type:
+            weight_field = None
     if not iterable(n_bins):
         n_bins = [n_bins] * len(bin_fields)
     if not iterable(accumulation):
@@ -1479,7 +1493,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         args = [data_source]
         for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
             args += [f, n, mi, ma]
-        obj = cls(*args, deposition=deposition)
+        obj = cls(*args, weight_field=weight_field, deposition=deposition)
     else:
         args = [data_source]
         for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):

@@ -1259,6 +1259,8 @@ class ParticlePhasePlot(PhasePlot):
     y_bins : int
         The number of bins in y field for the mesh.
         Default: 800.
+    weight_field : str
+        The field to weight by. Default: None.
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of
         interpolation will be used to deposit the
@@ -1292,8 +1294,8 @@ class ParticlePhasePlot(PhasePlot):
     _plot_type = 'ParticlePhase'
 
     def __init__(self, data_source, x_field, y_field, z_fields=None,
-                 color='b', x_bins=800, y_bins=800, deposition='ngp',
-                 fontsize=18, figure_size=8.0):
+                 color='b', x_bins=800, y_bins=800, weight_field=None,
+                 deposition='ngp', fontsize=18, figure_size=8.0):
 
         # if no z_fields are passed in, use a constant color
         if z_fields is None:
@@ -1306,6 +1308,7 @@ class ParticlePhasePlot(PhasePlot):
             [x_field, y_field],
             ensure_list(z_fields),
             n_bins=[x_bins, y_bins],
+            weight_field=weight_field,
             deposition=deposition)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
