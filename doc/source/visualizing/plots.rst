@@ -987,11 +987,11 @@ Particle Plots
 Slice and projection plots both provide a callback for over-plotting particle
 positions onto gas fields. However, sometimes you want to plot the particle 
 quantities by themselves, perhaps because the gas fields are not relevant to 
-the point you're trying to make with your plot, or perhaps because your dataset
-doesn't contain any gas fields in the first place. Additionally, you may want to
-plot your particles with a third field, such as particle mass or age,  mapped to 
-a colorbar. :class:`~yt.visualization.particle_plots.ParticlePlot` provides a 
-convenient way to do this in yt. 
+the your point, or perhaps because your dataset doesn't contain any gas fields 
+in the first place. Additionally, you may want to plot your particles with a 
+third field, such as particle mass or age,  mapped to a colorbar. 
+:class:`~yt.visualization.particle_plots.ParticlePlot` provides a convenient 
+way to do this in yt. 
 
 The easiest way to make a :class:`~yt.visualization.particle_plots.ParticlePlot` 
 is to use the convenience routine, analagous to :class:`~yt.visualization.plot_window.SlicePlot`. 
@@ -1074,13 +1074,13 @@ to set the colorbar and shows off some of the modification functions for
 If the fields passed in to :class:`~yt.visualization.particle_plots.ParticlePlot` 
 do not correspond to a valid :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`, 
 a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` will be returned instead.
-:class:`~yt.visualization.profile_plotter.ParticlePhasePlot`s are used to plot arbitrary particle 
+:class:`~yt.visualization.profile_plotter.ParticlePhasePlot` is used to plot arbitrary particle 
 fields against each other, and do not support some of the callbacks available in 
 :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot` -
 for instance, :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` and 
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` don't make much sense when of your axes is a position
 and the other is a velocity. The modification functions defined for :class:`~yt.visualization.profile_plotter.PhasePlot` 
-should all work, however. 
+should all work, however.
 
 Here is an example of making a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` 
 of ``particle_position_x`` versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
@@ -1132,7 +1132,7 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   my_sphere = ds.sphere("c", (5.0, "kpc"))
+   my_sphere = ds.sphere("c", (50.0, "kpc"))
 
    p = yt.ParticlePhasePlot(my_sphere, "particle_velocity_x", "particle_velocity_y",
                             "particle_mass")
