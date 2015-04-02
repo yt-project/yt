@@ -88,7 +88,7 @@ cdef class bitarray:
         arr = np.ascontiguousarray(arr)
         j = 0
         for i in range(self.size):
-            btemp[i >> 3] = btemp[i >> 3] | (arr[i] << (7-j))
+            btemp[i >> 3] = btemp[i >> 3] | (arr[i] << (j))
             j += 1
             if j == 8:
                 j = 0
@@ -114,7 +114,7 @@ cdef class bitarray:
         output = np.zeros(self.size, "uint8")
         j = 0
         for i in range(self.size):
-            output[i] = (btemp[i >> 3] >> (7 - j)) & 1
+            output[i] = (btemp[i >> 3] >> (j)) & 1
             j += 1
             if j == 8:
                 j = 0
