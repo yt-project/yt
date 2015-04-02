@@ -1144,6 +1144,41 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
 
    p.save()
 
+Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`
+object seperately using the :func:`~yt.data_objects.profiles.create_profile` function, and then use it
+create a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` object using the 
+:meth:`~yt.visualization.profile_plotter.ParticlePhasePlot.from_profile` method. In this example,
+we have also used the ``weight_field`` argument to compute the average ``particle_mass`` in each
+pixel, instead of the total:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   ad = ds.all_data()
+
+   profile = yt.create_profile(ad, ['particle_velocity_x', 'particle_velocity_y'], ['particle_mass'], 
+                               n_bins=800, weight_field='particle_ones')
+
+   p = yt.ParticlePhasePlot.from_profile(profile)
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+   p.show()
+
+Under the hood, the :class:`~yt.data_objects.profiles.ParticleProfile` class works a lot like a 
+:class:`~yt.data_objects.profiles.Profile2D` object, except that instead of just binning the 
+particle field, you can also use higher-order deposition functions like the cloud-in-cell 
+interpolant to spread out the particle quantites over a few cells in the profile. The 
+:func:`~yt.data_objects.profiles.create_profile` will automatically detect when all the fields
+you pass in are particle fields, and return a :class:`~yt.data_objects.profiles.ParticleProfile`
+if that is the case. For a complete description of the :class:`~yt.data_objects.profiles.ParticleProfile`
+class please consult the reference documentation.
+
 .. _interactive-plotting:
 
 Interactive Plotting
