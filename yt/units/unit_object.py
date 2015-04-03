@@ -389,7 +389,7 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
         """
         if current_mks in self.dimensions.free_symbols:
-            raise YTUnitsNotReducible(self.units, "cgs")
+            raise YTUnitsNotReducible(self, "cgs")
         units_string = self._get_system_unit_string(cgs_base_units)
         return Unit(units_string, base_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
