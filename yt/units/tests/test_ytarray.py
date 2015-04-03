@@ -968,19 +968,19 @@ def test_electromagnetic():
 
     # Various tests of SI and CGS electromagnetic units
 
-    qp_mks = qp.to_equivalent("C", "em_SI")
+    qp_mks = qp.to_equivalent("C", "SI")
     yield assert_equal, qp_mks.units.dimensions, charge_mks
     yield assert_array_almost_equal, qp_mks.v, 10.0*qp.v/speed_of_light_cm_per_s
 
-    qp_cgs = qp_mks.to_equivalent("esu", "em_CGS")
+    qp_cgs = qp_mks.to_equivalent("esu", "CGS")
     yield assert_array_almost_equal, qp_cgs, qp
     yield assert_equal, qp_cgs.units.dimensions, qp.units.dimensions
     
-    qp_mks_k = qp.to_equivalent("kC", "em_SI")
+    qp_mks_k = qp.to_equivalent("kC", "SI")
     yield assert_array_almost_equal, qp_mks_k.v, 1.0e-2*qp.v/speed_of_light_cm_per_s
 
     B = YTQuantity(1.0, "T")
-    B_cgs = B.to_equivalent("gauss", "em_CGS")
+    B_cgs = B.to_equivalent("gauss", "CGS")
     yield assert_equal, B.units.dimensions, magnetic_field_mks
     yield assert_equal, B_cgs.units.dimensions, magnetic_field_cgs
     yield assert_array_almost_equal, B_cgs, YTQuantity(1.0e4, "gauss")
@@ -992,13 +992,13 @@ def test_electromagnetic():
     yield assert_array_almost_equal, u_mks.in_cgs(), u_cgs
     
     I = YTQuantity(1.0, "A")
-    I_cgs = I.to_equivalent("statA", "em_CGS")
+    I_cgs = I.to_equivalent("statA", "CGS")
     yield assert_array_almost_equal, I_cgs, YTQuantity(0.1*speed_of_light_cm_per_s, "statA")
-    yield assert_array_almost_equal, I_cgs.to_equivalent("mA", "em_SI"), I.in_units("mA")
+    yield assert_array_almost_equal, I_cgs.to_equivalent("mA", "SI"), I.in_units("mA")
     yield assert_equal, I_cgs.units.dimensions, current_cgs
     
     R = YTQuantity(1.0, "ohm")
-    R_cgs = R.to_equivalent("statohm", "em_CGS")
+    R_cgs = R.to_equivalent("statohm", "CGS")
     P_mks = I*I*R
     P_cgs = I_cgs*I_cgs*R_cgs
     yield assert_equal, P_mks.units.dimensions, power
@@ -1007,7 +1007,7 @@ def test_electromagnetic():
     yield assert_array_almost_equal, P_cgs.in_mks(), YTQuantity(1.0, "W")
     
     V = YTQuantity(1.0, "statV")
-    V_mks = V.to_equivalent("V", "em_SI")
+    V_mks = V.to_equivalent("V", "SI")
     yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
     
 def test_numpy_wrappers():

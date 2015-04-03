@@ -186,7 +186,7 @@ em_conversions = {
 }
 
 class ElectromagneticSI(Equivalence):
-    _type_name = "em_SI"
+    _type_name = "SI"
     _one_way = True
     dims = (current_cgs, charge_cgs, magnetic_field_cgs,
             electric_field_cgs, electric_potential_cgs,
@@ -198,10 +198,10 @@ class ElectromagneticSI(Equivalence):
         return x.in_cgs().v*convert_factor, new_units
     
     def __str__(self):
-        return "em_SI: EM CGS unit -> EM SI unit"
+        return "SI: EM CGS unit -> EM SI unit"
 
 class ElectromagneticCGS(Equivalence):
-    _type_name = "em_CGS"
+    _type_name = "CGS"
     _one_way = True
     dims = (current_mks, charge_mks, magnetic_field_mks,
             electric_field_mks, electric_potential_mks,
@@ -213,5 +213,5 @@ class ElectromagneticCGS(Equivalence):
         return x.in_mks().v*convert_factor, new_units
 
     def __str__(self):
-        return "em_CGS: EM SI unit -> EM CGS unit"
+        return "CGS: EM SI unit -> EM CGS unit"
 

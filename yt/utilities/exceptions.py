@@ -203,8 +203,8 @@ class YTEquivalentDimsError(Exception):
     
     def __str__(self):
         err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', 'em_%s')\" instead." % (self.old_units, self.new_units, 
-                                                               self.new_units, self.base)
+          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units, 
+                                                            self.new_units, self.base)
         return err
     
 class YTUfuncUnitError(YTException):
