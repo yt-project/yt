@@ -58,7 +58,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-from yt.utilities.lib.GridTree import \
+from yt.geometry.grid_container import \
     GridTree, \
     MatchPointsToGrids
 from yt.utilities.decompose import \
@@ -435,6 +435,7 @@ def assign_particle_data(ds, pdata) :
         grid_tree = GridTree(num_grids, 
                              ds.stream_handler.left_edges,
                              ds.stream_handler.right_edges,
+                             ds.stream_handler.dimensions,
                              ds.stream_handler.parent_ids,
                              levels, num_children)
 
