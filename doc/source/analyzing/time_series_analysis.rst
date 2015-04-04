@@ -79,9 +79,7 @@ see:
 Analyzing an Entire Simulation
 ------------------------------
 
-.. note:: Currently only implemented for Enzo.  Other simulation types coming 
-   soon.  Until then, rely on the above prescription for creating 
-   ``DatasetSeries`` objects.
+.. note:: Implemented for: Enzo, Gadget, OWLS.
 
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 
@@ -123,10 +121,10 @@ Additional keywords can be given to
 to select a subset of the total data:
 
 * ``time_data`` (*bool*): Whether or not to include time outputs when 
-  gathering datasets for time series.  Default: True.
+  gathering datasets for time series.  Default: True.  (Enzo only)
 
 * ``redshift_data`` (*bool*): Whether or not to include redshift outputs 
-  when gathering datasets for time series.  Default: True.
+  when gathering datasets for time series.  Default: True.  (Enzo only)
 
 * ``initial_time`` (*float*): The earliest time for outputs to be included.  
   If None, the initial time of the simulation is used.  This can be used in 
@@ -157,11 +155,11 @@ to select a subset of the total data:
 
 * ``initial_cycle`` (*float*): The earliest cycle for outputs to be 
   included.  If None, the initial cycle of the simulation is used.  This can
-  only be used with final_cycle.  Default: None.
+  only be used with final_cycle.  Default: None.  (Enzo only)
 
 * ``final_cycle`` (*float*): The latest cycle for outputs to be included.  
   If None, the final cycle of the simulation is used.  This can only be used 
-  in combination with initial_cycle.  Default: None.
+  in combination with initial_cycle.  Default: None.  (Enzo only)
 
 * ``tolerance`` (*float*):  Used in combination with ``times`` or ``redshifts`` 
   keywords, this is the tolerance within which outputs are accepted given 
