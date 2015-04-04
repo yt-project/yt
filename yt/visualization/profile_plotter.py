@@ -34,7 +34,6 @@ from .plot_container import \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile, \
-    ParticleProfile, \
     sanitize_field_tuple_keys
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
@@ -1220,99 +1219,6 @@ class PhasePlot(ImagePlotContainer):
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
-
-
-class ParticlePhasePlot(PhasePlot):
-    r"""
-    Create a 2d particle phase plot from a data source or from
-    a `yt.data_objects.profiles.ParticleProfile` object.
-
-    Given a data object (all_data, region, sphere, etc.), an x field,
-    y field, and z field (or fields), this will create a particle plot 
-    by depositing the particles onto a two-dimensional mesh, using either
-    nearest grid point or cloud-in-cell deposition.
-
-    Parameters
-    ----------
-    data_source : YTSelectionContainer Object
-        The data object to be profiled, such as all_data, region, or 
-        sphere.
-    x_field : str
-        The x field for the mesh.
-    y_field : str
-        The y field for the mesh.
-    z_fields : None, str, or list
-        If None, particles will be splatted onto the mesh,
-        but no colormap will be used.
-        If str or list, the name of the field or fields to
-        be displayed on the colorbar.
-        Default: None.
-    color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
-        One the matplotlib-recognized color strings.
-        The color that will indicate the particle locations
-        on the mesh. This argument is ignored if z_fields is
-        not None.
-        Default : 'b'
-    x_bins : int
-        The number of bins in x field for the mesh.
-        Default: 800.
-    y_bins : int
-        The number of bins in y field for the mesh.
-        Default: 800.
-    weight_field : str
-        The field to weight by. Default: None.
-    deposition : str
-        Either 'ngp' or 'cic'. Controls what type of
-        interpolation will be used to deposit the
-        particle z_fields onto the mesh.
-        Default: 'ngp'
-    fontsize: int
-        Font size for all text in the plot.
-        Default: 18.
-    figure_size : int
-        Size in inches of the image.
-        Default: 8 (8x8)
-
-    Examples
-    --------
-
-    >>> import yt
-    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = ds.all_data()
-    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
-                                 "particle_position_y", ["particle_mass"],
-    ...                          x_bins=800, y_bins=800)
-    >>> plot.save()
-
-    >>> # Change plot properties.
-    >>> plot.set_log('particle_mass', True)
-    >>> plot.set_unit('particle_position_x', 'Mpc')
-    >>> plot.set_unit('particle_velocity_z', 'km/s')
-    >>> plot.set_unit('particle_mass', 'Msun')
-
-    """
-    _plot_type = 'ParticlePhase'
-
-    def __init__(self, data_source, x_field, y_field, z_fields=None,
-                 color='b', x_bins=800, y_bins=800, weight_field=None,
-                 deposition='ngp', fontsize=18, figure_size=8.0):
-
-        # if no z_fields are passed in, use a constant color
-        if z_fields is None:
-            self.use_cbar = False
-            self.splat_color = color
-            z_fields = ['particle_ones']
-
-        profile = create_profile(
-            data_source,
-            [x_field, y_field],
-            ensure_list(z_fields),
-            n_bins=[x_bins, y_bins],
-            weight_field=weight_field,
-            deposition=deposition)
-
-        type(self)._initialize_instance(self, data_source, profile, fontsize,
-                                        figure_size)
 
 
 class PhasePlotMPL(ImagePlotMPL):

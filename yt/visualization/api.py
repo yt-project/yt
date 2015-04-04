@@ -20,6 +20,8 @@ from .color_maps import \
     make_colormap
 
 from .particle_plots import \
+    AxisAlignedParticlePlot, \
+    ParticlePhasePlot, \
     ParticlePlot
 
 from .fixed_resolution import \
@@ -52,13 +54,11 @@ from .plot_window import \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
-    OffAxisProjectionPlot, \
-    AxisAlignedParticlePlot
+    OffAxisProjectionPlot
 
 from .profile_plotter import \
     ProfilePlot, \
-    PhasePlot, \
-    ParticlePhasePlot
+    PhasePlot
 
 from .base_plot_types import \
     get_multi_plot
