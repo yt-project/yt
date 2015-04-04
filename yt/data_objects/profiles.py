@@ -1406,6 +1406,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     fractional : If True the profile values are divided by the sum of all
         the profile data such that the profile represents a probability
         distribution function.
+    deposition : Controls the type of deposition used for ParticlePhasePlots.
+        Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
+        ignored the if the input fields are not of particle type.
+
 
     Examples
     --------
