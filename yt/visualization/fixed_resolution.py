@@ -477,19 +477,24 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),
                               np.logical_and(py >= 0.0, py <= 1.0))
 
+        weight_field = self.data_source.weight_field
+        if weight_field is None:
+            weight_data = np.ones_like(data.v)
+        else:
+            weight_data = self.data_source.dd[weight_field]
+        splat_vals = weight_data[mask]*data[mask]
+
         # splat particles
         buff = np.zeros(self.buff_size)
         add_points_to_greyscale_image(buff,
                                       px[mask],
                                       py[mask],
-                                      data[mask])
+                                      splat_vals)
         ia = ImageArray(buff, input_units=data.units,
                         info=self._get_info(item))
 
         # divide by the weight_field, if needed
-        weight_field = self.data_source.weight_field
         if weight_field is not None:
-            weight_data = self.data_source.dd[weight_field]
             weight_buff = np.zeros(self.buff_size)
             add_points_to_greyscale_image(weight_buff,
                                           px[mask],

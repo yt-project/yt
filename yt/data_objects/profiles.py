@@ -1194,7 +1194,12 @@ class ParticleProfile(Profile2D):
             elif self.deposition == 'cic':
                 func = CICDeposit_2
 
-            func(bf_x, bf_y, fdata[:, fi], Np,
+            if self.weight_field is None:
+                deposit_vals = fdata[:, fi]
+            else:
+                deposit_vals = wdata*fdata[:, fi]
+
+            func(bf_x, bf_y, deposit_vals, Np,
                  storage.values[:, :, fi],
                  LE,
                  self.GridDimensions,
