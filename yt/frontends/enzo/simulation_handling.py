@@ -490,7 +490,6 @@ class EnzoSimulation(SimulationTimeSeries):
                 self._calculate_time_outputs()
 
             # Calculate times for redshift outputs.
-            self._calculate_redshift_dump_times()
             if self.cosmological_simulation:
                 for output in self.all_redshift_outputs:
                     output["time"] = self.cosmology.t_from_z(output["redshift"])
