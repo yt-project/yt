@@ -544,9 +544,6 @@ class GadgetSimulation(SimulationTimeSeries):
 
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
-        for q, output in enumerate(outputs):
-            z_string = "%%s[%%d] = %%.%df" % decimals
-            f.write(("CosmologyOutputRedshift[%d] = %."
-                     + str(decimals) + "f\n") %
-                    ((q + start_index), output["redshift"]))
+        for output in outputs:
+            f.write("%f\n" % (1. / (1. + output["redshift"])))
         f.close()
