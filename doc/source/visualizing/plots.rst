@@ -994,8 +994,7 @@ third field, such as particle mass or age,  mapped to a colorbar.
 way to do this in yt. 
 
 The easiest way to make a :class:`~yt.visualization.particle_plots.ParticlePlot` 
-is to use the convenience routine, analagous to :class:`~yt.visualization.plot_window.SlicePlot`. 
-This has the syntax:
+is to use the convenience routine. This has the syntax:
 
 .. code-block:: python
 
@@ -1005,11 +1004,12 @@ This has the syntax:
 Here, ``ds`` is a dataset we've previously opened. The commands create a particle
 plot that shows the x and y positions of all the particles in ``ds`` and save the 
 result to a file on the disk. The type of plot returned depends on the fields you 
-pass in; in this case, ``p`` will be an :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, 
+pass in; in this case, ``p`` will be an :class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot`, 
 because the fields are aligned to the coordinate system of the simulation. 
 
 Most of the callbacks the work for slice and projection plots also work for 
-:class:`~yt.visualization.particle_plots.ParticlePlot`. For instance, we can zoom in:
+:class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot`. 
+For instance, we can zoom in:
 
 .. code-block:: python
    
@@ -1058,7 +1058,7 @@ colorbar axis; to plot average quantities instead, one can supply a
 
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for 
-:class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`:
+:class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot`:
 
 .. python-script::
 
@@ -1072,17 +1072,17 @@ to set the colorbar and shows off some of the modification functions for
    p.save()
 
 If the fields passed in to :class:`~yt.visualization.particle_plots.ParticlePlot` 
-do not correspond to a valid :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`, 
-a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` will be returned instead.
-:class:`~yt.visualization.profile_plotter.ParticlePhasePlot` is used to plot arbitrary particle 
+do not correspond to a valid :class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot`, 
+a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` will be returned instead.
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot` is used to plot arbitrary particle 
 fields against each other, and do not support some of the callbacks available in 
-:class:`~yt.visualization.plot_window.AxisAlignedParticlePlot` -
+:class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot` -
 for instance, :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` and 
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` don't make much sense when of your axes is a position
 and the other is a velocity. The modification functions defined for :class:`~yt.visualization.profile_plotter.PhasePlot` 
 should all work, however.
 
-Here is an example of making a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` 
+Here is an example of making a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` 
 of ``particle_position_x`` versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
 
 .. python-script::
@@ -1109,9 +1109,9 @@ and here is one with the particle x and y velocities on the plot axes:
    p.set_xlim(-400, 400)
    p.save()
 
-If you want more control over the details of the ``AxisAlignedParticlePlot`` or 
-:class:`~yt.visualization.profile_plotter.ParticlePhasePlot`, you can always use these classes directly. For instance, 
-here is an example of using the ``depth`` argument to :class:`~yt.visualization.plot_window.AxisAlignedParticlePlot`
+If you want more control over the details of the :class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot` or 
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot`, you can always use these classes directly. For instance, 
+here is an example of using the ``depth`` argument to :class:`~yt.visualization.particle_plots.AxisAlignedParticlePlot`
 to only plot the particles that live in a thin slice around the center of the
 domain:
 
@@ -1124,7 +1124,7 @@ domain:
    p.set_unit('particle_mass', 'Msun')
    p.save()
 
-and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.profile_plotter.ParticlePhasePlot`
+and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
 to only consider the particles that lie within a 50 kpc sphere around the domain center:
 
 .. python-script::
@@ -1146,8 +1146,8 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
 
 Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`
 object seperately using the :func:`~yt.data_objects.profiles.create_profile` function, and then use it
-create a :class:`~yt.visualization.profile_plotter.ParticlePhasePlot` object using the 
-:meth:`~yt.visualization.profile_plotter.ParticlePhasePlot.from_profile` method. In this example,
+create a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` object using the 
+:meth:`~yt.visualization.particle_plots.ParticlePhasePlot.from_profile` method. In this example,
 we have also used the ``weight_field`` argument to compute the average ``particle_mass`` in each
 pixel, instead of the total:
 
@@ -1168,7 +1168,7 @@ pixel, instead of the total:
    p.set_unit('particle_mass', 'Msun')
    p.set_ylim(-400, 400)
    p.set_xlim(-400, 400)
-   p.show()
+   p.save()
 
 Under the hood, the :class:`~yt.data_objects.profiles.ParticleProfile` class works a lot like a 
 :class:`~yt.data_objects.profiles.Profile2D` object, except that instead of just binning the 
