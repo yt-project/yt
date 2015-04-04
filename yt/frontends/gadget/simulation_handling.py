@@ -85,7 +85,7 @@ class GadgetSimulation(SimulationTimeSeries):
         self.unit_registry = UnitRegistry()
         self.time_unit = self.quan(1.0, "s")
         if self.cosmological_simulation:
-            # Instantiate EnzoCosmology object for units and time conversions.
+            # Instantiate Cosmology object for units and time conversions.
             self.cosmology = \
               Cosmology(hubble_constant=self.hubble_constant,
                         omega_matter=self.omega_matter,
@@ -103,10 +103,8 @@ class GadgetSimulation(SimulationTimeSeries):
                                          "cmcm / h", registry=self.unit_registry)
             self.box_size *= self.length_unit.in_units("Mpccm / h")
 
-    def get_time_series(self, time_data=True, redshift_data=True,
-                        initial_time=None, final_time=None,
+    def get_time_series(self, initial_time=None, final_time=None,
                         initial_redshift=None, final_redshift=None,
-                        initial_cycle=None, final_cycle=None,
                         times=None, redshifts=None, tolerance=None,
                         parallel=True, setup_function=None):
 
@@ -118,18 +116,9 @@ class GadgetSimulation(SimulationTimeSeries):
 
         Outputs can be gather by specifying a time or redshift range
         (or combination of time and redshift), with a specific list of
-        times or redshifts, a range of cycle numbers (for cycle based
-        output), or by simply searching all subdirectories within the
-        simulation directory.
+        times or redshifts), or by simply searching all subdirectories 
+        within the simulation directory.
 
-        time_data : bool
-            Whether or not to include time outputs when gathering
-            datasets for time series.
-            Default: True.
-        redshift_data : bool
-            Whether or not to include redshift outputs when gathering
-            datasets for time series.
-            Default: True.
         initial_time : tuple of type (float, str)
             The earliest time for outputs to be included.  This should be 
             given as the value and the string representation of the units.
@@ -163,16 +152,6 @@ class GadgetSimulation(SimulationTimeSeries):
         redshifts : array_like
             A list of redshifts for which outputs will be found.
             Default: None.
-        initial_cycle : float
-            The earliest cycle for outputs to be included.  If None,
-            the initial cycle of the simulation is used.  This can
-            only be used with final_cycle.
-            Default: None.
-        final_cycle : float
-            The latest cycle for outputs to be included.  If None,
-            the final cycle of the simulation is used.  This can
-            only be used in combination with initial_cycle.
-            Default: None.
         tolerance : float
             Used in combination with "times" or "redshifts" keywords,
             this is the tolerance within which outputs are accepted
@@ -192,14 +171,11 @@ class GadgetSimulation(SimulationTimeSeries):
         --------
 
         >>> from yt.mods import *
-        >>> es = simulation("my_simulation.par", "Enzo")
+        >>> es = simulation("my_simulation.par", "Gadget")
         
-        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"), 
-                               redshift_data=False)
+        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 
         >>> es.get_time_series(redshifts=[3, 2, 1, 0])
-
-        >>> es.get_time_series(final_cycle=100000)
 
         >>> es.get_time_series(find_outputs=True)
 
@@ -221,17 +197,10 @@ class GadgetSimulation(SimulationTimeSeries):
             final_redshift is not None) and \
             not self.cosmological_simulation:
             raise InvalidSimulationTimeSeries(
-                "An initial or final redshift has been given for a noncosmological simulation.")
+                "An initial or final redshift has been given for a " +
+                "noncosmological simulation.")
 
-        if time_data and redshift_data:
-            my_all_outputs = self.all_outputs
-        elif time_data:
-            my_all_outputs = self.all_time_outputs
-        elif redshift_data:
-            my_all_outputs = self.all_redshift_outputs
-        else:
-            raise InvalidSimulationTimeSeries("Both time_data and redshift_data are False.")
-
+        my_all_outputs = self.all_outputs
         if not my_all_outputs:
             DatasetSeries.__init__(self, outputs=[], parallel=parallel)
             mylog.info("0 outputs loaded into time series.")
@@ -248,20 +217,6 @@ class GadgetSimulation(SimulationTimeSeries):
                                                   redshifts, tolerance=tolerance,
                                                   outputs=my_all_outputs)
 
-        elif initial_cycle is not None or final_cycle is not None:
-            if initial_cycle is None:
-                initial_cycle = 0
-            else:
-                initial_cycle = max(initial_cycle, 0)
-            if final_cycle is None:
-                final_cycle = self.parameters["StopCycle"]
-            else:
-                final_cycle = min(final_cycle, self.parameters["StopCycle"])
-
-            my_outputs = my_all_outputs[int(ceil(float(initial_cycle) /
-                                                 self.parameters["CycleSkipDataDump"])):
-                                        (final_cycle /  self.parameters["CycleSkipDataDump"])+1]
-
         else:
             if initial_time is not None:
                 if isinstance(initial_time, float):
@@ -270,7 +225,8 @@ class GadgetSimulation(SimulationTimeSeries):
                     initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, YTArray):
                     raise RuntimeError(
-                        "Error: initial_time must be given as a float or tuple of (value, units).")
+                        "Error: initial_time must be given as a float or " +
+                        "tuple of (value, units).")
             elif initial_redshift is not None:
                 my_initial_time = self.cosmology.t_from_z(initial_redshift)
             else:
@@ -283,7 +239,8 @@ class GadgetSimulation(SimulationTimeSeries):
                     final_time = self.quan(*final_time)
                 elif not isinstance(final_time, YTArray):
                     raise RuntimeError(
-                        "Error: final_time must be given as a float or tuple of (value, units).")
+                        "Error: final_time must be given as a float or " +
+                        "tuple of (value, units).")
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.cosmology.t_from_z(final_redshift)
@@ -422,20 +379,18 @@ class GadgetSimulation(SimulationTimeSeries):
                     a_values[-1] = time_max
 
             if self.cosmological_simulation:
-                self.all_redshift_outputs = \
+                self.all_outputs = \
                   [{"filename": self._snapshot_format(i),
                     "redshift": (1. / a - 1)}
                    for i, a in enumerate(a_values)]
                 
                 # Calculate times for redshift outputs.
                 self._calculate_redshift_dump_times()
-                self.all_outputs = self.all_redshift_outputs
             else:
-                self.all_time_outputs = \
+                self.all_outputs = \
                   [{"filename": self._snapshot_format(i),
                     "time": a}
                    for i, a in enumerate(a_values)]
-                self.all_outputs = self.all_time_outputs
 
             self.all_outputs.sort(key=lambda obj:obj["time"].to_ndarray())
 
@@ -464,10 +419,6 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.final_time = None
             if not "TimeMax" in self.parameters:
                 raise NoStoppingCondition(self.parameter_filename)
-            if self.final_time is None:
-                mylog.warn("Simulation %s has no stop time set, " +
-                           "stopping condition will be based only on cycles.",
-                           self.parameter_filename)
 
     def _find_outputs(self):
         """

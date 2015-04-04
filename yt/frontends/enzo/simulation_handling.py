@@ -226,7 +226,8 @@ class EnzoSimulation(SimulationTimeSeries):
             final_redshift is not None) and \
             not self.cosmological_simulation:
             raise InvalidSimulationTimeSeries(
-                'An initial or final redshift has been given for a noncosmological simulation.')
+                "An initial or final redshift has been given for a " +
+                "noncosmological simulation.")
 
         if time_data and redshift_data:
             my_all_outputs = self.all_outputs
@@ -275,7 +276,8 @@ class EnzoSimulation(SimulationTimeSeries):
                     initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, YTArray):
                     raise RuntimeError(
-                        "Error: initial_time must be given as a float or tuple of (value, units).")
+                        "Error: initial_time must be given as a float or " +
+                        "tuple of (value, units).")
             elif initial_redshift is not None:
                 my_initial_time = self.cosmology.t_from_z(initial_redshift)
             else:
@@ -288,7 +290,8 @@ class EnzoSimulation(SimulationTimeSeries):
                     final_time = self.quan(*final_time)
                 elif not isinstance(final_time, YTArray):
                     raise RuntimeError(
-                        "Error: final_time must be given as a float or tuple of (value, units).")
+                        "Error: final_time must be given as a float or " +
+                        "tuple of (value, units).")
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.cosmology.t_from_z(final_redshift)
