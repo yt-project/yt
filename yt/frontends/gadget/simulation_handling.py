@@ -202,7 +202,8 @@ class GadgetSimulation(SimulationTimeSeries):
 
         my_all_outputs = self.all_outputs
         if not my_all_outputs:
-            DatasetSeries.__init__(self, outputs=[], parallel=parallel)
+            DatasetSeries.__init__(self, outputs=[], parallel=parallel,
+                                   unit_base=self.unit_base)
             mylog.info("0 outputs loaded into time series.")
             return
 
@@ -385,7 +386,8 @@ class GadgetSimulation(SimulationTimeSeries):
                    for i, a in enumerate(a_values)]
                 
                 # Calculate times for redshift outputs.
-                self._calculate_redshift_dump_times()
+                for output in self.all_outputs:
+                    output["time"] = self.cosmology.t_from_z(output["redshift"])
             else:
                 self.all_outputs = \
                   [{"filename": self._snapshot_format(i),
