@@ -409,16 +409,6 @@ class EnzoSimulation(SimulationTimeSeries):
             del output['index']
         self.all_redshift_outputs = redshift_outputs
 
-    def _calculate_redshift_dump_times(self):
-        """
-        Calculates time from redshift of redshift outputs.
-        """
-
-        if not self.cosmological_simulation: return
-        for output in self.all_redshift_outputs:
-            output['time'] = self.cosmology.t_from_z(output['redshift'])
-        self.all_redshift_outputs.sort(key=lambda obj:obj['time'])
-
     def _calculate_time_outputs(self):
         """
         Calculate time outputs and their redshifts if cosmological.

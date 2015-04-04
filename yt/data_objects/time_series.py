@@ -480,6 +480,16 @@ class SimulationTimeSeries(DatasetSeries):
         v = getattr(self, a)
         mylog.info("Parameters: %-25s = %s", a, v)
 
+    def _calculate_redshift_dump_times(self):
+        """
+        Calculates time from redshift of redshift outputs.
+        """
+
+        if not self.cosmological_simulation: return
+        for output in self.all_redshift_outputs:
+            output["time"] = self.cosmology.t_from_z(output["redshift"])
+        self.all_redshift_outputs.sort(key=lambda obj:obj["time"])
+
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
         r"""
         Get datasets at or near to given values.

@@ -374,16 +374,27 @@ class GadgetSimulation(SimulationTimeSeries):
             self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = 0.0
 
-    def _calculate_redshift_dump_times(self):
+    def _snapshot_name(self, index):
         """
-        Calculates time from redshift of redshift outputs.
+        The snapshot filename for a given index.  Modify this for different 
+        naming conventions.
         """
 
-        if not self.cosmological_simulation: return
-        for output in self.all_redshift_outputs:
-            output["time"] = self.cosmology.t_from_z(output["redshift"])
-        self.all_redshift_outputs.sort(key=lambda obj:obj["time"])
-
+        if self.parameters["OutputDir"].startswith("/"):
+            data_dir = self.parameters["OutputDir"]
+        else:
+            data_dir = os.path.join(self.directory,
+                                    self.parameters["OutputDir"])
+        if self.parameters["NumFilesPerSnapshot"] > 1:
+            suffix = ".0"
+        else:
+            suffix = ""
+        if self.parameters["SnapFormat"] == 3:
+            suffix += ".hdf5"
+        filename = "%s_%03d%s" % (self.parameters["SnapshotFileBase"],
+                                  index, suffix)
+        return os.path.join(data_dir, filename)
+                
     def _get_all_outputs(self, find_outputs=False):
         """
         Get all potential datasets and combine into a time-sorted list.
@@ -392,30 +403,40 @@ class GadgetSimulation(SimulationTimeSeries):
         # Create the set of outputs from which further selection will be done.
         if find_outputs:
             self._find_outputs()
-
-        elif self.parameters["dtDataDump"] > 0 and \
-          self.parameters["CycleSkipDataDump"] > 0:
-            mylog.info(
-                "Simulation %s has both dtDataDump and CycleSkipDataDump set.",
-                self.parameter_filename )
-            mylog.info(
-                "    Unable to calculate datasets.  " +
-                "Attempting to search in the current directory")
-            self._find_outputs()
-
         else:
-            # Get all time or cycle outputs.
-            if self.parameters["CycleSkipDataDump"] > 0:
-                self._calculate_cycle_outputs()
+            if self.parameters["OutputListOn"]:
+                a_values = [float(a) for a in 
+                           file(self.parameter["OutputListFilename"], "r").readlines()]
             else:
-                self._calculate_time_outputs()
+                a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
+                time_max = float(self.parameters["TimeMax"])
+                while a_values[-1] < time_max:
+                    if self.cosmological_simulation:
+                        a_values.append(
+                            a_values[-1] * self.parameters["TimeBetSnapshot"])
+                    else:
+                        a_values.append(
+                            a_values[-1] + self.parameters["TimeBetSnapshot"])
+                if a_values[-1] > time_max:
+                    a_values[-1] = time_max
 
-            # Calculate times for redshift outputs.
-            self._calculate_redshift_dump_times()
+            if self.cosmological_simulation:
+                self.all_redshift_outputs = \
+                  [{"filename": self._snapshot_name(i),
+                    "redshift": (1. / a - 1)}
+                   for i, a in enumerate(a_values)]
+                
+                # Calculate times for redshift outputs.
+                self._calculate_redshift_dump_times()
+                self.all_outputs = self.all_redshift_outputs
+            else:
+                self.all_time_outputs = \
+                  [{"filename": self._snapshot_name(i),
+                    "time": a}
+                   for i, a in enumerate(a_values)]
+                self.all_outputs = self.all_time_outputs
 
-            self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
-            if self.parameters["CycleSkipDataDump"] <= 0:
-                self.all_outputs.sort(key=lambda obj:obj["time"].to_ndarray())
+            self.all_outputs.sort(key=lambda obj:obj["time"].to_ndarray())
 
     def _calculate_simulation_bounds(self):
         """
