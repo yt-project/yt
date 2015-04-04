@@ -261,7 +261,8 @@ class GadgetSimulation(SimulationTimeSeries):
                 init_outputs.append(output["filename"])
             
         DatasetSeries.__init__(self, outputs=init_outputs, parallel=parallel,
-                                setup_function=setup_function)
+                                setup_function=setup_function,
+                                unit_base=self.unit_base)
         mylog.info("%d outputs loaded into time series.", len(init_outputs))
 
     def _parse_parameter_file(self):
