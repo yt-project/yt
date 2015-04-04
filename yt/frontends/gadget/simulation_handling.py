@@ -29,8 +29,6 @@ from yt.units.yt_array import \
     YTArray, YTQuantity
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
