@@ -1,7 +1,5 @@
 """
-Orion-specific fields
-
-
+BoxLib code fields
 
 """
 
@@ -13,12 +11,11 @@ Orion-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import string
 import re
 
 from yt.utilities.physical_constants import \
-    mh, boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
@@ -184,7 +181,7 @@ class CastroFieldInfo(FieldInfoContainer):
                                function = func,
                                units = "g/cm**3")
                 # We know this will either have one letter, or two.
-                if field[3] in string.letters:
+                if field[3] in string.ascii_letters:
                     element, weight = field[2:4], field[4:-1]
                 else:
                     element, weight = field[2:3], field[3:-1]
@@ -280,7 +277,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                 # sometimes we make up descriptive names (e.g. ash)
                 if any(char.isdigit() for char in field):
                     # We know this will either have one letter, or two.
-                    if field[3] in string.letters:
+                    if field[3] in string.ascii_letters:
                         element, weight = field[2:4], field[4:-1]
                     else:
                         element, weight = field[2:3], field[3:-1]

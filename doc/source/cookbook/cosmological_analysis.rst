@@ -25,7 +25,7 @@ many simulations possess particles of different masses, notably cosmological
 zoom datasets.  This recipe uses Rockstar in two different ways to generate a 
 HaloCatalog from the highest resolution dark matter particles (the ones 
 inside the zoom region).  It then overlays some of those halos on a projection
-as a demonstration.  See :ref:`halo-analysis` and :ref:`annotate-halos` for
+as a demonstration.  See :ref:`rockstar` and :ref:`annotate-halos` for
 more information.
 
 .. yt_cookbook:: rockstar_nest.py
@@ -64,6 +64,12 @@ absorption spectrum.
 See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more information.
 
 .. yt_cookbook:: light_ray.py 
+
+This script demontrates how to make a light ray from a single dataset.
+
+.. _cookbook-single-dataset-light-ray:
+
+.. yt_cookbook:: single_dataset_light_ray.py
 
 Creating and Fitting Absorption Spectra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

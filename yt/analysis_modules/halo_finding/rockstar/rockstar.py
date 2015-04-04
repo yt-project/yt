@@ -4,6 +4,7 @@ Operations to get Rockstar loaded up
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -23,7 +24,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
 from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
-import rockstar_interface
+from . import rockstar_interface
 
 import socket
 import time

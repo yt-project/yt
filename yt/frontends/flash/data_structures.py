@@ -72,10 +72,12 @@ class FLASHHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("flash", s.decode("ascii","ignore"))
+                           for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle):
-            self.field_list += [("io", "particle_" + s[0].strip()) for s
-                                in self._particle_handle["/particle names"][:]]
+            self.field_list += [("io", "particle_" +
+                                    s[0].decode("ascii","ignore").strip())
+                                for s in self._particle_handle["/particle names"][:]]
     
     def _count_grids(self):
         try:
@@ -123,7 +125,7 @@ class FLASHHierarchy(GridIndex):
         # levels, but we do not, so we reduce the level by 1.
         self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
         self.grids = np.empty(self.num_grids, dtype='object')
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
         
 
@@ -151,7 +153,7 @@ class FLASHHierarchy(GridIndex):
             return
 
         # Now, for cartesian data.
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
@@ -259,7 +261,9 @@ class FLASHDataset(Dataset):
         if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
-            if tpname.strip() == pname:
+            if tpname.decode("ascii","ignore").strip() == pname:
+                if hasattr(pval, "decode"):
+                    pval = pval.decode("ascii", "ignore")
                 if ptype == "string":
                     return pval.strip()
                 else:
@@ -298,7 +302,9 @@ class FLASHDataset(Dataset):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    if hasattr(pval, 'decode'):
+                        pval = pval.decode("ascii", "ignore")
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         if self._flash_version == 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -316,7 +322,9 @@ class FLASHDataset(Dataset):
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
                                    "scalar of the same name".format(hn[:-1],vn))
-                    self.parameters[vn] = pval
+                    if hasattr(pval, 'decode'):
+                        pval = pval.decode("ascii", "ignore")
+                    self.parameters[vn.decode("ascii", "ignore")] = pval
         
         # Determine block size
         try:
@@ -360,7 +368,7 @@ class FLASHDataset(Dataset):
         self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
-            for d in [dimensionality]+range(3-dimensionality):
+            for d in [dimensionality]+list(range(3-dimensionality)):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)

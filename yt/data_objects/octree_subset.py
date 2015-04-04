@@ -54,6 +54,7 @@ class OctreeSubset(YTSelectionContainer):
     _con_args = ('base_region', 'domain', 'ds')
     _domain_offset = 0
     _cell_count = -1
+    _block_reorder = None
 
     def __init__(self, base_region, domain, ds, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
@@ -435,7 +436,10 @@ class OctreeSubsetBlockSlice(object):
         pass
 
     def __getitem__(self, key):
-        return self.octree_subset[key][:,:,:,self.ind]
+        rv = self.octree_subset[key][:,:,:,self.ind]
+        if self.octree_subset._block_reorder:
+            rv = rv.copy(order=self.octree_subset._block_reorder)
+        return rv
 
     def get_vertex_centered_data(self, *args, **kwargs):
         raise NotImplementedError

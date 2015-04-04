@@ -7,7 +7,7 @@ How to Develop yt
    with handling it yourself, the quickest way to contribute to yt is to `fork
    us on BitBucket <http://hg.yt-project.org/yt/fork>`_, `make your changes
    <http://mercurial.selenic.com/>`_, and issue a `pull request
-   <http://hg.yt-project.org/yt/pull>`_.  The rest of this document is just an
+   <http://hg.yt-project.org/yt/pull-requests>`_.  The rest of this document is just an
    explanation of how to do that.
 
 yt is a community project!
@@ -134,7 +134,7 @@ for using mercurial with yt:
   process from BitBucket's website.
 * In all likelihood, you only need one fork.  To keep it in sync, you can
   sync from the website.  (See Bitbucket's `Blog Post
-  <http://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
+  <https://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
   about this.)
 * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
   list.
@@ -220,6 +220,12 @@ Here's a more detailed flowchart of how to submit changes.
 #. Commit these changes, using ``hg commit``.  This can take an argument
    which is a series of filenames, if you have some changes you do not want
    to commit.
+#. Remember that this is a large development effort and to keep the code 
+   accessible to everyone, good documentation is a must.  Add in source code 
+   comments for what you are doing.  Add in docstrings
+   if you are adding a new function or class or keyword to a function.  
+   Add documentation to the appropriate section of the online docs so that
+   people other than yourself know how to use your new code.  
 #. If your changes include new functionality or cover an untested area of the
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
@@ -244,6 +250,9 @@ Here's a more detailed flowchart of how to submit changes.
 
 #. Issue a pull request at
    https://bitbucket.org/YourUsername/yt/pull-request/new
+   A pull request is essentially just asking people to review and accept the 
+   modifications you have made to your personal version of the code.
+
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
@@ -253,7 +262,7 @@ straightforward.
 #. Make requested changes, or leave a comment indicating why you don't think
    they should be made.
 #. Commit those changes to your local repository.
-#. Push the changes to your fork::
+#. Push the changes to your fork:
 
       hg push https://bitbucket.org/YourUsername/yt/
 

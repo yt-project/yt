@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
@@ -29,6 +30,7 @@ def check_for_openmp():
             "printf(\"Hello from thread %d, nthreads %d\\n\", omp_get_thread_num(), omp_get_num_threads());\n"
             "}"
             )
+        file.flush()
         with open(os.devnull, 'w') as fnull:
             exit_code = subprocess.call([compiler, '-fopenmp', filename],
                                         stdout=fnull, stderr=fnull)
@@ -52,6 +54,9 @@ def configuration(parent_package='',top_path=None):
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
     # support for setjmp.
+    config.add_extension("bitarray", 
+                ["yt/utilities/lib/bitarray.pyx"],
+                libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"])
     config.add_extension("CICDeposit", 
                 ["yt/utilities/lib/CICDeposit.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -144,9 +149,6 @@ def configuration(parent_package='',top_path=None):
                          ["yt/utilities/lib/write_array.pyx"])
     config.add_extension("ragged_arrays",
                          ["yt/utilities/lib/ragged_arrays.pyx"])
-    config.add_extension("GridTree", 
-    ["yt/utilities/lib/GridTree.pyx"],
-        libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("amr_kdtools", 
                          ["yt/utilities/lib/amr_kdtools.pyx"],
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -156,7 +158,7 @@ def configuration(parent_package='',top_path=None):
         gpd = os.environ["GPERFTOOLS"]
         idir = os.path.join(gpd, "include")
         ldir = os.path.join(gpd, "lib")
-        print("INCLUDE AND LIB DIRS", idir, ldir)
+        print(("INCLUDE AND LIB DIRS", idir, ldir))
         config.add_extension("perftools_wrap",
                 ["yt/utilities/lib/perftools_wrap.pyx"],
                 libraries=["profiler"],

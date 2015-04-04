@@ -18,7 +18,6 @@ import re
 import os
 import weakref
 import numpy as np
-import six
 
 from stat import \
     ST_CTIME
@@ -26,6 +25,7 @@ from stat import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -149,14 +149,14 @@ class ChomboHierarchy(GridIndex):
         output_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("component"):
-                output_fields.append(val)
+                output_fields.append(val.decode("ascii"))
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         particle_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
-                particle_fields.append(val)
+                particle_fields.append(val.decode("ascii"))
         self.field_list.extend([("io", c) for c in particle_fields])
 
     def _count_grids(self):
@@ -540,14 +540,14 @@ class Orion2Hierarchy(ChomboHierarchy):
         output_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("component"):
-                output_fields.append(val)
+                output_fields.append(val.decode("ascii"))
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         self.particle_filename = self.index_filename[:-4] + 'sink'
         if not os.path.exists(self.particle_filename):
             return
-        pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
+        pfield_list = [("io", str(c)) for c in self.io.particle_field_index.keys()]
         self.field_list.extend(pfield_list)
 
     def _read_particles(self):
@@ -563,7 +563,7 @@ class Orion2Hierarchy(ChomboHierarchy):
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
-                for i in xrange(len(coord)):
+                for i in range(len(coord)):
                     np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
                     np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
                 ind = np.where(mask == 1)

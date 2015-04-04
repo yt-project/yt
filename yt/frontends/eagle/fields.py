@@ -5,6 +5,7 @@ EAGLE fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -14,10 +15,17 @@ EAGLE fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import os
+import numpy as np
+
+from yt.funcs import *
+
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 from yt.frontends.owls.fields import \
     OWLSFieldInfo
+import yt.frontends.owls.owls_ion_tables as oit
 from yt.units.yt_array import YTQuantity
-from yt.utilities.periodic_table import periodic_table
 
 from .definitions import \
     eaglenetwork_ion_lookup

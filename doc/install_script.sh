@@ -264,7 +264,7 @@ function host_specific
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of 
+	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of"
 	echo "Xcode from the mac app store (search for Xcode)."
     echo
 	echo "Additionally, you will have to manually install the Xcode"
@@ -300,7 +300,7 @@ function host_specific
         echo "  * patch"
         echo 
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
@@ -601,7 +601,7 @@ PYTHON='Python-2.7.8'
 BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12'
 H5PY='h5py-2.3.1'
-HDF5='hdf5-1.8.11'
+HDF5='hdf5-1.8.14'
 IPYTHON='ipython-2.2.0'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
@@ -628,7 +628,7 @@ echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo 'f0da1d2ac855c02fb828444d719a1b23a580adb049335f3e732ace67558a125ac8cd3b3a68ac6bf9d10aa3ab19e4672b814eb28cc8c66910750c62efb655d744  h5py-2.3.1.tar.gz' > h5py-2.3.1.tar.gz.sha512
-echo 'e9db26baa297c8ed10f1ca4a3fcb12d6985c6542e34c18d48b2022db73014f054c8b8434f3df70dcf44631f38b016e8050701d52744953d0fced3272d7b6b3c1  hdf5-1.8.11.tar.gz' > hdf5-1.8.11.tar.gz.sha512
+echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
 echo '4953bf5e9d6d5c6ad538d07d62b5b100fd86a37f6b861238501581c0059bd4655345ca05cf395e79709c38ce4cb9c6293f5d11ac0252a618ad8272b161140d13  ipython-2.2.0.tar.gz' > ipython-2.2.0.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
@@ -914,7 +914,11 @@ then
    echo "[gui_support]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
    echo "macosx = False" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
 fi
+
+_user_DISPLAY=$DISPLAY
+unset DISPLAY   # see (yt-user link missing: "Installation failure" 01/29/15)
 do_setup_py $MATPLOTLIB
+export DISPLAY=${_user_DISPLAY}
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}

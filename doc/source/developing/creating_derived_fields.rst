@@ -9,10 +9,9 @@ fields.  These are fields that describe a value at each cell in a simulation.
 Defining a New Field
 --------------------
 
-So once a new field has been conceived of, the best way to create it is to
+Once a new field has been conceived of, the best way to create it is to
 construct a function that performs an array operation -- operating on a 
-collection of data, neutral to its size, shape, and type. (All fields should
-be provided as 64-bit floats.)
+collection of data, neutral to its size, shape, and type.
 
 A simple example of this is the pressure field, which demonstrates the ease of
 this approach.
@@ -28,28 +27,66 @@ this approach.
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
 the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived 
-field!  We don't do any loops, we don't do any
-type-checking, we can simply multiply the three items together.
+field!  We don't do any loops, we don't do any type-checking, we can simply
+multiply the three items together.
+
+In this example, the ``density`` field will return data with units of
+``g/cm**3`` and the ``thermal_energy`` field will return data units of
+``erg/g``, so the result will automatically have units of pressure,
+``erg/cm**3``.
 
 Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
 number of fairly specific parameters that can be passed in, but here we'll only
 look at the most basic ones needed for a simple scalar baryon field.
 
+.. note::
+
+    There are two different :func:`add_field` functions.  For the differences, 
+    see :ref:`faq-add-field-diffs`.
+
 .. code-block:: python
 
    yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that yt uses
-in its `symbolic units implementation <units>`_ (e.g., employing only unit names, numbers,
-and mathematical operators in the string, and using ``"**"`` for exponentiation). We suggest
-that you name the function that creates a derived field with the intended field name prefixed
-by a single underscore, as in the ``_pressure`` example above.
+units.  Note that the units parameter is a "raw" string, in the format that yt 
+uses in its :ref:`symbolic units implementation <units>` (e.g., employing only 
+unit names, numbers, and mathematical operators in the string, and using 
+``"**"`` for exponentiation). For cosmological datasets and fields, see 
+:ref:`cosmological-units`.  We suggest that you name the function that creates 
+a derived field with the intended field name prefixed by a single underscore, 
+as in the ``_pressure`` example above.
 
-:func:`add_field` can be invoked in two other ways. The first is by the function
-decorator :func:`derived_field`. The following code is equivalent to the previous
-example:
+Field definitions return array data with units. If the field function returns
+data in a dimensionally equivalent unit (e.g. a ``dyne`` versus a ``N``), the
+field data will be converted to the units specified in ``add_field`` before
+being returned in a data object selection. If the field function returns data
+with dimensions that are incompatibible with units specified in ``add_field``,
+you will see an error. To clear this error, you must ensure that your field
+function returns data in the correct units. Often, this means applying units to
+a dimensionless float or array.
+
+If your field definition influcdes physical constants rather than defining a
+constant as a float, you can import it from ``yt.utilities.physical_constants``
+to get a predefined version of the constant with the correct units. If you know
+the units your data is supposed to have ahead of time, you can import unit
+symbols like ``g`` or ``cm`` from the ``yt.units`` namespace and multiply the
+return value of your field function by the appropriate compbination of unit
+symbols for your field's units. You can also convert floats or NumPy arrays into
+:class:`~yt.units.yt_array.YTArray` or :class:`~yt.units.yt_array.YTQuantity`
+instances by making use of the
+:func:`~yt.data_objects.static_output.Dataset.arr` and
+:func:`~yt.data_objects.static_output.Dataset.quan` convenience functions.
+
+Lastly, if you do not know the units of your field ahead of time, you can
+specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
+automatically determine the appropriate units based on the units of the data
+returned by the field function.
+
+:func:`add_field` can be invoked in two other ways. The first is by the 
+function decorator :func:`derived_field`. The following code is equivalent to 
+the previous example:
 
 .. code-block:: python
 
@@ -60,15 +97,16 @@ example:
        return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
-The :func:`derived_field` decorator takes the same arguments as :func:`add_field`,
-and is often a more convenient shorthand in cases where you want to quickly set up
-a new field.
+The :func:`derived_field` decorator takes the same arguments as 
+:func:`add_field`, and is often a more convenient shorthand in cases where 
+you want to quickly set up a new field.
 
-Defining derived fields in the above fashion must be done before a dataset is loaded,
-in order for the dataset to recognize it. If you want to set up a derived field after you
-have loaded a dataset, or if you only want to set up a derived field for a particular
-dataset, there is an :func:`~yt.data_objects.static_output.Dataset.add_field` 
-method that hangs off dataset objects. The calling syntax is the same:
+Defining derived fields in the above fashion must be done before a dataset is 
+loaded, in order for the dataset to recognize it. If you want to set up a 
+derived field after you have loaded a dataset, or if you only want to set up 
+a derived field for a particular dataset, there is an 
+:func:`~yt.data_objects.static_output.Dataset.add_field` method that hangs off 
+dataset objects. The calling syntax is the same:
 
 .. code-block:: python
 
@@ -178,6 +216,9 @@ There are a number of options available, but the only mandatory ones are ``name`
      (*Advanced*) For fields that exist on disk, which we may want to convert to other
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
+``force_override``
+     (*Advanced*) Overrides the definition of an old field if a field with the
+     same name has already been defined.
 
 Debugging a Derived Field
 -------------------------
@@ -210,33 +251,3 @@ And you wanted to debug it, you could do:
 
 And now, when that derived field is actually used, you will be placed into a
 debugger.
-
-Units for Cosmological Datasets
--------------------------------
-
-yt has additional capabilities to handle the comoving coordinate system used
-internally in cosmological simulations. Simulations that use comoving
-coordinates, all length units have three other counterparts correspoding to
-comoving units, scaled comoving units, and scaled proper units. In all cases
-'scaled' units refer to scaling by the reduced Hubble parameter - i.e. the length
-unit is what it would be in a universe where Hubble's parameter is 100 km/s/Mpc.
-
-To access these different units, yt has a common naming system. Scaled units are denoted by
-dividing by the scaled Hubble parameter ``h`` (which is in itself a unit). Comoving
-units are denoted by appending ``cm`` to the end of the unit name.
-
-Using the parsec as an example,
-
-``pc``
-    Proper parsecs, :math:`\rm{pc}`.
-
-``pccm``
-    Comoving parsecs, :math:`\rm{pc}/(1+z)`.
-
-``pccm/h``
-    Comoving parsecs normalized by the scaled hubble constant, :math:`\rm{pc}/h/(1+z)`.
-
-``pc/h``
-    Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
-
-Further examples of this functionality are shown in :ref:`comoving_units_and_code_units`.

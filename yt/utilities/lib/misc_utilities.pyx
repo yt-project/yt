@@ -223,7 +223,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4], outa
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
@@ -257,7 +258,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
                 for xi in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
-                        if flip: 
+                        if flip:
                             yi0 = ny - yi
                         else:
                             yi0 = yi
@@ -334,7 +335,9 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
     n_grids = data.shape[0]
-    cdef np.float64_t **uniquedims, *uniques, split
+    cdef np.float64_t **uniquedims
+    cdef np.float64_t *uniques
+    cdef np.float64_t split
     uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
     for i in range(3):
         uniquedims[i] = <np.float64_t *> \
@@ -455,8 +458,8 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
     # level to lowest, you will find the correct grid without consulting child
     # masking.  Note also that we will do a few relatively slow operations on
     # strings and whatnot, but they should not be terribly slow.
-    cdef int ind[3], gi, fi
-    cdef int nf = len(field_names)
+    cdef int ind[3]
+    cdef int gi, fi, nf = len(field_names)
     cdef np.float64_t dds
     cdef np.ndarray[np.float64_t, ndim=3] field
     cdef np.ndarray[np.float64_t, ndim=1] rv = np.zeros(nf, dtype='float64')
@@ -620,15 +623,18 @@ def fill_region(input_fields, output_fields,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
-    cdef np.int64_t tot
-    cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
+    cdef np.int64_t tot, oi, oj, ok, rf
+    cdef np.int64_t iind[3]
+    cdef np.int64_t oind[3]
+    cdef np.int64_t dim[3]
     cdef np.ndarray[np.float64_t, ndim=3] ofield
     cdef np.ndarray[np.float64_t, ndim=1] ifield
     nf = len(input_fields)
     # The variable offsets governs for each dimension and each possible
     # wrapping if we do it.  Then the wi, wj, wk indices check into each
     # [dim][wrap] inside the loops.
-    cdef int offsets[3][3], wi, wj, wk
+    cdef int wi, wj, wk
+    cdef int offsets[3][3]
     cdef np.int64_t off
     for i in range(3):
         dim[i] = output_fields[0].shape[i]
@@ -643,7 +649,7 @@ def fill_region(input_fields, output_fields,
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
-            rf = refine_by**(output_level - ires[i]) 
+            rf = refine_by**(output_level - ires[i])
             for wi in range(3):
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))

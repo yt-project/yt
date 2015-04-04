@@ -64,7 +64,13 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
                     size, [fname for ftype, fname in fields], ngrids)
         for field in fields:
             ftype, fname = field
-            ds = np.asarray(getattr(pyne_mesh, fname)[:], 'float64')
+            if pyne_mesh.structured:
+                tag = pyne_mesh.mesh.getTagHandle('idx')
+                indices = [tag[ent] for ent in pyne_mesh.structured_iterate_hex()]
+            else:
+                indices = slice(None)
+            ds = np.asarray(getattr(pyne_mesh, fname)[indices], 'float64')
+
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:

@@ -259,17 +259,17 @@ class SZProjection(object):
 
         nx, ny = self.nx,self.nx
         signal = np.zeros((self.num_freqs,nx,ny))
-        xo = np.zeros((self.num_freqs))
+        xo = np.zeros(self.num_freqs)
 
         k = int(0)
 
-        start_i = comm.rank*nx/comm.size
-        end_i = (comm.rank+1)*nx/comm.size
+        start_i = comm.rank*nx//comm.size
+        end_i = (comm.rank+1)*nx//comm.size
 
         pbar = get_pbar("Computing SZ signal.", nx*nx)
 
-        for i in xrange(start_i, end_i):
-            for j in xrange(ny):
+        for i in range(start_i, end_i):
+            for j in range(ny):
                 xo[:] = self.xinit[:]
                 SZpack.compute_combo_means(xo, tau[i,j], Te[i,j],
                                            bpar[i,j], omega1[i,j],
@@ -364,7 +364,7 @@ class SZProjection(object):
             if vmin < 0 and vmax < 0:
                 data *= -1
                 negative = True                                        
-            if log_fields.has_key(field):
+            if field in log_fields:
                 log_field = log_fields[field]
             else:
                 log_field = True
@@ -383,7 +383,7 @@ class SZProjection(object):
             cbar_label = self.display_names[field]
             units = self.data[field].units.latex_representation()
             if units is not None and units != "":
-                cbar_label += r'$\/\/('+units+r')$'
+                cbar_label += r'$\ \ ('+units+r')$'
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
             cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")

@@ -125,7 +125,9 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                     np.ndarray[np.float64_t, ndim=1] dphi,
                     buff_size,
                     np.ndarray[np.float64_t, ndim=1] field,
-                    extents, input_img = None):
+                    extents, input_img = None,
+                    np.float64_t theta_offset = 0.0,
+                    np.float64_t phi_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
     # longitude is -pi to pi
     # latitude is -pi/2 to pi/2
@@ -156,9 +158,9 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     dx = 2.0 / (img.shape[0] - 1)
     dy = 2.0 / (img.shape[1] - 1)
     for fi in range(nf):
-        theta_p = theta[fi] - PI
+        theta_p = (theta[fi] + theta_offset) - PI
         dtheta_p = dtheta[fi]
-        phi_p = phi[fi] - PI/2.0
+        phi_p = (phi[fi] + phi_offset) - PI/2.0
         dphi_p = dphi[fi]
         # Four transformations
         aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)

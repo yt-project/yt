@@ -74,9 +74,9 @@ cdef heapremove(heap* self):
     i=0
     j=1
     k=2
-    while ((j<self.n and 
+    while ((j<self.n and
                 self.heap[i].priority > self.heap[j].priority or
-            k<self.n and 
+            k<self.n and
                 self.heap[i].priority > self.heap[k].priority)):
         if k<self.n and self.heap[j].priority>self.heap[k].priority:
             l = k
@@ -122,7 +122,7 @@ cdef inline np.float64_t _distance_p(np.float64_t*x,np.float64_t*y,np.float64_t 
     Computes the Minkowski p-distance to the power p between two points.
     If the distance**p is larger than upperbound, then any number larger
     than upperbound may be returned (the calculation is truncated).
-    
+
     Periodicity added by S. Skory.
     """
     cdef int i
@@ -184,33 +184,33 @@ cdef class cKDTree:
 
     This class provides an index into a set of k-dimensional points
     which can be used to rapidly look up the nearest neighbors of any
-    point. 
+    point.
 
-    The algorithm used is described in Maneewongvatana and Mount 1999. 
+    The algorithm used is described in Maneewongvatana and Mount 1999.
     The general idea is that the kd-tree is a binary trie, each of whose
     nodes represents an axis-aligned hyperrectangle. Each node specifies
     an axis and splits the set of points based on whether their coordinate
-    along that axis is greater than or less than a particular value. 
+    along that axis is greater than or less than a particular value.
 
-    During construction, the axis and splitting point are chosen by the 
+    During construction, the axis and splitting point are chosen by the
     "sliding midpoint" rule, which ensures that the cells do not all
-    become long and thin. 
+    become long and thin.
 
-    The tree can be queried for the r closest neighbors of any given point 
-    (optionally returning only those within some maximum distance of the 
-    point). It can also be queried, with a substantial gain in efficiency, 
+    The tree can be queried for the r closest neighbors of any given point
+    (optionally returning only those within some maximum distance of the
+    point). It can also be queried, with a substantial gain in efficiency,
     for the r approximate closest neighbors.
 
-    For large dimensions (20 is already large) do not expect this to run 
+    For large dimensions (20 is already large) do not expect this to run
     significantly faster than brute force. High-dimensional nearest-neighbor
     queries are a substantial open problem in computer science.
 
     Parameters
     ----------
     data : array-like, shape (n,m)
-        The n data points of dimension m to be indexed. This array is 
-        not copied unless this is necessary to produce a contiguous 
-        array of np.float64_ts, and so modifying this data will result in 
+        The n data points of dimension m to be indexed. This array is
+        not copied unless this is necessary to produce a contiguous
+        array of np.float64_ts, and so modifying this data will result in
         bogus results.
     leafsize : positive integer
         The number of points at which the algorithm switches over to
@@ -218,7 +218,7 @@ cdef class cKDTree:
 
     """
 
-    cdef innernode* tree 
+    cdef innernode* tree
     cdef readonly object data
     cdef np.float64_t* raw_data
     cdef readonly int n, m
@@ -273,7 +273,7 @@ cdef class cKDTree:
             n.end_idx = end_idx
             return <innernode*>n
         else:
-            d = 0 
+            d = 0
             size = 0
             for i in range(self.m):
                 if maxes[i]-mins[i] > size:
@@ -359,7 +359,7 @@ cdef class cKDTree:
                 ni.mins[i] = mins[i]
 
             return ni
-                    
+
     cdef __free_tree(cKDTree self, innernode* node):
         if node.split_dim!=-1:
             self.__free_tree(node.less)
@@ -374,13 +374,13 @@ cdef class cKDTree:
             return
         self.__free_tree(self.tree)
 
-    cdef void __query(cKDTree self, 
-            np.float64_t*result_distances, 
-            np.int64_t*result_indices, 
-            np.float64_t*x, 
-            int k, 
-            np.float64_t eps, 
-            np.float64_t p, 
+    cdef void __query(cKDTree self,
+            np.float64_t*result_distances,
+            np.int64_t*result_indices,
+            np.float64_t*x,
+            int k,
+            np.float64_t eps,
+            np.float64_t p,
             np.float64_t distance_upper_bound,
             np.float64_t*period):
         assert(p == 2)
@@ -418,7 +418,7 @@ cdef class cKDTree:
         heapcreate(&neighbors,k)
 
         # set up first nodeinfo
-        inf = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t)) 
+        inf = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t))
         inf.node = self.tree
         for i in range(self.m):
             inf.side_distances[i] = 0
@@ -474,7 +474,7 @@ cdef class cKDTree:
                 inode = <innernode*>inf.node
 
                 # we don't push cells that are too far onto the queue at all,
-                # but since the distance_upper_bound decreases, we might get 
+                # but since the distance_upper_bound decreases, we might get
                 # here even if the cell's too far
                 if min_distance>distance_upper_bound*epsfac:
                     # since this is the nearest cell, we're done, bail out
@@ -500,7 +500,7 @@ cdef class cKDTree:
                 # far child is further by an amount depending only
                 # on the split value; compute its distance and side_distances
                 # and push it on the queue if it's near enough
-                inf2 = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t)) 
+                inf2 = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(np.float64_t))
                 it2.contents.ptrdata = <char*> inf2
                 inf2.node = far
 
@@ -532,7 +532,7 @@ cdef class cKDTree:
                     # just in case
                     it2.contents.ptrdata = <char*> 0
 
-        # fill output arrays with sorted neighbors 
+        # fill output arrays with sorted neighbors
         for i in range(neighbors.n-1,-1,-1):
             neighbor = heappop(&neighbors) # FIXME: neighbors may be realloced
             result_indices[i] = neighbor.contents.intdata
@@ -541,11 +541,11 @@ cdef class cKDTree:
         heapdestroy(&q)
         heapdestroy(&neighbors)
 
-    def query(cKDTree self, object x, int k=1, np.float64_t eps=0, np.float64_t p=2, 
+    def query(cKDTree self, object x, int k=1, np.float64_t eps=0, np.float64_t p=2,
             np.float64_t distance_upper_bound=infinity, object period=None):
         """query(self, x, k=1, eps=0, p=2, distance_upper_bound=np.inf,
            period=None)
-        
+
         Query the kd-tree for nearest neighbors.
 
         Parameters
@@ -555,11 +555,11 @@ cdef class cKDTree:
         k : int
             The number of nearest neighbors to return.
         eps : non-negative float
-            Return approximate nearest neighbors; the k-th returned value 
-            is guaranteed to be no further than (1 + `eps`) times the 
+            Return approximate nearest neighbors; the k-th returned value
+            is guaranteed to be no further than (1 + `eps`) times the
             distance to the real k-th nearest neighbor.
         p : float, 1 <= p <= infinity
-            Which Minkowski p-norm to use. 
+            Which Minkowski p-norm to use.
             1 is the sum-of-absolute-values "Manhattan" distance.
             2 is the usual Euclidean distance.
             infinity is the maximum-coordinate-difference distance.
@@ -572,7 +572,7 @@ cdef class cKDTree:
         Returns
         -------
         d : ndarray of floats
-            The distances to the nearest neighbors. 
+            The distances to the nearest neighbors.
             If `x` has shape tuple+(self.m,), then `d` has shape tuple+(k,).
             Missing neighbors are indicated with infinite distances.
         i : ndarray of ints
@@ -613,10 +613,10 @@ cdef class cKDTree:
             self.__query(
                     (<np.float64_t*>dd.data)+c*k,
                     (<np.int64_t*>ii.data)+c*k,
-                    (<np.float64_t*>xx.data)+c*self.m, 
-                    k, 
+                    (<np.float64_t*>xx.data)+c*self.m,
+                    k,
                     eps,
-                    p, 
+                    p,
                     distance_upper_bound,
                     <np.float64_t*>cperiod.data)
         if single:
@@ -637,44 +637,44 @@ cdef class cKDTree:
             int nMerge=6):
         """ query the tree for the nearest neighbors, to get the density
             of particles for chainHOP.
-        
+
         Parameters:
         ===========
-        
+
         mass: A array-like list of the masses of the particles, in the same
             order as the data that went into building the kd tree.
-        
+
         num_neighbors: Optional, the number of neighbors to search for and to
             use in the density calculation. Default is 65, and is probably what
             one should stick with.
-        
+
         nMerge: The number of nearest neighbor tags to return for each particle.
-        
+
         Returns:
         ========
-        
+
         dens: An array of the densities for each particle, in the same order
             as the input data.
-        
+
         tags: A two-dimensional array of the indexes, nMerge nearest neighbors
             for each particle.
-        
+
         """
-        
+
         # We're no np.int64_ter returning all the tags in this step.
         # We do it chunked, in find_chunk_nearest_neighbors.
         #cdef np.ndarray[np.int64_t, ndim=2] tags
         cdef np.ndarray[np.float64_t, ndim=1] dens
         cdef int i, pj, j
         cdef np.float64_t ih2, fNorm, r2, rs
-        
+
         #tags = np.empty((self.n, nMerge), dtype="int64")
         dens = np.zeros(self.n, dtype="float64")
         cdef np.ndarray[np.float64_t, ndim=2] local_data = self.data
 
         cdef np.ndarray[np.float64_t, ndim=1] mass = np.array(omass).astype("float64")
         cdef np.float64_t ipi = 1.0/np.pi
-        
+
         cdef np.float64_t *query = <np.float64_t *> alloca(
                     sizeof(np.float64_t) * self.m)
         cdef np.float64_t *dist_temp = <np.float64_t *> alloca(
@@ -688,9 +688,9 @@ cdef class cKDTree:
             for j in range(self.m):
                 query[j] = local_data[i,j]
             self.__query(dist_temp, tags_temp,
-                         query, num_neighbors, 0.0, 
+                         query, num_neighbors, 0.0,
                          2, infinity, period)
-            
+
             #calculate the density for this particle
             ih2 = -1
             for j in range(num_neighbors):
@@ -711,7 +711,7 @@ cdef class cKDTree:
 
             # store nMerge nearest neighbors
             #tags[i,:] = tags_temp[:nMerge]
-        
+
         #return (dens, tags)
         return dens
 
@@ -721,29 +721,29 @@ cdef class cKDTree:
         int num_neighbors=65):
         """ query the tree in chunks, between start and finish, recording the
             nearest neighbors.
-        
+
         Parameters:
         ===========
-        
+
         start: The starting point in the dataset for this search.
-        
+
         finish: The ending point in the dataset for this search.
-        
+
         num_neighbors: Optional, the number of neighbors to search for.
             The default is 65.
-        
+
         Returns:
         ========
-        
+
         chunk_tags: A two-dimensional array of the nearest neighbor tags for the
             points in this search.
-        
+
         """
-        
+
         cdef np.ndarray[np.int64_t, ndim=2] chunk_tags
         cdef np.ndarray[np.float64_t, ndim=2] local_data = self.data
         cdef int i, j
-        
+
         chunk_tags = np.empty((finish-start, num_neighbors), dtype="int64")
         cdef np.float64_t *query = <np.float64_t *> alloca(
                     sizeof(np.float64_t) * self.m)
@@ -758,11 +758,11 @@ cdef class cKDTree:
             for j in range(self.m):
                 query[j] = local_data[i+start,j]
             self.__query(dist_temp, tags_temp,
-                         query, num_neighbors, 0.0, 
+                         query, num_neighbors, 0.0,
                          2, infinity, period)
             for j in range(num_neighbors):
                 chunk_tags[i,j] = tags_temp[j]
-        
+
         return chunk_tags
 
     def chainHOP_preconnect(self, np.ndarray[np.int64_t, ndim=1] chainID,
@@ -776,7 +776,7 @@ cdef class cKDTree:
                                   object chain_map):
         cdef np.ndarray[np.int32_t, ndim=1] is_inside
         cdef np.ndarray[np.int32_t, ndim=1] search_again
-        cdef np.ndarray[np.float64_t, ndim=2] pos 
+        cdef np.ndarray[np.float64_t, ndim=2] pos
         cdef np.int64_t thisNN, thisNN_chainID, same_count
         cdef np.float64_t *query = <np.float64_t *> alloca(
                     sizeof(np.float64_t) * self.m)
@@ -784,7 +784,8 @@ cdef class cKDTree:
                     sizeof(np.float64_t) * nn)
         cdef np.int64_t *tags_temp = <np.int64_t *> alloca(
                     sizeof(np.int64_t) * nn)
-        cdef np.float64_t period[3], thisNN_max_dens, boundary_density
+        cdef np.float64_t period[3]
+        cdef np.float64_t thisNN_max_dens, boundary_density
         cdef int i, j, npart, chainID_i, part_mas_dens
         is_inside = bis_inside.astype("int32")
         search_again = bsearch_again.astype("int32")
@@ -805,7 +806,7 @@ cdef class cKDTree:
             for j in range(self.m):
                 query[j] = pos[i,j]
             self.__query(dist_temp, tags_temp,
-                         query, nn, 0.0, 
+                         query, nn, 0.0,
                          2, infinity, period)
             same_count = 0
             for j in xrange(int(nMerge+1)):
@@ -818,7 +819,7 @@ cdef class cKDTree:
                     same_count += 1
                     continue
                 # Everything immediately below is for
-                # neighboring particles with a chainID. 
+                # neighboring particles with a chainID.
                 if thisNN_chainID >= 0:
                     # Find thisNN's chain's max_dens.
                     thisNN_max_dens = densest_in_chain[thisNN_chainID]
@@ -832,7 +833,7 @@ cdef class cKDTree:
                     chain_map[thisNN_chainID].add(chainID_i)
                     chain_map[chainID_i].add(thisNN_chainID)
             if same_count == nMerge + 1:
-                # All our neighbors are in the same chain already, so 
+                # All our neighbors are in the same chain already, so
                 # we don't need to search again.
                 search_again[i] = 0
         return search_again

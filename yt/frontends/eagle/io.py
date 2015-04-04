@@ -5,6 +5,7 @@ EAGLE data-file handling function
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.

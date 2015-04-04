@@ -21,10 +21,6 @@ from yt.units.yt_array import YTArray
 from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
-from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs, \
-    mass_sun_cgs, \
-    mh
 
 from yt.units.yt_array import \
     uconcatenate
@@ -37,13 +33,36 @@ from yt.utilities.math_utils import \
     get_cyl_z_component, \
     get_cyl_theta_component, \
     get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
+    get_cyl_z, \
     get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
+    modify_reference_frame
 
 from .vector_operations import \
-     create_magnitude_field
-    
+    create_magnitude_field
+     
+from .field_functions import \
+    get_radius
+
+sph_whitelist_fields = (
+    'particle_velocity_x',
+    'particle_velocity_y',
+    'particle_velocity_z',
+    'density',
+    'temperature',
+    'metallicity',
+    'thermal_energy',
+    'H_fraction',
+    'He_fraction',
+    'C_fraction',
+    'N_fraction',
+    'O_fraction',
+    'Ne_fraction',
+    'Mg_fraction',
+    'Si_fraction',
+    'Fe_fraction',
+)
+
+
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -72,7 +91,7 @@ def _field_concat_slice(fname, axi):
 
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     orig = set(registry.keys())
-    ptype_dn = ptype.replace("_","\/").title()
+    ptype_dn = ptype.replace("_"," ").title()
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
@@ -82,7 +101,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % ptype_dn)
+             units = '',
+             display_name = r"\mathrm{%s Count}" % ptype_dn)
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
@@ -93,9 +113,9 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_mass" % ptype),
              function = particle_mass,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass}" % ptype_dn,
+             display_name = r"\mathrm{%s Mass}" % ptype_dn,
              units = "g")
-             
+
     def particle_density(field, data):
         pos = data[ptype, coord_name]
         mass = data[ptype, mass_name]
@@ -109,7 +129,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Density}" % ptype_dn,
+             display_name = r"\mathrm{%s Density}" % ptype_dn,
              units = "g/cm**3")
 
     def particle_cic(field, data):
@@ -122,7 +142,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_cic" % ptype),
              function = particle_cic,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s CIC Density}" % ptype_dn,
+             display_name = r"\mathrm{%s CIC Density}" % ptype_dn,
              units = "g/cm**3")
 
     def _get_density_weighted_deposit_field(fname, units, method):
@@ -174,6 +194,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field((ptype, "mesh_id"),
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
+            units = '',
             particle_type = True)
 
     return list(set(registry.keys()).difference(orig))
@@ -254,13 +275,12 @@ def standard_particle_fields(registry, ptype,
         yv = data[ptype, svel % 'y'] - bv[1]
         zv = data[ptype, svel % 'z'] - bv[2]
         center = data.get_field_parameter('center')
-        coords = YTArray([data[ptype, spos % 'x'],
-                           data[ptype, spos % 'y'],
-                           data[ptype, spos % 'z']], dtype=np.float64)
+        coords = self.ds.arr([data[ptype, spos % d] for d in 'xyz'],
+                             dtype=np.float64, units='cm')
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
-        v_vec = YTArray([xv,yv,zv], dtype=np.float64)
-        return np.cross(r_vec, v_vec, axis=0)
+        v_vec = self.ds.arr([xv,yv,zv], dtype=np.float64, units='cm/s')
+        return np.cross(r_vec, v_vec, axis=0).T
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
               function=_particle_specific_angular_momentum,
@@ -347,8 +367,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-            * data[ptype, "particle_specific_angular_momentum"]
+        return (data[ptype, "particle_mass"] *
+                data[ptype, "particle_specific_angular_momentum"].T).T
     registry.add_field((ptype, "particle_angular_momentum"),
               function=_particle_angular_momentum,
               particle_type=True,
@@ -357,34 +377,233 @@ def standard_particle_fields(registry, ptype,
 
     create_magnitude_field(registry, "particle_angular_momentum",
                            "g*cm**2/s", ftype=ptype, particle_type=True)
-    
-    from .field_functions import \
-        get_radius
 
     def _particle_radius(field, data):
-        return get_radius(data, "particle_position_")
-    registry.add_field((ptype, "particle_radius"),
-              function=_particle_radius,
-              validators=[ValidateParameter("center")],
-              units="cm", particle_type = True,
-              display_name = "Particle Radius")
+        """The spherical radius component of the particle positions
 
-    def _particle_spherical_position_radius(field, data):
+        Relative to the coordinate system defined by the *normal* vector,
+        and *center* field parameters.
         """
-        Radial component of the particles' position vectors in spherical coords
-        on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
+        return get_radius(data, "particle_position_")
+
+    registry.add_field(
+        (ptype, "particle_radius"),
+        function=_particle_radius,
+        units="cm",
+        particle_type=True,
+        validators=[ValidateParameter("center")])
+
+    def _particle_position_relative(field, data):
+        """The cartesian particle positions in a rotated reference frame
+
+        Relative to the coordinate system defined by the *normal* vector and
+        *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = pos.T
+        L, pos = modify_reference_frame(center, normal, P=pos)
+        return pos
+
+    registry.add_field(
+        (ptype, "particle_position_relative"),
+        function=_particle_position_relative,
+        particle_type=True,
+        units="cm",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_position_relative_x(field, data):
+        """The x component of the  particle positions in a rotated reference
+        frame
+
+        Relative to the coordinate system defined by the *normal* vector and
+        *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = pos.T
+        L, pos, = modify_reference_frame(center, normal, P=pos)
+        pos = pos.T
+        return pos[0]
+
+    registry.add_field(
+        (ptype, "particle_position_relative_x"),
+        function=_particle_position_relative_x,
+        particle_type=True,
+        units="cm",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_position_relative_y(field, data):
+        """The y component of the  particle positions in a rotated reference
+        frame
+
+        Relative to the coordinate system defined by the *normal* vector and
+        *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = pos.T
+        L, pos = modify_reference_frame(center, normal, P=pos)
+        pos = pos.T
+        return pos[1]
+
+    registry.add_field((ptype, "particle_position_relative_y"),
+              function=_particle_position_relative_y,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+
+    def _particle_position_relative_z(field, data):
+        """The z component of the  particle positions in a rotated reference
+        frame
+
+        Relative to the coordinate system defined by the *normal* vector and
+        *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = pos.T
+        L, pos = modify_reference_frame(center, normal, P=pos)
+        pos = pos.T
+        return pos[2]
+
+    registry.add_field((ptype, "particle_position_relative_z"),
+              function=_particle_position_relative_z,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_velocity_relative(field, data):
+        """The vector particle velocities in an arbitrary coordinate system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
-        phi = get_sph_phi(pos, center)
-        pos = pos - np.reshape(center, (3, 1))
-        sphr = get_sph_r_component(pos, theta, phi, normal)
-        return sphr
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        vel = vel - np.reshape(bv, (3, 1))
+        vel = vel.T
+        L, vel = modify_reference_frame(center, normal, V=vel)
+        return vel
+
+    registry.add_field((ptype, "particle_velocity_relative"),
+              function=_particle_velocity_relative,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_velocity_relative_x(field, data):
+        """The x component of the particle velocities in an arbitrary coordinate
+        system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        vel = vel - np.reshape(bv, (3, 1))
+        vel = vel.T
+        L, vel = modify_reference_frame(center, normal, V=vel)
+        vel = vel.T
+        return vel[0]
+
+    registry.add_field((ptype, "particle_velocity_relative_x"),
+              function=_particle_velocity_relative_x,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_velocity_relative_y(field, data):
+        """The y component of the particle velocities in an arbitrary coordinate
+        system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter('bulk_velocity')
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        vel = vel - np.reshape(bv, (3, 1))
+        vel = vel.T
+        L, vel = modify_reference_frame(center, normal, V=vel)
+        vel = vel.T
+        return vel[1]
+
+    registry.add_field((ptype, "particle_velocity_relative_y"),
+              function=_particle_velocity_relative_y,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_velocity_relative_z(field, data):
+        """The z component of the particle velocities in an arbitrary coordinate
+        system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        bv = vel - np.reshape(bv, (3, 1))
+        vel = vel.T
+        L, vel = modify_reference_frame(center, normal, V=vel)
+        vel = vel.T
+        return vel[2]
+
+    registry.add_field((ptype, "particle_velocity_relative_z"),
+              function=_particle_velocity_relative_z,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    # this is just particle radius but we add it with an alias for the sake of
+    # consistent naming
+    registry.add_field((ptype, "particle_position_spherical_radius"),
+              function=_particle_radius,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_spherical_position_radius(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_position_spherical_radius']
 
     registry.add_field((ptype, "particle_spherical_position_radius"),
               function=_particle_spherical_position_radius,
@@ -392,57 +611,72 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_spherical_position_theta(field, data):
+    def _particle_position_spherical_theta(field, data):
+        """The spherical theta coordinate of the particle positions.
+
+        Relative to the coordinate system defined by the *normal* vector
+        and *center* field parameters.
         """
-        Theta component of the particles' position vectors in spherical coords
-        on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter("bulk_velocity")
+        normal = data.get_field_parameter("normal")
+        center = data.get_field_parameter("center")
         pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
-        phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
-        spht = get_sph_theta_component(pos, theta, phi, normal)
-        return spht
+        return data.ds.arr(get_sph_theta(pos, normal), "")
+
+    registry.add_field(
+        (ptype, "particle_position_spherical_theta"),
+        function=_particle_position_spherical_theta,
+        particle_type=True,
+        units="",
+        validators=[ValidateParameter("center"), ValidateParameter("normal")])
+
+    def _particle_spherical_position_theta(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_position_spherical_theta']
 
     registry.add_field((ptype, "particle_spherical_position_theta"),
               function=_particle_spherical_position_theta,
-              particle_type=True, units="cm",
+              particle_type=True, units="",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_spherical_position_phi(field, data):
+    def _particle_position_spherical_phi(field, data):
+        """The spherical phi component of the particle positions
+
+        Relative to the coordinate system defined by the *normal* vector
+        and *center* field parameters.
         """
-        Phi component of the particles' position vectors in spherical coords
-        on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter("bulk_velocity")
+        normal = data.get_field_parameter("normal")
+        center = data.get_field_parameter("center")
         pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
-        phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
-        sphp = get_sph_phi_component(pos, phi, normal)
-        return sphp
+        return data.ds.arr(get_sph_phi(pos, normal), "")
+
+    registry.add_field(
+        (ptype, "particle_position_spherical_phi"),
+        function=_particle_position_spherical_phi,
+        particle_type=True,
+        units="",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_spherical_position_phi(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_position_spherical_phi']
 
     registry.add_field((ptype, "particle_spherical_position_phi"),
-              function=_particle_spherical_position_phi,
-              particle_type=True, units="cm",
-              validators=[ValidateParameter("normal"), 
-                          ValidateParameter("center")])
+             function=_particle_spherical_position_phi,
+             particle_type=True, units="",
+             validators=[ValidateParameter("center"),
+                         ValidateParameter("normal")])
 
-    def _particle_spherical_velocity_radius(field, data):
-        """
-        Radial component of the particles' velocity vectors in spherical coords
-        based on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
+    def _particle_velocity_spherical_radius(field, data):
+        """The spherical radius component of the particle velocities in an
+         arbitrary coordinate system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -458,25 +692,36 @@ def standard_particle_fields(registry, ptype,
         sphr = get_sph_r_component(vel, theta, phi, normal)
         return sphr
 
+    registry.add_field((ptype, "particle_velocity_spherical_radius"),
+              function=_particle_velocity_spherical_radius,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"), 
+                          ValidateParameter("center")])
+
+    def _particle_spherical_velocity_radius(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_velocity_spherical_radius']
+
     registry.add_field((ptype, "particle_spherical_velocity_radius"),
               function=_particle_spherical_velocity_radius,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    # This is simply aliased to "particle_spherical_velocity_radius"
-    # for ease of use.
+    # particel_velocity_spherical_radius is simply aliased to
+    # "particle_radial_velocity" for convenience
     registry.add_field((ptype, "particle_radial_velocity"),
               function=_particle_spherical_velocity_radius,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_spherical_velocity_theta(field, data):
-        """
-        Theta component of the particles' velocity vectors in spherical coords
-        based on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
+    def _particle_velocity_spherical_theta(field, data):
+        """The spherical theta component of the particle velocities in an
+         arbitrary coordinate system
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -492,35 +737,213 @@ def standard_particle_fields(registry, ptype,
         spht = get_sph_theta_component(vel, theta, phi, normal)
         return spht
 
+    registry.add_field(
+        (ptype, "particle_velocity_spherical_theta"),
+        function=_particle_velocity_spherical_theta,
+        particle_type=True,
+        units="cm/s",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_spherical_velocity_theta(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_velocity_spherical_theta']
+
     registry.add_field((ptype, "particle_spherical_velocity_theta"),
               function=_particle_spherical_velocity_theta,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_spherical_velocity_phi(field, data):
-        """
-        Phi component of the particles' velocity vectors in spherical coords
-        based on the provided field parameters for 'normal', 'center', and 
-        'bulk_velocity', 
+    def _particle_velocity_spherical_phi(field, data):
+        """The spherical phi component of the particle velocities
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
         vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         sphp = get_sph_phi_component(vel, phi, normal)
         return sphp
 
+    registry.add_field(
+        (ptype, "particle_velocity_spherical_phi"),
+        function=_particle_velocity_spherical_phi,
+        particle_type=True,
+        units="cm/s",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_spherical_velocity_phi(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_spherical_velocity_theta']
+
     registry.add_field((ptype, "particle_spherical_velocity_phi"),
               function=_particle_spherical_velocity_phi,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
+
+    def _particle_position_cylindrical_radius(field, data):
+        """The cylindrical radius component of the particle positions
+
+        Relative to the coordinate system defined by the *normal* vector
+        and *center* field parameters.
+        """
+        normal = data.get_field_parameter("normal")
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_r(pos, normal),
+                           'code_length')
+
+    registry.add_field(
+        (ptype, "particle_position_cylindrical_radius"),
+        function=_particle_position_cylindrical_radius,
+        units="cm",
+        particle_type=True,
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_position_cylindrical_theta(field,data):
+        """The cylindrical theta component of the particle positions
+
+        Relative to the coordinate system defined by the *normal* vector
+        and *center* field parameters.
+        """
+        normal = data.get_field_parameter("normal")
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_theta(pos, normal), "")
+
+    registry.add_field(
+        (ptype, "particle_position_cylindrical_theta"),
+        function=_particle_position_cylindrical_theta,
+        particle_type=True,
+        units="",
+        validators=[ValidateParameter("center"), ValidateParameter("normal")])
+
+    def _particle_position_cylindrical_z(field,data):
+        """The cylindrical z component of the particle positions
+
+        Relative to the coordinate system defined by the *normal* vector
+        and *center* field parameters.
+        """
+        normal = data.get_field_parameter("normal")
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_z(pos, normal),
+                           'code_length')
+
+    registry.add_field(
+        (ptype, "particle_position_cylindrical_z"),
+        function=_particle_position_cylindrical_z,
+        units="cm",
+        particle_type=True,
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_velocity_cylindrical_radius(field, data):
+        """The cylindrical radius component of the particle velocities
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        theta = get_cyl_theta(pos, center)
+        pos = pos - np.reshape(center, (3, 1))
+        vel = vel - np.reshape(bv, (3, 1))
+        cylr = get_cyl_r_component(vel, theta, normal)
+        return cylr
+
+    registry.add_field(
+        (ptype, "particle_velocity_cylindrical_radius"),
+        function=_particle_velocity_spherical_radius,
+        particle_type=True,
+        units="cm/s",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_velocity_cylindrical_theta(field, data):
+        """The cylindrical theta component of the particle velocities
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        theta = get_cyl_theta(pos, center)
+        pos = pos - np.reshape(center, (3, 1))
+        vel = vel - np.reshape(bv, (3, 1))
+        cylt = get_cyl_theta_component(vel, theta, normal)
+        return cylt
+
+    registry.add_field(
+        (ptype, "particle_velocity_cylindrical_theta"),
+        function=_particle_velocity_cylindrical_theta,
+        particle_type=True,
+        units="cm/s",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_cylindrical_velocity_theta(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, 'particle_velocity_cylindrical_theta']
+
+    registry.add_field((ptype, "particle_cylindrical_velocity_theta"),
+              function=_particle_cylindrical_velocity_theta,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"), 
+                          ValidateParameter("center")])
+
+    def _particle_velocity_cylindrical_z(field, data):
+        """The cylindrical z component of the particle velocities
+
+        Relative to the coordinate system defined by the *normal* vector,
+        *bulk_velocity* vector and *center* field parameters.
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        vel = vel - np.reshape(bv, (3, 1))
+        cylz = get_cyl_z_component(vel, normal)
+        return cylz
+
+    registry.add_field(
+        (ptype, "particle_velocity_cylindrical_z"),
+        function=_particle_velocity_cylindrical_z,
+        particle_type=True,
+        units="cm/s",
+        validators=[ValidateParameter("normal"), ValidateParameter("center")])
+
+    def _particle_cylindrical_velocity_z(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, "particle_velocity_cylindrical_z"]
+
+    registry.add_field((ptype, "particle_cylindrical_velocity_z"),
+              function=_particle_cylindrical_velocity_z,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"), 
+                          ValidateParameter("center")])
+
 
 def add_particle_average(registry, ptype, field_name, 
                          weight = "particle_mass",
@@ -562,6 +985,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         kwargs = {}
         if nneighbors:
             kwargs['nneighbors'] = nneighbors
+        # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
                          create_octree = True)[0]

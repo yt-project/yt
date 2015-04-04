@@ -19,7 +19,7 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import *
 from yt.utilities.physical_constants import clight
@@ -31,8 +31,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy
-pyfits = _astropy.pyfits
-pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -77,7 +75,7 @@ class PhotonList(object):
     def __getitem__(self, key):
         if key == "Energy":
             return [self.photons["Energy"][self.p_bins[i]:self.p_bins[i+1]]
-                    for i in xrange(self.num_cells)]
+                    for i in range(self.num_cells)]
         else:
             return self.photons[key]
 
@@ -92,7 +90,7 @@ class PhotonList(object):
 
         photons = {}
         parameters = {}
-        
+
         f = h5py.File(filename, "r")
 
         parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
@@ -106,9 +104,9 @@ class PhotonList(object):
         parameters["OmegaLambda"] = f["/omega_lambda"].value
 
         num_cells = f["/x"][:].shape[0]
-        start_c = comm.rank*num_cells/comm.size
-        end_c = (comm.rank+1)*num_cells/comm.size
-        
+        start_c = comm.rank*num_cells//comm.size
+        end_c = (comm.rank+1)*num_cells//comm.size
+
         photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
         photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
         photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
@@ -118,7 +116,7 @@ class PhotonList(object):
         photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
 
         n_ph = f["/num_photons"][:]
-        
+
         if comm.rank == 0:
             start_e = np.uint64(0)
         else:
@@ -518,7 +516,7 @@ class PhotonList(object):
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
             zobs = self.parameters["FiducialRedshift"]
-            D_A = self.parameters["FiducialAngularDiameterDistance"]*1000.
+            D_A = self.parameters["FiducialAngularDiameterDistance"]
         else:
             if exp_time_new is None:
                 Tratio = 1.
@@ -526,10 +524,10 @@ class PhotonList(object):
                 Tratio = parse_value(exp_time_new, "s")/self.parameters["FiducialExposureTime"]
             if area_new is None:
                 Aratio = 1.
-            elif isinstance(area_new, basestring):
+            elif isinstance(area_new, string_types):
                 if comm.rank == 0:
                     mylog.info("Using energy-dependent effective area: %s" % (parameters["ARF"]))
-                f = pyfits.open(area_new)
+                f = _astropy.pyfits.open(area_new)
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
@@ -548,15 +546,15 @@ class PhotonList(object):
             if redshift_new is None and dist_new is None:
                 Dratio = 1.
                 zobs = self.parameters["FiducialRedshift"]
-                D_A = self.parameters["FiducialAngularDiameterDistance"].in_units("Mpc")
+                D_A = self.parameters["FiducialAngularDiameterDistance"]
             else:
                 if redshift_new is None:
                     zobs = 0.0
                     D_A = parse_value(dist_new, "Mpc")
                 else:
                     zobs = redshift_new
-                    D_A = self.cosmo.angular_diameter_distance(0.0,zobs).in_units("kpc")
-                fid_D_A = self.parameters["FiducialAngularDiameterDistance"].in_units("kpc")
+                    D_A = self.cosmo.angular_diameter_distance(0.0,zobs).in_units("Mpc")
+                fid_D_A = self.parameters["FiducialAngularDiameterDistance"]
                 Dratio = fid_D_A*fid_D_A*(1.+self.parameters["FiducialRedshift"]**3) / \
                          (D_A*D_A*(1.+zobs)**3)
             fak = Aratio*Tratio*Dratio
@@ -625,11 +623,11 @@ class PhotonList(object):
                     
         events = {}
 
-        dx_min = self.parameters["Width"].value/self.parameters["Dimension"]
-        dtheta = YTQuantity(np.rad2deg(dx_min/D_A.value), "degree")
+        dx_min = self.parameters["Width"]/self.parameters["Dimension"]
+        dtheta = YTQuantity(np.rad2deg(dx_min/D_A), "degree")
         
-        events["xpix"] = xsky[detected]/dx_min + 0.5*(nx+1)
-        events["ypix"] = ysky[detected]/dx_min + 0.5*(nx+1)
+        events["xpix"] = xsky[detected]/dx_min.v + 0.5*(nx+1)
+        events["ypix"] = ysky[detected]/dx_min.v + 0.5*(nx+1)
         events["eobs"] = eobs[detected]
 
         events = comm.par_combine_object(events, datatype="dict", op="cat")
@@ -663,7 +661,7 @@ class PhotonList(object):
         return EventList(events, parameters)
 
     def _normalize_arf(self, respfile):
-        rmf = pyfits.open(respfile)
+        rmf = _astropy.pyfits.open(respfile)
         table = rmf["MATRIX"]
         weights = np.array([w.sum() for w in table.data["MATRIX"]])
         rmf.close()
@@ -675,8 +673,8 @@ class PhotonList(object):
         """
         mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
-        
-        hdulist = pyfits.open(respfile)
+
+        hdulist = _astropy.pyfits.open(respfile)
 
         tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
@@ -687,7 +685,7 @@ class PhotonList(object):
         tblhdu2 = hdulist["EBOUNDS"]
         n_ch = len(tblhdu2.data["CHANNEL"])
         mylog.info("Number of channels in RMF: %d" % (n_ch))
-        
+
         eidxs = np.argsort(events["eobs"])
 
         phEE = events["eobs"][eidxs].ndarray_view()
@@ -702,7 +700,7 @@ class PhotonList(object):
         last = len(phEE)-1
 
         pbar = get_pbar("Scattering energies with RMF:", n_de)
-        
+
         for low,high in zip(tblhdu.data["ENERG_LO"],tblhdu.data["ENERG_HI"]):
             # weight function for probabilities from RMF
             weights = np.nan_to_num(tblhdu.data[k]["MATRIX"][:])
@@ -735,7 +733,7 @@ class PhotonList(object):
             pbar.update(k)
             k+=1
         pbar.finish()
-        
+
         dchannel = np.array(detectedChannels)
 
         events["xpix"] = phXX
@@ -744,12 +742,13 @@ class PhotonList(object):
         events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
 
         info = {"ChannelType" : tblhdu.header["CHANTYPE"],
-                "Mission" : tblhdu.header["MISSION"],
                 "Telescope" : tblhdu.header["TELESCOP"],
                 "Instrument" : tblhdu.header["INSTRUME"]}
-        
+
+        info["Mission"] = tblhdu.header.get("MISSION","")
+
         return events, info
-    
+
 class EventList(object) :
 
     def __init__(self, events, parameters):
@@ -757,12 +756,12 @@ class EventList(object) :
         self.events = events
         self.parameters = parameters
         self.num_events = events["xpix"].shape[0]
-        self.wcs = pywcs.WCS(naxis=2)
+        self.wcs = _astropy.pywcs.WCS(naxis=2)
         self.wcs.wcs.crpix = parameters["pix_center"]
         self.wcs.wcs.crval = parameters["sky_center"].ndarray_view()
         self.wcs.wcs.cdelt = [-parameters["dtheta"].value, parameters["dtheta"].value]
         self.wcs.wcs.ctype = ["RA---TAN","DEC--TAN"]
-        self.wcs.wcs.cunit = ["deg"]*2                                                
+        self.wcs.wcs.cunit = ["deg"]*2
         x,y = self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"], 1)
         self.events["xsky"] = YTArray(x, "degree")
         self.events["ysky"] = YTArray(y, "degree")
@@ -772,14 +771,14 @@ class EventList(object) :
 
     def has_key(self, key):
         return key in self.keys()
-    
+
     def items(self):
         return self.events.items()
 
     def values(self):
         return self.events.values()
-    
-    def __getitem__(self,key):                        
+
+    def __getitem__(self,key):
         return self.events[key]
 
     def __repr__(self):
@@ -795,7 +794,7 @@ class EventList(object) :
         for k1, k2 in zip(keys1, keys2):
             v1 = self.parameters[k1]
             v2 = other.parameters[k2]
-            if isinstance(v1, basestring) or isinstance(v2, basestring):
+            if isinstance(v1, string_types) or isinstance(v2, string_types):
                 check_equal = v1 == v2
             else:
                 check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
@@ -829,7 +828,7 @@ class EventList(object) :
         for k, v in self.events.items():
             new_events[k] = v[idxs]
         return EventList(new_events, self.parameters)
-   
+
     @classmethod
     def from_h5_file(cls, h5file):
         """
@@ -867,9 +866,9 @@ class EventList(object) :
         parameters["sky_center"] = YTArray(f["/sky_center"][:], "deg")
         parameters["dtheta"] = YTQuantity(f["/dtheta"].value, "deg")
         parameters["pix_center"] = f["/pix_center"][:]
-        
+
         f.close()
-        
+
         return cls(events, parameters)
 
     @classmethod
@@ -877,13 +876,13 @@ class EventList(object) :
         """
         Initialize an EventList from a FITS file with filename *fitsfile*.
         """
-        hdulist = pyfits.open(fitsfile)
+        hdulist = _astropy.pyfits.open(fitsfile)
 
         tblhdu = hdulist["EVENTS"]
-        
+
         events = {}
         parameters = {}
-        
+
         parameters["ExposureTime"] = YTQuantity(tblhdu.header["EXPOSURE"], "s")
         parameters["Area"] = YTQuantity(tblhdu.header["AREA"], "cm**2")
         parameters["Redshift"] = tblhdu.header["REDSHIFT"]
@@ -910,7 +909,7 @@ class EventList(object) :
             events["PI"] = tblhdu.data.field("PI")
         if "PHA" in tblhdu.columns.names:
             events["PHA"] = tblhdu.data.field("PHA")
-        
+
         return cls(events, parameters)
 
     @parallel_root_only
@@ -919,7 +918,8 @@ class EventList(object) :
         Write events to a FITS binary table file with filename *fitsfile*.
         Set *clobber* to True if you need to overwrite a previous file.
         """
-        
+        pyfits = _astropy.pyfits
+
         cols = []
 
         col1 = pyfits.Column(name='ENERGY', format='E', unit='eV',
@@ -931,7 +931,7 @@ class EventList(object) :
 
         cols = [col1, col2, col3]
 
-        if self.parameters.has_key("ChannelType"):
+        if "ChannelType" in self.parameters:
              chantype = self.parameters["ChannelType"]
              if chantype == "PHA":
                   cunit="adu"
@@ -940,7 +940,7 @@ class EventList(object) :
              col4 = pyfits.Column(name=chantype.upper(), format='1J',
                                   unit=cunit, array=self.events[chantype])
              cols.append(col4)
-            
+
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("EVENTS")
@@ -962,7 +962,7 @@ class EventList(object) :
         tbhdu.header["TLMAX2"] = 2.*self.parameters["pix_center"][0]-0.5
         tbhdu.header["TLMAX3"] = 2.*self.parameters["pix_center"][1]-0.5
         tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
-        if isinstance(self.parameters["Area"], basestring):
+        if isinstance(self.parameters["Area"], string_types):
             tbhdu.header["AREA"] = self.parameters["Area"]
         else:
             tbhdu.header["AREA"] = float(self.parameters["Area"])
@@ -983,10 +983,10 @@ class EventList(object) :
             tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
             tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
-            
+
         tbhdu.writeto(fitsfile, clobber=clobber)
 
-    @parallel_root_only    
+    @parallel_root_only
     def write_simput_file(self, prefix, clobber=False, emin=None, emax=None):
         r"""
         Write events to a SIMPUT file that may be read by the SIMX instrument
@@ -1004,11 +1004,11 @@ class EventList(object) :
         e_max : float, optional
             The maximum energy of the photons to save in keV.
         """
-
-        if isinstance(self.parameters["Area"], basestring):
+        pyfits = _astropy.pyfits
+        if isinstance(self.parameters["Area"], string_types):
              mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
              raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
-        
+
         if emin is None:
             emin = self.events["eobs"].min().value*0.95
         if emax is None:
@@ -1018,7 +1018,7 @@ class EventList(object) :
                               self.events["eobs"].ndarray_view() <= emax)
         flux = np.sum(self.events["eobs"][idxs].in_units("erg")) / \
                self.parameters["ExposureTime"]/self.parameters["Area"]
-        
+
         col1 = pyfits.Column(name='ENERGY', format='E',
                              array=self["eobs"].ndarray_view())
         col2 = pyfits.Column(name='DEC', format='D',
@@ -1053,12 +1053,12 @@ class EventList(object) :
         col6 = pyfits.Column(name='FLUX', format='D', array=np.array([flux.value]))
         col7 = pyfits.Column(name='SPECTRUM', format='80A', array=np.array([phfile+"[PHLIST,1]"]))
         col8 = pyfits.Column(name='IMAGE', format='80A', array=np.array([phfile+"[PHLIST,1]"]))
-                        
+
         coldefs = pyfits.ColDefs([col1, col2, col3, col4, col5, col6, col7, col8])
-        
+
         wrhdu = pyfits.new_table(coldefs)
         wrhdu.update_ext_name("SRC_CAT")
-                                
+
         wrhdu.header["HDUCLASS"] = "HEASARC"
         wrhdu.header["HDUCLAS1"] = "SIMPUT"
         wrhdu.header["HDUCLAS2"] = "SRC_CAT"
@@ -1072,7 +1072,7 @@ class EventList(object) :
         wrhdu.header["TUNIT6"] = "erg/s/cm**2"
 
         simputfile = prefix+"_simput.fits"
-                
+
         wrhdu.writeto(simputfile, clobber=clobber)
 
     @parallel_root_only
@@ -1084,7 +1084,7 @@ class EventList(object) :
 
         f.create_dataset("/exp_time", data=float(self.parameters["ExposureTime"]))
         area = self.parameters["Area"]
-        if not isinstance(area, basestring):
+        if not isinstance(area, string_types):
             area = float(area)
         f.create_dataset("/area", data=area)
         f.create_dataset("/redshift", data=self.parameters["Redshift"])
@@ -1101,16 +1101,16 @@ class EventList(object) :
             f.create_dataset("/telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
             f.create_dataset("/instrument", data=self.parameters["Instrument"])
-                            
+
         f.create_dataset("/xpix", data=self.events["xpix"])
         f.create_dataset("/ypix", data=self.events["ypix"])
         f.create_dataset("/xsky", data=self.events["xsky"].ndarray_view())
         f.create_dataset("/ysky", data=self.events["ysky"].ndarray_view())
         f.create_dataset("/eobs", data=self.events["eobs"].ndarray_view())
         if "PI" in self.events:
-            f.create_dataset("/pi", data=self.events["PI"])                  
+            f.create_dataset("/pi", data=self.events["PI"])
         if "PHA" in self.events:
-            f.create_dataset("/pha", data=self.events["PHA"])                  
+            f.create_dataset("/pha", data=self.events["PHA"])
         f.create_dataset("/sky_center", data=self.parameters["sky_center"].ndarray_view())
         f.create_dataset("/pix_center", data=self.parameters["pix_center"])
         f.create_dataset("/dtheta", data=float(self.parameters["dtheta"]))
@@ -1148,16 +1148,16 @@ class EventList(object) :
 
         nx = int(2*self.parameters["pix_center"][0]-1.)
         ny = int(2*self.parameters["pix_center"][1]-1.)
-        
+
         xbins = np.linspace(0.5, float(nx)+0.5, nx+1, endpoint=True)
         ybins = np.linspace(0.5, float(ny)+0.5, ny+1, endpoint=True)
 
         H, xedges, yedges = np.histogram2d(self.events["xpix"][mask],
                                            self.events["ypix"][mask],
                                            bins=[xbins,ybins])
-        
-        hdu = pyfits.PrimaryHDU(H.T)
-        
+
+        hdu = _astropy.pyfits.PrimaryHDU(H.T)
+
         hdu.header["MTYPE1"] = "EQPOS"
         hdu.header["MFORM1"] = "RA,DEC"
         hdu.header["CTYPE1"] = "RA---TAN"
@@ -1171,9 +1171,9 @@ class EventList(object) :
         hdu.header["CDELT1"] = -float(self.parameters["dtheta"])
         hdu.header["CDELT2"] = float(self.parameters["dtheta"])
         hdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
-        
+
         hdu.writeto(imagefile, clobber=clobber)
-                                    
+
     @parallel_root_only
     def write_spectrum(self, specfile, energy_bins=False, emin=0.1,
                        emax=10.0, nchan=2000, clobber=False):
@@ -1196,7 +1196,7 @@ class EventList(object) :
         nchan : integer, optional
             The number of channels. Only used if binning on energy.
         """
-
+        pyfits = _astropy.pyfits
         if energy_bins:
             spectype = "energy"
             espec = self.events["eobs"].d
@@ -1204,7 +1204,7 @@ class EventList(object) :
             spec, ee = np.histogram(espec, bins=nchan, range=range)
             bins = 0.5*(ee[1:]+ee[:-1])
         else:
-            if not self.parameters.has_key("ChannelType"):
+            if "ChannelType" not in self.parameters:
                 mylog.error("These events were not convolved with an RMF. Set energy_bins=True.")
                 raise KeyError
             spectype = self.parameters["ChannelType"]
@@ -1229,14 +1229,14 @@ class EventList(object) :
             spec = np.bincount(self.events[spectype],minlength=minlength)
             if cmin == 1: spec = spec[1:]
             bins = np.arange(nchan).astype("int32")+cmin
-            
+
         col1 = pyfits.Column(name='CHANNEL', format='1J', array=bins)
         col2 = pyfits.Column(name=spectype.upper(), format='1D', array=bins.astype("float64"))
         col3 = pyfits.Column(name='COUNTS', format='1J', array=spec.astype("int32"))
         col4 = pyfits.Column(name='COUNT_RATE', format='1D', array=spec/float(self.parameters["ExposureTime"]))
-        
+
         coldefs = pyfits.ColDefs([col1, col2, col3, col4])
-        
+
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("SPECTRUM")
 
@@ -1257,30 +1257,30 @@ class EventList(object) :
             tbhdu.header["BACKFILE"] = "none"
             tbhdu.header["CORRFILE"] = "none"
             tbhdu.header["POISSERR"] = True
-            if self.parameters.has_key("RMF"):
+            if "RMF" in self.parameters:
                  tbhdu.header["RESPFILE"] = self.parameters["RMF"]
             else:
                  tbhdu.header["RESPFILE"] = "none"
-            if self.parameters.has_key("ARF"):
+            if "ARF" in self.parameters:
                 tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
-            if self.parameters.has_key("Mission"):
+            if "Mission" in self.parameters:
                 tbhdu.header["MISSION"] = self.parameters["Mission"]
             else:
                 tbhdu.header["MISSION"] = "none"
-            if self.parameters.has_key("Telescope"):
+            if "Telescope" in self.parameters:
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
                 tbhdu.header["TELESCOP"] = "none"
-            if self.parameters.has_key("Instrument"):
+            if "Instrument" in self.parameters:
                 tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             else:
                 tbhdu.header["INSTRUME"] = "none"
             tbhdu.header["AREASCAL"] = 1.0
             tbhdu.header["CORRSCAL"] = 0.0
             tbhdu.header["BACKSCAL"] = 1.0
-                                
+
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
-        
+
         hdulist.writeto(specfile, clobber=clobber)

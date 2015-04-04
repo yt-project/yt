@@ -26,7 +26,6 @@ from .PointsInVolume import *
 from .QuadTree import *
 from .RayIntegrators import *
 from .marching_cubes import *
-from .GridTree import *
 from .write_array import *
 from .mesh_utilities import *
 from .ContourFinding import *

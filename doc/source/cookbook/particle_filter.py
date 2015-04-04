@@ -43,9 +43,9 @@ ad = ds.all_data()
 mass_young = ad['stars_young', 'particle_mass'].in_units('Msun').sum()
 mass_medium = ad['stars_medium', 'particle_mass'].in_units('Msun').sum()
 mass_old = ad['stars_old', 'particle_mass'].in_units('Msun').sum()
-print "Mass of young stars = %g Msun" % mass_young
-print "Mass of medium stars = %g Msun" % mass_medium
-print "Mass of old stars = %g Msun" % mass_old
+print("Mass of young stars = %g Msun" % mass_young)
+print("Mass of medium stars = %g Msun" % mass_medium)
+print("Mass of old stars = %g Msun" % mass_old)
 
 # Generate 4 projections: gas density, young stars, medium stars, old stars
 fields = [('gas', 'density'), ('deposit', 'stars_young_cic'),

@@ -7,7 +7,7 @@ from docutils.parsers.rst import directives
 from IPython.nbformat import current
 from notebook_sphinxext import \
     notebook_node, visit_notebook_node, depart_notebook_node, \
-    evaluate_notebook
+    evaluate_notebook, make_image_dir, write_notebook_output
 
 
 class NotebookCellDirective(Directive):
@@ -30,6 +30,11 @@ class NotebookCellDirective(Directive):
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
 
+        rst_file = self.state_machine.document.attributes['source']
+        rst_dir = os.path.abspath(os.path.dirname(rst_file))
+
+        image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
+
         # Construct notebook from cell content
         content = "\n".join(self.content)
         with open("temp.py", "w") as f:
@@ -39,8 +44,11 @@ class NotebookCellDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text = evaluate_notebook('temp.ipynb',
-                                           skip_exceptions=skip_exceptions)
+        evaluated_text, resources = evaluate_notebook(
+            'temp.ipynb', skip_exceptions=skip_exceptions)
+
+        evaluated_text = write_notebook_output(
+            resources, image_dir, image_rel_dir, evaluated_text)
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}

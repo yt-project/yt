@@ -4,6 +4,7 @@ Default tests
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -14,7 +15,7 @@ Default tests
 #-----------------------------------------------------------------------------
 
 from yt.mods import *
-from output_tests import YTDatasetTest, create_test
+from .output_tests import YTDatasetTest, create_test
 
 class TestFieldStatistics(YTDatasetTest):
 

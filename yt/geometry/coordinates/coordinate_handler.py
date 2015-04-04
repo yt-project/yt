@@ -31,6 +31,7 @@ from yt.utilities.lib.pixelization_routines import \
 import yt.visualization._MPL as _MPL
 from yt.units.yt_array import \
     YTArray, YTQuantity
+from yt.extern.six import string_types
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
@@ -69,8 +70,9 @@ def validate_iterable_width(width, ds, unit=None):
 
 class CoordinateHandler(object):
     
-    def __init__(self, ds):
+    def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
+        self.axis_order = ordering
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
@@ -104,9 +106,29 @@ class CoordinateHandler(object):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
+    _axis_name = None
     @property
     def axis_name(self):
-        raise NotImplementedError
+        if self._axis_name is not None:
+            return self._axis_name
+        an = {}
+        for axi, ax in enumerate(self.axis_order):
+            an[axi] = ax
+            an[ax] = ax
+            an[ax.capitalize()] = ax
+        self._axis_name = an
+        return an
+
+    _axis_id = None
+    @property
+    def axis_id(self):
+        if self._axis_id is not None:
+            return self._axis_id
+        ai = {}
+        for axi, ax in enumerate(self.axis_order):
+            ai[ax] = ai[axi] = axi
+        self._axis_id = ai
+        return ai
 
     @property
     def image_axis_name(self):
@@ -116,20 +138,32 @@ class CoordinateHandler(object):
             rv[i] = (self.axis_name[self.x_axis[i]],
                      self.axis_name[self.y_axis[i]])
             rv[self.axis_name[i]] = rv[i]
-            rv[self.axis_name[i].upper()] = rv[i]
+            rv[self.axis_name[i].capitalize()] = rv[i]
         return rv
 
-    @property
-    def axis_id(self):
-        raise NotImplementedError
-
+    _x_axis = None
     @property
     def x_axis(self):
-        raise NotImplementedError
+        if self._x_axis is not None:
+            return self._x_axis
+        ai = self.axis_id
+        xa = {}
+        for a1, a2 in self._x_pairs:
+            xa[a1] = xa[ai[a1]] = ai[a2]
+        self._x_axis = xa
+        return xa
 
+    _y_axis = None
     @property
     def y_axis(self):
-        raise NotImplementedError
+        if self._y_axis is not None:
+            return self._y_axis
+        ai = self.axis_id
+        ya = {}
+        for a1, a2 in self._y_pairs:
+            ya[a1] = ya[ai[a1]] = ai[a2]
+        self._y_axis = ya
+        return ya
 
     @property
     def period(self):
@@ -172,7 +206,7 @@ class CoordinateHandler(object):
         return width
 
     def sanitize_center(self, center, axis):
-        if isinstance(center, basestring):
+        if isinstance(center, string_types):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
                 center = self.ds.arr(center, 'code_length')
@@ -183,7 +217,7 @@ class CoordinateHandler(object):
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
-            if isinstance(center[0], basestring) and isinstance(center[1], basestring):
+            if isinstance(center[0], string_types) and isinstance(center[1], string_types):
                 if center[0].lower() == "min":
                     v, center = self.ds.find_min(center[1])
                 elif center[0].lower() == "max":
@@ -191,7 +225,7 @@ class CoordinateHandler(object):
                 else:
                     raise RuntimeError("center keyword \"%s\" not recognized" % center)
                 center = self.ds.arr(center, 'code_length')
-            elif iterable(center[0]) and isinstance(center[1], basestring):
+            elif iterable(center[0]) and isinstance(center[1], string_types):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')
@@ -204,6 +238,8 @@ class CoordinateHandler(object):
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = ((coord[...,0] - center[0])**2.0
               +  (coord[...,1] - center[1])**2.0)**0.5
     c2[...,1] = coord[...,2] # rzt
@@ -213,6 +249,8 @@ def cartesian_to_cylindrical(coord, center = (0,0,0)):
 
 def cylindrical_to_cartesian(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = np.cos(coord[...,0]) * coord[...,1] + center[0]
     c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
     c2[...,2] = coord[...,2]

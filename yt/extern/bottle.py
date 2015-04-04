@@ -13,6 +13,8 @@ License: MIT (see LICENSE.txt for details)
 """
 
 from __future__ import with_statement
+from __future__ import print_function
+from __future__ import absolute_import
 
 __author__ = 'Marcel Hellkamp'
 __version__ = '0.9.dev'
@@ -43,6 +45,8 @@ from tempfile import TemporaryFile
 from traceback import format_exc
 from urllib import quote as urlquote
 from urlparse import urlunsplit, urljoin
+
+from yt.extern.six import string_types
 
 try: from collections import MutableMapping as DictMixin
 except ImportError: # pragma: no cover
@@ -302,10 +306,10 @@ class Router(object):
                 combined = '%s|(^%s$)' % (self.dynamic[-1][0].pattern, fpatt)
                 self.dynamic[-1] = (re.compile(combined), self.dynamic[-1][1])
                 self.dynamic[-1][1].append((route.target, gregexp))
-            except (AssertionError, IndexError), e: # AssertionError: Too many groups
+            except (AssertionError, IndexError) as e: # AssertionError: Too many groups
                 self.dynamic.append((re.compile('(^%s$)'%fpatt),
                                     [(route.target, gregexp)]))
-            except re.error, e:
+            except re.error as e:
                 raise RouteSyntaxError("Could not add Route: %s (%s)" % (route, e))
         self.compiled = True
 
@@ -510,9 +514,9 @@ class Bottle(object):
         try:
             handler, args = self.match_url(url, method)
             return handler(**args)
-        except HTTPResponse, e:
+        except HTTPResponse as e:
             return e
-        except Exception, e:
+        except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError))\
             or not self.catchall:
                 raise
@@ -562,14 +566,14 @@ class Bottle(object):
         # Handle Iterables. We peek into them to detect their inner type.
         try:
             out = iter(out)
-            first = out.next()
+            first = next(out)
             while not first:
-                first = out.next()
+                first = next(out)
         except StopIteration:
             return self._cast('', request, response)
-        except HTTPResponse, e:
+        except HTTPResponse as e:
             first = e
-        except Exception, e:
+        except Exception as e:
             first = HTTPError(500, 'Unhandled exception', e, format_exc(10))
             if isinstance(e, (KeyboardInterrupt, SystemExit, MemoryError))\
             or not self.catchall:
@@ -602,7 +606,7 @@ class Bottle(object):
             return out
         except (KeyboardInterrupt, SystemExit, MemoryError):
             raise
-        except Exception, e:
+        except Exception as e:
             if not self.catchall: raise
             err = '<h1>Critical error while processing request: %s</h1>' \
                   % environ.get('PATH_INFO', '/')
@@ -950,7 +954,7 @@ class Response(threading.local):
         '''
         if secret:
             value = touni(cookie_encode((key, value), secret))
-        elif not isinstance(value, basestring):
+        elif not isinstance(value, string_types):
             raise TypeError('Secret missing for non-string Cookie.')
             
         self.COOKIES[key] = value
@@ -1403,8 +1407,8 @@ class FapwsServer(ServerAdapter):
         evwsgi.start(self.host, port)
         # fapws3 never releases the GIL. Complain upstream. I tried. No luck.
         if 'BOTTLE_CHILD' in os.environ and not self.quiet:
-            print "WARNING: Auto-reloading does not work with Fapws3."
-            print "         (Fapws3 breaks python thread support)"
+            print("WARNING: Auto-reloading does not work with Fapws3.")
+            print("         (Fapws3 breaks python thread support)")
         evwsgi.set_base_module(base)
         def app(environ, start_response):
             environ['wsgi.multiprocess'] = False
@@ -1486,7 +1490,7 @@ class RocketServer(ServerAdapter):
     """ Untested. As requested in issue 63
         http://github.com/defnull/bottle/issues/#issue/63 """
     def run(self, handler):
-        from rocket import Rocket
+        from .rocket import Rocket
         server = Rocket((self.host, self.port), 'wsgi', { 'wsgi_app' : handler })
         server.start()
             
@@ -1567,9 +1571,9 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
         :param options: Options passed to the server adapter.
      """
     app = app or default_app()
-    if isinstance(app, basestring):
+    if isinstance(app, string_types):
         app = load_app(app)
-    if isinstance(server, basestring):
+    if isinstance(server, string_types):
         server = server_names.get(server)
     if isinstance(server, type):
         server = server(host=host, port=port, **kargs)
@@ -1577,10 +1581,10 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
         raise RuntimeError("Server must be a subclass of ServerAdapter")
     server.quiet = server.quiet or quiet
     if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
-        print "Bottle server starting up (using %s)..." % repr(server)
-        print "Listening on http://%s:%d/" % (server.host, server.port)
-        print "Use Ctrl-C to quit."
-        print
+        print("Bottle server starting up (using %s)..." % repr(server))
+        print("Listening on http://%s:%d/" % (server.host, server.port))
+        print("Use Ctrl-C to quit.")
+        print()
     try:
         if reloader:
             interval = min(interval, 1)
@@ -1593,7 +1597,7 @@ def run(app=None, server='wsgiref', host='127.0.0.1', port=8080,
     except KeyboardInterrupt:
         pass
     if not server.quiet and not os.environ.get('BOTTLE_CHILD'):
-        print "Shutting down..."
+        print("Shutting down...")
 
 
 class FileCheckerThread(threading.Thread):
@@ -1671,7 +1675,7 @@ def _reloader_observer(server, app, interval):
                 if os.path.exists(lockfile): os.unlink(lockfile)
                 sys.exit(p.poll())
             elif not server.quiet:
-                print "Reloading server..."
+                print("Reloading server...")
     except KeyboardInterrupt:
         pass
     if os.path.exists(lockfile): os.unlink(lockfile)

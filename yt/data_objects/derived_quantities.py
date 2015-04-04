@@ -29,17 +29,19 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     HUGE
 from yt.utilities.math_utils import prec_accum
+from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}
 
+class RegisteredDerivedQuantity(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if name != "DerivedQuantity":
+            derived_quantity_registry[name] = cls
+
+@add_metaclass(RegisteredDerivedQuantity)
 class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if name != "DerivedQuantity":
-                derived_quantity_registry[name] = cls
 
     def __init__(self, data_source):
         self.data_source = data_source
@@ -378,9 +380,9 @@ class WeightedVariance(DerivedQuantity):
         my_weight = values.pop(-1)
         all_weight = my_weight.sum(dtype=np.float64)
         rvals = []
-        for i in range(len(values) / 2):
+        for i in range(int(len(values) / 2)):
             my_mean = values[i]
-            my_var2 = values[i + len(values) / 2]
+            my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
             rvals.append(np.sqrt((my_weight * (my_var2 +
                                                (my_mean - all_mean)**2)).sum(dtype=np.float64) /

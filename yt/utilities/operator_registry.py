@@ -18,7 +18,7 @@ import types
 
 class OperatorRegistry(dict):
     def find(self, op, *args, **kwargs):
-        if isinstance(op, types.StringTypes):
+        if isinstance(op, str):
             # Lookup, assuming string or hashable object
             op = copy.deepcopy(self[op])
             op.args = args

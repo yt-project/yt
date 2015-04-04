@@ -3,6 +3,11 @@
 Getting and Installing yt
 =========================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
 .. _getting-yt:
 
 Getting yt
@@ -236,7 +241,7 @@ the official repo:
   ``sudo`` depending on where python is installed. See `This StackOverflow
   discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on systems.
+  if you are curious why ``--prefix=`` is neccessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,

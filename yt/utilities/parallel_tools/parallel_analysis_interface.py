@@ -4,6 +4,7 @@ Parallel data mapping techniques for yt
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -13,7 +14,7 @@ Parallel data mapping techniques for yt
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cStringIO
+from yt.extern.six.moves import cStringIO
 import itertools
 import logging
 import numpy as np
@@ -24,7 +25,7 @@ import types
 from functools import wraps
 
 from yt.funcs import \
-    ensure_list, iterable, traceback_writer_hook
+    ensure_list, iterable
 
 from yt.config import ytcfg
 import yt.utilities.logger
@@ -55,7 +56,7 @@ op_names = dict(
 
 class FilterAllMessages(logging.Filter):
     """
-    This is a simple filter for logging.Logger's that won't let any 
+    This is a simple filter for logging.Logger's that won't let any
     messages pass.
     """
     def filter(self, record):
@@ -63,12 +64,33 @@ class FilterAllMessages(logging.Filter):
 
 # Set up translation table and import things
 
+
+def traceback_writer_hook(file_suffix=""):
+    def write_to_file(exc_type, exc, tb):
+        sys.__excepthook__(exc_type, exc, tb)
+        fn = "yt_traceback%s" % file_suffix
+        with open(fn, "w") as fhandle:
+            traceback.print_exception(exc_type, exc, tb, file=fhandle)
+            print("Wrote traceback to %s" % fn)
+        MPI.COMM_WORLD.Abort(1)
+    return write_to_file
+
+
+def default_mpi_excepthook(exception_type, exception_value, tb):
+    traceback.print_tb(tb)
+    mylog.error('%s: %s' % (exception_type.__name__, exception_value))
+    comm = yt.communication_system.communicators[-1]
+    if comm.size > 1:
+        mylog.error('Error occured on rank %d.' % comm.rank)
+    MPI.COMM_WORLD.Abort(1)
+
+
 def enable_parallelism(suppress_logging=False, communicator=None):
     """
-    This method is used inside a script to turn on MPI parallelism, via 
+    This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
     here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
-    
+
     Parameters
     ----------
     suppress_logging : bool
@@ -88,7 +110,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
         return
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
-    
+
     # if no communicator specified, set to COMM_WORLD
     if communicator is None:
         communicator = MPI.COMM_WORLD
@@ -115,8 +137,12 @@ def enable_parallelism(suppress_logging=False, communicator=None):
                                         yt.utilities.logger.ufstring))
     if len(yt.utilities.logger.ytLogger.handlers) > 0:
         yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
+
     if ytcfg.getboolean("yt", "parallel_traceback"):
         sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
+    else:
+        sys.excepthook = default_mpi_excepthook
+
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
@@ -213,7 +239,7 @@ def parallel_simple_proxy(func):
     def single_proc_results(self, *args, **kwargs):
         retval = None
         if hasattr(self, "dont_wrap"):
-            if func.func_name in self.dont_wrap:
+            if func.__name__ in self.dont_wrap:
                 return func(self, *args, **kwargs)
         if not parallel_capable or self._processing or not self._distributed:
             return func(self, *args, **kwargs)
@@ -273,11 +299,11 @@ def parallel_blocking_call(func):
     def barrierize(*args, **kwargs):
         if not parallel_capable:
             return func(*args, **kwargs)
-        mylog.debug("Entering barrier before %s", func.func_name)
+        mylog.debug("Entering barrier before %s", func.__name__)
         comm = _get_comm(args)
         comm.barrier()
         retval = func(*args, **kwargs)
-        mylog.debug("Entering barrier after %s", func.func_name)
+        mylog.debug("Entering barrier after %s", func.__name__)
         comm.barrier()
         return retval
     return barrierize
@@ -684,11 +710,11 @@ class Communicator(object):
         #   data field dict
         if datatype is not None:
             pass
-        elif isinstance(data, types.DictType):
+        elif isinstance(data, dict):
             datatype == "dict"
         elif isinstance(data, np.ndarray):
             datatype == "array"
-        elif isinstance(data, types.ListType):
+        elif isinstance(data, list):
             datatype == "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
@@ -789,12 +815,8 @@ class Communicator(object):
             return data
 
     def preload(self, grids, fields, io_handler):
-        # This will preload if it detects we are parallel capable and
-        # if so, we load *everything* that we need.  Use with some care.
-        if len(fields) == 0: return
-        mylog.debug("Preloading %s from %s grids", fields, len(grids))
-        if not self._distributed: return
-        io_handler.preload(grids, fields)
+        # This is non-functional.
+        return
 
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op='sum'):
@@ -834,7 +856,7 @@ class Communicator(object):
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in xrange(len(hooks)):
+        for i in range(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
 
@@ -892,7 +914,7 @@ class Communicator(object):
         if self.comm.rank == 0:
             return open(fn, "w")
         else:
-            return cStringIO.StringIO()
+            return cStringIO()
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
@@ -934,7 +956,7 @@ class Communicator(object):
         mask = 1
 
         buf = qt.tobuffer()
-        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        print("PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape)
         sys.exit()
 
         args = qt.get_args() # Will always be the same

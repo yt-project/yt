@@ -30,7 +30,7 @@ def test_compose_no_overlap():
     empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.add_field("ID", function=_IDFIELD)
+        ds.add_field(("index", "ID"), function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.25]*3
@@ -52,24 +52,24 @@ def test_compose_no_overlap():
         # subselect non-overlapping 0, 1, 2, 3D regions
         for data1 in sources:
             data2 = ds.sphere(center, radius, data_source=data1)
-            yield assert_array_equal, data2['ID'], empty
+            yield assert_array_equal, data2['index', 'ID'], empty
 
             data2 = ds.region(center, left_edge, right_edge, data_source=data1)
-            yield assert_array_equal, data2['ID'], empty  
+            yield assert_array_equal, data2['index', 'ID'], empty  
 
             data2 = ds.disk(center, normal, radius, height, data_source=data1)
-            yield assert_array_equal, data2['ID'], empty
+            yield assert_array_equal, data2['index', 'ID'], empty
 
             for d in range(3):
                 data2 = ds.slice(d, center[d], data_source=data1)
-                yield assert_array_equal, data2['ID'], empty
+                yield assert_array_equal, data2['index', 'ID'], empty
 
             for d in range(3):
                 data2 = ds.ortho_ray(d, center[0:d] + center[d+1:], data_source=data1)
-                yield assert_array_equal, data2['ID'], empty
+                yield assert_array_equal, data2['index', 'ID'], empty
 
             data2 = ds.point(center, data_source=data1)
-            yield assert_array_equal, data2['ID'], empty
+            yield assert_array_equal, data2['index', 'ID'], empty
 
 def test_compose_overlap():
     r"""Test to make sure that composed data objects that do
@@ -78,7 +78,7 @@ def test_compose_overlap():
     empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.add_field("ID", function=_IDFIELD)
+        ds.add_field(("index", "ID"), function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.4, 0.5, 0.5]
@@ -99,48 +99,48 @@ def test_compose_overlap():
 
         # subselect non-overlapping 0, 1, 2, 3D regions
         for data1 in sources:
-            id1 = data1['ID']
+            id1 = data1['index', 'ID']
 
             data2 = ds.sphere(center, radius)
             data3 = ds.sphere(center, radius, data_source=data1)
-            id2 = data2['ID']
-            id3 = data3['ID']
+            id2 = data2['index', 'ID']
+            id3 = data3['index', 'ID']
             id3.sort()
             yield assert_array_equal, uintersect1d(id1, id2), id3
 
             data2 = ds.region(center, left_edge, right_edge)
             data3 = ds.region(center, left_edge, right_edge, data_source=data1)
-            id2 = data2['ID']
-            id3 = data3['ID']
+            id2 = data2['index', 'ID']
+            id3 = data3['index', 'ID']
             id3.sort()
             yield assert_array_equal, uintersect1d(id1, id2), id3
 
             data2 = ds.disk(center, normal, radius, height)
             data3 = ds.disk(center, normal, radius, height, data_source=data1)
-            id2 = data2['ID']
-            id3 = data3['ID']
+            id2 = data2['index', 'ID']
+            id3 = data3['index', 'ID']
             id3.sort()
             yield assert_array_equal, uintersect1d(id1, id2), id3
 
             for d in range(3):
                 data2 = ds.slice(d, center[d])
                 data3 = ds.slice(d, center[d], data_source=data1)
-                id2 = data2['ID']
-                id3 = data3['ID']
+                id2 = data2['index', 'ID']
+                id3 = data3['index', 'ID']
                 id3.sort()
                 yield assert_array_equal, uintersect1d(id1, id2), id3
 
             for d in range(3):
                 data2 = ds.ortho_ray(d, center[0:d] + center[d+1:])
                 data3 = ds.ortho_ray(d, center[0:d] + center[d+1:], data_source=data1)
-                id2 = data2['ID']
-                id3 = data3['ID']
+                id2 = data2['index', 'ID']
+                id3 = data3['index', 'ID']
                 id3.sort()
                 yield assert_array_equal, uintersect1d(id1, id2), id3
 
             data2 = ds.point(center)
             data3 = ds.point(center, data_source=data1)
-            id2 = data2['ID']
-            id3 = data3['ID']
+            id2 = data2['index', 'ID']
+            id3 = data3['index', 'ID']
             id3.sort()
             yield assert_array_equal, uintersect1d(id1, id2), id3

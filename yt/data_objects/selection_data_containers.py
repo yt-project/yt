@@ -106,6 +106,17 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     >>> ds = yt.load("RedshiftOutput0005")
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
     >>> print oray["Density"]
+
+    Note: The low-level data representation for rays are not guaranteed to be 
+    spatially ordered.  In particular, with AMR datasets, higher resolution 
+    data is tagged on to the end of the ray.  If you want this data 
+    represented in a spatially ordered manner, manually sort it by the "t" 
+    field, which is the value of the parametric variable that goes from 0 at 
+    the start of the ray to 1 at the end:
+
+    >>> my_ray = ds.ortho_ray(...)
+    >>> ray_sort = np.argsort(my_ray["t"])
+    >>> density = my_ray["density"][ray_sort]
     """
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
@@ -162,7 +173,19 @@ class YTRayBase(YTSelectionContainer1D):
     >>> ds = yt.load("RedshiftOutput0005")
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
-    """
+
+    Note: The low-level data representation for rays are not guaranteed to be 
+    spatially ordered.  In particular, with AMR datasets, higher resolution 
+    data is tagged on to the end of the ray.  If you want this data 
+    represented in a spatially ordered manner, manually sort it by the "t" 
+    field, which is the value of the parametric variable that goes from 0 at 
+    the start of the ray to 1 at the end:
+
+    >>> my_ray = ds.ray(...)
+    >>> ray_sort = np.argsort(my_ray["t"])
+    >>> density = my_ray["density"][ray_sort]
+
+"""
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
@@ -202,7 +225,7 @@ class YTSliceBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
+    axis : int or char
         The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coord : float
         The coordinate along the axis at which to slice.  This is in
@@ -710,7 +733,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ("data_source", "conditionals")
+    _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
                  field_parameters=None, base_object=None):
         if base_object is not None:

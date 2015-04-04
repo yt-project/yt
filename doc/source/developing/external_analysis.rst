@@ -1,3 +1,5 @@
+.. _external-analysis-tools:
+
 Using yt with External Analysis Tools
 =====================================
 

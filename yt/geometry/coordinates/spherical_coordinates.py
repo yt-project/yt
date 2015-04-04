@@ -13,7 +13,7 @@ Spherical fields
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from __future__ import print_function
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
@@ -25,9 +25,13 @@ from yt.utilities.lib.pixelization_routines import \
 
 class SphericalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, ds, ordering = 'rtp'):
-        if ordering != 'rtp': raise NotImplementedError
-        super(SphericalCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('r', 'theta', 'phi')):
+        super(SphericalCoordinateHandler, self).__init__(ds, ordering)
+        # Generate 
+        self.image_units = {}
+        self.image_units[self.axis_id['r']] = ("rad", "rad")
+        self.image_units[self.axis_id['theta']] = (None, None)
+        self.image_units[self.axis_id['phi']] = (None, None)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -37,7 +41,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
         registry.add_field(("index", "z"), function=_unknown_coord)
-        f1, f2 = _get_coord_fields(0)
+        f1, f2 = _get_coord_fields(self.axis_id['r'])
         registry.add_field(("index", "dr"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -45,7 +49,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(1, "")
+        f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
         registry.add_field(("index", "dtheta"), function = f1,
                            display_field = False,
                            units = "")
@@ -53,7 +57,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "")
 
-        f1, f2 = _get_coord_fields(2, "")
+        f1, f2 = _get_coord_fields(self.axis_id['phi'], "")
         registry.add_field(("index", "dphi"), function = f1,
                            display_field = False,
                            units = "")
@@ -73,13 +77,34 @@ class SphericalCoordinateHandler(CoordinateHandler):
                  function=_SphericalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_element_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_element_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_phi(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] \
+                    * data["index", "dphi"] \
+                    * np.sin(data["index", "theta"])
+        registry.add_field(("index", "path_element_phi"),
+                 function = _path_phi,
+                 units = "code_length")
+
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
         self.period
-        if dimension == 0:
+        name = self.axis_name[dimension]
+        if name == 'r':
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
-        elif dimension in (1, 2):
+        elif name in ('theta', 'phi'):
             return self._cyl_pixelize(data_source, field, bounds, size,
                                           antialias, dimension)
         else:
@@ -87,31 +112,27 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # We should be using fcoords
-        period = self.period[:2].copy() # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_aitoff(data_source["py"], data_source["pdy"],
+                               data_source["px"], data_source["pdx"],
+                               size, data_source[field], None,
+                               None, theta_offset = 0,
+                               phi_offset = 0).transpose()
         return buff
+
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         if dimension == 1:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['phi'],
-                                     data_source['dphi'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
         elif dimension == 2:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
             buff = buff.transpose()
         else:
@@ -124,14 +145,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def convert_to_cartesian(self, coord):
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
-            r = coord[:,0]
-            theta = coord[:,1]
-            phi = coord[:,2]
+            ri = self.axis_id['r']
+            thetai = self.axis_id['theta']
+            phii = self.axis_id['phi']
+            r = coord[:,ri]
+            theta = coord[:,thetai]
+            phi = coord[:,phii]
             nc = np.zeros_like(coord)
             # r, theta, phi
-            nc[:,0] = np.cos(phi) * np.sin(theta)*r
-            nc[:,1] = np.sin(phi) * np.sin(theta)*r
-            nc[:,2] = np.cos(theta) * r
+            nc[:,ri] = np.cos(phi) * np.sin(theta)*r
+            nc[:,thetai] = np.sin(phi) * np.sin(theta)*r
+            nc[:,phii] = np.cos(theta) * r
         else:
             r, theta, phi = coord
             nc = (np.cos(phi) * np.sin(theta)*r,
@@ -151,12 +175,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
-    # Despite being mutables, we uses these here to be clear about how these
-    # are generated and to ensure that they are not re-generated unnecessarily
-    axis_name = { 0  : 'r',  1  : 'theta',  2  : 'phi',
-                 'r' : 'r', 'theta' : 'theta', 'phi' : 'phi',
-                 'R' : 'r', 'Theta' : 'theta', 'Phi' : 'phi'}
-
     _image_axis_name = None
     @property
     def image_axis_name(self):    
@@ -165,24 +183,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # This is the x and y axes labels that get displayed.  For
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
-        rv = {0: ('theta', 'phi'),
-              1: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
-              2: ('R', 'z')}
+        rv = {self.axis_id['r']: ('theta', 'phi'),
+              self.axis_id['theta']: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
+              self.axis_id['phi']: ('R', 'z')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
-            rv[self.axis_name[i].upper()] = rv[i]
+            rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv
         return rv
 
-
-    axis_id = { 'r' : 0, 'theta' : 1, 'phi' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
-
-    x_axis = { 'r' : 1, 'theta' : 0, 'phi' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'r' : 2, 'theta' : 2, 'phi' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    _x_pairs = (('r', 'theta'), ('theta', 'r'), ('phi', 'r'))
+    _y_pairs = (('r', 'phi'), ('theta', 'phi'), ('phi', 'theta'))
 
     @property
     def period(self):
@@ -191,31 +202,54 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def sanitize_center(self, center, axis):
         center, display_center = super(
             SphericalCoordinateHandler, self).sanitize_center(center, axis)
-        if axis == 0:
+        name = self.axis_name[axis]
+        if name == 'r':
             display_center = center
-        elif axis == 1:
+        elif name == 'theta':
             display_center = (0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2])
-        elif axis ==2:
-            display_center = (self.ds.domain_width[0]/2.0,
+        elif name == 'phi':
+            display_center = [self.ds.domain_width[0]/2.0 +
+                                self.ds.domain_left_edge[0],
                               0.0 * display_center[1],
-                              0.0 * display_center[2])
+                              0.0 * display_center[2]]
+            ri = self.axis_id['r']
+            c = self.ds.domain_width[ri]/2.0 + self.ds.domain_left_edge[ri]
+            display_center[ri] = c
+            display_center = tuple(display_center)
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
+        name = self.axis_name[axis]
         if width is not None:
             width = super(SphericalCoordinateHandler, self).sanitize_width(
               axis, width, depth)
-        elif axis == 0:
-            width = [self.ds.domain_width[self.x_axis[0]],
-                     self.ds.domain_width[self.y_axis[0]]]
-        elif axis == 1:
+        elif name == 'r':
+            width = [self.ds.domain_width[self.x_axis['r']],
+                     self.ds.domain_width[self.y_axis['r']]]
+        elif name == 'theta':
+            ri = self.axis_id['r']
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
-            width = [2.0*self.ds.domain_width[0],
-                     2.0*self.ds.domain_width[0]]
-        elif axis == 2:
-            width = [self.ds.domain_width[0],
-                     2.0*self.ds.domain_width[0]]
+            width = [2.0*self.ds.domain_width[ri],
+                     2.0*self.ds.domain_width[ri]]
+        elif name == 'phi':
+            ri = self.axis_id['r']
+            width = [self.ds.domain_right_edge[ri] / 2.0,
+                     2.0*self.ds.domain_width[ri]]
         return width
+
+    def _sanity_check(self):
+        """This prints out a handful of diagnostics that help verify the
+        dataset is well formed."""
+        # We just check a few things here.
+        dd = self.ds.all_data()
+        r0 = self.ds.domain_left_edge[self.axis_id['r']]
+        r1 = self.ds.domain_right_edge[self.axis_id['r']]
+        v1 = 4.0 * np.pi / 3.0 * (r1**3 - r0**3)
+        print("Total volume should be 4*pi*r**3 = %0.16e" % (v1))
+        v2 = dd.quantities.total_quantity("cell_volume")
+        print("Actual volume is                   %0.16e" % (v2))
+        print("Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1)))
+

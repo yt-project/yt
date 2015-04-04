@@ -16,8 +16,6 @@ A refine-by-two AMR-specific quadtree
 
 import numpy as np
 cimport numpy as np
-# Double up here for def'd functions
-cimport numpy as cnp
 cimport cython
 from fp_utils cimport fmax
 
@@ -61,15 +59,16 @@ cdef void QTN_refine(QuadTreeNode *self, int nvals):
     cdef int i, j, i1, j1
     cdef np.int64_t npos[2]
     cdef QuadTreeNode *node
+    cdef np.float64_t *tvals = <np.float64_t *> alloca(
+            sizeof(np.float64_t) * nvals)
+    for i in range(nvals): tvals[i] = 0.0
     for i in range(2):
         npos[0] = self.pos[0] * 2 + i
         for j in range(2):
             npos[1] = self.pos[1] * 2 + j
             # We have to be careful with allocation...
             self.children[i][j] = QTN_initialize(
-                        npos, nvals, self.val, self.weight_val)
-    for i in range(nvals): self.val[i] = 0.0
-    self.weight_val = 0.0
+                        npos, nvals, tvals, 0.0)
 
 cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
                         np.float64_t *val, np.float64_t weight_val):
@@ -100,9 +99,6 @@ cdef void QTN_free(QuadTreeNode *node):
 
 cdef class QuadTree:
     cdef int nvals
-    # Hardcode to a maximum 80 levels of refinement.
-    # TODO: Update when we get to yottascale.
-    cdef np.int64_t po2[80] 
     cdef QuadTreeNode ***root_nodes
     cdef np.int64_t top_grid_dims[2]
     cdef int merged
@@ -111,6 +107,7 @@ cdef class QuadTree:
     cdef np.float64_t bounds[4]
     cdef np.float64_t dds[2]
     cdef np.int64_t last_dims[2]
+    cdef int max_level
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, bounds, method = "integrate"):
@@ -121,6 +118,7 @@ cdef class QuadTree:
         else:
             raise NotImplementedError
         self.merged = 1
+        self.max_level = 0
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
@@ -137,9 +135,6 @@ cdef class QuadTree:
         self.dds[0] = (self.bounds[1] - self.bounds[0])/self.top_grid_dims[0]
         self.dds[1] = (self.bounds[3] - self.bounds[2])/self.top_grid_dims[1]
 
-        # This wouldn't be necessary if we did bitshifting...
-        for i in range(80):
-            self.po2[i] = 2**i
         self.root_nodes = <QuadTreeNode ***> \
             malloc(sizeof(QuadTreeNode **) * top_grid_dims[0])
 
@@ -233,7 +228,7 @@ cdef class QuadTree:
         # Refined or not (total,) int32
         # Values in each node (total, nvals) float64
         # Weight values in each node (total,) float64
-        cdef np.ndarray[np.int32_t, ndim=1] refined 
+        cdef np.ndarray[np.int32_t, ndim=1] refined
         refined = np.zeros(total, dtype='int32')
         cdef np.ndarray[np.float64_t, ndim=2] values
         values = np.zeros((total, self.nvals), dtype='float64')
@@ -252,40 +247,41 @@ cdef class QuadTree:
     cdef int add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
-                 np.float64_t weight_val, skip = 0):
+                 np.float64_t weight_val, int skip = 0):
         cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
         if node == NULL:
             return -1
+        if level > self.max_level:
+            self.max_level = level
         cdef np.int64_t fac
         for L in range(level):
             if node.children[0][0] == NULL:
                 QTN_refine(node, self.nvals)
                 self.num_cells += 4
             # Maybe we should use bitwise operators?
-            fac = self.po2[level - L - 1]
-            i = (pos[0] >= fac*(2*node.pos[0]+1))
-            j = (pos[1] >= fac*(2*node.pos[1]+1))
+            i = (pos[0] >> (level - L - 1)) & 1
+            j = (pos[1] >> (level - L - 1)) & 1
             node = node.children[i][j]
         if skip == 1: return 0
         self.combine(node, val, weight_val, self.nvals)
         return 0
-            
+
     @cython.cdivision(True)
     cdef QuadTreeNode *find_on_root_level(self, np.int64_t pos[2], int level):
         # We need this because the root level won't just have four children
         # So we find on the root level, then we traverse the tree.
         cdef np.int64_t i, j
-        i = <np.int64_t> (pos[0] / self.po2[level])
-        j = <np.int64_t> (pos[1] / self.po2[level])
-        if i > self.top_grid_dims[0] or i < 0 or \
-           j > self.top_grid_dims[1] or j < 0:
+        i = pos[0] >> level
+        j = pos[1] >> level
+        if i >= self.top_grid_dims[0] or i < 0 or \
+           j >= self.top_grid_dims[1] or j < 0:
             self.last_dims[0] = i
             self.last_dims[1] = j
             return NULL
         return self.root_nodes[i][j]
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def add_array_to_tree(self, int level, np.ndarray[np.int64_t, ndim=1] pxs,
@@ -293,12 +289,11 @@ cdef class QuadTree:
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
             int skip = 0):
-        cdef int np = pxs.shape[0]
         cdef int p
-        cdef cnp.float64_t *vals
-        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
-        cdef cnp.int64_t pos[2]
-        for p in range(np):
+        cdef np.float64_t *vals
+        cdef np.float64_t *data = <np.float64_t *> pvals.data
+        cdef np.int64_t pos[2]
+        for p in range(pxs.shape[0]):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
@@ -307,34 +302,38 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def add_chunk_to_tree(self, 
+    def add_chunk_to_tree(self,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level,
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals):
         cdef int ps = pxs.shape[0]
-        cdef int p
-        cdef cnp.float64_t *vals
-        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
-        cdef cnp.int64_t pos[2]
+        cdef int p, rv
+        cdef np.float64_t *vals
+        cdef np.float64_t *data = <np.float64_t *> pvals.data
+        cdef np.int64_t pos[2]
         for p in range(ps):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
-            self.add_to_position(level[p], pos, vals, pweight_vals[p])
+            rv = self.add_to_position(level[p], pos, vals, pweight_vals[p])
+            if rv == -1:
+                raise YTIntDomainOverflow(
+                    (self.last_dims[0], self.last_dims[1]),
+                    (self.top_grid_dims[0], self.top_grid_dims[1]))
         return
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def initialize_chunk(self, 
+    def initialize_chunk(self,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level):
         cdef int num = pxs.shape[0]
         cdef int p, rv
-        cdef cnp.float64_t *vals
-        cdef cnp.int64_t pos[2]
+        cdef np.float64_t *vals
+        cdef np.int64_t pos[2]
         for p in range(num):
             pos[0] = pxs[p]
             pos[1] = pys[p]
@@ -399,7 +398,7 @@ cdef class QuadTree:
         return count
 
     @cython.cdivision(True)
-    cdef int fill(self, QuadTreeNode *node, 
+    cdef int fill(self, QuadTreeNode *node,
                         np.int64_t curpos,
                         np.float64_t *px,
                         np.float64_t *py,
@@ -457,10 +456,16 @@ cdef class QuadTree:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_image(self, np.ndarray[np.float64_t, ndim=2] buffer, _bounds,
-                   int val_index = 0):
-        cdef np.float64_t dds[2], pos[2]
-        cdef int nn[2], i, j
-        cdef np.float64_t bounds[4]
+                   int val_index = 0, int weighted = 0):
+        cdef np.float64_t pos[2]
+        cdef np.float64_t dds[2]
+        cdef int nn[2]
+        cdef int i, j
+        cdef np.float64_t bounds[4], opos[4]
+        cdef np.float64_t weight, value = 0.0
+        cdef np.float64_t *wval = NULL
+        if weighted == 1:
+            wval = &weight
         for i in range(4):
             bounds[i] = _bounds[i]
         for i in range(2):
@@ -468,42 +473,64 @@ cdef class QuadTree:
             dds[i] = (bounds[i*2 + 1] - bounds[i*2])/nn[i]
         cdef QuadTreeNode *node
         pos[0] = bounds[0]
+        opos[0] = opos[1] = pos[0] + dds[0]
         for i in range(nn[0]):
             pos[1] = bounds[2]
+            opos[2] = opos[3] = pos[1] + dds[1]
             for j in range(nn[1]):
                 # We start at level zero.  In the future we could optimize by
                 # retaining oct information from previous cells.
-                node = self.find_node_at_pos(pos)
-                buffer[i,j] = node.val[val_index]
+                if not ((opos[0] <= pos[0] <= opos[1]) and
+                        (opos[2] <= pos[1] <= opos[3])):
+                    value = self.find_value_at_pos(pos, val_index,
+                                        opos, wval)
+                buffer[i,j] = value
+                if weighted == 1:
+                    buffer[i,j] /= weight
                 pos[1] += dds[1]
             pos[0] += dds[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef QuadTreeNode *find_node_at_pos(self, np.float64_t pos[2]):
+    cdef np.float64_t find_value_at_pos(self, np.float64_t pos[2],
+                                         int val_index, np.float64_t opos[4],
+                                         np.float64_t *wval = NULL):
+        cdef int i
         cdef np.int64_t ind[2]
         cdef np.float64_t cp[2]
         cdef np.float64_t dds[2]
+        cdef np.float64_t value = 0.0
+        cdef np.float64_t weight = 0.0
         cdef QuadTreeNode *cur
         for i in range(2):
             ind[i] = <np.int64_t> (pos[i]/self.dds[i])
             cp[i] = (ind[i] + 0.5) * self.dds[i]
             dds[i] = self.dds[i]
         cur = self.root_nodes[ind[0]][ind[1]]
+        value += cur.val[val_index]
+        weight += cur.weight_val
         while cur.children[0][0] != NULL:
             for i in range(2):
                 # Note that below offset by half a dx for center, after
                 # updating to the next level
-                dds[i] = dds[i] / 2.0
-                if cp[i] < pos[i]:
+                dds[i] = dds[i] * 0.5
+                if cp[i] >= pos[i]:
                     ind[i] = 0
-                    cp[i] -= dds[i] / 2.0 
+                    cp[i] -= dds[i] * 0.5
                 else:
                     ind[i] = 1
-                    cp[i] += dds[i] / 2.0
+                    cp[i] += dds[i] * 0.5
             cur = cur.children[ind[0]][ind[1]]
-        return cur
+            value += cur.val[val_index]
+            weight += cur.weight_val
+        opos[0] = cp[0] - dds[0] * 0.5
+        opos[1] = cp[0] + dds[0] * 0.5
+        opos[2] = cp[1] - dds[1] * 0.5
+        opos[3] = cp[1] + dds[1] * 0.5
+        if wval != NULL:
+            wval[0] = weight
+        return value
 
     def __dealloc__(self):
         cdef int i, j
