@@ -18,7 +18,8 @@ import glob
 import os
 
 from yt.convenience import \
-    load
+    load, \
+    only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
 from yt.units import dimensions
@@ -38,8 +39,6 @@ from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-from yt.utilities.physical_constants import \
-    gravitational_constant_cgs as G
 
 class GadgetSimulation(SimulationTimeSeries):
     r"""
@@ -374,7 +373,7 @@ class GadgetSimulation(SimulationTimeSeries):
             self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = 0.0
 
-    def _snapshot_name(self, index):
+    def _snapshot_format(self, index=None):
         """
         The snapshot filename for a given index.  Modify this for different 
         naming conventions.
@@ -391,8 +390,12 @@ class GadgetSimulation(SimulationTimeSeries):
             suffix = ""
         if self.parameters["SnapFormat"] == 3:
             suffix += ".hdf5"
-        filename = "%s_%03d%s" % (self.parameters["SnapshotFileBase"],
-                                  index, suffix)
+        if index is None:
+            count = "*"
+        else:
+            count = "%03d" % index
+        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"],
+                                count, suffix)
         return os.path.join(data_dir, filename)
                 
     def _get_all_outputs(self, find_outputs=False):
@@ -422,7 +425,7 @@ class GadgetSimulation(SimulationTimeSeries):
 
             if self.cosmological_simulation:
                 self.all_redshift_outputs = \
-                  [{"filename": self._snapshot_name(i),
+                  [{"filename": self._snapshot_format(i),
                     "redshift": (1. / a - 1)}
                    for i, a in enumerate(a_values)]
                 
@@ -431,7 +434,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.all_outputs = self.all_redshift_outputs
             else:
                 self.all_time_outputs = \
-                  [{"filename": self._snapshot_name(i),
+                  [{"filename": self._snapshot_format(i),
                     "time": a}
                    for i, a in enumerate(a_values)]
                 self.all_outputs = self.all_time_outputs
@@ -474,23 +477,8 @@ class GadgetSimulation(SimulationTimeSeries):
         If found, get dataset times py opening the ds.
         """
 
-        # look for time outputs.
-        potential_time_outputs = \
-          glob.glob(os.path.join(self.parameters["GlobalDir"],
-                                 "%s*" % self.parameters["DataDumpDir"]))
-        self.all_time_outputs = \
-          self._check_for_outputs(potential_time_outputs)
-        self.all_time_outputs.sort(key=lambda obj: obj["time"])
-
-        # look for redshift outputs.
-        potential_redshift_outputs = \
-          glob.glob(os.path.join(self.parameters["GlobalDir"],
-                                 "%s*" % self.parameters["RedshiftDumpDir"]))
-        self.all_redshift_outputs = \
-          self._check_for_outputs(potential_redshift_outputs)
-        self.all_redshift_outputs.sort(key=lambda obj: obj["time"])
-
-        self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
+        potential_outputs = glob.glob(self._snapshot_format())
+        self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["time"])
         only_on_root(mylog.info, "Located %d total outputs.", len(self.all_outputs))
 
@@ -511,29 +499,18 @@ class GadgetSimulation(SimulationTimeSeries):
         my_outputs = {}
         for my_storage, output in parallel_objects(potential_outputs, 
                                                    storage=my_outputs):
-            if self.parameters["DataDumpDir"] in output:
-                dir_key = self.parameters["DataDumpDir"]
-                output_key = self.parameters["DataDumpName"]
-            else:
-                dir_key = self.parameters["RedshiftDumpDir"]
-                output_key = self.parameters["RedshiftDumpName"]
-            index = output[output.find(dir_key) + len(dir_key):]
-            filename = os.path.join(self.parameters["GlobalDir"],
-                                    "%s%s" % (dir_key, index),
-                                    "%s%s" % (output_key, index))
-            if os.path.exists(filename):
+            if os.path.exists(output):
                 try:
-                    ds = load(filename)
+                    ds = load(output)
                     if ds is not None:
-                        my_storage.result = {"filename": filename,
+                        my_storage.result = {"filename": output,
                                              "time": ds.current_time.in_units("s")}
                         if ds.cosmological_simulation:
                             my_storage.result["redshift"] = ds.current_redshift
                 except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", filename)
+                    mylog.error("Failed to load %s", output)
         my_outputs = [my_output for my_output in my_outputs.values() \
                       if my_output is not None]
-
         return my_outputs
 
     def _write_cosmology_outputs(self, filename, outputs, start_index,
