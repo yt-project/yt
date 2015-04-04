@@ -61,14 +61,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
     Examples
     --------
-    >>> from yt.mods import *
-    >>> es = EnzoSimulation("my_simulation.par")
-    >>> es.get_time_series()
-    >>> for ds in es:
-    ...     print ds.current_time
-
-    >>> from yt.mods import *
-    >>> es = simulation("my_simulation.par", "Enzo")
+    >>> import yt
+    >>> es = yt.simulation("my_simulation.par", "Enzo")
     >>> es.get_time_series()
     >>> for ds in es:
     ...     print ds.current_time

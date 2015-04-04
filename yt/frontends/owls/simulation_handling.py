@@ -31,24 +31,17 @@ class OWLSSimulation(GadgetSimulation):
     parameter_filename : str
         The simulation parameter file.
     find_outputs : bool
-        If True, subdirectories within the GlobalDir directory are
-        searched one by one for datasets.  Time and redshift
-        information are gathered by temporarily instantiating each
-        dataset.  This can be used when simulation data was created
-        in a non-standard way, making it difficult to guess the
-        corresponding time and redshift information.
+        If True, the OutputDir directory is searched for datasets.  
+        Time and redshift information are gathered by temporarily 
+        instantiating each dataset.  This can be used when simulation 
+        data was created in a non-standard way, making it difficult 
+        to guess the corresponding time and redshift information.
         Default: False.
 
     Examples
     --------
-    >>> from yt.mods import *
-    >>> es = OWLSSimulation("my_simulation.par")
-    >>> es.get_time_series()
-    >>> for ds in es:
-    ...     print ds.current_time
-
-    >>> from yt.mods import *
-    >>> es = simulation("my_simulation.par", "OWLS")
+    >>> import yt
+    >>> es = yt.simulation("my_simulation.par", "OWLS")
     >>> es.get_time_series()
     >>> for ds in es:
     ...     print ds.current_time
