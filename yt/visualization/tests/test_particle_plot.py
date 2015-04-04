@@ -20,7 +20,7 @@ import unittest
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname
+    assert_fname, WIDTH_SPECS
 from yt.testing import \
     fake_particle_ds, assert_array_almost_equal
 from yt.visualization.api import \
@@ -46,46 +46,6 @@ CENTER_SPECS = (
     [[0.2, 0.3, 0.4], "cm"],
     YTArray([0.3, 0.4, 0.7], "cm")
 )
-
-WIDTH_SPECS = {
-    # Width choices map to xlim, ylim, width, axes_unit_name 4-tuples
-    None   : (
-        ((0, 'code_length'), (1, 'code_length')),
-        ((0, 'code_length'), (1, 'code_length')),
-        ((1, 'code_length'), (1, 'code_length')),
-        None,
-    ),
-    0.2 : (
-        ((0.4, 'code_length'), (0.6, 'code_length')),
-        ((0.4, 'code_length'), (0.6, 'code_length')),
-        ((0.2, 'code_length'), (0.2, 'code_length')),
-        None,
-    ),
-    (0.4, 0.3) : (
-        ((0.3, 'code_length'), (0.7, 'code_length')),
-        ((0.35, 'code_length'), (0.65, 'code_length')),
-        ((0.4, 'code_length'), (0.3, 'code_length')),
-        None,
-    ),
-    (1.2, 'cm') : (
-        ((-0.1, 'code_length'), (1.1, 'code_length')),
-        ((-0.1, 'code_length'), (1.1, 'code_length')),
-        ((1.2,  'code_length'), (1.2, 'code_length')),
-        ('cm', 'cm'),
-    ),
-    ((1.2, 'cm'), (2.0, 'cm')) : (
-        ((-0.1, 'code_length'), (1.1, 'code_length')),
-        ((-0.5, 'code_length'), (1.5, 'code_length')),
-        ((1.2,  'code_length'), (2.0, 'code_length')),
-        ('cm', 'cm'),
-    ),
-    ((1.2, 'cm'), (0.02, 'm')) : (
-        ((-0.1, 'code_length'), (1.1, 'code_length')),
-        ((-0.5, 'code_length'), (1.5, 'code_length')),
-        ((1.2,  'code_length'), (2.0, 'code_length')),
-        ('cm', 'm'),
-    ),
-}
 
 WEIGHT_FIELDS = (
     None,
