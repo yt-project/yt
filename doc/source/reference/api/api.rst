@@ -19,8 +19,6 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
    ~yt.visualization.plot_window.PlotWindow
-   ~yt.visualization.plot_window.AxisAlignedParticlePlot
-   ~yt.visualization.particle_plots.ParticlePlot
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -31,7 +29,16 @@ ProfilePlot and PhasePlot
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
    ~yt.visualization.profile_plotter.PhasePlotMPL
-   ~yt.visualization.profile_plotter.ParticlePhasePlot
+
+Particle Plots
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.particle_plots.AxisAlignedParticlePlot
+   ~yt.visualization.particle_plots.ParticlePhasePlot
+   ~yt.visualization.particle_plots.ParticlePlot
 
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
