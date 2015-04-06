@@ -123,7 +123,8 @@ default_unit_symbol_lut = {
     "G": (1.0, dimensions.magnetic_field_cgs),
     "d": (1.0, dimensions.time),
     "Angstrom": (cm_per_ang, dimensions.length),
-
+    "statC": (1.0, dimensions.charge_cgs),
+    
     # Planck units
     "m_pl": (planck_mass_grams, dimensions.mass),
     "l_pl": (planck_length_cm, dimensions.length),
