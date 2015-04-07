@@ -283,6 +283,7 @@ class ChomboDataset(Dataset):
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
+        self.magnetic_unit = self.quan(1.0, "gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
@@ -654,12 +655,6 @@ class Orion2Dataset(ChomboDataset):
                 mylog.error("ValueError: '%s'", line)
             if param == "GAMMA":
                 self.gamma = np.float64(vals)
-
-    def set_code_units(self):
-        self._set_code_unit_attributes()
-        self.magnetic_unit = self.quan(1.0, "gauss")
-        super(Orion2Dataset, self).set_code_units()
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
