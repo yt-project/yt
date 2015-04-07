@@ -15,8 +15,8 @@ ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 kd = AMRKDTree(ds)
 
 # Print out specifics of KD Tree
-print "Total volume of all bricks = %i" % kd.count_volume()
-print "Total number of cells = %i" % kd.count_cells()
+print("Total volume of all bricks = %i" % kd.count_volume())
+print("Total number of cells = %i" % kd.count_cells())
 
 # Define a camera and take an volume rendering.
 tf = yt.ColorTransferFunction((-30, -22))
@@ -31,8 +31,8 @@ cam.snapshot("v1.png", clip_ratio=6.0)
 # camera.  We do this by specifying a maximum refinement level of 6.
 
 kd_low_res = AMRKDTree(ds, max_level=6)
-print kd_low_res.count_volume()
-print kd_low_res.count_cells()
+print(kd_low_res.count_volume())
+print(kd_low_res.count_cells())
 
 # Now we pass this in as the volume to our camera, and render the snapshot
 # again.

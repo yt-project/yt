@@ -41,21 +41,21 @@ def assert_fname(fname):
 
     with open(fname, 'rb') as fimg:
         data = fimg.read()
-    data = str(data)
     image_type = ''
 
     # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith('\211PNG\r\n\032\n'):
+    if data.startswith(b'\211PNG\r\n\032\n'):
         image_type = '.png'
     # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith('\377\330'):
+    elif data.startswith(b'\377\330'):
         image_type = '.jpeg'
-    elif data.startswith('%!PS-Adobe'):
-        if 'EPSF' in data[:data.index('\n')]:
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
             image_type = '.eps'
         else:
             image_type = '.ps'
-    elif data.startswith('%PDF'):
+    elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
     return image_type == os.path.splitext(fname)[1]
@@ -146,6 +146,12 @@ WEIGHT_FIELDS = (
     ('gas', 'density'),
 )
 
+PROJECTION_METHODS = (
+    'integrate',
+    'sum',
+    'mip'
+)
+
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
@@ -174,6 +180,38 @@ def test_attributes_wt():
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
 
+class TestHideAxesColorbar(unittest.TestCase):
+
+    ds = None
+
+    def setUp(self):
+        if self.ds is None:
+            self.ds = fake_random_ds(64)
+            self.slc = SlicePlot(self.ds, 0, "density")
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
+
+    def test_hide_show_axes(self):
+        self.slc.hide_axes()
+        self.slc.save()
+        self.slc.show_axes()
+        self.slc.save()
+
+    def test_hide_show_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.save()
+        self.slc.show_colorbar()
+        self.slc.save()
+
+    def test_hide_axes_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.hide_axes()
+        self.slc.save()
 
 class TestSetWidth(unittest.TestCase):
 
@@ -240,6 +278,7 @@ class TestPlotWindowSave(unittest.TestCase):
         projections_c = []
         projections_wf = []
         projections_w = {}
+        projections_m = []
         for dim in range(3):
             projections.append(ProjectionPlot(test_ds, dim, "density"))
             projections_ds.append(ProjectionPlot(test_ds, dim, "density",
@@ -253,6 +292,9 @@ class TestPlotWindowSave(unittest.TestCase):
         for wf in WEIGHT_FIELDS:
             projections_wf.append(ProjectionPlot(test_ds, dim, "density",
                                                  weight_field=wf))
+        for m in PROJECTION_METHODS:
+            projections_m.append(ProjectionPlot(test_ds, dim, "density",
+                                                 method=m))
 
         cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
         cls.projections = projections
@@ -260,6 +302,7 @@ class TestPlotWindowSave(unittest.TestCase):
         cls.projections_c = projections_c
         cls.projections_wf = projections_wf
         cls.projections_w = projections_w
+        cls.projections_m = projections_m
         cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
 
@@ -296,6 +339,10 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_projection_plot_wf(self, dim):
         self.projections_wf[dim].save()
 
+    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
+    def test_projection_plot_m(self, dim):
+        self.projections_m[dim].save()
+
     @parameterized.expand(
         param.explicit((fname, ))
         for fname in TEST_FLNMS)
@@ -307,6 +354,9 @@ class TestPlotWindowSave(unittest.TestCase):
         for fname in TEST_FLNMS)
     def test_offaxis_projection_plot(self, fname):
         assert assert_fname(self.offaxis_proj.save(fname)[0])
+
+    def test_ipython_repr(self):
+        self.slices[0]._repr_html_()
 
     @parameterized.expand(
         param.explicit((width, ))

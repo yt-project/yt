@@ -12,21 +12,18 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import __builtin__
+from yt.extern.six.moves import builtins
+from yt.extern.six import iteritems
 import base64
 import numpy as np
 import matplotlib
 import os
-import types
+
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
 from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
-from .color_maps import yt_colormaps, is_colormap
-from .plot_modifications import \
-    callback_registry
-from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
@@ -35,17 +32,12 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
-
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._data_valid = False
         args[0]._plot_valid = False
-        if hasattr(args[0], '_recreate_frb'):
-            args[0]._recreate_frb()
-        if args[0]._initfinished:
-            args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -67,10 +59,22 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
-        args[0]._setup_plots()
         return rv
     return newfunc
 
+def validate_plot(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        if hasattr(args[0], '_data_valid'):
+            if not args[0]._data_valid:
+                args[0]._recreate_frb()
+        if not args[0]._plot_valid:
+            args[0]._setup_plots()
+            if hasattr(args[0], 'run_callbacks'):
+                args[0].run_callbacks()
+        rv = f(*args, **kwargs)
+        return rv
+    return newfunc
 
 def apply_callback(f):
     @wraps(f)
@@ -79,6 +83,51 @@ def apply_callback(f):
         args[0]._callbacks.append((f.__name__, (args, kwargs)))
         return args[0]
     return newfunc
+
+def get_log_minorticks(vmin, vmax):
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    expA = np.floor(np.log10(vmin))
+    expB = np.floor(np.log10(vmax))
+    cofA = np.ceil(vmin/10**expA)
+    cofB = np.floor(vmax/10**expB)
+    lmticks = []
+    while cofA*10**expA <= cofB*10**expB:
+        if expA < expB:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, 9, 10-cofA)*10**expA) )
+            cofA = 1
+            expA += 1
+        else:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, cofB, cofB-cofA+1)*10**expA) )
+            expA += 1
+    return np.array(lmticks)
+
+def get_symlog_minorticks(linthresh, vmin, vmax):
+    """calculate positions of linear minorticks on a symmetric log colorbar
+
+    Parameters
+    ----------
+    linthresh: float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin >= 0 or vmax <= 0:
+        return get_log_minorticks(vmin, vmax)
+    else:
+        return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                            get_log_minorticks(linthresh, vmax)) )
 
 field_transforms = {}
 
@@ -102,6 +151,7 @@ class FieldTransform(object):
 
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
+symlog_transform = FieldTransform('symlog', None, LogLocator())
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -121,7 +171,7 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
-    """A countainer for plots with colorbars.
+    """A container for plots with colorbars.
 
     """
     _plot_type = None
@@ -143,11 +193,13 @@ class ImagePlotContainer(object):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
+        self._minorticks = {}
+        self._cbar_minorticks = {}
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
     @invalidate_plot
-    def set_log(self, field, log):
+    def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
 
         Parameters
@@ -156,6 +208,8 @@ class ImagePlotContainer(object):
             the field to set a transform
         log : boolean
             Log on/off.
+        linthresh : float (must be positive)
+            linthresh will be enabled for symlog scale only when log is true
 
         """
         if field == 'all':
@@ -164,7 +218,13 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             if log:
-                self._field_transform[field] = log_transform
+                if linthresh is not None:
+                    if not linthresh > 0.: 
+                        raise ValueError('\"linthresh\" must be positive')
+                    self._field_transform[field] = symlog_transform
+                    self._field_transform[field].func = linthresh 
+                else:
+                    self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
         return self
@@ -210,7 +270,7 @@ class ImagePlotContainer(object):
         cmap : string or tuple
             If a string, will be interpreted as name of the colormap.
             If a tuple, it is assumed to be of the form (name, type, number)
-            to be used for brewer2mpl functionality. (name, type, number, bool)
+            to be used for palettable functionality. (name, type, number, bool)
             can be used to specify if a reverse colormap is to be used.
 
         """
@@ -271,9 +331,57 @@ class ImagePlotContainer(object):
             self.plots[field].zmax = myzmax
         return self
 
-    def setup_callbacks(self):
-        # Left blank to be overriden in subclasses
-        pass
+    @invalidate_plot
+    def set_minorticks(self, field, state):
+        """turn minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._minorticks[field] = True
+            else:
+                self._minorticks[field] = False
+        return self
+
+    @invalidate_plot
+    def set_cbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._cbar_minorticks[field] = True
+            else:
+                self._cbar_minorticks[field] = False
+        return self
 
     def _setup_plots(self):
         # Left blank to be overriden in subclasses
@@ -300,22 +408,25 @@ class ImagePlotContainer(object):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
-        self._recreate_frb()
         self._setup_plots()
 
+    @validate_plot
     def __getitem__(self, item):
         return self.plots[item]
 
-    def run_callbacks(self, f):
-        keys = self.frb.keys()
-        for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
-            CallbackMaker = callback_registry[name]
-            callback = CallbackMaker(*args[1:], **kwargs)
-            callback(cbw)
-        for key in self.frb.keys():
-            if key not in keys:
-                del self.frb[key]
+    def _set_font_properties(self):
+        for f in self.plots:
+            ax = self.plots[f].axes
+            cbax = self.plots[f].cb.ax
+            labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+            labels += cbax.yaxis.get_ticklabels()
+            labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
+                       cbax.yaxis.label, cbax.yaxis.get_offset_text(),
+                       ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
+            for label in labels:
+                label.set_fontproperties(self._font_properties)
+                if self._font_color is not None:
+                    label.set_color(self._font_color)
 
     @invalidate_plot
     @invalidate_figure
@@ -401,7 +512,8 @@ class ImagePlotContainer(object):
         self.figure_size = float(size)
         return self
 
-    def save(self, name=None, mpl_kwargs=None):
+    @validate_plot
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -409,6 +521,9 @@ class ImagePlotContainer(object):
         name : string
            The base of the filename.  If name is a directory or if name is not
            set, the filename of the dataset is used.
+        suffix : string
+           Specify the image type by its suffix. If not specified, the output
+           type will be inferred from the filename. Defaults to PNG.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
@@ -424,11 +539,12 @@ class ImagePlotContainer(object):
             os.mkdir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
-        suffix = get_image_suffix(name)
-        if suffix != '':
-            for k, v in self.plots.iteritems():
-                names.append(v.save(name, mpl_kwargs))
-            return names
+        if suffix is None:
+            suffix = get_image_suffix(name)
+            if suffix != '':
+                for k, v in iteritems(self.plots):
+                    names.append(v.save(name, mpl_kwargs))
+                return names
         axis = self.ds.coordinates.axis_name.get(
             self.data_source.axis, '')
         weight = None
@@ -439,8 +555,8 @@ class ImagePlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType):
+        for k, v in iteritems(self.plots):
+            if isinstance(k, tuple):
                 k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))
@@ -449,6 +565,8 @@ class ImagePlotContainer(object):
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
                 n += "_%s" % (weight)
+            if suffix != '':
+                n = ".".join([n,suffix])
             names.append(v.save(n, mpl_kwargs))
         return names
 
@@ -457,6 +575,7 @@ class ImagePlotContainer(object):
         # invalidate_data will take care of everything
         return self
 
+    @validate_plot
     def _send_zmq(self):
         try:
             # pre-IPython v1.0
@@ -464,15 +583,15 @@ class ImagePlotContainer(object):
         except ImportError:
             # IPython v1.0+
             from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
+        for k, v in sorted(iteritems(self.plots)):
             # Due to a quirk in the matplotlib API, we need to create
             # a dummy canvas variable here that is never used.
             canvas = FigureCanvasAgg(v.figure)  # NOQA
             display(v.figure)
 
+    @validate_plot
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
@@ -489,7 +608,7 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
@@ -499,6 +618,7 @@ class ImagePlotContainer(object):
         else:
             raise YTNotInsideNotebook
 
+    @validate_plot
     def display(self, name=None, mpl_kwargs=None):
         """Will attempt to show the plot in in an IPython notebook.
         Failing that, the plot will be saved to disk."""
@@ -507,13 +627,15 @@ class ImagePlotContainer(object):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
+    @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         for field in self.plots:
-            img = base64.b64encode(self.plots[field]._repr_png_())
-            ret += '<img src="data:image/png;base64,%s"><br>' % img
+            img = base64.b64encode(self.plots[field]._repr_png_()).decode()
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     @invalidate_plot
@@ -528,7 +650,7 @@ class ImagePlotContainer(object):
         x_title: str
               The new string for the x-axis.
 
-        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -545,7 +667,7 @@ class ImagePlotContainer(object):
         label: str
           The new string for the y-axis.
 
-        >>>  plot.set_ytitle("Temperature (K)")
+        >>>  plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -563,7 +685,7 @@ class ImagePlotContainer(object):
         label: str
           The new label
 
-        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label

@@ -16,10 +16,13 @@ Particle-only geometry handler
 
 import h5py
 import numpy as na
-import string, re, gc, time, cPickle
+import string, re, gc, time
+from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import zip as izip
+
 import weakref
 
-from itertools import chain, izip
+from itertools import chain
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -60,10 +63,10 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return 1e-30
-        dx = 1.0/(2**self.oct_handler.max_level)
-        dx *= (self.dataset.domain_right_edge -
-               self.dataset.domain_left_edge)
+        ML = self.oct_handler.max_level
+        dx = 1.0/(self.dataset.domain_dimensions*2**ML)
+        dx = dx * (self.dataset.domain_right_edge -
+                   self.dataset.domain_left_edge)
         return dx.min()
 
     def convert(self, unit):

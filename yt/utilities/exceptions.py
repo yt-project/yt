@@ -94,7 +94,7 @@ class YTCannotParseFieldDisplayName(YTException):
 
     def __str__(self):
         return ("The display name \"%s\" "
-                "of the derived field %s " 
+                "of the derived field %s "
                 "contains the following LaTeX parser errors:\n" ) \
                 % (self.display_name, self.field_name) + self.mathtext_error
 
@@ -106,7 +106,7 @@ class YTCannotParseUnitDisplayName(YTException):
 
     def __str__(self):
         return ("The unit display name \"%s\" "
-                "of the derived field %s " 
+                "of the derived field %s "
                 "contains the following LaTeX parser errors:\n" ) \
             % (self.unit_name, self.field_name) + self.mathtext_error
 
@@ -116,7 +116,7 @@ class InvalidSimulationTimeSeries(YTException):
 
     def __str__(self):
         return self.message
-            
+
 class MissingParameter(YTException):
     def __init__(self, ds, parameter):
         YTException.__init__(self, ds=ds)
@@ -206,6 +206,33 @@ class YTIterableUnitCoercionError(YTException):
         err = "Received a list or tuple of quantities with nonuniform units: " \
               "%s" % self.quantity_list
         return err
+
+class YTFieldUnitError(YTException):
+    def __init__(self, field_info, returned_units):
+        self.msg = ("The field function associated with the field '%s' returned "
+                    "data with units '%s' but was defined with units '%s'.")
+        self.msg = self.msg % (field_info.name, returned_units, field_info.units)
+
+    def __str__(self):
+        return self.msg
+
+class YTFieldUnitParseError(YTException):
+    def __init__(self, field_info):
+        self.msg = ("The field '%s' has unparseable units '%s'.")
+        self.msg = self.msg % (field_info.name, field_info.units)
+
+    def __str__(self):
+        return self.msg
+
+class YTSpatialFieldUnitError(YTException):
+    def __init__(self, field):
+        msg = ("Field '%s' is a spatial field but has unknown units but "
+               "spatial fields must have explicitly defined units. Add the "
+               "field with explicit 'units' to clear this error.")
+        self.msg = msg % (field,)
+
+    def __str__(self):
+        return self.msg
 
 class YTHubRegisterError(YTException):
     def __str__(self):
@@ -434,3 +461,31 @@ class YTNonIndexedDataContainer(YTException):
         return "The data container (%s) is of an unindexed type.\n" + \
                "This operations such as ires, icoords, fcoords and fwidth " + \
                "will not work on it."
+
+class YTGDFUnknownGeometry(Exception):
+    def __init__(self, geometry):
+        self.geometry = geometry
+
+    def __str__(self):
+        return '''Unknown geometry %i. Please refer to GDF standard
+                  for more information''' % self.geometry
+
+class YTInvalidUnitEquivalence(Exception):
+    def __init__(self, equiv, unit1, unit2):
+        self.equiv = equiv
+        self.unit1 = unit1
+        self.unit2 = unit2
+
+    def __str__(self):
+        return "The unit equivalence '%s' does not exist for the units '%s' and '%s.'" % (self.equiv,
+                                                                                          self.unit1,
+                                                                                          self.unit2)
+
+class YTPlotCallbackError(Exception):
+    def __init__(self, callback, error):
+        self.callback = 'annotate_' + callback
+        self.error = error
+
+    def __str__(self):
+        msg = '%s callback failed with the following error: %s'
+        return msg % (self.callback, self.error)

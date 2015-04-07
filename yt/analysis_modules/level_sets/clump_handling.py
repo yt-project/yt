@@ -42,7 +42,8 @@ def add_contour_field(ds, contour_key):
                  function=_contours,
                  validators=[ValidateSpatial(0)],
                  take_log=False,
-                 display_field=False)
+                 display_field=False,
+                 units='')
 
 class Clump(object):
     children = None
@@ -98,11 +99,16 @@ class Clump(object):
 
         self.add_info_item("total_cells")
         self.add_info_item("cell_mass")
-        self.add_info_item("mass_weighted_jeans_mass")
-        self.add_info_item("volume_weighted_jeans_mass")
+
+        if any("jeans" in f for f in self.data.pf.field_list):
+            self.add_info_item("mass_weighted_jeans_mass")
+            self.add_info_item("volume_weighted_jeans_mass")
+
         self.add_info_item("max_grid_level")
-        self.add_info_item("min_number_density")
-        self.add_info_item("max_number_density")
+
+        if any("number_density" in f for f in self.data.pf.field_list):
+            self.add_info_item("min_number_density")
+            self.add_info_item("max_number_density")
 
     def clear_clump_info(self):
         """

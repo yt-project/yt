@@ -97,7 +97,7 @@ def _create_parent_dict(data_source, ptype="halos"):
     parents = -1 * np.ones_like(ids, dtype="int")
     my_tree = KDTree(pos)
 
-    for i in xrange(ids.size):
+    for i in range(ids.size):
         neighbors = np.array(
             my_tree.query_ball_point(pos[i], rad[i], p=2))
         if neighbors.size > 1:

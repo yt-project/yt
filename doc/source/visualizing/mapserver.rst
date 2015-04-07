@@ -1,7 +1,7 @@
 .. _mapserver:
 
-Mapserver
----------
+Mapserver - A Google-Maps-like Interface to your Data
+-----------------------------------------------------
 
 The mapserver is a new, experimental feature.  It's based on `Leaflet
 <http://leaflet.cloudmade.com/>`_, a library written to create zoomable,

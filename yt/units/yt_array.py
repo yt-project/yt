@@ -4,7 +4,7 @@ YTArray class.
 
 
 """
-
+from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -33,39 +33,21 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
-    YTUfuncUnitError, YTIterableUnitCoercionError
+    YTUfuncUnitError, YTIterableUnitCoercionError, \
+    YTInvalidUnitEquivalence
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
+from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
+from yt.units.equivalencies import equivalence_registry
+
+NULL_UNIT = Unit()
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
     try: len(obj)
     except: return False
     return True
-
-def ensure_unitless(func):
-    @wraps(func)
-    def wrapped(unit):
-        if unit != Unit():
-            raise RuntimeError(
-                "This operation is only defined for unitless quantities. "
-                "Received unit (%s)" % unit
-                )
-        return func(unit)
-    return wrapped
-
-def ensure_same_dimensions(func):
-    @wraps(func)
-    def wrapped(unit1, unit2):
-        if unit1 is None and not unit2.is_dimensionless:
-            raise RuntimeError
-        elif unit2 is None and not unit1.is_dimensionless:
-            raise RuntimeError
-        elif unit1.dimensions != unit2.dimensions:
-            raise RuntimeError
-        return func(unit1, unit2)
-    return wrapped
 
 def return_arr(func):
     @wraps(func)
@@ -84,7 +66,6 @@ def sqrt_unit(unit):
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
-@ensure_same_dimensions
 def preserve_units(unit1, unit2):
     return unit1
 
@@ -106,19 +87,11 @@ def passthrough_unit(unit):
 def return_without_unit(unit):
     return None
 
-@ensure_unitless
-def unitless(unit):
-    return Unit()
-
-@ensure_same_dimensions
 def arctan2_unit(unit1, unit2):
-    return Unit()
+    return NULL_UNIT
 
-@ensure_same_dimensions
 def comparison_unit(unit1, unit2):
     return None
-
-NULL_UNIT = Unit()
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
@@ -183,24 +156,24 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : ndarray or ndarray subclass
-        An array to attach units to
+    input_array : iterable
+        A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        syntax (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
     --------
 
     >>> from yt import YTArray
-    >>> a = YTArray([1,2,3], 'cm')
-    >>> b = YTArray([4,5,6], 'm')
+    >>> a = YTArray([1, 2, 3], 'cm')
+    >>> b = YTArray([4, 5, 6], 'm')
     >>> a + b
     YTArray([ 401.,  502.,  603.]) cm
     >>> b + a
@@ -316,7 +289,7 @@ class YTArray(np.ndarray):
             dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
-        if registry is None and isinstance(input_units, basestring):
+        if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
                     "Code units used without referring to a dataset. \n"
@@ -369,7 +342,7 @@ class YTArray(np.ndarray):
         """
         if obj is None and hasattr(self, 'units'):
             return
-        self.units = getattr(obj, 'units', None)
+        self.units = getattr(obj, 'units', NULL_UNIT)
 
     def __repr__(self):
         """
@@ -395,7 +368,7 @@ class YTArray(np.ndarray):
         """
         # let Unit() handle units arg if it's not already a Unit obj.
         if not isinstance(units, Unit):
-            units = Unit(units, registry = self.units.registry)
+            units = Unit(units, registry=self.units.registry)
 
         if not self.units.same_dimensions_as(units):
             raise YTUnitConversionError(
@@ -488,6 +461,53 @@ class YTArray(np.ndarray):
         """
         return self.in_units(self.units.get_mks_equivalent())
 
+    def to_equivalent(self, unit, equiv, **kwargs):
+        """
+        Convert a YTArray or YTQuantity to an equivalent, e.g., something that is
+        related by only a constant factor but not in the same units.
+
+        Parameters
+        ----------
+        unit : string
+            The unit that you wish to convert to.
+        equiv : string
+            The equivalence you wish to use. To see which equivalencies are
+            supported for this unitful quantity, try the :meth:`list_equivalencies`
+            method.
+
+        Examples
+        --------
+        >>> a = yt.YTArray(1.0e7,"K")
+        >>> a.to_equivalent("keV", "thermal")
+        """
+        unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
+        if self.has_equivalent(equiv) and unit_quan.has_equivalent(equiv):
+            this_equiv = equivalence_registry[equiv]()
+            return this_equiv.convert(self, unit_quan.units.dimensions, **kwargs).in_units(unit)
+        else:
+            raise YTInvalidUnitEquivalence(equiv, self.units, unit)
+
+    def list_equivalencies(self):
+        """
+        Lists the possible equivalencies associated with this YTArray or
+        YTQuantity.
+        """
+        for k,v in equivalence_registry.items():
+            if self.has_equivalent(k):
+                print(v())
+
+    def has_equivalent(self, equiv):
+        """
+        Check to see if this YTArray or YTQuantity has an equivalent unit in
+        *equiv*.
+        """
+        try:
+            this_equiv = equivalence_registry[equiv]()
+        except KeyError:
+            raise KeyError("No such equivalence \"%s\"." % equiv)
+        old_dims = self.units.dimensions
+        return old_dims in this_equiv.dims
+
     def ndarray_view(self):
         """
         Returns a view into the array, but as an ndarray rather than ytarray.
@@ -571,7 +591,7 @@ class YTArray(np.ndarray):
             info = {}
 
         info['units'] = str(self.units)
-        info['unit_registry'] = pickle.dumps(self.units.registry.lut)
+        info['unit_registry'] = np.void(pickle.dumps(self.units.registry.lut))
 
         if dataset_name is None:
             dataset_name = 'array_data'
@@ -590,8 +610,8 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
-            d.attrs.create(k, v)
+        for k, v in info.items():
+            d.attrs[k] = v
         f.close()
 
     @classmethod
@@ -619,7 +639,7 @@ class YTArray(np.ndarray):
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
-            unit_lut = pickle.loads(dataset.attrs['unit_registry'])
+            unit_lut = pickle.loads(dataset.attrs['unit_registry'].tostring())
         else:
             unit_lut = None
         f.close()
@@ -978,13 +998,8 @@ class YTArray(np.ndarray):
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
             if u is None:
-                u = Unit()
-            try:
-                unit = self._ufunc_registry[context[0]](u)
-            # Catch the RuntimeError raised inside of ensure_same_dimensions
-            # Raise YTUnitOperationError up here since we know the context now
-            except RuntimeError:
-                raise YTUnitOperationError(context[0], u)
+                u = NULL_UNIT
+            unit = self._ufunc_registry[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = coerce_iterable_units(context[1][0])
@@ -1007,19 +1022,21 @@ class YTArray(np.ndarray):
                         else:
                             raise YTUnitOperationError(context[0], unit1, unit2)
                     unit2 = 1.0
-            if self._ufunc_registry[context[0]] in \
-               (preserve_units, comparison_unit, arctan2_unit):
+            unit_operator = self._ufunc_registry[context[0]]
+            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
                 if unit1 != unit2:
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            try:
-                unit = self._ufunc_registry[context[0]](unit1, unit2)
-            # Catch the RuntimeError raised inside of ensure_same_dimensions
-            # Raise YTUnitOperationError up here since we know the context now
-            except RuntimeError:
-                raise YTUnitOperationError(context[0], unit1, unit2)
+            unit = self._ufunc_registry[context[0]](unit1, unit2)
+            if unit_operator in (multiply_units, divide_units):
+                if unit.is_dimensionless and unit.cgs_value != 1.0:
+                    if not unit1.is_dimensionless:
+                        if unit1.dimensions == unit2.dimensions:
+                            np.multiply(out_arr.view(np.ndarray),
+                                        unit.cgs_value, out=out_arr)
+                            unit = Unit(registry=unit.registry)
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
@@ -1080,16 +1097,16 @@ class YTQuantity(YTArray):
     Parameters
     ----------
 
-    input_scalar : ndarray or ndarray subclass
-        An array to attach units to
+    input_scalar : an integer or floating point scalar
+        The scalar to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
-        The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        The units of the quantity. Powers must be specified using python syntax
+        (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
@@ -1112,7 +1129,7 @@ class YTQuantity(YTArray):
 
     and strip them when it would be annoying to deal with them.
 
-    >>> print np.log10(a)
+    >>> print(np.log10(a))
     1.07918124605
 
     YTQuantity is tightly integrated with yt datasets:
@@ -1143,8 +1160,7 @@ class YTQuantity(YTArray):
     def __repr__(self):
         return str(self)
 
-def uconcatenate(arrs, *args, **kwargs):
-    v = np.concatenate(arrs, *args, **kwargs)
+def validate_numpy_wrapper_units(v, arrs):
     if not any(isinstance(a, YTArray) for a in arrs):
         return v
     if not all(isinstance(a, YTArray) for a in arrs):
@@ -1153,6 +1169,63 @@ def uconcatenate(arrs, *args, **kwargs):
     if not all(a.units == a1.units for a in arrs[1:]):
         raise RuntimeError("Your arrays must have identical units.")
     v.units = a1.units
+    return v
+
+def uconcatenate(arrs, axis=0):
+    """Concatenate a sequence of arrays.
+
+    This wrapper around numpy.concatenate preserves units. All input arrays must
+    have the same units.  See the documentation of numpy.concatenate for full
+    details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uconcatenate((A, B))
+    YTArray([ 1., 2., 3., 2., 3., 4.]) cm
+
+    """
+    v = np.concatenate(arrs, axis=axis)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uintersect1d(arr1, arr2, assume_unique=False):
+    """Find the sorted unique elements of the two input arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uintersect1d(A, B)
+    YTArray([ 2., 3.]) cm
+
+    """
+    v = np.intersect1d(arr1, arr2, assume_unique=assume_unique)
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
+    return v
+
+def uunion1d(arr1, arr2):
+    """Find the union of two arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uunion1d(A, B)
+    YTArray([ 1., 2., 3., 4.]) cm
+
+    """
+    v = np.union1d(arr1, arr2)
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
 def array_like_field(data, x, field):

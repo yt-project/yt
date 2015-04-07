@@ -4,6 +4,7 @@ Answer Testing using Nose as a starting point
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -17,10 +18,8 @@ import logging
 import os
 import hashlib
 import contextlib
-import urllib2
-import cPickle
 import sys
-import cPickle
+from yt.extern.six.moves import cPickle, urllib
 import shelve
 import zlib
 import tempfile
@@ -32,6 +31,7 @@ from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
+from yt.data_objects.time_series import SimulationTimeSeries
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -120,7 +120,7 @@ class AnswerTesting(Plugin):
         # Local/Cloud storage
         if options.local_results:
             if options.output_dir is None:
-                print 'Please supply an output directory with the --local-dir option'
+                print('Please supply an output directory with the --local-dir option')
                 sys.exit(1)
             storage_class = AnswerTestLocalStorage
             # Fix up filename for local storage
@@ -168,10 +168,10 @@ class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, ds_name, default = None):
         if self.reference_name is None: return default
         if ds_name in self.cache: return self.cache[ds_name]
-        url = _url_path % (self.reference_name, ds_name)
+        url = _url_path.format(self.reference_name, ds_name)
         try:
-            resp = urllib2.urlopen(url)
-        except urllib2.HTTPError as ex:
+            resp = urllib.request.urlopen(url)
+        except urllib.error.HTTPError as ex:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
@@ -259,6 +259,22 @@ def can_run_ds(ds_fn, file_check = False):
             return False
     return AnswerTestingTest.result_storage is not None
 
+def can_run_sim(sim_fn, sim_type, file_check = False):
+    if isinstance(sim_fn, SimulationTimeSeries):
+        return AnswerTestingTest.result_storage is not None
+    path = ytcfg.get("yt", "test_data_dir")
+    if not os.path.isdir(path):
+        return False
+    with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(sim_fn) and \
+                AnswerTestingTest.result_storage is not None
+        try:
+            simulation(sim_fn, sim_type)
+        except YTOutputNotIdentified:
+            return False
+    return AnswerTestingTest.result_storage is not None
+
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset): return ds_fn
@@ -289,7 +305,10 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        self.ds = data_dir_load(ds_fn)
+        if isinstance(ds_fn, Dataset):
+            self.ds = ds_fn
+        else:
+            self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
         nv = self.run()
@@ -360,16 +379,21 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, ds_fn, field, obj_type = None,
-                 decimals = 10):
+                 particle_type=False, decimals = 10):
         super(FieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
+        self.particle_type = particle_type
         self.decimals = decimals
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        if self.particle_type:
+            weight_field = "particle_ones"
+        else:
+            weight_field = "ones"
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight="ones")
+            self.field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
@@ -466,7 +490,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
 
     def run(self):
@@ -479,7 +503,8 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
-        frb[self.weight_field]
+        if self.weight_field is not None:
+            frb[self.weight_field]
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
@@ -629,12 +654,12 @@ def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
     num_images = len(old_result)
     assert(num_images > 0)
-    for i in xrange(num_images):
+    for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
         for fn in fns: os.remove(fn)
-            
+
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
@@ -670,7 +695,7 @@ class GenericArrayTest(AnswerTestingTest):
     def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
         super(GenericArrayTest, self).__init__(ds_fn)
         self.array_func = array_func
-        self.array_func_name = array_func.func_name
+        self.array_func_name = array_func.__name__
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
@@ -700,7 +725,7 @@ class GenericImageTest(AnswerTestingTest):
     def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
         super(GenericImageTest, self).__init__(ds_fn)
         self.image_func = image_func
-        self.image_func_name = image_func.func_name
+        self.image_func_name = image_func.__name__
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
@@ -727,7 +752,18 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-
+def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if run_big_data == False and big_data == True:
+        return ffalse
+    elif not can_run_sim(sim_fn, sim_type, file_check):
+        return ffalse
+    else:
+        return ftrue
+        
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None

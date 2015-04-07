@@ -40,8 +40,11 @@ ctypedef struct particleflat:
 cdef import from "halo.h":
     struct halo:
         np.int64_t id
-        float pos[6], corevel[3], bulkvel[3]
-        float m, r, child_r, mgrav, vmax, rvmax, rs, vrms, J[3], energy, spin
+        float pos[6]
+        float corevel[3]
+        float bulkvel[3]
+        float J[3]
+        float m, r, child_r, mgrav, vmax, rvmax, rs, vrms, energy, spin
         np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
         float min_pos_err, min_vel_err, min_bulkvel_err
 
@@ -66,8 +69,8 @@ cdef import from "client.h" nogil:
 
 cdef import from "meta_io.h":
     void read_particles(char *filename)
-    void output_halos(np.int64_t id_offset, np.int64_t snap, 
-			   np.int64_t chunk, float *bounds)
+    void output_halos(np.int64_t id_offset, np.int64_t snap,
+                      np.int64_t chunk, float *bounds)
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
@@ -203,13 +206,13 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    left_edge[0] = ds.domain_left_edge[0]
-    left_edge[1] = ds.domain_left_edge[1]
-    left_edge[2] = ds.domain_left_edge[2]
+    left_edge[0] = ds.domain_left_edge.in_units('Mpccm/h')[0]
+    left_edge[1] = ds.domain_left_edge.in_units('Mpccm/h')[1]
+    left_edge[2] = ds.domain_left_edge.in_units('Mpccm/h')[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     fields = [ (rh.particle_type, f) for f in
-                ["particle_position_%s" % ax for ax in 'xyz'] + 
+                ["particle_position_%s" % ax for ax in 'xyz'] +
                 ["particle_velocity_%s" % ax for ax in 'xyz'] +
                 ["particle_index"]]
     for chunk in parallel_objects(dd.chunks(fields, "io")):
@@ -294,7 +297,7 @@ cdef class RockstarInterface:
         TOTAL_PARTICLES = total_particles
         self.block_ratio = block_ratio
         self.particle_type = particle_type
-        
+
         tds = self.ts[0]
         h0 = tds.hubble_constant
         Ol = tds.omega_lambda
@@ -305,7 +308,7 @@ cdef class RockstarInterface:
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
             #workaround is to make a new directory
-            OUTBASE = outbase 
+            OUTBASE = outbase
 
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic

@@ -193,7 +193,15 @@ distributed throughout the dataset.
     center = [0.20, 0.50, 0.10]
 
     sp = ds.sphere(center, (10, 'Mpc'))
-    prj = yt.ProjectionPlot(ds, "x", "density", center=center, width=(50, "Mpc"), data_source=sp)
+    prj = yt.ProjectionPlot(ds, "x", "density", center=center, width=(50, "Mpc"),
+                            data_source=sp)
 
     # Mark the center with a big X
     prj.annotate_marker(center, 'x', plot_args={'s':100})
+
+    prj.show()
+
+    slc = yt.SlicePlot(ds, "x", "density", center=center, width=(50, "Mpc"),
+                       data_source=sp)
+
+    slc.show()

@@ -291,7 +291,7 @@ class HaloMassFcn():
                 "#2. cumulative number density of halos [comoving Mpc^-3]\n" + \
                 "#3. (dn/dM)*dM (differential number density of halos) [comoving Mpc^-3]\n"
                 fp.write(line)
-                for i in xrange(self.masses_analytic.size - 1):
+                for i in range(self.masses_analytic.size - 1):
                     line = "%e\t%e\t%e\n" % (self.masses_analytic[i],
                     self.n_cumulative_analytic[i], 
                     self.dndM_dM_analytic[i])
@@ -313,7 +313,7 @@ class HaloMassFcn():
                 "#1. mass [Msun]\n" + \
                 "#2. cumulative number density of halos [comoving Mpc^-3]\n"
                 fp.write(line)
-                for i in xrange(self.masses_sim.size - 1):
+                for i in range(self.masses_sim.size - 1):
                     line = "%e\t%e\n" % (self.masses_sim[i], 
                     self.n_cumulative_sim[i])
                     fp.write(line)
@@ -378,7 +378,7 @@ class HaloMassFcn():
          sigma_squared_of_R to get the sigma(R) (equivalent to sigma(M)),
          normalize by user-specified sigma_8, and then write out.
         """
-        for i in xrange(self.num_sigma_bins):
+        for i in range(self.num_sigma_bins):
     
             # thislogmass is in units of Msolar, NOT Msolar/h
             thislogmass = self.log_mass_min +  i*dm
@@ -417,7 +417,7 @@ class HaloMassFcn():
         # 6) cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
         self.n_cumulative_analytic = np.zeros(self.num_sigma_bins, dtype='float64')
         
-        for j in xrange(self.num_sigma_bins - 1):
+        for j in range(self.num_sigma_bins - 1):
             i = (self.num_sigma_bins - 2) - j
         
             thissigma = self.sigmaof_M_z(i, self.this_redshift);

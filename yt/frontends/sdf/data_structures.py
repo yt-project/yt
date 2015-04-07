@@ -14,6 +14,7 @@ Data structures for a generic SDF frontend
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
 import h5py
 import numpy as np
 import stat
@@ -23,6 +24,8 @@ import glob
 import time
 import os
 import types
+import sys
+import contextlib
 
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
@@ -47,7 +50,12 @@ try:
 except ImportError:
     requests = None
 
-
+@contextlib.contextmanager
+def safeopen(*args, **kwargs):
+    if sys.version[0] != '3':
+        kwargs.pop("encoding")
+    with open(*args, **kwargs) as f:
+        yield f
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -77,7 +85,8 @@ class SDFDataset(Dataset):
                  midx_filename = None,
                  midx_header = None,
                  midx_level = None,
-                 field_map = None):
+                 field_map = None,
+                 units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -102,7 +111,8 @@ class SDFDataset(Dataset):
         if filename.startswith("http"):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
-        super(SDFDataset, self).__init__(filename, dataset_type)
+        super(SDFDataset, self).__init__(filename, dataset_type,
+                                         units_override=units_override)
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
@@ -196,9 +206,9 @@ class SDFDataset(Dataset):
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.
-            line = hreq.iter_content(4096).next()
+            line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with open(sdf_header, "r") as f:
+            with safeopen(sdf_header, "r", encoding = 'ISO-8859-1') as f:
                 line = f.read(10).strip()
         else:
             return False

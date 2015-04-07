@@ -16,8 +16,8 @@ def setup():
 
 def dummy_image(kstep, nlayers):
     im = np.zeros([64, 128, nlayers])
-    for i in xrange(im.shape[0]):
-        for k in xrange(im.shape[2]):
+    for i in range(im.shape[0]):
+        for k in range(im.shape[2]):
             im[i, :, k] = np.linspace(0.0, kstep * k, im.shape[1])
     return im
 
@@ -65,7 +65,7 @@ class TestImageArray(unittest.TestCase):
         im_arr.save('test_3d_ImageArray')
 
         im = np.zeros([64, 128])
-        for i in xrange(im.shape[0]):
+        for i in range(im.shape[0]):
             im[i, :] = np.linspace(0., 0.3 * 2, im.shape[1])
 
         myinfo = {'field': 'dinosaurs', 'east_vector': np.array([1., 0., 0.]),

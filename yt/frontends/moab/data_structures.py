@@ -28,6 +28,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import MoabFieldInfo, PyneFieldInfo
 
@@ -69,12 +70,13 @@ class MoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, filename, dataset_type='moab_hex8',
-                 storage_filename = None):
+                 storage_filename = None, units_override=None):
         self.fluid_types += ("moab",)
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
-        self._handle = h5py.File(self.parameter_filename, "r")
+        self._handle = HDF5FileHandler(filename)
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
@@ -124,7 +126,8 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
-        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+        
+        ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.getVtxCoords(ents).astype("float64")
         vind = self.pyne_mesh.mesh.rootSet.getAdjEntIndices(
             iBase.Type.region, iMesh.Topology.hexahedron,
@@ -147,11 +150,12 @@ class PyneMoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
-                 storage_filename = None):
+                 storage_filename = None, units_override=None):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        Dataset.__init__(self, str(filename), dataset_type)
+        Dataset.__init__(self, str(filename), dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -164,7 +168,8 @@ class PyneMoabHex8Dataset(Dataset):
 
     def _parse_parameter_file(self):
         from itaps import iBase
-        ents = self.pyne_mesh.mesh.rootSet.getEntities(iBase.Type.vertex)
+
+        ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.getVtxCoords(ents)
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]

@@ -13,7 +13,8 @@ API for yt.frontends
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import sys, types, os, glob, cPickle, time, importlib
+import sys, types, os, glob, time, importlib
+from yt.extern.six.moves import cPickle as pickle
 
 _frontends = [
     'art',
@@ -21,17 +22,22 @@ _frontends = [
     'athena',
     'boxlib',
     'chombo',
+    'eagle',
     'enzo',
     'fits',
     'flash',
+    'gadget',
     'gdf',
-    'halo_catalogs',
+    'halo_catalog',
+    'http_stream',
     'moab',
-    #'pluto',
+    'owls',
+    'owls_subfind',
     'ramses',
+    'rockstar',
     'sdf',
-    'sph',
     'stream',
+    'tipsy',
 ]
 
 class _frontend_container:
@@ -39,3 +45,5 @@ class _frontend_container:
         for frontend in _frontends:
             _mod = "yt.frontends.%s.api" % frontend
             setattr(self, frontend, importlib.import_module(_mod))
+        setattr(self, 'api', importlib.import_module('yt.frontends.api'))
+        setattr(self, '__name__', 'yt.frontends.api')

@@ -31,6 +31,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
+from yt.fields.derived_field import \
+    ValidateSpatial
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
@@ -45,17 +47,13 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-from yt.geometry.cartesian_coordinates import \
-    CartesianCoordinateHandler
-from yt.geometry.polar_coordinates import \
-    PolarCoordinateHandler
-from yt.geometry.cylindrical_coordinates import \
-    CylindricalCoordinateHandler
-from yt.geometry.spherical_coordinates import \
-    SphericalCoordinateHandler
-from yt.geometry.geographic_coordinates import \
-    GeographicCoordinateHandler
-from yt.geometry.spec_cube_coordinates import \
+from yt.geometry.coordinates.api import \
+    CoordinateHandler, \
+    CartesianCoordinateHandler, \
+    PolarCoordinateHandler, \
+    CylindricalCoordinateHandler, \
+    SphericalCoordinateHandler, \
+    GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
@@ -128,7 +126,7 @@ class Dataset(object):
 
     def __new__(cls, filename=None, *args, **kwargs):
         from yt.frontends.stream.data_structures import StreamHandler
-        if not isinstance(filename, types.StringTypes):
+        if not isinstance(filename, str):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -139,7 +137,9 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_datasets:
+        if ytcfg.getboolean("yt","skip_dataset_cache"):
+            obj = object.__new__(cls)
+        elif apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
                 _cached_datasets[apath] = obj
@@ -147,7 +147,7 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -162,6 +162,9 @@ class Dataset(object):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        if units_override is None:
+            units_override = {}
+        self.units_override = units_override
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -251,16 +254,53 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v):
-        max_nu = 1e30
+    def get_smallest_appropriate_unit(self, v, quantity='distance', 
+                                      return_quantity=False):
+        """
+        Returns the largest whole unit smaller than the YTQuantity passed to 
+        it as a string.
+
+        The quantity keyword can be equal to `distance` or `time`.  In the 
+        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr', 
+        's', 'ms', etc.
+        
+        If return_quantity is set to True, it finds the largest YTQuantity 
+        object with a whole unit and a power of ten as the coefficient, and it 
+        returns this YTQuantity.
+        """
         good_u = None
-        for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-            vv = v * self.length_unit.in_units(unit)
-            if vv < max_nu and vv > 1.0:
+        if quantity == 'distance':
+            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+                        'km', 'cm', 'um', 'nm', 'pm']
+        elif quantity == 'time':
+            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr', 
+                        'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
+        else:
+            raise SyntaxError("Specified quantity must be equal to 'distance'"\
+                              "or 'time'.")
+        for unit in unit_list:
+            uq = self.quan(1.0, unit)
+            if uq <= v:
                 good_u = unit
-                max_nu = v * self.length_unit.in_units(unit)
-        if good_u is None : good_u = 'cm'
-        return good_u
+                break
+        if good_u is None and quantity == 'distance': good_u = 'cm'
+        if good_u is None and quantity == 'time': good_u = 's'
+        if return_quantity:
+            unit_index = unit_list.index(good_u)
+            # This avoids indexing errors
+            if unit_index == 0: return self.quan(1, unit_list[0])
+            # Number of orders of magnitude between unit and next one up
+            OOMs = np.ceil(np.log10(self.quan(1, unit_list[unit_index-1]) /
+                                    self.quan(1, unit_list[unit_index])))
+            # Backwards order of coefficients (e.g. [100, 10, 1])
+            coeffs = 10**np.arange(OOMs)[::-1]
+            for j in coeffs:
+                uq = self.quan(j, good_u)
+                if uq <= v:
+                    return uq
+        else:            
+            return good_u
 
     def has_key(self, key):
         """
@@ -333,10 +373,10 @@ class Dataset(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        deps, unloaded = self.field_info.check_derived_fields()
-        self.field_dependencies.update(deps)
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -351,20 +391,33 @@ class Dataset(object):
         self.field_info.find_dependencies(added)
 
     def _setup_coordinate_handler(self):
-        if self.geometry == "cartesian":
-            self.coordinates = CartesianCoordinateHandler(self)
+        kwargs = {}
+        if isinstance(self.geometry, tuple):
+            self.geometry, ordering = self.geometry
+            kwargs['ordering'] = ordering
+        if isinstance(self.geometry, CoordinateHandler):
+            # I kind of dislike this.  The geometry field should always be a
+            # string, but the way we're set up with subclassing, we can't
+            # mandate that quite the way I'd like.
+            self.coordinates = self.geometry
+            return
+        elif callable(self.geometry):
+            cls = self.geometry
+        elif self.geometry == "cartesian":
+            cls = CartesianCoordinateHandler
         elif self.geometry == "cylindrical":
-            self.coordinates = CylindricalCoordinateHandler(self)
+            cls = CylindricalCoordinateHandler
         elif self.geometry == "polar":
-            self.coordinates = PolarCoordinateHandler(self)
+            cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
-            self.coordinates = SphericalCoordinateHandler(self)
+            cls = SphericalCoordinateHandler
         elif self.geometry == "geographic":
-            self.coordinates = GeographicCoordinateHandler(self)
+            cls = GeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
-            self.coordinates = SpectralCubeCoordinateHandler(self)
+            cls = SpectralCubeCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
+        self.coordinates = cls(self, **kwargs)
 
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
@@ -398,7 +451,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, types.StringTypes):
+        if isinstance(filter, str):
             used = False
             for f in filter_registry[filter]:
                 used = self._setup_filtered_type(f)
@@ -619,9 +672,11 @@ class Dataset(object):
         import yt.units.dimensions as dimensions
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
+        self.unit_registry.add("code_density", 1.0, dimensions.density)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
@@ -672,21 +727,92 @@ class Dataset(object):
 
     def set_code_units(self):
         self._set_code_unit_attributes()
+        # here we override units, if overrides have been provided.
+        self._override_code_units()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        vel_unit = getattr(self, "velocity_unit",
-                    self.length_unit / self.time_unit)
+        if hasattr(self, 'magnetic_unit'):
+            # If we do not have this set, but some fields come in in
+            # "code_magnetic", this will allow them to remain in that unit.
+            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        vel_unit = getattr(
+            self, "velocity_unit", self.length_unit / self.time_unit)
+        pressure_unit = getattr(
+            self, "pressure_unit",
+            self.mass_unit / (self.length_unit * self.time_unit)**2)
+        temperature_unit = getattr(self, "temperature_unit", 1.0)
+        density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
         self.unit_registry.modify("code_velocity", vel_unit)
+        self.unit_registry.modify("code_temperature", temperature_unit)
+        self.unit_registry.modify("code_pressure", pressure_unit)
+        self.unit_registry.modify("code_density", density_unit)
         # domain_width does not yet exist
-        if None not in (self.domain_left_edge, self.domain_right_edge):
+        if (self.domain_left_edge is not None and
+            self.domain_right_edge is not None):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
             self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                    DW.units.dimensions)
 
+    def _override_code_units(self):
+        if len(self.units_override) == 0:
+            return
+        mylog.warning("Overriding code units. This is an experimental and potentially "+
+                      "dangerous option that may yield inconsistent results, and must be used "+
+                      "very carefully, and only if you know what you want from it.")
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
+                          ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
+            val = self.units_override.get("%s_unit" % unit, None)
+            if val is not None:
+                if isinstance(val, YTQuantity):
+                    val = (val.v, str(val.units))
+                elif not isinstance(val, tuple):
+                    val = (val, cgs)
+                u = getattr(self, "%s_unit" % unit)
+                mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])
+                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+
     _arr = None
     @property
     def arr(self):
+        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+
+        The returned YTArray will be dimensionless by default, but can be
+        cast to arbitray units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_array : iterable
+            A tuple, list, or array to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units object
+            The units of the array. Powers must be specified using python syntax
+            (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the returned array data
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> a = ds.arr([1, 2, 3], 'cm')
+        >>> b = ds.arr([4, 5, 6], 'm')
+        >>> a + b
+        YTArray([ 401.,  502.,  603.]) cm
+        >>> b + a
+        YTArray([ 4.01,  5.02,  6.03]) m
+
+        Arrays returned by this function know about the dataset's unit system
+
+        >>> a = ds.arr(np.ones(5), 'code_length')
+        >>> a.in_units('Mpccm/h')
+        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+                 1.00010449]) Mpc
+
+        """
         if self._arr is not None:
             return self._arr
         self._arr = functools.partial(YTArray, registry = self.unit_registry)
@@ -695,10 +821,47 @@ class Dataset(object):
     _quan = None
     @property
     def quan(self):
+        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+
+        The returned YTQuantity will be dimensionless by default, but can be
+        cast to arbitray units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_scalar : an integer or floating point scalar
+            The scalar to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units
+            The units of the quantity. Powers must be specified using python
+            syntax (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the array data.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+        >>> a = ds.quan(1, 'cm')
+        >>> b = ds.quan(2, 'm')
+        >>> a + b
+        201.0 cm
+        >>> b + a
+        2.01 m
+
+        Quantities created this way automatically know about the unit system
+        of the dataset.
+
+        >>> a = ds.quan(5, 'code_length')
+        >>> a.in_cgs()
+        1.543e+25 cm
+
+        """
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity,
-                registry = self.unit_registry)
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
     def add_field(self, name, function=None, **kwargs):
@@ -734,10 +897,73 @@ class Dataset(object):
 
         """
         self.index
+        override = kwargs.get("force_override", False)
+        # Handle the case where the field has already been added.
+        if not override and name in self.field_info:
+            mylog.warning("Field %s already exists. To override use " +
+                          "force_override=True.", name)
         self.field_info.add_field(name, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
+
+    def add_deposited_particle_field(self, deposit_field, method):
+        """Add a new deposited particle field
+
+        Creates a new deposited field based on the particle *deposit_field*.
+
+        Parameters
+        ----------
+
+        deposit_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        method : one of 'count', 'sum', or 'cic'
+           The particle deposition method to use.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+        """
+        self.index
+        if isinstance(deposit_field, tuple):
+            ptype, deposit_field = deposit_field[0], deposit_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ptype, deposit_field].units
+
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle wuantities weighted by particle
+            mass, using cloud-in-cell deposition.
+            """
+            pos = data[ptype, "particle_position"]
+            # get back into density
+            if method != 'count':
+                pden = data[ptype, "particle_mass"]
+                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
+                                   method=method)
+                bottom = data.deposit(pos, [pden], method=method)
+                top[bottom == 0] = 0.0
+                bnz = bottom.nonzero()
+                top[bnz] /= bottom[bnz]
+                d = data.ds.arr(top, input_units=units)
+            else:
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
+                                             method=method))
+            return d
+        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+        self.add_field(
+            ("deposit", field_name),
+            function=_deposit_field,
+            units=units,
+            take_log=False,
+            validators=[ValidateSpatial()])
+        return ("deposit", field_name)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

@@ -4,6 +4,7 @@ Simple transfer function editor
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -834,7 +835,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
                  anorm = 1e6):
         MultiVariateTransferFunction.__init__(self)
         mscat = -1
-        from UBVRI import johnson_filters
+        from .UBVRI import johnson_filters
         for i, f in enumerate([red, green, blue]):
             jf = johnson_filters[f]
             tf = TransferFunction(T_bounds)

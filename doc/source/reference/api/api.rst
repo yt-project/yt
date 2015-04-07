@@ -137,15 +137,18 @@ These objects generate an "index" into multiresolution data.
 Units
 -----
 
-These classes enable yt's symbolic unit handling system.
+These classes and functions enable yt's symbolic unit handling system.
 
 .. autosummary::
    :toctree: generated/
 
+   yt.data_objects.static_output.Dataset.arr
+   yt.data_objects.static_output.Dataset.quan
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
+
 
 Frontends
 ---------
@@ -283,19 +286,19 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalogs.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalogs.halo_catalog.io.IOHandlerHaloCatalogHDF5
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindParticleIndex
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindHDF5File
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindDataset
-   ~yt.frontends.halo_catalogs.owls_subfind.fields.OWLSSubfindFieldInfo
-   ~yt.frontends.halo_catalogs.owls_subfind.io.IOHandlerOWLSSubfindHDF5
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
-   ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
-   ~yt.frontends.halo_catalogs.rockstar.io.IOHandlerRockstarBinary
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
+   ~yt.frontends.owls_subfind.fields.OWLSSubfindFieldInfo
+   ~yt.frontends.owls_subfind.io.IOHandlerOWLSSubfindHDF5
+   ~yt.frontends.rockstar.data_structures.RockstarBinaryFile
+   ~yt.frontends.rockstar.data_structures.RockstarDataset
+   ~yt.frontends.rockstar.fields.RockstarFieldInfo
+   ~yt.frontends.rockstar.io.IOHandlerRockstarBinary
 
 MOAB
 ^^^^
@@ -331,21 +334,21 @@ SPH and Particle Codes
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.sph.data_structures.GadgetBinaryFile
-   ~yt.frontends.sph.data_structures.GadgetHDF5Dataset
-   ~yt.frontends.sph.data_structures.GadgetDataset
-   ~yt.frontends.sph.data_structures.HTTPParticleFile
-   ~yt.frontends.sph.data_structures.HTTPStreamDataset
-   ~yt.frontends.sph.data_structures.OWLSDataset
+   ~yt.frontends.gadget.data_structures.GadgetBinaryFile
+   ~yt.frontends.gadget.data_structures.GadgetHDF5Dataset
+   ~yt.frontends.gadget.data_structures.GadgetDataset
+   ~yt.frontends.http_stream.data_structures.HTTPParticleFile
+   ~yt.frontends.http_stream.data_structures.HTTPStreamDataset
+   ~yt.frontends.owls.data_structures.OWLSDataset
    ~yt.frontends.sph.data_structures.ParticleDataset
-   ~yt.frontends.sph.data_structures.TipsyFile
-   ~yt.frontends.sph.data_structures.TipsyDataset
+   ~yt.frontends.tipsy.data_structures.TipsyFile
+   ~yt.frontends.tipsy.data_structures.TipsyDataset
    ~yt.frontends.sph.fields.SPHFieldInfo
-   ~yt.frontends.sph.io.IOHandlerGadgetBinary
-   ~yt.frontends.sph.io.IOHandlerGadgetHDF5
-   ~yt.frontends.sph.io.IOHandlerHTTPStream
-   ~yt.frontends.sph.io.IOHandlerOWLS
-   ~yt.frontends.sph.io.IOHandlerTipsyBinary
+   ~yt.frontends.gadget.io.IOHandlerGadgetBinary
+   ~yt.frontends.gadget.io.IOHandlerGadgetHDF5
+   ~yt.frontends.http_stream.io.IOHandlerHTTPStream
+   ~yt.frontends.owls.io.IOHandlerOWLS
+   ~yt.frontends.tipsy.io.IOHandlerTipsyBinary
 
 Stream
 ^^^^^^
@@ -407,6 +410,8 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.create_profile
 
+.. _halo_analysis_ref:
+
 Halo Analysis
 ^^^^^^^^^^^^^
 
@@ -419,21 +424,22 @@ on cosmological halos.  It is also the primary interface for halo finding.
    ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
    ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
    ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
    ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.iterative_center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
    ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
    ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
    ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
    ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
-   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
    ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
+   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
    ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
    ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
 
 Halo Finding
 ^^^^^^^^^^^^
@@ -475,6 +481,15 @@ Field Types
    ~yt.fields.derived_field.ValidateParameter
    ~yt.fields.derived_field.ValidateProperty
    ~yt.fields.derived_field.ValidateSpatial
+
+Field Functions
+---------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.fields.field_info_container.FieldInfoContainer.add_field
+   ~yt.data_objects.static_output.Dataset.add_field
 
 Image Handling
 --------------
@@ -663,6 +678,7 @@ See also :ref:`callbacks`.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
@@ -670,13 +686,14 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.GridBoundaryCallback
    ~yt.visualization.plot_modifications.HaloCatalogCallback
    ~yt.visualization.plot_modifications.ImageLineCallback
-   ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.RayCallback
+   ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
@@ -684,6 +701,19 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.TitleCallback
    ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
+
+Colormap Functions
+------------------
+
+
+See also :ref:`colormaps`.
+
+.. autosummary::
+   :toctree: generated/
+   
+   ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.make_colormap
+   ~yt.visualization.color_maps.show_colormaps
 
 Function List
 -------------
@@ -710,6 +740,7 @@ Function List
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
    ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
@@ -717,6 +748,7 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
    ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
    ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
+   ~yt.visualization.plot_modifications.sanitize_coord_system
 
 Math Utilities
 --------------

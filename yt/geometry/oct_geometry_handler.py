@@ -16,10 +16,12 @@ Octree geometry handler
 
 import h5py
 import numpy as np
-import string, re, gc, time, cPickle
+import string, re, gc, time
+from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain, izip
+from itertools import chain
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -45,7 +47,7 @@ class OctreeIndex(Index):
         Returns (in code units) the smallest cell size in the simulation.
         """
         return (self.dataset.domain_width /
-                (2**(self.max_level+1))).min()
+                (self.dataset.domain_dimensions * 2**(self.max_level))).min()
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]

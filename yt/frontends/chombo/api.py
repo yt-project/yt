@@ -14,14 +14,26 @@ API for yt.frontends.chombo
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      ChomboGrid, \
-      ChomboHierarchy, \
-      ChomboDataset, \
-      Orion2Hierarchy, \
-      Orion2Dataset
+    ChomboGrid, \
+    ChomboHierarchy, \
+    ChomboDataset, \
+    Orion2Hierarchy, \
+    Orion2Dataset, \
+    ChomboPICHierarchy, \
+    ChomboPICDataset, \
+    PlutoHierarchy, \
+    PlutoDataset
 
 from .fields import \
-      ChomboFieldInfo
+    ChomboFieldInfo, \
+    Orion2FieldInfo, \
+    ChomboPICFieldInfo1D, \
+    ChomboPICFieldInfo2D, \
+    ChomboPICFieldInfo3D, \
+    PlutoFieldInfo
 
 from .io import \
-      IOHandlerChomboHDF5
+    IOHandlerChomboHDF5,\
+    IOHandlerPlutoHDF5
+
+from . import tests

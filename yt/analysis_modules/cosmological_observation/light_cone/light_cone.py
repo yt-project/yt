@@ -159,9 +159,9 @@ class LightCone(CosmologySplice):
         box_fraction_used = 0.0
 
         for q in range(len(self.light_cone_solution)):
-            if self.light_cone_solution[q].has_key("previous"):
+            if "previous" in self.light_cone_solution[q]:
                 del self.light_cone_solution[q]["previous"]
-            if self.light_cone_solution[q].has_key("next"):
+            if "next" in self.light_cone_solution[q]:
                 del self.light_cone_solution[q]["next"]
             if q == len(self.light_cone_solution) - 1:
                 z_next = self.near_redshift
@@ -186,13 +186,13 @@ class LightCone(CosmologySplice):
             # Simple error check to make sure more than 100% of box depth
             # is never required.
             if self.light_cone_solution[q]["box_depth_fraction"] > 1.0:
-                mylog.debug(("Warning: box fraction required to go from " +
+                mylog.error(("Warning: box fraction required to go from " +
                              "z = %f to %f is %f") %
                             (self.light_cone_solution[q]["redshift"], z_next,
                              self.light_cone_solution[q]["box_depth_fraction"]))
-                mylog.debug(("Full box delta z is %f, but it is %f to the " +
+                mylog.error(("Full box delta z is %f, but it is %f to the " +
                              "next data dump.") %
-                            (self.light_cone_solution[q]["deltazMax"],
+                            (self.light_cone_solution[q]["dz_max"],
                              self.light_cone_solution[q]["redshift"]-z_next))
 
             # Get projection axis and center.
@@ -300,7 +300,7 @@ class LightCone(CosmologySplice):
         # Clear projection stack.
         projection_stack = []
         projection_weight_stack = []
-        if self.light_cone_solution[-1].has_key("object"):
+        if "object" in self.light_cone_solution[-1]:
             del self.light_cone_solution[-1]["object"]
 
         # for q, output in enumerate(self.light_cone_solution):

@@ -6,17 +6,19 @@ import time
 import subprocess
 import shutil
 import glob
+
+if sys.version_info < (2, 7):
+    print("yt currently requires Python version 2.7")
+    print("certain features may fail unexpectedly and silently with older versions.")
+    sys.exit(1)
+
 import setuptools
 from distutils.version import StrictVersion
 if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):
     import distribute_setup
     distribute_setup.use_setuptools()
 
-try:
-   from distutils.command.build_py import build_py_2to3 \
-        as build_py
-except ImportError:
-    from distutils.command.build_py import build_py
+from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils.command import install_data as np_install_data
 from numpy.distutils import log
@@ -103,7 +105,7 @@ def generate_a_pyrex_source(self, base, ext_name, source, extension):
         options = Cython.Compiler.Main.CompilationOptions(
             defaults=Cython.Compiler.Main.default_options,
             include_path=extension.include_dirs,
-            language=extension.language, cplus=cplus,
+            cplus=cplus,
             output_file=target_file)
         cython_result = Cython.Compiler.Main.compile(source,
                                                      options=options)
@@ -118,7 +120,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 # End snippet
 ######
 
-VERSION = "3.1dev"
+VERSION = "3.2dev"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')

@@ -19,14 +19,16 @@ which are described below.
 
 .. _simple-inspection:
 
-Visual Inspection
------------------
+Slices & Projections
+--------------------
 
 If you need to take a quick look at a single simulation output, yt
-provides the ``PlotWindow`` interface for generating annotated 2D
-visualizations of simulation data.  You can create a ``PlotWindow`` plot by
+provides the :class:`~yt.visualization.plot_window.PlotWindow` interface for 
+generating annotated 2D visualizations of simulation data.  You can create a 
+:class:`~yt.visualization.plot_window.PlotWindow` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
-create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, 
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
@@ -39,9 +41,12 @@ is requested of it -- for instance, when the width or field is changed
 of fixed size. This is accomplished behind the scenes using
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`.
 
-``PlotWindow`` expose the underlying matplotlib ``figure`` and
-``axes`` objects, making it easy to customize your plots and 
-add new annotations.
+The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the 
+underlying matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+objects, making it easy to customize your plots and 
+add new annotations.  See :ref:`matplotlib-customization` for more information.
 
 .. _slice-plots:
 
@@ -124,11 +129,17 @@ coordinates on the axes such that the origin is at the center of the
 slice.  To instead use the coordinates as defined in the dataset, use
 the optional argument: ``origin="native"``
 
-If supplied
-without units, the center is assumed by in code units.  Optionally, you can
-supply 'c' or 'm' for the center.  These two choices will center the plot on the
-center of the simulation box and the coordinate of the maximum density cell,
-respectively.
+If supplied without units, the center is assumed by in code units.  There are also
+the following alternative options for the `center` keyword:
+
+* ``"center"``, ``"c"``: the domain center
+* ``"max"``, ``"m"``: the position of the maximum density
+* ``("min", field)``: the position of the minimum of ``field``
+* ``("max", field)``: the position of the maximum of ``field``
+
+where for the last two objects any spatial field, such as ``"density"``,
+``"velocity_z"``,
+etc., may be used, e.g. ``center=("min","temperature")``.
 
 Here is an example that combines all of the options we just discussed.
 
@@ -166,6 +177,10 @@ image. Both plots will be centered on the center of the simulation box.
 With these sorts of manipulations, one can easily pan and zoom onto an 
 interesting region in the simulation and adjust the boundaries of the
 region to visualize on the fly.
+
+If you want to slice through a subset of the full dataset volume,
+you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`
+or a :ref:`cut region <cut-regions>`.
 
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the 
 full class description.
@@ -239,13 +254,13 @@ The :ref:`thin-slice-projections` recipes demonstrates this functionality.
 Types of Projections
 """"""""""""""""""""
 
-There are several different styles of projections that can be made either 
+There are several different methods of projections that can be made either 
 when creating a projection with ds.proj() or when making a ProjectionPlot.  
-In either construction method, set the ``style`` keyword to be one of the 
+In either construction method, set the ``method`` keyword to be one of the 
 following:
 
 ``integrate`` (unweighted)
-    This is the default projection style. It simply integrates the 
+    This is the default projection method. It simply integrates the 
     requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` , 
     given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or 
     :math:`\hat{k}`).  The units of the projected field  
@@ -258,7 +273,7 @@ following:
     g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
 
 ``integrate`` (weighted)
-    When using the ``integrate``  style, a ``weight_field`` argument may also 
+    When using the ``integrate``  method, a ``weight_field`` argument may also 
     be specified, which will produce a weighted projection.  :math:`w(x)` 
     is the field used as a weight. One common example would 
     be to weight the "temperature" field by the "density" field. In this case, 
@@ -269,16 +284,17 @@ following:
     g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
 
 ``mip`` 
-    This style picks out the maximum value of a field along the line of 
+    This method picks out the maximum value of a field along the line of 
     sight given by the axis parameter.
 
 ``sum``
-    This style is the same as ``integrate``, except that it does not 
+    This method is the same as ``integrate``, except that it does not 
     multiply by a path length when performing the integration, and is just a 
     straight summation of the field along the given axis. The units of the 
     projected field will be the same as those of the unprojected field. This 
-    style is typically only useful for datasets such as 3D FITS cubes where 
-    the third axis of the dataset is something like velocity or frequency.
+    method is typically only useful for datasets such as 3D FITS cubes where 
+    the third axis of the dataset is something like velocity or frequency, and
+    should _only_ be used with fixed-resolution grid-based datasets.
 
 .. _off-axis-projections:
 
@@ -338,8 +354,8 @@ OffAxisProjectionPlots can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
 
-Plot Customization
-------------------
+Plot Customization: Recentering, Resizing, Colormaps, and More
+--------------------------------------------------------------
 
 You can customize each of the four plot types above in identical ways.  We'll go
 over each of the customizations methods below.  For each of the examples below we
@@ -422,6 +438,29 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+
+.. _hiding-colorbar-and-axes:
+
+Hiding the Colorbar and Axis Labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :class:`~yt.visualization.plot_window.PlotWindow` class has functions
+attached for hiding/showing the colorbar and axes.  This allows for making
+minimal plots that focus on the data:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.hide_colorbar()
+   slc.hide_axes()
+   slc.save()
+
+See the cookbook recipe :ref:`show-hide-axes-colorbar` and the 
+`full function description ~yt.visualization.plot_window.PlotWindow` for more
+information.
+
 Fonts
 ~~~~~
 
@@ -467,6 +506,21 @@ linear.
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_log('density', False)
+   slc.save()
+
+Specifically, a field containing both positive and negative values can be plotted
+with symlog scale, by seting the boolean to be ``True`` and providing an extra
+parameter ``linthresh``. In the region around zero (when the log scale approaches
+to infinity), the linear scale will be applied to the region ``(-linthresh, linthresh)``
+and stretched relative to the logarithmic range. You can also plot a positive field 
+under symlog scale with the linear range of ``(0, linthresh)``.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'x-velocity', width=(30,'kpc'))
+   slc.set_log('x-velocity', True, linthresh=1.e1)
    slc.save()
 
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
@@ -531,15 +585,36 @@ To change the resolution of the image, call the
    slc.set_buff_size(1600)
    slc.save()
 
+Turning off minorticks
+~~~~~~~~~~~~~~~~~~~~~~
+
+By default minorticks for the x and y axes are turned on.
+The minorticks may be removed using the
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_minorticks`
+function, which either accepts a specific field name including the 'all' alias
+and the desired state for the plot as 'on' or 'off'. There is also an analogous
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cbar_minorticks`
+function for the colorbar axis.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.set_minorticks('all', 'off')
+   slc.set_cbar_minorticks('all', 'off')
+   slc.save()
+
 .. _matplotlib-customization:
 
 Further customization via matplotlib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each ``PlotWindow`` object is really a container for plots - one plot for each
-field specified in the list of fields supplied when the plot object is
-created. The individual plots can be accessed via the ``plots`` dictionary
-attached to each ``PlotWindow`` object:
+Each :class:`~yt.visualization.plot_window.PlotWindow` object is really a 
+container for plots - one plot for each field specified in the list of fields 
+supplied when the plot object is created. The individual plots can be 
+accessed via the ``plots`` dictionary attached to each 
+:class:`~yt.visualization.plot_window.PlotWindow` object:
 
 .. code-block:: python
 
@@ -548,7 +623,11 @@ attached to each ``PlotWindow`` object:
 
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
-matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib primitives via attributes of ``dens_plot``.
+matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+objects.  We can access these matplotlib primitives via attributes of 
+``dens_plot``.  
 
 .. code-block:: python
 
@@ -556,10 +635,12 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
     axes = dens_plot.axes
     colorbar_axes = dens_plot.cax
 
-These are the ``figure``, and ``axes`` objects
-that control the actual drawing of the plot.  Arbitrary plot customizations
-are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
-an example.
+These are the 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_ 
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_ 
+objects that control the actual drawing of the plot.  Arbitrary plot 
+customizations are possible by manipulating these objects.  See 
+:ref:`matplotlib-primitives` for an example.
 
 .. _how-to-make-1d-profiles:
 
@@ -743,7 +824,7 @@ Units for both the x and y axis can be controlled via the
 Adjusting the plot units does not require recreating the histogram, so adjusting
 units will always be inexpensive, requiring only an in-place unit conversion.
 
-In the following example we create a a plot of the average density in solar
+In the following example we create a plot of the average density in solar
 masses per cubic parsec as a function of radius in kiloparsecs.
 
 .. python-script::
@@ -892,7 +973,7 @@ turned into probability distribution functions (PDFs) by setting the
 ``fractional`` keyword to ``True``.  When set to ``True``, the value in each bin
 is divided by the sum total from all bins.  These can be turned into cumulative
 distribution functions (CDFs) by setting the ``accumulation`` keyword to
-``True``.  This will make is so that the value in any bin N is the cumulative
+``True``.  This will make it so that the value in any bin N is the cumulative
 sum of all bins from 0 to N.  The direction of the summation can be reversed by
 setting ``accumulation`` to ``-True``.  For ``PhasePlot``, the accumulation can
 be set independently for each axis by setting ``accumulation`` to a list of
@@ -927,6 +1008,81 @@ plot and then call ``.show()`` and the image will appear inline:
                       weight_field='density')
    p.set_figure_size(5)
    p.show()
+
+.. _saving_plots:
+
+Saving Plots
+------------
+
+If you want to save your yt plots, you have a couple of options for customizing 
+the plot filenames. If you don't care what the filenames are, just calling the
+``save`` method with no additional arguments usually suffices:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
+   slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
+   slc.save()
+   
+which will yield PNG plots with the filenames
+
+.. code-block:: bash
+
+   $ ls *.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_density.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_kT.png
+
+which has a general form of
+
+.. code-block::
+ 
+   [dataset name]_[plot type]_[axis]_[field name].[suffix]
+   
+Calling ``save`` with a single argument or the ``name`` keyword argument
+specifies an alternative name for the plot:
+
+.. code-block:: python
+
+   slc.save("bananas")
+
+or 
+
+.. code-block:: python
+
+   slc.save(name="bananas")
+
+yields
+
+.. code-block:: bash
+
+   $ ls *.png
+   bananas_Slice_z_kT.png
+   bananas_Slice_z_density.png
+
+If you call ``save`` with a full filename with a file suffix, the plot
+will be saved with that filename:
+
+.. code-block:: python
+ 
+   slc.save("sloshing.png")
+   
+since this will take any field and plot it with this filename, it is
+typically only useful if you are plotting one field. If you want to 
+simply change the image format of the plotted file, use the ``suffix``
+keyword:
+
+.. code-block:: python
+
+   slc.save(name="bananas", suffix="eps")
+
+yielding
+
+.. code-block:: bash
+
+   $ ls *.eps
+   bananas_Slice_z_kT.eps
+   bananas_Slice_z_density.eps
 
 .. _eps-writer:
 

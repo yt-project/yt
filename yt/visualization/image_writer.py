@@ -2,6 +2,8 @@
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -18,11 +20,17 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.exceptions import YTNotInsideNotebook
-from color_maps import mcm
-import _colormap_data as cmd
+from .color_maps import mcm
+from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
+import warnings
+try:
+    import palettable
+    has_palettable = True
+except:
+    has_palettable = False
 try:
     import brewer2mpl
     has_brewer = True
@@ -47,7 +55,7 @@ def scale_image(image, mi=None, ma=None):
     """
     if isinstance(image, np.ndarray) and image.dtype == np.uint8:
         return image
-    if isinstance(image, (types.TupleType, types.ListType)):
+    if isinstance(image, (tuple, list)):
         image, mi, ma = image
     if mi is None:
         mi = image.min()
@@ -254,22 +262,29 @@ def map_to_colors(buff, cmap_name):
         lut = cmd.color_map_luts[cmap_name]
     except KeyError:
         try:
+            # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
             if isinstance(cmap_name, tuple):
-                if has_brewer:
+                if has_palettable:
+                    bmap = palettable.colorbrewer.get_map(*cmap_name)
+                elif has_brewer:
+                    warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                                  "Please install the successor to brewer2mpl, "
+                                  "palettable, with `pip install palettable`. "
+                                  "Colormap tuple names remain unchanged.")
                     bmap = brewer2mpl.get_map(*cmap_name)
-                    cmap = bmap.get_mpl_colormap(N=cmap_name[2])
                 else:
-                    raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
+                    raise RuntimeError("Please install palettable to use colorbrewer colormaps")
+                cmap = bmap.get_mpl_colormap(N=cmap_name[2])
             else:
                 cmap = mcm.get_cmap(cmap_name)
             dummy = cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
-            print "Your color map was not found in either the extracted" +\
-                " colormap file or matplotlib colormaps"
+            print("Your color map was not found in either the extracted" +\
+                " colormap file or matplotlib colormaps")
             raise KeyError(cmap_name)
 
-    if isinstance(cmap_name, tuple) and has_brewer:
+    if isinstance(cmap_name, tuple) and (has_palettable or has_brewer):
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
@@ -288,14 +303,14 @@ def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
                      "kamae")):
     import pprint
-    import color_maps as rcm
+    from . import color_maps as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
     f.write("color_map_luts = {}\n\n\n")
     if cmaps is None: cmaps = rcm.ColorMaps
     for cmap_name in sorted(cmaps):
-        print "Stripping", cmap_name
+        print("Stripping", cmap_name)
         vals = rcm._extract_lookup_table(cmap_name)
         f.write("### %s ###\n\n" % (cmap_name))
         f.write("color_map_luts['%s'] = \\\n" % (cmap_name))

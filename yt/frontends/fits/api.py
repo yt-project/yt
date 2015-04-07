@@ -23,3 +23,5 @@ from .io import \
 
 from .misc import \
       setup_counts_fields
+
+from . import tests

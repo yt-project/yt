@@ -24,3 +24,5 @@ from .io import \
 
 from .definitions import \
       field_aliases
+
+from . import tests

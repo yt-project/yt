@@ -1,6 +1,7 @@
 """
 Particle trajectories
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -135,7 +136,7 @@ class ParticleTrajectories(object):
         """
         if key == "particle_time":
             return self.times
-        if not self.field_data.has_key(key):
+        if key not in self.field_data:
             self._get_data(key)
         return self.field_data[key]
     
@@ -157,7 +158,7 @@ class ParticleTrajectories(object):
         the different particles, returning dicts
         of fields for each trajectory
         """
-        for idx in xrange(self.num_indices):
+        for idx in range(self.num_indices):
             traj = {}
             traj["particle_index"] = self.indices[idx]
             traj["particle_time"] = self.times
@@ -188,7 +189,7 @@ class ParticleTrajectories(object):
         >>> trajs.add_fields(["particle_mass", "particle_gpot"])
         """
         for field in fields:
-            if not self.field_data.has_key(field):
+            if field not in self.field_data:
                 self._get_data(field)
                 
     def _get_data(self, field):
@@ -197,7 +198,7 @@ class ParticleTrajectories(object):
         The trajectory collection itself is a dict of 2D numpy arrays,
         with shape (num_indices, num_steps)
         """
-        if not self.field_data.has_key(field):
+        if field not in self.field_data:
             if self.suppress_logging:
                 old_level = int(ytcfg.get("yt","loglevel"))
                 mylog.setLevel(40)
@@ -274,7 +275,7 @@ class ParticleTrajectories(object):
         """
         mask = np.in1d(self.indices, (index,), assume_unique=True)
         if not np.any(mask):
-            print "The particle index %d is not in the list!" % (index)
+            print("The particle index %d is not in the list!" % (index))
             raise IndexError
         fields = [field for field in sorted(self.field_data.keys())]
         traj = {}
@@ -306,9 +307,9 @@ class ParticleTrajectories(object):
         num_fields = len(fields)
         first_str = "# particle_time\t" + "\t".join(fields)+"\n"
         template_str = "%g\t"*num_fields+"%g\n"
-        for ix in xrange(self.num_indices):
+        for ix in range(self.num_indices):
             outlines = [first_str]
-            for it in xrange(self.num_steps):
+            for it in range(self.num_steps):
                 outlines.append(template_str %
                                 tuple([self.times[it]]+[self[field][ix,it] for field in fields]))
             fid = open(filename_base + "_%d.dat" % self.indices[ix], "w")

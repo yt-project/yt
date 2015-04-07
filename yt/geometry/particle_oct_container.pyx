@@ -34,7 +34,7 @@ from particle_deposit cimport gind
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     #The starting oct index of each domain
-    cdef np.int64_t *dom_offsets 
+    cdef np.int64_t *dom_offsets
     cdef public int max_level
     #How many particles do we keep befor refining
     cdef public int n_ref
@@ -95,7 +95,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
     def __iter__(self):
         #Get the next oct, will traverse domains
-        #Note that oct containers can be sorted 
+        #Note that oct containers can be sorted
         #so that consecutive octs are on the same domain
         cdef int oi
         cdef Oct *o
@@ -167,7 +167,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef np.int64_t no = indices.shape[0], p, index
-        cdef int i, level, ind[3]
+        cdef int i, level
+        cdef int ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
@@ -205,7 +206,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
-        cdef int i, j, k, m, n, ind[3]
+        cdef int i, j, k, m, n
+        cdef int ind[3]
         cdef Oct *noct
         cdef np.uint64_t prefix1, prefix2
         # TODO: This does not need to be changed.
@@ -254,7 +256,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if counts[i] == 0: break
             level_counts[i] = counts[i]
         return level_counts
-        
+
     cdef visit(self, Oct *o, np.int64_t *counts, level = 0):
         cdef int i, j, k
         counts[level] += 1
@@ -336,6 +338,7 @@ cdef class ParticleForest:
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
                               np.uint64_t file_id, int filter,
                               np.float64_t rel_buffer):
+        # TODO: Replace with the bitarray
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3], ind2[3], i, j, k, use, off_ind[3][2], off_count[3]
@@ -435,7 +438,8 @@ cdef class ParticleForest:
             return self._last_return_values
         cdef int i, j, k, n
         cdef np.uint64_t fmask, bmask, offset, fcheck, pcount
-        cdef np.float64_t LE[3], RE[3]
+        cdef np.float64_t LE[3]
+        cdef np.float64_t RE[3]
         cdef np.ndarray[np.uint64_t, ndim=3] mask, buffer_mask
         cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
         cdef np.ndarray[np.uint8_t, ndim=3] omask

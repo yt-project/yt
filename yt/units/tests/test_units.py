@@ -5,6 +5,7 @@ Test symbolic unit handling.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -56,7 +57,7 @@ def test_no_conflicting_symbols():
 
             # test if we have seen this symbol
             if new_symbol in full_set:
-                print "Duplicate symbol: %s" % new_symbol
+                print("Duplicate symbol: %s" % new_symbol)
                 raise RuntimeError
 
             full_set.add(new_symbol)
@@ -204,14 +205,14 @@ def test_create_new_symbol():
     yield assert_true, u1.cgs_value == 42
     yield assert_true,  u1.dimensions == length**2*mass
 
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length**length}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length**(length*length)}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length-mass}
-    yield assert_raises, UnitParseError, Unit, 'abc', \
-        {'cgs_value':42, 'dimensions':length+mass}
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length**length)
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length**(length*length))
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length-mass)
+    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+                  dimensions=length+mass)
 
 def test_create_fail_on_unknown_symbol():
     """
