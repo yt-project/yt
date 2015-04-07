@@ -732,7 +732,10 @@ class Dataset(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        if hasattr(self, 'magnetic_unit'):
+            # If we do not have this set, but some fields come in in
+            # "code_magnetic", this will allow them to remain in that unit.
+            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         vel_unit = getattr(
             self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
