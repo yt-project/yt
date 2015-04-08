@@ -53,9 +53,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("Y-momentum", (mom_units, ["momentum_y"], None)),
         ("Z-momentum", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
-        ("X-magnfield", ("gauss", ["magnetic_field_x"], None)),
-        ("Y-magnfield", ("gauss", ["magnetic_field_y"], None)),
-        ("Z-magnfield", ("gauss", ["magnetic_field_z"], None)),
+        ("X-magnfield", (b_units, ["magnetic_field_x"], None)),
+        ("Y-magnfield", (b_units, ["magnetic_field_y"], None)),
+        ("Z-magnfield", (b_units, ["magnetic_field_z"], None)),
     )
 
     known_particle_fields = (
@@ -120,7 +120,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data["momentum_%s" % ax]/data["density"]
+                return data["momentum_%s" % axis]/data["density"]
             return velocity
 
         for ax in 'xyz':
