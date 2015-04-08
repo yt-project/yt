@@ -81,7 +81,8 @@ class GadgetDataset(ParticleDataset):
                  field_spec = "default",
                  ptype_spec = "default",
                  long_ids = False,
-                 units_override=None):
+                 units_override=None,
+                 header_offset = 0):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
