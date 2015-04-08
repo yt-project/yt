@@ -692,6 +692,7 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.RayCallback
    ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
@@ -700,6 +701,19 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.TitleCallback
    ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
+
+Colormap Functions
+------------------
+
+
+See also :ref:`colormaps`.
+
+.. autosummary::
+   :toctree: generated/
+   
+   ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.make_colormap
+   ~yt.visualization.color_maps.show_colormaps
 
 Function List
 -------------

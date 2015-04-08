@@ -20,11 +20,17 @@ from ._mpl_imports import \
 from yt.funcs import \
     get_image_suffix, mylog, iterable
 import numpy as np
+import warnings
 try:
     import brewer2mpl
     has_brewer = True
 except:
     has_brewer = False
+try:
+    import palettable
+    has_palettable = True
+except:
+    has_palettable = False
 
 
 class CallbackWrapper(object):
@@ -125,13 +131,20 @@ class ImagePlotMPL(PlotMPL):
                 cblinthresh = (data.max()-data.min())/10.
             norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
         extent = [float(e) for e in extent]
+        # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
-            if has_brewer:
+            if has_palettable:
+                bmap = palettable.colorbrewer.get_map(*cmap)
+            elif has_brewer:
+                warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                              "Please install the successor to brewer2mpl, "
+                              "palettable, with `pip install palettable`. "
+                              "Colormap tuple names remain unchanged.")
                 bmap = brewer2mpl.get_map(*cmap)
-                cmap = bmap.get_mpl_colormap(N=cmap[2])
             else:
                 raise RuntimeError(
-                    "Please install brewer2mpl to use colorbrewer colormaps")
+                    "Please install palettable to use colorbrewer colormaps")
+            cmap = bmap.get_mpl_colormap(N=cmap[2])
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,

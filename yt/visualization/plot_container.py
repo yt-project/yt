@@ -270,7 +270,7 @@ class ImagePlotContainer(object):
         cmap : string or tuple
             If a string, will be interpreted as name of the colormap.
             If a tuple, it is assumed to be of the form (name, type, number)
-            to be used for brewer2mpl functionality. (name, type, number, bool)
+            to be used for palettable functionality. (name, type, number, bool)
             can be used to specify if a reverse colormap is to be used.
 
         """

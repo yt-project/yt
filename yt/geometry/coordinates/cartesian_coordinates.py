@@ -23,11 +23,11 @@ import yt.visualization._MPL as _MPL
 
 class CartesianCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, ds):
-        super(CartesianCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('x','y','z')):
+        super(CartesianCoordinateHandler, self).__init__(ds, ordering)
 
     def setup_fields(self, registry):
-        for axi, ax in enumerate('xyz'):
+        for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
@@ -104,20 +104,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
-    # Despite being mutables, we uses these here to be clear about how these
-    # are generated and to ensure that they are not re-generated unnecessarily
-    axis_name = { 0  : 'x',  1  : 'y',  2  : 'z',
-                 'x' : 'x', 'y' : 'y', 'z' : 'z',
-                 'X' : 'x', 'Y' : 'y', 'Z' : 'z'}
-
-    axis_id = { 'x' : 0, 'y' : 1, 'z' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
-
-    x_axis = { 'x' : 1, 'y' : 2, 'z' : 0,
-                0  : 1,  1  : 2,  2  : 0}
-
-    y_axis = { 'x' : 2, 'y' : 0, 'z' : 1,
-                0  : 2,  1  : 0,  2  : 1}
+    _x_pairs = (('x', 'y'), ('y', 'z'), ('z', 'x'))
+    _y_pairs = (('x', 'z'), ('y', 'x'), ('z', 'y'))
 
     @property
     def period(self):

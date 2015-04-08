@@ -633,3 +633,28 @@ Annotate Triangle Facets Callback
    # Annotate slice-triangle intersection contours to the plot
    s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
    s.save()
+
+.. _annotate-ray:
+
+Overplot the Path of a Ray
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_ray(ray, plot_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.RayCallback`.)
+
+    Adds a line representing the projected path of a ray across the plot.
+    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    annotate_ray() will properly account for periodic rays across the volume.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   oray = ds.ortho_ray(0, (0.3, 0.4))
+   ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8))
+   p = yt.ProjectionPlot(ds, 'z', 'density')
+   p.annotate_ray(oray)
+   p.annotate_ray(ray)
+   p.save()

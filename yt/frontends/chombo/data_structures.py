@@ -18,7 +18,6 @@ import re
 import os
 import weakref
 import numpy as np
-import six
 
 from stat import \
     ST_CTIME
@@ -26,6 +25,7 @@ from stat import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -283,6 +283,7 @@ class ChomboDataset(Dataset):
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
+        self.magnetic_unit = self.quan(1.0, "gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
