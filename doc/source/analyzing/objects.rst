@@ -500,6 +500,15 @@ To re-load an object saved this way, you can use the shelve module directly:
 Additionally, we can store multiple objects in a single shelve file, so we 
 have to call the sphere by name.
 
+For certain data objects such as projections, serialization can be performed
+automatically if ``serialize`` option is set to ``True`` in
+:ref:`configuration-file`: or set directly in the script:
+
+.. code-block:: python
+
+   from yt.config import ytcfg; ytcfg["yt", "serialize"] = "True"
+
+
 .. note:: It's also possible to use the standard :mod:`cPickle` module for
           loading and storing objects -- so in theory you could even save a
           list of objects!
