@@ -343,8 +343,8 @@ class GridIndex(Index):
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
     _grid_chunksize = 1000
-    def _chunk_io(self, dobj, cache = True, local_only = False,
-                  preload_fields = None):
+    def _chunk_io(self, dobj, cache=True, local_only=False,
+                  preload_fields=None, load_balance="auto"):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
         if preload_fields is None:
@@ -359,8 +359,14 @@ class GridIndex(Index):
             # We can apply a heuristic here to make sure we aren't loading too
             # many grids all at once.
             gs = gfiles[fn]
-            size = self._grid_chunksize
-            
+            if load_balance == "auto":
+                nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
+                size = min(1, self._grid_chunksize//nproc)
+            elif load_balance == "just_one":
+                size = 1
+            elif load_balance == "old":
+                size = self._grid_chunksize
+
             for grids in (gs[pos:pos + size] for pos
                           in range(0, len(gs), size)):
                 dc = YTDataChunk(dobj, "io", grids,
@@ -368,5 +374,5 @@ class GridIndex(Index):
                         cache = cache, fast_index = fast_index)
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 
-                            4.0 * self._grid_chunksize):
+                            4.0 * size):
                     yield dc
