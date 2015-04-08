@@ -54,6 +54,7 @@ class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
     _preload_implemented = True
+    _grid_chunksize = 100
     
     def __init__(self,ds,dataset_type='flash_hdf5'):
         self.dataset_type = dataset_type
