@@ -70,7 +70,7 @@ def _deserialize_from_h5(g, ds):
                 result[item] = g[item][()]  # fallback to scalar
     return result
 
-if sys.version[0] < 3:
+if sys.version_info < (3, 0):
     from .poster.streaminghttp import register_openers
     from .poster.encode import multipart_encode
     register_openers()
