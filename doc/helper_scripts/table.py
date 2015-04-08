@@ -75,4 +75,4 @@ for heading, items in contents:
     for subheading in items:
         s += subheading_template % subheading
     t += heading_template % (heading, s)
-print t
+print(t)

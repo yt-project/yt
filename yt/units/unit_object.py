@@ -12,6 +12,7 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six import text_type
 from sympy import \
     Expr, Mul, Add, Number, \
     Pow, Symbol, Integer, \
@@ -145,7 +146,7 @@ class Unit(Expr):
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         unit_key = None
-        if isinstance(unit_expr, (str, bytes, unicode)):
+        if isinstance(unit_expr, (str, bytes, text_type)):
             if isinstance(unit_expr, bytes):
                 unit_expr = unit_expr.decode("utf-8")
 
@@ -346,6 +347,9 @@ class Unit(Expr):
             return True
         return \
           (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def __deepcopy__(self, memodict=None):
         if memodict is None:

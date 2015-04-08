@@ -7,9 +7,7 @@ import sys
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('yt', parent_package, top_path)
-    if sys.version[0] != '3':
-        config.add_subpackage('analysis_modules') 
-
+    config.add_subpackage('analysis_modules')
     config.add_subpackage('data_objects')
     config.add_subpackage('fields')
     config.add_subpackage('extern')

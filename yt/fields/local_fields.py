@@ -15,6 +15,9 @@ This is a container for storing local fields defined on each load of yt.
 
 import numpy as np
 
+from yt.utilities.logger import \
+    ytLogger as mylog
+
 from .field_plugin_registry import \
     register_field_plugin
 
@@ -25,6 +28,11 @@ class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, **kwargs):
         if not isinstance(name, tuple):
             name = ('gas', name)
+        override = kwargs.get("force_override", False)
+        # Handle the case where the field has already been added.
+        if not override and name in self:
+            mylog.warning("Field %s already exists. To override use " +
+                          "force_override=True.", name)
         return super(LocalFieldInfoContainer,
                      self).add_field(name, function, **kwargs)
 

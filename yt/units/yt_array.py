@@ -4,7 +4,7 @@ YTArray class.
 
 
 """
-
+from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -156,24 +156,24 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : ndarray or ndarray subclass
-        An array to attach units to
+    input_array : iterable
+        A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        syntax (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
     --------
 
     >>> from yt import YTArray
-    >>> a = YTArray([1,2,3], 'cm')
-    >>> b = YTArray([4,5,6], 'm')
+    >>> a = YTArray([1, 2, 3], 'cm')
+    >>> b = YTArray([4, 5, 6], 'm')
     >>> a + b
     YTArray([ 401.,  502.,  603.]) cm
     >>> b + a
@@ -494,7 +494,7 @@ class YTArray(np.ndarray):
         """
         for k,v in equivalence_registry.items():
             if self.has_equivalent(k):
-                print v()
+                print(v())
 
     def has_equivalent(self, equiv):
         """
@@ -610,7 +610,7 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
+        for k, v in info.items():
             d.attrs[k] = v
         f.close()
 
@@ -1097,16 +1097,16 @@ class YTQuantity(YTArray):
     Parameters
     ----------
 
-    input_scalar : ndarray or ndarray subclass
-        An array to attach units to
+    input_scalar : an integer or floating point scalar
+        The scalar to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
-        The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        The units of the quantity. Powers must be specified using python syntax
+        (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
@@ -1129,7 +1129,7 @@ class YTQuantity(YTArray):
 
     and strip them when it would be annoying to deal with them.
 
-    >>> print np.log10(a)
+    >>> print(np.log10(a))
     1.07918124605
 
     YTQuantity is tightly integrated with yt datasets:

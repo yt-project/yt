@@ -18,7 +18,6 @@ import numpy as np
 import matplotlib
 import types
 import sys
-import warnings
 
 from distutils.version import LooseVersion
 from matplotlib.mathtext import MathTextParser
@@ -37,11 +36,13 @@ from .plot_container import \
     log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
+from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.time_series import \
     DatasetSeries
 from yt.extern.six.moves import \
     StringIO
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, validate_width_tuple, \
@@ -60,11 +61,14 @@ from yt.utilities.definitions import \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
+from yt.utilities.orientation import \
+    Orientation
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError
+    YTUnitConversionError, \
+    YTPlotCallbackError
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -152,7 +156,7 @@ def get_axes_unit(width, ds):
     if ds.no_cgs_equiv_length:
         return ("code_length",)*2
     if iterable(width):
-        if isinstance(width[1], basestring):
+        if isinstance(width[1], string_types):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
@@ -199,7 +203,6 @@ class PlotWindow(ImagePlotContainer):
         including the margins but not the colorbar.
 
     """
-    frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False, 
                  window_size=8.0, fields=None, fontsize=18, aspect=None, 
@@ -208,7 +211,6 @@ class PlotWindow(ImagePlotContainer):
             self.ds = data_source.ds
             ts = self._initialize_dataset(self.ds)
             self.ts = ts
-        self._initfinished = False
         self._axes_unit_names = None
         self.center = None
         self._periodic = periodic
@@ -234,14 +236,14 @@ class PlotWindow(ImagePlotContainer):
                 self.data_source.center, ax)
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
-        for field in self.data_source._determine_fields(self.frb.data.keys()):
+        for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
-        self._initfinished = True
+        self._setup_plots()
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
@@ -260,11 +262,32 @@ class PlotWindow(ImagePlotContainer):
             self._switch_ds(ds)
             yield self
 
+    _frb = None
+    def frb():
+        doc = "The frb property."
+        def fget(self):
+            if self._frb is None:
+                self._recreate_frb()
+            return self._frb
+
+        def fset(self, value):
+            self._frb = value
+
+        def fdel(self):
+            del self._frb
+            self._frb = None
+
+        return locals()
+    frb = property(**frb())
+
     def _recreate_frb(self):
         old_fields = None
-        if self.frb is not None:
-            old_fields = self.frb.keys()
+        # If we are regenerating an frb, we want to know what fields we had before
+        if self._frb is not None:
+            old_fields = list(self.frb.keys())
             old_units = [str(self.frb[of].units) for of in old_fields]
+
+        # Set the bounds
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
@@ -272,17 +295,24 @@ class PlotWindow(ImagePlotContainer):
         if self._frb_generator is ObliqueFixedResolutionBuffer:
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
-        self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
-                                       self.antialias, periodic=self._periodic)
-        if old_fields is None:
-            self.frb._get_data_source_fields()
-        else:
-            for key, unit in zip(old_fields, old_units):
-                self.frb[key]
-                self.frb[key].convert_to_units(unit)
-        for key in self.override_fields:
-            self.frb[key]
+        # Generate the FRB
+        self._frb = self._frb_generator(self.data_source, bounds,
+                                        self.buff_size, self.antialias,
+                                        periodic=self._periodic)
+
+        # At this point the frb has the valid bounds, size, aliasing, etc.
         self._data_valid = True
+        if old_fields is None:
+            self._frb._get_data_source_fields()
+        else:
+            # Restore the old fields
+            for key, unit in zip(old_fields, old_units):
+                self._frb[key]
+                self._frb[key].convert_to_units(unit)
+
+        # Restore the override fields
+        for key in self.override_fields:
+            self._frb[key]
 
     @property
     def width(self):
@@ -397,8 +427,8 @@ class PlotWindow(ImagePlotContainer):
             'center'.  Finally, the whether the origin is applied in 'domain'
             space, plot 'window' space or 'native' simulation coordinate system
             is given. For example, both 'upper-right-domain' and ['upper',
-            'right', 'domain'] both place the origin in the upper right hand
-            corner of domain space. If x or y are not given, a value is inffered.
+            'right', 'domain'] place the origin in the upper right hand
+            corner of domain space. If x or y are not given, a value is inferred.
             For instance, 'left-domain' corresponds to the lower-left hand corner
             of the simulation domain, 'center-domain' corresponds to the center
             of the simulation domain, or 'center-window' for the center of the
@@ -608,7 +638,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, basestring):
+            if isinstance(unit_name, string_types):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
@@ -618,14 +648,6 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = unit_name
         return self
 
-    @property
-    def _frb(self):
-        # Note we use SyntaxWarning because DeprecationWarning is not shown
-        # by default
-        warnings.warn("_frb is deprecated, use frb instead.",
-                      SyntaxWarning)
-        return self.frb
-
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -633,6 +655,7 @@ class PWViewerMPL(PlotWindow):
     _current_field = None
     _frb_generator = None
     _plot_type = None
+    _data_valid = False
 
     def __init__(self, *args, **kwargs):
         if self._frb_generator is None:
@@ -644,7 +667,7 @@ class PWViewerMPL(PlotWindow):
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
-        if isinstance(origin, basestring):
+        if isinstance(origin, string_types):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
             origin = ('lower', 'left') + origin
@@ -704,6 +727,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        if self._plot_valid: return
         self._colorbar_valid = True
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
@@ -928,11 +952,9 @@ class PWViewerMPL(PlotWindow):
 
     def setup_callbacks(self):
         for key in callback_registry:
-            ignored = ['PlotCallback','CoordAxesCallback','LabelCallback',
-                       'UnitBoundaryCallback']
+            ignored = ['PlotCallback']
             if self._plot_type.startswith('OffAxis'):
-                ignored += ['HopCirclesCallback','HopParticleCallback',
-                            'ParticleCallback','ClumpContourCallback',
+                ignored += ['ParticleCallback','ClumpContourCallback',
                             'GridBoundaryCallback']
             if self._plot_type == 'OffAxisProjection':
                 ignored += ['VelocityCallback','MagFieldCallback',
@@ -945,6 +967,37 @@ class PWViewerMPL(PlotWindow):
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+
+    def annotate_clear(self, index=None):
+        """
+        Clear callbacks from the plot.  If index is not set, clear all 
+        callbacks.  If index is set, clear that index (ie 0 is the first one
+        created, 1 is the 2nd one created, -1 is the last one created, etc.)
+        """
+        if index is None:
+            self._callbacks = []
+        else:
+            del self._callbacks[index]
+        self.setup_callbacks()
+        
+
+    def run_callbacks(self):
+        for f in self.fields:
+            keys = self.frb.keys()
+            for name, (args, kwargs) in self._callbacks:
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                                      self._font_properties, self._font_color)
+                CallbackMaker = callback_registry[name]
+                callback = CallbackMaker(*args[1:], **kwargs)
+                try:
+                    callback(cbw)
+                except Exception as e:
+                    raise YTPlotCallbackError, \
+                          YTPlotCallbackError(callback._type_name, e), \
+                          sys.exc_info()[2]
+            for key in self.frb.keys():
+                if key not in keys:
+                    del self.frb[key]
 
     def hide_colorbar(self, field=None):
         """
@@ -1120,15 +1173,15 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inffered.
-         For instance, 'left-domain' corresponds to the lower-left hand corner
-         of the simulation domain, 'center-domain' corresponds to the center
-         of the simulation domain, or 'center-window' for the center of the
-         plot window. Further examples:
+         'right', 'domain'] place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inferred.
+         For instance, the default location 'center-window' corresponds to
+         the center of the plot window, 'left-domain' corresponds to the
+         lower-left hand corner of the simulation domain, or 'center-domain'
+         for the center of the simulation domain. Further examples:
 
          ==================================     ============================
          format                                 example
@@ -1154,7 +1207,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     Examples
     --------
 
-    This will save an image the the file 'sliceplot_Density
+    This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -1247,11 +1300,11 @@ class ProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] both place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inffered.
+         'right', 'domain'] place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inferred.
          For instance, 'left-domain' corresponds to the lower-left hand corner
          of the simulation domain, 'center-domain' corresponds to the center
          of the simulation domain, or 'center-window' for the center of the
@@ -1463,6 +1516,7 @@ class OffAxisProjectionDummyDataSource(object):
         self.re = re
         self.north_vector = north_vector
         self.method = method
+        self.orienter = Orientation(normal_vector, north_vector=north_vector)
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -1946,12 +2000,12 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          this parameter is discarded.  This is represented by '-' separated
          string or a tuple of strings.  In the first index the y-location is
          given by 'lower', 'upper', or 'center'.  The second index is the
-         x-location, given as 'left', 'right', or 'center'.  Finally, the
+         x-location, given as 'left', 'right', or 'center'.  Finally,
          whether the origin is applied in 'domain' space, plot 'window' space
          or 'native' simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] both place the
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
          origin in the upper right hand corner of domain space. If x or y are
-         not given, a value is inffered.  For instance, 'left-domain'
+         not given, a value is inferred.  For instance, 'left-domain'
          corresponds to the lower-left hand corner of the simulation domain,
          'center-domain' corresponds to the center of the simulation domain,
          or 'center-window' for the center of the plot window. Further
@@ -2002,7 +2056,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     """
     # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatability
+    # we check the axis keyword for backwards compatibility
     if normal is None: normal = axis
     if normal is None:
         raise AssertionError("Must pass a normal vector to the slice!")
@@ -2014,7 +2068,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -2022,7 +2076,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, basestring):
+    if iterable(normal) and not isinstance(normal, string_types):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \

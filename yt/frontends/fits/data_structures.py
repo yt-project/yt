@@ -19,6 +19,7 @@ import warnings
 import re
 import uuid
 
+from yt.extern.six import iteritems
 from yt.config import ytcfg
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -47,7 +48,7 @@ from yt.utilities.on_demand_imports import _astropy, NotAModule
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
 delimiters = ["*", "/", "-", "^", "(", ")"]
-delimiters += [str(i) for i in xrange(10)]
+delimiters += [str(i) for i in range(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 spec_names = {"V":"Velocity",
@@ -116,7 +117,7 @@ class FITSHierarchy(GridIndex):
     def _ensure_same_dims(self, hdu):
         ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
-        for i in xrange(ds.naxis):
+        for i in range(ds.naxis):
             nax = "naxis%d" % (i+1)
             conditions.append(hdu.header[nax] != ds.primary_header[nax])
         if np.any(conditions):
@@ -146,7 +147,7 @@ class FITSHierarchy(GridIndex):
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
         known_units = dict([(unit.lower(),unit) for unit in self.ds.unit_registry.lut])
-        for unit in known_units.values():
+        for unit in list(known_units.values()):
             if unit in prefixable_units:
                 for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
@@ -181,7 +182,7 @@ class FITSHierarchy(GridIndex):
                                       (fname, fname, dup_field_index[fname]) +
                                       " this, change one of the BTYPE header keywords.")
                         fname += "_%d" % (dup_field_index[fname])
-                    for k in xrange(naxis4):
+                    for k in range(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
                         self._axis_map[fname] = k
@@ -207,7 +208,7 @@ class FITSHierarchy(GridIndex):
         # For now, we pick off the first field from the field list.
         line_db = self.dataset.line_database
         primary_fname = self.field_list[0][1]
-        for k, v in line_db.iteritems():
+        for k, v in iteritems(line_db):
             mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
             self.field_list.append((self.dataset_type, k))
             self._ext_map[k] = self._ext_map[primary_fname]
@@ -268,11 +269,11 @@ class FITSHierarchy(GridIndex):
 
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
 
     def _populate_grid_objects(self):
-        for i in xrange(self.num_grids):
+        for i in range(self.num_grids):
             self.grids[i]._prepare_grid()
             self.grids[i]._setup_dx()
         self.max_level = 0
@@ -418,9 +419,9 @@ class FITSDataset(Dataset):
             self.primary_header = self._handle[self.first_image].header
             self.naxis = self.primary_header["naxis"]
             self.axis_names = [self.primary_header["ctype%d" % (i+1)]
-                               for i in xrange(self.naxis)]
+                               for i in range(self.naxis)]
             self.dims = [self.primary_header["naxis%d" % (i+1)]
-                         for i in xrange(self.naxis)]
+                         for i in range(self.naxis)]
 
             wcs = _astropy.pywcs.WCS(header=self.primary_header)
             if self.naxis == 4:
@@ -450,7 +451,7 @@ class FITSDataset(Dataset):
                 more_length_units += [prefix+unit for prefix in unit_prefixes]
         default_length_units += more_length_units
         file_units = []
-        cunits = [self.wcs.wcs.cunit[i] for i in xrange(self.dimensionality)]
+        cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
         for i, unit in enumerate(cunits):
             if unit in default_length_units:
                 file_units.append(unit.name)
@@ -550,7 +551,7 @@ class FITSDataset(Dataset):
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.spec_cube = False
         x = 0
-        for p in lon_prefixes+lat_prefixes+spec_names.keys():
+        for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += np.any(y)
         if x == self.dimensionality and self.axis_names != ['LINEAR','LINEAR']: 
@@ -566,7 +567,7 @@ class FITSDataset(Dataset):
             ctypes = self.axis_names
         else:
             ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
-                               for i in xrange(1,end)])
+                               for i in range(1,end)])
 
         log_str = "Detected these axes: "+"%s "*len(ctypes)
         mylog.info(log_str % tuple([ctype for ctype in ctypes]))

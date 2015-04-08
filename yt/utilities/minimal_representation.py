@@ -16,6 +16,7 @@ Skeleton objects that represent a few fundamental yt data types.
 import numpy as np
 import abc
 import json
+import sys
 import cPickle as pickle
 import h5py as h5
 from uuid import uuid4
@@ -69,6 +70,14 @@ def _deserialize_from_h5(g, ds):
                 result[item] = g[item][()]  # fallback to scalar
     return result
 
+if sys.version[0] < 3:
+    from .poster.streaminghttp import register_openers
+    from .poster.encode import multipart_encode
+    register_openers()
+else:
+    # We don't yet have a solution for this, but it won't show up very often
+    # anyway.
+    pass
 
 class UploaderBar(object):
     pbar = None
@@ -359,3 +368,4 @@ class ImageCollection(object):
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
         self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
+

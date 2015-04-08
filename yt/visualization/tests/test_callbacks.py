@@ -19,7 +19,7 @@ from yt.testing import \
 import yt.units as u
 from .test_plotwindow import assert_fname
 from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
+    SlicePlot, ProjectionPlot, OffAxisSlicePlot
 import contextlib
 
 # These are a very simple set of tests that verify that each callback is or is
@@ -32,22 +32,19 @@ import contextlib
 #  X magnetic_field
 #  X quiver
 #  X contour
-#    grids
+#  X grids
 #    streamlines
-#    axis_label
 #    units
-#    line
-#    image_line
+#  X line
 #    cquiver
 #    clumps
-#    arrow
-#    point
-#    marker
-#    sphere
+#  X arrow
+#  X marker
+#  X sphere
 #    hop_circles
 #    hop_particles
 #    coord_axes
-#    text
+#  X text
 #    particles
 #    title
 #    flash_ray_data
@@ -64,11 +61,15 @@ def _cleanup_fname():
 def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ax = 'z'
+        vector = [1.0,1.0,1.0]
         ds = fake_amr_ds(fields = ("density",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_timestamp()
         yield assert_fname, p.save(prefix)[0]
         p = SlicePlot(ds, ax, "density")
+        p.annotate_timestamp()
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
         p.annotate_timestamp()
         yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
@@ -80,6 +81,7 @@ def test_timestamp_callback():
 def test_scale_callback():
     with _cleanup_fname() as prefix:
         ax = 'z'
+        vector = [1.0,1.0,1.0]
         ds = fake_amr_ds(fields = ("density",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_scale()
@@ -87,9 +89,109 @@ def test_scale_callback():
         p = SlicePlot(ds, ax, "density")
         p.annotate_scale()
         yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_scale()
+        yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_scale(corner='upper_right', coeff=10., unit='kpc')
+        p.save(prefix)
+
+def test_line_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_line([0.1,0.1,0.1],[0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_line([0.1,0.1,0.1],[0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_line([0.1,0.1,0.1],[0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_line([0.1,0.1],[0.5,0.5], coord_system='axis', 
+                        plot_args={'color':'red'})
+        p.save(prefix)
+
+def test_arrow_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_arrow([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_arrow([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_arrow([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_arrow([0.5,0.5], coord_system='axis', length=0.05)
+        p.save(prefix)
+
+def test_marker_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_marker([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_marker([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_marker([0.5,0.5,0.5])
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_marker([0.5,0.5], coord_system='axis', marker='*')
+        p.save(prefix)
+
+def test_sphere_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_sphere([0.5,0.5,0.5], 0.1)
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_sphere([0.5,0.5,0.5], 0.1)
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_sphere([0.5,0.5,0.5], 0.1)
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_sphere([0.5,0.5], 0.1, coord_system='axis', text='blah')
+        p.save(prefix)
+
+def test_text_callback():
+    with _cleanup_fname() as prefix:
+        ax = 'z'
+        vector = [1.0,1.0,1.0]
+        ds = fake_amr_ds(fields = ("density",))
+        p = ProjectionPlot(ds, ax, "density")
+        p.annotate_text([0.5,0.5,0.5], 'dinosaurs!')
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, ax, "density")
+        p.annotate_text([0.5,0.5,0.5], 'dinosaurs!')
+        yield assert_fname, p.save(prefix)[0]
+        p = OffAxisSlicePlot(ds, vector, "density")
+        p.annotate_text([0.5,0.5,0.5], 'dinosaurs!')
+        yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_text([0.5,0.5], 'dinosaurs!', coord_system='axis',
+                        text_args={'color':'red'})
         p.save(prefix)
 
 def test_velocity_callback():
@@ -166,7 +268,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
-            label_args={'text-size':'x-large'})
+            text_args={'text-size':'x-large'})
         p.save(prefix)
 
         p = SlicePlot(ds, "x", "density")
@@ -174,7 +276,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
-            label_args={'text-size':'x-large'},
+            text_args={'text-size':'x-large'},
             data_source=s2)
         p.save(prefix)
 

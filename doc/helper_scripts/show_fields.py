@@ -117,7 +117,7 @@ Index of Fields
    :backlinks: none
 
 """
-print header
+print(header)
 
 seen = []
 
@@ -133,32 +133,32 @@ def print_all_fields(fl):
         df = fl[fn]
         f = df._function
         s = "%s" % (df.name,)
-        print s
-        print "^" * len(s)
-        print
+        print(s)
+        print("^" * len(s))
+        print()
         if len(df.units) > 0:
             # Most universal fields are in CGS except for these special fields
             if df.name[1] in ['particle_position', 'particle_position_x', \
                          'particle_position_y', 'particle_position_z', \
                          'entropy', 'kT', 'metallicity', 'dx', 'dy', 'dz',\
                          'cell_volume', 'x', 'y', 'z']:
-                print "   * Units: :math:`%s`" % fix_units(df.units)
+                print("   * Units: :math:`%s`" % fix_units(df.units))
             else:
-                print "   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True)
-        print "   * Particle Type: %s" % (df.particle_type)
-        print
-        print "**Field Source**"
-        print
+                print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
+        print("   * Particle Type: %s" % (df.particle_type))
+        print()
+        print("**Field Source**")
+        print()
         if f == NullFunc:
-            print "No source available."
-            print
+            print("No source available.")
+            print()
             continue
         else:
-            print ".. code-block:: python"
-            print
+            print(".. code-block:: python")
+            print()
             for line in inspect.getsource(f).split("\n"):
-                print "  " + line
-            print
+                print("  " + line)
+            print()
 
 ds.index
 print_all_fields(ds.field_info)
@@ -225,10 +225,10 @@ for frontend in current_frontends:
         else:
             known_particle_fields = []
         if nfields > 0:
-            print ".. _%s_specific_fields:\n" % dset_name.replace("Dataset", "")
+            print(".. _%s_specific_fields:\n" % dset_name.replace("Dataset", ""))
             h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
-            print h
-            print "-" * len(h) + "\n"
+            print(h)
+            print("-" * len(h) + "\n")
 
             field_stuff = []
             for field in known_other_fields:
@@ -263,18 +263,18 @@ for frontend in current_frontends:
                               al="="*len_aliases, aw=len_aliases,
                               pt="="*len_part, pw=len_part,
                               dp="="*len_disp, dw=len_disp)
-            print div
-            print header
-            print div
+            print(div)
+            print(header)
+            print(div)
 
             for f in field_stuff:
-                print fstr.format(nm=f.name, nw=len_name,
+                print(fstr.format(nm=f.name, nw=len_name,
                                   un=f.units, uw=len_units,
                                   al=f.aliases, aw=len_aliases,
                                   pt=f.ptype, pw=len_part,
-                                  dp=f.dname, dw=len_disp)
+                                  dp=f.dname, dw=len_disp))
                 
-            print div
-            print ""
+            print(div)
+            print("")
 
-print footer
+print(footer)

@@ -321,12 +321,15 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if communication_system.communicators[-1].size > 1:
             for chunk in self.data_source.chunks([], "io", local_only = False):
                 self._initialize_chunk(chunk, tree)
-        self._initialize_projected_units(fields)
+        _units_initialized = False
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io", local_only = True)):
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
-                    get_memory_usage()/1024.)
+                                          chunk_fields, "io", local_only = True)): 
+                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                            chunk.ires.size, get_memory_usage()/1024.)
+                if _units_initialized is False:
+                    self._initialize_projected_units(fields, chunk)
+                    _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.method == "mip":
@@ -376,7 +379,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in data.keys(): self[i] = data.pop(i)
+        for i in list(data.keys()): self[i] = data.pop(i)
         mylog.info("Projection completed")
         self.tree = tree
 
@@ -389,10 +392,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         ilevel = chunk.ires * self.ds.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
 
-    def _initialize_projected_units(self, fields):
-        for field in fields:
-            field_unit = Unit(self.ds.field_info[field].units,
-                              registry=self.ds.unit_registry)
+    def _initialize_projected_units(self, fields, chunk):
+        for field in self.data_source._determine_fields(fields):
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
+                # First time calling a units="auto" field, infer units and cache
+                # for future field accesses.
+                finfo.units = str(chunk[field].units)
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
@@ -605,7 +612,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         alias = {}
         for field in gen:
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.func_name == "_TranslationFunc":
+            if finfo._function.__name__ == "_TranslationFunc":
                 alias[field] = finfo
                 continue
             try:
@@ -1217,9 +1224,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='Temperature', dist_fac = distf,
-        ...                      plot_index = i, color_field_max = ma,
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', dist_fac = distf, 
+        ...                      plot_index = i, color_field_max = ma, 
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
@@ -1231,8 +1238,8 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='Temperature', emit_field = 'Emissivity',
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', emit_field = 'Emissivity', 
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1775,14 +1782,15 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data):
-        import urllib2, json
+        import json
+        from yt.extern.six.moves import urllib
         from yt.utilities.poster.encode import multipart_encode
         from yt.utilities.poster.streaminghttp import register_openers
         register_openers()
         datamulti, headers = multipart_encode(data)
-        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+        request = urllib.request.Request("https://api.sketchfab.com/v1/models",
                         datamulti, headers)
-        rv = urllib2.urlopen(request).read()
+        rv = urllib.request.urlopen(request).read()
         rv = json.loads(rv)
         upload_id = rv.get("result", {}).get("id", None)
         if upload_id:

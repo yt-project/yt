@@ -757,6 +757,44 @@ class Dataset(object):
     _arr = None
     @property
     def arr(self):
+        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+
+        The returned YTArray will be dimensionless by default, but can be
+        cast to arbitray units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_array : iterable
+            A tuple, list, or array to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units object
+            The units of the array. Powers must be specified using python syntax
+            (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the returned array data
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> a = ds.arr([1, 2, 3], 'cm')
+        >>> b = ds.arr([4, 5, 6], 'm')
+        >>> a + b
+        YTArray([ 401.,  502.,  603.]) cm
+        >>> b + a
+        YTArray([ 4.01,  5.02,  6.03]) m
+
+        Arrays returned by this function know about the dataset's unit system
+
+        >>> a = ds.arr(np.ones(5), 'code_length')
+        >>> a.in_units('Mpccm/h')
+        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+                 1.00010449]) Mpc
+
+        """
         if self._arr is not None:
             return self._arr
         self._arr = functools.partial(YTArray, registry = self.unit_registry)
@@ -765,10 +803,47 @@ class Dataset(object):
     _quan = None
     @property
     def quan(self):
+        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+
+        The returned YTQuantity will be dimensionless by default, but can be
+        cast to arbitray units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_scalar : an integer or floating point scalar
+            The scalar to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units
+            The units of the quantity. Powers must be specified using python
+            syntax (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the array data.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+        >>> a = ds.quan(1, 'cm')
+        >>> b = ds.quan(2, 'm')
+        >>> a + b
+        201.0 cm
+        >>> b + a
+        2.01 m
+
+        Quantities created this way automatically know about the unit system
+        of the dataset.
+
+        >>> a = ds.quan(5, 'code_length')
+        >>> a.in_cgs()
+        1.543e+25 cm
+
+        """
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity,
-                registry = self.unit_registry)
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
     def add_field(self, name, function=None, **kwargs):
@@ -804,6 +879,11 @@ class Dataset(object):
 
         """
         self.index
+        override = kwargs.get("force_override", False)
+        # Handle the case where the field has already been added.
+        if not override and name in self.field_info:
+            mylog.warning("Field %s already exists. To override use " +
+                          "force_override=True.", name)
         self.field_info.add_field(name, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
@@ -843,14 +923,18 @@ class Dataset(object):
             """
             pos = data[ptype, "particle_position"]
             # get back into density
-            pden = data[ptype, "particle_mass"]
-            top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                               method=method)
-            bottom = data.deposit(pos, [pden], method=method)
-            top[bottom == 0] = 0.0
-            bnz = bottom.nonzero()
-            top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, input_units=units)
+            if method != 'count':
+                pden = data[ptype, "particle_mass"]
+                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
+                                   method=method)
+                bottom = data.deposit(pos, [pden], method=method)
+                top[bottom == 0] = 0.0
+                bnz = bottom.nonzero()
+                top[bnz] /= bottom[bnz]
+                d = data.ds.arr(top, input_units=units)
+            else:
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
+                                             method=method))
             return d
         name_map = {"cic": "cic", "sum": "nn", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"

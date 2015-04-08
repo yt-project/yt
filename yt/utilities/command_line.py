@@ -21,9 +21,10 @@ from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import urllib
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import urllib, urllib2, base64, os
+import base64, os
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -354,14 +355,14 @@ def bb_apicall(endpoint, data, use_pass = True):
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
-        data = urllib.urlencode(data)
-    req = urllib2.Request(uri, data)
+        data = urllib.parse.urlencode(data)
+    req = urllib.request.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib2.urlopen(req).read()
+    return urllib.request.urlopen(req).read()
 
 class YTBugreportCmd(YTCommand):
     name = "bugreport"
@@ -419,7 +420,7 @@ class YTBugreportCmd(YTCommand):
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
             loki = raw_input()
-            tf = temdsile.NamedTemporaryFile(delete=False)
+            tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
             popen = subprocess.call("$EDITOR %s" % fn, shell = True)
@@ -539,19 +540,19 @@ class YTHubRegisterCmd(YTCommand):
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
-        data = urllib.urlencode(data)
+        data = urllib.parse.urlencode(data)
         hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib2.Request(hub_url, data)
+        req = urllib.request.Request(hub_url, data)
         try:
-            status = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as exc:
+            status = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
                 print("You can't register duplicate users, which is the most")
                 print("common cause of this error.  All values for username,")
                 print("name, and email must be unique in our system.")
                 sys.exit(1)
-        except urllib2.URLError as exc:
+        except urllib.URLError as exc:
             print("Something has gone wrong.  Here's the error message.")
             raise exc
         print()
@@ -678,6 +679,9 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
+        if sys.version_info >= (3,0,0):
+            print("yt mapserver is disabled for Python 3.")
+            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
@@ -838,7 +842,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = ds.current_time*ds['years']
+                time = ds.current_time.in_units("yr")
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
@@ -1044,16 +1048,16 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
+        image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters).encode('utf-8')
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
+            response = urllib.request.urlopen(req).read().decode()
+        except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
@@ -1074,6 +1078,15 @@ class YTUploadImageCmd(YTCommand):
 
 def run_main():
     args = parser.parse_args()
+    # The following is a workaround for a nasty Python 3 bug:
+    # http://bugs.python.org/issue16308
+    # http://bugs.python.org/issue9253
+    try:
+        getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        sys.exit(0)
+        
     args.func(args)
 
 if __name__ == "__main__": run_main()

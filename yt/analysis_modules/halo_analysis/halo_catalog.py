@@ -433,7 +433,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                 units = ""
                 if hasattr(self.catalog[0][key], "units"):
                     units = str(self.catalog[0][key].units)
-                for i in xrange(n_halos):
+                for i in range(n_halos):
                     field_data[i] = self.catalog[i][key]
                 dataset = out_file.create_dataset(str(key), data=field_data)
                 dataset.attrs["units"] = units

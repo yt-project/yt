@@ -18,11 +18,7 @@ if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):
     import distribute_setup
     distribute_setup.use_setuptools()
 
-try:
-   from distutils.command.build_py import build_py_2to3 \
-        as build_py
-except ImportError:
-    from distutils.command.build_py import build_py
+from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils.command import install_data as np_install_data
 from numpy.distutils import log

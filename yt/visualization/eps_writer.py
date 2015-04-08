@@ -4,7 +4,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -712,7 +712,7 @@ class DualEPS(object):
                     units = pyxize_label(units)
                     _zlabel += r' (' + units + r')'
                 except NotImplementedError: 
-                    print "Colorbar label not available"
+                    print("Colorbar label not available")
                     _zlabel = ''
             else:
                 _zlabel = pyxize_label(plot.z_title)

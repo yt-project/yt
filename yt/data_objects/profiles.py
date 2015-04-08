@@ -1397,7 +1397,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 temp_weight = np.rollaxis(temp_weight, axis)
                 obj.weight = temp_weight
     if units is not None:
-        for field, unit in units.iteritems():
+        for field, unit in units.items():
             field = data_source._determine_fields(field)[0]
             if field == obj.x_field:
                 obj.set_x_unit(unit)

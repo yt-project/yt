@@ -16,7 +16,7 @@ Time series analysis functions.
 import inspect, functools, weakref, glob, types, os
 
 from yt.funcs import *
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
 from .data_containers import data_object_registry
@@ -128,7 +128,7 @@ class DatasetSeries(object):
 
     """
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, basestring):
+        if isinstance(outputs, string_types):
             outputs = get_filenames_from_glob_pattern(outputs)
         ret = super(DatasetSeries, cls).__new__(cls, *args, **kwargs)
         try:
@@ -140,7 +140,7 @@ class DatasetSeries(object):
     def __init__(self, outputs, parallel = True, setup_function = None,
                  **kwargs):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
-        if iterable(outputs) and not isinstance(outputs, basestring):
+        if iterable(outputs) and not isinstance(outputs, string_types):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)

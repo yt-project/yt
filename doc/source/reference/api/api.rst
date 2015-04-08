@@ -137,15 +137,18 @@ These objects generate an "index" into multiresolution data.
 Units
 -----
 
-These classes enable yt's symbolic unit handling system.
+These classes and functions enable yt's symbolic unit handling system.
 
 .. autosummary::
    :toctree: generated/
 
+   yt.data_objects.static_output.Dataset.arr
+   yt.data_objects.static_output.Dataset.quan
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
+
 
 Frontends
 ---------
@@ -675,6 +678,7 @@ See also :ref:`callbacks`.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
@@ -682,13 +686,13 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.GridBoundaryCallback
    ~yt.visualization.plot_modifications.HaloCatalogCallback
    ~yt.visualization.plot_modifications.ImageLineCallback
-   ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
@@ -730,6 +734,7 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
    ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
    ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
+   ~yt.visualization.plot_modifications.sanitize_coord_system
 
 Math Utilities
 --------------

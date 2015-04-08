@@ -251,7 +251,7 @@ class AthenaHierarchy(GridIndex):
 
         f.close()
 
-        self.field_list = field_map.keys()
+        self.field_list = list(field_map.keys())
         self._field_map = field_map
 
     def _count_grids(self):

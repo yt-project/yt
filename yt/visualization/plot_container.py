@@ -12,21 +12,18 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import __builtin__
+from yt.extern.six.moves import builtins
+from yt.extern.six import iteritems
 import base64
 import numpy as np
 import matplotlib
 import os
-import types
+
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
 from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
-from .color_maps import yt_colormaps, is_colormap
-from .plot_modifications import \
-    callback_registry
-from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
@@ -35,26 +32,12 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
-def ensure_callbacks(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        try:
-            args[0].run_callbacks()
-        except NotImplementedError:
-            pass
-        return f(*args, **kwargs)
-    return newfunc
-
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._data_valid = False
         args[0]._plot_valid = False
-        if hasattr(args[0], '_recreate_frb'):
-            args[0]._recreate_frb()
-        if args[0]._initfinished:
-            args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -76,10 +59,22 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
-        args[0]._setup_plots()
         return rv
     return newfunc
 
+def validate_plot(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        if hasattr(args[0], '_data_valid'):
+            if not args[0]._data_valid:
+                args[0]._recreate_frb()
+        if not args[0]._plot_valid:
+            args[0]._setup_plots()
+            if hasattr(args[0], 'run_callbacks'):
+                args[0].run_callbacks()
+        rv = f(*args, **kwargs)
+        return rv
+    return newfunc
 
 def apply_callback(f):
     @wraps(f)
@@ -129,12 +124,10 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
     """
     if vmin >= 0 or vmax <= 0:
-        raise RuntimeError(
-            '''attempting to set minorticks for
-              a symlog plot with one-sided data:
-              got vmin = %s, vmax = %s''' % (vmin, vmax))
-    return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
-                        get_log_minorticks(linthresh, vmax)) )
+        return get_log_minorticks(vmin, vmax)
+    else:
+        return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                            get_log_minorticks(linthresh, vmax)) )
 
 field_transforms = {}
 
@@ -390,10 +383,6 @@ class ImagePlotContainer(object):
                 self._cbar_minorticks[field] = False
         return self
 
-    def setup_callbacks(self):
-        # Left blank to be overriden in subclasses
-        pass
-
     def _setup_plots(self):
         # Left blank to be overriden in subclasses
         pass
@@ -419,24 +408,11 @@ class ImagePlotContainer(object):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
-        self._recreate_frb()
         self._setup_plots()
 
+    @validate_plot
     def __getitem__(self, item):
         return self.plots[item]
-
-    def run_callbacks(self):
-        for f in self.fields:
-            keys = self.frb.keys()
-            for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
-                                      self._font_properties, self._font_color)
-                CallbackMaker = callback_registry[name]
-                callback = CallbackMaker(*args[1:], **kwargs)
-                callback(cbw)
-            for key in self.frb.keys():
-                if key not in keys:
-                    del self.frb[key]
 
     def _set_font_properties(self):
         for f in self.plots:
@@ -536,7 +512,7 @@ class ImagePlotContainer(object):
         self.figure_size = float(size)
         return self
 
-    @ensure_callbacks
+    @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         """saves the plot to disk.
 
@@ -566,7 +542,7 @@ class ImagePlotContainer(object):
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != '':
-                for k, v in self.plots.iteritems():
+                for k, v in iteritems(self.plots):
                     names.append(v.save(name, mpl_kwargs))
                 return names
         axis = self.ds.coordinates.axis_name.get(
@@ -579,7 +555,7 @@ class ImagePlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in self.plots.iteritems():
+        for k, v in iteritems(self.plots):
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
@@ -599,6 +575,7 @@ class ImagePlotContainer(object):
         # invalidate_data will take care of everything
         return self
 
+    @validate_plot
     def _send_zmq(self):
         try:
             # pre-IPython v1.0
@@ -606,12 +583,13 @@ class ImagePlotContainer(object):
         except ImportError:
             # IPython v1.0+
             from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
+        for k, v in sorted(iteritems(self.plots)):
             # Due to a quirk in the matplotlib API, we need to create
             # a dummy canvas variable here that is never used.
             canvas = FigureCanvasAgg(v.figure)  # NOQA
             display(v.figure)
 
+    @validate_plot
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
 
@@ -630,7 +608,7 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(__builtin__):
+        if "__IPYTHON__" in dir(builtins):
             api_version = get_ipython_api_version()
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
@@ -640,6 +618,7 @@ class ImagePlotContainer(object):
         else:
             raise YTNotInsideNotebook
 
+    @validate_plot
     def display(self, name=None, mpl_kwargs=None):
         """Will attempt to show the plot in in an IPython notebook.
         Failing that, the plot will be saved to disk."""
@@ -648,15 +627,15 @@ class ImagePlotContainer(object):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
-    @ensure_callbacks
+    @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         for field in self.plots:
-            img = base64.b64encode(self.plots[field]._repr_png_())
+            img = base64.b64encode(self.plots[field]._repr_png_()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
-                   r'src="data:image/png;base64,%s"><br>' % img
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
 
     @invalidate_plot
