@@ -359,8 +359,8 @@ class GridIndex(Index):
         # many grids all at once.
         if chunk_sizing == "auto":
             nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
-            chunking_factor = min(1, self._grid_chunksize*nproc//self.num_grids)
-            size = min(self._grid_chunksize//chunking_factor, 1)
+            chunking_factor = max(1, self._grid_chunksize*nproc//self.num_grids)
+            size = max(self._grid_chunksize//chunking_factor, 1)
         elif chunk_sizing == "config_file":
             size = ytcfg.getint("yt", "chunk_size")
         elif chunk_sizing == "just_one":
