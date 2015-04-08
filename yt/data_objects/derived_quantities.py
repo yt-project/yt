@@ -428,10 +428,6 @@ class AngularMomentumVector(DerivedQuantity):
 
     """
     def count_values(self, use_gas=True, use_particles=True):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
         num_vals = 0
         if use_gas: num_vals += 4
         if use_particles: num_vals += 4
