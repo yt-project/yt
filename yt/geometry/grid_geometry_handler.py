@@ -344,7 +344,7 @@ class GridIndex(Index):
 
     _grid_chunksize = 1000
     def _chunk_io(self, dobj, cache=True, local_only=False,
-                  preload_fields=None, load_balance="auto"):
+                  preload_fields=None, chunk_sizing="auto"):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
         if preload_fields is None:
@@ -355,18 +355,20 @@ class GridIndex(Index):
         fast_index = dobj._current_chunk._fast_index
         for g in gobjs:
             gfiles[g.filename].append(g)
+        # We can apply a heuristic here to make sure we aren't loading too
+        # many grids all at once.
+        if chunk_sizing == "auto":
+            nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
+            chunking_factor = min(1, self._grid_chunksize*nproc//self.num_grids)
+            size = min(self._grid_chunksize//chunking_factor, 1)
+        elif chunk_sizing == "config_file":
+            size = ytcfg.getint("yt", "chunk_size")
+        elif chunk_sizing == "just_one":
+            size = 1
+        elif chunk_sizing == "old":
+            size = self._grid_chunksize
         for fn in sorted(gfiles):
-            # We can apply a heuristic here to make sure we aren't loading too
-            # many grids all at once.
             gs = gfiles[fn]
-            if load_balance == "auto":
-                nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
-                size = min(1, self._grid_chunksize//nproc)
-            elif load_balance == "just_one":
-                size = 1
-            elif load_balance == "old":
-                size = self._grid_chunksize
-
             for grids in (gs[pos:pos + size] for pos
                           in range(0, len(gs), size)):
                 dc = YTDataChunk(dobj, "io", grids,
