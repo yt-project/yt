@@ -778,8 +778,7 @@ class ProfileND(ParallelAnalysisInterface):
         """
         fields = self.data_source._determine_fields(fields)
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
-        cfields = fields + list(self.bin_fields)
-        citer = self.data_source.chunks(cfields, "io")
+        citer = self.data_source.chunks([], "io")
         for chunk in parallel_objects(citer):
             self._bin_chunk(chunk, fields, temp_storage)
         self._finalize_storage(fields, temp_storage)

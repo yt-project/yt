@@ -17,14 +17,60 @@ import numpy as np
 import abc
 import json
 import sys
+import cPickle as pickle
+import h5py as h5
+from uuid import uuid4
 from yt.extern.six.moves import urllib
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
 from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 
-if sys.version[0] < 3:
+from .poster.streaminghttp import register_openers
+from .poster.encode import multipart_encode
+register_openers()
+
+
+def _serialize_to_h5(g, cdict):
+    for item in cdict:
+        if isinstance(cdict[item], (YTQuantity, YTArray)):
+            g[item] = cdict[item].d
+            g[item].attrs["units"] = str(cdict[item].units)
+        elif isinstance(cdict[item], dict):
+            _serialize_to_h5(g.create_group(item), cdict[item])
+        elif cdict[item] is None:
+            g[item] = "None"
+        else:
+            g[item] = cdict[item]
+
+
+def _deserialize_from_h5(g, ds):
+    result = {}
+    for item in g:
+        if item == "chunks":
+            continue
+        if "units" in g[item].attrs:
+            if iterable(g[item]):
+                result[item] = ds.arr(g[item][:], g[item].attrs["units"])
+            else:
+                result[item] = ds.quan(g[item][()],
+                                       g[item].attrs["units"])
+        elif isinstance(g[item], h5.Group):
+            result[item] = _deserialize_from_h5(g[item], ds)
+        elif g[item] == "None":
+            result[item] = None
+        else:
+            try:
+                result[item] = g[item][:]   # try array
+            except ValueError:
+                result[item] = g[item][()]  # fallback to scalar
+    return result
+
+if sys.version_info < (3, 0):
     from .poster.streaminghttp import register_openers
     from .poster.encode import multipart_encode
     register_openers()
@@ -35,7 +81,8 @@ else:
 
 class UploaderBar(object):
     pbar = None
-    def __init__(self, my_name = ""):
+
+    def __init__(self, my_name=""):
         self.my_name = my_name
 
     def __call__(self, name, prog, total):
@@ -45,8 +92,10 @@ class UploaderBar(object):
         if prog == total:
             self.pbar.finish()
 
+
 class ContainerClass(object):
     pass
+
 
 @add_metaclass(abc.ABCMeta)
 class MinimalRepresentation(object):
@@ -57,6 +106,8 @@ class MinimalRepresentation(object):
         if hasattr(obj, "ds"):
             self.output_hash = obj.ds._hash()
             self._ds_mrep = obj.ds._mrep
+        if hasattr(obj, "data_source"):
+            self.data_source_hash = obj.data_source._hash
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -79,7 +130,7 @@ class MinimalRepresentation(object):
 
     @property
     def _attrs(self):
-        return dict( ((attr, getattr(self, attr)) for attr in self._attr_list) )
+        return dict(((attr, getattr(self, attr)) for attr in self._attr_list))
 
     @classmethod
     def _from_metadata(cls, metadata):
@@ -88,10 +139,37 @@ class MinimalRepresentation(object):
             setattr(cc, a, v)
         return cls(cc)
 
+    def store(self, storage):
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.store(storage)
+        metadata, (final_name, chunks) = self._generate_post()
+        metadata['obj_type'] = self.type
+        with h5.File(storage) as h5f:
+            dset = str(uuid4())[:8]
+            grp = h5f.create_group(dset)
+            _serialize_to_h5(h5f[dset], metadata)
+            if len(chunks) > 0:
+                g = h5f[dset].create_group('chunks')
+                g.attrs['final_name'] = final_name
+                for fname, fdata in chunks:
+                    if isinstance(fname, (tuple, list)):
+                        fname = "*".join(fname)
+
+                    if isinstance(fdata, (YTQuantity, YTArray)):
+                        g.create_dataset(fname, data=fdata.d,
+                                         compression="lzf")
+                        g[fname].attrs["units"] = str(fdata.units)
+                    else:
+                        g.create_dataset(fname, data=fdata, compression="lzf")
+
+    def restore(self, storage, ds):
+        pass
+
     def upload(self):
-        api_key = ytcfg.get("yt","hub_api_key")
-        url = ytcfg.get("yt","hub_url")
-        if api_key == '': raise YTHubRegisterError
+        api_key = ytcfg.get("yt", "hub_api_key")
+        url = ytcfg.get("yt", "hub_url")
+        if api_key == '':
+            raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
         if hasattr(self, "_ds_mrep"):
             self._ds_mrep.upload()
@@ -104,14 +182,14 @@ class MinimalRepresentation(object):
         if len(chunks) == 0:
             chunk_info = {'chunks': []}
         else:
-            chunk_info = {'final_name' : final_name, 'chunks': []}
+            chunk_info = {'final_name': final_name, 'chunks': []}
             for cn, cv in chunks:
                 chunk_info['chunks'].append((cn, cv.size * cv.itemsize))
         metadata = json.dumps(metadata)
         chunk_info = json.dumps(chunk_info)
-        datagen, headers = multipart_encode({'metadata' : metadata,
-                                             'chunk_info' : chunk_info,
-                                             'api_key' : api_key})
+        datagen, headers = multipart_encode({'metadata': metadata,
+                                             'chunk_info': chunk_info,
+                                             'api_key': api_key})
         request = urllib.request.Request(url, datagen, headers)
         # Actually do the request, and get the response
         try:
@@ -130,20 +208,31 @@ class MinimalRepresentation(object):
             f = TemporaryFile()
             np.save(f, cv)
             f.seek(0)
-            pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i+1, len(chunks)))
-            datagen, headers = multipart_encode({'chunk_data' : f}, cb = pbar)
+            pbar = UploaderBar("%s, % 2i/% 2i" %
+                               (self.type, i + 1, len(chunks)))
+            datagen, headers = multipart_encode({'chunk_data': f}, cb=pbar)
             request = urllib.request.Request(new_url, datagen, headers)
             rv = urllib.request.urlopen(request).read()
 
-        datagen, headers = multipart_encode({'status' : 'FINAL'})
+        datagen, headers = multipart_encode({'status': 'FINAL'})
         request = urllib.request.Request(new_url, datagen, headers)
         rv = json.loads(urllib.request.urlopen(request).read())
         mylog.info("Upload succeeded!  View here: %s", rv['url'])
         return rv
 
+    def load(self, storage):
+        return pickle.load(open(storage, 'r'))
+
+    def dump(self, storage):
+        with open(storage, 'w') as fh:
+            pickle.dump(self, fh)
+
+
 class FilteredRepresentation(MinimalRepresentation):
+
     def _generate_post(self):
         raise RuntimeError
+
 
 class MinimalDataset(MinimalRepresentation):
     _attr_list = ("dimensionality", "refine_by", "domain_dimensions",
@@ -163,6 +252,7 @@ class MinimalDataset(MinimalRepresentation):
         chunks = []
         return (metadata, (None, chunks))
 
+
 class MinimalMappableData(MinimalRepresentation):
 
     _attr_list = ("field_data", "field", "weight_field", "axis", "output_hash",
@@ -174,14 +264,44 @@ class MinimalMappableData(MinimalRepresentation):
         chunks = [(arr, self.field_data[arr]) for arr in self.field_data]
         return (metadata, ('field_data', chunks))
 
+    def _read_chunks(self, g, ds):
+        for fname in g.keys():
+            if '*' in fname:
+                arr = tuple(fname.split('*'))
+            else:
+                arr = fname
+            try:
+                self.field_data[arr] = ds.arr(g[fname][:],
+                                              g[fname].attrs["units"])
+            except KeyError:
+                self.field_data[arr] = g[fname][:]
+
+
 class MinimalProjectionData(MinimalMappableData):
     type = 'proj'
     vm_type = "Projection"
+    _attr_list = ("field_data", "field", "weight_field", "axis", "output_hash",
+                  "center", "method", "field_parameters",
+                  "data_source_hash")
+
+    def restore(self, storage, ds):
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.restore(storage, ds)
+        metadata, (final_name, chunks) = self._generate_post()
+        with h5.File(storage, 'r') as h5f:
+            for dset in h5f:
+                stored_metadata = _deserialize_from_h5(h5f[dset], ds)
+                if compare_dicts(metadata, stored_metadata):
+                    self._read_chunks(h5f[dset]["chunks"], ds)
+                    return True
+        return False
+
 
 class MinimalSliceData(MinimalMappableData):
     type = 'slice'
     vm_type = "Slice"
     weight_field = "None"
+
 
 class MinimalImageCollectionData(MinimalRepresentation):
     type = "image_collection"
@@ -198,12 +318,13 @@ _hub_categories = ("News", "Documents", "Simulation Management",
                    "Paper Repositories", "Astrophysical Utilities",
                    "yt Scripts")
 
+
 class MinimalProjectDescription(MinimalRepresentation):
     type = "project"
     _attr_list = ("title", "url", "description", "category", "image_url")
 
     def __init__(self, title, url, description,
-                 category, image_url = ""):
+                 category, image_url=""):
         assert(category in _hub_categories)
         self.title = title
         self.url = url
@@ -215,11 +336,12 @@ class MinimalProjectDescription(MinimalRepresentation):
         metadata = self._attrs
         return (metadata, ("chunks", []))
 
+
 class MinimalNotebook(MinimalRepresentation):
     type = "notebook"
     _attr_list = ("title",)
 
-    def __init__(self, filename, title = None):
+    def __init__(self, filename, title=None):
         # First we read in the data
         if not os.path.isfile(filename):
             raise IOError(filename)
@@ -231,10 +353,12 @@ class MinimalNotebook(MinimalRepresentation):
 
     def _generate_post(self):
         metadata = self._attrs
-        chunks = [ ("notebook", self.data) ]
+        chunks = [("notebook", self.data)]
         return (metadata, ("chunks", chunks))
 
+
 class ImageCollection(object):
+
     def __init__(self, ds, name):
         self.ds = ds
         self.name = name

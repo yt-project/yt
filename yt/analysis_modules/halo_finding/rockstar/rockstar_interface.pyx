@@ -199,7 +199,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     if NUM_BLOCKS > 1:
         local_parts = 0
         for chunk in parallel_objects(
-                dd.chunks([(rh.particle_type, "particle_ones")], "io")):
+                dd.chunks([], "io")):
             local_parts += chunk[rh.particle_type, "particle_ones"].sum()
     else:
         local_parts = TOTAL_PARTICLES
@@ -211,11 +211,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     left_edge[2] = ds.domain_left_edge.in_units('Mpccm/h')[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
-    fields = [ (rh.particle_type, f) for f in
-                ["particle_position_%s" % ax for ax in 'xyz'] +
-                ["particle_velocity_%s" % ax for ax in 'xyz'] +
-                ["particle_index"]]
-    for chunk in parallel_objects(dd.chunks(fields, "io")):
+    for chunk in parallel_objects(dd.chunks([], "io")):
         arri = np.asarray(chunk[rh.particle_type, "particle_index"],
                           dtype="int64")
         npart = arri.size
