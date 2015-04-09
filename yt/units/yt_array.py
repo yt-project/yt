@@ -156,24 +156,24 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : ndarray or ndarray subclass
-        An array to attach units to
+    input_array : iterable
+        A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        syntax (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
     --------
 
     >>> from yt import YTArray
-    >>> a = YTArray([1,2,3], 'cm')
-    >>> b = YTArray([4,5,6], 'm')
+    >>> a = YTArray([1, 2, 3], 'cm')
+    >>> b = YTArray([4, 5, 6], 'm')
     >>> a + b
     YTArray([ 401.,  502.,  603.]) cm
     >>> b + a
@@ -1131,16 +1131,16 @@ class YTQuantity(YTArray):
     Parameters
     ----------
 
-    input_scalar : ndarray or ndarray subclass
-        An array to attach units to
+    input_scalar : an integer or floating point scalar
+        The scalar to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
-        The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        The units of the quantity. Powers must be specified using python syntax
+        (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples

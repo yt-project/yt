@@ -22,3 +22,10 @@ lr.make_light_ray(seed=123456789,
                   fields=['temperature', 'density'],
                   get_los_velocity=True,
                   njobs=-1)
+
+# Optionally, we can now overplot the part of this ray that intersects 
+# one output from the source dataset in a ProjectionPlot
+ds = yt.load('enzo_tiny_cosmology/RD0004/RD0004')
+p = yt.ProjectionPlot(ds, 'z', 'density')
+p.annotate_ray(lr)
+p.save()

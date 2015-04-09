@@ -67,7 +67,8 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError
+    YTUnitConversionError, \
+    YTPlotCallbackError
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -813,13 +814,18 @@ class PWViewerMPL(PlotWindow):
             comoving = False
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
-                if hasattr(self.ds.coordinates, "default_unit_label"):
+                unn = None
+                if hasattr(self.ds.coordinates, "image_units"):
+                    # This *forces* an override
+                    unn = self.ds.coordinates.image_units[axis_index][i]
+                elif hasattr(self.ds.coordinates, "default_unit_label"):
                     axax = getattr(self.ds.coordinates,
                                    "%s_axis" % ("xy"[i]))[axis_index]
-                    unn = self.ds.coordinates.default_unit_label.get(axax, "")
-                    if unn != "":
-                        axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
-                        continue
+                    unn = self.ds.coordinates.default_unit_label.get(axax,
+                        None)
+                if unn is not None:
+                    axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
+                    continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
                 expr = Unit(un, registry=self.ds.unit_registry).expr
@@ -988,7 +994,12 @@ class PWViewerMPL(PlotWindow):
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
-                callback(cbw)
+                try:
+                    callback(cbw)
+                except Exception as e:
+                    raise YTPlotCallbackError, \
+                          YTPlotCallbackError(callback._type_name, e), \
+                          sys.exc_info()[2]
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]

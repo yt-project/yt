@@ -34,6 +34,8 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
+     import periodic_ray
 import warnings
 
 from . import _MPL
@@ -80,12 +82,13 @@ class PlotCallback(object):
                 # right-handed coord system
                 coord = (y, x)
             else:
-                raise SyntaxError("Object must have an axis defined")
+                raise SyntaxError("Object being plot must have a `data.axis` "
+                                  "defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
-            raise SyntaxError("coord must be 3 dimensions")
+            raise SyntaxError("'data' coordinates must be 3 dimensions")
         return coord
 
     def convert_to_plot(self, plot, coord, offset=True):
@@ -150,7 +153,7 @@ class PlotCallback(object):
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError("Coordinates in data coordinate system " 
+                raise SyntaxError("Coordinates in 'data' coordinate system " 
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
@@ -162,7 +165,7 @@ class PlotCallback(object):
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError("Coordinates in axis coordinate system " 
+                raise SyntaxError("Coordinates in 'axis' coordinate system " 
                                   "need to be in 2D")
             return coord
         # if in figure coords, define the transform correctly
@@ -1609,7 +1612,8 @@ class TimestampCallback(PlotCallback):
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white'}.
+        text object.  Defaults: {'color':'white', 
+        'horizontalalignment':'center', 'verticalalignment':'top'}.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -1632,7 +1636,8 @@ class TimestampCallback(PlotCallback):
                  draw_inset_box=False, coord_system='axis', 
                  text_args=None, inset_box_args=None):
 
-        def_text_args = {'color':'white'}
+        def_text_args = {'color':'white', 'horizontalalignment':'center',
+                         'verticalalignment':'top'}
         def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
                               'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
@@ -1647,8 +1652,6 @@ class TimestampCallback(PlotCallback):
         self.coord_system = coord_system
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
-        self.text_args['horizontalalignment'] = 'center'
-        self.text_args['verticalalignment'] = 'top'
         if inset_box_args is None: inset_box_args = def_inset_box_args
         self.inset_box_args = inset_box_args
 
@@ -1824,8 +1827,8 @@ class ScaleCallback(PlotCallback):
         ysize = plot.ylim[1] - plot.ylim[0]
         if xsize != ysize:
             raise RuntimeError("Scale callback only works for plots with "
-                               "axis ratios of 1: xsize = %s, ysize = %s." %
-                               (xsize, ysize))
+                               "axis ratios of 1. Here: xsize = %s, ysize "
+                               " = %s." % (xsize, ysize))
 
         # Setting pos overrides corner argument
         if self.pos is None:
@@ -1879,3 +1882,132 @@ class ScaleCallback(PlotCallback):
                                 coord_system=self.coord_system,
                                 text_args=self.text_args)
         return tcb(plot)
+
+class RayCallback(PlotCallback):
+    """
+    annotate_ray(ray, plot_args=None)
+
+    Adds a line representing the projected path of a ray across the plot.
+    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    annotate_ray() will properly account for periodic rays across the volume.
+    
+    Parameters
+    ----------
+
+    ray : YTOrthoRayBase, YTRayBase, or LightRay
+        Ray is the object that we want to include.  We overplot the projected
+        trajectory of the ray.  If the object is a 
+        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay 
+        object, it will only plot the segment of the LightRay that intersects
+        the dataset currently displayed.
+
+    plot_args : dictionary, optional
+        A dictionary of any arbitrary parameters to be passed to the Matplotlib
+        line object.  Defaults: {'color':'white', 'linewidth':2}.
+
+    Examples
+    -------- 
+
+    >>> # Overplot a ray and an ortho_ray object on a projection
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> oray = ds.ortho_ray(1, (0.3, 0.4)) # orthoray down the y axis
+    >>> ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8)) # arbitrary ray
+    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> p.annotate_ray(oray)
+    >>> p.annotate_ray(ray)
+    >>> p.save()
+
+    >>> # Overplot a LightRay object on a projection
+    >>> import yt
+    >>> from yt.analysis_modules.cosmological_observation.api import LightRay
+    >>> ds = yt.load('enzo_cosmology_plus/RD0004/RD0004')
+    >>> lr = LightRay("enzo_cosmology_plus/AMRCosmology.enzo",
+    ...               'Enzo', 0.0, 0.1, time_data=False)
+    >>> lray = lr.make_light_ray(seed=1)
+    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> p.annotate_ray(lr)
+    >>> p.save()
+
+    """
+    _type_name = "ray"
+    def __init__(self, ray, plot_args=None):
+        PlotCallback.__init__(self)
+        def_plot_args = {'color':'white', 'linewidth':2}
+        self.ray = ray
+        if plot_args is None: plot_args = def_plot_args
+        self.plot_args = plot_args
+
+    def _process_ray(self):
+        """
+        Get the start_coord and end_coord of a ray object
+        """
+        return (self.ray.start_point, self.ray.end_point)
+
+    def _process_ortho_ray(self):
+        """
+        Get the start_coord and end_coord of an ortho_ray object
+        """
+        start_coord = self.ray.ds.domain_left_edge.copy()
+        end_coord = self.ray.ds.domain_right_edge.copy()
+
+        xax = self.ray.ds.coordinates.x_axis[self.ray.axis]
+        yax = self.ray.ds.coordinates.y_axis[self.ray.axis]
+        start_coord[xax] = end_coord[xax] = self.ray.coords[0]
+        start_coord[yax] = end_coord[yax] = self.ray.coords[1]
+        return (start_coord, end_coord)
+
+    def _process_light_ray(self, plot):
+        """
+        Get the start_coord and end_coord of a LightRay object.
+        Identify which of the sections of the LightRay is in the 
+        dataset that is currently being plotted.  If there is one, return the 
+        start and end of the corresponding ray segment
+        """
+
+        for ray_ds in self.ray.light_ray_solution:
+            if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
+                start_coord = ray_ds['start']
+                end_coord = ray_ds['end']
+                return (start_coord, end_coord)
+        # if no intersection between the plotted dataset and the LightRay
+        # return a false tuple to pass to start_coord
+        return ((False, False), (False, False))
+
+    def __call__(self, plot):
+        type_name = getattr(self.ray, "_type_name", None)
+
+        if type_name == "ray":
+            start_coord, end_coord = self._process_ray()
+
+        elif type_name == "ortho_ray":
+            start_coord, end_coord = self._process_ortho_ray()
+
+        elif hasattr(self.ray, "light_ray_solution"):
+            start_coord, end_coord = self._process_light_ray(plot)
+
+        else:
+            raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
+                              "LightRay object.")
+
+        # if start_coord and end_coord are all False, it means no intersecting 
+        # ray segment with this plot.
+        if not all(start_coord) and not all(end_coord):
+            return plot
+
+        # if possible, break periodic ray into non-periodic 
+        # segments and add each of them individually
+        if any(plot.ds.periodicity):
+            segments = periodic_ray(start_coord, end_coord,
+                                    left=plot.ds.domain_left_edge,
+                                    right=plot.ds.domain_right_edge)
+        else:
+            segments = [[start_coord, end_coord]]
+
+        for segment in segments:
+            lcb = LinePlotCallback(segment[0], segment[1],
+                                   coord_system='data',
+                                   plot_args=self.plot_args)
+            lcb(plot)
+
+        return plot

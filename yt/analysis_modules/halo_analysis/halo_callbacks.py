@@ -17,6 +17,8 @@ import h5py
 import numpy as np
 import os
 
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
+     periodic_distance
 from yt.data_objects.profiles import \
      create_profile
 from yt.units.yt_array import \
@@ -147,7 +149,7 @@ def sphere_bulk_velocity(halo):
 
 add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
 
-def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None,
+def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None, units=None,
             weight_field="cell_mass", accumulation=False, fractional=False,
             storage="profiles", output_dir="."):
     r"""
@@ -177,6 +179,8 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
         Whether or not to log the bin_fields for the profiles.
         The keys correspond to the field names. Defaults to the take_log
         attribute of the field.
+    units : dict of strings
+        The units of the fields in the profiles, including the bin_fields.
     weight_field : string
         Weight field for profiling.
         Default : "cell_mass"
@@ -222,7 +226,7 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
     
     bin_fields = ensure_list(bin_fields)
     my_profile = create_profile(halo.data_object, bin_fields, profile_fields, n_bins=n_bins,
-                                extrema=extrema, logs=logs, weight_field=weight_field,
+                                extrema=extrema, logs=logs, units=units, weight_field=weight_field,
                                 accumulation=accumulation, fractional=fractional)
                   
     prof_store = dict([(field, my_profile[field]) \

@@ -333,6 +333,9 @@ class Unit(Expr):
         return \
           (self.base_value != u.base_value or self.dimensions != u.dimensions)
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def __deepcopy__(self, memodict=None):
         if memodict is None:
             memodict = {}
