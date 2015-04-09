@@ -76,8 +76,51 @@ class ParticleFilter(object):
             new_fi._function = TranslationFunc(old_fi.name)
         return new_fi
 
-def add_particle_filter(name, function, requires = None, filtered_type = "all"):
-    if requires is None: requires = []
+
+def add_particle_filter(name, function, requires=None, filtered_type="all"):
+    r"""Create a new particle filter in the global namespace of filters
+
+    A particle filter is a short name that corresponds to an algorithm for
+    filtering a set of particles into a subset.  This is useful for creating new
+    particle types based on a cut on a particle field, such as particle mass, ID
+    or type.
+
+    Parameters
+    ----------
+    name : string
+        The name of the particle filter.  New particle fields with particle type
+        set by this name will be added to any dataset that enables this particle
+        filter.
+    function : reference to a function
+        The function that defines the particle filter.  The function should
+        accept two arguments: a reference to a particle filter object and a
+        reference to an abstract yt data object.  See the example below.
+    requires : a list of field names
+        A list of field names required by the particle filter definition.
+    filtered_type : string
+        The name of the particle type to be filtered.
+
+    Example
+    -------
+
+    >>> import yt
+
+    >>> def _stars(pfilter, data):
+    ...     return data[(pfilter.filtered_type, 'particle_type')] == 2
+
+    >>> yt.add_particle_filter("stars", function=_stars, filtered_type='all',
+    ...                        requires=["particle_type"])
+
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds.add_particle_filter('stars')
+    >>> ad = ds.all_data()
+    >>> print (ad['stars', 'particle_mass'])
+    [  1.68243760e+38   1.65690882e+38   1.65813321e+38 ...,   2.04238266e+38
+       2.04523901e+38   2.04770938e+38] g
+
+    """
+    if requires is None:
+        requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
     filter_registry[name].append(filter)
 
