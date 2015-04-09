@@ -281,9 +281,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
-        chunk_fields = fields[:]
-        if self.weight_field is not None:
-            chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
@@ -293,7 +290,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         _units_initialized = False
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io", local_only = True)): 
+                                          [], "io", local_only = True)): 
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
                             chunk.ires.size, get_memory_usage()/1024.)
                 if _units_initialized is False:
@@ -1003,10 +1000,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        deps = self._determine_fields(self.surface_field)
-        deps = self._identify_dependencies(deps, spatial=True)
-        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
-                                         preload_fields = deps)):
+        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 my_verts = self._extract_isocontours_from_grid(
                                 block, self.surface_field, self.field_value,
@@ -1097,12 +1091,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        deps = [field_x, field_y, field_z]
-        if fluxing_field is not None: deps.append(fluxing_field)
-        deps = self._determine_fields(deps)
-        deps = self._identify_dependencies(deps)
-        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
-                                preload_fields = deps)):
+        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 flux += self._calculate_flux_in_grid(block, mask,
                         field_x, field_y, field_z, fluxing_field)
