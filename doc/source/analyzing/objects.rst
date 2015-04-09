@@ -501,8 +501,8 @@ Additionally, we can store multiple objects in a single shelve file, so we
 have to call the sphere by name.
 
 For certain data objects such as projections, serialization can be performed
-automatically if ``serialize`` option is set to ``True`` in
-:ref:`configuration-file`: or set directly in the script:
+automatically if ``serialize`` option is set to ``True`` in :ref:`the
+configuration file <configuration-file>` or set directly in the script:
 
 .. code-block:: python
 
@@ -515,7 +515,7 @@ automatically if ``serialize`` option is set to ``True`` in
    density projection of your dataset in the 'x' direction, then somehow tweak
    that dataset significantly, and take the density projection again, yt will
    default to finding the original projection and 
-   :ref:`not your new one <faq-old-data>`:.
+   :ref:`not your new one <faq-old-data>`.
 
 .. note:: It's also possible to use the standard :mod:`cPickle` module for
           loading and storing objects -- so in theory you could even save a
