@@ -54,4 +54,5 @@ from .image_array import \
     ImageArray
 
 from .particle_filters import \
-    particle_filter
+    particle_filter, \
+    add_particle_filter
