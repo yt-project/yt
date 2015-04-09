@@ -88,9 +88,7 @@ class ThermalPhotonModel(PhotonModel):
         self.spectral_model.prepare()
         energy = self.spectral_model.ebins
 
-        citer = data_source.chunks(["kT","cell_volume","density",
-                                    "x","y","z","dx","velocity_x",
-                                    "velocity_y","velocity_z"], "io")
+        citer = data_source.chunks([], "io")
 
         photons = {}
         photons["x"] = []
