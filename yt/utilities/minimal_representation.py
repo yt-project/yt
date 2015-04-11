@@ -17,7 +17,10 @@ import numpy as np
 import abc
 import json
 import sys
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import h5py as h5
 from uuid import uuid4
 from yt.extern.six.moves import urllib
