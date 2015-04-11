@@ -20,8 +20,10 @@ import numpy as np
 
 from yt import __version__ as yt_version
 from yt.utilities.exceptions import YTGDFAlreadyExists
+from yt.funcs import ensure_list
 
-def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
+def write_to_gdf(ds, gdf_path, fields=None, 
+                 data_author=None, data_comment=None,
                  dataset_units=None, particle_type_name="dark_matter",
                  clobber=False):
     """
@@ -33,6 +35,9 @@ def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
+    fields : field or list of fields
+        The fields(s) to write out. If None, defaults to 
+        ds.field_list.
     data_author : string, optional
         The name of the author who wrote the data. Default: None.
     data_comment : string, optional
@@ -62,19 +67,23 @@ def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
     ...              data_comment="My Really Cool Dataset", clobber=True)
     """
 
+    if fields is None:
+        fields = ds.field_list
+
+    fields = ensure_list(fields)
+    
     f = _create_new_gdf(ds, gdf_path, data_author, data_comment,
                         dataset_units=dataset_units,
                         particle_type_name=particle_type_name, clobber=clobber)
 
     # now add the fields one-by-one
-    for field_name in ds.field_list:
-        _write_field_to_gdf(ds, f, field_name, particle_type_name)
+    _write_fields_to_gdf(ds, f, fields, particle_type_name)
 
     # don't forget to close the file.
     f.close()
 
 
-def save_field(ds, field_name, field_parameters=None):
+def save_field(ds, fields, field_parameters=None):
     """
     Write a single field associated with the dataset ds to the
     backup file.
@@ -83,18 +92,20 @@ def save_field(ds, field_name, field_parameters=None):
     ----------
     ds : Dataset object
         The yt dataset that the field is associated with.
-    field_name : string
-        The name of the field to save.
+    fields : field of list of fields
+        The name(s) of the field(s) to save.
     field_parameters : dictionary
         A dictionary of field parameters to set.
     """
 
-    if isinstance(field_name, tuple):
-        field_name = field_name[1]
-    field_obj = ds._get_field_info(field_name)
-    if field_obj.particle_type:
-        print("Saving particle fields currently not supported.")
-        return
+    fields = ensure_list(fields)
+    for field_name in fields:
+        if isinstance(field_name, tuple):
+            field_name = field_name[1]
+        field_obj = ds._get_field_info(field_name)
+        if field_obj.particle_type:
+            print("Saving particle fields currently not supported.")
+            return
 
     backup_filename = ds.backup_filename
     if os.path.exists(backup_filename):
@@ -107,63 +118,65 @@ def save_field(ds, field_name, field_parameters=None):
                             particle_type_name="dark_matter")
 
     # now save the field
-    _write_field_to_gdf(ds, f, field_name, particle_type_name="dark_matter",
-                        field_parameters=field_parameters)
+    _write_fields_to_gdf(ds, f, fields, particle_type_name="dark_matter",
+                         field_parameters=field_parameters)
 
     # don't forget to close the file.
     f.close()
 
 
-def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
+def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
                         field_parameters=None):
 
-    # add field info to field_types group
-    g = fhandle["field_types"]
-    # create the subgroup with the field's name
-    if isinstance(field_name, tuple):
-        field_name = field_name[1]
-    fi = ds._get_field_info(field_name)
-    try:
-        sg = g.create_group(field_name)
-    except ValueError:
-        print("Error - File already contains field called " + field_name)
-        sys.exit(1)
+    for field_name in fields:
+        # add field info to field_types group
+        g = fhandle["field_types"]
+        # create the subgroup with the field's name
+        if isinstance(field_name, tuple):
+            field_name = field_name[1]
+        fi = ds._get_field_info(field_name)
+        try:
+            sg = g.create_group(field_name)
+        except ValueError:
+            print("Error - File already contains field called " + field_name)
+            sys.exit(1)
 
-    # grab the display name and units from the field info container.
-    display_name = fi.display_name
-    units = fi.units
+        # grab the display name and units from the field info container.
+        display_name = fi.display_name
+        units = fi.units
 
-    # check that they actually contain something...
-    if display_name:
-        sg.attrs["field_name"] = display_name
-    else:
-        sg.attrs["field_name"] = field_name
-    if units:
-        sg.attrs["field_units"] = units
-    else:
-        sg.attrs["field_units"] = "None"
-    # @todo: is this always true?
-    sg.attrs["staggering"] = 0
+        # check that they actually contain something...
+        if display_name:
+            sg.attrs["field_name"] = display_name
+        else:
+            sg.attrs["field_name"] = field_name
+        if units:
+            sg.attrs["field_units"] = units
+        else:
+            sg.attrs["field_units"] = "None"
+        # @todo: is this always true?
+        sg.attrs["staggering"] = 0
 
-    # now add actual data, grid by grid
+    # now add the actual data, grid by grid
     g = fhandle["data"]
     for grid in ds.index.grids:
+        for field_name in fields:
+            # set field parameters, if specified
+            if field_parameters is not None:
+                for k, v in field_parameters.iteritems():
+                    grid.set_field_parameter(k, v)
 
-        # set field parameters, if specified
-        if field_parameters is not None:
-            for k, v in field_parameters.iteritems():
-                grid.set_field_parameter(k, v)
-
-        grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-        particles_group = grid_group["particles"]
-        pt_group = particles_group[particle_type_name]
-        # add the field data to the grid group
-        # Check if this is a real field or particle data.
-        grid.get_data(field_name)
-        if fi.particle_type:  # particle data
-            pt_group[field_name] = grid[field_name].in_units(units)
-        else:  # a field
-            grid_group[field_name] = grid[field_name].in_units(units)
+            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            particles_group = grid_group["particles"]
+            pt_group = particles_group[particle_type_name]
+            # add the field data to the grid group
+            # Check if this is a real field or particle data.
+            grid.get_data(field_name)
+            units = fhandle["field_types"][field_name].attrs["field_units"]
+            if fi.particle_type:  # particle data
+                pt_group[field_name] = grid[field_name].in_units(units)
+            else:  # a field
+                grid_group[field_name] = grid[field_name].in_units(units)
 
 
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
