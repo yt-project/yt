@@ -21,6 +21,10 @@ import numpy as np
 from yt import __version__ as yt_version
 from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.funcs import ensure_list
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects, \
+    communication_system
+
 
 def write_to_gdf(ds, gdf_path, fields=None, 
                  data_author=None, data_comment=None,
@@ -109,8 +113,15 @@ def save_field(ds, fields, field_parameters=None):
 
     backup_filename = ds.backup_filename
     if os.path.exists(backup_filename):
-        # backup file already exists, open it
-        f = h5py.File(backup_filename, "r+")
+        # backup file already exists, open it. We use parallel
+        # h5py if it is available
+        try: 
+            from yt.utilities.parallel_tools.parallel_analysis_interface \
+                import MPI
+            f = h5py.File(backup_filename, "w", driver='mpio',
+                          comm=MPI.COMM_WORLD)
+        except (ValueError, TypeError):
+            f = h5py.File(backup_filename, "r+")
     else:
         # backup file does not exist, create it
         f = _create_new_gdf(ds, backup_filename, data_author=None,
@@ -147,36 +158,40 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
 
         # check that they actually contain something...
         if display_name:
-            sg.attrs["field_name"] = display_name
+            sg.attrs["field_name"] = np.string_(display_name)
         else:
-            sg.attrs["field_name"] = field_name
+            sg.attrs["field_name"] = np.string_(field_name)
         if units:
-            sg.attrs["field_units"] = units
+            sg.attrs["field_units"] = np.string_(units)
         else:
-            sg.attrs["field_units"] = "None"
+            sg.attrs["field_units"] = np.string_("None")
         # @todo: is this always true?
         sg.attrs["staggering"] = 0
 
     # now add the actual data, grid by grid
     g = fhandle["data"]
-    for grid in ds.index.grids:
-        for field_name in fields:
-            # set field parameters, if specified
-            if field_parameters is not None:
-                for k, v in field_parameters.iteritems():
-                    grid.set_field_parameter(k, v)
+    data_source = ds.all_data()
+    citer = data_source.chunks([], "io", local_only=True)
+    for chunk in parallel_objects(citer):
+        # is there a better way to the get the grids on each chunk?
+        for grid in list(ds.index._chunk_io(chunk))[0].objs:
+            for field_name in fields:
+                # set field parameters, if specified
+                if field_parameters is not None:
+                    for k, v in field_parameters.iteritems():
+                        grid.set_field_parameter(k, v)
 
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-            particles_group = grid_group["particles"]
-            pt_group = particles_group[particle_type_name]
-            # add the field data to the grid group
-            # Check if this is a real field or particle data.
-            grid.get_data(field_name)
-            units = fhandle["field_types"][field_name].attrs["field_units"]
-            if fi.particle_type:  # particle data
-                pt_group[field_name] = grid[field_name].in_units(units)
-            else:  # a field
-                grid_group[field_name] = grid[field_name].in_units(units)
+                grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+                particles_group = grid_group["particles"]
+                pt_group = particles_group[particle_type_name]
+                # add the field data to the grid group
+                # Check if this is a real field or particle data.
+                grid.get_data(field_name)
+                units = fhandle["field_types"][field_name].attrs["field_units"]
+                if fi.particle_type:  # particle data
+                    pt_group[field_name] = grid[field_name].in_units(units)
+                else:  # a field
+                    grid_group[field_name] = grid[field_name].in_units(units)
 
 
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
@@ -192,9 +207,16 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         raise YTGDFAlreadyExists(gdf_path)
 
     ###
-    # Create and open the file with h5py
+    # Create and open the file with h5py. We use parallel
+    # h5py if it is available.
     ###
-    f = h5py.File(gdf_path, "w")
+    try:
+        from yt.utilities.parallel_tools.parallel_analysis_interface \
+            import MPI
+        f = h5py.File(gdf_path, "w", driver='mpio', 
+                      comm=MPI.COMM_WORLD)
+    except (ValueError, TypeError):
+        f = h5py.File(gdf_path, "w")
 
     ###
     # "gridded_data_format" group
@@ -259,7 +281,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
 
     # @todo: Particle type iterator
     sg = g.create_group(particle_type_name)
-    sg["particle_type_name"] = particle_type_name
+    sg["particle_type_name"] = np.string_(particle_type_name)
 
     ###
     # root datasets -- info about the grids
