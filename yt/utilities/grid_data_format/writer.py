@@ -17,6 +17,7 @@ import os
 import sys
 import h5py
 import numpy as np
+from contextlib import contextmanager
 
 from yt import __version__ as yt_version
 from yt.utilities.exceptions import YTGDFAlreadyExists
@@ -76,15 +77,14 @@ def write_to_gdf(ds, gdf_path, fields=None,
 
     fields = ensure_list(fields)
     
-    f = _create_new_gdf(ds, gdf_path, data_author, data_comment,
-                        dataset_units=dataset_units,
-                        particle_type_name=particle_type_name, clobber=clobber)
+    with _create_new_gdf(ds, gdf_path, data_author, 
+                         data_comment,
+                         dataset_units=dataset_units,
+                         particle_type_name=particle_type_name, 
+                         clobber=clobber) as f:
 
-    # now add the fields one-by-one
-    _write_fields_to_gdf(ds, f, fields, particle_type_name)
-
-    # don't forget to close the file.
-    f.close()
+        # now add the fields one-by-one
+        _write_fields_to_gdf(ds, f, fields, particle_type_name)
 
 
 def save_field(ds, fields, field_parameters=None):
@@ -111,31 +111,11 @@ def save_field(ds, fields, field_parameters=None):
             print("Saving particle fields currently not supported.")
             return
 
-    backup_filename = ds.backup_filename
-    if os.path.exists(backup_filename):
-        # backup file already exists, open it. We use parallel
-        # h5py if it is available
-        if communication_system.communicators[-1].size > 1 and \
-                h5py.get_config().mpi is True:
-
-            from yt.utilities.parallel_tools.parallel_analysis_interface \
-                import MPI
-            f = h5py.File(gdf_path, "r+", driver='mpio', 
-                          comm=MPI.COMM_WORLD)
-        else:
-            f = h5py.File(gdf_path, "r+")
-    else:
-        # backup file does not exist, create it
-        f = _create_new_gdf(ds, backup_filename, data_author=None,
-                            data_comment=None,
-                            particle_type_name="dark_matter")
-
-    # now save the field
-    _write_fields_to_gdf(ds, f, fields, particle_type_name="dark_matter",
-                         field_parameters=field_parameters)
-
-    # don't forget to close the file.
-    f.close()
+    with _get_backup_file(ds) as f:
+        # now save the field
+        _write_fields_to_gdf(ds, f, fields, 
+                             particle_type_name="dark_matter",
+                             field_parameters=field_parameters)
 
 
 def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
@@ -221,7 +201,33 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
                     dset = grid_group[field_name]
                     dset[:] = grid[field_name].in_units(units)
 
+@contextmanager
+def _get_backup_file(ds):
+    backup_filename = ds.backup_filename
+    if os.path.exists(backup_filename):
+        # backup file already exists, open it. We use parallel
+        # h5py if it is available
+        if communication_system.communicators[-1].size > 1 and \
+                h5py.get_config().mpi is True:
 
+            from yt.utilities.parallel_tools.parallel_analysis_interface \
+                import MPI
+            f = h5py.File(backup_filename, "r+", driver='mpio', 
+                          comm=MPI.COMM_WORLD)
+        else:
+            f = h5py.File(backup_filename, "r+")
+        yield f
+        f.close()
+    else:
+        # backup file does not exist, create it
+        with _create_new_gdf(ds, backup_filename, 
+                             data_author=None,
+                             data_comment=None,
+                             particle_type_name="dark_matter") as f:
+            yield f
+
+
+@contextmanager
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
                     dataset_units=None, particle_type_name="dark_matter",
                     clobber=False):
@@ -337,4 +343,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         particles_group = grid_group.create_group("particles")
         pt_group = particles_group.create_group(particle_type_name)
 
-    return f
+    yield f
+    
+    # close the file when done
+    f.close()
