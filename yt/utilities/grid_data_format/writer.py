@@ -115,13 +115,15 @@ def save_field(ds, fields, field_parameters=None):
     if os.path.exists(backup_filename):
         # backup file already exists, open it. We use parallel
         # h5py if it is available
-        try: 
+        if communication_system.communicators[-1].size > 1 and \
+                h5py.get_config().mpi is True:
+
             from yt.utilities.parallel_tools.parallel_analysis_interface \
                 import MPI
-            f = h5py.File(backup_filename, "w", driver='mpio',
+            f = h5py.File(gdf_path, "r+", driver='mpio', 
                           comm=MPI.COMM_WORLD)
-        except (ValueError, TypeError):
-            f = h5py.File(backup_filename, "r+")
+        else:
+            f = h5py.File(gdf_path, "r+")
     else:
         # backup file does not exist, create it
         f = _create_new_gdf(ds, backup_filename, data_author=None,
@@ -168,6 +170,26 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
         # @todo: is this always true?
         sg.attrs["staggering"] = 0
 
+
+    # first we must create the datasets on all processes.
+    g = fhandle["data"]
+    for grid in ds.index.grids:
+        for field_name in fields:
+
+            # get the field info object
+            fi = ds._get_field_info(field_name)
+
+            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+            particles_group = grid_group["particles"]
+            pt_group = particles_group[particle_type_name]
+
+            if fi.particle_type:  # particle data
+                pt_group.create_dataset(field_name, grid.ActiveDimensions,
+                                        dtype="float64")
+            else:  # a field
+                grid_group.create_dataset(field_name, grid.ActiveDimensions,
+                                          dtype="float64")
+
     # now add the actual data, grid by grid
     g = fhandle["data"]
     data_source = ds.all_data()
@@ -176,6 +198,10 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
         # is there a better way to the get the grids on each chunk?
         for grid in list(ds.index._chunk_io(chunk))[0].objs:
             for field_name in fields:
+
+                # get the field info object
+                fi = ds._get_field_info(field_name)
+
                 # set field parameters, if specified
                 if field_parameters is not None:
                     for k, v in field_parameters.iteritems():
@@ -189,9 +215,11 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
                 grid.get_data(field_name)
                 units = fhandle["field_types"][field_name].attrs["field_units"]
                 if fi.particle_type:  # particle data
-                    pt_group[field_name] = grid[field_name].in_units(units)
+                    dset = pt_group[field_name]
+                    dset[:] = grid[field_name].in_units(units)
                 else:  # a field
-                    grid_group[field_name] = grid[field_name].in_units(units)
+                    dset = grid_group[field_name]
+                    dset[:] = grid[field_name].in_units(units)
 
 
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
@@ -210,12 +238,14 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     # Create and open the file with h5py. We use parallel
     # h5py if it is available.
     ###
-    try:
+    if communication_system.communicators[-1].size > 1 and \
+            h5py.get_config().mpi is True:
+
         from yt.utilities.parallel_tools.parallel_analysis_interface \
             import MPI
         f = h5py.File(gdf_path, "w", driver='mpio', 
                       comm=MPI.COMM_WORLD)
-    except (ValueError, TypeError):
+    else:
         f = h5py.File(gdf_path, "w")
 
     ###
