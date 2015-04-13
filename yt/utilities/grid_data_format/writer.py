@@ -156,7 +156,9 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
     for grid in ds.index.grids:
         for field_name in fields:
 
-            # get the field info object
+            # sanitize get the field info object
+            if isinstance(field_name, tuple):
+                field_name = field_name[1]
             fi = ds._get_field_info(field_name)
 
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
@@ -179,7 +181,9 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
         for grid in list(ds.index._chunk_io(chunk))[0].objs:
             for field_name in fields:
 
-                # get the field info object
+                # sanitize and get the field info object
+                if isinstance(field_name, tuple):
+                    field_name = field_name[1]
                 fi = ds._get_field_info(field_name)
 
                 # set field parameters, if specified
