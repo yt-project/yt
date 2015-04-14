@@ -500,6 +500,23 @@ To re-load an object saved this way, you can use the shelve module directly:
 Additionally, we can store multiple objects in a single shelve file, so we 
 have to call the sphere by name.
 
+For certain data objects such as projections, serialization can be performed
+automatically if ``serialize`` option is set to ``True`` in :ref:`the
+configuration file <configuration-file>` or set directly in the script:
+
+.. code-block:: python
+
+   from yt.config import ytcfg; ytcfg["yt", "serialize"] = "True"
+
+.. note:: Use serialization with caution. Enabling serialization means that
+   once a projection of a dataset has been created (and stored in the .yt file
+   in the same directory), any subsequent changes to that dataset will be
+   ignored when attempting to create the same projection. So if you take a
+   density projection of your dataset in the 'x' direction, then somehow tweak
+   that dataset significantly, and take the density projection again, yt will
+   default to finding the original projection and 
+   :ref:`not your new one <faq-old-data>`.
+
 .. note:: It's also possible to use the standard :mod:`cPickle` module for
           loading and storing objects -- so in theory you could even save a
           list of objects!

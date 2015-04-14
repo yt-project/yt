@@ -19,7 +19,7 @@ To start the notebook, enter the following command at the bash command line:
 Depending on your default web browser and system setup this will open a web
 browser and direct you to the notebook dahboard.  If it does not,  you might
 need to connect to the notebook manually.  See the `IPython documentation
-<http://ipython.org/ipython-doc/stable/interactive/notebook.html#starting-the-notebook-server>`_
+<http://ipython.org/ipython-doc/stable/notebook/notebook.html#starting-the-notebook-server>`_
 for more details.
 
 For the notebook tutorial, we rely on example notebooks that are part of the
@@ -28,8 +28,4 @@ versions of these example notebooks.  If you would like to run them locally on
 your own computer, simply download the notebook by clicking the 'Download
 Notebook' link in the top right corner of each page.
 
-1. `Running Code in the IPython Notebook <http://nbviewer.ipython.org/url/github.com/ipython/ipython/raw/master/examples/notebooks/Part%201%20-%20Running%20Code.ipynb>`_
-2. `Basic Output <http://nbviewer.ipython.org/url/github.com/ipython/ipython/raw/master/examples/notebooks/Part%202%20-%20Basic%20Output.ipynb>`_
-3. `Plotting with matplotlib <http://nbviewer.ipython.org/url/github.com/ipython/ipython/raw/master/examples/notebooks/Part%203%20-%20Plotting%20with%20Matplotlib.ipynb>`_
-4. `Markdown Cells <http://nbviewer.ipython.org/url/github.com/ipython/ipython/raw/master/examples/notebooks/Part%204%20-%20Markdown%20Cells.ipynb>`_
-5. `IPython's rich display system <http://nbviewer.ipython.org/url/github.com/ipython/ipython/raw/master/examples/notebooks/Part%205%20-%20Rich%20Display%20System.ipynb>`_
+1. `IPython Notebook Tutorials <http://nbviewer.ipython.org/github/ipython/ipython/blob/master/examples/Notebook/Index.ipynb>`_

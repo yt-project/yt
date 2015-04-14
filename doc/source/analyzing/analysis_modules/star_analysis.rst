@@ -125,7 +125,7 @@ this will generate a synthetic spectrum for the stars using the publicly-availab
 tables of Bruzual & Charlot (hereafter B&C). Please see their `2003 paper
 <http://adsabs.harvard.edu/abs/2003MNRAS.344.1000B>`_ for more information
 and the `main data
-distribution page <http://www.cida.ve/~bruzual/bc2003>`_ for the original data.
+distribution page <http://www.bruzual.org/bc03/>`_ for the original data.
 Based on the mass, age and metallicity of each star, a cumulative spectrum is
 generated and can be output in two ways, either raw, or as a spectral
 energy distribution.

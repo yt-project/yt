@@ -736,8 +736,8 @@ perspective and interactively.
 Python and Related References
 +++++++++++++++++++++++++++++
     * `Python quickstart <http://docs.python.org/tutorial/>`_
-    * `Learn Python the Hard Way <http://learnpythonthehardway.org/index>`_
+    * `Learn Python the Hard Way <http://learnpythonthehardway.org/book/>`_
     * `Byte of Python <http://www.swaroopch.com/notes/Python>`_
     * `Dive Into Python <http://diveintopython.org>`_
-    * `Numpy docs <http://docs.numpy.org/>`_
-    * `Matplotlib docs <http://matplotlib.sf.net>`_
+    * `Numpy docs <http://docs.scipy.org/doc/numpy/>`_
+    * `Matplotlib docs <http://matplotlib.org>`_
