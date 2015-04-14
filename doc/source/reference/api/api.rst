@@ -491,6 +491,16 @@ Field Functions
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
 
+
+Particle Filters
+----------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.particle_filters.add_particle_filter
+   ~yt.data_objects.particle_filters.particle_filter
+
 Image Handling
 --------------
 

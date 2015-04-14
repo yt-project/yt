@@ -16,7 +16,9 @@ This is a library for defining and using particle filters.
 
 import numpy as np
 import copy
+
 from contextlib import contextmanager
+from functools import wraps
 
 from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
@@ -76,13 +78,101 @@ class ParticleFilter(object):
             new_fi._function = TranslationFunc(old_fi.name)
         return new_fi
 
-def add_particle_filter(name, function, requires = None, filtered_type = "all"):
-    if requires is None: requires = []
+
+def add_particle_filter(name, function, requires=None, filtered_type="all"):
+    r"""Create a new particle filter in the global namespace of filters
+
+    A particle filter is a short name that corresponds to an algorithm for
+    filtering a set of particles into a subset.  This is useful for creating new
+    particle types based on a cut on a particle field, such as particle mass, ID
+    or type.
+
+    Parameters
+    ----------
+    name : string
+        The name of the particle filter.  New particle fields with particle type
+        set by this name will be added to any dataset that enables this particle
+        filter.
+    function : reference to a function
+        The function that defines the particle filter.  The function should
+        accept two arguments: a reference to a particle filter object and a
+        reference to an abstract yt data object.  See the example below.
+    requires : a list of field names
+        A list of field names required by the particle filter definition.
+    filtered_type : string
+        The name of the particle type to be filtered.
+
+    Example
+    -------
+
+    >>> import yt
+
+    >>> def _stars(pfilter, data):
+    ...     return data[(pfilter.filtered_type, 'particle_type')] == 2
+
+    >>> yt.add_particle_filter("stars", function=_stars, filtered_type='all',
+    ...                        requires=["particle_type"])
+
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds.add_particle_filter('stars')
+    >>> ad = ds.all_data()
+    >>> print (ad['stars', 'particle_mass'])
+    [  1.68243760e+38   1.65690882e+38   1.65813321e+38 ...,   2.04238266e+38
+       2.04523901e+38   2.04770938e+38] g
+
+    """
+    if requires is None:
+        requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
     filter_registry[name].append(filter)
 
-def particle_filter(name, requires = None, filtered_type = "all"):
-    def _pfilter(func):
-        add_particle_filter(name, func, requires, filtered_type)
-        return func
-    return _pfilter
+
+def particle_filter(name=None, requires=None, filtered_type='all'):
+    r"""A decorator that adds a new particle filter
+
+    A particle filter is a short name that corresponds to an algorithm for
+    filtering a set of particles into a subset.  This is useful for creating new
+    particle types based on a cut on a particle field, such as particle mass, ID
+    or type.
+
+    Parameters
+    ----------
+    name : string
+        The name of the particle filter.  New particle fields with particle type
+        set by this name will be added to any dataset that enables this particle
+        filter.  If not set, the name will be inferred from the name of the
+        filter function.
+    function : reference to a function
+        The function that defines the particle filter.  The function should
+        accept two arguments: a reference to a particle filter object and a
+        reference to an abstract yt data object.  See the example below.
+    requires : a list of field names
+        A list of field names required by the particle filter definition.
+    filtered_type : string
+        The name of the particle type to be filtered.
+
+    Example
+    -------
+
+    >>> import yt
+
+    >>> # define a filter named "stars"
+    >>> @yt.particle_filter(requires=["particle_type"], filtered_type='all')
+    >>> def stars(pfilter, data):
+    ...     return data[(pfilter.filtered_type, 'particle_type')] == 2
+
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds.add_particle_filter('stars')
+    >>> ad = ds.all_data()
+    >>> print (ad['stars', 'particle_mass'])
+    [  1.68243760e+38   1.65690882e+38   1.65813321e+38 ...,   2.04238266e+38
+       2.04523901e+38   2.04770938e+38] g
+
+    """
+    def wrapper(function):
+        if name is None:
+            used_name = function.__name__
+        else:
+            used_name = name
+        return add_particle_filter(used_name, function, requires, filtered_type)
+    return wrapper
