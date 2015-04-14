@@ -87,6 +87,11 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     particle types based on a cut on a particle field, such as particle mass, ID
     or type.
 
+    .. note::
+       Alternatively, you can make use of the
+       :func:`~yt.data_objects.particle_filters.particle_filter` decorator to
+       define a new particle filter.
+
     Parameters
     ----------
     name : string
@@ -134,6 +139,11 @@ def particle_filter(name=None, requires=None, filtered_type='all'):
     filtering a set of particles into a subset.  This is useful for creating new
     particle types based on a cut on a particle field, such as particle mass, ID
     or type.
+
+    .. note::
+       Alternatively, you can make use of the
+       :func:`~yt.data_objects.particle_filters.add_particle_filter` function
+       to define a new particle filter using a more declarative syntax.
 
     Parameters
     ----------

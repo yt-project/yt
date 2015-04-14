@@ -13,7 +13,7 @@ iso_galaxy = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 def test_add_particle_filter():
     """Test particle filters created via add_particle_filter
 
-    This accesses a deposition field using hte particle filter, which was a
+    This accesses a deposition field using the particle filter, which was a
     problem in previous versions on this dataset because there are chunks with
     no stars in them.
 
