@@ -213,11 +213,9 @@ def _get_backup_file(ds):
         # h5py if it is available
         if communication_system.communicators[-1].size > 1 and \
                 h5py.get_config().mpi is True:
-
-            from yt.utilities.parallel_tools.parallel_analysis_interface \
-                import MPI
+            mpi4py_communicator = communication_system.communicators[-1].comm
             f = h5py.File(backup_filename, "r+", driver='mpio', 
-                          comm=MPI.COMM_WORLD)
+                          comm=mpi4py_communicator)
         else:
             f = h5py.File(backup_filename, "r+")
         yield f
@@ -250,11 +248,9 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     ###
     if communication_system.communicators[-1].size > 1 and \
             h5py.get_config().mpi is True:
-
-        from yt.utilities.parallel_tools.parallel_analysis_interface \
-            import MPI
+        mpi4py_communicator = communication_system.communicators[-1].comm
         f = h5py.File(gdf_path, "w", driver='mpio', 
-                      comm=MPI.COMM_WORLD)
+                      comm=mpi4py_communicator)
     else:
         f = h5py.File(gdf_path, "w")
 
