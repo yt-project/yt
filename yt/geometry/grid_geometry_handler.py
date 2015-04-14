@@ -358,7 +358,7 @@ class GridIndex(Index):
         # We can apply a heuristic here to make sure we aren't loading too
         # many grids all at once.
         if chunk_sizing == "auto":
-            chunk_ngrids = dobj._chunk_info.shape[0]
+            chunk_ngrids = sum(len(v) for v in gfiles.values())
             if chunk_ngrids > 0:
                 nproc = np.float(ytcfg.getint("yt", "__global_parallel_size"))
                 chunking_factor = np.ceil(self._grid_chunksize*nproc/chunk_ngrids).astype("int")
@@ -371,6 +371,8 @@ class GridIndex(Index):
             size = 1
         elif chunk_sizing == "old":
             size = self._grid_chunksize
+        else:
+            raise RuntimeError("%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing)
         for fn in sorted(gfiles):
             gs = gfiles[fn]
             for grids in (gs[pos:pos + size] for pos
