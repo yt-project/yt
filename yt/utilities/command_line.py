@@ -594,6 +594,8 @@ class YTInstInfoCmd(YTCommand):
                 print("    %s" % (spath))
                 update_supp = True
         vstring = get_yt_version()
+        if vstring == -1:
+            vstring = "unknown"
         if vstring is not None:
             print()
             print("The current version and changeset for the code is:")
