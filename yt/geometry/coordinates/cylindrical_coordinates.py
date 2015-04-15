@@ -22,7 +22,7 @@ from .coordinate_handler import \
     cylindrical_to_cartesian, \
     cartesian_to_cylindrical
 import yt.visualization._MPL as _MPL
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 #
 # Cylindrical fields

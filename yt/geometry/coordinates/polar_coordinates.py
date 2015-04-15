@@ -23,7 +23,7 @@ from .coordinate_handler import \
     _get_coord_fields
 from .cylindrical_coordinates import CylindricalCoordinateHandler
 import yt.visualization._MPL as _MPL
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 
 class PolarCoordinateHandler(CylindricalCoordinateHandler):
