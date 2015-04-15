@@ -526,7 +526,8 @@ def get_hg_version(path):
     try:
         import hglib
     except ImportError:
-        print("Updating requires python-hglib to be installed.")
+        print("Updating and precise version information requires ")
+        print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
         return -1
     repo = hglib.open(path)
