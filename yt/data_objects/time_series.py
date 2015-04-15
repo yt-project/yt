@@ -406,7 +406,7 @@ class SimulationTimeSeries(DatasetSeries):
         self._parse_parameter_file()
         # Set units
         self._set_units()
-        # # Figure out the starting and stopping times and redshift.
+        # Figure out the starting and stopping times and redshift.
         self._calculate_simulation_bounds()
         # Get all possible datasets.
         self._get_all_outputs(find_outputs=find_outputs)
@@ -460,8 +460,7 @@ class SimulationTimeSeries(DatasetSeries):
         for a in ["initial_time", "final_time",
                   "cosmological_simulation"]:
             self._print_attr(a)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             for a in ["box_size", "omega_lambda",
                       "omega_matter", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
