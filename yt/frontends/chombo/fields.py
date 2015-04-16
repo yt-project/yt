@@ -21,11 +21,6 @@ from yt.fields.field_info_container import \
     particle_vector_functions, \
     standard_particle_fields
 
-from yt.frontends.boxlib.fields import \
-    rho_units, \
-    mom_units, \
-    eden_units
-
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"
