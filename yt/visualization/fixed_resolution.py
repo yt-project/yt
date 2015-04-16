@@ -353,7 +353,6 @@ class FixedResolutionBuffer(object):
     def setup_filters(self):
         ignored = ['FixedResolutionBufferFilter']
         for key in filter_registry:
-            print key
             if key in ignored:
                 continue
             filtername = filter_registry[key]._filter_name
