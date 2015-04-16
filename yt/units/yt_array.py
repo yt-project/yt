@@ -454,7 +454,7 @@ class YTArray(np.ndarray):
 
     def in_base(self):
         """
-        Creates a copy of this array with the data in the equivalent cgs units,
+        Creates a copy of this array with the data in the equivalent base units,
         and returns it.
 
         Returns

@@ -137,7 +137,7 @@ class Unit(Expr):
             A sympy expression representing the dimensionality of this unit.
             It must contain only mass, length, time, temperature and angle
             symbols.
-        offset : float
+        base_offset : float
             The offset necessary to normalize temperature units to a common
             zero point.
         registry : UnitRegistry object

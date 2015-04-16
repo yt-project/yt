@@ -17,13 +17,9 @@ import numpy as np
 import abc
 import json
 import sys
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import h5py as h5
 from uuid import uuid4
-from yt.extern.six.moves import urllib
+from yt.extern.six.moves import urllib, pickle
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
