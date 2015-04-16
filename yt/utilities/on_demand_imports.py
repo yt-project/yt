@@ -150,7 +150,7 @@ class scipy_imports:
             try:
                 import scipy.signal as signal
             except ImportError:
-                convolve = NotAModule(self._name)
+                signal = NotAModule(self._name)
             self._signal = signal
         return self._signal
 
