@@ -63,7 +63,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         self.sigma = sigma
 
     def apply(self, buff):
-        from scipy import signal
+        from yt.utilities.on_demand_imports import _scipy
         hnbeam = self.nbeam / 2
         sigma = self.sigma
 
@@ -74,6 +74,6 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         g2d /= g2d.max()
 
         npm, nqm = np.shape(buff)
-        spl = signal.convolve(buff, g2d)
+        spl = _scipy.signal.convolve(buff, g2d)
 
         return spl[hnbeam:npm + hnbeam, hnbeam:nqm + hnbeam]

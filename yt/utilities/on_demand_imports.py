@@ -142,5 +142,16 @@ class scipy_imports:
                 special = NotAModule(self._name)
             self._special = special
         return self._special
+    
+    _signal = None
+    @property
+    def signal(self):
+        if self._signal is None:
+            try:
+                import scipy.signal as signal
+            except ImportError:
+                convolve = NotAModule(self._name)
+            self._signal = signal
+        return self._signal
 
 _scipy = scipy_imports()
