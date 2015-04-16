@@ -16,6 +16,7 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 from yt.funcs import *
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
+from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
@@ -93,6 +94,7 @@ class FixedResolutionBuffer(object):
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
 
@@ -110,6 +112,8 @@ class FixedResolutionBuffer(object):
             yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
+
+        self.setup_filters()
         
     def keys(self):
         return self.data.keys()
@@ -129,6 +133,10 @@ class FixedResolutionBuffer(object):
         buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
             int(self.antialias))
+
+        for name, (args, kwargs) in self._filters:
+            buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
+
         # Need to add _period and self.periodic
         # self._period, int(self.periodic)
         ia = ImageArray(buff, input_units=self.data_source[item].units,
@@ -178,8 +186,6 @@ class FixedResolutionBuffer(object):
         else:
             label = fname
         return label
-
-
 
 
     def _get_info(self, item):
@@ -344,6 +350,19 @@ class FixedResolutionBuffer(object):
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
 
+    def setup_filters(self):
+        ignored = ['FixedResolutionBufferFilter']
+        for key in filter_registry:
+            print key
+            if key in ignored:
+                continue
+            filtername = filter_registry[key]._filter_name
+            FilterMaker = filter_registry[key]
+            filt = apply_filter(FilterMaker)
+            filt.__doc__ = FilterMaker.__doc__
+            self.__dict__['apply_' + filtername] = \
+                types.MethodType(filt, self)
+
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of
@@ -429,5 +448,3 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
         return ia 
-
-
