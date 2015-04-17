@@ -56,7 +56,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
     2d gaussian that is 'nbeam' pixels wide and has standard deviation
     'sigma'.
     """
-    _filter_name = "gauss_beam"
+    _filter_name = 'gauss_beam'
 
     def __init__(self, nbeam=30, sigma=2.0):
         self.nbeam = nbeam
