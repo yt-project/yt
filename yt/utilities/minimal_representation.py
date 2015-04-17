@@ -19,7 +19,8 @@ import json
 import sys
 import h5py as h5
 from uuid import uuid4
-from yt.extern.six.moves import urllib, pickle
+from yt.extern.six.moves import urllib
+from yt.extern.six.moves import cPickle as pickle
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
