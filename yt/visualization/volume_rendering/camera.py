@@ -2411,9 +2411,10 @@ class ProjectionCamera(Camera):
             if self.weight is None:
                 dl = self.width[2].in_units("cm")
             else:
-                image[:,:,0] /= image[:,:,1]
+                image[:, : ,0] /= image[:, :, 1]
 
-        return ImageArray(image[:,:,0], finfo.units)*dl
+        return ImageArray(image[:, :, 0], finfo.units, 
+                          registry=ds.unit_registry) * dl
 
 
     def _render(self, double_check, num_threads, image, sampler):
