@@ -8,7 +8,7 @@ other Python code, into more complicated and advanced tasks.
 
 .. note::
    All of these scripts are located in the mercurial repository at
-   http://hg.yt-project.org/cookbook/
+   http://bitbucket.org/yt_analysis/cookbook/
 
 """
 footer = """ """
@@ -23,7 +23,7 @@ else:
     recipes = cStringIO.StringIO()
 recipes.write(header)
 
-url = "here: http://hg.yt-project.org/cookbook/raw/tip/%s ."
+url = "here: http://bitbucket.org/yt_analysis/cookbook/raw/tip/%s ."
 
 def cond_output(f, v):
     if not v:
@@ -31,7 +31,7 @@ def cond_output(f, v):
     return True
 
 repo = hg.repository(uii, "../cookbook/")
-commands.pull(uii, repo, "http://hg.yt-project.org/cookbook/")
+commands.pull(uii, repo, "http://bitbucket.org/yt_analysis/cookbook/")
 ctx = repo["tip"]
 for file in ctx:
     if not file.startswith("recipes/"): continue
