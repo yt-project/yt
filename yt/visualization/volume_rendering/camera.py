@@ -220,6 +220,7 @@ class Camera(Orientation):
         if normal_vector is None:
             normal_vector = self.normal_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
+        self.lens.setup_box_properties(self)
 
     def switch_view(self, normal_vector=None, north_vector=None):
         r"""Change the view based on any of the view parameters.
