@@ -11,7 +11,7 @@ c = [0.5, 0.5, 0.5]
 # objects, you could set it the way you would a cutting plane -- but for this
 # dataset, we'll just choose an off-axis value at random.  This gets normalized
 # automatically.
-L = [0.5, 0.4, 0.7]
+L = [1.0, 0.0, 0.0]
 
 # Our "width" is the width of the image plane as well as the depth.
 # The first element is the left to right width, the second is the

@@ -135,6 +135,8 @@ def off_axis_projection(data_source, center, normal_vector,
     else:
         vol.set_fields([item, weight])
     camera = Camera(data_source)
+    camera.switch_orientation(normal_vector=normal_vector,
+                              north_vector=north_vector)
     sc.camera = camera
     sc.add_source(vol)
 
