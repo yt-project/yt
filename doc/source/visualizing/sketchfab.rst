@@ -86,7 +86,7 @@ easier way!
 Exporting to Sketchfab
 ----------------------
 
-`Sketchfab <http://sketchfab.com>`_ is a website that uses WebGL, a relatively
+`Sketchfab <https://sketchfab.com>`_ is a website that uses WebGL, a relatively
 new technology for displaying 3D graphics in any browser.  It's very fast and
 typically requires no plugins.  Plus, it means that you can share data with
 anyone and they can view it immersively without having to download the data or
@@ -155,7 +155,7 @@ OBJ and MTL Files
 -----------------
 
 If the ability to maneuver around an isosurface of your 3D simulation in
-`Sketchfab <http://sketchfab.com>`_ cost you half a day of work (let's be
+`Sketchfab <https://sketchfab.com>`_ cost you half a day of work (let's be
 honest, 2 days), prepare to be even less productive.  With a new  `OBJ file
 <http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
 upload multiple surfaces of different transparencies in the same file.
@@ -204,7 +204,7 @@ surface to their own min and max values.
 Uploading to SketchFab
 ----------------------
 
-To upload to `Sketchfab <http://sketchfab.com>`_ one only needs to zip the
+To upload to `Sketchfab <https://sketchfab.com>`_ one only needs to zip the
 OBJ and MTL files together, and then upload via your dashboard prompts in
 the usual way.  For example, the above script produces:
 
