@@ -211,7 +211,7 @@ Submit a bug report
 If you have gone through all of the above steps, and you're still encountering 
 problems, then you have found a bug.  
 To submit a bug report, you can either directly create one through the
-BitBucket `web interface <http://hg.yt-project.org/yt/issues/new>`_,
+BitBucket `web interface <http://bitbucket.org/yt_analysis/yt/issues/new>`_,
 or you can use the command line ``yt bugreport`` to interactively create one.
 Alternatively, email the ``yt-users`` mailing list and we will construct a new
 ticket in your stead.  Remember to include the information

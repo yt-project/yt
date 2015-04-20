@@ -14,7 +14,7 @@ def test_neighbor_search():
     all_neighbors = np.zeros_like(nearest_neighbors)
     any_eq = np.zeros(pos.shape[0], dtype='bool')
     min_in = np.zeros(pos.shape[0], dtype='int64')
-    for i in xrange(pos.shape[0]):
+    for i in range(pos.shape[0]):
         dd.set_field_parameter("center", pos[i,:])
         #radius = dd["particle_radius"]
         #radius.sort()

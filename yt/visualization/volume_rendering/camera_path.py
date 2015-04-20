@@ -4,6 +4,7 @@ Create smooth camera paths from keyframes.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -141,7 +142,7 @@ class Keyframes(object):
         in random without generation all values at once.
         """
         values = range(self.nframes)
-        for i in xrange(self.nframes):
+        for i in range(self.nframes):
             # pick a random index into remaining values
             j = i + int(random.random() * (self.nframes-i))
             # swap the values

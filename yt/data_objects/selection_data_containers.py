@@ -225,7 +225,7 @@ class YTSliceBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
+    axis : int or char
         The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coord : float
         The coordinate along the axis at which to slice.  This is in
@@ -733,7 +733,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ("data_source", "conditionals")
+    _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
                  field_parameters=None, base_object=None):
         if base_object is not None:

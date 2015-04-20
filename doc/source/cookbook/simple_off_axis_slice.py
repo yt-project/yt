@@ -9,7 +9,7 @@ sp = ds.sphere("center", (15.0, "kpc"))
 # Get the angular momentum vector for the sphere.
 L = sp.quantities.angular_momentum_vector()
 
-print "Angular momentum vector: {0}".format(L)
+print("Angular momentum vector: {0}".format(L))
 
 # Create an OffAxisSlicePlot of density centered on the object with the L 
 # vector as its normal and a width of 25 kpc on a side

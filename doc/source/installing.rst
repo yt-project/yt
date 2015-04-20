@@ -67,7 +67,7 @@ To get the installation script, download it from:
 
 .. code-block:: bash
 
-  wget http://hg.yt-project.org/yt/raw/stable/doc/install_script.sh
+  wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
 
 .. _installing-yt:
 
@@ -241,7 +241,7 @@ the official repo:
   ``sudo`` depending on where python is installed. See `This StackOverflow
   discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on systems.
+  if you are curious why ``--prefix=`` is neccessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,

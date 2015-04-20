@@ -148,7 +148,7 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, ProfilePlot, PhasePlot
+    show_colormaps, add_cmap, make_colormap, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \

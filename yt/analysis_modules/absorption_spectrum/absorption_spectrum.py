@@ -4,6 +4,8 @@ AbsorptionSpectrum class and member functions.
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,15 +18,17 @@ AbsorptionSpectrum class and member functions.
 import h5py
 import numpy as np
 
-from absorption_line import tau_profile
+from .absorption_line import tau_profile
 
 from yt.funcs import get_pbar, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import \
     amu_cgs, boltzmann_constant_cgs, \
     speed_of_light_cgs, km_per_cm
+from yt.utilities.on_demand_imports import _astropy
 
 speed_of_light_kms = speed_of_light_cgs * km_per_cm
+pyfits = _astropy.pyfits
 
 class AbsorptionSpectrum(object):
     r"""Create an absorption spectrum object.
@@ -276,7 +280,7 @@ class AbsorptionSpectrum(object):
         """
         Write out list of spectral lines.
         """
-        print "Writing spectral line list: %s." % filename
+        print("Writing spectral line list: %s." % filename)
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
         f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
@@ -291,10 +295,10 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to an ascii file.
         """
-        print "Writing spectrum to ascii file: %s." % filename
+        print("Writing spectrum to ascii file: %s." % filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
-        for i in xrange(self.lambda_bins.size):
+        for i in range(self.lambda_bins.size):
             f.write("%e %e %e\n" % (self.lambda_bins[i],
                                     self.tau_field[i], self.flux_field[i]))
         f.close()
@@ -303,17 +307,11 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to a fits file.
         """
-        try:
-            import pyfits
-        except:
-            print "Could not import the pyfits module.  Please install pyfits."
-            return
-
-        print "Writing spectrum to fits file: %s." % filename
+        print("Writing spectrum to fits file: %s." % filename)
         col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_bins)
         col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2])
-        tbhdu = pyfits.new_table(cols)
+        tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
 
     def _write_spectrum_hdf5(self, filename):
@@ -321,7 +319,7 @@ class AbsorptionSpectrum(object):
         Write spectrum to an hdf5 file.
 
         """
-        print "Writing spectrum to hdf5 file: %s." % filename
+        print("Writing spectrum to hdf5 file: %s." % filename)
         output = h5py.File(filename, 'w')
         output.create_dataset('wavelength', data=self.lambda_bins)
         output.create_dataset('tau', data=self.tau_field)

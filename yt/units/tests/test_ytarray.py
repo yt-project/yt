@@ -15,7 +15,7 @@ Test ndarray subclass that handles symbolic units.
 # ----------------------------------------------------------------------------
 
 import copy
-import cPickle as pickle
+from yt.extern.six.moves import cPickle as pickle
 import itertools
 import numpy as np
 import operator
@@ -269,11 +269,15 @@ def test_division():
     a3 = [4*cm, 5*cm, 6*cm]
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
+    if "div" in dir(operator):
+        op = operator.div
+    else:
+        op = operator.truediv
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -288,10 +292,10 @@ def test_division():
     answer3 = YTArray([0.25, 0.4, 0.5], 'cm/m')
     answer4 = YTArray([4.0, 2.5, 2.0], 'm/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer3
     yield operate_and_compare, a2, a1, np.divide, answer4
     yield operate_and_compare, a1, a3, np.divide, answer3
@@ -304,10 +308,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm/g')
     answer2 = YTArray([4, 2.5, 2], 'g/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -320,10 +324,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm')
     answer2 = YTArray([4, 2.5, 2], '1/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -336,10 +340,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
     yield operate_and_compare, a3, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -578,8 +582,8 @@ def test_ytarray_pickle():
         yield assert_equal, data.units, loaded_data.units
         yield assert_array_equal, array(data.in_cgs()), \
             array(loaded_data.in_cgs())
-        yield assert_equal, float(data.units.cgs_value), \
-            float(loaded_data.units.cgs_value)
+        yield assert_equal, float(data.units.base_value), \
+            float(loaded_data.units.base_value)
 
 
 def test_copy():
@@ -780,8 +784,11 @@ def test_registry_association():
         assert_equal(id(c.units.registry), id(ds.unit_registry))
         assert_equal(id(d.units.registry), id(b.units.registry))
 
-    for op in [operator.add, operator.sub, operator.mul, operator.div,
-               operator.truediv]:
+    binary_ops = [operator.add, operator.sub, operator.mul, 
+                  operator.truediv]
+    if hasattr(operator, "div"):
+        binary_ops.append(operator.div)
+    for op in binary_ops:
         yield binary_op_registry_comparison, op
 
     for op in [operator.abs, operator.neg, operator.pos]:
@@ -828,7 +835,10 @@ def test_subclass():
         assert_isinstance(op(inst1, inst2), compare_class)
         assert_isinstance(op(inst2, inst1), compare_class)
 
-    for op in (operator.mul, operator.div, operator.truediv):
+    ops = [operator.mul, operator.truediv]
+    if hasattr(operator, "div"):
+        ops.append(operator.div)
+    for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
             yield op_comparison, op, a, inst, YTASubclass
 
@@ -863,27 +873,6 @@ def test_h5_io():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
-
-def test_cgs_conversions():
-    from yt.utilities.physical_constants import qp, eps_0, clight
-    from yt.units.dimensions import current_mks, time
-
-    qp_mks = qp.in_units("C")
-    yield assert_equal, qp_mks.units.dimensions, current_mks*time
-    yield assert_array_almost_equal, qp_mks.in_cgs(), qp
-    qp_mks_k = qp_mks.in_units("kC")
-    yield assert_equal, qp_mks.units.dimensions, current_mks*time
-    yield assert_array_almost_equal, qp_mks_k.in_cgs(), qp
-    yield assert_array_almost_equal, qp_mks_k.in_units("kesu"), qp.in_units("kesu")
-
-    K = 1.0/(4*np.pi*eps_0)
-    yield assert_array_almost_equal, K.in_cgs(), 1.0
-
-    B = YTQuantity(1.0, "T")
-    yield assert_array_almost_equal, B.in_units("gauss"), YTQuantity(1.0e4, "gauss")
-
-    I = YTQuantity(1.0, "A")
-    yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
 
 def test_equivalencies():
     from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh, me, \
@@ -971,7 +960,56 @@ def test_equivalencies():
     yield assert_equal, F, stefan_boltzmann_constant_cgs*T**4
     yield assert_allclose, T, F.to_equivalent("K", "effective_temperature")
 
+def test_electromagnetic():
+    from yt.units.dimensions import charge_mks, pressure, current_cgs, \
+        magnetic_field_mks, magnetic_field_cgs, power
+    from yt.utilities.physical_constants import mu_0, qp
+    from yt.utilities.physical_ratios import speed_of_light_cm_per_s
 
+    # Various tests of SI and CGS electromagnetic units
+
+    qp_mks = qp.to_equivalent("C", "SI")
+    yield assert_equal, qp_mks.units.dimensions, charge_mks
+    yield assert_array_almost_equal, qp_mks.v, 10.0*qp.v/speed_of_light_cm_per_s
+
+    qp_cgs = qp_mks.to_equivalent("esu", "CGS")
+    yield assert_array_almost_equal, qp_cgs, qp
+    yield assert_equal, qp_cgs.units.dimensions, qp.units.dimensions
+    
+    qp_mks_k = qp.to_equivalent("kC", "SI")
+    yield assert_array_almost_equal, qp_mks_k.v, 1.0e-2*qp.v/speed_of_light_cm_per_s
+
+    B = YTQuantity(1.0, "T")
+    B_cgs = B.to_equivalent("gauss", "CGS")
+    yield assert_equal, B.units.dimensions, magnetic_field_mks
+    yield assert_equal, B_cgs.units.dimensions, magnetic_field_cgs
+    yield assert_array_almost_equal, B_cgs, YTQuantity(1.0e4, "gauss")
+
+    u_mks = B*B/(2*mu_0)
+    yield assert_equal, u_mks.units.dimensions, pressure
+    u_cgs = B_cgs*B_cgs/(8*np.pi)
+    yield assert_equal, u_cgs.units.dimensions, pressure
+    yield assert_array_almost_equal, u_mks.in_cgs(), u_cgs
+    
+    I = YTQuantity(1.0, "A")
+    I_cgs = I.to_equivalent("statA", "CGS")
+    yield assert_array_almost_equal, I_cgs, YTQuantity(0.1*speed_of_light_cm_per_s, "statA")
+    yield assert_array_almost_equal, I_cgs.to_equivalent("mA", "SI"), I.in_units("mA")
+    yield assert_equal, I_cgs.units.dimensions, current_cgs
+    
+    R = YTQuantity(1.0, "ohm")
+    R_cgs = R.to_equivalent("statohm", "CGS")
+    P_mks = I*I*R
+    P_cgs = I_cgs*I_cgs*R_cgs
+    yield assert_equal, P_mks.units.dimensions, power
+    yield assert_equal, P_cgs.units.dimensions, power
+    yield assert_array_almost_equal, P_cgs.in_cgs(), P_mks.in_cgs()
+    yield assert_array_almost_equal, P_cgs.in_mks(), YTQuantity(1.0, "W")
+    
+    V = YTQuantity(1.0, "statV")
+    V_mks = V.to_equivalent("V", "SI")
+    yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
+    
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
@@ -994,8 +1032,8 @@ def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')
     b = a.in_units('Zsun')
     a.convert_to_units('Zsun')
-    yield assert_true, a.units.cgs_value == metallicity_sun
-    yield assert_true, b.units.cgs_value == metallicity_sun
+    yield assert_true, a.units.base_value == metallicity_sun
+    yield assert_true, b.units.base_value == metallicity_sun
 
 def test_modified_unit_division():
     ds1 = fake_random_ds(64)
@@ -1011,4 +1049,4 @@ def test_modified_unit_division():
     ret = a/b
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
-    yield assert_true, ret.units.cgs_value == 1.0
+    yield assert_true, ret.units.base_value == 1.0

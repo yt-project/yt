@@ -15,7 +15,9 @@ API for yt.visualization
 
 from .color_maps import \
     add_cmap, \
-    show_colormaps
+    show_colormaps, \
+    add_cmap, \
+    make_colormap
 
 from .fixed_resolution import \
     FixedResolutionBuffer, \

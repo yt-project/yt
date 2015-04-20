@@ -5,6 +5,8 @@ yt's purposes
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -18,12 +20,12 @@ import uuid
 import json
 import logging, threading
 import sys
-import urllib, urllib2
+from yt.extern.six.moves import urllib
 import numpy as np
 
 from yt.extern.bottle import \
     server_names, debug, route, run, request, ServerAdapter, response
-from extdirect_router import DirectRouter, DirectProviderDefinition
+from .extdirect_router import DirectRouter, DirectProviderDefinition
 from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import *
 
@@ -148,13 +150,13 @@ class PayloadHandler(object):
             if widget_id not in self.multicast_payloads: continue
             server_id, session_token = self.multicast_ids[widget_id]
             # Now we execute a post to the correct location
-            data = urllib.urlencode({
+            data = urllib.parse.urlencode({
                 'payload_session_id': server_id,
                 'payload_session_token': session_token,
                 'payload_data': self.multicast_payloads[widget_id],
                 'payload_metadata': {}
             })
-            urllib2.urlopen("http://localhost:8080/UpdatePayload", data = data)
+            urllib.request.urlopen("http://localhost:8080/UpdatePayload", data = data)
 
 class YTRocketServer(ServerAdapter):
     server_info = {} # Hack to get back at instance vars
@@ -203,43 +205,43 @@ def uuid_serve_functions(pre_routed = None, open_browser=False, port=9099,
         if r[0] == "/": r = r[1:]
         rp = "/%s/%s" % (token, r)
         func_name = getattr(f, 'func_name', str(f))
-        print "Routing from %s => %s" % (rp, func_name)
+        print("Routing from %s => %s" % (rp, func_name))
         route(rp, *args, **kwargs)(f)
     for w in route_watchers:
         if not hasattr(w, "_route_prefix"):
-            print "WARNING: %s has no _route_prefix attribute.  Not notifying."
+            print("WARNING: %s has no _route_prefix attribute.  Not notifying.")
             continue
             w._route_prefix = token
     repl._global_token = token
     repl.activate()
     repl.execution_thread.wait()
-    print
-    print
-    print "============================================================================="
-    print "============================================================================="
-    print "Greetings, and welcome to Reason!"
-    print "Your private token is %s ." % token
-    print "DO NOT SHARE THIS TOKEN."
-    print
-    print "Please direct your browser to:"
-    print
-    print "     http://localhost:%s/%s/" % (port, token)
-    print
-    print "============================================================================="
-    print
-    print "If you are currently ssh'd into a remote machine, you should be able"
-    print "to create a new SSH tunnel by typing or copy/pasting this text"
-    print "verbatim, while waiting to see the 'ssh>' prompt after the first line."
-    print
-    print "~C"
-    print "-L%s:localhost:%s" % (port, port)
-    print
-    print "and then pointing a web browser on your local machine to the above URL."
-    print
-    print "============================================================================="
-    print "============================================================================="
-    print
-    print
+    print()
+    print()
+    print("=============================================================================")
+    print("=============================================================================")
+    print("Greetings, and welcome to Reason!")
+    print("Your private token is %s ." % token)
+    print("DO NOT SHARE THIS TOKEN.")
+    print()
+    print("Please direct your browser to:")
+    print()
+    print("     http://localhost:%s/%s/" % (port, token))
+    print()
+    print("=============================================================================")
+    print()
+    print("If you are currently ssh'd into a remote machine, you should be able")
+    print("to create a new SSH tunnel by typing or copy/pasting this text")
+    print("verbatim, while waiting to see the 'ssh>' prompt after the first line.")
+    print()
+    print("~C")
+    print("-L%s:localhost:%s" % (port, port))
+    print()
+    print("and then pointing a web browser on your local machine to the above URL.")
+    print()
+    print("=============================================================================")
+    print("=============================================================================")
+    print()
+    print()
     if open_browser:
         # We do some fancy footwork so that we can open the browser while the
         # server starts up.  I got this from some recipe whose URL escapes me.
@@ -284,10 +286,10 @@ class MethodLock(object):
             self.locks[str(func)] = threading.Lock()
         @wraps(func)
         def locker(*args, **kwargs):
-            print "Acquiring lock on %s" % (str(func))
+            print("Acquiring lock on %s" % (str(func)))
             with self.locks[str(func)]:
                 rv = func(*args, **kwargs)
-            print "Regained lock on %s" % (str(func))
+            print("Regained lock on %s" % (str(func)))
             return rv
         return locker
 

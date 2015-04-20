@@ -303,6 +303,7 @@ cdef class ParticleRegions:
     @cython.cdivision(True)
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
                               np.uint64_t file_id, int filter):
+        # TODO: Replace with the bitarray
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p
         cdef int ind[3]

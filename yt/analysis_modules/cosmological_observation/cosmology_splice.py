@@ -350,7 +350,7 @@ class CosmologySplice(object):
         # box at a given redshift.
         z1 = z
         z2 = z1 - 0.1 # just an initial guess
-        distance1 = self.simulation.quan(0.0, "Mpccm / h")
+        distance1 = self.cosmology.quan(0.0, "Mpccm / h")
         distance2 = self.cosmology.comoving_radial_distance(z2, z)
         iteration = 1
 

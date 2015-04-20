@@ -17,7 +17,7 @@ from yt.funcs import *
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from . import _MPL
 import numpy as np
@@ -173,8 +173,8 @@ class FixedResolutionBuffer(object):
                     ipstr = i
             element = segments[ipstr-1]
             roman = pnum2rom[pstr[1:]] 
-            label = element + '\/' + roman + '\/' + \
-                string.join( segments[ipstr+1:], '\/' ) 
+            label = element + '\ ' + roman + '\ ' + \
+                string.join(segments[ipstr+1:], '\ ')
         else:
             label = fname
         return label
@@ -210,12 +210,12 @@ class FixedResolutionBuffer(object):
             if self._is_ion( fname ):
                 fname = self._ion_to_label( fname )
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ')+r'}$'
             else:    
                 info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\ ').title()+r'}$'
         elif info['label'].find('$') == -1:
-            info['label'] = info['label'].replace(' ','\/')
+            info['label'] = info['label'].replace(' ','\ ')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         
         return info

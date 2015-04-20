@@ -108,7 +108,7 @@ class FieldDetector(defaultdict):
                 finfo = FI[item]
             else:
                 finfo = None
-        if finfo is not None and finfo._function.func_name != 'NullFunc':
+        if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
                 vv = finfo(self)
             except NeedsGridType as exc:
@@ -156,7 +156,10 @@ class FieldDetector(defaultdict):
         return np.random.random((self.nd, self.nd, self.nd))
 
     def smooth(self, *args, **kwargs):
-        return np.random.random((self.nd, self.nd, self.nd))
+        tr = np.random.random((self.nd, self.nd, self.nd))
+        if kwargs['method'] == "volume_weighted":
+            return [tr]
+        return tr
 
     def particle_operation(self, *args, **kwargs):
         return None

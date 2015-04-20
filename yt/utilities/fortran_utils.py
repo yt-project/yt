@@ -4,6 +4,7 @@ Utilities for reading Fortran files.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,6 +17,17 @@ Utilities for reading Fortran files.
 import struct
 import numpy as np
 import os
+
+# This may not be the correct way to do this.  We should investigate what NumPy
+# does.
+try:
+    file
+except NameError:
+    # What we're doing here is making it always fail, so we read things in and
+    # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
+    # an object is an actual file, reliably.
+    class file:
+        pass
 
 def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
@@ -172,7 +184,7 @@ def read_vector(f, d, endian='='):
         print("fmt = '%s' ; length = %s ; size= %s"
               % (vec_fmt, vec_len, vec_size))
         raise RuntimeError
-    vec_num = vec_len / vec_size
+    vec_num = int(vec_len / vec_size)
     if isinstance(f, file): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)
     else:
@@ -281,7 +293,7 @@ def read_record(f, rspec, endian='='):
     vvv = vals[:]
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
-        print "S1 = %s ; S2 = %s ; SIZE = %s"
+        print("S1 = %s ; S2 = %s ; SIZE = %s")
         raise RuntimeError
     pos = 0
     for a, n, t in rspec:

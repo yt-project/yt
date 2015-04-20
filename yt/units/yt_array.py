@@ -4,7 +4,7 @@ YTArray class.
 
 
 """
-
+from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -30,11 +30,11 @@ from numpy import \
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
-from yt.units.dimensions import dimensionless
+from yt.units.dimensions import dimensionless, current_mks, em_dimensions
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence
+    YTInvalidUnitEquivalence, YTEquivalentDimsError
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -156,24 +156,24 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : ndarray or ndarray subclass
-        An array to attach units to
+    input_array : iterable
+        A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        syntax (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
     --------
 
     >>> from yt import YTArray
-    >>> a = YTArray([1,2,3], 'cm')
-    >>> b = YTArray([4,5,6], 'm')
+    >>> a = YTArray([1, 2, 3], 'cm')
+    >>> b = YTArray([4, 5, 6], 'm')
     >>> a + b
     YTArray([ 401.,  502.,  603.]) cm
     >>> b + a
@@ -289,7 +289,7 @@ class YTArray(np.ndarray):
             dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
-        if registry is None and isinstance(input_units, basestring):
+        if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
                     "Code units used without referring to a dataset. \n"
@@ -370,6 +370,14 @@ class YTArray(np.ndarray):
         if not isinstance(units, Unit):
             units = Unit(units, registry=self.units.registry)
 
+        equiv_dims = em_dimensions.get(self.units.dimensions,None)
+        if equiv_dims == units.dimensions:
+            if current_mks in equiv_dims.free_symbols:
+                base = "SI"
+            else:
+                base = "CGS"
+            raise YTEquivalentDimsError(self.units, units, base)
+
         if not self.units.same_dimensions_as(units):
             raise YTUnitConversionError(
                 self.units, self.units.dimensions, units, units.dimensions)
@@ -396,6 +404,13 @@ class YTArray(np.ndarray):
             np.subtract(self, offset*self.uq, self)
 
         return self
+
+    def convert_to_base(self):
+        """
+        Convert the array and units to the equivalent base units.
+
+        """
+        return self.convert_to_units(self.units.get_base_equivalent())
 
     def convert_to_cgs(self):
         """
@@ -436,6 +451,18 @@ class YTArray(np.ndarray):
             np.subtract(new_array, offset*new_array.uq, new_array)
 
         return new_array
+
+    def in_base(self):
+        """
+        Creates a copy of this array with the data in the equivalent base units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to cgs units.
+
+        """
+        return self.in_units(self.units.get_base_equivalent())
 
     def in_cgs(self):
         """
@@ -481,9 +508,16 @@ class YTArray(np.ndarray):
         >>> a.to_equivalent("keV", "thermal")
         """
         unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
-        if self.has_equivalent(equiv) and unit_quan.has_equivalent(equiv):
-            this_equiv = equivalence_registry[equiv]()
-            return this_equiv.convert(self, unit_quan.units.dimensions, **kwargs).in_units(unit)
+        this_equiv = equivalence_registry[equiv]()
+        if self.has_equivalent(equiv) and (unit_quan.has_equivalent(equiv) or this_equiv._one_way):
+            new_arr = this_equiv.convert(self, unit_quan.units.dimensions, **kwargs)
+            if isinstance(new_arr, tuple):
+                try:
+                    return YTArray(new_arr[0], new_arr[1]).in_units(unit)
+                except YTUnitConversionError:
+                    raise YTInvalidUnitEquivalence(equiv, self.units, unit)
+            else:
+                return new_arr.in_units(unit)
         else:
             raise YTInvalidUnitEquivalence(equiv, self.units, unit)
 
@@ -494,7 +528,7 @@ class YTArray(np.ndarray):
         """
         for k,v in equivalence_registry.items():
             if self.has_equivalent(k):
-                print v()
+                print(v())
 
     def has_equivalent(self, equiv):
         """
@@ -591,7 +625,7 @@ class YTArray(np.ndarray):
             info = {}
 
         info['units'] = str(self.units)
-        info['unit_registry'] = pickle.dumps(self.units.registry.lut)
+        info['unit_registry'] = np.void(pickle.dumps(self.units.registry.lut))
 
         if dataset_name is None:
             dataset_name = 'array_data'
@@ -610,8 +644,8 @@ class YTArray(np.ndarray):
         else:
             d = f.create_dataset(dataset_name, data=self)
 
-        for k, v in info.iteritems():
-            d.attrs.create(k, v)
+        for k, v in info.items():
+            d.attrs[k] = v
         f.close()
 
     @classmethod
@@ -639,7 +673,7 @@ class YTArray(np.ndarray):
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
-            unit_lut = pickle.loads(dataset.attrs['unit_registry'])
+            unit_lut = pickle.loads(dataset.attrs['unit_registry'].tostring())
         else:
             unit_lut = None
         f.close()
@@ -1031,11 +1065,11 @@ class YTArray(np.ndarray):
                         raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = self._ufunc_registry[context[0]](unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
-                if unit.is_dimensionless and unit.cgs_value != 1.0:
+                if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
                         if unit1.dimensions == unit2.dimensions:
                             np.multiply(out_arr.view(np.ndarray),
-                                        unit.cgs_value, out=out_arr)
+                                        unit.base_value, out=out_arr)
                             unit = Unit(registry=unit.registry)
         else:
             raise RuntimeError("Operation is not defined.")
@@ -1097,16 +1131,16 @@ class YTQuantity(YTArray):
     Parameters
     ----------
 
-    input_scalar : ndarray or ndarray subclass
-        An array to attach units to
+    input_scalar : an integer or floating point scalar
+        The scalar to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
-        The units of the array. Powers must be specified using python
-        symtax (cm**3, not cm^3).
+        The units of the quantity. Powers must be specified using python syntax
+        (cm**3, not cm^3).
     registry : A UnitRegistry object
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string of NumPy dtype object
+    dtype : string or NumPy dtype object
         The dtype of the array data.
 
     Examples
@@ -1129,7 +1163,7 @@ class YTQuantity(YTArray):
 
     and strip them when it would be annoying to deal with them.
 
-    >>> print np.log10(a)
+    >>> print(np.log10(a))
     1.07918124605
 
     YTQuantity is tightly integrated with yt datasets:

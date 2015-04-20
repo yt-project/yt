@@ -9,7 +9,7 @@ FITSImageBuffer Class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -86,11 +86,12 @@ class FITSImageBuffer(HDUList):
 
         super(FITSImageBuffer, self).__init__()
 
-        if isinstance(fields, basestring): fields = [fields]
-            
-        exclude_fields = ['x','y','z','px','py','pz',
-                          'pdx','pdy','pdz','weight_field']
-        
+        if isinstance(fields, string_types):
+            fields = [fields]
+
+        exclude_fields = ['x', 'y', 'z', 'px', 'py', 'pz',
+                          'pdx', 'pdy', 'pdz', 'weight_field']
+
         if hasattr(data, 'keys'):
             img_data = data
         else:
@@ -315,10 +316,12 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         center = ds.domain_center[axis_wcs[axis]]
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
+        unit = ds.get_smallest_appropriate_unit(width[0])
         mylog.info("Making an image of the entire domain, "+
                    "so setting the center to the domain center.")
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
+        unit = str(width[0].units)
     if image_res is None:
         dd = ds.all_data()
         dx, dy = [dd.quantities.extrema("d%s" % "xyz"[idx])[0]
@@ -342,7 +345,6 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
         # This is some other kind of dataset                                                                      
-        unit = str(width[0].units)
         if unit == "unitary":
             unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
         elif unit == "code_length":
@@ -407,7 +409,7 @@ class FITSSlice(FITSImageBuffer):
         Specify the resolution of the resulting image. If not provided, it will be
         determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, image_res=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
@@ -477,9 +479,3 @@ class FITSProjection(FITSImageBuffer):
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
-
-
-
-        
-
-    

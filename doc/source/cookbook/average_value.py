@@ -11,4 +11,4 @@ ad = ds.all_data()  # This is a region describing the entire box,
 # We now use our 'quantities' call to get the average quantity
 average_value = ad.quantities.weighted_average_quantity(field, weight)
 
-print "Average %s (weighted by %s) is %0.3e %s" % (field, weight, average_value, average_value.units)
+print("Average %s (weighted by %s) is %0.3e %s" % (field, weight, average_value, average_value.units))

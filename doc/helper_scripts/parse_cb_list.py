@@ -35,6 +35,6 @@ def write_docstring(f, name, cls):
 
 for n,c in sorted(callback_registry.items()):
     write_docstring(output, n, c)
-    print ".. autoclass:: yt.visualization.plot_modifications.%s" % n
-    print "   :members:"
-    print
+    print(".. autoclass:: yt.visualization.plot_modifications.%s" % n)
+    print("   :members:")
+    print()

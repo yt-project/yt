@@ -25,8 +25,9 @@ Support for streaming HTTP uploads, and multipart/form-data encoding
 New releases of poster will always have a version number that compares greater
 than an older version of poster.
 New in version 0.6."""
+from __future__ import absolute_import
 
-import streaminghttp
-import encode
+from . import streaminghttp
+from . import encode
 
 version = (0, 8, 1) # Thanks JP!

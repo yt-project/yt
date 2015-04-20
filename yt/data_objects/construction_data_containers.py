@@ -22,6 +22,7 @@ import shelve
 from functools import wraps
 import fileinput
 from re import finditer
+import os
 
 from yt.config import ytcfg
 from yt.funcs import *
@@ -88,11 +89,11 @@ class YTStreamlineBase(YTSelectionContainer1D):
     --------
 
     >>> from yt.visualization.api import Streamlines
-    >>> streamlines = Streamlines(ds, [0.5]*3) 
+    >>> streamlines = Streamlines(ds, [0.5]*3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
     >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-    
+
     """
     _type_name = "streamline"
     _con_args = ('positions')
@@ -124,15 +125,15 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
     def _get_data_from_grid(self, grid, field):
         # No child masking here; it happens inside the mask cut
-        mask = self._get_cut_mask(grid) 
+        mask = self._get_cut_mask(grid)
         if field == 'dts': return self._dts[grid.id]
         if field == 't': return self._ts[grid.id]
         return grid[field].flat[mask]
-        
+
 
     def _get_cut_mask(self, grid):
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
-                         np.all(self.positions <= grid.RightEdge, axis=1) 
+                         np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
         mask = np.zeros(points_in_grid.sum(), dtype='int')
         dts = np.zeros(points_in_grid.sum(), dtype='float64')
@@ -196,7 +197,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         WARNING: The "sum" option should only be used for uniform resolution grid
         datasets, as other datasets may result in unphysical images.
     style : string, optional
-        The same as the method keyword.  Deprecated as of version 3.0.2.  
+        The same as the method keyword.  Deprecated as of version 3.0.2.
         Please use method keyword instead.
     field_parameters : dict of items
         Values to be passed as field parameters that can be
@@ -215,11 +216,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
-                 style = None, method = "integrate", 
+                 style = None, method = "integrate",
                  field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
-        # keyword.  TODO: Remove this keyword and this check at some point in 
+        # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
         if style is not None:
             method = style
@@ -247,7 +248,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self.weight_field = weight_field
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
-        self.get_data(field)
+
+        field = field or []
+        field = self._determine_fields(ensure_list(field))
+
+        if not self.deserialize(field):
+            self.get_data(field)
+            self.serialize()
 
     @property
     def blocks(self):
@@ -264,14 +271,38 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     def hub_upload(self):
         self._mrep.upload()
 
+    def deserialize(self, fields):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return False
+        for field in fields:
+            self[field] = None
+        deserialized_successfully = False
+        store_file = self.ds.parameter_filename + '.yt'
+        if os.path.isfile(store_file):
+            deserialized_successfully = self._mrep.restore(store_file, self.ds)
+
+            if deserialized_successfully:
+                mylog.info("Using previous projection data from %s" % store_file)
+                for field, field_data in self._mrep.field_data.items():
+                    self[field] = field_data
+        if not deserialized_successfully:
+            for field in fields:
+                del self[field]
+        return deserialized_successfully
+
+    def serialize(self):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return
+        self._mrep.store(self.ds.parameter_filename + '.yt')
+
     def _get_tree(self, nvals):
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         xd = self.ds.domain_dimensions[xax]
         yd = self.ds.domain_dimensions[yax]
         bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[yax],
-                  self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         bounds, method = self.method)
@@ -281,20 +312,21 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
-        chunk_fields = fields[:]
-        if self.weight_field is not None:
-            chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
         if communication_system.communicators[-1].size > 1:
             for chunk in self.data_source.chunks([], "io", local_only = False):
                 self._initialize_chunk(chunk, tree)
+        _units_initialized = False
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io", local_only = True)): 
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
-                    get_memory_usage()/1024.)
+                                          [], "io", local_only = True)): 
+                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                            chunk.ires.size, get_memory_usage()/1024.)
+                if _units_initialized is False:
+                    self._initialize_projected_units(fields, chunk)
+                    _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
         if self.method == "mip":
@@ -342,10 +374,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            input_units = self._projected_units[field].units
+            input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in data.keys(): self[i] = data.pop(i)
+        for i in list(data.keys()): self[i] = data.pop(i)
         mylog.info("Projection completed")
+        self.tree = tree
 
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords
@@ -355,6 +388,30 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         i2 = icoords[:,yax]
         ilevel = chunk.ires * self.ds.ires_factor
         tree.initialize_chunk(i1, i2, ilevel)
+
+    def _initialize_projected_units(self, fields, chunk):
+        for field in self.data_source._determine_fields(fields):
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
+                # First time calling a units="auto" field, infer units and cache
+                # for future field accesses.
+                finfo.units = str(chunk[field].units)
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            if self.method == "mip" or self._sum_only:
+                path_length_unit = Unit(registry=self.ds.unit_registry)
+            else:
+                ax_name = self.ds.coordinates.axis_name[self.axis]
+                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_length_unit = self.ds.field_info[path_element_name].units
+                path_length_unit = Unit(path_length_unit,
+                                        registry=self.ds.unit_registry)
+                # Only convert to CGS for path elements that aren't angles
+                if not path_length_unit.is_dimensionless:
+                    path_length_unit = path_length_unit.get_cgs_equivalent()
+            if self.weight_field is None:
+                self._projected_units[field] = field_unit*path_length_unit
+            else:
+                self._projected_units[field] = field_unit
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
@@ -373,19 +430,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for i, field in enumerate(fields):
             d = chunk[field] * dl
             v[:,i] = d
-            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
-            for field in fields:
-                # Note that this removes the dl integration, which is
-                # *correct*, but we are not fully self-consistently carrying it
-                # all through.  So if interrupted, the process will have
-                # incorrect units assigned in the projected units.  This should
-                # not be a problem, since the weight division occurs
-                # self-consistently with unitfree arrays.
-                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
@@ -409,16 +457,17 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
 class YTCoveringGridBase(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
-    resolution.  Left edge should align with a cell boundary, but 
+    resolution.  Left edge should align with a cell boundary, but
     defaults to the closest cell boundary.
-    
+
     Parameters
     ----------
     level : int
         The resolution level data to which data will be gridded. Level
         0 is the root grid dx for that dataset.
     left_edge : array_like
-        The left edge of the region to be extracted
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
     dims : array_like
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
@@ -440,7 +489,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                          ("index", "z"))
     _base_grid = None
     def __init__(self, level, left_edge, dims, fields = None,
-                 ds = None, num_ghost_zones = 0, use_pbar = True, 
+                 ds = None, num_ghost_zones = 0, use_pbar = True,
                  field_parameters = None):
         if field_parameters is None:
             center = None
@@ -448,10 +497,11 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self,
             center, ds, field_parameters)
-        self.left_edge = self.ds.arr(left_edge, 'code_length')
-        self.level = level
 
-        self.ActiveDimensions = np.array(dims, dtype='int32')
+        self.level = level
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.ActiveDimensions = self._sanitize_dims(dims)
+
         rdx = self.ds.domain_dimensions*self.ds.relative_refinement(0, level)
         rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.base_dds = self.ds.domain_width / self.ds.domain_dimensions
@@ -459,10 +509,12 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = np.rint((self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
+        self.global_startindex = np.rint(
+            (self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
         self.domain_width = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
+        self.get_data(fields)
 
     @property
     def icoords(self):
@@ -491,6 +543,27 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
         tr *= self.level
         return tr
+
+    def _sanitize_dims(self, dims):
+        if not iterable(dims):
+            dims = [dims]*len(self.ds.domain_left_edge)
+        if len(dims) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of dims must match the dimensionality of the dataset")
+        return np.array(dims, dtype='int32')
+
+    def _sanitize_edge(self, edge):
+        if not iterable(edge):
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
@@ -535,11 +608,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            if field[0] == 'deposit':
-                fill.append(field)
-                continue
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.func_name == "_TranslationFunc":
+            if finfo._function.__name__ == "_TranslationFunc":
                 alias[field] = finfo
                 continue
             try:
@@ -673,7 +743,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
     is yt-generated or from the simulation data.  For example, arbitrary boxes
     around particles can be drawn and particle deposition fields can be
     created.  This object will refuse to generate any fluid fields.
-    
+
     Parameters
     ----------
     left_edge : array_like
@@ -704,11 +774,9 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         else:
             center = field_parameters.get("center", None)
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
-        self.left_edge = np.array(left_edge)
-        self.right_edge = np.array(right_edge)
-        self.ActiveDimensions = np.array(dims, dtype='int32')
-        if self.ActiveDimensions.size == 1:
-            self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.right_edge = self._sanitize_edge(right_edge)
+        self.ActiveDimensions = self._sanitize_dims(dims)
         self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()
@@ -745,7 +813,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     fill the region to level 1, replacing any cells actually
     covered by level 1 data, and then recursively repeating this
     process until it reaches the specified `level`.
-    
+
     Parameters
     ----------
     level : int
@@ -797,15 +865,18 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
             domain_dims = self.ds.domain_dimensions.astype("int64") \
-                        * self.ds.relative_refinement(0, self.level)
+                        * self.ds.relative_refinement(0, ls.current_level)
+            tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
                 # NOTE: This usage of "refine_by" is actually *okay*, because it's
                 # being used with respect to iref, which is *already* scaled!
-                fill_region(input_fields, ls.fields, ls.current_level,
+                tot -= fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
                             chunk.ires, domain_dims, self.ds.refine_by)
+            if level == 0 and tot != 0:
+                raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
             if self.level > 0: v = v[1:-1,1:-1,1:-1]
@@ -817,30 +888,46 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls.domain_width = self.ds.domain_width
         ls.domain_left_edge = self.ds.domain_left_edge
         ls.domain_right_edge = self.ds.domain_right_edge
-        ls.left_edge = self.left_edge
-        ls.right_edge = self.right_edge
         ls.base_dx = self._base_dx
         ls.dds = self.dds
+        ls.left_edge = self.left_edge
+        ls.right_edge = self.right_edge
         for att in ("domain_width", "domain_left_edge", "domain_right_edge",
                     "left_edge", "right_edge", "base_dx", "dds"):
             setattr(ls, att, getattr(ls, att).in_units("code_length").d)
         ls.current_dx = ls.base_dx
         ls.current_level = 0
-        LL = self.left_edge - self.ds.domain_left_edge
-        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
+        ls.global_startindex, end_index, idims = \
+            self._minimal_box(ls.current_dx)
+        ls.current_dims = idims.astype("int32")
+        ls.left_edge = ls.global_startindex * ls.current_dx \
+                     + self.ds.domain_left_edge.d
+        ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
         ls.domain_iwidth = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/ls.current_dx).astype('int64')
-        if self.level > 0:
-            # We use one grid cell at LEAST, plus one buffer on all sides
-            width = self.right_edge-self.left_edge
-            idims = np.rint(width/ls.current_dx).astype('int64') + 2
-        elif self.level == 0:
-            ls.global_startindex = np.array(np.floor(LL/ls.current_dx), dtype='int64')
-            idims = np.rint((self.ActiveDimensions*self.dds)/ls.current_dx).astype('int64')
-        ls.current_dims = idims.astype("int32")
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
         self._setup_data_source(ls)
         return ls
+
+    def _minimal_box(self, dds):
+        LL = self.left_edge - self.ds.domain_left_edge
+        # Nudge in case we're on the edge
+        LL += LL.uq * np.finfo(np.float64).eps
+        LS = self.right_edge - self.ds.domain_left_edge
+        LS += LS.uq * np.finfo(np.float64).eps
+        cell_start = LL / dds  # This is the cell we're inside
+        cell_end = LS / dds
+        if self.level == 0:
+            start_index = np.array(np.floor(cell_start), dtype="int64")
+            end_index = np.array(np.ceil(cell_end), dtype="int64")
+            dims = np.rint((self.ActiveDimensions * self.dds) / dds).astype("int64")
+        else:
+            # Give us one buffer
+            start_index = np.rint(cell_start.d).astype('int64') - 1
+            # How many root cells do we occupy?
+            end_index = np.rint(cell_end.d).astype('int64')
+            dims = end_index - start_index + 1
+        return start_index, end_index.astype("int64"), dims.astype("int32")
 
     def _update_level_state(self, level_state):
         ls = level_state
@@ -850,23 +937,24 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls.current_level += 1
         ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
-        self._setup_data_source(ls)
         LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
-        ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
-        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64') 
-        input_left = (level_state.old_global_startindex + 0.5) * rf 
-        width = (self.ActiveDimensions*ls.dds)
-        output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
-        level_state.current_dims = output_dims
+        ls.global_startindex, end_index, ls.current_dims = \
+            self._minimal_box(ls.current_dx)
+        ls.left_edge = ls.global_startindex * ls.current_dx \
+                     + self.ds.domain_left_edge.d
+        ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
+        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64')
+        input_left = (level_state.old_global_startindex) * rf  + 1
         new_fields = []
         for input_field in level_state.fields:
-            output_field = np.zeros(output_dims, dtype="float64")
+            output_field = np.zeros(ls.current_dims, dtype="float64")
             output_left = level_state.global_startindex + 0.5
             ghost_zone_interpolate(rf, input_field, input_left,
                                    output_field, output_left)
             new_fields.append(output_field)
         level_state.fields = new_fields
+        self._setup_data_source(ls)
 
 class YTSurfaceBase(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
@@ -882,7 +970,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
     <http://meshlab.sf.net>`_.)  The object has the properties .vertices
     and will sample values if a field is requested.  The values are
     interpolated to the center of a given face.
-    
+
     Parameters
     ----------
     data_source : YTSelectionContainer
@@ -933,7 +1021,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         self.get_data(field)
         return self[field]
 
-    def get_data(self, fields = None, sample_type = "face"):
+    def get_data(self, fields = None, sample_type = "face", no_ghost = False):
         if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
@@ -943,14 +1031,11 @@ class YTSurfaceBase(YTSelectionContainer3D):
         mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        deps = self._determine_fields(self.surface_field)
-        deps = self._identify_dependencies(deps, spatial=True)
-        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
-                                         preload_fields = deps)):
+        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 my_verts = self._extract_isocontours_from_grid(
                                 block, self.surface_field, self.field_value,
-                                mask, fields, sample_type)
+                                mask, fields, sample_type, no_ghost=no_ghost)
                 if fields is not None:
                     my_verts, svals = my_verts
                     samples.append(svals)
@@ -966,11 +1051,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 self[fields] = samples
             elif sample_type == "vertex":
                 self.vertex_samples[fields] = samples
-        
+
     def _extract_isocontours_from_grid(self, grid, field, value,
                                        mask, sample_values = None,
-                                       sample_type = "face"):
-        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+                                       sample_type = "face",
+                                       no_ghost = False):
+        vals = grid.get_vertex_centered_data(field, no_ghost = no_ghost)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
@@ -1000,7 +1086,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field_x : string
@@ -1037,12 +1123,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        deps = [field_x, field_y, field_z]
-        if fluxing_field is not None: deps.append(fluxing_field)
-        deps = self._determine_fields(deps)
-        deps = self._identify_dependencies(deps)
-        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
-                                preload_fields = deps)):
+        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 flux += self._calculate_flux_in_grid(block, mask,
                         field_x, field_y, field_z, fluxing_field)
@@ -1070,25 +1151,25 @@ class YTSurfaceBase(YTSelectionContainer3D):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
- 
+
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae", 
-                   color_log = True, emit_log = True, plot_index = None, 
-                   color_field_max = None, color_field_min = None, 
+                   color_field = None, emit_field = None, color_map = "algae",
+                   color_log = True, emit_log = True, plot_index = None,
+                   color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
         r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
-        and an .mtl file, both with the general 'filename' as a prefix.  
-        The .obj file points to the .mtl file in its header, so if you move the 2 
-        files, make sure you change the .obj header to account for this. ALSO NOTE: 
-        the emit_field needs to be a combination of the other 2 fields used to 
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
+        and an .mtl file, both with the general 'filename' as a prefix.
+        The .obj file points to the .mtl file in its header, so if you move the 2
+        files, make sure you change the .obj header to account for this. ALSO NOTE:
+        the emit_field needs to be a combination of the other 2 fields used to
         have the emissivity track with the color.
 
         Parameters
-        ----------
+         ----------
         filename : string
             The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files 
+            Note - there are no file extentions included - both obj & mtl files
             are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1153,62 +1234,93 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
         """
         if self.vertices is None:
-            self.get_data(color_field,"face")
+            if color_field is not None:
+                self.get_data(color_field,"face")
         elif color_field is not None:
             if color_field not in self.field_data:
                 self[color_field]
+        if color_field is None:
+            self.get_data(self.surface_field,'face')
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field, 
-                             color_map, color_log, emit_log, plot_index, color_field_max, 
+        only_on_root(self._export_obj, filename, transparency, dist_fac, color_field, emit_field,
+                             color_map, color_log, emit_log, plot_index, color_field_max,
                              color_field_min, emit_field_max, emit_field_min)
 
-    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
-                           color_field_max, color_field_min, 
-                           emit_field_max, emit_field_min): # this now holds for obj files
-        if color_log: cs = np.log10(cs)
-        if emit_log: em = np.log10(em)
-        if color_field_min is None:
-            mi = cs.min()
+    def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr,
+                           color_field_max, color_field_min, color_field,
+                           emit_field_max, emit_field_min, emit_field): # this now holds for obj files
+        from sys import version
+        if color_field is not None:
+            if color_log: cs = np.log10(cs)
+        if emit_field is not None:
+            if emit_log: em = np.log10(em)
+        if color_field is not None:
+            if color_field_min is None:
+                if version >= '3':
+                    cs = [float(field) for field in cs]
+                    cs = np.array(cs)
+                mi = cs.min()
+            else:
+                mi = color_field_min
+                if color_log: mi = np.log10(mi)
+            if color_field_max is None:
+                if version >= '3':
+                    cs = [float(field) for field in cs]
+                    cs = np.array(cs)
+                ma = cs.max()
+            else:
+                ma = color_field_max
+                if color_log: ma = np.log10(ma)
+            cs = (cs - mi) / (ma - mi)
         else:
-            mi = color_field_min
-            if color_log: mi = np.log10(mi)
-        if color_field_max is None:
-            ma = cs.max()
-        else:
-            ma = color_field_max
-            if color_log: ma = np.log10(ma)
-        cs = (cs - mi) / (ma - mi)
+            cs[:] = 1.0
         # to get color indicies for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
         lut = color_map_luts[color_map]
         x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
         arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
         # now, get emission
-        if emit_field_min is None:
-            emi = em.min()
+        if emit_field is not None:
+            if emit_field_min is None:
+                if version >= '3':
+                    em = [float(field) for field in em]
+                    em = np.array(em)
+                emi = em.min()
+            else:
+                emi = emit_field_min
+                if emit_log: emi = np.log10(emi)
+            if emit_field_max is None:
+                if version >= '3':
+                    em = [float(field) for field in em]
+                    em = np.array(em)
+                ema = em.max()
+            else:
+                ema = emit_field_max
+                if emit_log: ema = np.log10(ema)
+            em = (em - emi)/(ema - emi)
+            x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
+            arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
         else:
-            emi = emit_field_min
-            if emit_log: emi = np.log10(emi)
-        if emit_field_max is None:
-            ema = em.max()
-        else:
-            ema = emit_field_max
-            if emit_log: ema = np.log10(ema)
-        em = (em - emi)/(ema - emi)
-        x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
-        arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
+            arr["emit"][:] = 0.0
+
 
     @parallel_root_only
-    def _export_obj(self, filename, transparency, dist_fac = None, 
-                    color_field = None, emit_field = None, color_map = "algae", 
-                    color_log = True, emit_log = True, plot_index = None, 
-                    color_field_max = None, color_field_min = None, 
+    def _export_obj(self, filename, transparency, dist_fac = None,
+                    color_field = None, emit_field = None, color_map = "algae",
+                    color_log = True, emit_log = True, plot_index = None,
+                    color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        from sys import version
+        from io import IOBase
         if plot_index is None:
             plot_index = 0
-        if isinstance(filename, file):
+        if version < '3':
+            checker = file
+        else:
+            checker = IOBase
+        if isinstance(filename, checker):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
@@ -1245,10 +1357,182 @@ class YTSurfaceBase(YTSelectionContainer3D):
         if emit_field is not None:
             em = self[emit_field]
         else:
-            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
-        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
-                                color_field_max, color_field_min, 
-                                emit_field_max, emit_field_min) # map color values to color scheme
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
+                                color_field_max, color_field_min,  color_field,
+                                emit_field_max, emit_field_min, emit_field) # map color values to color scheme
+        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
+        lut = color_map_luts[color_map] # enumerate colors
+        # interpolate emissivity to enumerated colors
+        emiss = np.interp(np.mgrid[0:lut[0].shape[0]],np.mgrid[0:len(cs)],f["emit"][:])
+        if dist_fac is None: # then normalize by bounds
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+            for i, ax in enumerate("xyz"):
+                # Do the bounds first since we cast to f32
+                tmp = self.vertices[i,:]
+                np.subtract(tmp, bounds[i][0], tmp)
+                w = bounds[i][1] - bounds[i][0]
+                np.divide(tmp, w, tmp)
+                np.subtract(tmp, 0.5, tmp) # Center at origin.
+                v[ax][:] = tmp
+        else:
+            for i, ax in enumerate("xyz"):
+                tmp = self.vertices[i,:]
+                np.divide(tmp, dist_fac, tmp)
+                v[ax][:] = tmp
+        #(1) write all colors per surface to mtl file
+        for i in range(0,lut[0].shape[0]):
+            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
+            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
+            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
+            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
+            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
+            fmtl.write("d %.6f\n" %(transparency))  # transparency
+            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
+            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
+            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
+        #(2) write vertices
+        for i in range(0,self.vertices.shape[1]):
+            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))
+        fobj.write("#done defining vertices\n\n")
+        #(3) define faces and materials for each face
+        for i in range(0,self.triangles.shape[0]):
+            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
+            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
+            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
+            cc = cc+3
+        fmtl.close()
+        fobj.close()
+
+
+    def export_blender(self,  transparency = 1.0, dist_fac = None,
+                   color_field = None, emit_field = None, color_map = "algae",
+                   color_log = True, emit_log = True, plot_index = None,
+                   color_field_max = None, color_field_min = None,
+                   emit_field_max = None, emit_field_min = None):
+        r"""This exports the surface to the OBJ format, suitable for visualization
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
+        and an .mtl file, both with the general 'filename' as a prefix.
+        The .obj file points to the .mtl file in its header, so if you move the 2
+        files, make sure you change the .obj header to account for this. ALSO NOTE:
+        the emit_field needs to be a combination of the other 2 fields used to
+        have the emissivity track with the color.
+
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+            Note - there are no file extentions included - both obj & mtl files
+            are created.
+        transparency : float
+            This gives the transparency of the output surface plot.  Values
+            from 0.0 (invisible) to 1.0 (opaque).
+        dist_fac : float
+            Divide the axes distances by this amount.
+        color_field : string
+            Should a field be sample and colormapped?
+        emit_field : string
+            Should we track the emissivity of a field?
+              NOTE: this should be a combination of the other 2 fields being used.
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+        emit_log : bool
+            Should the emitting field be logged before being mapped?
+        plot_index : integer
+            Index of plot for multiple plots.  If none, then only 1 plot.
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
+        emit_field_max : float
+            Maximum value of the emitting field across all surfaces.
+        emit_field_min : float
+            Minimum value of the emitting field across all surfaces.
+
+        Examples
+        --------
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> trans = 1.0
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> surf = ds.surface(sp, "Density", 5e-27)
+        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> for i, r in enumerate(rhos):
+        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', dist_fac = distf,
+        ...                      plot_index = i, color_field_max = ma,
+        ...                      color_field_min = mi)
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> def _Emissivity(field, data):
+        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        >>> for i, r in enumerate(rhos):
+        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='Temperature', emit_field = 'Emissivity',
+        ...                      dist_fac = distf, plot_index = i)
+
+        """
+        if self.vertices is None:
+            if color_field is not None:
+                self.get_data(color_field,"face")
+        elif color_field is not None:
+            if color_field not in self.field_data:
+                self[color_field]
+        if color_field is None:
+            self.get_data(self.surface_field,'face')
+        if emit_field is not None:
+            if color_field not in self.field_data:
+                self[emit_field]
+        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender,
+                                                                transparency, dist_fac, color_field, emit_field,
+                                                                color_map, color_log, emit_log, plot_index,
+                                                                color_field_max,
+                                                                color_field_min, emit_field_max, emit_field_min)
+        return fullverts, colors, alpha, emisses, colorindex
+
+    def _export_blender(self, transparency, dist_fac = None,
+                    color_field = None, emit_field = None, color_map = "algae",
+                    color_log = True, emit_log = True, plot_index = None,
+                    color_field_max = None, color_field_min = None,
+                    emit_field_max = None, emit_field_min = None):
+        import io
+        from sys import version
+        if plot_index is None:
+            plot_index = 0
+            vmax=0
+        ftype = [("cind", "uint8"), ("emit", "float")]
+        vtype = [("x","float"),("y","float"), ("z","float")]
+        #(0) formulate vertices
+        nv = self.vertices.shape[1] # number of groups of vertices
+        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        v = np.empty(nv, dtype=vtype) # stores vertices
+        if color_field is not None:
+            cs = self[color_field]
+        else:
+            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        if emit_field is not None:
+            em = self[emit_field]
+        else:
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
+                                color_field_max, color_field_min, color_field,
+                                emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
         # interpolate emissivity to enumerated colors
@@ -1264,39 +1548,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 w = bounds[i][1] - bounds[i][0]
                 np.divide(tmp, w, tmp)
                 np.subtract(tmp, 0.5, tmp) # Center at origin.
-                v[ax][:] = tmp   
+                v[ax][:] = tmp
         else:
             for i, ax in enumerate("xyz"):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp
-        #(1) write all colors per surface to mtl file
-        for i in range(0,lut[0].shape[0]): 
-            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
-            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
-            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
-            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
-            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
-            fmtl.write("d %.6f\n" %(transparency))  # transparency
-            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
-            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
-            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
-        #(2) write vertices
-        for i in range(0,self.vertices.shape[1]):
-            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
-        fobj.write("#done defining vertices\n\n")
-        #(3) define faces and materials for each face
-        for i in range(0,self.triangles.shape[0]):
-            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
-            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
-            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
-            cc = cc+3
-        fmtl.close()
-        fobj.close()
+        return  v, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face"):
+                   color_map = "algae", color_log = True, sample_type = "face",
+                   no_ghost=False):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
 
@@ -1327,14 +1590,14 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
-            self.get_data(color_field, sample_type)
+            self.get_data(color_field, sample_type, no_ghost=no_ghost)
         elif color_field is not None:
             if sample_type == "face" and \
                 color_field not in self.field_data:
                 self[color_field]
             elif sample_type == "vertex" and \
                 color_field not in self.vertex_data:
-                self.get_data(color_field, sample_type)
+                self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(filename, bounds, color_field, color_map, color_log,
                          sample_type)
 
@@ -1398,7 +1661,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
             w = bounds[i][1] - bounds[i][0]
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
-            v[ax][:] = tmp 
+            v[ax][:] = tmp
         f.write("end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
@@ -1413,7 +1676,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
     def export_sketchfab(self, title, description, api_key = None,
                             color_field = None, color_map = "algae",
-                            color_log = True, bounds = None):
+                            color_log = True, bounds = None, no_ghost = False):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
 
@@ -1478,7 +1741,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
         ply_file = TemporaryFile()
         self.export_ply(ply_file, bounds, color_field, color_map, color_log,
-                        sample_type = "vertex")
+                        sample_type = "vertex", no_ghost = no_ghost)
         ply_file.seek(0)
         # Greater than ten million vertices and we throw an error but dump
         # to a file.
@@ -1510,14 +1773,15 @@ class YTSurfaceBase(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data):
-        import urllib2, json
+        import json
+        from yt.extern.six.moves import urllib
         from yt.utilities.poster.encode import multipart_encode
         from yt.utilities.poster.streaminghttp import register_openers
         register_openers()
         datamulti, headers = multipart_encode(data)
-        request = urllib2.Request("https://api.sketchfab.com/v1/models",
+        request = urllib.request.Request("https://api.sketchfab.com/v1/models",
                         datamulti, headers)
-        rv = urllib2.urlopen(request).read()
+        rv = urllib.request.urlopen(request).read()
         rv = json.loads(rv)
         upload_id = rv.get("result", {}).get("id", None)
         if upload_id:

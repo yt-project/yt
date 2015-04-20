@@ -3,6 +3,7 @@ Utilities to aid testing.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -13,7 +14,7 @@ Utilities to aid testing.
 #-----------------------------------------------------------------------------
 
 import hashlib
-import cPickle
+from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
 import importlib
@@ -157,8 +158,8 @@ def fake_random_ds(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
+        particle_fields=None, particle_field_units=None,
         negative = False, nprocs = 1, particles = 0, length_unit=1.0):
-    from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -181,11 +182,18 @@ def fake_random_ds(
             v = v.ravel()
         data[field] = (v, u)
     if particles:
-        for f in ('particle_position_%s' % ax for ax in 'xyz'):
-            data[f] = (np.random.uniform(size = particles), 'code_length')
-        for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-            data[f] = (np.random.random(size = particles) - 0.5, 'cm/s')
-        data['particle_mass'] = (np.random.random(particles), 'g')
+        if particle_fields is not None:
+            for field, unit in zip(particle_fields, particle_field_units):
+                if field in ('particle_position', 'particle_velocity'):
+                    data['io', field] = (np.random.random((particles, 3)), unit)
+                else:
+                    data['io', field] = (np.random.random(size=particles), unit)
+        else:
+            for f in ('particle_position_%s' % ax for ax in 'xyz'):
+                data['io', f] = (np.random.random(size=particles), 'code_length')
+            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+                data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
+            data['io', 'particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
@@ -652,7 +660,7 @@ def check_results(func):
     """
     def compute_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -676,7 +684,7 @@ def check_results(func):
 
     def compare_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -691,17 +699,17 @@ def check_results(func):
                     hashlib.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
-                print "Answers need to be created with --answer-reference ."
+                print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
-            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
+            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
             assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
             assert_equal(vals[4], ref[4])
-            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            print("Hashes equal: %s" % (vals[-1] == ref[-1]))
             return rv
         return _func
     return compare_results(func)
@@ -718,13 +726,16 @@ def periodicity_cases(ds):
                 center = dx * np.array([i,j,k]) + ds.domain_left_edge
                 yield center
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
+             call_pdb = False):
     import nose, os, sys, yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
     nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
+    if call_pdb:
+        nose_argv += ["--pdb", "--pdb-failures"]
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:

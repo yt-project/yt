@@ -26,13 +26,13 @@ from yt.geometry.selection_routines import AlwaysSelector
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):
     g_iter = sorted(grids, key = lambda g: g.id)
-    for k, g in groupby(enumerate(g_iter), lambda (i,x):i-x.id):
+    for k, g in groupby(enumerate(g_iter), lambda i_x:i_x[0]-i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq[0], seq[-1]
 
 def grid_sequences(grids):
     g_iter = sorted(grids, key = lambda g: g.id)
-    for k, g in groupby(enumerate(g_iter), lambda (i,x):i-x.id):
+    for k, g in groupby(enumerate(g_iter), lambda i_x1:i_x1[0]-i_x1[1].id):
         seq = list(v[1] for v in g)
         yield seq
 
@@ -47,7 +47,8 @@ class IOHandlerFLASH(BaseIOHandler):
         self._particle_handle = ds._particle_handle
         
         try :
-            particle_fields = [s[0].strip() for s in
+            particle_fields = [s[0].decode("ascii","ignore").strip()
+                               for s in
                                self._particle_handle["/particle names"][:]]
             self._particle_fields = dict([("particle_" + s, i) for i, s in
                                           enumerate(particle_fields)])

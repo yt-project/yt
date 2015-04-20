@@ -5,7 +5,7 @@ Parallel Computation With yt
 
 yt has been instrumented with the ability to compute many -- most, even --
 quantities in parallel.  This utilizes the package 
-`mpi4py <http://code.google.com/p/mpi4py>`_ to parallelize using the Message
+`mpi4py <https://bitbucket.org/mpi4py/mpi4py>`_ to parallelize using the Message
 Passing Interface, typically installed on clusters.  
 
 .. _capabilities:
@@ -34,7 +34,7 @@ Setting Up Parallel yt
 --------------------------
 
 To run scripts in parallel, you must first install `mpi4py
-<http://code.google.com/p/mpi4py>`_ as well as an MPI library, if one is not
+<https://bitbucket.org/mpi4py/mpi4py>`_ as well as an MPI library, if one is not
 already available on your system.  Instructions for doing so are provided on the
 mpi4py website, but you may have luck by just running:
 
@@ -247,7 +247,7 @@ and you can access the contents:
 
     yt.enable_parallelism()
     my_dictionary = {}
-    for dataset in dataset_series.piter(storage=my_dictionary):
+    for sto, dataset in dataset_series.piter(storage=my_dictionary):
         <process>
         sto.result = <some information processed for this dataset>
         sto.result_id = <some identfier for this dataset>

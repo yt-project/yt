@@ -18,7 +18,7 @@ import numpy as np
 field_plugins = {}
 
 def register_field_plugin(func):
-    name = func.func_name
+    name = func.__name__
     if name.startswith("setup_"):
         name = name[len("setup_"):]
     if name.endswith("_fields"):

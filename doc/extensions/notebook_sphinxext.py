@@ -170,8 +170,8 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     try:
         nb_runner.run_notebook(skip_exceptions=skip_exceptions)
     except NotebookError as e:
-        print ''
-        print e
+        print('')
+        print(e)
         # Return the traceback, filtering out ANSI color codes.
         # http://stackoverflow.com/questions/13506033/filtering-out-ansi-escape-sequences
         return "Notebook conversion failed with the " \

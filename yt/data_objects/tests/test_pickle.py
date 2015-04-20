@@ -12,7 +12,7 @@ Testsuite for pickling yt objects.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import cPickle
+from yt.extern.six.moves import cPickle
 import os
 import tempfile
 from yt.testing \
