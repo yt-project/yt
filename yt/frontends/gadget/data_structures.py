@@ -167,7 +167,7 @@ class GadgetDataset(ParticleDataset):
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
-            self.current_time = hvals["Time"] 
+            self.current_time = hvals["Time"]
         else:
             # Now we calculate our time based on the cosmology, because in
             # ComovingIntegration hvals["Time"] will in fact be the expansion
@@ -336,12 +336,15 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Header']
+        veto_groups = ['FOF']
+        valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+              not any(vg in fh["/"] for vg in veto_groups)
+            fh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid

@@ -23,6 +23,11 @@ class level4(level3):
     pass
 
 
+def test_single():
+    result = find_lowest_subclasses([level2])
+    assert len(result) == 1
+    assert result[0] is level2
+
 def test_two_classes():
     result = find_lowest_subclasses([level1, level2])
     assert len(result) == 1
