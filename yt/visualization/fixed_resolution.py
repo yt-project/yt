@@ -17,7 +17,7 @@ from yt.funcs import *
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from . import _MPL
 import numpy as np
