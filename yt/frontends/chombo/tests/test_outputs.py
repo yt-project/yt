@@ -56,8 +56,7 @@ def test_iso():
         test_iso.__name__ = test.description
         yield test
 
-_zp_fields = ("rhs", "phi", "gravitational_field_x",
-              "gravitational_field_y")
+_zp_fields = ("rhs", "phi")
 zp = "ZeldovichPancake/plt32.2d.hdf5"
 @requires_ds(zp)
 def test_zp():
