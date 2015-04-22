@@ -143,7 +143,7 @@ it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
 
 As an alternative syntax, you can also define a new particle filter via the
-:func:`yt.data_objects.particle_filter.add_particle_filter` function.  
+:func:`~yt.data_objects.particle_filter.add_particle_filter` function.  
 
 .. code-block:: python
 
