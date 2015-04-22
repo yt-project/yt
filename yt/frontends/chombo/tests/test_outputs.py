@@ -65,7 +65,7 @@ def test_zp():
     yield assert_equal, str(ds), "plt32.2d.hdf5"
     for test in small_patch_amr(zp, _zp_fields, input_center="c",
                                 input_weight="rhs"):
-        test_tb.__name__ = test.description
+        test_zp.__name__ = test.description
         yield test
 
 kho = "KelvinHelmholtz/data.0004.hdf5"
@@ -74,7 +74,7 @@ def test_kho():
     ds = data_dir_load(kho)
     yield assert_equal, str(ds), "data.0004.hdf5"
     for test in small_patch_amr(kho, _fields):
-        test_gc.__name__ = test.description
+        test_kho.__name__ = test.description
         yield test
 
 @requires_file(zp)
