@@ -503,7 +503,9 @@ function do_setup_py
     BUILD_ARGS=""
     case $LIB in
         *h5py*)
-            BUILD_ARGS="--hdf5=${HDF5_DIR}"
+            pushd $LIB &> /dev/null
+            ( ${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            popd &> /dev/null
             ;;
         *numpy*)
             if [ -e ${DEST_DIR}/lib/python2.7/site-packages/numpy/__init__.py ]
@@ -946,8 +948,8 @@ then
 fi
 
 do_setup_py $IPYTHON
-do_setup_py $H5PY
 do_setup_py $CYTHON
+do_setup_py $H5PY
 do_setup_py $NOSE
 do_setup_py $PYTHON_HGLIB
 do_setup_py $SYMPY
