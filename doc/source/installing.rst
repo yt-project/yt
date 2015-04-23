@@ -67,7 +67,7 @@ To get the installation script, download it from:
 
 .. code-block:: bash
 
-  wget http://hg.yt-project.org/yt/raw/stable/doc/install_script.sh
+  wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
 
 .. _installing-yt:
 
