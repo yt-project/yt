@@ -42,36 +42,28 @@ cdef int Neighbor_compare(void *on1, void *on2) nogil:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.float64_t r2dist(np.float64_t ppos[3],
-                         np.float64_t cpos[3],
+cdef np.float64_t r2dist(pos_vector ppos,
+                         pos_vector cpos,
                          np.float64_t DW[3],
                          bint periodicity[3],
                          np.float64_t max_dist2):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
-    for i in range(3):
-        DR = (ppos[i] - cpos[i])
-        if not periodicity[i]:
-            pass
-        elif (DR > DW[i]*0.5):
-            DR -= DW[i]
-        elif (DR < -DW[i]*0.5):
-            DR += DW[i]
-        r2 += DR * DR
-        if max_dist2 >= 0.0 and r2 > max_dist2:
-            return -1.0
-    return r2
+    cdef pos_vector v3 = ppos - cpos
+    v3 *= v3
+    return (v3[0] + v3[1] + v3[2])
 
-cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
-    opos[0] = ipos[0] * sin(ipos[1]) * cos(ipos[2])
-    opos[1] = ipos[0] * sin(ipos[1]) * sin(ipos[2])
-    opos[2] = ipos[0] * cos(ipos[1])
+cdef void spherical_coord_setup(pos_vector ipos, pos_vector *opos):
+    #opos[0] = ipos[0] * sin(ipos[1]) * cos(ipos[2])
+    #opos[1] = ipos[0] * sin(ipos[1]) * sin(ipos[2])
+    #opos[2] = ipos[0] * cos(ipos[1])
+    pass
 
-cdef void cart_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
-    opos[0] = ipos[0]
-    opos[1] = ipos[1]
-    opos[2] = ipos[2]
+cdef void cart_coord_setup(pos_vector ipos, pos_vector *opos):
+    opos[0][0] = ipos[0]
+    opos[0][1] = ipos[1]
+    opos[0][2] = ipos[2]
 
 cdef class ParticleSmoothOperation:
     def __init__(self, nvals, nfields, max_neighbors):
@@ -135,7 +127,7 @@ cdef class ParticleSmoothOperation:
         cdef int dims[3]
         cdef np.float64_t **field_pointers
         cdef np.float64_t *field_vals
-        cdef np.float64_t pos[3]
+        cdef pos_vector pos
         cdef np.float64_t *ppos
         cdef np.float64_t dds[3]
         cdef np.float64_t **octree_field_pointers
@@ -201,13 +193,16 @@ cdef class ParticleSmoothOperation:
         for i in range(3):
             self.DW[i] = (mesh_octree.DRE[i] - mesh_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
+        cdef np.float64_t pos_fo[3]
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = particle_octree.get(pos)
+                pos_fo[j] = pos[j]
+            oct = particle_octree.get(pos_fo)
             if oct == NULL:
                 continue
             if oct.domain > -1 and domain_id > 0 and oct.domain != domain_id:
+                print "CONTINUING", oct.domain, domain_id
                 continue
             # Note that this has to be our local index, not our in-file index.
             # This is the particle count, which we'll use once we have sorted
@@ -247,7 +242,9 @@ cdef class ParticleSmoothOperation:
         for i in range(oct_positions.shape[0]):
             for j in range(3):
                 pos[j] = oct_positions[i, j]
-            oct = mesh_octree.get(pos, &moi)
+                pos_fo[j] = pos[j]
+            oct = mesh_octree.get(pos_fo, &moi)
+            if oct == NULL: continue # When would this happen?
             offset = mdom_ind[oct.domain_ind - moff_m] * nz
             if visited[oct.domain_ind - moff_m] == 1: continue
             visited[oct.domain_ind - moff_m] = 1
@@ -285,7 +282,7 @@ cdef class ParticleSmoothOperation:
         cdef np.float64_t *field_vals
         cdef np.float64_t *ppos
         cdef np.float64_t dds[3]
-        cdef np.float64_t pos[3]
+        cdef pos_vector pos
         cdef np.float64_t **octree_field_pointers
         cdef int nsize = 0
         cdef np.int64_t *nind = NULL
@@ -333,10 +330,12 @@ cdef class ParticleSmoothOperation:
         for i in range(3):
             self.DW[i] = (particle_octree.DRE[i] - particle_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
+        cdef np.float64_t pos_fo[3]
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = particle_octree.get(pos)
+                pos_fo[j] = pos[j]
+            oct = particle_octree.get(pos_fo)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
@@ -382,15 +381,15 @@ cdef class ParticleSmoothOperation:
                 pind0 = pind[doff[i] + j]
                 for k in range(3):
                     pos[k] = positions[pind0, k]
-                self.neighbor_process_particle(pos, cart_pos, field_pointers,
-                            doffs, &nind, pinds, pcounts, pind0,
-                            NULL, particle_octree, domain_id, &nsize)
+                #self.neighbor_process_particle(pos, cart_pos, field_pointers,
+                #            doffs, &nind, pinds, pcounts, pind0,
+                #            NULL, particle_octree, domain_id, &nsize)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
             free(nind)
 
-    cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
+    cdef int neighbor_search(self, pos_vector pos, OctreeContainer octree,
                              np.int64_t **nind, int *nsize,
                              np.int64_t nneighbors, np.int64_t domain_id,
                              Oct **oct = NULL):
@@ -399,7 +398,10 @@ cdef class ParticleSmoothOperation:
         cdef Oct **neighbors
         cdef int j
         cdef np.int64_t moff = octree.get_domain_offset(domain_id)
-        ooct = octree.get(pos, &oi)
+        cdef np.float64_t pos_fo[3]
+        for j in range(3):
+            pos_fo[j] = pos[j]
+        ooct = octree.get(pos_fo, &oi)
         if oct != NULL and ooct == oct[0]:
             return nneighbors
         oct[0] = ooct
@@ -434,7 +436,7 @@ cdef class ParticleSmoothOperation:
         raise NotImplementedError
 
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **ifields):
         raise NotImplementedError
 
@@ -444,8 +446,8 @@ cdef class ParticleSmoothOperation:
             self.neighbors[i].pn = -1
             self.neighbors[i].r2 = 1e300
 
-    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
-                            np.float64_t cpos[3]):
+    cdef void neighbor_eval(self, np.int64_t pn, pos_vector ppos,
+                            pos_vector cpos):
         # Here's a python+numpy simulator of this:
         # http://paste.yt-project.org/show/5445/
         cdef int i, di
@@ -491,13 +493,13 @@ cdef class ParticleSmoothOperation:
                             np.int64_t *pcounts,
                             np.int64_t *pinds,
                             np.float64_t *ppos,
-                            np.float64_t cpos[3]
+                            pos_vector cpos
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
         cdef int ni, i, j
         cdef np.int64_t offset, pn, pc
-        cdef np.float64_t pos[3]
+        cdef pos_vector pos
         self.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
@@ -522,8 +524,8 @@ cdef class ParticleSmoothOperation:
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
         cdef int i, j, k, ntot, nntot, m, nneighbors
-        cdef np.float64_t cpos[3]
-        cdef np.float64_t opos[3]
+        cdef pos_vector cpos
+        cdef pos_vector opos
         cdef Oct* oct = NULL
         cpos[0] = left_edge[0] + 0.5*dds[0]
         for i in range(dim[0]):
@@ -531,7 +533,7 @@ cdef class ParticleSmoothOperation:
             for j in range(dim[1]):
                 cpos[2] = left_edge[2] + 0.5*dds[2]
                 for k in range(dim[2]):
-                    self.pos_setup(cpos, opos)
+                    self.pos_setup(cpos, &opos)
                     nneighbors = self.neighbor_search(opos, octree,
                                     nind, nsize, nneighbors, domain_id, &oct)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
@@ -550,7 +552,7 @@ cdef class ParticleSmoothOperation:
                 cpos[1] += dds[1]
             cpos[0] += dds[0]
 
-    cdef void neighbor_process_particle(self, np.float64_t cpos[3],
+    cdef void neighbor_process_particle(self, pos_vector cpos,
                                np.float64_t *ppos,
                                np.float64_t **fields,
                                np.int64_t *doffs, np.int64_t **nind,
@@ -568,8 +570,8 @@ cdef class ParticleSmoothOperation:
         cdef np.int64_t nneighbors = 0
         i = j = k = 0
         dim[0] = dim[1] = dim[2] = 1
-        cdef np.float64_t opos[3]
-        self.pos_setup(cpos, opos)
+        cdef pos_vector opos
+        self.pos_setup(cpos, &opos)
         nneighbors = self.neighbor_search(opos, octree,
                         nind, nsize, nneighbors, domain_id, &oct)
         self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos, opos)
@@ -607,7 +609,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
@@ -661,7 +663,7 @@ cdef class NearestNeighborSmooth(ParticleSmoothOperation):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
@@ -694,7 +696,7 @@ cdef class IDWInterpolationSmooth(ParticleSmoothOperation):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
@@ -729,7 +731,7 @@ cdef class NthNeighborDistanceSmooth(ParticleSmoothOperation):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields):
         cdef np.float64_t max_r
         # We assume "offset" here is the particle index.
@@ -749,7 +751,7 @@ cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields):
         cdef np.float64_t r2, hsml, dens, mass, weight, lw
         cdef int pn

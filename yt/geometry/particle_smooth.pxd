@@ -31,6 +31,14 @@ ELSE:
     cdef extern from "alloca.h":
         void *alloca(int)
 
+# https://groups.google.com/forum/#!msg/cython-users/nTnyI7A6sMc/a6_GnOOsLuQJ
+cdef extern from "vectorized_ops.h":
+    cdef cppclass pos_vector "v4df":
+        pos_vector operator+(pos_vector)
+        pos_vector operator-(pos_vector)
+        pos_vector operator*(pos_vector)
+        np.float64_t &operator[](int)
+
 cdef struct NeighborList
 cdef struct NeighborList:
     np.int64_t pn       # Particle number
@@ -50,7 +58,7 @@ cdef class ParticleSmoothOperation:
     cdef np.float64_t *ppos
     # Note that we are preallocating here, so this is *not* threadsafe.
     cdef NeighborList *neighbors
-    cdef void (*pos_setup)(np.float64_t ipos[3], np.float64_t opos[3])
+    cdef void (*pos_setup)(pos_vector ipos, pos_vector *opos)
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields, 
@@ -59,10 +67,10 @@ cdef class ParticleSmoothOperation:
                                np.int64_t offset, np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
                                int *nsize)
-    cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
+    cdef int neighbor_search(self, pos_vector pos, OctreeContainer octree,
                              np.int64_t **nind, int *nsize, 
                              np.int64_t nneighbors, np.int64_t domain_id, Oct **oct = ?)
-    cdef void neighbor_process_particle(self, np.float64_t cpos[3],
+    cdef void neighbor_process_particle(self, pos_vector cpos,
                                np.float64_t *ppos,
                                np.float64_t **fields, 
                                np.int64_t *doffs, np.int64_t **nind, 
@@ -71,8 +79,8 @@ cdef class ParticleSmoothOperation:
                                np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
                                int *nsize)
-    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
-                            np.float64_t cpos[3])
+    cdef void neighbor_eval(self, np.int64_t pn, pos_vector ppos,
+                            pos_vector cpos)
     cdef void neighbor_reset(self)
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
@@ -81,7 +89,7 @@ cdef class ParticleSmoothOperation:
                             np.int64_t *pcounts,
                             np.int64_t *pinds,
                             np.float64_t *ppos,
-                            np.float64_t cpos[3])
+                            pos_vector cpos)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
-                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      int dim[3], pos_vector cpos, np.float64_t **fields,
                       np.float64_t **index_fields)
