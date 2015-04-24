@@ -22,6 +22,21 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+cdef extern from "pixelization_constants.h":
+    enum:
+        MAX_NUM_FACES
+
+    int HEX_IND
+    int HEX_NF
+    np.uint8_t hex_face_defs[MAX_NUM_FACES][2][2]
+
+    int TETRA_IND
+    int TETRA_NF
+    np.uint8_t tetra_face_defs[MAX_NUM_FACES][2][2]
+
+    int WEDGE_IND
+    int WEDGE_NF
+    np.uint8_t wedge_face_defs[MAX_NUM_FACES][2][2]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -214,103 +229,6 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                 img[i, j] = field[fi]
     return img
 
-# Six faces, two vectors for each, two indices for each vector.  The function
-# below unrolls how these are defined.  Some info can be found at:
-# http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%20Element%20Modeling/elem_lib_topics.16.8.html
-# This is [6][2][2] in shape.
-# Here are the faces and their four edges each:
-# F1    1   2   3   4
-# F2    5   6   7   8
-# F3    1   10  5   9
-# F4    2   11  6   10
-# F5    3   12  7   11
-# F6    4   9   8   12
-#
-# The edges are then defined by:
-# E1    1 2
-# E2    2 6
-# E3    6 5
-# E4    5 1
-# E5    4 3
-# E6    3 7
-# E7    7 8
-# E8    8 4
-# E9    1 4
-# E10   2 3
-# E11   6 7
-# E12   5 8
-# Now we unroll these here ...
-cdef np.uint8_t ***hex_face_defs = [
-   # Note that the first of each pair is the shared vertex
-   [[1, 0], [1, 5]],
-   [[2, 3], [2, 6]],
-   [[1, 0], [1, 2]],
-   [[5, 1], [5, 6]],
-   [[4, 5], [4, 7]],
-   [[0, 4], [0, 3]],
-]
-
-# http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%2520Element%2520Modeling/elem_lib_topics.16.6.html
-#
-# F1    1   2   3
-# F2    1   5   4
-# F3    2   6   5
-# F4    3   4   6
-#
-# The edges are then defined by:
-# E1    1   2
-# E2    2   3
-# E3    3   1
-# E4    1   4
-# E5    2   4
-# E6    3   4
-cdef np.uint8_t ***tetra_face_defs = [
-   # Like above, first is shared vertex
-   [[1, 0], [1, 2]],
-   [[1, 0], [1, 3]],
-   [[2, 1], [2, 3]],
-   [[3, 0], [3, 2]]
-]
-
-# http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%2520Element%2520Modeling/elem_lib_topics.16.7.html
-# F1    1   2   3   *
-# F2    4   5   6   *
-# F3    1   8   4   7
-# F4    2   9   5   8
-# F5    3   7   6   9
-#
-# The edges are then defined by:
-# E1    2   1
-# E2    1   3
-# E3    3   2
-# E4    5   4
-# E5    4   6
-# E6    6   5
-# E7    2   5
-# E8    1   4
-# E9    3   6
-cdef np.uint8_t ***wedge_face_defs = [
-   # As always, first is shared vertex
-   [[0, 1], [0, 2]],
-   [[3, 4], [3, 5]],
-   [[0, 1], [0, 3]],
-   [[2, 0], [2, 5]],
-   [[1, 2], [1, 4]],
-]
-
-cdef np.uint8_t ****face_defs = [
-  hex_face_defs,
-  tetra_face_defs,
-  wedge_face_defs
-]
-
-DEF HEX_IND = 0
-DEF HEX_NF = 6
-DEF TETRA_IND = 1
-DEF TETRA_NF = 4
-DEF WEDGE_IND = 2
-DEF WEDGE_NF = 5
-
 # This function accepts a set of vertices (for a polyhedron) that are
 # assumed to be in order for bottom, then top, in the same clockwise or
 # counterclockwise direction (i.e., like points 1-8 in Figure 4 of the ExodusII
@@ -329,15 +247,15 @@ cdef int check_face_dot(int nvertices,
     # So, let's compute these vectors.  See above where these are written out
     # for ease of use.
     cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp, npoint[3]
-    cdef np.uint8_t ***faces, nf
+    cdef np.uint8_t faces[MAX_NUM_FACES][2][2], nf
     if nvertices == 4:
-        faces = face_defs[TETRA_IND]
+        faces = tetra_face_defs
         nf = TETRA_NF
     elif nvertices == 6:
-        faces = face_defs[WEDGE_IND]
+        faces = wedge_face_defs
         nf = WEDGE_NF
     elif nvertices == 8:
-        faces = face_defs[HEX_IND]
+        faces = hex_face_defs
         nf = HEX_NF
     else:
         return -1
