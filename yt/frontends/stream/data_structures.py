@@ -1618,3 +1618,132 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
+def load_unstructured_mesh(data, connectivity, coordinates,
+                         length_unit = None, bbox=None, sim_time=0.0,
+                         mass_unit = None, time_unit = None,
+                         velocity_unit = None, magnetic_unit = None,
+                         periodicity=(False, False, False),
+                         geometry = "cartesian"):
+    r"""Load an unstructured mesh of data into yt as a
+    :class:`~yt.frontends.stream.data_structures.StreamHandler`.
+
+    This should allow an unstructured mesh data to be loaded directly into
+    yt and analyzed as would any others.  Not all functionality for
+    visualization will be present, and some analysis functions may not yet have
+    been implemented.
+
+    Particle fields are detected as one-dimensional fields. The number of particles
+    is set by the "number_of_particles" key in data.
+    
+    Parameters
+    ----------
+    data : dict or list of dicts
+        This is a list of dicts of numpy arrays, where each element in the list
+        is a different mesh, and where the keys of dicts are the field names. 
+        Note that the data in the numpy arrays should define the cell-averaged
+        value for of the quantity in the mesh cells, although this will change
+        with subsequent generations of unstructured mesh support.  If a dict is
+        supplied, this will be assumed to be the only mesh.
+    connectivity : list of array_like or array_like
+        This is the connectivity array for the meshes; this should either be a
+        list where each element in the list is a numpy array or a single numpy
+        array.  Each array in the list can have different connectivity length
+        and should be of shape (N,M) where N is the number of elements and M is
+        the connectivity length.
+    coordinates : array_like
+        This should be of size (L,3) where L is the number of vertices
+        indicated in the connectivity matrix.
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units of the length unit.
+    sim_time : float, optional
+        The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
+    periodicity : tuple of booleans
+        Determines whether the data will be treated as periodic along
+        each axis
+    geometry : string or tuple
+        "cartesian", "cylindrical", "polar", "spherical", "geographic" or
+        "spectral_cube".  Optionally, a tuple can be provided to specify the
+        axis ordering -- for instance, to specify that the axis ordering should
+        be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
+        can be done for other coordinates, for instance: 
+        ("spherical", ("theta", "phi", "r")).
+
+    """
+
+    domain_dimensions = np.ones(3, "int32") * 2
+    nprocs = 1
+    if bbox is None:
+        bbox = np.array([ [coords[:,i].min(), coords[:,i].max()]
+                          for i in range(3)], "float64")
+    domain_left_edge = np.array(bbox[:, 0], 'float64')
+    domain_right_edge = np.array(bbox[:, 1], 'float64')
+    grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
+
+    field_units, data = unitify_data(data)
+    sfh = StreamDictFieldHandler()
+    
+    particle_types = set_particle_types(data)
+    
+    sfh.update({'connectivity': connectivity,
+                'coordinates': coordinates,
+                0: data})
+    # Simple check for axis length correctness
+    if 0 and len(data) > 0:
+        fn = list(sorted(data))[0]
+        array_values = data[fn]
+        if array_values.size != connectivity.shape[0]:
+            mylog.error("Dimensions of array must be one fewer than the" +
+                        " coordinate set.")
+            raise RuntimeError
+    grid_left_edges = domain_left_edge
+    grid_right_edges = domain_right_edge
+    grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    if length_unit is None:
+        length_unit = 'code_length'
+    if mass_unit is None:
+        mass_unit = 'code_mass'
+    if time_unit is None:
+        time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
+
+    # I'm not sure we need any of this.
+    handler = StreamHandler(
+        grid_left_edges,
+        grid_right_edges,
+        grid_dimensions,
+        grid_levels,
+        -np.ones(nprocs, dtype='int64'),
+        np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
+        np.zeros(nprocs).reshape((nprocs,1)),
+        sfh,
+        field_units,
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
+        particle_types=particle_types,
+        periodicity=periodicity
+    )
+
+    handler.name = "UnstructuredMeshData"
+    handler.domain_left_edge = domain_left_edge
+    handler.domain_right_edge = domain_right_edge
+    handler.refine_by = 2
+    handler.dimensionality = 3
+    handler.domain_dimensions = domain_dimensions
+    handler.simulation_time = sim_time
+    handler.cosmology_simulation = 0
+
+    sds = StreamUnstructuredMeshDataset(handler, geometry = geometry)
+
+    return sds
+
