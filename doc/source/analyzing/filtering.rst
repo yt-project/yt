@@ -99,30 +99,35 @@ cuts on existing particle fields.  You can apply cuts to them to effectively
 mask out everything except the particles with which you are concerned.
 
 Creating a particle filter takes a few steps.  You must first define a 
-function which accepts a geometric object (e.g. all_data, sphere, etc.)
+function which accepts a data object (e.g. all_data, sphere, etc.)
 as its argument.  It uses the fields and information in this geometric
-object in order to produce some sort of conditional mask that is then returned.
-Here is the function to filter only the particles with `particle_type` (i.e. 
-field = `('all', 'particle_type')` equal to 2. (This is the case with
-Enzo star particles.)
+object in order to produce some sort of conditional mask that is then returned
+to create a new particle type.
+
+Here is a particle filter to create a new ``Star`` particle type.  For Enzo
+simulations, stars have ``particle_type`` set to 2, so our filter will select
+only the particles with ``particle_type`` (i.e.  field = ``('all',
+'particle_type')`` equal to 2.
 
 .. code-block:: python
 
-    def Stars(pfilter, data):
-        filter = data[("all", "particle_type")] == 2
+    @yt.particle_filter(requires=["particle_type], filtered_type='all')
+    def stars(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
 
-The particle_filter must now be defined to incorporate this function.  It takes
-a few arguments: a name for the filter, our filter function, and the fields
-that it requires in a dataset in order to work (in this case, it requires
-the ('all', 'particle_type') field.
+The :func:`~yt.data_objects.particle_filters.particle_filter` decorator takes a
+few options.  You must specify the names of the particle fields that are
+required in order to define the filter --- in this case the ``particle_type``
+field.  Additionally, you must specify the particle type to be filtered --- in
+this case we filter all the particle in dataset by specifying the ``all``
+particle type.
 
-.. code-block:: python
+In addition, you may specify a name for the newly defined particle type.  If no
+name is specified, the name for the particle type will be inferred from the name
+of the filter definition --- in this case the inferred name will be ``Stars``.
 
-    from yt.data_objects.particle_filters import add_particle_filter
-    add_particle_filter("stars", function=Stars, filtered_type='all', requires=["particle_type"])
-
-And lastly, the filter must be applied to our dataset of choice.  Note that this 
+Lastly, the filter must be applied to our dataset of choice.  Note that this 
 filter can be added to as many datasets as we wish.  It will only actually
 create new filtered fields if the dataset has the required fields, though.
 
@@ -133,9 +138,26 @@ create new filtered fields if the dataset has the required fields, though.
     ds.add_particle_filter('stars')
 
 And that's it!  We can now access all of the ('stars', field) fields from 
-our dataset `ds` and treat them as any other particle field.  In addition,
-it created some `deposit` fields, where the particles were deposited on to
+our dataset ``ds`` and treat them as any other particle field.  In addition,
+it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
+
+As an alternative syntax, you can also define a new particle filter via the
+:func:`~yt.data_objects.particle_filter.add_particle_filter` function.  
+
+.. code-block:: python
+
+
+    def Stars(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        return filter
+
+    add_particle_filter("stars", function=Stars, filtered_type='all',
+                        requires=["particle_type"])
+
+This is equivalent to our use of the ``particle_filter`` decorator above.  The
+choice to use either the ``particle_filter`` decorator or the
+``add_particle_fitler`` function is a purely stylistic choice.
 
 .. notebook:: particle_filter.ipynb
 
@@ -172,7 +194,7 @@ Filtering Fields by Spatial Location: Geometric Objects
 
 Creating geometric objects for a dataset provides a means for filtering
 a field based on spatial location.  The most commonly used of these are
-spheres, regions (3D prisms), ellipsoids, disks, and rays.  The `all_data`
+spheres, regions (3D prisms), ellipsoids, disks, and rays.  The ``all_data``
 object which gets used throughout this documentation section is an example of 
 a geometric object, but it defaults to including all the data in the dataset
 volume.  To see all of the geometric objects available, see 

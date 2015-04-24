@@ -120,8 +120,7 @@ from yt.fields.api import \
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    DatasetSeries, \
-    ImageArray, \
+    DatasetSeries, ImageArray, \
     particle_filter, add_particle_filter, \
     create_profile, Profile1D, Profile2D, Profile3D, \
     ParticleProfile

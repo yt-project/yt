@@ -104,8 +104,9 @@ used internally.
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
   setting will provide instructions for setting this.
-* ``serialize`` (default: ``'True'``): Are we allowed to write to the ``.yt`` file?
-* ``sketchfab_api_key`` (default: empty): API key for http://sketchfab.com/ for
+* ``serialize`` (default: ``'False'``): If true, perform automatic 
+  :ref:`object serialization <object-serialization>`
+* ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
 * ``suppressStreamLogging`` (default: ``'False'``): If true, execution mode will be
   quiet.

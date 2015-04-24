@@ -26,7 +26,7 @@ from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 import yt.visualization._MPL as _MPL
 from yt.units.yt_array import \

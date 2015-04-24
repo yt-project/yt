@@ -503,6 +503,16 @@ Field Functions
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
 
+
+Particle Filters
+----------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.particle_filters.add_particle_filter
+   ~yt.data_objects.particle_filters.particle_filter
+
 Image Handling
 --------------
 
@@ -760,7 +770,6 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
    ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
    ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
-   ~yt.visualization.plot_modifications.sanitize_coord_system
 
 Math Utilities
 --------------
