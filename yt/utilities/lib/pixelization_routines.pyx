@@ -17,10 +17,113 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max
+from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
+from yt.utilities.exceptions import YTPixelizeError
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
+                       np.ndarray[np.float64_t, ndim=1] py,
+                       np.ndarray[np.float64_t, ndim=1] pdx,
+                       np.ndarray[np.float64_t, ndim=1] pdy,
+                       np.ndarray[np.float64_t, ndim=1] data,
+                       int cols, int rows, bounds,
+                       int antialias = 1,
+                       period = None,
+                       int check_period = 1):
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t period_x = 0.0, period_y = 0.0
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
+    cdef int nx, ny, ndx, ndy
+    cdef int i, j, p, xi, yi
+    cdef int lc, lr, rc, rr
+    cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
+    # These are the temp vars we get from the arrays
+    cdef np.float64_t oxsp, oysp, xsp, ysp, dxsp, dysp, dsp
+    # Some periodicity helpers
+    cdef int xiter[2], yiter[2]
+    cdef np.float64_t xiterv[2], yiterv[2]
+    cdef np.ndarray[np.float64_t, ndim=2] my_array
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> rows)
+    px_dy = height / (<np.float64_t> cols)
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if rows == 0 or cols == 0:
+        raise YTPixelizeError("Cannot scale to zero size")
+    if px.shape[0] != py.shape[0] or \
+       px.shape[0] != pdx.shape[0] or \
+       px.shape[0] != pdy.shape[0] or \
+       px.shape[0] != data.shape[0]:
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    my_array = np.zeros((rows, cols), "float64")
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    with nogil:
+        for p in range(px.shape[0]):
+            xiter[1] = yiter[1] = 999
+            oxsp = px[p]
+            oysp = py[p]
+            dxsp = pdx[p]
+            dysp = pdy[p]
+            dsp = data[p]
+            if check_period == 1:
+                if (oxsp - dxsp < x_min):
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif (oxsp + dxsp > x_max):
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if (oysp - dysp < y_min):
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif (oysp + dysp > y_max):
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+            overlap1 = overlap2 = 1.0
+            for xi in range(2):
+                if xiter[xi] == 999: continue
+                xsp = oxsp + xiterv[xi]
+                if (xsp + dxsp < x_min) or (xsp - dxsp > x_max): continue
+                for yi in range(2):
+                    if yiter[yi] == 999: continue
+                    ysp = oysp + yiterv[yi]
+                    if (ysp + dysp < y_min) or (ysp - dysp > y_max): continue
+                    lc = <int> fmax(((xsp-dxsp-x_min)*ipx_dx),0)
+                    lr = <int> fmax(((ysp-dysp-y_min)*ipx_dy),0)
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx), rows)
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy), cols)
+                    for i in range(lr, rr):
+                        lypx = px_dy * i + y_min
+                        rypx = px_dy * (i+1) + y_min
+                        if antialias == 1:
+                            overlap2 = ((fmin(rypx, ysp+dysp)
+                                       - fmax(lypx, (ysp-dysp)))*ipx_dy)
+                        if overlap2 < 0.0: continue
+                        for j in range(lc, rc):
+                            lxpx = px_dx * j + x_min
+                            rxpx = px_dx * (j+1) + x_min
+                            if antialias == 1:
+                                overlap1 = ((fmin(rxpx, xsp+dxsp)
+                                           - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
+                                if overlap1 < 0.0: continue
+                                my_array[j,i] += (dsp * overlap1) * overlap2
+                            else:
+                                my_array[j,i] = dsp
+    return my_array
 
 
 @cython.cdivision(True)
