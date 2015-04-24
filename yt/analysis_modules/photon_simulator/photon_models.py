@@ -27,14 +27,12 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.physical_constants import mp, kboltz
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     communication_system, parallel_objects
+     parallel_objects
 from yt.units.yt_array import uconcatenate
 
 n_kT = 10000
 kT_min = 8.08e-2
 kT_max = 50.
-
-comm = communication_system.communicators[-1]
 
 class PhotonModel(object):
 
