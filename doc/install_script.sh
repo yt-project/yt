@@ -608,7 +608,7 @@ IPYTHON='ipython-2.4.1'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
 MATPLOTLIB='matplotlib-1.4.3'
-MERCURIAL='mercurial-3.1'
+MERCURIAL='mercurial-3.3.3'
 NOSE='nose-1.3.6'
 NUMPY='numpy-1.9.2'
 PYTHON_HGLIB='python-hglib-1.5'
@@ -635,7 +635,7 @@ echo 'a9cffc08ba10c47b0371b05664e55eee0562a30ef0d4bbafae79e52e5b9727906c45840c09
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
 echo '51b0f58b2618b47b653e17e4f6b6a1215d3a3b0f1331ce3555cc7435e365d9c75693f289ce12fe3bf8f69fd57b663e545f0f1c2c94e81eaa661cac0689e125f5  matplotlib-1.4.3.tar.gz' > matplotlib-1.4.3.tar.gz.sha512
-echo '1ee2fe7a241bf81087e55d9e4ee8fa986f41bb0655d4828d244322c18f3958a1f3111506e2df15aefcf86100b4fe530fcab2d4c041b5945599ed3b3a889d50f5  mercurial-3.1.tar.gz' > mercurial-3.1.tar.gz.sha512
+echo 'bea215b0bd9e8603ade019f01ae0600dd1d1ad77675b38b5e13d86c43dd2c58b6c86c252517f0fcab6444c171e9f53537e4e170739c991ac08a1111169fe545d  mercurial-3.3.3.tar.gz' > mercurial-3.3.3.tar.gz.sha512
 echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
 echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
 echo '2506e2ac95488830b90f5f099d231e45833a8f19ce14fc2f3391ae1bf48ca72187b6b57afb633ecbe6cd2c6f3d3f482d75e03ea36406b3a07085ed1b4ef9c6b5  python-hglib-1.5.tar.gz' > python-hglib-1.5.tar.gz.sha512
