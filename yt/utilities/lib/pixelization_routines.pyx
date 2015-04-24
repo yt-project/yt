@@ -104,8 +104,17 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                     if (ysp + dysp < y_min) or (ysp - dysp > y_max): continue
                     lc = <int> fmax(((xsp-dxsp-x_min)*ipx_dx),0)
                     lr = <int> fmax(((ysp-dysp-y_min)*ipx_dy),0)
-                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx), rows)
-                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy), cols)
+                    # NOTE: This is a different way of doing it than in the C
+                    # routines.  In C, we were implicitly casting the
+                    # initialization to int, but *not* the conditional, which
+                    # was allowed an extra value:
+                    #     for(j=lc;j<rc;j++)
+                    # here, when assigning lc (double) to j (int) it got
+                    # truncated, but no similar truncation was done in the
+                    # comparison of j to rc (double).  So give ourselves a
+                    # bonus row and bonus column here.
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), rows)
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), cols)
                     for i in range(lr, rr):
                         lypx = px_dy * i + y_min
                         rypx = px_dy * (i+1) + y_min
