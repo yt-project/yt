@@ -369,13 +369,16 @@ class FITSDataset(Dataset):
         self._handle._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
-                if os.path.exists(fits_file):
-                    fn = fits_file
+                if isinstance(fits_file, _astropy.pyfits.PrimaryHDU):
+                    f = fits_file
                 else:
-                    fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
-                f = _astropy.pyfits.open(fn, memmap=True,
-                                         do_not_scale_image_data=True,
-                                         ignore_blank=True)
+                    if os.path.exists(fits_file):
+                        fn = fits_file
+                    else:
+                        fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
+                    f = _astropy.pyfits.open(fn, memmap=True,
+                                             do_not_scale_image_data=True,
+                                             ignore_blank=True)
                 self._handle._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
@@ -660,6 +663,9 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
+
+        if isinstance(args[0], _astropy.pyfits.PrimaryHDU):
+            return True
         ext = args[0].rsplit(".", 1)[-1]
         if ext.upper() == "GZ":
             # We don't know for sure that there will be > 1
