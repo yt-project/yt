@@ -360,7 +360,7 @@ class FITSDataset(Dataset):
             self.nan_mask = {"all":nan_mask}
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
-        if isinstance(self.filenames[0], _astropy.pyfits.PrimaryHDU):
+        if isinstance(self.filenames[0], _astropy.pyfits._ImageBaseHDU):
             self._handle = FITSFileHandler(self.filenames[0])
             fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
         else:
@@ -369,7 +369,7 @@ class FITSDataset(Dataset):
         self._handle._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
-                if isinstance(fits_file, _astropy.pyfits.PrimaryHDU):
+                if isinstance(fits_file, _astropy.pyfits._ImageBaseHDU):
                     f = _astropy.pyfits.HDUList([fits_file])
                 elif isinstance(fits_file, _astropy.pyfits.HDUList):
                     f = fits_file
@@ -665,7 +665,6 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-
         ext = args[0].rsplit(".", 1)[-1]
         if ext.upper() == "GZ":
             # We don't know for sure that there will be > 1
