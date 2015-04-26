@@ -664,8 +664,6 @@ class FITSDataset(Dataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
 
-        if isinstance(args[0], _astropy.pyfits.PrimaryHDU):
-            return True
         ext = args[0].rsplit(".", 1)[-1]
         if ext.upper() == "GZ":
             # We don't know for sure that there will be > 1
