@@ -370,6 +370,8 @@ class FITSDataset(Dataset):
         if self.num_files > 1:
             for fits_file in auxiliary_files:
                 if isinstance(fits_file, _astropy.pyfits.PrimaryHDU):
+                    f = _astropy.pyfits.HDUList([fits_file])
+                elif isinstance(fits_file, _astropy.pyfits.HDUList):
                     f = fits_file
                 else:
                     if os.path.exists(fits_file):
