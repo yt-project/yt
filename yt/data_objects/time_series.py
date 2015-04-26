@@ -330,8 +330,9 @@ class DatasetSeries(object):
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
             if not isinstance(fn, str):
-                raise TypeError("DataSeries accepts a list of strings, but "
-                                "received {0}".format(fn))
+                raise YTOutputNotIdentified("DataSeries accepts a list of "
+                                            "strings, but "
+                                            "received {0}".format(fn))
         obj = cls(filenames[:], parallel = parallel,
                   setup_function = setup_function, **kwargs)
         return obj
