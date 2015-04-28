@@ -104,7 +104,7 @@ as its argument.  It uses the fields and information in this geometric
 object in order to produce some sort of conditional mask that is then returned
 to create a new particle type.
 
-Here is a particle filter to create a new ``Star`` particle type.  For Enzo
+Here is a particle filter to create a new ``star`` particle type.  For Enzo
 simulations, stars have ``particle_type`` set to 2, so our filter will select
 only the particles with ``particle_type`` (i.e.  field = ``('all',
 'particle_type')`` equal to 2.
@@ -125,7 +125,7 @@ particle type.
 
 In addition, you may specify a name for the newly defined particle type.  If no
 name is specified, the name for the particle type will be inferred from the name
-of the filter definition --- in this case the inferred name will be ``Stars``.
+of the filter definition --- in this case the inferred name will be ``stars``.
 
 Lastly, the filter must be applied to our dataset of choice.  Note that this 
 filter can be added to as many datasets as we wish.  It will only actually
