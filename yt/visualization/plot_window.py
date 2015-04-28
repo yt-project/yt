@@ -17,6 +17,7 @@ import base64
 import numpy as np
 import matplotlib
 import types
+import six
 import sys
 
 from distutils.version import LooseVersion
@@ -997,12 +998,9 @@ class PWViewerMPL(PlotWindow):
                 try:
                     callback(cbw)
                 except Exception as e:
-                    if sys.version_info < (3, 0):
-                        raise (YTPlotCallbackError,
-                               YTPlotCallbackError(callback._type_name, e),
-                               sys.exc_info()[2])
-                    else:
-                        raise YTPlotCallbackError(name, e)
+                    six.reraise(YTPlotCallbackError,
+                                YTPlotCallbackError(callback._type_name, e),
+                                sys.exc_info()[2])
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
