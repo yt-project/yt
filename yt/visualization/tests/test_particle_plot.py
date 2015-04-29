@@ -24,7 +24,7 @@ from yt.visualization.tests.test_plotwindow import \
 from yt.testing import \
     fake_particle_ds, assert_array_almost_equal
 from yt.visualization.api import \
-    AxisAlignedParticlePlot, ParticlePhasePlot
+    ParticleProjectionPlot, ParticlePhasePlot
 from yt.units.yt_array import YTArray
 
 
@@ -112,7 +112,7 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         self.particle_phases[0]._repr_html_()
 
 
-class TestAxisAlignedParticlePlotSave(unittest.TestCase):
+class TestParticleProjectionPlotSave(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -125,26 +125,26 @@ class TestAxisAlignedParticlePlotSave(unittest.TestCase):
         pplots_w = {}
         pplots_m = []
         for dim in range(3):
-            pplots.append(AxisAlignedParticlePlot(test_ds, dim,
-                                                  "particle_mass"))
+            pplots.append(ParticleProjectionPlot(test_ds, dim,
+                                                 "particle_mass"))
 
-            pplots_ds.append(AxisAlignedParticlePlot(test_ds, dim,
-                                                     "particle_mass",
-                                                     data_source=ds_region))
+            pplots_ds.append(ParticleProjectionPlot(test_ds, dim,
+                                                    "particle_mass",
+                                                    data_source=ds_region))
 
         for center in CENTER_SPECS:
-            pplots_c.append(AxisAlignedParticlePlot(test_ds, dim,
-                                                    "particle_mass",
+            pplots_c.append(ParticleProjectionPlot(test_ds, dim,
+                                                   "particle_mass",
                                                     center=center))
 
         for width in WIDTH_SPECS:
-            pplots_w[width] = AxisAlignedParticlePlot(test_ds, dim,
-                                                      'particle_mass',
-                                                      width=width)
+            pplots_w[width] = ParticleProjectionPlot(test_ds, dim,
+                                                     'particle_mass',
+                                                     width=width)
         for wf in WEIGHT_FIELDS:
-            pplots_wf.append(AxisAlignedParticlePlot(test_ds, dim,
-                                                     "particle_mass",
-                                                     weight_field=wf))
+            pplots_wf.append(ParticleProjectionPlot(test_ds, dim,
+                                                    "particle_mass",
+                                                    weight_field=wf))
         cls.pplots = pplots
         cls.pplots_ds = pplots_ds
         cls.pplots_c = pplots_c

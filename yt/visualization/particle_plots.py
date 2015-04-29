@@ -72,7 +72,7 @@ class ParticleAxisAlignedDummyDataSource(object):
             return default
 
 
-class AxisAlignedParticlePlot(PWViewerMPL):
+class ParticleProjectionPlot(PWViewerMPL):
     r"""Creates a particle plot from a dataset
 
     Given a ds object, an axis to slice along, and a field name
@@ -184,7 +184,7 @@ class AxisAlignedParticlePlot(PWViewerMPL):
 
     >>> from yt import load
     >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = yt.AxisAlignedParticlePlot(ds, 2, 'particle_mass')
+    >>> p = yt.ParticleProjectionPlot(ds, 2, 'particle_mass')
     >>> p.save()
 
     """
@@ -341,18 +341,18 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
                  kwargs):
     r"""
     A factory function for
-    :class:`yt.visualization.plot_window.AxisAlignedParticlePlot`
+    :class:`yt.visualization.particle_plots.ParticleProjectionPlot`
     and :class:`yt.visualization.profile_plotter.ParticlePhasePlot` objects.
     This essentially allows for a single entry point to both types of particle
     plots, the distinction being determined by the fields passed in.
 
     If the x_field and y_field combination corresponds to a valid, right-handed
-    spatial plot, an 'AxisAlignedParticlePlot` will be returned. This plot
+    spatial plot, an 'ParticleProjectionPlot` will be returned. This plot
     object can be updated using one of the many helper functions defined in
     PlotWindow.
 
     If the x_field and y_field combo do not correspond to a valid
-    'AxisAlignedParticlePlot`, then a `ParticlePhasePlot`. This object can be
+    'ParticleProjectionPlot`, then a `ParticlePhasePlot`. This object can be
     modified by its own set of  helper functions defined in PhasePlot.
 
     Parameters
@@ -391,7 +391,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     """
 
     direction = 3
-    # try potential axes for a AxisAlignedParticlePlot:
+    # try potential axes for a ParticleProjectionPlot:
     for axis in [0, 1, 2]:
         xax = ds.coordinates.x_axis[axis]
         yax = ds.coordinates.y_axis[axis]
@@ -403,9 +403,9 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
             break
 
     if direction < 3:
-        # Make an AxisAlignedSlicePlot
-        return AxisAlignedParticlePlot(ds, direction, z_fields, color,
-                                       *args, **kwargs)
+        # Make a ParticleProjectionPlot
+        return ParticleProjectionPlot(ds, direction, z_fields, color,
+                                      *args, **kwargs)
 
     # Does not correspond to any valid PlotWindow-style plot,
     # use ParticlePhasePlot instead

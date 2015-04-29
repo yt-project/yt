@@ -36,7 +36,7 @@ Particle Plots
 .. autosummary::
    :toctree: generated/
 
-   ~yt.visualization.particle_plots.AxisAlignedParticlePlot
+   ~yt.visualization.particle_plots.ParticleProjectionPlot
    ~yt.visualization.particle_plots.ParticlePhasePlot
    ~yt.visualization.particle_plots.ParticlePlot
 

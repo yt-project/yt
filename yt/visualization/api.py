@@ -20,7 +20,7 @@ from .color_maps import \
     make_colormap
 
 from .particle_plots import \
-    AxisAlignedParticlePlot, \
+    ParticleProjectionPlot, \
     ParticlePhasePlot, \
     ParticlePlot
 
