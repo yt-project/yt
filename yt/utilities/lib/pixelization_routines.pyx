@@ -72,6 +72,24 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
     my_array = np.zeros((rows, cols), "float64")
     xiter[0] = yiter[0] = 0
     xiterv[0] = yiterv[0] = 0.0
+    # Here's a basic outline of what we're going to do here.  The xiter and
+    # yiter variables govern whether or not we should check periodicity -- are
+    # we both close enough to the edge that it would be important *and* are we
+    # periodic?
+    #
+    # The other variables are all either pixel positions or data positions.
+    # Pixel positions will vary regularly from the left edge of the window to
+    # the right edge of the window; px_dx and px_dy are the dx (cell width, not
+    # half-width).  ipx_dx and ipx_dy are the inverse, for quick math.
+    #
+    # The values in xsp, dxsp, x_min and their y counterparts, are the
+    # data-space coordinates, and are related to the data fed in.  We make some
+    # modifications for periodicity.
+    #
+    # Inside the finest loop, we compute the "left column" (lc) and "lower row"
+    # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
+    # depositing into them the data value.  Overlap computes the relative
+    # overlap of a data value with a pixel.
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
