@@ -1587,8 +1587,8 @@ class StreamUnstructuredMesh(UnstructuredMesh):
     _index_offset = 0
 
     def __init__(self, *args, **kwargs):
-        super(StreamUnstructuredMesh, self).__init__(*args, **kwargs)
         self._connectivity_length = self.connectivity_indices.shape[1]
+        super(StreamUnstructuredMesh, self).__init__(*args, **kwargs)
 
 
 class StreamUnstructuredIndex(UnstructuredIndex):
@@ -1602,7 +1602,7 @@ class StreamUnstructuredIndex(UnstructuredIndex):
         connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
         self.meshes = [StreamUnstructuredMesh(
           i, self.index_filename, c1, c2, self)
-          for i, (c1, c2) in enumerate(zip(coords, connec))]
+          for i, (c1, c2) in enumerate(zip(connec, coords))]
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1614,7 +1614,7 @@ class StreamUnstructuredIndex(UnstructuredIndex):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamUnstructuredMeshDataset(StreamDataset):
-    _index_class = StreamUnstructuredMesh
+    _index_class = StreamUnstructuredIndex
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
@@ -1680,6 +1680,8 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
+    data = ensure_list(data)
+    connectivity = ensure_list(connectivity)
     if bbox is None:
         bbox = np.array([ [coordinates[:,i].min(),
                            coordinates[:,i].max()]
@@ -1688,10 +1690,16 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
-    field_units, data = unitify_data(data)
+    field_units = {}
+    new_data = []
+    particle_types = {}
+    for d in data:
+        _f_unit, _data = unitify_data(d)
+        field_units.update(_f_unit)
+        new_data.append(_data)
+        particle_types.update(set_particle_types(d))
+    data = new_data
     sfh = StreamDictFieldHandler()
-    
-    particle_types = set_particle_types(data)
     
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates,
