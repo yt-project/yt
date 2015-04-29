@@ -1,5 +1,5 @@
 """
-OWLS frontend tests using the snapshot_033
+OWLS frontend tests using the snapshot_033 dataset
 
 
 
