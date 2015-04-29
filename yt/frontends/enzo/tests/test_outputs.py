@@ -105,3 +105,7 @@ def test_nuclei_density_fields():
     yield assert_array_equal, ad["He_nuclei_density"], \
       (ad["He_number_density"] + ad["He_p1_number_density"] +
        ad["He_p2_number_density"])
+
+@requires_file(enzotiny)
+def test_EnzoDataset():
+    assert isinstance(data_dir_load(wt), EnzoDataset)

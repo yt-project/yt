@@ -20,6 +20,7 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
     data_dir_load
+from yt.frontends.owls_subfind.api import OWLSSubfindDataset
 
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_mass")
@@ -43,3 +44,7 @@ def test_fields_g1():
     yield assert_equal, str(ds), os.path.basename(g1)
     for field in _fields:
         yield FieldValuesTest(g1, field, particle_type=True)
+
+@requires_file(g1)
+def test_OWLSSubfindDataset():
+    assert isinstance(data_dir_load(wt), OWLSSubfindDataset)
