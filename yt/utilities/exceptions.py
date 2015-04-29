@@ -503,3 +503,10 @@ class YTPlotCallbackError(Exception):
     def __str__(self):
         msg = '%s callback failed with the following error: %s'
         return msg % (self.callback, self.error)
+
+class YTPixelizeError(YTException):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
