@@ -35,7 +35,8 @@ from .profiles import \
     create_profile, \
     Profile1D, \
     Profile2D, \
-    Profile3D
+    Profile3D, \
+    ParticleProfile
 
 from .time_series import \
     DatasetSeries, \

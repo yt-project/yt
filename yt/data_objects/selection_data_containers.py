@@ -331,7 +331,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
     This data object in particular can be somewhat expensive to create.
     It's also important to note that unlike the other 2D data objects, this
-    oject provides px, py, pz, as some cells may have a height from the
+    object provides px, py, pz, as some cells may have a height from the
     plane.
 
     Examples

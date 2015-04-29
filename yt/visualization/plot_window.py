@@ -40,6 +40,8 @@ from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.time_series import \
     DatasetSeries
+from yt.data_objects.image_array import \
+    ImageArray
 from yt.extern.six.moves import \
     StringIO
 from yt.extern.six import string_types
@@ -185,7 +187,7 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or :class:`yt.data_objects.data_containers.YTSliceBase`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProjBase` or :class:`yt.data_objects.selection_data_containers.YTSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -662,6 +664,7 @@ class PWViewerMPL(PlotWindow):
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
+        self._splat_color = kwargs.pop("splat_color", None)
         PlotWindow.__init__(self, *args, **kwargs)
 
     def _setup_origin(self):
@@ -803,8 +806,25 @@ class PWViewerMPL(PlotWindow):
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
+            # This is for splatting particle positions with a single
+            # color instead of a colormap
+            if self._splat_color is not None:
+                # make image a rgba array, using the splat color
+                greyscale_image = self.frb[f]
+                ia = np.zeros((greyscale_image.shape[0],
+                               greyscale_image.shape[1],
+                               4))
+                ia[:, :, 3] = 0.0  # set alpha to 0.0
+                locs = greyscale_image > 0.0
+                to_rgba = matplotlib.colors.colorConverter.to_rgba
+                color_tuple = to_rgba(self._splat_color)
+                ia[locs] = color_tuple
+                ia = ImageArray(ia)
+            else:
+                ia = image
+
             self.plots[f] = WindowPlotMPL(
-                image, self._field_transform[f].name,
+                ia, self._field_transform[f].name,
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
@@ -965,6 +985,13 @@ class PWViewerMPL(PlotWindow):
                 ignored += ['VelocityCallback','MagFieldCallback',
                             'QuiverCallback','CuttingQuiverCallback',
                             'StreamlineCallback']
+            if self._plot_type == 'Particle':
+                ignored += ['HopCirclesCallback','HopParticleCallback',
+                            'ParticleCallback','ClumpContourCallback',
+                            'GridBoundaryCallback', 'VelocityCallback',
+                            'MagFieldCallback', 'QuiverCallback',
+                            'CuttingQuiverCallback', 'StreamlineCallback',
+                            'ContourCallback', ]
             if key in ignored:
                 continue
             cbname = callback_registry[key]._type_name
@@ -984,7 +1011,6 @@ class PWViewerMPL(PlotWindow):
         else:
             del self._callbacks[index]
         self.setup_callbacks()
-        
 
     def run_callbacks(self):
         for f in self.fields:
@@ -1125,7 +1151,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
 
     Given a ds object, an axis to slice along, and a field name
-    string, this will return a PWViewrMPL object containing
+    string, this will return a PWViewerMPL object containing
     the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1252,7 +1278,7 @@ class ProjectionPlot(PWViewerMPL):
     r"""Creates a projection plot from a dataset
 
     Given a ds object, an axis to project along, and a field name
-    string, this will return a PWViewrMPL object containing
+    string, this will return a PWViewerMPL object containing
     the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1414,7 +1440,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     r"""Creates an off axis slice plot from a dataset
 
     Given a ds object, a normal vector defining a slicing plane, and
-    a field name string, this will return a PWViewrMPL object
+    a field name string, this will return a PWViewerMPL object
     containing the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1533,7 +1559,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     r"""Creates an off axis projection plot from a dataset
 
     Given a ds object, a normal vector to project along, and
-    a field name string, this will return a PWViewrMPL object
+    a field name string, this will return a PWViewerMPL object
     containing the plot.
 
     The plot can be updated using one of the many helper functions
@@ -1643,6 +1669,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     def _recreate_frb(self):
         super(OffAxisProjectionPlot, self)._recreate_frb()
+
 
 _metadata_template = """
 %(ds)s<br>
