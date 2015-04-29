@@ -108,4 +108,4 @@ def test_nuclei_density_fields():
 
 @requires_file(enzotiny)
 def test_EnzoDataset():
-    assert isinstance(data_dir_load(wt), EnzoDataset)
+    assert isinstance(data_dir_load(enzotiny), EnzoDataset)

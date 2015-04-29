@@ -47,4 +47,4 @@ def test_fields_g1():
 
 @requires_file(g1)
 def test_OWLSSubfindDataset():
-    assert isinstance(data_dir_load(wt), OWLSSubfindDataset)
+    assert isinstance(data_dir_load(g1), OWLSSubfindDataset)
