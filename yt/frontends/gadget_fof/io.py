@@ -163,9 +163,9 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
                 fields.append((ptype, "particle_identifier"))
-                # my_fields, my_offset_fields = \
-                #   subfind_field_list(f[ptype], ptype, data_file.total_particles)
-                # fields.extend(my_fields)
+                my_fields, my_offset_fields = \
+                  subfind_field_list(f[ptype], ptype, data_file.total_particles)
+                fields.extend(my_fields)
                 # self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
@@ -173,10 +173,7 @@ def subfind_field_list(fh, ptype, pcount):
     fields = []
     offset_fields = []
     for field in fh.keys():
-        if "PartType" in field:
-            # These are halo member particles
-            continue
-        elif isinstance(fh[field], h5py.Group):
+        if isinstance(fh[field], h5py.Group):
             my_fields, my_offset_fields = \
               subfind_field_list(fh[field], ptype, pcount)
             fields.extend(my_fields)
@@ -190,19 +187,19 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
-            elif ptype == "SUBFIND" and \
-              not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
-                # These are actually FOF fields, but they were written after 
-                # a load balancing step moved halos around and thus they do not
-                # correspond to the halos stored in the FOF group.
-                my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
-                fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
-                if my_div > 1:
-                    for i in range(my_div):
-                        fields.append(("FOF", "%s_%d" % (fname, i)))
-                else:
-                    fields.append(("FOF", fname))
-                offset_fields.append(fname)
+            # elif ptype == "SUBFIND" and \
+            #   not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
+            #     # These are actually FOF fields, but they were written after 
+            #     # a load balancing step moved halos around and thus they do not
+            #     # correspond to the halos stored in the FOF group.
+            #     my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
+            #     fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
+            #     if my_div > 1:
+            #         for i in range(my_div):
+            #             fields.append(("FOF", "%s_%d" % (fname, i)))
+            #     else:
+            #         fields.append(("FOF", fname))
+            #     offset_fields.append(fname)
             else:
                 mylog.warn("Cannot add field (%s, %s) with size %d." % \
                            (ptype, fh[field].name, fh[field].size))
