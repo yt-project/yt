@@ -21,20 +21,20 @@ from yt.units.yt_array import \
     YTArray
 
 m_units = "code_mass"
-mdot_units = "code_mass / code_time"
-p_units = "Mpccm/h"
-v_units = "1e5 * cmcm / s"
+p_units = "code_length"
+v_units = "code_velocity"
 
 class GadgetFOFFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )
 
     known_particle_fields = (
-        ("Pos_0", (p_units, ["particle_position_x"], None)),
-        ("Pos_1", (p_units, ["particle_position_y"], None)),
-        ("Pos_2", (p_units, ["particle_position_z"], None)),
-        ("Vel_0", (v_units, ["particle_velocity_x"], None)),
-        ("Vel_1", (v_units, ["particle_velocity_y"], None)),
-        ("Vel_2", (v_units, ["particle_velocity_z"], None)),
-        ("Mass", (m_units, ["particle_mass"], None)),
+        ("GroupPos_0", (p_units, ["particle_position_x"], None)),
+        ("GroupPos_1", (p_units, ["particle_position_y"], None)),
+        ("GroupPos_2", (p_units, ["particle_position_z"], None)),
+        ("GroupVel_0", (v_units, ["particle_velocity_x"], None)),
+        ("GroupVel_1", (v_units, ["particle_velocity_y"], None)),
+        ("GroupVel_2", (v_units, ["particle_velocity_z"], None)),
+        ("GroupMass",  (m_units, ["particle_mass"], None)),
+        ("GroupLen",   ("",      ["particle_number"], None)),
 )
