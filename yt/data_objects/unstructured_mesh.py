@@ -152,6 +152,18 @@ class UnstructuredMesh(YTSelectionContainer):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
 
+    def _get_selector_mask(self, selector):
+        if hash(selector) == self._last_selector_id:
+            mask = self._last_mask
+        else:
+            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
+            self._last_selector_id = hash(selector)
+            if mask is None:
+                self._last_count = 0
+            else:
+                self._last_count = mask.sum()
+        return mask
+
 class SemiStructuredMesh(UnstructuredMesh):
     _connectivity_length = 8
     _type_name = 'semi_structured_mesh'
@@ -189,16 +201,4 @@ class SemiStructuredMesh(UnstructuredMesh):
         if mask is None: return np.empty(0, dtype='float64')
         dt, t = dobj.selector.get_dt_mesh(self, mask.sum(), self._index_offset)
         return dt, t
-
-    def _get_selector_mask(self, selector):
-        if hash(selector) == self._last_selector_id:
-            mask = self._last_mask
-        else:
-            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
-            self._last_selector_id = hash(selector)
-            if mask is None:
-                self._last_count = 0
-            else:
-                self._last_count = mask.sum()
-        return mask
 
