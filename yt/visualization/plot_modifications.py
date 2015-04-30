@@ -1431,8 +1431,9 @@ class ParticleCallback(PlotCallback):
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
-            self.width = np.float64(plot.data.ds.quan(self.width[0], self.width[1]))
-        # we construct a recantangular prism
+            w = plot.data.ds.quan(self.width[0], self.width[1]).in_units("code_length")
+            self.width = np.float64(w)
+        # we construct a rectangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
