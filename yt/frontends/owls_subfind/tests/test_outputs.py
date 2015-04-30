@@ -15,7 +15,8 @@ OWLSSubfind frontend tests using owls_fof_halos datasets
 
 import os.path
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \

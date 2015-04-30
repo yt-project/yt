@@ -15,12 +15,13 @@ Rockstar frontend tests using rockstar_halos dataset
 
 import os.path
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
     data_dir_load
-from yt.frontends.owls_subfind.api import RockstarDataset
+from yt.frontends.rockstar.api import RockstarDataset
 
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_mass")
