@@ -1434,7 +1434,7 @@ class ParticleCallback(PlotCallback):
             w = plot.data.ds.quan(self.width[0], self.width[1]).in_units("code_length")
             self.width = np.float64(w)
         elif isinstance(self.width, YTQuantity):
-            self.width = np.float64(self.width.in_units("code_length"))
+            self.width = np.float64(plot.data.ds.quan(self.width).in_units("code_length"))
         # we construct a rectangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
