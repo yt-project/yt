@@ -166,7 +166,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 my_fields, my_offset_fields = \
                   subfind_field_list(f[ptype], ptype, data_file.total_particles)
                 fields.extend(my_fields)
-                # self.offset_fields = self.offset_fields.union(set(my_offset_fields))
+                self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
@@ -187,6 +187,8 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
+            ### Leave this block of code in case we need to do this.
+            ### This will have to wait until I get a dataset with subhalos.
             # elif ptype == "SUBFIND" and \
             #   not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
             #     # These are actually FOF fields, but they were written after 
