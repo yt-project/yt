@@ -1587,8 +1587,8 @@ class StreamUnstructuredMesh(UnstructuredMesh):
     _index_offset = 0
 
     def __init__(self, *args, **kwargs):
-        self._connectivity_length = self.connectivity_indices.shape[1]
         super(StreamUnstructuredMesh, self).__init__(*args, **kwargs)
+        self._connectivity_length = self.connectivity_indices.shape[1]
 
 
 class StreamUnstructuredIndex(UnstructuredIndex):
@@ -1691,19 +1691,16 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
     field_units = {}
-    new_data = []
     particle_types = {}
-    for d in data:
-        _f_unit, _data = unitify_data(d)
-        field_units.update(_f_unit)
-        new_data.append(_data)
-        particle_types.update(set_particle_types(d))
-    data = new_data
     sfh = StreamDictFieldHandler()
     
     sfh.update({'connectivity': connectivity,
-                'coordinates': coordinates,
-                0: data})
+                'coordinates': coordinates})
+    for i, d in enumerate(data):
+        _f_unit, _data = unitify_data(d)
+        field_units.update(_f_unit)
+        sfh[i] = _data
+        particle_types.update(set_particle_types(d))
     # Simple check for axis length correctness
     if 0 and len(data) > 0:
         fn = list(sorted(data))[0]

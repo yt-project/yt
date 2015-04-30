@@ -46,7 +46,10 @@ class UnstructuredMesh(YTSelectionContainer):
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
         if connectivity_indices.shape[1] != self._connectivity_length:
-            raise RuntimeError
+            if self._connectivity_length == -1:
+                self._connectivity_length = connectivity_indices.shape[1]
+            else:
+                raise RuntimeError
         self.connectivity_coords = connectivity_coords
         self.ds = index.dataset
         self._index = index
@@ -90,8 +93,14 @@ class UnstructuredMesh(YTSelectionContainer):
     def _generate_container_field(self, field):
         raise NotImplementedError
 
-    def select_fcoords(self, dobj):
-        raise NotImplementedError
+    def select_fcoords(self, dobj = None):
+        # This computes centroids!
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: return np.empty((0,3), dtype='float64')
+        centers = fill_fcoords(self.connectivity_coords,
+                               self.connectivity_indices,
+                               self._index_offset)
+        return centers[mask, :]
 
     def select_fwidth(self, dobj):
         raise NotImplementedError
@@ -160,14 +169,6 @@ class SemiStructuredMesh(UnstructuredMesh):
             return self._current_chunk.fwidth[:,1]
         elif field == "dz":
             return self._current_chunk.fwidth[:,2]
-
-    def select_fcoords(self, dobj = None):
-        mask = self._get_selector_mask(dobj.selector)
-        if mask is None: return np.empty((0,3), dtype='float64')
-        centers = fill_fcoords(self.connectivity_coords,
-                               self.connectivity_indices,
-                               self._index_offset)
-        return centers[mask, :]
 
     def select_fwidth(self, dobj):
         mask = self._get_selector_mask(dobj.selector)

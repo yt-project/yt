@@ -255,3 +255,10 @@ class IOHandlerStreamOctree(BaseIOHandler):
                         subset.domain_id - subset._domain_offset][field]
                 subset.fill(field_vals, rv, selector, ind)
         return rv
+
+class IOHandlerStreamUnstructured(BaseIOHandler):
+    _dataset_type = "stream_unstructured"
+
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(IOHandlerStreamUnstructured, self).__init__(ds)
