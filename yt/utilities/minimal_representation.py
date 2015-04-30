@@ -18,21 +18,43 @@ import abc
 import json
 import sys
 import h5py as h5
+import os
 from uuid import uuid4
 from yt.extern.six.moves import urllib
 from yt.extern.six.moves import cPickle as pickle
 from tempfile import TemporaryFile
 from yt.config import ytcfg
-from yt.funcs import *
-from yt.extern.six import add_metaclass
-from yt.utilities.exceptions import *
+from yt.funcs import \
+    iterable, get_pbar, compare_dicts
+from yt.extern.six import add_metaclass, string_types, b
+from yt.utilities.exceptions import \
+    YTHubRegisterError
+from yt.utilities.logger import ytLogger as mylog
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-from .poster.streaminghttp import register_openers
-from .poster.encode import multipart_encode
-register_openers()
+if sys.version_info < (3, 0):
+    from .poster.streaminghttp import register_openers
+    from .poster.encode import multipart_encode
+    register_openers()
+else:
+    # We don't yet have a solution for this, but it won't show up very often
+    # anyway.
+    pass
+
+
+def _sanitize_list(flist):
+    temp = []
+    for item in flist:
+        if isinstance(item, string_types):
+            temp.append(b(item))
+        elif isinstance(item, tuple) and \
+                all(isinstance(i, string_types) for i in item):
+            temp.append(tuple(_sanitize_list(list(item))))
+        else:
+            temp.append(item)
+    return temp
 
 
 def _serialize_to_h5(g, cdict):
@@ -44,6 +66,11 @@ def _serialize_to_h5(g, cdict):
             _serialize_to_h5(g.create_group(item), cdict[item])
         elif cdict[item] is None:
             g[item] = "None"
+        elif isinstance(cdict[item], list):
+            g[item] = _sanitize_list(cdict[item])
+        elif isinstance(cdict[item], tuple) and \
+                all(isinstance(i, string_types) for i in cdict[item]):
+            g[item] = tuple(_sanitize_list(cdict[item]))
         else:
             g[item] = cdict[item]
 
@@ -70,14 +97,6 @@ def _deserialize_from_h5(g, ds):
                 result[item] = g[item][()]  # fallback to scalar
     return result
 
-if sys.version_info < (3, 0):
-    from .poster.streaminghttp import register_openers
-    from .poster.encode import multipart_encode
-    register_openers()
-else:
-    # We don't yet have a solution for this, but it won't show up very often
-    # anyway.
-    pass
 
 class UploaderBar(object):
     pbar = None
@@ -368,4 +387,3 @@ class ImageCollection(object):
     def add_image(self, fn, descr):
         self.image_metadata.append(descr)
         self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
-
