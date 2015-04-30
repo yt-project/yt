@@ -262,3 +262,25 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
         super(IOHandlerStreamUnstructured, self).__init__(ds)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        chunk = chunks[0]
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype="float64")
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ind = 0
+            ftype, fname = field
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self.fields[g.mesh_id].get(field, None)
+                    if ds is None:
+                        ds = self.fields[g.mesh_id][fname]
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv
+
