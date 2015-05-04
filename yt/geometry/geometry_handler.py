@@ -402,6 +402,20 @@ class YTDataChunk(object):
             ind += gt.size
         return cdt
 
+    @cached_property
+    def fcoords_vertex(self):
+        ci = np.empty((self.data_size, 8, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.ds.unit_registry)
+        if self.data_size == 0: return ci
+        ind = 0
+        for obj in self.objs:
+            c = obj.select_fcoords_vertex(self.dobj)
+            if c.shape[0] == 0: continue
+            ci[ind:ind+c.shape[0], :, :] = c
+            ind += c.shape[0]
+        return ci
+
 class ChunkDataCache(object):
     def __init__(self, base_iter, preload_fields, geometry_handler,
                  max_length = 256):

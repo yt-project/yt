@@ -258,6 +258,7 @@ class IOHandlerStreamOctree(BaseIOHandler):
 
 class IOHandlerStreamUnstructured(BaseIOHandler):
     _dataset_type = "stream_unstructured"
+    _node_types = ("diffused", "convected")
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -269,7 +270,10 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = np.empty(size, dtype="float64")
+            if fname in self._node_types:
+                rv[field] = np.empty((size, 8), dtype="float64")
+            else:
+                rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)

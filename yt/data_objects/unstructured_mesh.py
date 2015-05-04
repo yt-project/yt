@@ -164,6 +164,13 @@ class UnstructuredMesh(YTSelectionContainer):
                 self._last_count = mask.sum()
         return mask
 
+    def select_fcoords_vertex(self, dobj = None):
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: return np.empty((0,self._connectivity_length,3), dtype='float64')
+        vertices = self.connectivity_coords[
+                self.connectivity_indices - 1]
+        return vertices[mask, :, :]
+
 class SemiStructuredMesh(UnstructuredMesh):
     _connectivity_length = 8
     _type_name = 'semi_structured_mesh'
