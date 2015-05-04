@@ -23,4 +23,6 @@ from yt.frontends.gadget.api import GadgetHDF5Dataset
 isothermal = "IsothermalCollapse/snap_505.hdf5"
 @requires_file(isothermal)
 def test_GadgetDataset():
-    assert isinstance(data_dir_load(isothermal), GadgetHDF5Dataset)
+    kwargs = dict(bounding_box=[[-3,3], [-3,3], [-3,3]])
+    assert isinstance(data_dir_load(isothermal, kwargs=kwargs),
+                      GadgetHDF5Dataset)
