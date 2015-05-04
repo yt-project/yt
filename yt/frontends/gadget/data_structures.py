@@ -337,7 +337,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Header']
-        veto_groups = ['FOF']
+        veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
         try:
             fh = h5py.File(args[0], mode='r')

@@ -1,5 +1,5 @@
 """
-Data structures for OWLSSubfind frontend.
+Data structures for GadgetFOF frontend.
 
 
 
@@ -25,7 +25,7 @@ import time
 import os
 
 from .fields import \
-    OWLSSubfindFieldInfo
+    GadgetFOFFieldInfo
 
 from yt.utilities.cosmology import \
     Cosmology
@@ -34,7 +34,7 @@ from yt.utilities.definitions import \
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
-     mylog
+    mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -47,9 +47,9 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-class OWLSSubfindParticleIndex(ParticleIndex):
+class GadgetFOFParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):
-        super(OWLSSubfindParticleIndex, self).__init__(ds, dataset_type)
+        super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
@@ -68,7 +68,7 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         # After the FOF  is performed, a load-balancing step redistributes halos 
         # and then writes more fields.  Here, for each file, we create a list of 
         # files which contain the rest of the redistributed particles.
-        ifof = np.array([data_file.total_particles["FOF"]
+        ifof = np.array([data_file.total_particles["Group"]
                          for data_file in self.data_files])
         isub = np.array([data_file.total_offset
                          for data_file in self.data_files])
@@ -98,36 +98,44 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         ds.particle_types_raw = ds.particle_types
             
     def _setup_geometry(self):
-        super(OWLSSubfindParticleIndex, self)._setup_geometry()
+        super(GadgetFOFParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
     
-class OWLSSubfindHDF5File(ParticleFile):
+class GadgetFOFHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
+        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     
-class OWLSSubfindDataset(Dataset):
-    _index_class = OWLSSubfindParticleIndex
-    _file_class = OWLSSubfindHDF5File
-    _field_info_class = OWLSSubfindFieldInfo
+class GadgetFOFDataset(Dataset):
+    _index_class = GadgetFOFParticleIndex
+    _file_class = GadgetFOFHDF5File
+    _field_info_class = GadgetFOFFieldInfo
     _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+    def __init__(self, filename, dataset_type="gadget_fof_hdf5",
+                 n_ref=16, over_refine_factor=1,
+                 unit_base=None, units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
+        if unit_base is not None and "UnitLength_in_cm" in unit_base:
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
+        self._unit_base = unit_base
+        if units_override is not None:
+            raise RuntimeError("units_override is not supported for GadgetFOFDataset. "+
+                               "Use unit_base instead.")
+        super(GadgetFOFDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         hvals = {}
         hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
+        hvals["NumFiles"] = hvals["NumFiles"]
 
         self.dimensionality = 3
         self.refine_by = 2
@@ -135,7 +143,6 @@ class OWLSSubfindDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"] * sec_conversion["Gyr"], "s")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor
@@ -146,6 +153,12 @@ class OWLSSubfindDataset(Dataset):
         self.omega_lambda = hvals["OmegaLambda"]
         self.omega_matter = hvals["Omega0"]
         self.hubble_constant = hvals["HubbleParam"]
+
+        cosmology = Cosmology(hubble_constant=self.hubble_constant,
+                              omega_matter=self.omega_matter,
+                              omega_lambda=self.omega_lambda)
+        self.current_time = cosmology.t_from_z(self.current_redshift)
+
         self.parameters = hvals
         prefix = os.path.abspath(
             os.path.join(os.path.dirname(self.parameter_filename), 
@@ -156,13 +169,9 @@ class OWLSSubfindDataset(Dataset):
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         if self.file_count == 0:
             raise YTException(message="No data files found.", ds=self)
-        self.particle_types = ("FOF", "SUBFIND")
-        self.particle_types_raw = ("FOF", "SUBFIND")
+        self.particle_types = ("Group", "Subhalo")
+        self.particle_types_raw = ("Group", "Subhalo")
         
-        # To avoid having to open files twice
-        self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
         handle.close()
 
     def _set_code_unit_attributes(self):
@@ -173,7 +182,7 @@ class OWLSSubfindDataset(Dataset):
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
-
+        
         if "length" in unit_base:
             length_unit = unit_base["length"]
         elif "UnitLength_in_cm" in unit_base:
@@ -185,13 +194,16 @@ class OWLSSubfindDataset(Dataset):
             raise RuntimeError
         length_unit = _fix_unit_ordering(length_unit)
         self.length_unit = self.quan(length_unit[0], length_unit[1])
-
+        
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
             velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], "cm/s")
         else:
-            velocity_unit = (1e5, "cm/s")
+            if self.cosmological_simulation == 0:
+                velocity_unit = (1e5, "cm/s")
+            else:
+                velocity_unit = (1e5, "cmcm/s")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
 
@@ -220,8 +232,8 @@ class OWLSSubfindDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
-        veto_groups = []
+        need_groups = ['Group', 'Header', 'Subhalo']
+        veto_groups = ['FOF']
         valid = True
         try:
             fh = h5py.File(args[0], mode='r')
