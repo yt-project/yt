@@ -276,16 +276,16 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
     return AnswerTestingTest.result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
+    args = args or ()
+    kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
         if cls is None:
-            ds = load(ds_fn)
+            ds = load(ds_fn, *args, **kwargs)
         else:
-            args = args or ()
-            kwargs = kwargs or {}
             ds = cls(ds_fn, *args, **kwargs)
         ds.index
         return ds
