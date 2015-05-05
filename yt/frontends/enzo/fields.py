@@ -203,12 +203,12 @@ class EnzoFieldInfo(FieldInfoContainer):
                 units="code_velocity**2")
             # Subtract off B-field energy
             def _sub_b(field, data):
-                ret = data[te_name] - 0.5*data["x-velocity"]**2.0
+                ret = data[te_name] - 0.5*data["velocity_x"]**2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5*data["y-velocity"]**2.0
+                    ret -= 0.5*data["velocity_y"]**2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5*data["z-velocity"]**2.0
-                ret -= data["MagneticEnergy"]/data["Density"]
+                    ret -= 0.5*data["velocity_z"]**2.0
+                ret -= data["magnetic_energy"]/data["density"]
                 return ret
             self.add_field(
                 ("gas", "thermal_energy"),
