@@ -77,3 +77,23 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         spl = _scipy.signal.convolve(buff, g2d)
 
         return spl[hnbeam:npm + hnbeam, hnbeam:nqm + hnbeam]
+
+
+class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
+
+    """
+    This filter add white noise to
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.
+    """
+    _filter_name = 'whit_noise'
+
+    def __init__(self, bg_lvl=None):
+        self.bg_lvl = bg_lvl
+
+    def apply(self, buff):
+        if self.bg_lvl is None:
+            amp = np.percentile(buff, 10)
+        else:
+            amp = self.bg_lvl
+        npm, nqm = np.shape(buff)
+        return buff + np.random.randn(npm, nqm) * amp
