@@ -182,7 +182,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field((ptype, "particle_ones"),
                        function = particle_ones,
                        particle_type = True,
-                       units = "")
+                       units = "",
+                       display_name = r"Particle Count")
 
     def particle_mesh_ids(field, data):
         pos = data[ptype, coord_name]
