@@ -126,7 +126,7 @@ class FieldInfoContainer(dict):
         else:
             sml_name = None
         new_aliases = []
-        for ptype2, alias_name in self.keys():
+        for ptype2, alias_name in list(self):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
