@@ -128,7 +128,7 @@ class AnswerTesting(Plugin):
                 self.compare_name = "%s/%s/%s" % \
                     (os.path.realpath(options.output_dir), self.compare_name,
                      self.compare_name)
-            if self.store_name is not None:
+            if self.store_name is not None and options.store_results:
                 name_dir_path = "%s/%s" % \
                     (os.path.realpath(options.output_dir),
                     self.store_name)
@@ -608,13 +608,13 @@ class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     def __init__(self, ds_fn, finder):
         super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
         self.finder = finder
-    
+
     def run(self):
         from yt.analysis_modules.halo_analysis.api import HaloCatalog
         from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
         hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
         hc.create()
-        
+
         hmf = HaloMassFcn(halos_ds=hc.halos_ds)
         result = np.empty((2, hmf.masses_sim.size))
         result[0] = hmf.masses_sim.d
@@ -634,7 +634,7 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
     def __init__(self, ds_fn, fitting_function):
         super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
         self.fitting_function = fitting_function
-    
+
     def run(self):
         from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
         hmf = HaloMassFcn(simulation_ds=self.ds,
@@ -763,7 +763,7 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return ffalse
     else:
         return ftrue
-        
+
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
