@@ -213,7 +213,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -240,7 +240,7 @@ class ImagePlotContainer(object):
         """
         log = {}
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -276,7 +276,7 @@ class ImagePlotContainer(object):
         """
 
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -311,7 +311,7 @@ class ImagePlotContainer(object):
 
         """
         if field is 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
@@ -347,7 +347,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -373,7 +373,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
