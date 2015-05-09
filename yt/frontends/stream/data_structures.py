@@ -712,6 +712,28 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     
     return sds
 
+def load_frb(frb, fields=None, nprocs=1):
+    nx, ny = frb.buff_size
+    data = {}
+    if fields is None:
+        fields = list(frb.keys())
+    for field in fields:
+        arr = frb[field].d
+        data[field] = (arr.reshape(nx,ny,1), str(arr.units))
+    bounds = [b.in_units("code_length").v for b in frb.bounds]
+    bbox = np.array([[bounds[0],bounds[1]],[bounds[2],bounds[3]],[0.,1.]])
+    return load_uniform_grid(frb, [nx,ny,1], 
+                             length_unit=frb.ds.length_unit,
+                             bbox=bbox,
+                             sim_time=frb.ds.current_time.in_units("s").v,
+                             mass_unit=frb.ds.mass_unit,
+                             time_unit=frb.ds.time_unit,
+                             velocity_unit=frb.ds.velocity_unit,
+                             magnetic_unit=frb.ds.magnetic_unit,
+                             periodicity=(False,False,False),
+                             geometry=frb.ds.geometry,
+                             nprocs=nprocs)
+
 def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
