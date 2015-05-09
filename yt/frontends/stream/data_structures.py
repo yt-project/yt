@@ -709,17 +709,40 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
             pdata = pdata_ftype
         # This will update the stream handler too
         assign_particle_data(sds, pdata)
-    
+
     return sds
 
 def load_frb(frb, fields=None, nprocs=1):
+    r"""Load a :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    instance as a dataset. Unit information and other parameters (e.g., geometry,
+    current_time, etc.) will be taken from the parent dataset. 
+
+    Parameters
+    ----------
+    frb : FixedResolutionBuffer
+        The FRB to be loaded.
+    fields : list of strings, optional
+        The fields to be extracted from the FRB. If "None", the keys of the
+        FRB will be used. 
+    nprocs: integer, optional
+        If greater than 1, will create this number of subarrays out of data
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+    >>> slc = ds.slice(2, 0.0)
+    >>> frb = slc.to_frb((500.,"kpc"), 500)
+    >>> ds2 = yt.load_frb(frb, fields=["density","temperature"], nprocs=32)
+    """
     nx, ny = frb.buff_size
     data = {}
     if fields is None:
         fields = list(frb.keys())
     for field in fields:
         arr = frb[field]
-        data[field] = (arr.d.reshape(nx,ny,1), str(arr.units))
+        data[field] = (arr.d.T.reshape(nx,ny,1), str(arr.units))
     bounds = [b.in_units("code_length").v for b in frb.bounds]
     bbox = np.array([[bounds[0],bounds[1]],[bounds[2],bounds[3]],[0.,1.]])
     return load_uniform_grid(data, [nx,ny,1], 
