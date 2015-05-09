@@ -718,11 +718,11 @@ def load_frb(frb, fields=None, nprocs=1):
     if fields is None:
         fields = list(frb.keys())
     for field in fields:
-        arr = frb[field].d
-        data[field] = (arr.reshape(nx,ny,1), str(arr.units))
+        arr = frb[field]
+        data[field] = (arr.d.reshape(nx,ny,1), str(arr.units))
     bounds = [b.in_units("code_length").v for b in frb.bounds]
     bbox = np.array([[bounds[0],bounds[1]],[bounds[2],bounds[3]],[0.,1.]])
-    return load_uniform_grid(frb, [nx,ny,1], 
+    return load_uniform_grid(data, [nx,ny,1], 
                              length_unit=frb.ds.length_unit,
                              bbox=bbox,
                              sim_time=frb.ds.current_time.in_units("s").v,
