@@ -566,7 +566,7 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
-    class MyURLopener(urllib.FancyURLopener):
+    class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
               (url, errcode, errmsg))
