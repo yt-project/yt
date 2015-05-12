@@ -832,6 +832,7 @@ def get_lookat_matrix(eye, center, up):
 
     Returns
     -------
+    lookat_matrix : ndarray
         A new 4x4 `3D` array in homogeneous coordinates. This matrix
         moves all vectors in the same way required to move the camera
         to the origin of the coordinate system, with it pointing down
@@ -843,8 +844,8 @@ def get_lookat_matrix(eye, center, up):
     center = np.array(center)
     up = np.array(up)
 
-    f = normalize(center - eye)
-    s = normalize(np.cross(f, up))
+    f = (center - eye) / np.linalg.norm(center - eye)
+    s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
     u = np.cross(s, f)
 
     result = np.zeros ( (4, 4), dtype = 'float32', order = 'C')
@@ -862,6 +863,73 @@ def get_lookat_matrix(eye, center, up):
     result[1][3] =-np.dot(u, eye)
     result[2][3] = np.dot(f, eye)
     result[3][3] = 1.0
+    return result
+
+
+def get_translate_matrix(dx, dy, dz):
+    """
+    Given a movement amount for each coordinate, creates a translation
+    matrix that moves the vector by each amount.
+
+    Parameters
+    ----------
+    dx : scaler
+        A translation amount for the x-coordinate
+
+    dy : scaler
+        A translation amount for the y-coordinate
+
+    dz : scaler
+        A translation amount for the z-coordinate
+
+    Returns
+    -------
+    trans_matrix : ndarray
+        A new 4x4 `3D` array. Represents a translation by dx, dy
+        and dz in each coordinate respectively.
+    """
+    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+
+    result[0][0] = 1.0
+    result[1][1] = 1.0
+    result[2][2] = 1.0
+    result[3][3] = 1.0
+
+    result[0][3] = dx
+    result[1][3] = dy
+    result[2][3] = dz
+
+    return result
+
+def get_scale_matrix(dx, dy, dz):
+    """
+    Given a scaling factor for each coordinate, returns a matrix that
+    corresponds to the given scaling amounts.
+
+    Parameters
+    ----------
+    dx : scaler
+        A scaling factor for the x-coordinate.
+
+    dy : scaler
+        A scaling factor for the y-coordinate.
+
+    dz : scaler
+        A scaling factor for the z-coordinate.
+
+    Returns
+    -------
+    scale_matrix : ndarray
+        A new 4x4 `3D` array. Represents a scaling by dx, dy, and dz
+        in each coordinate respectively.
+    """
+    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+
+    result[0][0] = dx
+    result[1][1] = dy
+    result[2][2] = dz
+    result[3][3] = 1
+
     return result
 
 def get_rotation_matrix(theta, rot_vector):
