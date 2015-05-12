@@ -23,7 +23,8 @@ from yt.fields.derived_field import \
     ValidateSpatial
 
 from yt.units.yt_array import \
-    uconcatenate
+    uconcatenate, \
+    ucross
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -280,7 +281,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         pos, vel, normal, bv = get_angular_momentum_components(ptype, data, spos, svel)
         L, r_vec, v_vec = modify_reference_frame(center, normal, P=pos, V=vel)
-        return data.ds.arr(np.cross(r_vec.in_units("cm"), v_vec.in_units("cm/s")),"cm**2/s")
+        return ucross(r_vec, v_vec)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -367,7 +368,7 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     create_magnitude_field(registry, "particle_specific_angular_momentum",
-                           "cm**2/s", ftype=ptype, particle_type=True)
+                           "code_length**2/s", ftype=ptype, particle_type=True)
 
     def _particle_angular_momentum_x(field, data):
         return data[ptype, "particle_mass"] * \
@@ -397,8 +398,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-            * data[ptype, "particle_specific_angular_momentum"]
+        return np.multiply(data[ptype, "particle_mass"], 
+             data[ptype, "particle_specific_angular_momentum"].T).T
 
 
     registry.add_field((ptype, "particle_angular_momentum"),
