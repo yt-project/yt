@@ -76,6 +76,16 @@ def _field_concat(fname):
         return rv
     return _AllFields
 
+def get_angular_momentum_componants(ptype, data, spos, svel):
+    if data.has_field_parameter("normal"):
+       normal = data.get_field_parameter("normal")
+    else:
+       normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
+    vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
+    return pos, vel, normal, bv
+
 def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
@@ -118,10 +128,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              units = "g")
 
     def particle_density(field, data):
-        pos = data[ptype, coord_name]
-        mass = data[ptype, mass_name]
-        pos.convert_to_units("code_length")
-        mass.convert_to_units("code_mass")
+        pos = data[ptype, coord_name].convert_to_units("code_length")
+        mass = data[ptype, mass_name].convert_to_units("code_mass")
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
         d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
@@ -249,12 +257,11 @@ def standard_particle_fields(registry, ptype,
                              svel = "particle_velocity_%s"):
     # This function will set things up based on the scalar fields and standard
     # yt field names.
+    # data.get_field_parameter("bulk_velocity") defaults to YTArray([0,0,0] cm/s)
 
     def _particle_velocity_magnitude(field, data):
         """ M{|v|} """
         bulk_velocity = data.get_field_parameter("bulk_velocity")
-        if bulk_velocity is None:
-            bulk_velocity = np.zeros(3)
         return np.sqrt((data[ptype, svel % 'x'] - bulk_velocity[0])**2
                      + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
                      + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
@@ -270,19 +277,11 @@ def standard_particle_fields(registry, ptype,
         Calculate the angular of a particle velocity.  Returns a vector for each
         particle.
         """
-        if data.has_field_parameter("bulk_velocity"):
-            bv = data.get_field_parameter("bulk_velocity")
-        else: bv = np.zeros(3, dtype=np.float64)
-        xv = data[ptype, svel % 'x'] - bv[0]
-        yv = data[ptype, svel % 'y'] - bv[1]
-        zv = data[ptype, svel % 'z'] - bv[2]
         center = data.get_field_parameter('center')
-        coords = self.ds.arr([data[ptype, spos % d] for d in 'xyz'],
-                             dtype=np.float64, units='cm')
-        new_shape = tuple([3] + [1]*(len(coords.shape)-1))
-        r_vec = coords - np.reshape(center,new_shape)
-        v_vec = self.ds.arr([xv,yv,zv], dtype=np.float64, units='cm/s')
-        return np.cross(r_vec, v_vec, axis=0).T
+        pos, vel, normal, bv = get_angular_momentum_componants(ptype, data, spos, svel)
+        L, r_vec, v_vec = modify_reference_frame(center, normal, P=pos, V=vel)
+        return np.cross(r_vec, v_vec)
+
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
               function=_particle_specific_angular_momentum,
@@ -291,15 +290,23 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     def _particle_specific_angular_momentum_x(field, data):
-        if data.has_field_parameter("bulk_velocity"):
-            bv = data.get_field_parameter("bulk_velocity")
-        else: bv = np.zeros(3, dtype=np.float64)
+        """
+        Computes the specific angular momentum of a field in the x direction
+
+        If the dataset has the field parameter "normal", then the 
+        specific angular momentum is calculated in the x axis relative
+        to the normal vector.
+
+        Note that the orientation of the x and y axes are arbitrary if a normal
+        vector is defined.
+        """
         center = data.get_field_parameter('center')
-        y = data[ptype, spos % "y"] - center[1]
-        z = data[ptype, spos % "z"] - center[2]
-        yv = data[ptype, svel % "y"] - bv[1]
-        zv = data[ptype, svel % "z"] - bv[2]
-        return yv*z - zv*y
+        pos, vel, normal, bv = get_angular_momentum_componants(ptype, data, spos, svel)
+        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
+        pos = pos.T
+        vel = vel.T
+        y, z, yv, zv = pos[1], pos[2], vel[1], vel[2]
+        return y*zv - z*yv
 
     registry.add_field((ptype, "particle_specific_angular_momentum_x"),
               function=_particle_specific_angular_momentum_x,
@@ -308,15 +315,24 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     def _particle_specific_angular_momentum_y(field, data):
-        if data.has_field_parameter("bulk_velocity"):
-            bv = data.get_field_parameter("bulk_velocity")
-        else: bv = np.zeros(3, dtype=np.float64)
+        """
+        Computes the specific angular momentum of a field in the y direction
+
+        If the dataset has the field parameter "normal", then the 
+        specific angular momentum is calculated in the y axis relative
+        to the normal vector.
+
+        Note that the orientation of the x and y axes are arbitrary if a normal
+        vector is defined.
+        """
         center = data.get_field_parameter('center')
-        x = data[ptype, spos % "x"] - center[0]
-        z = data[ptype, spos % "z"] - center[2]
-        xv = data[ptype, svel % "x"] - bv[0]
-        zv = data[ptype, svel % "z"] - bv[2]
-        return -(xv*z - zv*x)
+        pos, vel, normal, bv = get_angular_momentum_componants(ptype, data, spos, svel)
+        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
+        pos = pos.T
+        vel = vel.T
+        x, z, xv, zv = pos[0], pos[2], vel[0], vel[2]
+        return -(x*zv - z*xv)
+
 
     registry.add_field((ptype, "particle_specific_angular_momentum_y"),
               function=_particle_specific_angular_momentum_y,
@@ -325,15 +341,24 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     def _particle_specific_angular_momentum_z(field, data):
-        if data.has_field_parameter("bulk_velocity"):
-            bv = data.get_field_parameter("bulk_velocity")
-        else: bv = np.zeros(3, dtype=np.float64)
+        """
+        Computes the specific angular momentum of a field in the z direction
+
+        If the dataset has the field parameter "normal", then the 
+        specific angular momentum is calculated in the z axis relative
+        to the normal vector.
+
+        Note that the orientation of the x and y axes are arbitrary if a normal
+        vector is defined.
+        """
         center = data.get_field_parameter('center')
-        x = data[ptype, spos % "x"] - center[0]
-        y = data[ptype, spos % "y"] - center[1]
-        xv = data[ptype, svel % "x"] - bv[0]
-        yv = data[ptype, svel % "y"] - bv[1]
-        return xv*y - yv*x
+        pos, vel, normal, bv = get_angular_momentum_componants(ptype, data, spos, svel)
+        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
+        pos = pos.T
+        vel = vel.T
+        x, y, xv, yv = pos[0], pos[1], vel[0], vel[1]
+        return x*yv - y*xv
+
 
     registry.add_field((ptype, "particle_specific_angular_momentum_z"),
               function=_particle_specific_angular_momentum_z,
@@ -347,6 +372,7 @@ def standard_particle_fields(registry, ptype,
     def _particle_angular_momentum_x(field, data):
         return data[ptype, "particle_mass"] * \
                data[ptype, "particle_specific_angular_momentum_x"]
+
     registry.add_field((ptype, "particle_angular_momentum_x"),
              function=_particle_angular_momentum_x,
              units="g*cm**2/s", particle_type=True,
@@ -355,6 +381,7 @@ def standard_particle_fields(registry, ptype,
     def _particle_angular_momentum_y(field, data):
         return data[ptype, "particle_mass"] * \
                data[ptype, "particle_specific_angular_momentum_y"]
+
     registry.add_field((ptype, "particle_angular_momentum_y"),
              function=_particle_angular_momentum_y,
              units="g*cm**2/s", particle_type=True,
@@ -363,14 +390,17 @@ def standard_particle_fields(registry, ptype,
     def _particle_angular_momentum_z(field, data):
         return data[ptype, "particle_mass"] * \
                data[ptype, "particle_specific_angular_momentum_z"]
+
     registry.add_field((ptype, "particle_angular_momentum_z"),
              function=_particle_angular_momentum_z,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return (data[ptype, "particle_mass"] *
-                data[ptype, "particle_specific_angular_momentum"].T).T
+        return data[ptype, "particle_mass"] \
+            * data[ptype, "particle_specific_angular_momentum"]
+
+
     registry.add_field((ptype, "particle_angular_momentum"),
               function=_particle_angular_momentum,
               particle_type=True,
@@ -405,9 +435,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        pos = pos.T
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
         L, pos = modify_reference_frame(center, normal, P=pos)
         return pos
 
@@ -429,9 +457,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        pos = pos.T
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
         L, pos, = modify_reference_frame(center, normal, P=pos)
         pos = pos.T
         return pos[0]
@@ -454,9 +480,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        pos = pos.T
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
         L, pos = modify_reference_frame(center, normal, P=pos)
         pos = pos.T
         return pos[1]
@@ -479,10 +503,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
-
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        pos = pos.T
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
         L, pos = modify_reference_frame(center, normal, P=pos)
         pos = pos.T
         return pos[2]
@@ -504,10 +525,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        vel = vel - np.reshape(bv, (3, 1))
-        vel = vel.T
+        vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
         L, vel = modify_reference_frame(center, normal, V=vel)
         return vel
 
@@ -529,10 +547,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        vel = vel - np.reshape(bv, (3, 1))
-        vel = vel.T
+        vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
         L, vel = modify_reference_frame(center, normal, V=vel)
         vel = vel.T
         return vel[0]
@@ -555,10 +570,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter('bulk_velocity')
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        vel = vel - np.reshape(bv, (3, 1))
-        vel = vel.T
+        vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
         L, vel = modify_reference_frame(center, normal, V=vel)
         vel = vel.T
         return vel[1]
@@ -581,10 +593,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-        bv = vel - np.reshape(bv, (3, 1))
-        vel = vel.T
+        vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
         L, vel = modify_reference_frame(center, normal, V=vel)
         vel = vel.T
         return vel[2]
@@ -621,8 +630,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter("normal")
         center = data.get_field_parameter("center")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
         return data.ds.arr(get_sph_theta(pos, normal), "")
 
@@ -651,8 +659,7 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter("normal")
         center = data.get_field_parameter("center")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
         return data.ds.arr(get_sph_phi(pos, normal), "")
 
@@ -683,10 +690,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -728,10 +733,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -858,10 +861,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
@@ -884,10 +885,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
@@ -920,10 +919,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = spos
-        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
-        vel = svel
-        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         cylz = get_cyl_z_component(vel, normal)
@@ -1043,4 +1040,5 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
                        particle_type = True,
                        units = "g/cm**3")
     return [field_name]
+
 

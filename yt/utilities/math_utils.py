@@ -301,17 +301,36 @@ def modify_reference_frame(CoM, L, P=None, V=None):
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
 
     """
-    if (L == np.array([0, 0, 1.])).all():
-        # Whew! Nothing to do!
-        if V is None:
-            return L, P
-        if P is None:
-            return L, V
-        else:
-            return L, P, V
+
     # First translate the positions to center of mass reference frame.
     if P is not None:
         P = P - CoM
+
+    if (L == np.array([0, 0, 1.])).all():
+        # Whew! No rotation to do!
+        if V is None:
+            return L, P
+        elif P is None:
+            return L, V
+        else:
+            return L, P, V
+
+    if (L == np.array([0, 0, -1.])).all():
+        # Just a simple flip of axis to do!
+        if P is not None:
+            P = -P
+        if V is not None:
+            V = -V
+
+        if V is None:
+            return L, P
+        elif P is None:
+            return L, V
+        else:
+            return L, P, V
+
+    # Normal vector is not aligned with simulation Z axis
+    # Therefore we are going to have to apply a rotation
     # Now find the angle between modified L and the x-axis.
     LL = L.copy()
     LL[2] = 0.
