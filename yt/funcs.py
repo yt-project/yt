@@ -100,6 +100,25 @@ def just_one(obj):
         return obj[0]
     return obj
 
+
+def compare_dicts(dict1, dict2):
+    if not set(dict1) <= set(dict2):
+        return False
+    for key in dict1.keys():
+        if dict1[key] is not None and dict2[key] is not None:
+            if isinstance(dict1[key], dict):
+                if compare_dicts(dict1[key], dict2[key]):
+                    continue
+                else:
+                    return False
+            try:
+                comparison = (dict1[key] == dict2[key]).all()
+            except AttributeError:
+                comparison = (dict1[key] == dict2[key])
+            if not comparison:
+                return False
+    return True
+
 # Taken from
 # http://www.goldb.org/goldblog/2008/02/06/PythonConvertSecsIntoHumanReadableTimeStringHHMMSS.aspx
 def humanize_time(secs):
@@ -460,6 +479,10 @@ class YTEmptyClass(object):
     pass
 
 def update_hg(path, skip_rebuild = False):
+    if sys.version_info >= (3,0,0):
+        print("python-hglib does not currently work with Python 3,")
+        print("so this function is currently disabled.")
+        return -1
     try:
         import hglib
     except ImportError:
@@ -496,10 +519,15 @@ def update_hg(path, skip_rebuild = False):
     print("Updated successfully.")
 
 def get_hg_version(path):
+    if sys.version_info >= (3,0,0):
+        print("python-hglib does not currently work with Python 3,")
+        print("so this function is currently disabled.")
+        return -1
     try:
         import hglib
     except ImportError:
-        print("Updating requires python-hglib to be installed.")
+        print("Updating and precise version information requires ")
+        print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
         return -1
     repo = hglib.open(path)
@@ -538,7 +566,7 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
-    class MyURLopener(urllib.FancyURLopener):
+    class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
               (url, errcode, errmsg))
@@ -578,12 +606,12 @@ def get_yt_supp():
             print("Okay, I understand.  You can check it out yourself.")
             print("This command will do it:")
             print()
-            print("$ hg clone http://hg.yt-project.org/yt-supplemental/ ", end=' ')
+            print("$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=' ')
             print("%s" % (supp_path))
             print()
             sys.exit(1)
         rv = commands.clone(uu,
-                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)

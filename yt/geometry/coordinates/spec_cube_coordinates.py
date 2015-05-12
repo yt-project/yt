@@ -22,32 +22,30 @@ from .coordinate_handler import \
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
-    def __init__(self, ds):
-        super(SpectralCubeCoordinateHandler, self).__init__(ds)
+    def __init__(self, ds, ordering = ('x', 'y', 'z')):
+        ordering = tuple("xyz"[axis] for axis in
+            (ds.lon_axis, ds.lat_axis, ds.spec_axis))
+        super(SpectralCubeCoordinateHandler, self).__init__(ds, ordering)
 
         self.default_unit_label = {}
-        if ds.lon_name == "X" and ds.lat_name == "Y":
-            names = ["x","y"]
-        else:
-            names = ["Image\ x", "Image\ y"]
+        names = {}
+        if ds.lon_name != "X" or ds.lat_name != "Y":
+            names['x'] = "Image\ x"
+            names['y'] = "Image\ y"
+            # We can just use ds.lon_axis here
             self.default_unit_label[ds.lon_axis] = "pixel"
             self.default_unit_label[ds.lat_axis] = "pixel"
-        names.append(ds.spec_name)
-        axes = [ds.lon_axis, ds.lat_axis, ds.spec_axis]
+        names['z'] = ds.spec_name
+        # Again, can use spec_axis here
         self.default_unit_label[ds.spec_axis] = ds.spec_unit
 
-        self._image_axis_name = {}
-
-        for axis in axes:
-
-            lower_ax = "xyz"[axis]
-            upper_ax = lower_ax.upper()
-
-            ax_names = (names[self.x_axis[axis]], names[self.y_axis[axis]])
-
-            self._image_axis_name[axis] = ax_names
-            self._image_axis_name[lower_ax] = ax_names
-            self._image_axis_name[upper_ax] = ax_names
+        self._image_axis_name = ian = {}
+        for ax in 'xyz':
+            axi = self.axis_id[ax]
+            xax = self.axis_name[self.x_axis[ax]]
+            yax = self.axis_name[self.y_axis[ax]]
+            ian[axi] = ian[ax] = ian[ax.upper()] = (
+                names.get(xax, xax), names.get(yax, yax))
 
         def _spec_axis(ax, x, y):
             p = (x,y)[ax]
@@ -91,6 +89,9 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
              ("index", "x"), ("index", "y"), ("index", "z"),
              ("index", "cell_volume")])
 
+    _x_pairs = ( ('x', 'y'), ('y', 'x'), ('z', 'x') )
+    _y_pairs = ( ('x', 'z'), ('y', 'z'), ('z', 'y') )
+
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
 
@@ -101,8 +102,3 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     def image_axis_name(self):
         return self._image_axis_name
 
-    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
-                0  : 2,  1  : 2,  2  : 1}

@@ -358,7 +358,7 @@ class ARTIODataset(Dataset):
 
         # TODO: detect if grid exists
         self.min_level = 0  # ART has min_level=0
-        self.max_level = self.artio_parameters["max_refinement_level"][0]
+        self.max_level = self.artio_parameters["grid_max_level"][0]
 
         # TODO: detect if particles exist
         if self._handle.has_particles:

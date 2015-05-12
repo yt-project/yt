@@ -22,3 +22,5 @@ from .data_structures import \
 from .io import \
     IOHandlerGadgetBinary, \
     IOHandlerGadgetHDF5
+
+from . import tests

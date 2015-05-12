@@ -30,9 +30,9 @@ def internet_on():
     try:
         urllib2.urlopen(scivis_data, timeout = 1)
         return True
-    except urllib2.URLError, e:
+    except urllib2.URLError:
         return False
-    except socket.timeout, e:
+    except socket.timeout:
         return False
 
 @requires_module('thingking')

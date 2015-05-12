@@ -184,6 +184,29 @@ class YTUnitConversionError(YTException):
           % (self.unit1, self.dimension1, self.unit2, self.dimension2)
         return err
 
+class YTUnitsNotReducible(YTException):
+    def __init__(self, unit, units_base):
+        self.unit = unit
+        self.units_base = units_base
+        YTException.__init__(self)
+        
+    def __str__(self):
+        err = "The unit '%s' cannot be reduced to a single expression within " \
+          "the %s base system of units." % (self.unit, self.units_base)
+        return err
+
+class YTEquivalentDimsError(Exception):
+    def __init__(self, old_units, new_units, base):
+        self.old_units = old_units
+        self.new_units = new_units
+        self.base = base
+    
+    def __str__(self):
+        err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
+          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units, 
+                                                            self.new_units, self.base)
+        return err
+    
 class YTUfuncUnitError(YTException):
     def __init__(self, ufunc, unit1, unit2):
         self.ufunc = ufunc
@@ -206,6 +229,33 @@ class YTIterableUnitCoercionError(YTException):
         err = "Received a list or tuple of quantities with nonuniform units: " \
               "%s" % self.quantity_list
         return err
+
+class YTFieldUnitError(YTException):
+    def __init__(self, field_info, returned_units):
+        self.msg = ("The field function associated with the field '%s' returned "
+                    "data with units '%s' but was defined with units '%s'.")
+        self.msg = self.msg % (field_info.name, returned_units, field_info.units)
+
+    def __str__(self):
+        return self.msg
+
+class YTFieldUnitParseError(YTException):
+    def __init__(self, field_info):
+        self.msg = ("The field '%s' has unparseable units '%s'.")
+        self.msg = self.msg % (field_info.name, field_info.units)
+
+    def __str__(self):
+        return self.msg
+
+class YTSpatialFieldUnitError(YTException):
+    def __init__(self, field):
+        msg = ("Field '%s' is a spatial field but has unknown units but "
+               "spatial fields must have explicitly defined units. Add the "
+               "field with explicit 'units' to clear this error.")
+        self.msg = msg % (field,)
+
+    def __str__(self):
+        return self.msg
 
 class YTHubRegisterError(YTException):
     def __str__(self):
@@ -441,7 +491,22 @@ class YTInvalidUnitEquivalence(Exception):
         self.unit2 = unit2
 
     def __str__(self):
-        return "The unit equivalence '%s' does not exist for the units '%s' and '%s.'" % (self.equiv,
+        return "The unit equivalence '%s' does not exist for the units '%s' and '%s'." % (self.equiv,
                                                                                           self.unit1,
                                                                                           self.unit2)
 
+class YTPlotCallbackError(Exception):
+    def __init__(self, callback, error):
+        self.callback = 'annotate_' + callback
+        self.error = error
+
+    def __str__(self):
+        msg = '%s callback failed with the following error: %s'
+        return msg % (self.callback, self.error)
+
+class YTPixelizeError(YTException):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message

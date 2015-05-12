@@ -5,7 +5,7 @@ Parallel Computation With yt
 
 yt has been instrumented with the ability to compute many -- most, even --
 quantities in parallel.  This utilizes the package 
-`mpi4py <http://code.google.com/p/mpi4py>`_ to parallelize using the Message
+`mpi4py <https://bitbucket.org/mpi4py/mpi4py>`_ to parallelize using the Message
 Passing Interface, typically installed on clusters.  
 
 .. _capabilities:
@@ -34,7 +34,7 @@ Setting Up Parallel yt
 --------------------------
 
 To run scripts in parallel, you must first install `mpi4py
-<http://code.google.com/p/mpi4py>`_ as well as an MPI library, if one is not
+<https://bitbucket.org/mpi4py/mpi4py>`_ as well as an MPI library, if one is not
 already available on your system.  Instructions for doing so are provided on the
 mpi4py website, but you may have luck by just running:
 

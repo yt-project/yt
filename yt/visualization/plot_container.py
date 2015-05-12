@@ -213,7 +213,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -240,7 +240,7 @@ class ImagePlotContainer(object):
         """
         log = {}
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -270,13 +270,13 @@ class ImagePlotContainer(object):
         cmap : string or tuple
             If a string, will be interpreted as name of the colormap.
             If a tuple, it is assumed to be of the form (name, type, number)
-            to be used for brewer2mpl functionality. (name, type, number, bool)
+            to be used for palettable functionality. (name, type, number, bool)
             can be used to specify if a reverse colormap is to be used.
 
         """
 
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -311,7 +311,7 @@ class ImagePlotContainer(object):
 
         """
         if field is 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
@@ -347,7 +347,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -373,7 +373,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
