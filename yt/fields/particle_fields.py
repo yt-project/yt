@@ -76,16 +76,6 @@ def _field_concat(fname):
         return rv
     return _AllFields
 
-def get_angular_momentum_componants(ptype, data, spos, svel):
-    if data.has_field_parameter("normal"):
-       normal = data.get_field_parameter("normal")
-    else:
-       normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
-    bv = data.get_field_parameter("bulk_velocity")
-    pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
-    vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
-    return pos, vel, normal, bv
-
 def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
@@ -252,6 +242,16 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
                        units = "cm / s",
                        particle_type=True)
 
+def get_angular_momentum_componants(ptype, data, spos, svel):
+    if data.has_field_parameter("normal"):
+       normal = data.get_field_parameter("normal")
+    else:
+       normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
+    bv = data.get_field_parameter("bulk_velocity")
+    pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
+    vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
+    return pos, vel, normal, bv
+
 def standard_particle_fields(registry, ptype,
                              spos = "particle_position_%s",
                              svel = "particle_velocity_%s"):
@@ -278,9 +278,15 @@ def standard_particle_fields(registry, ptype,
         particle.
         """
         center = data.get_field_parameter('center')
-        pos, vel, normal, bv = get_angular_momentum_componants(ptype, data, spos, svel)
+        if data.has_field_parameter("normal"):
+           normal = data.get_field_parameter("normal")
+        else:
+           normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"]).T
+        vel = YTArray([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
         L, r_vec, v_vec = modify_reference_frame(center, normal, P=pos, V=vel)
-        return np.cross(r_vec, v_vec)
+        return YTArray(np.cross(r_vec.in_units("cm"), v_vec.in_units("cm/s")),"cm**2/s")
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
