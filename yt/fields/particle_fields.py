@@ -368,7 +368,7 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     create_magnitude_field(registry, "particle_specific_angular_momentum",
-                           "code_length**2/s", ftype=ptype, particle_type=True)
+                           "cm**2/s", ftype=ptype, particle_type=True)
 
     def _particle_angular_momentum_x(field, data):
         return data[ptype, "particle_mass"] * \
@@ -398,8 +398,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-        return np.multiply(data[ptype, "particle_mass"], 
-             data[ptype, "particle_specific_angular_momentum"].T).T
+	am = data[ptype, "particle_mass"] * data[ptype, "particle_specific_angular_momentum"].T
+	return am.T
 
 
     registry.add_field((ptype, "particle_angular_momentum"),
