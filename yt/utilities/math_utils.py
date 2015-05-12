@@ -63,7 +63,7 @@ def periodic_position(pos, ds):
 
     ds : Dataset
         A simulation static output.
-    
+
     Examples
     --------
     >>> a = np.array([1.1, 0.5, 0.5])
@@ -73,23 +73,23 @@ def periodic_position(pos, ds):
     >>> ppos
     array([ 0.1,  0.5,  0.5])
     """
- 
+
     off = (pos - ds.domain_left_edge) % ds.domain_width
     return ds.domain_left_edge + off
 
 def periodic_dist(a, b, period, periodicity=(True, True, True)):
     r"""Find the Euclidean periodic distance between two sets of points.
-    
+
     Parameters
     ----------
     a : array or list
         Either an ndim long list of coordinates corresponding to a single point
         or an (ndim, npoints) list of coordinates for many points in space.
-    
+
     b : array of list
         Either an ndim long list of coordinates corresponding to a single point
         or an (ndim, npoints) list of coordinates for many points in space.
-    
+
     period : float or array or list
         If the volume is symmetrically periodic, this can be a single float,
         otherwise an array or list of floats giving the periodic size of the
@@ -115,9 +115,9 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     if period.size == 1:
         period = np.array([period, period, period])
 
-    if a.shape != b.shape: 
+    if a.shape != b.shape:
         raise RuntimeError("Arrays must be the same shape.")
-    
+
     if period.shape != a.shape and len(a.shape) > 1:
         n_tup = tuple([1 for i in range(a.ndim-1)])
         period = np.tile(np.reshape(period, (a.shape[0],)+n_tup), (1,)+a.shape[1:])
@@ -128,7 +128,7 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
 
     c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = np.abs(a - b)
-    
+
     p_directions = [i for i,p in enumerate(periodicity) if p == True]
     np_directions = [i for i,p in enumerate(periodicity) if p == False]
     for d in p_directions:
@@ -181,25 +181,25 @@ def euclidean_dist(a, b):
 
 def rotate_vector_3D(a, dim, angle):
     r"""Rotates the elements of an array around an axis by some angle.
-    
+
     Given an array of 3D vectors a, this rotates them around a coordinate axis
     by a clockwise angle. An alternative way to think about it is the
     coordinate axes are rotated counterclockwise, which changes the directions
     of the vectors accordingly.
-    
+
     Parameters
     ----------
     a : array
         An array of 3D vectors with dimension Nx3.
-    
+
     dim : integer
         A integer giving the axis around which the vectors will be rotated.
         (x, y, z) = (0, 1, 2).
-    
+
     angle : float
         The angle in radians through which the vectors will be rotated
         clockwise.
-    
+
     Examples
     --------
     >>> a = np.array([[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [3, 4, 5]])
@@ -210,7 +210,7 @@ def rotate_vector_3D(a, dim, angle):
     [  1.00000000e+00   6.12323400e-17   1.00000000e+00]
     [  1.00000000e+00  -1.00000000e+00   1.00000000e+00]
     [  4.00000000e+00  -3.00000000e+00   5.00000000e+00]]
-    
+
     """
     mod = False
     if len(a.shape) == 1:
@@ -236,12 +236,11 @@ def rotate_vector_3D(a, dim, angle):
         return np.dot(R, a.T).T[0]
     else:
         return np.dot(R, a.T).T
-    
 
 def modify_reference_frame(CoM, L, P=None, V=None):
     r"""Rotates and translates data into a new reference frame to make
     calculations easier.
-    
+
     This is primarily useful for calculations of halo data.
     The data is translated into the center of mass frame.
     Next, it is rotated such that the angular momentum vector for the data
@@ -249,18 +248,18 @@ def modify_reference_frame(CoM, L, P=None, V=None):
     momentum vector on the data that comes out of this function, it will
     always be along the positive z-axis.
     If the center of mass is re-calculated, it will be at the origin.
-    
+
     Parameters
     ----------
     CoM : array
         The center of mass in 3D.
-    
+
     L : array
         The angular momentum vector.
-    
+
     Optional
     --------
-        
+
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
@@ -268,18 +267,18 @@ def modify_reference_frame(CoM, L, P=None, V=None):
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
-    
+
     Returns
     -------
     L : array
         The angular momentum vector equal to [0, 0, 1] modulo machine error.
-    
+
     P : array
         The modified positional data. Only returned if P is not None
-    
+
     V : array
         The modified velocity data. Only returned if V is not None
-    
+
     Examples
     --------
     >>> CoM = np.array([0.5, 0.5, 0.5])
@@ -342,36 +341,36 @@ def modify_reference_frame(CoM, L, P=None, V=None):
 
 def compute_rotational_velocity(CoM, L, P, V):
     r"""Computes the rotational velocity for some data around an axis.
-    
+
     This is primarily for halo computations.
     Given some data, this computes the circular rotational velocity of each
     point (particle) in reference to the axis defined by the angular momentum
     vector.
     This is accomplished by converting the reference frame of the center of
     mass of the halo.
-    
+
     Parameters
     ----------
     CoM : array
         The center of mass in 3D.
-    
+
     L : array
         The angular momentum vector.
-    
+
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
-    
+
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
-    
+
     Returns
     -------
     v : array
         An array N elements long that gives the circular rotational velocity
         for each datum (particle).
-    
+
     Examples
     --------
     >>> CoM = np.array([0, 0, 0])
@@ -395,38 +394,38 @@ def compute_rotational_velocity(CoM, L, P, V):
         temp = np.dot(rp, V[i]) / np.dot(rp, rp) * rp
         res[i] = np.dot(temp, temp)**0.5
     return res
-    
+
 def compute_parallel_velocity(CoM, L, P, V):
     r"""Computes the parallel velocity for some data around an axis.
-    
+
     This is primarily for halo computations.
     Given some data, this computes the velocity component along the angular
     momentum vector.
     This is accomplished by converting the reference frame of the center of
     mass of the halo.
-    
+
     Parameters
     ----------
     CoM : array
         The center of mass in 3D.
-    
+
     L : array
         The angular momentum vector.
-    
+
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
-    
+
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
-    
+
     Returns
     -------
     v : array
         An array N elements long that gives the parallel velocity for
         each datum (particle).
-    
+
     Examples
     --------
     >>> CoM = np.array([0, 0, 0])
@@ -436,7 +435,7 @@ def compute_parallel_velocity(CoM, L, P, V):
     >>> paraV = compute_parallel_velocity(CoM, L, P, V)
     >>> paraV
     array([10, -1,  1, -1])
-    
+
     """
     # First we translate into the simple coordinates.
     L, P, V = modify_reference_frame(CoM, L, P, V)
@@ -445,34 +444,34 @@ def compute_parallel_velocity(CoM, L, P, V):
 
 def compute_radial_velocity(CoM, L, P, V):
     r"""Computes the radial velocity for some data around an axis.
-    
+
     This is primarily for halo computations.
     Given some data, this computes the radial velocity component for the data.
     This is accomplished by converting the reference frame of the center of
     mass of the halo.
-    
+
     Parameters
     ----------
     CoM : array
         The center of mass in 3D.
-    
+
     L : array
         The angular momentum vector.
-    
+
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
-    
+
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
-    
+
     Returns
     -------
     v : array
         An array N elements long that gives the radial velocity for
         each datum (particle).
-    
+
     Examples
     --------
     >>> CoM = np.array([0, 0, 0])
@@ -482,7 +481,7 @@ def compute_radial_velocity(CoM, L, P, V):
     >>> radV = compute_radial_velocity(CoM, L, P, V)
     >>> radV
     array([ 1.        ,  1.41421356 ,  0.        ,  0.])
-    
+
     """
     # First we translate into the simple coordinates.
     L, P, V = modify_reference_frame(CoM, L, P, V)
@@ -499,34 +498,34 @@ def compute_radial_velocity(CoM, L, P, V):
 def compute_cylindrical_radius(CoM, L, P, V):
     r"""Compute the radius for some data around an axis in cylindrical
     coordinates.
-    
+
     This is primarily for halo computations.
     Given some data, this computes the cylindrical radius for each point.
     This is accomplished by converting the reference frame of the center of
     mass of the halo.
-    
+
     Parameters
     ----------
     CoM : array
         The center of mass in 3D.
-    
+
     L : array
         The angular momentum vector.
-    
+
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
         postions). The array should be Nx3.
-    
+
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
         velocities). The array should be Nx3.
-    
+
     Returns
     -------
     cyl_r : array
         An array N elements long that gives the radial velocity for
         each datum (particle).
-    
+
     Examples
     --------
     >>> CoM = np.array([0, 0, 0])
@@ -536,6 +535,7 @@ def compute_cylindrical_radius(CoM, L, P, V):
     >>> cyl_r = compute_cylindrical_radius(CoM, L, P, V)
     >>> cyl_r
     array([ 1.        ,  1.41421356,  0.        ,  1.41421356])
+
     """
     # First we translate into the simple coordinates.
     L, P, V = modify_reference_frame(CoM, L, P, V)
@@ -543,19 +543,19 @@ def compute_cylindrical_radius(CoM, L, P, V):
     # calculation very easy.
     P[:,2] = 0
     return np.sqrt((P * P).sum(axis=1))
-    
+
 def ortho_find(vec1):
     r"""Find two complementary orthonormal vectors to a given vector.
 
-    For any given non-zero vector, there are infinite pairs of vectors 
-    orthonormal to it.  This function gives you one arbitrary pair from 
+    For any given non-zero vector, there are infinite pairs of vectors
+    orthonormal to it.  This function gives you one arbitrary pair from
     that set along with the normalized version of the original vector.
 
     Parameters
     ----------
     vec1 : array_like
            An array or list to represent a 3-vector.
-        
+
     Returns
     -------
     vec1 : array
@@ -576,30 +576,30 @@ def ortho_find(vec1):
     -----
     Our initial vector is `vec1` which consists of 3 components: `x1`, `y1`,
     and `z1`.  ortho_find determines a vector, `vec2`, which is orthonormal
-    to `vec1` by finding a vector which has a zero-value dot-product with 
+    to `vec1` by finding a vector which has a zero-value dot-product with
     `vec1`.
 
-    .. math:: 
+    .. math::
 
        vec1 \cdot vec2 = x_1 x_2 + y_1 y_2 + z_1 z_2 = 0
 
-    As a starting point, we arbitrarily choose `vec2` to have `x2` = 1, 
+    As a starting point, we arbitrarily choose `vec2` to have `x2` = 1,
     `y2` = 0:
 
-    .. math:: 
+    .. math::
 
-       vec1 \cdot vec2 = x_1 + (z_1 z_2) = 0 
+       vec1 \cdot vec2 = x_1 + (z_1 z_2) = 0
 
        \rightarrow z_2 = -(x_1 / z_1)
 
-    Of course, this will fail if `z1` = 0, in which case, let's say use 
+    Of course, this will fail if `z1` = 0, in which case, let's say use
     `z2` = 1 and `x2` = 0:
 
     .. math::
-    
+
        \rightarrow y_2 = -(z_1 / y_1)
 
-    Similarly, if `y1` = 0, this case will fail, in which case we use 
+    Similarly, if `y1` = 0, this case will fail, in which case we use
     `y2` = 1 and `z2` = 0:
 
     .. math::
@@ -658,7 +658,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
     alone a specified axis.  Check numpy.median for details, as it is
     virtually the same algorithm.
 
-    Returns an array of the quartiles of the array elements [lower quartile, 
+    Returns an array of the quartiles of the array elements [lower quartile,
     upper quartile].
 
     Parameters
@@ -696,9 +696,9 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
 
     Notes
     -----
-    Given a vector V of length N, the quartiles of V are the 25% and 75% values 
-    of a sorted copy of V, ``V_sorted`` - i.e., ``V_sorted[(N-1)/4]`` and 
-    ``3*V_sorted[(N-1)/4]``, when N is odd.  When N is even, it is the average 
+    Given a vector V of length N, the quartiles of V are the 25% and 75% values
+    of a sorted copy of V, ``V_sorted`` - i.e., ``V_sorted[(N-1)/4]`` and
+    ``3*V_sorted[(N-1)/4]``, when N is odd.  When N is even, it is the average
     of the two values bounding these values of ``V_sorted``.
 
     Examples
@@ -755,6 +755,62 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
         result.append(np.mean(sorted[indexer], axis=axis, out=out))
     return np.array(result)
 
+def get_perspective_matrix(fovy, aspect, z_near, z_far):
+    """
+    Given a field of view in radians, an aspect ratio, and a near
+    and far plane distance, this routine computes the rotation matrix
+    corresponding to a projection onto the corresponding perspective
+    frustum using homogenous coordinates.
+
+    Parameters
+    ----------
+    fovy : scaler
+        The angle in radians of the field of view.
+
+    aspect : scaler
+        The aspect ratio of width / height for the projection.
+
+    z_near : scaler
+        The distance of the near plane from the camera.
+
+    z_far : scaler
+        The distance of the far plane from the camera.
+
+    Returns
+    -------
+    persp_matrix : ndarray
+        A new 4x4 3D array. Represents a perspective transformation
+        in homogeneous coordinates. Note that this matrix does not
+        actually perform the projection. After multiplying a 4D
+        vector of the form (x_0, y_0, z_0, 1.0), the point will be
+        transformed to some (x_1, y_1, z_1, w). The final projection
+        is applied by performing a divide by w, that is
+        (x_1/w, y_1/w, z_1/w, w/w). The matrix uses a row-major
+        ordering, rather than the column major ordering typically
+        used by OpenGL.
+
+    Notes
+    -----
+    The usage of 4D homogeneous coordinates is for OpenGL and GPU
+    hardware that automatically performs the divide by w operation.
+    See the following for more details about the OpenGL perpective matrices.
+
+    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    http://www.songho.ca/opengl/gl_projectionmatrix.html
+
+    """
+
+    tan_half_fovy = np.tan(fovy / 2)
+
+    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+    result[0][0] = 1 / (aspect * tan_half_fovy)
+    result[1][1] = 1 / tan_half_fovy
+    result[2][2] = - (z_far + z_near) / (z_far - z_near)
+    result[3][2] = -1
+    result[2][3] = -(2 * z_far * z_near) / (z_far - z_near)
+
+    return result
+
 def get_rotation_matrix(theta, rot_vector):
     """
     Given an angle theta and a 3D vector rot_vector, this routine
@@ -769,11 +825,11 @@ def get_rotation_matrix(theta, rot_vector):
     rot_vector : array_like
         The axis of rotation.  Must be 3D.
 
-    Returns 
-    ------- 
-    rot_matrix : ndarray 
-         A new 3x3 2D array.  This is the representation of a 
-         rotation of theta radians about rot_vector in the simulation 
+    Returns
+    -------
+    rot_matrix : ndarray
+         A new 3x3 2D array.  This is the representation of a
+         rotation of theta radians about rot_vector in the simulation
          box coordinate frame
 
     See Also
@@ -801,11 +857,11 @@ def get_rotation_matrix(theta, rot_vector):
     uz = rot_vector[2]
     cost = np.cos(theta)
     sint = np.sin(theta)
-    
+
     R = np.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
                   [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
                   [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
-    
+
     return R
 
 def get_ortho_basis(normal):
@@ -832,15 +888,15 @@ def get_sph_theta(coords, normal):
     # The angle (theta) with respect to the normal (J), is the arccos
     # of the dot product of the normal with the normalized coordinate
     # vector.
-    
+
     res_normal = resize_vector(normal, coords)
 
     tile_shape = [1] + list(coords.shape)[1:]
-    
+
     J = np.tile(res_normal,tile_shape)
 
     JdotCoords = np.sum(J*coords,axis=0)
-    
+
     return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)) )
 
 def get_sph_phi(coords, normal):
@@ -851,7 +907,7 @@ def get_sph_phi(coords, normal):
     # normal == z-hat (as is typical), then xprime == x-hat.
     #
     # The angle is then given by the arctan of the ratio of the
-    # yprime-component and the xprime-component of the coordinate 
+    # yprime-component and the xprime-component of the coordinate
     # vector.
 
     (xprime, yprime, zprime) = get_ortho_basis(normal)
@@ -865,7 +921,7 @@ def get_sph_phi(coords, normal):
 
     Px = np.sum(Jx*coords,axis=0)
     Py = np.sum(Jy*coords,axis=0)
-    
+
     return np.arctan2(Py,Px)
 
 def get_cyl_r(coords, normal):
@@ -876,20 +932,20 @@ def get_cyl_r(coords, normal):
 
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
-    
+
     JcrossCoords = np.cross(J, coords, axisa=0, axisb=0, axisc=0)
     return np.sqrt(np.sum(JcrossCoords**2, axis=0))
 
 def get_cyl_z(coords, normal):
-    # The dot product of the normal (J) with the coordinate vector 
+    # The dot product of the normal (J) with the coordinate vector
     # gives the cylindrical height.
 
     res_normal = resize_vector(normal, coords)
-    
+
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
-    return np.sum(J*coords, axis=0)  
+    return np.sum(J*coords, axis=0)
 
 def get_cyl_theta(coords, normal):
     # This is identical to the spherical phi component
@@ -915,7 +971,7 @@ def get_cyl_r_component(vectors, theta, normal):
 
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
-    
+
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -942,7 +998,7 @@ def get_cyl_z_component(vectors, normal):
 
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
-    
+
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -979,7 +1035,7 @@ def get_sph_phi_component(vectors, phi, normal):
 
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
-    
+
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -991,7 +1047,7 @@ def get_sph_theta_component(vectors, theta, phi, normal):
         YTArray(np.tile(rprime, tile_shape), "")
         for rprime in (res_xprime, res_yprime, res_zprime))
 
-    
+
     thetahat = Jx*np.cos(theta)*np.cos(phi) + \
                Jy*np.cos(theta)*np.sin(phi) - \
                Jz*np.sin(theta)
