@@ -811,6 +811,59 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
 
     return result
 
+def get_lookat_matrix(eye, center, up):
+    """
+    Given the position of a camera, the point it is looking at, and
+    an up-direction. Computes the lookat matrix that moves all vectors
+    such that the camera is at the origin of the coordinate system,
+    looking down the z-axis.
+
+    Parameters
+    ----------
+    eye : array_like
+        The position of the camera. Must be 3D.
+
+    center : array_like
+        The location that the camera is looking at. Must be 3D.
+
+    up : array_like
+        The direction that is considered up for the camera. Must be
+        3D.
+
+    Returns
+    -------
+        A new 4x4 `3D` array in homogeneous coordinates. This matrix
+        moves all vectors in the same way required to move the camera
+        to the origin of the coordinate system, with it pointing down
+        the negative z-axis.
+
+    """
+
+    eye = np.array(eye)
+    center = np.array(center)
+    up = np.array(up)
+
+    f = normalize(center - eye)
+    s = normalize(np.cross(f, up))
+    u = np.cross(s, f)
+
+    result = np.zeros ( (4, 4), dtype = 'float32', order = 'C')
+
+    result[0][0] = s[0]
+    result[0][1] = s[1]
+    result[0][2] = s[2]
+    result[1][0] = u[0]
+    result[1][1] = u[1]
+    result[1][2] = u[2]
+    result[2][0] =-f[0]
+    result[2][1] =-f[1]
+    result[2][2] =-f[2]
+    result[0][3] =-np.dot(s, eye)
+    result[1][3] =-np.dot(u, eye)
+    result[2][3] = np.dot(f, eye)
+    result[3][3] = 1.0
+    return result
+
 def get_rotation_matrix(theta, rot_vector):
     """
     Given an angle theta and a 3D vector rot_vector, this routine
