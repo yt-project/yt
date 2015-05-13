@@ -81,7 +81,7 @@ class IOHandlerFITS(BaseIOHandler):
                 for g in chunk.objs:
                     start = ((g.LeftEdge-self.ds.domain_left_edge)/dx).to_ndarray().astype("int")
                     end = start + g.ActiveDimensions
-                    slices = [slice(start[i],end[i]) for i in xrange(3)]
+                    slices = [slice(start[i],end[i]) for i in range(3)]
                     if self.ds.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
                         nz = 1
