@@ -293,7 +293,20 @@ class FITSImageData(object):
         self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
 
-axis_wcs = [[1,2],[0,2],[0,1]]
+    def pop(self, key):
+        """
+        Remove a field with name *key*
+        and return it as a new FITSImageData 
+        instance.
+        """
+        if key not in self.keys():
+            raise KeyError("%s not an image!" % key)
+        data = self[key]
+        idx = self.fields.index(key)
+        self.hdulist.pop(idx)
+        self.field_units.pop(key)
+        self.fields.remove(key)
+        return FITSImageData(data, fields=key, wcs=self.wcs)
 
 def create_sky_wcs(old_wcs, sky_center, sky_scale,
                    ctype=["RA---TAN","DEC--TAN"], crota=None):
