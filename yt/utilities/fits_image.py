@@ -308,51 +308,103 @@ class FITSImageData(object):
         self.fields.remove(key)
         return FITSImageData(data, fields=key, wcs=self.wcs)
 
-def create_sky_wcs(old_wcs, sky_center, sky_scale,
-                   ctype=["RA---TAN","DEC--TAN"], crota=None):
-    """
-    Takes an astropy.wcs.WCS instance created in yt from a
-    simulation that has a Cartesian coordinate system and
-    converts it to one in a celestial coordinate system.
+    @classmethod
+    def from_file(cls, filename):
+        """
+        Generate a FITSImageData instance from one previously written to 
+        disk.
 
-    Parameters
-    ----------
-    old_wcs : astropy.wcs.WCS
-        The original WCS to be converted.
-    sky_center : tuple
-        Reference coordinates of the WCS in degrees.
-    sky_scale : tuple
-        Conversion between an angle unit and a length unit,
-        e.g. (3.0, "arcsec/kpc")
-    ctype : list of strings, optional
-        The type of the coordinate system to create.
-    crota : list of floats, optional
-        Rotation angles between cartesian coordinates and
-        the celestial coordinates.
-    """
-    naxis = old_wcs.naxis
-    crval = [sky_center[0], sky_center[1]]
-    scaleq = YTQuantity(sky_scale[0],sky_scale[1])
-    deltas = old_wcs.wcs.cdelt
-    units = [str(unit) for unit in old_wcs.wcs.cunit]
-    new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
-    new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
-    new_wcs = pywcs.WCS(naxis=naxis)
-    cdelt = [new_dx.v, new_dy.v]
-    cunit = ["deg"]*2
-    if naxis == 3:
-        crval.append(old_wcs.wcs.crval[2])
-        cdelt.append(old_wcs.wcs.cdelt[2])
-        ctype.append(old_wcs.wcs.ctype[2])
-        cunit.append(old_wcs.wcs.cunit[2])
-    new_wcs.wcs.crpix = old_wcs.wcs.crpix
-    new_wcs.wcs.cdelt = cdelt
-    new_wcs.wcs.crval = crval
-    new_wcs.wcs.cunit = cunit
-    new_wcs.wcs.ctype = ctype
-    if crota is not None:
-        new_wcs.wcs.crota = crota
-    return new_wcs
+        Parameters
+        ----------
+        filename : string
+            The name of the file to open.
+        """
+        f = pyfits.open(filename)
+        data = {}
+        for hdu in f:
+            data[hdu.header["btype"]] = YTArray(hdu.data, hdu.header["bunit"])
+        f.close()
+        return cls(data, wcs=pywcs.WCS(header=hdu.header))
+
+    @classmethod
+    def from_images(cls, image_list):
+        """
+        Generate a new FITSImageData instance from a list of FITSImageData 
+        instances.
+
+        Parameters
+        ----------
+        image_list : list of FITSImageData instances
+            The images to be combined.
+        """
+        w = image_list[0].wcs
+        img_shape = image_list[0].shape
+        data = {}
+        for image in image_list:
+            assert_same_wcs(w, image.wcs)
+            if img_shape != image.shape:
+                raise RuntimeError("Images do not have the same shape!")
+            for k,v in image.items():
+                data[k] = v
+        return cls(data, wcs=w)
+
+    def create_sky_wcs(self, sky_center, sky_scale,
+                       ctype=["RA---TAN","DEC--TAN"], 
+                       crota=None, cd=None, pc=None):
+        """
+        Takes a Cartesian WCS and converts it to one in a 
+        celestial coordinate system.
+
+        Parameters
+        ----------
+        sky_center : iterable of floats
+            Reference coordinates of the WCS in degrees.
+        sky_scale : tuple or YTQuantity
+            Conversion between an angle unit and a length unit,
+            e.g. (3.0, "arcsec/kpc")
+        ctype : list of strings, optional
+            The type of the coordinate system to create.
+        crota : 2-element ndarray, optional
+            Rotation angles between cartesian coordinates and
+            the celestial coordinates.
+        cd : 2x2-element ndarray, optional
+            Dimensioned coordinate transformation matrix.
+        pc : 2x2-element ndarray, optional
+            Coordinate transformation matrix.
+        """
+        old_wcs = self.wcs
+        naxis = old_wcs.naxis
+        crval = [sky_center[0], sky_center[1]]
+        if isinstance(sky_scale, YTQuantity):
+            scaleq = sky_scale
+        else:
+            scaleq = YTQuantity(sky_scale[0],sky_scale[1])
+        if scaleq.units.dimensions != dimensions.angle/dimensions.length:
+            raise RuntimeError("sky_scale %s not in correct dimensions of angle/length!" % sky_scale)
+        deltas = old_wcs.wcs.cdelt
+        units = [str(unit) for unit in old_wcs.wcs.cunit]
+        new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
+        new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
+        new_wcs = pywcs.WCS(naxis=naxis)
+        cdelt = [new_dx.v, new_dy.v]
+        cunit = ["deg"]*2
+        if naxis == 3:
+            crval.append(old_wcs.wcs.crval[2])
+            cdelt.append(old_wcs.wcs.cdelt[2])
+            ctype.append(old_wcs.wcs.ctype[2])
+            cunit.append(old_wcs.wcs.cunit[2])
+        new_wcs.wcs.crpix = old_wcs.wcs.crpix
+        new_wcs.wcs.cdelt = cdelt
+        new_wcs.wcs.crval = crval
+        new_wcs.wcs.cunit = cunit
+        new_wcs.wcs.ctype = ctype
+        if crota is not None:
+            new_wcs.wcs.crota = crota
+        if cd is not None:
+            new_wcs.wcs.cd = cd
+        if pc is not None:
+            new_wcs.wcs.cd = pc
+        self.set_wcs(new_wcs)
 
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
