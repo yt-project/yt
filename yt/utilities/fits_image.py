@@ -171,12 +171,20 @@ class FITSImageData(object):
             for k, v in h.items():
                 img.header[k] = v
 
-    def update_all_headers(self, key, value):
+    def update_header(self, field, key, value):
         """
-        Update the FITS headers for all images with the
-        same *key*, *value* pair.
+        Update the FITS header for *field* with a
+        *key*, *value* pair. If *field* == "all", all 
+        headers will be updated.
         """
-        for img in self: img.header[key] = value
+        if field == "all":
+            for img in self.hdulist:
+                img.header[key] = value
+        else:
+            if field not in self.keys():
+                raise KeyError("%s not an image!" % field)
+            idx = self.fields.index(field)
+            self.hdulist[idx].header[key] = value
 
     def keys(self):
         return self.fields
