@@ -126,17 +126,13 @@ class FITSImageBuffer(HDUList):
                 hdu.header["btype"] = key
                 if hasattr(img_data[key], "units"):
                     hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
-                self.append(hdu)
+                self.hdulist.append(hdu)
 
-        self.dimensionality = len(self[0].data.shape)
-        
-        if self.dimensionality == 2:
-            self.nx, self.ny = self[0].data.shape
-        elif self.dimensionality == 3:
-            self.nx, self.ny, self.nz = self[0].data.shape
+        self.shape = self.hdulist[0].shape
+        self.dimensionality = len(self.shape)
 
         if wcs is None:
-            w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
+            w = pywcs.WCS(header=self.hdulist[0].header, naxis=self.dimensionality)
             if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
@@ -174,7 +170,7 @@ class FITSImageBuffer(HDUList):
         """
         self.wcs = wcs
         h = self.wcs.to_header()
-        for img in self:
+        for img in self.hdulist:
             for k, v in h.items():
                 img.header[k] = v
 
@@ -186,26 +182,68 @@ class FITSImageBuffer(HDUList):
         for img in self: img.header[key] = value
 
     def keys(self):
-        return [f.name.lower() for f in self]
+        return self.fields
+
+    def __getitem__(self, field):
+        if field not in self.keys():
+            raise KeyError("%s not an image!" % field)
+        idx = self.fields.index(field)
+        return YTArray(self.hdulist[idx].data, self.field_units[field])
 
     def has_key(self, key):
-        return key in self.keys()
+        return key in self.fields
 
     def values(self):
-        return [self[k] for k in self.keys()]
+        return [self[k] for k in self.fields]
 
     def items(self):
-        return [(k, self[k]) for k in self.keys()]
+        return [(k, self[k]) for k in self.fields]
 
-    def writeto(self, fileobj, **kwargs):
-        pyfits.HDUList(self).writeto(fileobj, **kwargs)
+    def get_header(self, field):
+        """
+        Get the FITS header for a specific field.
 
-    @property
-    def shape(self):
-        if self.dimensionality == 2:
-            return self.nx, self.ny
-        elif self.dimensionality == 3:
-            return self.nx, self.ny, self.nz
+        Parameters
+        ----------
+        field : string
+            The field for which to get the corresponding header. 
+        """
+        if field not in self.keys():
+            raise KeyError("%s not an image!" % field)
+        idx = self.fields.index(field)
+        return self.hdulist[idx].header
+
+    @parallel_root_only
+    def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
+        r"""
+        Write all of the fields or a subset of them to a FITS file. 
+
+        Parameters
+        ----------
+        fileobj : string
+            The name of the file to write to. 
+        fields : list of strings, optional
+            The fields to write to the file. If not specified
+            all of the fields in the buffer will be written.
+        clobber : boolean, optional
+            Whether or not to overwrite a previously existing file.
+            Default: False
+        All other keyword arguments are passed to the `writeto`
+        method of `astropy.io.fits.HDUList`.
+        """
+        if fields is None:
+            hdus = self.hdulist
+        else:
+            hdus = pyfits.HDUList()
+            for field in fields:
+                hdus.append(self.hdulist[field])
+        hdus.writeto(fileobj, clobber=clobber, **kwargs)
+
+    def info(self):
+        """
+        Display information about the underlying FITS file. 
+        """
+        self.hdulist.info()
 
     def to_glue(self, label="yt", data_collection=None):
         """
@@ -236,18 +274,18 @@ class FITSImageBuffer(HDUList):
         `aplpy.FITSFigure` constructor.
         """
         import aplpy
-        return aplpy.FITSFigure(self, **kwargs)
-
-    def get_data(self, field):
-        return YTArray(self[field].data, self.field_units[field])
+        return aplpy.FITSFigure(self.hdulist, **kwargs)
 
     def set_unit(self, field, units):
         """
         Set the units of *field* to *units*.
         """
-        new_data = YTArray(self[field].data, self.field_units[field]).in_units(units)
-        self[field].data = new_data.v
-        self[field].header["bunit"] = units
+        if field not in self.keys():
+            raise KeyError("%s not an image!" % field)
+        new_data = self[field].in_units(units)
+        idx = self.fields.index(field)
+        self.hdulist[idx].data = new_data.v
+        self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
 
 axis_wcs = [[1,2],[0,2],[0,1]]
