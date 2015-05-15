@@ -16,6 +16,10 @@ from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy, NotAModule
 from yt.units.yt_array import YTQuantity, YTArray
+from yt.units import dimensions
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
+from yt.visualization.volume_rendering.camera import off_axis_projection
 import re
 
 pyfits = _astropy.pyfits
@@ -414,11 +418,9 @@ def sanitize_fits_unit(unit):
         unit = "AU"
     return unit
 
-def construct_image(data_source, center=None, width=None, image_res=None):
-    ds = data_source.ds
-    axis = data_source.axis
-    if center is None or width is None:
-        center = ds.domain_center[axis_wcs[axis]]
+axis_wcs = [[1,2],[0,2],[0,1]]
+
+def construct_image(ds, axis, data_source, center, width=None, image_res=None):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -428,28 +430,28 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
     if image_res is None:
-        dd = ds.all_data()
-        dx, dy = [dd.quantities.extrema("d%s" % "xyz"[idx])[0]
-                  for idx in axis_wcs[axis]]
-        nx = int((width[0]/dx).in_units("dimensionless"))
-        ny = int((width[1]/dy).in_units("dimensionless"))
+        ddims = ds.domain_dimensions*2**ds.index.max_level
+        if iterable(axis):
+            nx = ddims.max()
+            ny = ddims.max()
+        else:
+            nx, ny = [ddims[idx] for idx in axis_wcs[axis]]
     else:
         if iterable(image_res):
             nx, ny = image_res
         else:
             nx, ny = image_res, image_res
-        dx, dy = width[0]/nx, width[1]/ny
+    dx, dy = width[0]/nx, width[1]/ny
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
-    if hasattr(ds, "wcs"):
+    if hasattr(ds, "wcs") and not iterable(axis):
         # This is a FITS dataset, so we use it to construct the WCS
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
         cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
         ctr_pix = center.in_units("code_length")[:ds.dimensionality].v
-        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,ds.dimensionality))[0]
+        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1, ds.dimensionality))[0]
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
-        # This is some other kind of dataset                                                                      
         if unit == "unitary":
             unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
         elif unit == "code_length":
@@ -458,8 +460,17 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
         cdelt = [dx.in_units(unit)]*2
-        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
-    frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
+        if iterable(axis):
+            crval = center.in_units(unit)
+        else:
+            crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+    if hasattr(data_source, 'to_frb'):
+        if iterable(axis):
+            frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
+        else:
+            frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
+    else:
+        frb = None
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
     w.wcs.cdelt = cdelt
@@ -468,7 +479,35 @@ def construct_image(data_source, center=None, width=None, image_res=None):
     w.wcs.ctype = ctype
     return w, frb
 
-class FITSSlice(FITSImageBuffer):
+def assert_same_wcs(wcs1, wcs2):
+    from numpy.testing import assert_allclose
+    assert wcs1.naxis == wcs2.naxis
+    for i in range(wcs1.naxis):
+        assert wcs1.wcs.cunit[i] == wcs2.wcs.cunit[i]
+        assert wcs1.wcs.ctype[i] == wcs2.wcs.ctype[i]
+    assert_allclose(wcs1.wcs.crpix, wcs2.wcs.crpix)
+    assert_allclose(wcs1.wcs.cdelt, wcs2.wcs.cdelt)
+    assert_allclose(wcs1.wcs.crval, wcs2.wcs.crval)
+    crota1 = getattr(wcs1.wcs, "crota", None)
+    crota2 = getattr(wcs2.wcs, "crota", None)
+    if crota1 is None or crota2 is None:
+        assert crota1 == crota2
+    else:
+        assert_allclose(wcs1.wcs.crota, wcs2.wcs.crota)
+    cd1 = getattr(wcs1.wcs, "cd", None)
+    cd2 = getattr(wcs2.wcs, "cd", None)
+    if cd1 is None or cd2 is None:
+        assert cd1 == cd2
+    else:
+        assert_allclose(wcs1.wcs.cd, wcs2.wcs.cd)
+    pc1 = getattr(wcs1.wcs, "pc", None)
+    pc2 = getattr(wcs2.wcs, "pc", None)
+    if pc1 is None or pc2 is None:
+        assert pc1 == pc2
+    else:
+        assert_allclose(wcs1.wcs.pc, wcs2.wcs.pc)
+
+class FITSSlice(FITSImageData):
     r"""
     Generate a FITSImageData of an on-axis slice.
 
@@ -519,20 +558,18 @@ class FITSSlice(FITSImageBuffer):
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(slc, center=dcenter, width=width,
-                                 image_res=image_res)
+        w, frb = construct_image(ds, axis, slc, dcenter, width=width, image_res=image_res)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
-        for i, field in enumerate(fields):
-            self[i].header["bunit"] = str(frb[field].units)
 
-class FITSProjection(FITSImageBuffer):
+
+class FITSProjection(FITSImageData):
     r"""
-    Generate a FITSImageBuffer of an on-axis projection.
+    Generate a FITSImageData of an on-axis projection.
 
     Parameters
     ----------
-    ds : FITSDataset
-        The FITS dataset object.
+    ds : :class:`yt.data_objects.api.Dataset`
+        The dataset object.
     axis : character or integer
         The axis along which to project. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
@@ -579,8 +616,155 @@ class FITSProjection(FITSImageBuffer):
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(prj, center=dcenter, width=width,
-                                 image_res=image_res)
+        w, frb = construct_image(ds, axis, prj, dcenter, width=width, image_res=image_res)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
-        for i, field in enumerate(fields):
-            self[i].header["bunit"] = str(frb[field].units)
+
+class FITSOffAxisSlice(FITSImageData):
+    r"""
+    Generate a FITSImageData of an off-axis slice.
+
+    Parameters
+    ----------
+    ds : :class:`yt.data_objects.api.Dataset`
+        The dataset object.
+    normal : a sequence of floats
+        The vector normal to the projection plane.
+    fields : string or list of strings
+        The fields to slice
+    center : A sequence of floats, a string, or a tuple.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
+    width : tuple or a float.
+        Width can have four different formats to support windows with variable
+        x and y widths.  They are:
+
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
+
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image.
+    north_vector : a sequence of floats
+        A vector defining the 'up' direction in the plot.  This
+        option sets the orientation of the slicing plane.  If not
+        set, an arbitrary grid-aligned north-vector is chosen.
+    """
+    def __init__(self, ds, normal, fields, center='c', width=None, image_res=512, 
+                 north_vector=None):
+        fields = ensure_list(fields)
+        center, dcenter = ds.coordinates.sanitize_center(center, 4)
+        cut = ds.cutting(normal, center, north_vector=north_vector)
+        center = ds.arr([0.0] * 2, 'code_length')
+        w, frb = construct_image(ds, normal, cut, center, width=width, image_res=image_res)
+        super(FITSOffAxisSlice, self).__init__(frb, fields=fields, wcs=w)
+
+
+class FITSOffAxisProjection(FITSImageData):
+    r"""
+    Generate a FITSImageData of an off-axis projection.
+
+    Parameters
+    ----------
+    ds : :class:`yt.data_objects.api.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    normal : a sequence of floats
+        The vector normal to the projection plane.
+    fields : string, list of strings
+        The name of the field(s) to be plotted.
+    center : A sequence of floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray. If a list or unitless array is supplied, code units are
+         assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed
+    weight_field : string
+         The name of the weighting field.  Set to None for no weight.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. 
+    depth_res : an int 
+        Specify the resolution of the depth of the projection.
+    north_vector : a sequence of floats
+         A vector defining the 'up' direction in the plot.  This
+         option sets the orientation of the slicing plane.  If not
+         set, an arbitrary grid-aligned north-vector is chosen.
+    method : string
+         The method of projection.  Valid methods are:
+
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
+    """
+    def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'), 
+                 weight_field=None, image_res=512, depth_res=256, 
+                 north_vector=None, depth=(1.0,"unitary"), no_ghost=False, method='integrate'):
+        fields = ensure_list(fields)
+        center, dcenter = ds.coordinates.sanitize_center(center, 4)
+        buf = {}
+        width = ds.coordinates.sanitize_width(normal, width, depth)
+        wd = tuple(el.in_units('code_length').v for el in width)
+        if not iterable(image_res):
+            image_res = (image_res, image_res)
+        res = (image_res[0], image_res[1], depth_res)
+        for field in fields:
+            buf[field] = off_axis_projection(ds, center, normal, wd, res, field, 
+                                             no_ghost=no_ghost, north_vector=north_vector, 
+                                             method=method, weight=weight_field).swapaxes(0, 1)
+        center = ds.arr([0.0] * 2, 'code_length')
+        w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
+        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)
