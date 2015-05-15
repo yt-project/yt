@@ -1,5 +1,5 @@
 """
-FITSImageBuffer Class
+FITSImageData Class
 """
 
 #-----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ class FITSImageBuffer(HDUList):
         >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")
+        >>> f_kpc = FITSImageData(frb, fields="kT", units="kpc")
         >>> # This example specifies a specific WCS.
         >>> from astropy.wcs import WCS
         >>> w = WCS(naxis=self.dimensionality)
@@ -141,15 +141,15 @@ class FITSImageBuffer(HDUList):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
-                dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units)/self.nx
-                dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units)/self.ny
-                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units)
-                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units)
+                dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units).v/self.shape[0]
+                dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units).v/self.shape[1]
+                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units).v
+                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
                 center = [xctr, yctr]
                 cdelt = [dx,dy]
             elif isinstance(img_data, YTCoveringGridBase):
                 cdelt = img_data.dds.in_units(units).v
-                center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
+                center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
             else:
                 # If img_data is just an array, we assume the center is the origin
                 # and use *pixel_scale* to determine the cell widths
@@ -209,22 +209,19 @@ class FITSImageBuffer(HDUList):
 
     def to_glue(self, label="yt", data_collection=None):
         """
-        Takes the data in the FITSImageBuffer and exports it to
-        Glue (http://www.glueviz.org) for interactive
-        analysis. Optionally add a *label*. If you are already within
-        the Glue environment, you can pass a *data_collection* object,
-        otherwise Glue will be started.
+        Takes the data in the FITSImageData instance and exports it to
+        Glue (http://www.glueviz.org) for interactive analysis. Optionally 
+        add a *label*. If you are already within the Glue environment, you 
+        can pass a *data_collection* object, otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
 
-        field_dict = dict((key,self[key].data) for key in self.keys())
-        
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for k,v in field_dict.items():
-            image.add_component(v, k)
+        for k,v in self.items():
+            image.add_component(v.v, k)
         if data_collection is None:
             dc = DataCollection([image])
             app = GlueApplication(dc)
@@ -365,12 +362,12 @@ def construct_image(data_source, center=None, width=None, image_res=None):
 
 class FITSSlice(FITSImageBuffer):
     r"""
-    Generate a FITSImageBuffer of an on-axis slice.
+    Generate a FITSImageData of an on-axis slice.
 
     Parameters
     ----------
-    ds : FITSDataset
-        The FITS dataset object.
+    ds : :class:`yt.data_objects.api.Dataset`
+        The dataset object.
     axis : character or integer
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
