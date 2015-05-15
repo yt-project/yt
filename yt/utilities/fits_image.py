@@ -21,23 +21,17 @@ import re
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
 
-if isinstance(pyfits, NotAModule):
-    HDUList = object
-else:
-    HDUList = pyfits.HDUList
+class FITSImageData(object):
 
-class FITSImageBuffer(HDUList):
+    def __init__(self, data, fields=None, units=None, width=None, wcs=None):
+        r""" Initialize a FITSImageData object.
 
-    def __init__(self, data, fields=None, units=None, pixel_scale=None, wcs=None):
-        r""" Initialize a FITSImageBuffer object.
-
-        FITSImageBuffer contains a list of FITS ImageHDU instances, and
-        optionally includes WCS information. It inherits from HDUList, so
-        operations such as `writeto` are enabled. Images can be constructed
-        from ImageArrays, NumPy arrays, dicts of such arrays,
-        FixedResolutionBuffers, and YTCoveringGrids. The latter two are the
-        most powerful because WCS information can be constructed from their
-        coordinates.
+        FITSImageData contains a collection of FITS ImageHDU instances and
+        WCS information, along with units for each of the images. FITSImageData
+        instances can be constructed from ImageArrays, NumPy arrays, dicts 
+        of such arrays, FixedResolutionBuffers, and YTCoveringGrids. The latter 
+        two are the most powerful because WCS information can be constructed 
+        automatically from their coordinates.
 
         Parameters
         ----------
@@ -77,46 +71,47 @@ class FITSImageBuffer(HDUList):
         >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
         >>> scale = 1./3600. # One arcsec per pixel
         >>> w.wcs.cdelt = [-scale, scale]
-        >>> f_deg = FITSImageBuffer(frb, fields="kT", wcs=w)
+        >>> f_deg = FITSImageData(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
         """
 
-        if units is None: units = "cm"
-        if pixel_scale is None: pixel_scale = 1.0
+        if units is None: 
+            units = "cm"
+        if width is None: 
+            width = 1.0
 
-        super(FITSImageBuffer, self).__init__()
+        exclude_fields = ['x','y','z','px','py','pz',
+                          'pdx','pdy','pdz','weight_field']
 
-        if isinstance(fields, string_types):
+        self.hdulist = pyfits.HDUList()
+
+        if isinstance(fields, string_types): 
             fields = [fields]
-
-        exclude_fields = ['x', 'y', 'z', 'px', 'py', 'pz',
-                          'pdx', 'pdy', 'pdz', 'weight_field']
 
         if hasattr(data, 'keys'):
             img_data = data
-        else:
-            img_data = {}
             if fields is None:
-                mylog.error("Please specify a field name for this array.")
-                raise KeyError("Please specify a field name for this array.")
-            img_data[fields[0]] = data
+                fields = list(img_data.keys())
+        elif isinstance(data, np.ndarray):
+            if fields is None:
+                mylog.warning("No field name given for this array. Calling it 'image_data'.")
+                fn = 'image_data'
+                fields = [fn]
+            else:
+                fn = fields[0]
+            img_data = {fn: data}
 
-        if fields is None: fields = img_data.keys()
-        if len(fields) == 0:
-            mylog.error("Please specify one or more fields to write.")
-            raise KeyError("Please specify one or more fields to write.")
+        self.fields = fields
 
         first = True
-
         self.field_units = {}
-
         for key in fields:
             if key not in exclude_fields:
                 if hasattr(img_data[key], "units"):
                     self.field_units[key] = str(img_data[key].units)
                 else:
                     self.field_units[key] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % (key))
+                mylog.info("Making a FITS image of field %s" % key)
                 if first:
                     hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
                     first = False
