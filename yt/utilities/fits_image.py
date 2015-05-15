@@ -50,10 +50,10 @@ class FITSImageBuffer(HDUList):
             single array one field name must be specified.
         units : string
             The units of the WCS coordinates. Defaults to "cm".
-        pixel_scale : float
-            The scale of the pixel, in *units*. Either a single float or
-            iterable of floats. Only used if this information is not already
-            provided by *data*.
+        width : float or YTQuantity
+            The width of the image. Either a single value or iterable of values.
+            If a float, assumed to be in *units*. Only used if this information 
+            is not already provided by *data*.
         wcs : `astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
@@ -148,11 +148,13 @@ class FITSImageBuffer(HDUList):
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
             else:
                 # If img_data is just an array, we assume the center is the origin
-                # and use *pixel_scale* to determine the cell widths
-                if iterable(pixel_scale):
-                    cdelt = pixel_scale
+                # and use the image width to determine the cell widths
+                if not iterable(width):
+                    width = [width]*self.dimensionality
+                if isinstance(width[0], YTQuantity):
+                    cdelt = [wh.in_units(units).v/n for wh, n in zip(width, self.shape)]
                 else:
-                    cdelt = [pixel_scale]*self.dimensionality
+                    cdelt = [wh/n for wh, n in zip(width, self.shape)]
                 center = [0.0]*self.dimensionality
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
