@@ -91,8 +91,7 @@ To instantiate, give the parameter file and the simulation type.
 .. code-block:: python
 
   import yt
-  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
-                         find_outputs=False)
+  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
 
 Then, create a ``DatasetSeries`` object with the 
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
@@ -137,15 +136,12 @@ to select a subset of the total data:
 * ``times`` (*list*): A list of times for which outputs will be found.
   Default: None.
 
-* ``time_units`` (*str*): The time units used for requesting outputs by time.
-  Default: '1' (code units).
-
 * ``initial_redshift`` (*float*): The earliest redshift for outputs to be 
   included.  If None, the initial redshift of the simulation is used.  This
   can be used in combination with either ``final_time`` or ``final_redshift``.
   Default: None.
 
-* ``final_time`` (*float*): The latest redshift for outputs to be included.  
+* ``final_redshift`` (*float*): The latest redshift for outputs to be included.  
   If None, the final redshift of the simulation is used.  This can be used 
   in combination with either ``initial_time`` or ``initial_redshift``.  
   Default: None.
