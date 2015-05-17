@@ -153,7 +153,7 @@ class EnzoSimulation(SimulationTimeSeries):
             used in combination with either final_time or
             final_redshift.
             Default: None.
-        final_time : float
+        final_redshift : float
             The latest redshift for outputs to be included.  If None,
             the final redshift of the simulation is used.  This can be
             used in combination with either initial_time or
@@ -190,8 +190,8 @@ class EnzoSimulation(SimulationTimeSeries):
         Examples
         --------
 
-        >>> from yt.mods import *
-        >>> es = simulation("my_simulation.par", "Enzo")
+        >>> import yt
+        >>> es = yt.simulation("my_simulation.par", "Enzo")
         
         >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"), 
                                redshift_data=False)
@@ -199,8 +199,6 @@ class EnzoSimulation(SimulationTimeSeries):
         >>> es.get_time_series(redshifts=[3, 2, 1, 0])
 
         >>> es.get_time_series(final_cycle=100000)
-
-        >>> es.get_time_series(find_outputs=True)
 
         >>> # after calling get_time_series
         >>> for ds in es.piter():
