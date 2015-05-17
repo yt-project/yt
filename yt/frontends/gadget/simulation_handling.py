@@ -61,9 +61,9 @@ class GadgetSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("my_simulation.par", "Gadget")
-    >>> es.get_time_series()
-    >>> for ds in es:
+    >>> gs = yt.simulation("my_simulation.par", "Gadget")
+    >>> gs.get_time_series()
+    >>> for ds in gs:
     ...     print ds.current_time
 
     """
@@ -136,7 +136,7 @@ class GadgetSimulation(SimulationTimeSeries):
             used in combination with either final_time or
             final_redshift.
             Default: None.
-        final_time : float
+        final_redshift : float
             The latest redshift for outputs to be included.  If None,
             the final redshift of the simulation is used.  This can be
             used in combination with either initial_time or
@@ -163,25 +163,23 @@ class GadgetSimulation(SimulationTimeSeries):
         Examples
         --------
 
-        >>> from yt.mods import *
-        >>> es = simulation("my_simulation.par", "Gadget")
+        >>> import yt
+        >>> gs = yt.simulation("my_simulation.par", "Gadget")
         
-        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
+        >>> gs.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 
-        >>> es.get_time_series(redshifts=[3, 2, 1, 0])
-
-        >>> es.get_time_series(find_outputs=True)
+        >>> gs.get_time_series(redshifts=[3, 2, 1, 0])
 
         >>> # after calling get_time_series
-        >>> for ds in es.piter():
+        >>> for ds in gs.piter():
         ...     p = ProjectionPlot(ds, "x", "density")
         ...     p.save()
 
         >>> # An example using the setup_function keyword
         >>> def print_time(ds):
         ...     print ds.current_time
-        >>> es.get_time_series(setup_function=print_time)
-        >>> for ds in es:
+        >>> gs.get_time_series(setup_function=print_time)
+        >>> for ds in gs:
         ...     SlicePlot(ds, "x", "Density").save()
 
         """
@@ -273,7 +271,7 @@ class GadgetSimulation(SimulationTimeSeries):
             for comment in comments:
                 if comment in line: line = line[0:line.find(comment)]
             if len(line) < 2: continue
-            param, vals = (i.strip() for i in line.split(" ", 1))
+            param, vals = (i.strip() for i in line.split(None, 1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.
