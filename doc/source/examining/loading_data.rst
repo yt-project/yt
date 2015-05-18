@@ -570,6 +570,35 @@ package must be installed.
 ``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
 utilized more here.
 
+``create_spectral_slabs``
+"""""""""""""""""""""""""
+
+.. note::
+
+  The following functionality requires the `spectral-cube <http://spectral-cube.readthedocs.org>`_
+  library to be installed. 
+  
+If you have a spectral intensity dataset of some sort, and would like to extract emission in 
+particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
+used to generate a new file with these slabs as different fields. In thise example, we use it
+to extract individual lines from an intensity cube:
+
+.. code-block:: python
+
+  slab_centers = {'13CN': (218.03117, 'GHz'),
+                  'CH3CH2CHO': (218.284256, 'GHz'),
+                  'CH3NH2': (218.40956, 'GHz')}
+  slab_width = (0.05, "GHz")
+  output_fn = create_spectral_slabs("intensity_cube.fits",
+                                    slab_centers, slab_width, 
+                                    output_filename="lines.fits",
+                                    sclobber=True)
+
+This dataset can then be loaded up in yt, and the different slabs will be different fields, 
+with the field names taken from the keys in ``slab_centers``. The WCS coordinates on the 
+spectral axis are reset so that the center of the domain along this axis is zero, and the 
+left and right edges of the domain along this axis are :math:`\pm```0.5*slab_width``.
+
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -17,7 +17,7 @@ from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray
 from yt.utilities.fits_image import FITSImageBuffer
 
 import os
@@ -70,14 +70,15 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
 
-def create_line_fields_dataset(filename, line_centers, spectral_width,
-                               output_filename=None, clobber=False):
+def create_spectral_slabs(filename, slab_centers, slab_width,
+                          output_filename=None, clobber=False):
     r"""
-    Given a dictionary of spectral line centers and a width in
-    spectral units, extract data from a spectral cube at these line
-    centers and write a new FITS file containing the different lines
+    Given a dictionary of spectral slab centers and a width in
+    spectral units, extract data from a spectral cube at these slab
+    centers and write a new FITS file containing the different slabs
     as separate FITS images, which can be read into yt as different
-    fields.
+    fields. Useful for extracting individual lines from a spectral 
+    cube and separating them out as different fields. 
 
     Requires the SpectralCube (http://spectral-cube.readthedocs.org)
     library.
@@ -85,13 +86,13 @@ def create_line_fields_dataset(filename, line_centers, spectral_width,
     Parameters
     ----------
     filename : string
-        The spectral cube FITS file to extract the line fields from.
-    line_centers : dict of (float, string) tuples or YTQuantities
-        The centers of particular lines, where the keys are the names
-        of the lines and the values are (float, string) tuples or
+        The spectral cube FITS file to extract the data from.
+    slab_centers : dict of (float, string) tuples or YTQuantities
+        The centers of the slabs, where the keys are the names
+        of the new fields and the values are (float, string) tuples or
         YTQuantities, specifying a value for each center and its unit.
-    spectral_width : YTQuantity or (float, string) tuple
-        The width along the spectral axis to extract around the line.
+    slab_width : YTQuantity or (float, string) tuple
+        The width of the slab along the spectral axis.
     output_filename : string, optional
         The name of the new file to write. If not specified a new
         filename will be constructed from the input one.
@@ -100,42 +101,43 @@ def create_line_fields_dataset(filename, line_centers, spectral_width,
 
     Examples
     --------
-    >>> line_centers = {'13CN': (218.03117, 'GHz'),
+    >>> slab_centers = {'13CN': (218.03117, 'GHz'),
     ...                 'CH3CH2CHO': (218.284256, 'GHz'),
     ...                 'CH3NH2': (218.40956, 'GHz')}
-    >>> spectral_width = (0.05, "GHz")
-    >>> output_fn = create_line_fields_dataset("intensity_cube.fits", 
-    ...                                        line_centers, spectral_width, 
-    ...                                        output_filename="lines.fits",
-    ...                                        clobber=True)
+    >>> slab_width = (0.05, "GHz")
+    >>> output_fn = create_spectral_slabs("intensity_cube.fits", 
+    ...                                   slab_centers, slab_width, 
+    ...                                   output_filename="lines.fits",
+    ...                                   clobber=True)
     """
     from spectral_cube import SpectralCube
     cube = SpectralCube.read(filename)
-    if not isinstance(spectral_width, YTQuantity):
-        line_width = YTQuantity(spectral_width[0], spectral_width[1])
-    line_data = {}
-    for k, v in line_centers.items():
+    if not isinstance(slab_width, YTQuantity):
+        slab_width = YTQuantity(slab_width[0], slab_width[1])
+    slab_data = {}
+    field_units = cube.header.get("bunit", "dimensionless")
+    for k, v in slab_centers.items():
         if not isinstance(v, YTQuantity):
-            line_center = YTQuantity(v[0], v[1])
+            slab_center = YTQuantity(v[0], v[1])
         else:
-            line_center = v
-        mylog.info("Adding line field: %s at frequency %g %s" %
-                   (k, line_center.v, line_center.units))
-        line_lo = (line_center-0.5*line_width).to_astropy()
-        line_hi = (line_center+0.5*line_width).to_astropy()
-        subcube = cube.spectral_slab(line_lo, line_hi)
-        line_data[k] = subcube[:,:,:]
-    width = cube.header["naxis3"]*cube.header["cdelt3"]
+            slab_center = v
+        mylog.info("Adding slab field %s at %g %s" %
+                   (k, slab_center.v, slab_center.units))
+        slab_lo = (slab_center-0.5*slab_width).to_astropy()
+        slab_hi = (slab_center+0.5*slab_width).to_astropy()
+        subcube = cube.spectral_slab(slab_lo, slab_hi)
+        slab_data[k] = YTArray(subcube[:,:,:], field_units)
+    width = subcube.header["naxis3"]*cube.header["cdelt3"]
     w = subcube.wcs.copy()
     w.wcs.crpix[-1] = 0.5
     w.wcs.crval[-1] = -0.5*width
-    fid = FITSImageBuffer(line_data, wcs=w)
+    fid = FITSImageBuffer(slab_data, wcs=w)
     if output_filename is None:
         if filename.lower().endswith(".fits.gz"):
             new_fn = filename[:-8]
         elif filename.lower().endswith(".fits"):
             new_fn = filename[:-5]
-        new_fn += "_lines.fits"
+        new_fn += "_slabs.fits"
     else:
         new_fn = output_filename
     fid.writeto(new_fn, clobber=clobber)
