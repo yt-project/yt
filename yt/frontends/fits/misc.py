@@ -17,6 +17,8 @@ from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
+from yt.units.yt_array import YTQuantity
+from yt.utilities.fits_image import FITSImageBuffer
 
 import os
 
@@ -67,6 +69,66 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      units="counts/pixel",
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
+
+def create_line_fields_dataset(filename, line_centers, spectral_width,
+                               output_filename=None, clobber=False):
+    r"""
+    Given a dictionary of spectral line centers and a width in
+    spectral units, extract data from a spectral cube at these line
+    centers and write a new FITS file containing the different lines
+    as separate FITS images, which can be read into yt as different
+    fields. 
+
+    Requires the SpectralCube (http://spectral-cube.readthedocs.org) 
+    library.
+
+    Parameters
+    ----------
+    filename : string
+        The spectral cube FITS file to extract the line fields from.
+    line_centers : dict of (float, string) tuples or YTQuantities
+        The centers of particular lines, where the keys are the names 
+        of the lines and the values are (float, string) tuples or 
+        YTQuantities, specifying a value for each center and its unit. 
+    spectral_width : YTQuantity or (float, string) tuple
+        The width along the spectral axis to extract around the line.
+    output_filename : string, optional
+        The name of the new file to write. If not specified a new 
+        filename will be constructed from the input one.
+    clobber : boolean, optional
+        Whether or not to overwrite an existing file. Default False.
+    """
+    from spectral_cube import SpectralCube
+    cube = SpectralCube.read(filename)
+    if not isinstance(spectral_width, YTQuantity):
+        line_width = YTQuantity(spectral_width[0], spectral_width[1])
+    line_data = {}
+    for k, v in line_centers.items():
+        if not isinstance(v, YTQuantity):
+            line_center = YTQuantity(v[0], v[1])
+        else:
+            line_center = v
+        mylog.info("Adding line field: %s at frequency %g %s" %
+                   (k, line_center.v, line_center.units))
+        line_lo = (line_center-0.5*line_width).to_astropy()
+        line_hi = (line_center+0.5*line_width).to_astropy()
+        subcube = cube.spectral_slab(line_lo, line_hi)
+        line_data[k] = subcube[:,:,:]
+    width = cube.header["naxis3"]*cube.header["cdelt3"]
+    w = subcube.wcs.copy()
+    w.wcs.crpix[-1] = 0.5
+    w.wcs.crval[-1] = -0.5*width
+    fid = FITSImageBuffer(line_data, wcs=w)
+    if output_filename is None:
+        if filename.lower().endswith(".fits.gz"):
+            new_fn = filename[:-8]
+        elif filename.lower().endswith(".fits"):
+            new_fn = filename[:-5]
+        new_fn += "_lines.fits"
+    else:
+        new_fn = output_filename
+    fid.writeto(new_fn, clobber=clobber)
+    return new_fn
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
