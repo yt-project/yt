@@ -597,7 +597,7 @@ to extract individual lines from an intensity cube:
 This dataset can then be loaded up in yt, and the different slabs will be different fields, 
 with the field names taken from the keys in ``slab_centers``. The WCS coordinates on the 
 spectral axis are reset so that the center of the domain along this axis is zero, and the 
-left and right edges of the domain along this axis are :math:`\pm```0.5*slab_width``.
+left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
