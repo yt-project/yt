@@ -77,9 +77,9 @@ def create_line_fields_dataset(filename, line_centers, spectral_width,
     spectral units, extract data from a spectral cube at these line
     centers and write a new FITS file containing the different lines
     as separate FITS images, which can be read into yt as different
-    fields. 
+    fields.
 
-    Requires the SpectralCube (http://spectral-cube.readthedocs.org) 
+    Requires the SpectralCube (http://spectral-cube.readthedocs.org)
     library.
 
     Parameters
@@ -87,16 +87,27 @@ def create_line_fields_dataset(filename, line_centers, spectral_width,
     filename : string
         The spectral cube FITS file to extract the line fields from.
     line_centers : dict of (float, string) tuples or YTQuantities
-        The centers of particular lines, where the keys are the names 
-        of the lines and the values are (float, string) tuples or 
-        YTQuantities, specifying a value for each center and its unit. 
+        The centers of particular lines, where the keys are the names
+        of the lines and the values are (float, string) tuples or
+        YTQuantities, specifying a value for each center and its unit.
     spectral_width : YTQuantity or (float, string) tuple
         The width along the spectral axis to extract around the line.
     output_filename : string, optional
-        The name of the new file to write. If not specified a new 
+        The name of the new file to write. If not specified a new
         filename will be constructed from the input one.
     clobber : boolean, optional
         Whether or not to overwrite an existing file. Default False.
+
+    Examples
+    --------
+    >>> line_centers = {'13CN': (218.03117, 'GHz'),
+    ...                 'CH3CH2CHO': (218.284256, 'GHz'),
+    ...                 'CH3NH2': (218.40956, 'GHz')}
+    >>> spectral_width = (0.05, "GHz")
+    >>> output_fn = create_line_fields_dataset("intensity_cube.fits", 
+    ...                                        line_centers, spectral_width, 
+    ...                                        output_filename="lines.fits",
+    ...                                        clobber=True)
     """
     from spectral_cube import SpectralCube
     cube = SpectralCube.read(filename)
