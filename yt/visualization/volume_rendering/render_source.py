@@ -16,14 +16,14 @@ from yt.funcs import mylog, ensure_numpy_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from transfer_function_helper import TransferFunctionHelper
-from transfer_functions import TransferFunction, \
+from .transfer_function_helper import TransferFunctionHelper
+from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 from yt.visualization.image_writer import apply_colormap
 
-from zbuffer_array import ZBuffer
+from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
 

@@ -12,12 +12,13 @@ The volume rendering Scene class.
 # -----------------------------------------------------------------------------
 
 
-from yt.funcs import mylog
-from camera import Camera
-from render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridsSource
-from zbuffer_array import ZBuffer
 import numpy as np
+from yt.funcs import mylog
+from yt.extern.six import iteritems, itervalues
+from .camera import Camera
+from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
+    GridsSource
+from .zbuffer_array import ZBuffer
 
 
 class SceneHandle(object):
@@ -78,14 +79,14 @@ class Scene(object):
         self.camera = None
 
     def get_source(self, source_num):
-        return self.sources.values()[source_num]
+        return list(itervalues(self.sources))[source_num]
 
     def _iter_opaque_sources(self):
         """
         Iterate over opaque RenderSource objects,
         returning a tuple of (key, source)
         """
-        for k, source in self.sources.iteritems():
+        for k, source in iteritems(self.sources):
             if isinstance(source, OpaqueSource) or \
                     issubclass(OpaqueSource, type(source)):
                 yield k, source
@@ -95,7 +96,7 @@ class Scene(object):
         Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
         """
-        for k, source in self.sources.iteritems():
+        for k, source in iteritems(self.sources):
             if not isinstance(source, OpaqueSource):
                 yield k, source
 
@@ -151,7 +152,7 @@ class Scene(object):
 
     def _validate(self):
         r"""Validate the current state of the scene."""
-        for k, source in self.sources.iteritems():
+        for k, source in iteritems(self.sources):
             source._validate()
         return
 
@@ -256,7 +257,7 @@ class Scene(object):
     def __repr__(self):
         disp = "<Scene Object>:"
         disp += "\nSources: \n"
-        for k, v in self.sources.iteritems():
+        for k, v in iteritems(self.sources):
             disp += "    %s: %s\n" % (k, v)
         disp += "Camera: \n"
         disp += "    %s" % self.camera

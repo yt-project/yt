@@ -15,8 +15,8 @@ from yt.funcs import iterable, mylog, ensure_numpy_array
 from yt.utilities.orientation import Orientation
 from yt.units.yt_array import YTArray
 from yt.utilities.math_utils import get_rotation_matrix
-from utils import data_source_or_all
-from lens import lenses
+from .utils import data_source_or_all
+from .lens import lenses
 import numpy as np
 
 

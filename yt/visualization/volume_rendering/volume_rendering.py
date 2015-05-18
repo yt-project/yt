@@ -12,9 +12,9 @@ Volume rendering
 # ----------------------------------------------------------------------------
 
 
-from scene import Scene
-from camera import Camera
-from render_source import VolumeSource
+from .scene import Scene
+from .camera import Camera
+from .render_source import VolumeSource
 from .utils import data_source_or_all
 from yt.funcs import mylog
 
