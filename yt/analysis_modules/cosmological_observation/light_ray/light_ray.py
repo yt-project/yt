@@ -162,7 +162,7 @@ class LightRay(CosmologySplice):
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
-                    raise RuntimeError("LightRay Error: trajectory must have lenght 3.")
+                    raise RuntimeError("LightRay Error: trajectory must have length 3.")
                 r, theta, phi = trajectory
                 self.light_ray_solution[0]['end'] = self.light_ray_solution[0]['start'] + \
                   r * np.array([np.cos(phi) * np.sin(theta),
@@ -355,6 +355,7 @@ class LightRay(CosmologySplice):
             # Load dataset for segment.
             ds = load(my_segment['filename'])
 
+            my_segment['unique_identifier'] = ds.unique_identifier
             if redshift is not None:
                 if ds.cosmological_simulation and redshift != ds.current_redshift:
                     mylog.warn("Generating light ray with different redshift than " +
@@ -522,7 +523,19 @@ def periodic_distance(coord1, coord2):
     return np.sqrt((dif * dif).sum(axis=-1))
 
 def periodic_ray(start, end, left=None, right=None):
-    "Break up periodic ray into non-periodic segments."
+    """
+    Break up periodic ray into non-periodic segments. 
+    Accepts start and end points of periodic ray as YTArrays.
+    Accepts optional left and right edges of periodic volume as YTArrays.
+    Returns a list of lists of coordinates, where each element of the 
+    top-most list is a 2-list of start coords and end coords of the 
+    non-periodic ray: 
+
+    [[[x0start,y0start,z0start], [x0end, y0end, z0end]], 
+     [[x1start,y1start,z1start], [x1end, y1end, z1end]], 
+     ...,]
+
+    """
 
     if left is None:
         left = np.zeros(start.shape)

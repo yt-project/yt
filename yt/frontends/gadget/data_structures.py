@@ -167,7 +167,7 @@ class GadgetDataset(ParticleDataset):
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
-            self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+            self.current_time = hvals["Time"]
         else:
             # Now we calculate our time based on the cosmology, because in
             # ComovingIntegration hvals["Time"] will in fact be the expansion
@@ -200,7 +200,7 @@ class GadgetDataset(ParticleDataset):
             else:
                 mylog.info("Assuming length units are in kpc (physical)")
                 self._unit_base = dict(length = (1.0, "kpc"))
-                
+
         # If units passed in by user, decide what to do about
         # co-moving and factors of h
         unit_base = self._unit_base or {}
@@ -253,7 +253,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None,
@@ -327,8 +327,8 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     def _set_owls_eagle_units(self):
 
-        # note the contents of the HDF5 Units group are in _unit_base 
-        # note the velocity stored on disk is sqrt(a) dx/dt 
+        # note the contents of the HDF5 Units group are in _unit_base
+        # note the velocity stored on disk is sqrt(a) dx/dt
         self.length_unit = self.quan(self._unit_base["UnitLength_in_cm"], 'cmcm/h')
         self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
         self.velocity_unit = self.quan(self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
@@ -336,13 +336,15 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Header']
+        veto_groups = ['FOF']
+        valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Constants" not in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+              not any(vg in fh["/"] for vg in veto_groups)
+            fh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid

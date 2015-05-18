@@ -18,7 +18,10 @@ import numpy as np
 import struct
 import os
 import os.path
-
+import sys
+if sys.version_info >= (3,0,0):
+    long = int
+    
 from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler

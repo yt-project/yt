@@ -187,7 +187,8 @@ class FieldInfoContainer(dict):
            arguments (field, data)
         units : str
            A plain text string encoding the unit.  Powers must be in
-           python syntax (** instead of ^).
+           python syntax (** instead of ^). If set to "auto" the units
+           will be inferred from the return value of the field function.
         take_log : bool
            Describes whether the field should be logged
         validators : list
@@ -203,8 +204,6 @@ class FieldInfoContainer(dict):
         override = kwargs.pop("force_override", False)
         # Handle the case where the field has already been added.
         if not override and name in self:
-            mylog.warning("Field %s already exists. To override use " +
-                          "force_override=True.", name)
             # See below.
             if function is None:
                 def create_function(f):

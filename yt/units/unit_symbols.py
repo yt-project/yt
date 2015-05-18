@@ -93,13 +93,12 @@ degree_kelvin = Kelvin = K = quan(1.0, "K")
 
 dyne = dyn = quan(1.0, "dyne")
 erg = ergs = quan(1.0, "erg")
-electrostatic_unit = esu = quan(1.0, "esu")
-gauss = quan(1.0, "gauss")
 
 #
 # Misc SI
 #
 
+N  = Newton = newton = quan(1.0, "N")
 J  = Joule = joule = quan(1.0, "J")
 W  = Watt  = watt = quan(1.0, "W")
 Hz = Hertz = hertz = quan(1.0, "Hz") 
@@ -153,3 +152,23 @@ arcsec = arcsecond = quan(1.0, "arcsec")
 arcmin = arcminute = quan(1.0, "arcmin")
 mas    = milliarcsecond = quan(1.0, "mas")
 sr     = steradian = quan(1.0, "steradian")
+
+#
+# CGS electromagnetic units
+#
+
+electrostatic_unit = esu = quan(1.0, "esu")
+gauss = G = quan(1.0, "gauss")
+statampere = statA = quan(1.0, "statA")
+statvolt = statV = quan(1.0, "statV")
+statohm = quan(1.0, "statohm")
+
+#
+# SI electromagnetic units
+#
+
+C = coulomb = Coulomb = quan(1.0, "C")
+T = tesla = Tesla = quan(1.0, "T")
+A = ampere = Ampere = quan(1.0, "A")
+V = volt = Volt = quan(1.0, "V")
+ohm = Ohm = quan(1.0, "ohm")

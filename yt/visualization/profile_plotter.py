@@ -27,18 +27,21 @@ from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
+from yt.units.yt_array import YTArray
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
-    create_profile
+    create_profile, \
+    sanitize_field_tuple_keys
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
+    iterable, \
     get_image_suffix, \
     get_ipython_api_version
 
@@ -531,7 +534,7 @@ class ProfilePlot(object):
                 units[field] = str(p.field_data[field].units)
             self.profiles[i] = \
                 create_profile(p.data_source, p.x_field,
-                               n_bins=len(p.x_bins)-2,
+                               n_bins=len(p.x_bins)-1,
                                fields=p.field_map.values(),
                                weight_field=p.weight_field,
                                accumulation=p.accumulation,
@@ -640,7 +643,7 @@ class PhasePlot(ImagePlotContainer):
     y field, and z field (or fields), this will create a two-dimensional 
     profile of the average (or total) value of the z field in bins of the 
     x and y fields.
-    
+
     Parameters
     ----------
     data_source : YTSelectionContainer Object
@@ -698,14 +701,13 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
     >>> plot.set_title("cell_mass", "This is a phase plot")
-    
+
     """
     x_log = None
     y_log = None
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
-
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
@@ -844,9 +846,17 @@ class PhasePlot(ImagePlotContainer):
             font_size = self._font_properties.get_size()
             f = self.profile.data_source._determine_fields(f)[0]
 
+            # if this is a Particle Phase Plot AND if we using a single color,
+            # override the colorbar here.
+            splat_color = getattr(self, "splat_color", None)
+            if splat_color is not None:
+                cmap = matplotlib.colors.ListedColormap(splat_color, 'dummy')
+            else:
+                cmap = self._colormaps[f]
+
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], zlim,
+                                         cmap, zlim,
                                          self.figure_size, font_size,
                                          fig, axes, cax)
 
@@ -890,6 +900,10 @@ class PhasePlot(ImagePlotContainer):
 
         self._set_font_properties()
 
+        # if this is a particle plot with one color only, hide the cbar here
+        if hasattr(self, "use_cbar") and self.use_cbar is False:
+            self.plots[f].hide_colorbar()
+
         self._plot_valid = True
 
     @classmethod
@@ -928,14 +942,13 @@ class PhasePlot(ImagePlotContainer):
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
 
-
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
         Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
         (see example below).
-                
+
         Parameters
         ----------
         field: str or tuple
@@ -1103,7 +1116,7 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        
+
         xmin : float or None
           The new x minimum.  Defaults to None, which leaves the xmin
           unchanged.
@@ -1133,16 +1146,21 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
                    p.y_field: ((p.y_bins.min(), str(p.y.units)),
                                (p.y_bins.max(), str(p.y.units)))}
+        deposition = getattr(self.profile, "deposition", None)
+        if deposition is None:
+            additional_kwargs = {'accumulation': p.accumulation,
+                                 'fractional': p.fractional}
+        else:
+            additional_kwargs = {'deposition': p.deposition}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
-            n_bins=[len(p.x_bins)-2, len(p.y_bins)-2],
+            n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
-            accumulation=p.accumulation,
-            fractional=p.fractional,
             units=units,
-            extrema=extrema)
+            extrema=extrema,
+            **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
@@ -1183,16 +1201,21 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
                                (p.x_bins.max(), str(p.x.units))),
                    p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        deposition = getattr(self.profile, "deposition", None)
+        if deposition is None:
+            additional_kwargs = {'accumulation': p.accumulation,
+                                 'fractional': p.fractional}
+        else:
+            additional_kwargs = {'deposition': p.deposition}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             p.field_map.values(),
-            n_bins=[len(p.x_bins), len(p.y_bins)],
+            n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
-            accumulation=p.accumulation,
-            fractional=p.fractional,
             units=units,
-            extrema=extrema)
+            extrema=extrema,
+            **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
         return self
@@ -1242,6 +1265,7 @@ class PhasePlotMPL(ImagePlotMPL):
                                           np.array(image_data.T),
                                           norm=norm,
                                           cmap=cmap)
+
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)
         self.cb = self.figure.colorbar(self.image, self.cax)

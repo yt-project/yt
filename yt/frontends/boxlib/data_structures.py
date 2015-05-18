@@ -808,8 +808,10 @@ class CastroDataset(BoxlibDataset):
         # set the periodicity based on the runtime parameters
         periodicity = [True, True, True]
         if not self.parameters['-x'] == "interior": periodicity[0] = False
-        if not self.parameters['-y'] == "interior": periodicity[1] = False
-        if not self.parameters['-z'] == "interior": periodicity[2] = False
+        if self.dimensionality >= 2:
+            if not self.parameters['-y'] == "interior": periodicity[1] = False
+        if self.dimensionality == 3:
+            if not self.parameters['-z'] == "interior": periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
     

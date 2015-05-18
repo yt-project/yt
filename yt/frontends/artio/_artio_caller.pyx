@@ -18,13 +18,9 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures
 
-IF UNAME_SYSNAME == "Windows":
-    cdef extern from "malloc.h":
-        void *alloca(int)
-ELSE:
-    cdef extern from "alloca.h":
-        void *alloca(int)
-
+cdef extern from "platform_dep.h":
+    void *alloca(int)
+    
 cdef extern from "cosmology.h":
     ctypedef struct CosmologyParameters "CosmologyParameters" :
         pass

@@ -298,7 +298,7 @@ class Camera(Orientation):
         --------
 
         >>> cam = Camera()
-        >>> cam.roll(np.pi/4)
+        >>> cam.pitch(np.pi/4)
         """
         self.rotate(theta, rot_vector=self.unit_vectors[0])
 
@@ -316,7 +316,7 @@ class Camera(Orientation):
         --------
 
         >>> cam = Camera()
-        >>> cam.roll(np.pi/4)
+        >>> cam.yaw(np.pi/4)
         """
         self.rotate(theta, rot_vector=self.unit_vectors[1])
 

@@ -32,6 +32,8 @@ from yt.fields.field_exceptions import \
     NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
+from yt.utilities.lib.Interpolators import \
+    ghost_zone_interpolate
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -263,29 +265,16 @@ class AMRGridPatch(YTSelectionContainer):
         new_field = np.zeros(self.ActiveDimensions + 1, dtype='float64')
 
         if no_ghost:
-            of = self[field]
-            new_field[:-1,:-1,:-1] += of
-            new_field[:-1,:-1,1:] += of
-            new_field[:-1,1:,:-1] += of
-            new_field[:-1,1:,1:] += of
-            new_field[1:,:-1,:-1] += of
-            new_field[1:,:-1,1:] += of
-            new_field[1:,1:,:-1] += of
-            new_field[1:,1:,1:] += of
-            np.multiply(new_field, 0.125, new_field)
-            finfo = self.ds._get_field_info(*field)
-            if finfo.take_log:
-                new_field = np.log10(new_field)
-
-            new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
-            new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
-            new_field[:,-1, :] = 2.0*new_field[:,-2,:] - new_field[:,-3,:]
-            new_field[:,0, :]  = 2.0*new_field[:,1,:] - new_field[:,2,:]
-            new_field[-1,:,:] = 2.0*new_field[-2,:,:] - new_field[-3,:,:]
-            new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
-
-            if finfo.take_log:
-                np.power(10.0, new_field, new_field)
+            # Ensure we have the native endianness in this array.  Avoid making
+            # a copy if possible.
+            old_field = np.asarray(self[field], dtype="=f8")
+            # We'll use the ghost zone routine, which will naturally
+            # extrapolate here.
+            input_left = np.array([0.5, 0.5, 0.5], dtype="float64")
+            output_left = np.array([0.0, 0.0, 0.0], dtype="float64")
+            # rf = 1 here
+            ghost_zone_interpolate(1, old_field, input_left,
+                                   new_field, output_left)
         else:
             cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
             np.add(new_field, cg[field][1: ,1: ,1: ], new_field)

@@ -7,8 +7,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("absorption_spectrum")
     config.add_subpackage("cosmological_observation")
     config.add_subpackage("halo_analysis")
-    if sys.version[0] != '3':
-        config.add_subpackage("halo_finding")
+    config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
     config.add_subpackage("level_sets")
     config.add_subpackage("particle_trajectories")

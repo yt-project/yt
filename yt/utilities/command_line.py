@@ -380,7 +380,7 @@ class YTBugreportCmd(YTCommand):
         print("===============================================================")
         print("At any time in advance of the upload of the bug, you should feel free")
         print("to ctrl-C out and submit the bug report manually by going here:")
-        print("   http://hg.yt-project.org/yt/issues/new")
+        print("   http://bitbucket.org/yt_analysis/yt/issues/new")
         print()
         print("Also, in order to submit a bug through this interface, you")
         print("need a Bitbucket account. If you don't have one, exit this ")
@@ -388,7 +388,7 @@ class YTBugreportCmd(YTCommand):
         print()
         print("Have you checked the existing bug reports to make")
         print("sure your bug has not already been recorded by someone else?")
-        print("   http://hg.yt-project.org/yt/issues?status=new&status=open")
+        print("   http://bitbucket.org/yt_analysis/yt/issues?status=new&status=open")
         print()
         print("Finally, are you sure that your bug is, in fact, a bug? It might")
         print("simply be a misunderstanding that could be cleared up by")
@@ -468,7 +468,7 @@ class YTBugreportCmd(YTCommand):
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
-        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
+        url = "http://bitbucket.org/yt_analysis/yt/issue/%s" % retval['local_id']
         print()
         print("===============================================================")
         print()
@@ -594,6 +594,8 @@ class YTInstInfoCmd(YTCommand):
                 print("    %s" % (spath))
                 update_supp = True
         vstring = get_yt_version()
+        if vstring == -1:
+            vstring = "unknown"
         if vstring is not None:
             print()
             print("The current version and changeset for the code is:")
@@ -679,6 +681,9 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
+        if sys.version_info >= (3,0,0):
+            print("yt mapserver is disabled for Python 3.")
+            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
@@ -1045,15 +1050,15 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
+        image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.parse.urlencode(parameters)
+        data = urllib.parse.urlencode(parameters).encode('utf-8')
         req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib.request.urlopen(req).read()
+            response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
@@ -1075,6 +1080,15 @@ class YTUploadImageCmd(YTCommand):
 
 def run_main():
     args = parser.parse_args()
+    # The following is a workaround for a nasty Python 3 bug:
+    # http://bugs.python.org/issue16308
+    # http://bugs.python.org/issue9253
+    try:
+        getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        sys.exit(0)
+        
     args.func(args)
 
 if __name__ == "__main__": run_main()

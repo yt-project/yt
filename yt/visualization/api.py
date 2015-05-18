@@ -15,11 +15,19 @@ API for yt.visualization
 
 from .color_maps import \
     add_cmap, \
-    show_colormaps
+    show_colormaps, \
+    add_cmap, \
+    make_colormap
+
+from .particle_plots import \
+    ParticleProjectionPlot, \
+    ParticlePhasePlot, \
+    ParticlePlot
 
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
+    ObliqueFixedResolutionBuffer, \
+    ParticleImageBuffer
 
 from .image_writer import \
     multi_image_composite, \
@@ -54,4 +62,3 @@ from .profile_plotter import \
 
 from .base_plot_types import \
     get_multi_plot
-

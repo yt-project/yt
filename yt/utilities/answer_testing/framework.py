@@ -128,7 +128,7 @@ class AnswerTesting(Plugin):
                 self.compare_name = "%s/%s/%s" % \
                     (os.path.realpath(options.output_dir), self.compare_name,
                      self.compare_name)
-            if self.store_name is not None:
+            if self.store_name is not None and options.store_results:
                 name_dir_path = "%s/%s" % \
                     (os.path.realpath(options.output_dir),
                     self.store_name)
@@ -276,16 +276,16 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
     return AnswerTestingTest.result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
+    args = args or ()
+    kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
         if cls is None:
-            ds = load(ds_fn)
+            ds = load(ds_fn, *args, **kwargs)
         else:
-            args = args or ()
-            kwargs = kwargs or {}
             ds = cls(ds_fn, *args, **kwargs)
         ds.index
         return ds
@@ -608,13 +608,13 @@ class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     def __init__(self, ds_fn, finder):
         super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
         self.finder = finder
-    
+
     def run(self):
         from yt.analysis_modules.halo_analysis.api import HaloCatalog
         from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
         hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
         hc.create()
-        
+
         hmf = HaloMassFcn(halos_ds=hc.halos_ds)
         result = np.empty((2, hmf.masses_sim.size))
         result[0] = hmf.masses_sim.d
@@ -634,7 +634,7 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
     def __init__(self, ds_fn, fitting_function):
         super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
         self.fitting_function = fitting_function
-    
+
     def run(self):
         from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
         hmf = HaloMassFcn(simulation_ds=self.ds,
@@ -657,9 +657,9 @@ def compare_image_lists(new_result, old_result, decimals):
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(decimals)) == None
+        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
         for fn in fns: os.remove(fn)
-            
+
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
@@ -763,7 +763,7 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return ffalse
     else:
         return ftrue
-        
+
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None

@@ -33,7 +33,7 @@ def create_vlos(normal, no_shifting):
         def _v_los(field, data):
             return data.ds.arr(data["zeros"], "cm/s")
     elif isinstance(normal, string_types):
-        def _v_los(field, data): 
+        def _v_los(field, data):
             return -data["velocity_%s" % normal]
     else:
         orient = Orientation(normal)
@@ -45,16 +45,16 @@ def create_vlos(normal, no_shifting):
             return -vz
     return _v_los
 
-fits_info = {"velocity":("m/s","VELOCITY","v"),
-             "frequency":("Hz","FREQUENCY","f"),
-             "energy":("eV","ENERGY","E"),
-             "wavelength":("angstrom","WAVELENG","lambda")}
+fits_info = {"velocity":("m/s","VOPT","v"),
+             "frequency":("Hz","FREQ","f"),
+             "energy":("eV","ENER","E"),
+             "wavelength":("angstrom","WAVE","lambda")}
 
 class PPVCube(object):
-    def __init__(self, ds, normal, field, velocity_bounds, center="c", 
+    def __init__(self, ds, normal, field, velocity_bounds, center="c",
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
-                 method="integrate", no_shifting=False,
+                 method="integrate", weight_field=None, no_shifting=False,
                  north_vector=None, no_ghost=True):
         r""" Initialize a PPVCube object.
 
@@ -70,7 +70,7 @@ class PPVCube(object):
             The field to project.
         velocity_bounds : tuple
             A 4-tuple of (vmin, vmax, nbins, units) for the velocity bounds to
-            integrate over. 
+            integrate over.
         center : A sequence of floats, a string, or a tuple.
             The coordinate of the center of the image. If set to 'c', 'center' or
             left blank, the plot is centered on the middle of the domain. If set to
@@ -84,10 +84,10 @@ class PPVCube(object):
         width : float, tuple, or YTQuantity.
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
-            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
+            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's
             spatial dimensions is 1.
         dims : integer, optional
-            The spatial resolution of the cube. Implies nx = ny, e.g. the 
+            The spatial resolution of the cube. Implies nx = ny, e.g. the
             aspect ratio of the PPVCube's spatial dimensions is 1.
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
@@ -102,12 +102,14 @@ class PPVCube(object):
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
             "sum" : straight summation over the line of sight.
+        weight_field : string, optional
+            The name of the weighting field.  Set to None for no weight.
         no_shifting : boolean, optional
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
         north_vector : a sequence of floats
-            A vector defining the 'up' direction. This option sets the orientation of 
-            the plane of projection. If not set, an arbitrary grid-aligned north_vector 
+            A vector defining the 'up' direction. This option sets the orientation of
+            the plane of projection. If not set, an arbitrary grid-aligned north_vector
             is chosen. Ignored in the case of on-axis cubes.
         no_ghost: bool, optional
             Optimization option for off-axis cases. If True, homogenized bricks will
@@ -173,7 +175,7 @@ class PPVCube(object):
         _intensity = self.create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
-        if method == "integrate":
+        if method == "integrate" and weight_field is None:
             self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
         elif method == "sum":
             self.proj_units = self.field_units
@@ -183,13 +185,14 @@ class PPVCube(object):
         for sto, i in parallel_objects(range(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, string_types):
-                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)
+                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method,
+                              weight_field=weight_field)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf, sc = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny, depth_res), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
-                                          method=method)
+                                          method=method, weight=weight_field)
             sto.result_id = i
             sto.result = buf.swapaxes(0,1)
             pbar.update(i)
