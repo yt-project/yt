@@ -132,6 +132,9 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     w.wcs.crpix[-1] = 0.5
     w.wcs.crval[-1] = -0.5*width
     fid = FITSImageBuffer(slab_data, wcs=w)
+    for hdu in fid:
+        hdu.header.pop("RESTFREQ", None)
+        hdu.header.pop("RESTFRQ", None)
     if output_filename is None:
         if filename.lower().endswith(".fits.gz"):
             new_fn = filename[:-8]
