@@ -7,7 +7,7 @@ API for Gadget frontend
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
+# Copyright (c) 2014-2015, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -22,5 +22,8 @@ from .data_structures import \
 from .io import \
     IOHandlerGadgetBinary, \
     IOHandlerGadgetHDF5
+
+from .simulation_handling import \
+    GadgetSimulation
 
 from . import tests
