@@ -94,6 +94,11 @@ class LightRay(CosmologySplice):
         Whether or not to search for datasets in the current 
         directory.
         Default: False.
+    load_kwargs : optional, dict
+        Optional dictionary of kwargs to be passed to the "load" 
+        function, appropriate for use of certain frontends.  E.g.
+        Tipsy using "bounding_box"
+        Gadget using "units_override", etc.
 
     """
     def __init__(self, parameter_filename, simulation_type=None,
@@ -101,7 +106,7 @@ class LightRay(CosmologySplice):
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
-                 find_outputs=False):
+                 find_outputs=False, load_kwargs=None):
 
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
@@ -109,13 +114,16 @@ class LightRay(CosmologySplice):
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
         self.parameter_filename = parameter_filename
-
+        if load_kwargs is None:
+            self.load_kwargs = {}
+        else:
+            self.load_kwargs = load_kwargs
         self.light_ray_solution = []
         self._data = {}
 
         # Make a light ray from a single, given dataset.        
         if simulation_type is None:
-            ds = load(parameter_filename)
+            ds = load(parameter_filename, **self.load_kwargs)
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
                 self.cosmology = Cosmology(
@@ -343,9 +351,9 @@ class LightRay(CosmologySplice):
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         if get_los_velocity:
-            all_fields.extend(['x-velocity', 'y-velocity',
-                               'z-velocity', 'los_velocity'])
-            data_fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
+            all_fields.extend(['velocity_x', 'velocity_y',
+                               'velocity_z', 'velocity_los'])
+            data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
         for my_storage, my_segment in parallel_objects(self.light_ray_solution,
@@ -353,7 +361,7 @@ class LightRay(CosmologySplice):
                                                        njobs=njobs):
 
             # Load dataset for segment.
-            ds = load(my_segment['filename'])
+            ds = load(my_segment['filename'], **self.load_kwargs)
 
             my_segment['unique_identifier'] = ds.unique_identifier
             if redshift is not None:
@@ -412,10 +420,10 @@ class LightRay(CosmologySplice):
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
-                    sub_vel = ds.arr([sub_ray['x-velocity'],
-                                      sub_ray['y-velocity'],
-                                      sub_ray['z-velocity']])
-                    sub_data['los_velocity'].extend((np.rollaxis(sub_vel, 1) *
+                    sub_vel = ds.arr([sub_ray['velocity_x'],
+                                      sub_ray['velocity_y'],
+                                      sub_ray['velocity_z']])
+                    sub_data['velocity_los'].extend((np.rollaxis(sub_vel, 1) *
                                                      line_of_sight).sum(axis=1)[asort])
                     del sub_vel
 
@@ -423,7 +431,6 @@ class LightRay(CosmologySplice):
                 del sub_ray, asort
 
             for key in sub_data:
-                if key in "xyz": continue
                 sub_data[key] = ds.arr(sub_data[key]).in_cgs()
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
@@ -466,8 +473,14 @@ class LightRay(CosmologySplice):
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
         for field in data.keys():
-            output.create_dataset(field, data=data[field])
-            output[field].attrs["units"] = str(data[field].units)
+            # if the field is a tuple, only use the second part of the tuple
+            # in the hdf5 output (i.e. ('gas', 'density') -> 'density')
+            if isinstance(field, tuple):
+                fieldname = field[1]
+            else:
+                fieldname = field
+            output.create_dataset(fieldname, data=data[field])
+            output[fieldname].attrs["units"] = str(data[field].units)
         output.close()
 
     @parallel_root_only
