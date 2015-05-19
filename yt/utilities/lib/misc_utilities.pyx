@@ -870,3 +870,36 @@ def fill_region(input_fields, output_fields,
                                         ifield[i]
                                     tot += 1
     return tot
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def flip_bitmask(np.ndarray[np.float64_t, ndim=1] vals,
+                 np.float64_t left_edge, np.float64_t right_edge, 
+                 np.uint64_t nbins):
+    cdef np.uint64_t i, bin_id
+    cdef np.float64_t idx = nbins / (right_edge - left_edge)
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] bitmask
+    bitmask = np.zeros(nbins, dtype="uint8")
+    for i in range(vals.shape[0]):
+        bin_id = <np.uint64_t> ((vals[i] - left_edge)*idx)
+        bitmask[bin_id] = 1
+    return bitmask
+
+#@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def flip_morton_bitmask(np.ndarray[np.uint64_t, ndim=1] morton_indices,
+                        int max_order):
+    # We assume that the morton_indices are fed to us in a setup that allows
+    # for 20 levels.  This means that we shift right by 3*(20-max_order) (or is
+    # that a fencepost?)
+    cdef np.uint64_t mi, i
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] bitmask
+    # Note that this will fail if it's too big, since numpy will check nicely
+    # the memory availability.  I guess.
+    bitmask = np.zeros(1 << (3*max_order), dtype="uint8")
+    for i in range(morton_indices.shape[0]):
+        mi = (morton_indices[i] >> (3 * (20-max_order)))
+        bitmask[mi] = 1
+    return bitmask
