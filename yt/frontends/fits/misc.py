@@ -136,11 +136,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
         hdu.header.pop("RESTFREQ", None)
         hdu.header.pop("RESTFRQ", None)
     if output_filename is None:
-        if filename.lower().endswith(".fits.gz"):
-            new_fn = filename[:-8]
-        elif filename.lower().endswith(".fits"):
-            new_fn = filename[:-5]
-        new_fn += "_slabs.fits"
+        new_fn = filename.rsplit(".",2)[0] + "_slabs.fits"
     else:
         new_fn = output_filename
     fid.writeto(new_fn, clobber=clobber)
