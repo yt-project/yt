@@ -316,7 +316,7 @@ class BoxSource(LineSource):
         order += [4, 5, 5, 6, 6, 7, 7, 4]
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         vertices = np.empty([24, 3])
-        for i in xrange(3):
+        for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
