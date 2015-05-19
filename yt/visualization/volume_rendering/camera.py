@@ -178,7 +178,7 @@ class Camera(Orientation):
         if not isinstance(focus, YTArray):
             focus = self.pf.arr(focus, input_units="code_length")
 
-        self.width = width
+        self.set_width(width)
         self.focus = focus
 
         super(Camera, self).__init__(self.focus - self.position,

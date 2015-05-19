@@ -120,7 +120,6 @@ def off_axis_projection(data_source, center, normal_vector,
         center = data_source.ds.arr(center, 'code_length')
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, 'code_length')
-
     sc = Scene()
     data_source.ds.index
     if item is None:
@@ -135,7 +134,7 @@ def off_axis_projection(data_source, center, normal_vector,
     else:
         vol.set_fields([item, weight])
     camera = Camera(data_source)
-    camera.width = width
+    camera.set_width(width)
     camera.focus = center
     sc.camera = camera
     sc.add_source(vol)
