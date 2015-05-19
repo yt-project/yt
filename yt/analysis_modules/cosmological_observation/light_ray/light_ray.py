@@ -33,6 +33,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 class LightRay(CosmologySplice):
     """
+    LightRay(parameter_filename, simulation_type=None,
+             near_redshift=None, far_redshift=None,
+             use_minimum_datasets=True, deltaz_min=0.0,
+             minimum_coherent_box_fraction=0.0,
+             time_data=True, redshift_data=True,
+             find_outputs=False, load_kwargs=None):
+
     Create a LightRay object.  A light ray is much like a light cone,
     in that it stacks together multiple datasets in order to extend a
     redshift interval.  Unlike a light cone, which does randomly
@@ -98,7 +105,8 @@ class LightRay(CosmologySplice):
         Optional dictionary of kwargs to be passed to the "load" 
         function, appropriate for use of certain frontends.  E.g.
         Tipsy using "bounding_box"
-        Gadget using "units_override", etc.
+        Gadget using "unit_base", etc.
+        Default : None
 
     """
     def __init__(self, parameter_filename, simulation_type=None,
@@ -251,6 +259,12 @@ class LightRay(CosmologySplice):
                        get_los_velocity=True, redshift=None,
                        njobs=-1):
         """
+        make_light_ray(seed=None, start_position=None, end_position=None,
+                       trajectory=None, fields=None, setup_function=None,
+                       solution_filename=None, data_filename=None,
+                       get_los_velocity=True, redshift=None,
+                       njobs=-1)
+
         Create a light ray and get field values for each lixel.  A light
         ray consists of a list of field values for cells intersected by
         the ray and the path length of the ray through those cells.
@@ -468,7 +482,11 @@ class LightRay(CosmologySplice):
 
     @parallel_root_only
     def _write_light_ray(self, filename, data):
-        "Write light ray data to hdf5 file."
+        """
+        _write_light_ray(filename, data)
+
+        Write light ray data to hdf5 file.
+        """
 
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
@@ -485,7 +503,11 @@ class LightRay(CosmologySplice):
 
     @parallel_root_only
     def _write_light_ray_solution(self, filename, extra_info=None):
-        "Write light ray solution to a file."
+        """
+        _write_light_ray_solution(filename, extra_info=None)
+
+        Write light ray solution to a file.
+        """
 
         mylog.info("Writing light ray solution to %s." % filename)
         f = open(filename, 'w')
@@ -503,7 +525,11 @@ class LightRay(CosmologySplice):
         f.close()
 
 def _flatten_dict_list(data, exceptions=None):
-    "Flatten the list of dicts into one dict."
+    """
+    _flatten_dict_list(data, exceptions=None)
+
+    Flatten the list of dicts into one dict.
+    """
 
     if exceptions is None: exceptions = []
     new_data = {}
@@ -518,12 +544,20 @@ def _flatten_dict_list(data, exceptions=None):
     return new_data
 
 def vector_length(start, end):
-    "Calculate vector length."
+    """
+    vector_length(start, end)
+    
+    Calculate vector length.
+    """
 
     return np.sqrt(np.power((end - start), 2).sum())
 
 def periodic_distance(coord1, coord2):
-    "Calculate length of shortest vector between to points in periodic domain."
+    """
+    periodic_distance(coord1, coord2)
+
+    Calculate length of shortest vector between to points in periodic domain.
+    """
     dif = coord1 - coord2
 
     dim = np.ones(coord1.shape,dtype=int)
@@ -537,6 +571,8 @@ def periodic_distance(coord1, coord2):
 
 def periodic_ray(start, end, left=None, right=None):
     """
+    periodic_ray(start, end, left=None, right=None)
+
     Break up periodic ray into non-periodic segments. 
     Accepts start and end points of periodic ray as YTArrays.
     Accepts optional left and right edges of periodic volume as YTArrays.
