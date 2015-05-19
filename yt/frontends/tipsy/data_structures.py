@@ -70,6 +70,9 @@ class TipsyDataset(ParticleDataset):
                  n_ref=64, over_refine_factor=1,
                  bounding_box = None,
                  units_override=None):
+        # Because Tipsy outputs don't have a fixed domain boundary, one can
+        # specify a bounding box which effective gives a domain_left_edge 
+        # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
         self.n_ref = n_ref
