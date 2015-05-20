@@ -33,6 +33,7 @@ fi
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
+PYTHON_VERSION=2
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
@@ -87,6 +88,16 @@ then
    echo "*                                                    *"
    echo "******************************************************"
    exit 1
+fi
+
+if [ ${PYTHON_VERSION} -eq 3 ] && [ ${INST_HG} -eq 1 ]
+then
+	echo "We cannot install Mercurial from this script using"
+	echo "Python 3. Please visit http://mercurial.selenic.com/"
+	echo "for alternative installation methods for Mercurial."
+	echo "After installing Mercurial, rerun this script with "
+	echo "INST_HG=0." 
+	exit 1
 fi
 
 #------------------------------------------------------------------------------#
@@ -487,6 +498,14 @@ function do_exit
     exit 1
 }
 
+if [ $PYTHON_VERSION -eq 2 ]
+then
+	 PYTHON_EXEC='python2.7'
+elif [ $PYTHON_VERSION -eq 3 ]
+then
+	 PYTHON_EXEC='python3.4'
+fi
+
 function do_setup_py
 {
     [ -e $1/done ] && return
@@ -504,18 +523,18 @@ function do_setup_py
     case $LIB in
         *h5py*)
             pushd $LIB &> /dev/null
-            ( ${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
             popd &> /dev/null
             ;;
         *numpy*)
-            if [ -e ${DEST_DIR}/lib/python2.7/site-packages/numpy/__init__.py ]
+            if [ -e ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/numpy/__init__.py ]
             then
                 VER=$(${DEST_DIR}/bin/python -c 'from distutils.version import StrictVersion as SV; \
                                                  import numpy; print SV(numpy.__version__) < SV("1.8.0")')
                 if [ $VER == "True" ]
                 then
                     echo "Removing previous NumPy instance (see issue #889)"
-                    rm -rf ${DEST_DIR}/lib/python2.7/site-packages/{numpy*,*.pth}
+                    rm -rf ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/{numpy*,*.pth}
                 fi
             fi
             ;;
@@ -523,8 +542,8 @@ function do_setup_py
             ;;
     esac
     cd $LIB
-    ( ${DEST_DIR}/bin/python2.7 setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -592,14 +611,20 @@ echo '0f714ae2eace0141b1381abf1160dc8f8a521335e886f99919caf3beb31df1fe271d67c7b2
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH
 export LD_LIBRARY_PATH=${DEST_DIR}/lib:$LD_LIBRARY_PATH
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
+if [ $PYTHON_VERSION -eq 2 ]
+then
+	 PYTHON='Python-2.7.9'
+elif [ $PYTHON_VERSION -eq 3 ]
+then
+	 PYTHON='Python-3.4.3'
+fi
 CYTHON='Cython-0.22'
 PYX='PyX-0.12.1'
-PYTHON='Python-2.7.9'
 BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12' 
 H5PY='h5py-2.5.0'
@@ -620,11 +645,13 @@ SYMPY='sympy-0.7.6'
 TORNADO='tornado-4.0.2'
 ZEROMQ='zeromq-4.0.5'
 ZLIB='zlib-1.2.8'
+SETUPTOOLS='setuptools-16.0'
 
 # Now we dump all our SHA512 files out.
 echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
 echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a913543731635f90859536244ac37dca9adf0fc2aa1b215ba884839d160  Python-2.7.9.tgz' > Python-2.7.9.tgz.sha512
+echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
@@ -646,6 +673,7 @@ echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a
 echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
 echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
+echo '38a89aad89dc9aa682dbfbca623e2f69511f5e20d4a3526c01aabbc7e93ae78f20aac566676b431e111540b41540a1c4f644ce4174e7ecf052318612075e02dc  setuptools-16.0.tar.gz' > setuptools-16.0.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -671,6 +699,7 @@ get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
+get_ytproject $SETUPTOOLS.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e $BZLIB/done ]
@@ -796,13 +825,16 @@ then
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+    ( ln -sf ${DEST_DIR}/bin/${PYTHON_EXEC} ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
     ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 fi
 
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
+
+# Install setuptools
+do_setup_py $SETUPTOOLS
 
 if [ $INST_HG -eq 1 ]
 then
@@ -814,7 +846,7 @@ else
     then
         export HG_EXEC=hg
     else
-        echo "Cannot find mercurial.  Please set INST_HG=1."
+        echo "Cannot find mercurial.  Please set INST_HG=1, or install Mercurial seperately."
         do_exit
     fi
 fi
@@ -848,11 +880,16 @@ fi
 # This fixes problems with gfortran linking.
 unset LDFLAGS
 
-echo "Installing distribute"
-( ${DEST_DIR}/bin/python2.7 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
-
+if [ $PYTHON_VERSION -eq 2 ]
+then
+	 EASY_INSTALL="easy_install-2.7"
+elif [ $PYTHON_VERSION -eq 3 ]
+then
+	 EASY_INSTALL="easy_install-3.4"
+fi
+ 
 echo "Installing pip"
-( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/${EASY_INSTALL} pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 if [ $INST_SCIPY -eq 0 ]
 then
@@ -986,13 +1023,13 @@ cd $YT_DIR
 
 echo "Installing yt"
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
-( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
-if !( ( ${DEST_DIR}/bin/python2.7 -c "import readline" 2>&1 )>> ${LOG_FILE})
+if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE})
 then
-    if !( ( ${DEST_DIR}/bin/python2.7 -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
+    if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
         echo "Installing pure-python readline"
         ( ${DEST_DIR}/bin/pip install gnureadline 2>&1 ) 1>> ${LOG_FILE}
