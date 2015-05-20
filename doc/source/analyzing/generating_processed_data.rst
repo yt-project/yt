@@ -69,6 +69,7 @@ as a 2D dataset itself, which may be operated on in the same way as any other da
    ds_frb = frb.export_dataset(fields=["density","temperature"], nprocs=8)
    sp = ds_frb.sphere("c", (100.,"kpc"))
 
+where the ``nprocs`` parameter can be used to decompose the image into ``nprocs`` number of grids.
 
 .. _generating-profiles-and-histograms:
 
