@@ -290,7 +290,7 @@ class FixedResolutionBuffer(object):
             These fields will be pixelized and output.
         """
         import h5py
-        if fields is None: fields = self.data.keys()
+        if fields is None: fields = list(self.data.keys())
         output = h5py.File(filename, "a")
         for field in fields:
             output.create_dataset(field,data=self[field])
@@ -308,7 +308,8 @@ class FixedResolutionBuffer(object):
         filename : string
             The name of the FITS file to be written.
         fields : list of strings
-            These fields will be pixelized and output.
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used. 
         clobber : boolean
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
@@ -319,10 +320,7 @@ class FixedResolutionBuffer(object):
 
         from yt.utilities.fits_image import FITSImageBuffer
 
-        extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
-        if fields is None: 
-            fields = [field[-1] for field in self.data_source.field_data
-                      if field not in extra_fields]
+        if fields is None: fields = list(self.data.keys())
 
         fib = FITSImageBuffer(self, fields=fields, units=units)
         if other_keys is not None:
@@ -338,7 +336,7 @@ class FixedResolutionBuffer(object):
         Parameters
         ----------
         fields : list of strings, optional
-            The fields to be extracted from the FRB. If "None", the keys of the
+            These fields will be pixelized and output. If "None", the keys of the
             FRB will be used. 
         nprocs: integer, optional
             If greater than 1, will create this number of subarrays out of data
