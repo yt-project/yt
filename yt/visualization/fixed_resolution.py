@@ -20,6 +20,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.frontends.stream.api import load_uniform_grid
 
 from . import _MPL
 import numpy as np
@@ -73,13 +74,13 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = ds.proj(0, "Density")
+    >>> proj = ds.proj(0, "density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> print frb1["Density"].max()
-    1.0914e-9
-    >>> print frb1["Temperature"].max()
-    104923.1
+    ...                              (1024, 1024))
+    >>> print frb1["density"].max()
+    1.0914e-9 g/cm**3
+    >>> print frb1["temperature"].max()
+    104923.1 K
     """
     _exclude_fields = ('pz','pdz','dx','x','y','z',
         'r', 'dr', 'phi', 'dphi', 'theta', 'dtheta',
@@ -330,7 +331,50 @@ class FixedResolutionBuffer(object):
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
         fib.writeto(filename, clobber=clobber)
-        
+
+    def export_dataset(self, fields=None, nprocs=1):
+        r"""Export a set of pixelized fields to an in-memory dataset that can be
+        analyzed as any other in yt. Unit information and other parameters (e.g., 
+        geometry, current_time, etc.) will be taken from the parent dataset. 
+
+        Parameters
+        ----------
+        fields : list of strings, optional
+            The fields to be extracted from the FRB. If "None", the keys of the
+            FRB will be used. 
+        nprocs: integer, optional
+            If greater than 1, will create this number of subarrays out of data
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+        >>> slc = ds.slice(2, 0.0)
+        >>> frb = slc.to_frb((500.,"kpc"), 500)
+        >>> ds2 = yt.load_frb(frb, fields=["density","temperature"], nprocs=32)
+        """
+        nx, ny = self.buff_size
+        data = {}
+        if fields is None:
+            fields = list(self.keys())
+        for field in fields:
+            arr = self[field]
+            data[field] = (arr.d.T.reshape(nx,ny,1), str(arr.units))
+        bounds = [b.in_units("code_length").v for b in self.bounds]
+        bbox = np.array([[bounds[0],bounds[1]],[bounds[2],bounds[3]],[0.,1.]])
+        return load_uniform_grid(data, [nx,ny,1],
+                                 length_unit=self.ds.length_unit,
+                                 bbox=bbox,
+                                 sim_time=self.ds.current_time.in_units("s").v,
+                                 mass_unit=self.ds.mass_unit,
+                                 time_unit=self.ds.time_unit,
+                                 velocity_unit=self.ds.velocity_unit,
+                                 magnetic_unit=self.ds.magnetic_unit,
+                                 periodicity=(False,False,False),
+                                 geometry=self.ds.geometry,
+                                 nprocs=nprocs)
+
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
