@@ -314,9 +314,7 @@ class FixedResolutionBuffer(object):
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
         units : string, optional
-            the length units that the coordinates are written in, default 'cm'
-            If units are set to "deg" then assume that sky coordinates are
-            requested.
+            the length units that the coordinates are written in, default 'cm'.
         """
 
         from yt.utilities.fits_image import FITSImageBuffer
