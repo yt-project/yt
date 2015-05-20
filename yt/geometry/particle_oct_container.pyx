@@ -106,7 +106,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def allocate_domains(self, domain_counts):
         pass
 
-    def finalize(self, int domain_id = 0):
+    def finalize(self, int domain_id = 0, int morton_index = 0):
         #This will sort the octs in the oct list
         #so that domains appear consecutively
         #And then find the oct index/offset for
@@ -114,6 +114,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0, lpos = 0
+        cdef np.int64_t index_counter = 0
         cdef int cur_dom = -1
         # Note that we now assign them in the same order they will be visited
         # by recursive visitors.
@@ -126,7 +127,11 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
             self.oct_list[i].domain = domain_id
-            self.oct_list[i].file_ind = -1
+            if morton_index == 0 or self.oct_list[i].children != NULL:
+                self.oct_list[i].file_ind = -1
+            elif self.oct_list[i].children == NULL:
+                self.oct_list[i].file_ind = index_counter
+                index_counter += 1
         self.max_level = max_level
 
     cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
