@@ -71,17 +71,18 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      display_name="Counts (%s-%s keV)" % (emin, emax))
 
 def create_spectral_slabs(filename, slab_centers, slab_width,
-                          output_filename=None, clobber=False):
+                          **kwargs):
     r"""
     Given a dictionary of spectral slab centers and a width in
     spectral units, extract data from a spectral cube at these slab
-    centers and write a new FITS file containing the different slabs
-    as separate FITS images, which can be read into yt as different
-    fields. Useful for extracting individual lines from a spectral 
-    cube and separating them out as different fields. 
+    centers and return a `FITSDataset` instance containing the different 
+    slabs as separate yt fields. Useful for extracting individual 
+    lines from a spectral cube and separating them out as different fields. 
 
     Requires the SpectralCube (http://spectral-cube.readthedocs.org)
     library.
+
+    All keyword arguments will be passed on to the `FITSDataset` constructor.
 
     Parameters
     ----------
@@ -93,11 +94,6 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
         YTQuantities, specifying a value for each center and its unit.
     slab_width : YTQuantity or (float, string) tuple
         The width of the slab along the spectral axis.
-    output_filename : string, optional
-        The name of the new file to write. If not specified a new
-        filename will be constructed from the input one.
-    clobber : boolean, optional
-        Whether or not to overwrite an existing file. Default False.
 
     Examples
     --------
@@ -105,12 +101,12 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     ...                 'CH3CH2CHO': (218.284256, 'GHz'),
     ...                 'CH3NH2': (218.40956, 'GHz')}
     >>> slab_width = (0.05, "GHz")
-    >>> output_fn = create_spectral_slabs("intensity_cube.fits", 
-    ...                                   slab_centers, slab_width, 
-    ...                                   output_filename="lines.fits",
-    ...                                   clobber=True)
+    >>> ds = create_spectral_slabs("intensity_cube.fits", 
+    ...                            slab_centers, slab_width,
+    ...                            nan_mask=0.0)
     """
     from spectral_cube import SpectralCube
+    from yt.frontends.fits.api import FITSDataset
     cube = SpectralCube.read(filename)
     if not isinstance(slab_width, YTQuantity):
         slab_width = YTQuantity(slab_width[0], slab_width[1])
@@ -126,7 +122,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
         slab_lo = (slab_center-0.5*slab_width).to_astropy()
         slab_hi = (slab_center+0.5*slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)
-        slab_data[k] = YTArray(subcube[:,:,:], field_units)
+        slab_data[k] = YTArray(subcube.filled_data[:,:,:], field_units)
     width = subcube.header["naxis3"]*cube.header["cdelt3"]
     w = subcube.wcs.copy()
     w.wcs.crpix[-1] = 0.5
@@ -135,12 +131,8 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     for hdu in fid:
         hdu.header.pop("RESTFREQ", None)
         hdu.header.pop("RESTFRQ", None)
-    if output_filename is None:
-        new_fn = filename.rsplit(".",2)[0] + "_slabs.fits"
-    else:
-        new_fn = output_filename
-    fid.writeto(new_fn, clobber=clobber)
-    return new_fn
+    ds = FITSDataset(fid, **kwargs)
+    return ds
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""

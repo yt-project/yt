@@ -469,6 +469,8 @@ which may be used to make deposited image fields from the event data for differe
   first image in the primary file. If this is not the case,
   yt will raise a warning and will not load this field.
 
+.. _additional_fits_options:
+
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
@@ -580,7 +582,7 @@ utilized more here.
   
 If you have a spectral intensity dataset of some sort, and would like to extract emission in 
 particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
-used to generate a new file with these slabs as different fields. In thise example, we use it
+used to generate a dataset with these slabs as different fields. In this example, we use it
 to extract individual lines from an intensity cube:
 
 .. code-block:: python
@@ -589,14 +591,14 @@ to extract individual lines from an intensity cube:
                   'CH3CH2CHO': (218.284256, 'GHz'),
                   'CH3NH2': (218.40956, 'GHz')}
   slab_width = (0.05, "GHz")
-  output_fn = create_spectral_slabs("intensity_cube.fits",
-                                    slab_centers, slab_width, 
-                                    output_filename="lines.fits",
-                                    sclobber=True)
+  ds = create_spectral_slabs("intensity_cube.fits",
+                                    slab_centers, slab_width,
+                                    nan_mask=0.0)
 
-This dataset can then be loaded up in yt, and the different slabs will be different fields, 
-with the field names taken from the keys in ``slab_centers``. The WCS coordinates on the 
-spectral axis are reset so that the center of the domain along this axis is zero, and the 
+All keyword arguments to `create_spectral_slabs` are passed on to `load` when creating the dataset
+(see :ref:`additional_fits_options` above). In the returned dataset, the different slabs will be
+different fields, with the field names taken from the keys in ``slab_centers``. The WCS coordinates 
+on the spectral axis are reset so that the center of the domain along this axis is zero, and the 
 left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
