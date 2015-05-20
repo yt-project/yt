@@ -1,18 +1,14 @@
 #
 # Hi there!  Welcome to the yt installation script.
 #
+# First things first, if you experience problems, please visit the Help 
+# section at http://yt-project.org.
+#
 # This script is designed to create a fully isolated Python installation
 # with the dependencies you need to run yt.
 #
-# There are a few options, but you only need to set *one* of them.  And
-# that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
-# installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up.
-#
-# If you experience problems, please visit the Help section at 
-# http://yt-project.org.
-#
+# There are a few options, but you only need to set *two* of them. The first 
+# is the next one, DEST_DIR:
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
@@ -23,9 +19,21 @@ then
     DEST_DIR=${YT_DEST}
 fi
 
+# The second option you need to set is which version of Python you want to 
+# install, 2.7 or 3.4. Note, if you install Python 3.4, you'll have to 
+# install Mercurial another way, outside of this script.
+PYTHON_VERSION=2 # For Python 2.7
+#PYTHON_VERSION=3 # For Python 3.4
+
+# What follows are some other options that you may or may not need to change.
+
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
 #HDF5_DIR=
+
+# If you've got yt some other place, set this to point to it. The script will
+# already check the current directory and the one above it in the tree.
+YT_DIR=""
 
 # If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
@@ -33,7 +41,6 @@ fi
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-PYTHON_VERSION=2
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
@@ -50,9 +57,6 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
-
-# If you've got yt some other place, set this to point to it.
-YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
 MPL_SUPP_LDFLAGS=""
