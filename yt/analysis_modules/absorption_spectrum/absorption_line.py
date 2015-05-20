@@ -171,26 +171,28 @@ def tau_profile(lam0, fval, gamma, vkms, column_density,
 
     ## shift lam0 by deltav
     if deltav is not None:
-        lam1 = lam0 * (1 + deltav / c)
+        lam1 = lam0 * (1 + deltav / ccgs)
     elif delta_lambda is not None:
         lam1 = lam0 + delta_lambda
     else:
         lam1 = lam0
 
     ## conversions
-    vdop = vkms * cm_per_km           # in cm/s
-    lam0cgs = lam0 / 1.e8             # rest wavelength in cm
-    lam1cgs = lam1 / 1.e8             # line wavelength in cm
-    nu1 = ccgs / lam1cgs              # line freq in Hz
-    nudop = vdop / ccgs * nu1         # doppler width in Hz
-    lamdop = vdop / ccgs * lam1       # doppler width in Ang
+    vdop = vkms.in_units("cm/s")      # in cm/s
+    lam0cgs = lam0.in_units("cm")   # rest wavelength in cm
+    lam1cgs = lam1.in_units("cm")   # line wavelength in cm
+    nu1 = (ccgs / lam1cgs).in_units("1/s")              # line freq in Hz
+    nudop = (vdop / ccgs * nu1).in_units("1/s")         # doppler width in Hz
+    lamdop = (vdop / ccgs * lam1).in_units("angstrom")       # doppler width in Ang
 
+    #import pdb ; pdb.set_trace()
+        
     ## create wavelength
     if lambda_bins is None:
         lambda_bins = lam1 + \
             np.arange(n_lambda, dtype=np.float) * dlambda - \
             n_lambda * dlambda / 2    # wavelength vector (angstroms)
-    nua = ccgs / (lambda_bins / 1.e8) # frequency vector (Hz)
+    nua = (ccgs / lambda_bins).in_units("1/s") # frequency vector (Hz)
 
     ## tau_0
     tau_X = np.sqrt(np.pi) * e**2 / (me * ccgs) * \
