@@ -343,7 +343,6 @@ class FixedResolutionBuffer(object):
 
         Examples
         --------
-
         >>> import yt
         >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> slc = ds.slice(2, 0.0)
