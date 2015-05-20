@@ -162,7 +162,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def add(self, np.ndarray[np.uint64_t, ndim=1] indices):
+    def add(self, np.ndarray[np.uint64_t, ndim=1] indices,
+            np.uint8_t order = ORDER_MAX):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
@@ -182,19 +183,19 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 # we're interested in.
                 continue
             for i in range(3):
-                ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+                ind[i] = (index >> ((order - level)*3 + (2 - i))) & 1
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
             while (cur.file_ind + 1) > self.n_ref:
-                if level >= ORDER_MAX: break # Just dump it here.
+                if level >= order: break # Just dump it here.
                 level += 1
                 for i in range(3):
-                    ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+                    ind[i] = (index >> ((order - level)*3 + (2 - i))) & 1
                 if cur.children == NULL or \
                    cur.children[cind(ind[0],ind[1],ind[2])] == NULL:
-                    cur = self.refine_oct(cur, index, level)
-                    self.filter_particles(cur, data, p, level)
+                    cur = self.refine_oct(cur, index, level, order)
+                    self.filter_particles(cur, data, p, level, order)
                 else:
                     cur = cur.children[cind(ind[0],ind[1],ind[2])]
             cur.file_ind += 1
@@ -202,7 +203,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index, int level):
+    cdef Oct *refine_oct(self, Oct *o, np.uint64_t index, int level,
+                         np.uint8_t order):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
@@ -221,12 +223,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     o.children[cind(i,j,k)] = noct
         o.file_ind = self.n_ref + 1
         for i in range(3):
-            ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
+            ind[i] = (index >> ((order - level)*3 + (2 - i))) & 1
         noct = o.children[cind(ind[0],ind[1],ind[2])]
         return noct
 
     cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p,
-                               int level):
+                               int level, np.uint8_t order):
         # Now we look at the last nref particles to decide where they go.
         cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
@@ -234,9 +236,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # Now we figure out our prefix, which is the oct address at this level.
         # As long as we're actually in Morton order, we do not need to worry
         # about *any* of the other children of the oct.
-        prefix1 = data[p] >> (ORDER_MAX - level)*3
+        prefix1 = data[p] >> (order - level)*3
         for i in range(n):
-            prefix2 = arr[i] >> (ORDER_MAX - level)*3
+            prefix2 = arr[i] >> (order - level)*3
             if (prefix1 == prefix2):
                 o.file_ind += 1
         #print ind[0], ind[1], ind[2], o.file_ind, level
