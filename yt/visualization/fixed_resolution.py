@@ -348,7 +348,7 @@ class FixedResolutionBuffer(object):
         >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> slc = ds.slice(2, 0.0)
         >>> frb = slc.to_frb((500.,"kpc"), 500)
-        >>> ds2 = yt.load_frb(frb, fields=["density","temperature"], nprocs=32)
+        >>> ds2 = frb.export_dataset(fields=["density","temperature"], nprocs=32)
         """
         nx, ny = self.buff_size
         data = {}
