@@ -58,8 +58,8 @@ The buffer arrays can be saved out to disk in either HDF5 or FITS format:
    frb.export_fits("my_images.fits", fields=["density","temperature"],
                    clobber=True, units="kpc")
 
-In the FITS case, there is an option for setting the `units` of the coordinate system in
-the file. If you want to overwrite a file with the same name, set `clobber=True`. 
+In the FITS case, there is an option for setting the ``units`` of the coordinate system in
+the file. If you want to overwrite a file with the same name, set ``clobber=True``. 
 
 The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` can even be exported
 as a 2D dataset itself, which may be operated on in the same way as any other dataset in yt:
