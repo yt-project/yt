@@ -18,6 +18,7 @@ from __future__ import print_function
 import h5py
 import numpy as np
 import stat
+import struct
 import os
 import types
 
@@ -242,10 +243,44 @@ class GadgetDataset(ParticleDataset):
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
         self.time_unit = self.length_unit / self.velocity_unit
 
+    @staticmethod
+    def _validate_header(filename):
+        '''
+        This method automatically detects whether the Gadget file is big/little endian 
+        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a 
+        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file 
+        is a Gadget binary file, and endianswap is the endianness character '>' or '<'. 
+        '''
+        try:
+            f = open(filename,'rb')
+        except IOError:
+            try:
+                f = open(filename+".0")
+            except IOError:
+                return False, 1
+        
+        # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
+        # 8 for a Gadget2 binary file with SnapFormat=2 file, 
+        # or the byte swapped equivalents (65536 and 134217728).
+        (r,) = struct.unpack('<I',f.read(4))
+        f.close()
+        if r == 256:
+            return True, '<'
+        elif r == 65536:
+            return True, '>'
+        # Disabled for now (does any one still use SnapFormat=2?)
+        # If so, alternate read would be needed based on header.
+        # elif r == 8:
+        #     return True, '<'
+        # elif r == 134217728:
+        #     return True, '>'
+        else:
+            return False, 1
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # We do not allow load() of these files.
-        return False
+        # First 4 bytes used to check load
+        return GadgetDataset._validate_header(args[0])[0]
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile

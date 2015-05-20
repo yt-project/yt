@@ -95,6 +95,18 @@ class GadgetSimulation(SimulationTimeSeries):
             self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
                                          "cmcm / h", registry=self.unit_registry)
             self.box_size *= self.length_unit.in_units("Mpccm / h")
+        else:
+            # Read time from file for non-cosmological sim
+            self.time_unit = self.quan(
+                self.unit_base["UnitLength_in_cm"]/ \
+                    self.unit_base["UnitVelocity_in_cm_per_s"], "s")
+            self.unit_registry.add("code_time", 1.0, dimensions.time)
+            self.unit_registry.modify("code_time", self.time_unit)
+            # Length
+            self.length_unit = self.quan(
+                self.unit_base["UnitLength_in_cm"],"cm")
+            self.unit_registry.add("code_length", 1.0, dimensions.length)
+            self.unit_registry.modify("code_length", self.length_unit)
 
     def get_time_series(self, initial_time=None, final_time=None,
                         initial_redshift=None, final_redshift=None,
@@ -386,7 +398,7 @@ class GadgetSimulation(SimulationTimeSeries):
             else:
                 self.all_outputs = \
                   [{"filename": self._snapshot_format(i),
-                    "time": a}
+                    "time": self.quan(a, "code_time")}
                    for i, a in enumerate(a_values)]
 
             self.all_outputs.sort(key=lambda obj:obj["time"].to_ndarray())
