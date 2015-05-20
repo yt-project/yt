@@ -46,12 +46,15 @@ class HDF5FileHandler(object):
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
-        if isinstance(filename, _astropy.pyfits.PrimaryHDU):
+        if isinstance(filename, _astropy.pyfits.hdu.image._ImageBaseHDU):
             self.handle = _astropy.pyfits.HDUList(filename)
+        elif isinstance(filename, _astropy.pyfits.HDUList):
+            self.handle = filename
         else:
             self.handle = _astropy.pyfits.open(
                 filename, memmap=True, do_not_scale_image_data=True,
                 ignore_blank=True)
+        self._fits_files = []
 
     def __del__(self):
         for f in self._fits_files:

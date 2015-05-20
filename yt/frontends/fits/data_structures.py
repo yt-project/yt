@@ -326,13 +326,13 @@ class FITSDataset(Dataset):
             self.nan_mask = {"all":nan_mask}
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
-        if isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU):
-            self._handle = FITSFileHandler(self.filenames[0])
-            fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
+        self._handle = FITSFileHandler(self.filenames[0])
+        if (isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU) or
+            isinstance(self.filenames[0], _astropy.pyfits.HDUList)):
+            fn = "InMemoryFITSFile_%s" % uuid.uuid4().hex
         else:
-            self._handle = FITSFileHandler(self.filenames[0])
             fn = self.filenames[0]
-        self._handle._fits_files = [self._handle]
+        self._handle._fits_files.append(self._handle)
         if self.num_files > 1:
             for fits_file in auxiliary_files:
                 if isinstance(fits_file, _astropy.pyfits.hdu.image._ImageBaseHDU):
