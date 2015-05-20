@@ -33,12 +33,12 @@ cdef inline np.uint64_t spread_bits(np.uint64_t x):
 
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float64_t z,
-                               np.float64_t *DLE, np.float64_t *DRE):
+                               np.float64_t *DLE, np.float64_t *DRE, np.int32_t order):
     cdef int i
     cdef np.float64_t dds[3]
     cdef np.uint64_t ii[3], mi
     for i in range(3):
-        dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
+        dds[i] = (DRE[i] - DLE[i]) / (1 << order)
     ii[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
     ii[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
     ii[2] = <np.uint64_t> ((z - DLE[2])/dds[2])

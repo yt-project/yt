@@ -290,11 +290,12 @@ cdef class ParticleForest:
     cdef public np.uint64_t nfiles
     cdef int oref
     cdef public int n_ref
+    cdef public np.int32_t index_order
     cdef public object masks
-    cdef public object buffer_masks
     cdef public object counts
     cdef public object max_count
     cdef public object owners
+    cdef public object morton_count
     cdef public object _last_selector
     cdef public object _last_return_values
     cdef public object _cached_octrees
@@ -302,7 +303,7 @@ cdef class ParticleForest:
     cdef public object _last_oct_handler
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
-                 n_ref = 64):
+                 n_ref = 64, index_order = 7):
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
@@ -321,14 +322,12 @@ cdef class ParticleForest:
             self.idds[i] = 1.0/self.dds[i]
         # We use 64-bit masks
         self.masks = []
-        self.buffer_masks = []
-        cdef int nmasks = <int> ceil(float(nfiles)/64)
-        for i in range(nmasks):
-            self.masks.append(np.zeros(dims, dtype="uint64"))
-            self.buffer_masks.append(np.zeros(dims, dtype="uint64"))
-        self.counts = np.zeros(dims, dtype="uint64")
-        self.max_count = np.zeros(dims, dtype="uint64")
-        self.owners = np.zeros(dims, dtype="int32") - 1
+        self.index_order = index_order
+        # This will be an on/off flag for which morton index values are touched
+        # by particles.
+        self.morton_count = np.zeros(1 << (index_order*3), dtype="uint8")
+        # This is the simple way, for now.
+        self.masks = np.zeros((1 << (index_order * 3), nfiles), dtype="uint8")
 
     def add_data_file(self, np.ndarray pos, int file_id, int filter = 1, 
                       np.float64_t rel_buffer = 0.05):
@@ -347,88 +346,28 @@ cdef class ParticleForest:
                               np.float64_t rel_buffer):
         # TODO: Replace with the bitarray
         cdef np.int64_t no = pos.shape[0]
-        cdef np.int64_t p
-        cdef int ind[3], ind2[3], i, j, k, use, off_ind[3][2], off_count[3]
-        cdef np.ndarray[np.uint64_t, ndim=3] mask, counts, my_counts, mcount
-        cdef np.ndarray[np.uint64_t, ndim=3] buffer_mask
-        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
-        mcount = self.max_count
-        # Check if we're in a buffer or not.
-        counts = self.counts
-        mask = self.masks[file_id/64]
-        my_counts = np.zeros_like(self.counts)
-        buffer_mask = self.buffer_masks[file_id/64]
-        cdef np.uint64_t val = ONEBIT << (file_id - (file_id/64)*64)
-        cdef anyfloat buf_size[3], ppos[3], fp
-        for i in range(3): 
-            buf_size[i] = rel_buffer * self.dds[i]
-        for p in range(no):
-            # Now we're going to check all the various possibilities, and look
-            # for offsetting.  Note that if we're being asked to offset in a
-            # given direction, we just won't bother if we're not within the
-            # buffer zone.
+        cdef np.int64_t p, i
+        cdef np.uint64_t mi
+        cdef np.float64_t ppos[3]
+        cdef int skip
+        cdef np.float64_t LE[3]
+        cdef np.float64_t RE[3]
+        cdef np.int32_t order = self.index_order
+        for i in range(3):
+            LE[i] = self.left_edge[i]
+            RE[i] = self.right_edge[i]
+        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
+        cdef np.ndarray[np.uint8_t, ndim=1] morton_count = self.morton_count
+        for p in range(pos.shape[0]):
+            skip = 0
             for i in range(3):
-                ppos[i] = pos[p, i]
-                off_ind[i][0] = 0
-                off_count[i] = 1
-                if rel_buffer == 0.0: continue
-                # http://cboard.cprogramming.com/c-programming/105096-fmod.html
-                # fmod(x, y) => x-((int)(x/y))*y
-                fp = ppos[i] - (<int>((ppos[i] - self.left_edge[i]) *
-                                self.idds[i])) * self.dds[i]
-                if fp < buf_size[i]:
-                    # We're close to the left edge
-                    off_ind[i][1] = -1
-                    off_count[i] = 2
-                elif fp >= self.dds[i] - buf_size[i]:
-                    off_ind[i][1] = 1
-                    off_count[i] = 2
-                else:
-                    off_ind[i][1] = 0
-                    off_count[i] = 1
-            use = 1
-            for i in range(3):
-                if filter and (ppos[i] < self.left_edge[i]
-                            or ppos[i] > self.right_edge[i]):
-                    use = 0
+                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                    skip = 1
                     break
-                ind[i] = <int> ((ppos[i] - self.left_edge[i])*self.idds[i])
-                ind[i] = iclip(ind[i], 0, self.dims[i])
-            if use == 0: continue
-            mask[ind[0],ind[1],ind[2]] |= val
-            # Don't increment any counts if we're in the buffer zone
-            counts[ind[0],ind[1],ind[2]] += 1
-            my_counts[ind[0],ind[1],ind[2]] += 1
-            if my_counts[ind[0],ind[1],ind[2]] > mcount[ind[0],ind[1],ind[2]]:
-                mcount[ind[0],ind[1],ind[2]] = my_counts[ind[0],ind[1],ind[2]]
-                owners[ind[0],ind[1],ind[2]] = file_id
-            # Okay, now the tricky bit.  We know which buffers we are next to.
-            # This still requires us to figure out which indices, etc etc.
-            # This is a somewhat opaque way of doing it very succinctly; we're
-            # saying, okay, we get up to two cells for each buffer zone we're
-            # in, so let's investigate those.
-            if off_count[0] == off_count[1] == off_count[2] == 1:
-                continue
-            for i in range(off_count[0]):
-                ind2[0] = ind[0] + off_ind[0][i]
-                if ind2[0] >= self.dims[0]:
-                    ind2[0] -= self.dims[0]
-                elif ind2[0] < 0:
-                    ind2[0] += self.dims[0]
-                for j in range(off_count[1]):
-                    ind2[1] = ind[1] + off_ind[1][i]
-                    if ind2[1] >= self.dims[1]:
-                        ind2[1] -= self.dims[1]
-                    elif ind2[1] < 0:
-                        ind2[1] += self.dims[1]
-                    for k in range(off_count[2]):
-                        ind2[2] = ind[2] + off_ind[2][i]
-                        if ind2[2] >= self.dims[2]:
-                            ind2[2] -= self.dims[2]
-                        elif ind2[2] < 0:
-                            ind2[2] += self.dims[2]
-                        buffer_mask[ind2[0], ind2[1], ind2[2]] |= val
-                        
+                ppos[i] = pos[p,i]
+            if skip == 1: continue
+            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
+            morton_count[mi] = mask[mi] = 1
         return
 
     @cython.boundscheck(False)
@@ -620,7 +559,7 @@ cdef class ParticleForest:
                         DLE[i] = self.left_edge[i] + self.dds[i]*ind[i]
                         DRE[i] = DLE[i] + self.dds[i]
                     morton_ind[particle_index[arri]] = bounded_morton(
-                        ppos[0], ppos[1], ppos[2], DLE, DRE)
+                        ppos[0], ppos[1], ppos[2], DLE, DRE, ORDER_MAX)
                     particle_index[arri] += 1
                     octree.next_root(1, ind)
         cdef int start, end = 0

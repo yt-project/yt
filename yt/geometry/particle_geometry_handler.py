@@ -100,6 +100,7 @@ class ParticleIndex(Index):
                 self.regions.add_data_file(pos, data_file.file_id)
         pb.finish()
 
+
     def _detect_output_fields(self):
         # TODO: Add additional fields
         dsl = []
