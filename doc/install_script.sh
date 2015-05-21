@@ -7,8 +7,8 @@
 # This script is designed to create a fully isolated Python installation
 # with the dependencies you need to run yt.
 #
-# There are a few options, but you only need to set *two* of them. The first 
-# is the next one, DEST_DIR:
+# There are a few options, but you only need to set *one* of them, which is 
+# the next one, DEST_DIR:
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
@@ -18,12 +18,6 @@ if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
 then
     DEST_DIR=${YT_DEST}
 fi
-
-# The second option you need to set is which version of Python you want to 
-# install, 2.7 or 3.4. Note, if you install Python 3.4, you'll have to 
-# install Mercurial another way, outside of this script.
-PYTHON_VERSION=2 # For Python 2.7
-#PYTHON_VERSION=3 # For Python 3.4
 
 # What follows are some other options that you may or may not need to change.
 
@@ -41,6 +35,9 @@ YT_DIR=""
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
+INST_PY3=0      # Install Python 3 along with Python 2. If this is turned
+                # on, all Python packages (including yt) will be installed
+                # in Python 3 (except Mercurial, which requires Python 2).
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
@@ -94,16 +91,6 @@ then
    exit 1
 fi
 
-if [ ${PYTHON_VERSION} -eq 3 ] && [ ${INST_HG} -eq 1 ]
-then
-	echo "We cannot install Mercurial from this script using"
-	echo "Python 3. Please visit http://mercurial.selenic.com/"
-	echo "for alternative installation methods for Mercurial."
-	echo "After installing Mercurial, rerun this script with "
-	echo "INST_HG=0." 
-	exit 1
-fi
-
 #------------------------------------------------------------------------------#
 #                                                                              #
 # Okay, the script starts here.  Feel free to play with it, but hopefully      #
@@ -126,6 +113,7 @@ function write_config
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
+    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_ROCKSTAR=${INST_ROCKSTAR} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
@@ -430,6 +418,10 @@ printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
 
+printf "%-15s = %s so I " "INST_PY3" "${INST_PY3}"
+get_willwont ${INST_PY3}
+echo "be installing Python 3"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -502,12 +494,11 @@ function do_exit
     exit 1
 }
 
-if [ $PYTHON_VERSION -eq 2 ]
-then
-	 PYTHON_EXEC='python2.7'
-elif [ $PYTHON_VERSION -eq 3 ]
+if [ $INST_PY3 -eq 1 ]
 then
 	 PYTHON_EXEC='python3.4'
+else 
+	 PYTHON_EXEC='python2.7'
 fi
 
 function do_setup_py
@@ -524,6 +515,12 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
+    if [[ $LIB =~ .*mercurial.* ]] 
+    then
+        PYEXE="python2.7"
+    else
+        PYEXE=${PYTHON_EXEC}
+    fi
     case $LIB in
         *h5py*)
             pushd $LIB &> /dev/null
@@ -533,7 +530,7 @@ function do_setup_py
         *numpy*)
             if [ -e ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/numpy/__init__.py ]
             then
-                VER=$(${DEST_DIR}/bin/python -c 'from distutils.version import StrictVersion as SV; \
+                VER=$(${DEST_DIR}/bin/${PYTHON_EXEC} -c 'from distutils.version import StrictVersion as SV; \
                                                  import numpy; print SV(numpy.__version__) < SV("1.8.0")')
                 if [ $VER == "True" ]
                 then
@@ -546,8 +543,8 @@ function do_setup_py
             ;;
     esac
     cd $LIB
-    ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -620,13 +617,8 @@ export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
-if [ $PYTHON_VERSION -eq 2 ]
-then
-	 PYTHON='Python-2.7.9'
-elif [ $PYTHON_VERSION -eq 3 ]
-then
-	 PYTHON='Python-3.4.3'
-fi
+PYTHON2='Python-2.7.9'
+PYTHON3='Python-3.4.3'
 CYTHON='Cython-0.22'
 PYX='PyX-0.12.1'
 BZLIB='bzip2-1.0.6'
@@ -693,7 +685,8 @@ echo '38a89aad89dc9aa682dbfbca623e2f69511f5e20d4a3526c01aabbc7e93ae78f20aac56667
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
 [ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
-get_ytproject $PYTHON.tgz
+[ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
+get_ytproject $PYTHON2.tgz
 get_ytproject $NUMPY.tar.gz
 get_ytproject $MATPLOTLIB.tar.gz
 get_ytproject $IPYTHON.tar.gz
@@ -820,16 +813,33 @@ then
     fi
 fi
 
-if [ ! -e $PYTHON/done ]
+if [ ! -e $PYTHON2/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
-    [ ! -e $PYTHON ] && tar xfz $PYTHON.tgz
-    cd $PYTHON
+    echo "Installing Python 2. This may take a while, but don't worry. yt loves you."
+    [ ! -e $PYTHON2 ] && tar xfz $PYTHON2.tgz
+    cd $PYTHON2
     ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ln -sf ${DEST_DIR}/bin/${PYTHON_EXEC} ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+    ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+    ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+    touch done
+    cd ..
+fi
+
+if [ ! -e $PYTHON3/done ]
+then
+    echo "Installing Python 3. Because two Pythons are better than one."
+    [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
+    cd $PYTHON3
+    ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+    ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+    ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
+    ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
     ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
@@ -850,7 +860,7 @@ else
     then
         export HG_EXEC=hg
     else
-        echo "Cannot find mercurial.  Please set INST_HG=1, or install Mercurial seperately."
+        echo "Cannot find mercurial.  Please set INST_HG=1."
         do_exit
     fi
 fi
@@ -1025,7 +1035,7 @@ touch done
 cd $MY_PWD
 
 if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
-	[[ "${MYOS##Darwin}" != "${MYOS}" && $PYTHON_VERSION -eq 3 ]] 
+	[[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
 then
     if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
