@@ -193,7 +193,7 @@ class AbsorptionSpectrum(object):
                                      column_density[lixel] / continuum['normalization']
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
                 pbar.update(i)
-            pbar.finish()
+        pbar.finish()
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity):
         """
