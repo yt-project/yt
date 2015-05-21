@@ -903,3 +903,25 @@ def flip_morton_bitmask(np.ndarray[np.uint64_t, ndim=1] morton_indices,
         mi = (morton_indices[i] >> (3 * (20-max_order)))
         bitmask[mi] = 1
     return bitmask
+
+#@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def count_collisions(np.ndarray[np.uint8_t, ndim=2] masks):
+    cdef int i, j, k
+    cdef np.ndarray[np.uint32_t, ndim=1] counts
+    cdef np.ndarray[np.uint8_t, ndim=1] collides
+    counts = np.zeros(masks.shape[1], dtype="uint32")
+    collides = np.zeros(masks.shape[1], dtype="uint8")
+    for i in range(masks.shape[1]):
+        print i
+        for j in range(masks.shape[1]):
+            collides[j] = 0
+        for k in range(masks.shape[0]):
+            if masks[k,i] == 0: continue
+            for j in range(masks.shape[1]):
+                if j == i: continue
+                if masks[k,j] == 1:
+                    collides[j] = 1
+        counts[i] = collides.sum()
+    return counts

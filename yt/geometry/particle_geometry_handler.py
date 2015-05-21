@@ -97,7 +97,7 @@ class ParticleIndex(Index):
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for pos in self.io._yield_coordinates(data_file):
-                self.regions.add_data_file(pos, data_file.file_id)
+                self.regions.add_data_file(pos, data_file.file_id, 0, 0.0)
         pb.finish()
 
 

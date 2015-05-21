@@ -329,21 +329,9 @@ cdef class ParticleForest:
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order * 3), nfiles), dtype="uint8")
 
-    def add_data_file(self, np.ndarray pos, int file_id, int filter = 1, 
-                      np.float64_t rel_buffer = 0.05):
-        if pos.dtype == np.float32:
-            self._mask_positions[np.float32_t](pos, file_id,
-                filter, rel_buffer)
-        elif pos.dtype == np.float64:
-            self._mask_positions[np.float64_t](pos, file_id,
-                filter, rel_buffer)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
-                              np.uint64_t file_id, int filter,
-                              np.float64_t rel_buffer):
+    def add_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                      np.uint64_t file_id, int filter,
+                      np.float64_t rel_buffer):
         # TODO: Replace with the bitarray
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p, i
