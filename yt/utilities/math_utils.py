@@ -908,7 +908,8 @@ def get_cyl_z(coords, normal):
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
-    return np.sum(J*coords, axis=0)  
+    # returns the absolute value
+    return np.abs(np.sum(J*coords, axis=0))  
 
 def get_cyl_theta(coords, normal):
     # This is identical to the spherical phi component
