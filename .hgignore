@@ -13,6 +13,7 @@ yt/analysis_modules/ppv_cube/ppv_utils.c
 yt/frontends/ramses/_ramses_reader.cpp
 yt/geometry/fake_octree.c
 yt/geometry/grid_container.c
+yt/geometry/grid_visitors.c
 yt/geometry/oct_container.c
 yt/geometry/oct_visitors.c
 yt/geometry/particle_deposit.c
@@ -25,6 +26,7 @@ yt/utilities/libconfig_wrapper.c
 yt/utilities/spatial/ckdtree.c
 yt/utilities/lib/alt_ray_tracers.c
 yt/utilities/lib/amr_kdtools.c
+yt/utilities/lib/bitarray.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
@@ -39,6 +41,7 @@ yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/Octree.c
 yt/utilities/lib/origami.c
+yt/utilities/lib/pixelization_routines.c
 yt/utilities/lib/png_writer.c
 yt/utilities/lib/PointsInVolume.c
 yt/utilities/lib/QuadTree.c
