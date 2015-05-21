@@ -290,6 +290,7 @@ cdef class ParticleForest:
     cdef public np.uint64_t nfiles
     cdef int oref
     cdef public int n_ref
+    cdef public ParticleOctreeContainer index_octree
     cdef public np.int32_t index_order
     cdef public object masks
     cdef public object counts
@@ -357,6 +358,17 @@ cdef class ParticleForest:
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
         return
+
+    def finalize(self):
+        self.index_octree = ParticleOctreeContainer([1,1,1],
+            [self.left_edge[0], self.left_edge[1], self.left_edge[2]],
+            [self.right_edge[0], self.right_edge[1], self.right_edge[2]],
+        )
+        self.index_octree.n_ref = 1
+        mi, = np.where(self.morton_count > 0)
+        mi = mi.astype("uint64")
+        self.index_octree.add(mi, self.index_order)
+        self.index_octree.finalize(morton_index = 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
