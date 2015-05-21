@@ -386,11 +386,15 @@ class LightRay(CosmologySplice):
 
             if setup_function is not None:
                 setup_function(ds)
-            
-            my_segment["start"] = ds.domain_width * my_segment["start"] + \
-                ds.domain_left_edge
-            my_segment["end"] = ds.domain_width * my_segment["end"] + \
-                ds.domain_left_edge
+
+            if start_position is not None:
+                my_segment["start"] = ds.arr(my_segment["start"], "code_length")
+                my_segment["end"] = ds.arr(my_segment["end"], "code_length")
+            else:
+                my_segment["start"] = ds.domain_width * my_segment["start"] + \
+                  ds.domain_left_edge
+                my_segment["end"] = ds.domain_width * my_segment["end"] + \
+                  ds.domain_left_edge
 
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
