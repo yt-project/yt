@@ -363,6 +363,7 @@ cdef class ParticleForest:
         self.index_octree = ParticleOctreeContainer([1,1,1],
             [self.left_edge[0], self.left_edge[1], self.left_edge[2]],
             [self.right_edge[0], self.right_edge[1], self.right_edge[2]],
+            over_refine = 0
         )
         self.index_octree.n_ref = 1
         mi, = np.where(self.morton_count > 0)
@@ -373,65 +374,23 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector,
-                            np.int64_t primary_data_file = -1):
+    def identify_data_files(self, SelectorObject selector):
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
-        if hash(selector) == self._last_selector:
-            return self._last_return_values
-        if hasattr(selector, "base_selector") and \
-           hash(selector.base_selector) == self._last_selector:
-            return self._last_return_values
-        cdef int i, j, k, n
-        cdef np.uint64_t fmask, bmask, offset, fcheck, pcount
-        cdef np.float64_t LE[3]
-        cdef np.float64_t RE[3]
-        cdef np.ndarray[np.uint64_t, ndim=3] mask, buffer_mask
-        cdef np.ndarray[np.uint64_t, ndim=3] counts = self.counts
-        cdef np.ndarray[np.uint8_t, ndim=3] omask
-        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
-        omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
-                         dtype="uint8")
-        buffer_files, files = [], []
-        pcount = fmask = bmask = 0
-        for n in range(len(self.masks)):
-            pcount = 0 # Each loop
-            fmask = 0
-            bmask = 0
-            mask = self.masks[n]
-            buffer_mask = self.buffer_masks[n]
-            LE[0] = self.left_edge[0]
-            RE[0] = LE[0] + self.dds[0]
-            for i in range(self.dims[0]):
-                LE[1] = self.left_edge[1]
-                RE[1] = LE[1] + self.dds[1]
-                for j in range(self.dims[1]):
-                    LE[2] = self.left_edge[2]
-                    RE[2] = LE[2] + self.dds[2]
-                    for k in range(self.dims[2]):
-                        if primary_data_file > -1 and \
-                           owners[i,j,k] != primary_data_file:
-                            continue
-                        if selector.select_grid(LE, RE, 0) == 1:
-                            omask[i, j, k] = 1
-                            fmask |= mask[i,j,k]
-                            bmask |= buffer_mask[i,j,k]
-                            pcount += counts[i,j,k]
-                        LE[2] += self.dds[2]
-                        RE[2] += self.dds[2]
-                    LE[1] += self.dds[1]
-                    RE[1] += self.dds[1]
-                LE[0] += self.dds[0]
-                RE[0] += self.dds[0]
-            # Now we iterate through...
-            for fcheck in range(64):
-                if ((bmask >> fcheck) & ONEBIT) == ONEBIT:
-                    buffer_files.append(fcheck + n * 64)
-                if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
-                    files.append(fcheck + n * 64)
-        self._last_selector = hash(selector)
-        self._last_return_values = (files, pcount, omask, buffer_files)
-        return files, pcount, omask, buffer_files
+        cdef np.ndarray[np.int64_t, ndim=1] file_indices
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask 
+        cdef np.ndarray[np.uint8_t, ndim=2] masks = self.masks
+        _, _, file_indices = self.index_octree.file_index_octs(selector, -1)
+        file_mask = np.zeros(masks.shape[1], dtype="uint8")
+        cdef int i, j
+        cdef np.int64_t k
+        for i in range(masks.shape[1]):
+            for j in range(file_indices.shape[0]):
+                k = file_indices[j]
+                if masks[k,i] == 1:
+                    file_mask[i] = 1
+                    break
+        return file_mask
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
