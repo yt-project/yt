@@ -692,10 +692,10 @@ echo '38a89aad89dc9aa682dbfbca623e2f69511f5e20d4a3526c01aabbc7e93ae78f20aac56667
 [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
+[ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
 get_ytproject $PYTHON.tgz
 get_ytproject $NUMPY.tar.gz
 get_ytproject $MATPLOTLIB.tar.gz
-get_ytproject $MERCURIAL.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
@@ -883,17 +883,10 @@ fi
 
 # This fixes problems with gfortran linking.
 unset LDFLAGS
-
-if [ $PYTHON_VERSION -eq 2 ]
-then
-	 EASY_INSTALL="easy_install-2.7"
-elif [ $PYTHON_VERSION -eq 3 ]
-then
-	 EASY_INSTALL="easy_install-3.4"
-fi
  
 echo "Installing pip"
-( ${DEST_DIR}/bin/${EASY_INSTALL} pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${GETFILE} https://bootstrap.pypa.io/get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/${PYTHON_EXEC} get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 if [ $INST_SCIPY -eq 0 ]
 then
@@ -1031,7 +1024,8 @@ echo "Installing yt"
 touch done
 cd $MY_PWD
 
-if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE})
+if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
+	[[ "${MYOS##Darwin}" != "${MYOS}" && $PYTHON_VERSION -eq 3 ]] 
 then
     if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
