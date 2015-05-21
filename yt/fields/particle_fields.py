@@ -843,7 +843,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
-        return data.ds.arr(np.abs(get_cyl_z(pos, normal)),
+        return data.ds.arr(get_cyl_z(pos, normal),
                            'code_length')
 
     registry.add_field(
