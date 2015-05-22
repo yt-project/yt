@@ -828,21 +828,24 @@ then
     cd ..
 fi
 
-if [ ! -e $PYTHON3/done ]
+if [ $INST_PY3 -eq 1 ]
 then
-    echo "Installing Python 3. Because two Pythons are better than one."
-    [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
-    cd $PYTHON3
-    ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    if [ ! -e $PYTHON3/done ]
+    then
+        echo "Installing Python 3. Because two Pythons are better than one."
+        [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
+        cd $PYTHON3
+        ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-    ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
-    ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
-    ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
-    ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
-    touch done
-    cd ..
+        ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
 fi
 
 export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
