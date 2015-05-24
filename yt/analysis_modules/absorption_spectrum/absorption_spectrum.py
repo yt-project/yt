@@ -23,7 +23,7 @@ from .absorption_line import tau_profile
 from yt.funcs import get_pbar, mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import \
-    amu_cgs, boltzmann_constant_cgs, \
+    boltzmann_constant_cgs, \
     speed_of_light_cgs
 from yt.utilities.on_demand_imports import _astropy
 
@@ -79,7 +79,8 @@ class AbsorptionSpectrum(object):
         self.line_list.append({'label': label, 'field_name': field_name,
                                'wavelength': YTQuantity(wavelength, "angstrom"),
                                'f_value': f_value,
-                               'gamma': gamma, 'atomic_mass': atomic_mass,
+                               'gamma': gamma,
+                               'atomic_mass': YTQuantity(atomic_mass, "amu"),
                                'label_threshold': label_threshold})
 
     def add_continuum(self, label, field_name, wavelength,
@@ -213,7 +214,7 @@ class AbsorptionSpectrum(object):
                     field_data['velocity_los'] / speed_of_light_cgs
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
                                   field_data['temperature']) /
-                                  (amu_cgs * line['atomic_mass']))
+                                  line['atomic_mass'])
             center_bins = np.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
