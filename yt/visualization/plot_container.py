@@ -536,7 +536,13 @@ class ImagePlotContainer(object):
             name = str(self.ds)
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
-            os.mkdir(name)
+            try:
+                os.mkdir(name)
+            except OSError as e:
+                if e.errno == 17:
+                    pass
+                else:
+                    raise
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         if suffix is None:
