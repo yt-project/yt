@@ -35,7 +35,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _dataset_type = "gadget_binary"
     _vector_fields = (("Coordinates", 3),
                       ("Velocity", 3),
-                      ("Velocities", 3))
+                      ("Velocities", 3),
+                      ("FourMetalFractions", 4))
 
     # Particle types (Table 3 in GADGET-2 user guide)
     #

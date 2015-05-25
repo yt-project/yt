@@ -21,10 +21,39 @@ from yt.utilities.physical_constants import mp, kb
 class GadgetFieldInfo(SPHFieldInfo):
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
+
+        # setup some special fields that only make sense for SPH particles
+        if (ptype, "FourMetalFractions") in self.ds.field_list:
+            metal_fraction_names = ['C', 'O', 'Si', 'Fe']
+            for i in range(len(metal_fraction_names)):
+                def _Fraction_wrap(i):
+                    def _Fraction(field,data):
+                        return data[(ptype, 'FourMetalFractions')][:,i]
+                    return _Fraction
+#                def _Deposit_wrap(i):
+#                    def _deposit(field, data):
+#                        pos = data[ptype, coord_name]
+#                        mass = data[ptype, mass_name]
+#                        pos.convert_to_units("code_length")
+#                        mass.convert_to_units("code_mass")
+#                        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+#                        d = data.ds.arr(d, "code_mass")
+#                        d /= data["index", "cell_volume"]
+#                        return d 
+#                    return _deposit
+
+                self.add_field( (ptype, metal_fraction_names[i]+"_fraction"),
+                                function=_Fraction_wrap(i), 
+                                particle_type=True,
+                                units="")
+
         super(GadgetFieldInfo, self).setup_particle_fields(
             ptype, *args, **kwargs)
 
-        # setup some special fields that only make sense for SPH particles
+#                self.add_field( ("deposit", "%s_%s" % (ptype, metal_fraction_names[i]+"Mass")),
+#                                function=_Deposit_wrap(i), 
+#                                units="")
+
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)
 

@@ -166,7 +166,7 @@ class BaseIOHandler(object):
                 fsize[field] += psize.get(field[0], 0)
         for field in fields:
             if field[1] in self._vector_fields:
-                shape = (fsize[field], 3)
+                shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
                 shape = (fsize[field],)+self._array_fields[field[1]]
             else:
