@@ -45,7 +45,7 @@ install:
     - "hg clone http://bitbucket.org/jzuhone/yt-windows"
     - "hg update -C yt-windows"
     - "cd yt-windows"
-	 
+    
 # Not a .NET project, we build SunPy in the install step instead
 build: false
 
