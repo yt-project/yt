@@ -1,0 +1,9 @@
+Cython
+numpy
+matplotlib
+sympy
+h5py
+ipython
+pyzmq
+jinja2
+tornado
