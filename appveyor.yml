@@ -43,9 +43,10 @@ install:
     # Install specified version of numpy and dependencies
     - "conda install -q --yes numpy=%NUMPY_VERSION% nose setuptools mingw Cython sympy h5py matplotlib"
     - "hg clone http://bitbucket.org/jzuhone/yt-windows"
-    - "hg update -C yt-windows"
     - "cd yt-windows"
-    
+    - "hg update -C yt"
+    - "python setup.py build --compiler=mingw32 install"
+	     
 # Not a .NET project, we build SunPy in the install step instead
 build: false
 
