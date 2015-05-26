@@ -34,7 +34,7 @@ install:
     # Install the build and runtime dependencies of the project.
     - "conda update --yes conda"
     # Create a conda environment using the astropy bonus packages
-    - "conda create -q --yes -n test -c yt-ci python=%PYTHON_VERSION%"
+    - "conda create -q --yes -n test python=%PYTHON_VERSION%"
     - "activate test"
 
     # Check that we have the expected version of Python
