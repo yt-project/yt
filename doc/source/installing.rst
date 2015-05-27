@@ -234,7 +234,7 @@ packages with ``pip`` as well:
 
 .. code-block:: base
 
-  $ pip install -r ipython-requirements.txt
+  $ pip install -r optional-requirements.txt
 
 From here, you can use ``pip`` (which comes with ``Python``) to install the latest
 stable version of yt:
