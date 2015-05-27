@@ -1827,11 +1827,10 @@ class ScaleCallback(PlotCallback):
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
-        ysize = plot.ylim[1] - plot.ylim[0]
-        if xsize != ysize:
-            raise RuntimeError("Scale callback only works for plots with "
-                               "axis ratios of 1. Here: xsize = %s, ysize "
-                               " = %s." % (xsize, ysize))
+        if plot.aspect != 1.0:
+            raise NotImplementedError(
+                "Scale callback has only been implemented for plots with no "
+                "aspect ratio scaling. (aspect = {%s})".format(plot._aspect))
 
         # Setting pos overrides corner argument
         if self.pos is None:
