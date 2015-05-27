@@ -1871,17 +1871,17 @@ class ScaleCallback(PlotCallback):
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v*xsize.v
 
-        if 'size_vertical' not in size_bar_args:
-            size_bar_args['size_vertical'] = image_scale/20
+        if 'size_vertical' not in self.size_bar_args:
+            self.size_bar_args['size_vertical'] = image_scale/20
 
-        if 'fontproperties' not in size_bar_args:
-            size_bar_args['fontproperties'] = plot.font_properties
+        if 'fontproperties' not in self.size_bar_args:
+            self.size_bar_args['fontproperties'] = plot.font_properties
 
-        if 'frameon' not in size_bar_args:
-            size_bar_args['frameon'] = self.draw_inset_box
+        if 'frameon' not in self.size_bar_args:
+            self.size_bar_args['frameon'] = self.draw_inset_box
 
         bar = AnchoredSizeBar(plot._axes.transData, image_scale, text, loc,
-                              **size_bar_args)
+                              **self.size_bar_args)
 
         plot._axes.add_artist(bar)
 
