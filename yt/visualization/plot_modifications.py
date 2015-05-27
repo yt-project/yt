@@ -1743,7 +1743,7 @@ class ScaleCallback(PlotCallback):
     ----------
 
     corner : string, optional
-        Corner sets up one of 4 predeterimined locations for the timestamp
+        Corner sets up one of 4 predeterimined locations for the scale bar
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
         'lower_right' (also allows None). This value will be overridden by the
         optional 'pos' keyword.
@@ -1760,7 +1760,7 @@ class ScaleCallback(PlotCallback):
         determined to be the best-fit to the data.
 
     pos : 2- or 3-element tuples, lists, or arrays, optional
-        The image location of the timestamp in the plot coordinate system.
+        The image location of the scale bar in the plot coordinate system.
         Setting pos overrides the corner parameter.
 
     min_frac, max_frac: float, optional
@@ -1787,7 +1787,13 @@ class ScaleCallback(PlotCallback):
     size_bar_args : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
-        Defaults: {'pad': 0.75, 'sep': 5, 'borderpad': 0.5, 'color': 'w'}
+        Defaults: {'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}
+
+    inset_box_args : dictionary, optional
+        A dictionary of keyword arguments to be passed to the matplotlib Patch
+        object that represents the inset box.
+        Defaults: {'facecolor': 'black', 'linewidth': 3, 'edgecolor', 'white',
+                   'alpha': 0.5, 'boxstyle': 'square'}
 
 
     Example
@@ -1801,12 +1807,22 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
                  max_frac=0.20, min_frac=0.018, coord_system='axis',
-                 size_bar_args=None, draw_inset_box=False):
+                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
 
-        def_size_bar_args = {'pad': 0.75,
-                             'sep': 5,
-                             'borderpad': 0.5,
-                             'color': 'w'}
+        def_size_bar_args = {
+            'pad': 0.25,
+            'sep': 5,
+            'borderpad': 1,
+            'color': 'w'
+        }
+
+        inset_box_args = {
+            'facecolor': 'black',
+            'linewidth': 3,
+            'edgecolor': 'white',
+            'alpha': 0.5,
+            'boxstyle': 'square',
+        }
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1820,6 +1836,10 @@ class ScaleCallback(PlotCallback):
             self.size_bar_args = def_size_bar_args
         else:
             self.size_bar_args = size_bar_args
+        if inset_box_args is None:
+            self.inset_box_args = def_inset_box_args
+        else:
+            self.inset_box_args = inset_box_args
         self.draw_inset_box = draw_inset_box
 
     def __call__(self, plot):
@@ -1871,17 +1891,18 @@ class ScaleCallback(PlotCallback):
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v*xsize.v
 
-        if 'size_vertical' not in self.size_bar_args:
-            self.size_bar_args['size_vertical'] = image_scale/20
-
-        if 'fontproperties' not in self.size_bar_args:
-            self.size_bar_args['fontproperties'] = plot.font_properties
-
-        if 'frameon' not in self.size_bar_args:
-            self.size_bar_args['frameon'] = self.draw_inset_box
+        size_vertical = self.size_bar_args.pop('size_vertical', image_scale/20)
+        fontproperties = self.size_bar_args.pop(
+            'fontproperties', plot.font_properties)
+        frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
 
         bar = AnchoredSizeBar(plot._axes.transData, image_scale, text, loc,
+                              size_vertical=size_vertical,
+                              fontproperties=fontproperties,
+                              frameon=frameon,
                               **self.size_bar_args)
+
+        bar.patch.set(**self.inset_box_args)
 
         plot._axes.add_artist(bar)
 
