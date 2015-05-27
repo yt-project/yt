@@ -1897,7 +1897,7 @@ class ScaleCallback(PlotCallback):
             'fontproperties', plot.font_properties)
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
 
-        bar = AnchoredSizeBar(plot._axes.transData, image_scale, text, loc,
+        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, loc,
                               size_vertical=size_vertical,
                               fontproperties=fontproperties,
                               frameon=frameon,
