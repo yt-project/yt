@@ -230,7 +230,7 @@ Then install the required Python packages with ``pip``:
   $ pip install -r requirements.txt
 
 If you're using IPython notebooks, you can install its dependencies
-with ``pip`` as well `<:
+with ``pip`` as well:
 
 .. code-block:: base
 
