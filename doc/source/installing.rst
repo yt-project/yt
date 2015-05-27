@@ -234,7 +234,7 @@ packages with ``pip`` as well:
 
 .. code-block:: base
 
-  $ pip install -r optional-requirements.txt
+  $ pip install ipython[notebook]
 
 From here, you can use ``pip`` (which comes with ``Python``) to install the latest
 stable version of yt:
