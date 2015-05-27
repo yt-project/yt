@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 
 from matplotlib.patches import Circle
 from matplotlib.colors import colorConverter
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 from yt.funcs import *
 from yt.extern.six import add_metaclass
@@ -1731,42 +1732,42 @@ class ScaleCallback(PlotCallback):
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
-    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the 
-    distance scale you desire to show on the plot.  If no coeff and units are 
-    specified, an appropriate pair will be determined such that your scale bar 
-    is never smaller than min_frac or greater than max_frac of your plottable 
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
+    distance scale you desire to show on the plot.  If no coeff and units are
+    specified, an appropriate pair will be determined such that your scale bar
+    is never smaller than min_frac or greater than max_frac of your plottable
     axis length.  For additional text and plot arguments for the text and line,
     include them as dictionaries to pass to text_args and plot_args.
-    
+
     Parameters
     ----------
 
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be overridden by the 
+        'lower_right' (also allows None). This value will be overridden by the
         optional 'pos' keyword.
 
     coeff : float, optional
         The coefficient of the unit defining the distance scale (e.g. 10 kpc or
-        100 Mpc) for overplotting.  If set to None along with unit keyword, 
+        100 Mpc) for overplotting.  If set to None along with unit keyword,
         coeff will be automatically determined to be a power of 10
         relative to the best-fit unit.
 
     unit : string, optional
-        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
+        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc',
         'kpc', etc.) or set to None.  If set to None, will be automatically
         determined to be the best-fit to the data.
 
     pos : 2- or 3-element tuples, lists, or arrays, optional
-        The image location of the timestamp in the coord system defined by the
-        coord_system kwarg.  Setting pos overrides the corner parameter.
+        The image location of the timestamp in the plot coordinate system.
+        Setting pos overrides the corner parameter.
 
     min_frac, max_frac: float, optional
-        The minimum/maximum fraction of the axis width for the scale bar to 
+        The minimum/maximum fraction of the axis width for the scale bar to
         extend. A value of 1 would allow the scale bar to extend across the
-        entire axis width.  Only used for automatically calculating 
-        best-fit coeff and unit when neither is specified, otherwise 
+        entire axis width.  Only used for automatically calculating
+        best-fit coeff and unit when neither is specified, otherwise
         disregarded.
 
     coord_system : string, optional
@@ -1783,17 +1784,14 @@ class ScaleCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    text_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 
-        'horizontalalignment':'center', 'verticalalignment':'top'}.
+    size_bar_args : dictionary, optional
+        A dictionary of parameters to be passed to the Matplotlib
+        AnchoredSizeBar initializer.
+        Defaults: {'pad': 0.75, 'sep': 5, 'borderpad': 0.5, 'color': 'w'}
 
-    plot_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        line object.  Defaults: {'color':'white', 'linewidth':3}.
 
     Example
-    ------- 
+    -------
 
     >>> import yt
     >>> ds = yt.load('Enzo_64/DD0020/data0020')
@@ -1803,10 +1801,12 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
                  max_frac=0.20, min_frac=0.018, coord_system='axis',
-                 text_args=None, plot_args=None):
+                 size_bar_args=None, draw_inset_box=False):
 
-        def_text_args = {'color':'white'}
-        def_plot_args = {'color':'white', 'linewidth':3}
+        def_size_bar_args = {'pad': 0.75,
+                             'sep': 5,
+                             'borderpad': 0.5,
+                             'color': 'w'}
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1816,13 +1816,11 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
-        if text_args is None: text_args = def_text_args
-        self.text_args = text_args
-        # This assures the line and the text are aligned
-        self.text_args['horizontalalignment'] = 'center'
-        self.text_args['verticalalignment'] = 'top'
-        if plot_args is None: plot_args = def_plot_args
-        self.plot_args = plot_args
+        if size_bar_args is None:
+            self.size_bar_args = def_size_bar_args
+        else:
+            self.size_bar_args = size_bar_args
+        self.draw_inset_box = draw_inset_box
 
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
@@ -1835,23 +1833,25 @@ class ScaleCallback(PlotCallback):
         # Setting pos overrides corner argument
         if self.pos is None:
             if self.corner == 'upper_left':
-                self.pos = (0.12, 0.971)
+                loc = 2
             elif self.corner == 'upper_right':
-                self.pos = (0.88, 0.971)
+                loc = 1
             elif self.corner == 'lower_left':
-                self.pos = (0.12, 0.062)
+                loc = 3
             elif self.corner == 'lower_right':
-                self.pos = (0.88, 0.062)
+                loc = 4
             elif self.corner is None:
-                self.pos = (0.5, 0.5)
+                loc = 10
             else:
                 raise SyntaxError("Argument 'corner' must be set to " 
                                   "'upper_left', 'upper_right', 'lower_left', " 
                                   "'lower_right', or None")
+        else:
+            loc = self.pos
 
         # When identifying a best fit distance unit, do not allow scale marker
-        # to be greater than max_frac fraction of xaxis or under min_frac 
-        # fraction of xaxis 
+        # to be greater than max_frac fraction of xaxis or under min_frac
+        # fraction of xaxis
         max_scale = self.max_frac * xsize
         min_scale = self.min_frac * xsize
 
@@ -1860,30 +1860,32 @@ class ScaleCallback(PlotCallback):
 
         # If no units are set, then identify a best fit distance unit
         if self.unit is None:
-            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, 
-                                                   return_quantity=True)
-            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, 
-                                                   return_quantity=True)
+            min_scale = plot.ds.get_smallest_appropriate_unit(
+                min_scale, return_quantity=True)
+            max_scale = plot.ds.get_smallest_appropriate_unit(
+                max_scale, return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        self.text = "{scale} {units}".format(scale=int(self.coeff), 
-                                             units=self.unit)
-        image_scale = (plot.frb.convert_distance_x(self.scale) / \
-                       plot.frb.convert_distance_x(xsize)).v
+        text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
+        image_scale = (plot.frb.convert_distance_x(self.scale) /
+                       plot.frb.convert_distance_x(xsize)).v*xsize.v
 
-        # This is just a fancy wrapper around the TextLabelCallback and the
-        # ImageLineCallback
-        pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
-        pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
-        icb = LinePlotCallback(pos_line_start, pos_line_end, 
-                               coord_system=self.coord_system, 
-                               plot_args=self.plot_args)
-        icb(plot)
-        tcb = TextLabelCallback(self.pos, self.text, 
-                                coord_system=self.coord_system,
-                                text_args=self.text_args)
-        return tcb(plot)
+        if 'size_vertical' not in size_bar_args:
+            size_bar_args['size_vertical'] = image_scale/20
+
+        if 'fontproperties' not in size_bar_args:
+            size_bar_args['fontproperties'] = plot.font_properties
+
+        if 'frameon' not in size_bar_args:
+            size_bar_args['frameon'] = self.draw_inset_box
+
+        bar = AnchoredSizeBar(plot._axes.transData, image_scale, text, loc,
+                              **size_bar_args)
+
+        plot._axes.add_artist(bar)
+
+        return plot
 
 class RayCallback(PlotCallback):
     """
