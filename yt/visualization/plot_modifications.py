@@ -1869,10 +1869,10 @@ class ScaleCallback(PlotCallback):
         self.scale = YTQuantity(self.coeff, self.unit)
         text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
-                       plot.frb.convert_distance_x(xsize)).v*xsize.v
+                       plot.frb.convert_distance_x(xsize)).v
 
         if 'size_vertical' not in self.size_bar_args:
-            self.size_bar_args['size_vertical'] = image_scale/20
+            self.size_bar_args['size_vertical'] = .01
 
         if 'fontproperties' not in self.size_bar_args:
             self.size_bar_args['fontproperties'] = plot.font_properties
@@ -1880,7 +1880,7 @@ class ScaleCallback(PlotCallback):
         if 'frameon' not in self.size_bar_args:
             self.size_bar_args['frameon'] = self.draw_inset_box
 
-        bar = AnchoredSizeBar(plot._axes.transData, image_scale, text, loc,
+        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, loc,
                               **self.size_bar_args)
 
         plot._axes.add_artist(bar)
