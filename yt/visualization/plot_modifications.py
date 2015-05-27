@@ -1728,7 +1728,7 @@ class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
                    max_frac=0.2, min_frac=0.018, coord_system='axis',
-                   text_args=None, plot_args=None)
+                   size_bar_args=None, draw_inset_box=False)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
@@ -1736,8 +1736,9 @@ class ScaleCallback(PlotCallback):
     distance scale you desire to show on the plot.  If no coeff and units are
     specified, an appropriate pair will be determined such that your scale bar
     is never smaller than min_frac or greater than max_frac of your plottable
-    axis length.  For additional text and plot arguments for the text and line,
-    include them as dictionaries to pass to text_args and plot_args.
+    axis length.  Additional customization of the scale bar is possible by
+    adjusting the size_bar_args dictionary.  This accepts keyword arguments
+    for the AnchoredSizeBar class in matplotlib's axes_grid toolkit.
 
     Parameters
     ----------
@@ -1889,7 +1890,7 @@ class ScaleCallback(PlotCallback):
         self.scale = YTQuantity(self.coeff, self.unit)
         text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
-                       plot.frb.convert_distance_x(xsize)).v*xsize.v
+                       plot.frb.convert_distance_x(xsize)).v
 
         size_vertical = self.size_bar_args.pop('size_vertical', image_scale/20)
         fontproperties = self.size_bar_args.pop(
