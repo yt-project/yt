@@ -1,3 +1,5 @@
+## Introduction
+
 Hi there!  You've just downloaded yt, an analysis tool for scientific
 datasets, generated on a variety of data platforms.  It's written in 
 python and heavily leverages NumPy, Matplotlib, SymPy and Cython for a variety
