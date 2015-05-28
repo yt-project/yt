@@ -1854,21 +1854,19 @@ class ScaleCallback(PlotCallback):
         # Setting pos overrides corner argument
         if self.pos is None:
             if self.corner == 'upper_left':
-                loc = 2
+                self.pos = (0.135, 0.945)
             elif self.corner == 'upper_right':
-                loc = 1
+                self.pos = (0.86, 0.945)
             elif self.corner == 'lower_left':
-                loc = 3
+                self.pos = (0.135, 0.062)
             elif self.corner == 'lower_right':
-                loc = 4
+                self.pos = (0.86, 0.062)
             elif self.corner is None:
-                loc = 10
+                self.pos = (0.5, 0.5)
             else:
                 raise SyntaxError("Argument 'corner' must be set to " 
                                   "'upper_left', 'upper_right', 'lower_left', " 
                                   "'lower_right', or None")
-        else:
-            loc = self.pos
 
         # When identifying a best fit distance unit, do not allow scale marker
         # to be greater than max_frac fraction of xaxis or under min_frac
@@ -1892,12 +1890,17 @@ class ScaleCallback(PlotCallback):
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
 
-        size_vertical = self.size_bar_args.pop('size_vertical', image_scale/20)
+        size_vertical = self.size_bar_args.pop('size_vertical', .01)
         fontproperties = self.size_bar_args.pop(
             'fontproperties', plot.font_properties)
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
 
-        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, loc,
+        # this "anchors" the size bar to a box centered on self.pos in axis
+        # coordinates
+        self.size_bar_args['bbox_to_anchor'] = self.pos
+        self.size_bar_args['bbox_transform'] = plot._axes.transAxes
+
+        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, 10,
                               size_vertical=size_vertical,
                               fontproperties=fontproperties,
                               frameon=frameon,
