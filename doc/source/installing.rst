@@ -213,10 +213,31 @@ Installing yt Using pip or from Source
 ++++++++++++++++++++++++++++++++++++++
 
 To install yt from source, you must make sure you have yt's dependencies
-installed on your system.  These include: a C compiler, ``HDF5``, ``python``,
-``Cython``, ``NumPy``, ``matplotlib``, ``sympy``, and ``h5py``. From here, you
-can use ``pip`` (which comes with ``Python``) to install the latest stable
-version of yt:
+installed on your system. 
+
+If you use a Linux OS, use your distro's package manager to install these yt
+dependencies on your system:
+
+- ``HDF5``
+- ``zeromq``
+- ``sqlite`` 
+- ``mercurial``
+
+Then install the required Python packages with ``pip``:
+
+.. code-block:: bash
+
+  $ pip install -r requirements.txt
+
+If you're using IPython notebooks, you can install its dependencies
+with ``pip`` as well:
+
+.. code-block:: bash
+
+  $ pip install -r optional-requirements.txt
+
+From here, you can use ``pip`` (which comes with ``Python``) to install the latest
+stable version of yt:
 
 .. code-block:: bash
 

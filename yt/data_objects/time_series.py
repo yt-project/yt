@@ -406,6 +406,7 @@ class SimulationTimeSeries(DatasetSeries):
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
         self.parameters = {}
+        self.key_parameters = []
 
         # Set some parameter defaults.
         self._set_parameter_defaults()
@@ -420,6 +421,21 @@ class SimulationTimeSeries(DatasetSeries):
         
         self.print_key_parameters()
 
+    def _set_parameter_defaults(self):
+        pass
+
+    def _parse_parameter_file(self):
+        pass
+
+    def _set_units(self):
+        pass
+
+    def _calculate_simulation_bounds(self):
+        pass
+
+    def _get_all_outputs(**kwargs):
+        pass
+        
     def __repr__(self):
         return self.parameter_filename
 
@@ -445,23 +461,78 @@ class SimulationTimeSeries(DatasetSeries):
         """
         Print out some key parameters for the simulation.
         """
-        for a in ["domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "initial_time", "final_time",
-                  "stop_cycle", "cosmological_simulation"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in dataset definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
+        if self.simulation_type == "grid":
+            for a in ["domain_dimensions", "domain_left_edge",
+                      "domain_right_edge"]:
+                self._print_attr(a)
+        for a in ["initial_time", "final_time",
+                  "cosmological_simulation"]:
+            self._print_attr(a)
+        if getattr(self, "cosmological_simulation", False):
             for a in ["box_size", "omega_lambda",
                       "omega_matter", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
-                if not hasattr(self, a):
-                    mylog.error("Missing %s in dataset definition!", a)
-                    continue
-                v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
+                self._print_attr(a)
+        for a in self.key_parameters:
+            self._print_attr(a)
         mylog.info("Total datasets: %d." % len(self.all_outputs))
 
+    def _print_attr(self, a):
+        """
+        Print the attribute or warn about it missing.
+        """
+        if not hasattr(self, a):
+            mylog.error("Missing %s in dataset definition!", a)
+            return
+        v = getattr(self, a)
+        mylog.info("Parameters: %-25s = %s", a, v)
+
+    def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
+        r"""
+        Get datasets at or near to given values.
+
+        Parameters
+        ----------
+        key: str
+            The key by which to retrieve outputs, usually 'time' or
+            'redshift'.
+        values: array_like
+            A list of values, given as floats.
+        tolerance : float
+            If not None, do not return a dataset unless the value is
+            within the tolerance value.  If None, simply return the
+            nearest dataset.
+            Default: None.
+        outputs : list
+            The list of outputs from which to choose.  If None,
+            self.all_outputs is used.
+            Default: None.
+
+        Examples
+        --------
+        >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
+
+        """
+
+        if not isinstance(values, YTArray):
+            if isinstance(values, tuple) and len(values) == 2:
+                values = self.arr(*values)
+            else:
+                values = self.arr(values)
+        values = values.in_cgs()
+
+        if outputs is None:
+            outputs = self.all_outputs
+        my_outputs = []
+        if not outputs:
+            return my_outputs
+        for value in values:
+            outputs.sort(key=lambda obj:np.abs(value - obj[key]))
+            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
+                    and outputs[0] not in my_outputs:
+                my_outputs.append(outputs[0])
+            else:
+                mylog.error("No dataset added for %s = %f.", key, value)
+
+        outputs.sort(key=lambda obj: obj['time'])
+        return my_outputs
