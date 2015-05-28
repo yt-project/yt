@@ -1790,6 +1790,9 @@ class ScaleCallback(PlotCallback):
         AnchoredSizeBar initializer.
         Defaults: {'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}
 
+    draw_inset_box : boolean, optional
+        Whether or not an inset box should be included around the scale bar.
+
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
