@@ -3,4 +3,4 @@
 Writing FITS Images
 ==========================
 
-.. notebook:: FITSImageBuffer.ipynb
+.. notebook:: FITSImageData.ipynb
