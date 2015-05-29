@@ -1666,11 +1666,11 @@ class TimestampCallback(PlotCallback):
         # Setting pos overrides corner argument
         if self.pos[0] is None or self.pos[1] is None:
             if self.corner == 'upper_left':
-                self.pos = (0.03, 0.97)
+                self.pos = (0.03, 0.96)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'upper_right':
-                self.pos = (0.97, 0.97)
+                self.pos = (0.97, 0.96)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'lower_left':
@@ -1727,8 +1727,9 @@ class TimestampCallback(PlotCallback):
 class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
-                   max_frac=0.2, min_frac=0.018, coord_system='axis',
-                   size_bar_args=None, draw_inset_box=False)
+                   max_frac=0.16, min_frac=0.015, coord_system='axis',
+                   size_bar_args=None, draw_inset_box=False, 
+                   inset_box_args=None)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
@@ -1810,11 +1811,11 @@ class ScaleCallback(PlotCallback):
     """
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
-                 max_frac=0.20, min_frac=0.018, coord_system='axis',
+                 max_frac=0.16, min_frac=0.015, coord_system='axis',
                  size_bar_args=None, draw_inset_box=False, inset_box_args=None):
 
         def_size_bar_args = {
-            'pad': 0.25,
+            'pad': 0.05,
             'sep': 5,
             'borderpad': 1,
             'color': 'w'
@@ -1857,13 +1858,13 @@ class ScaleCallback(PlotCallback):
         # Setting pos overrides corner argument
         if self.pos is None:
             if self.corner == 'upper_left':
-                self.pos = (0.135, 0.945)
+                self.pos = (0.11, 0.952)
             elif self.corner == 'upper_right':
-                self.pos = (0.86, 0.945)
+                self.pos = (0.89, 0.952)
             elif self.corner == 'lower_left':
-                self.pos = (0.135, 0.062)
+                self.pos = (0.11, 0.052)
             elif self.corner == 'lower_right':
-                self.pos = (0.86, 0.062)
+                self.pos = (0.89, 0.052)
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
@@ -1893,7 +1894,7 @@ class ScaleCallback(PlotCallback):
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
 
-        size_vertical = self.size_bar_args.pop('size_vertical', .01)
+        size_vertical = self.size_bar_args.pop('size_vertical', .005)
         fontproperties = self.size_bar_args.pop(
             'fontproperties', plot.font_properties)
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
