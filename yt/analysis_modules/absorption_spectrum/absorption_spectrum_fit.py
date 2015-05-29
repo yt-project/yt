@@ -79,6 +79,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
         absorption profiles. Same size as x.
     """
 
+    # convert to NumPy array if we have a YTArray
+    if isinstance(x, YTArray):
+        x = x.d
+    
     #Empty dictionary for fitted lines
     allSpeciesLines = {}
 
