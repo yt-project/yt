@@ -171,7 +171,7 @@ class PPVCube(object):
         _vlos = create_vlos(normal, self.no_shifting)
         self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
-        _intensity = self.create_intensity()
+        _intensity = self._create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
         if method == "integrate" and weight_field is None:
