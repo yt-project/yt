@@ -301,33 +301,36 @@ def modify_reference_frame(CoM, L, P=None, V=None):
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
 
     """
-
     # First translate the positions to center of mass reference frame.
     if P is not None:
         P = P - CoM
 
-    if (L == np.array([0, 0, 1.])).all():
-        # Whew! No rotation to do!
-        if V is None:
-            return L, P
-        elif P is None:
-            return L, V
-        else:
-            return L, P, V
+    # is the L vector pointing in the Z direction?
+    if (L[0:2] == 0.0).all():
+        # yes it is, now lets check if we are just changing the direction
+        # of the z axis or not
+       if L[2] < 0.0:
+          # Just a simple flip of axis to do!
+          if P is not None:
+             P = -P
+          if V is not None:
+             V = -V
 
-    if (L == np.array([0, 0, -1.])).all():
-        # Just a simple flip of axis to do!
-        if P is not None:
-            P = -P
-        if V is not None:
-            V = -V
+          if V is None:
+             return L, P
+          elif P is None:
+             return L, V
+          else:
+              return L, P, V
 
-        if V is None:
-            return L, P
-        elif P is None:
-            return L, V
-        else:
-            return L, P, V
+       else:
+          # Whew! No rotation to do!
+          if V is None:
+             return L, P
+          elif P is None:
+             return L, V
+          else:
+             return L, P, V
 
     # Normal vector is not aligned with simulation Z axis
     # Therefore we are going to have to apply a rotation
@@ -908,7 +911,6 @@ def get_cyl_z(coords, normal):
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
-    # returns the absolute value
     return np.sum(J*coords, axis=0)  
 
 def get_cyl_theta(coords, normal):
