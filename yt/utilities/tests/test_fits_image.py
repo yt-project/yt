@@ -46,14 +46,14 @@ def test_fits_image():
     fits_prj = FITSProjection(ds, "z", ["density","temperature"], image_res=128,
                               width=(0.5,"unitary"))
 
-    yield assert_equal, fid1["density"], fits_prj["density"]
-    yield assert_equal, fid1["temperature"], fits_prj["temperature"]
+    yield assert_equal, fid1.get_data("density"), fits_prj.get_data("density")
+    yield assert_equal, fid1.get_data("temperature"), fits_prj.get_data("temperature")
 
     fid1.writeto("fid1.fits", clobber=True)
     new_fid1 = FITSImageData.from_file("fid1.fits")
 
-    yield assert_equal, fid1["density"], new_fid1["density"]
-    yield assert_equal, fid1["temperature"], new_fid1["temperature"]
+    yield assert_equal, fid1.get_data("density"), new_fid1.get_data("density")
+    yield assert_equal, fid1.get_data("temperature"), new_fid1.get_data("temperature")
 
     ds2 = load("fid1.fits")
     ds2.index
@@ -73,8 +73,8 @@ def test_fits_image():
     fits_slc = FITSSlice(ds, "z", ["density","temperature"], image_res=128,
                          width=(0.5,"unitary"))
 
-    yield assert_equal, fid2["density"], fits_slc["density"]
-    yield assert_equal, fid2["temperature"], fits_slc["temperature"]
+    yield assert_equal, fid2.get_data("density"), fits_slc.get_data("density")
+    yield assert_equal, fid2.get_data("temperature"), fits_slc.get_data("temperature")
 
     dens_img = fid2.pop("density")
     temp_img = fid2.pop("temperature")
@@ -91,8 +91,8 @@ def test_fits_image():
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5,"unitary"))
 
-    yield assert_equal, fid3["density"], fits_cut["density"]
-    yield assert_equal, fid3["temperature"], fits_cut["temperature"]
+    yield assert_equal, fid3.get_data("density"), fits_cut.get_data("density")
+    yield assert_equal, fid3.get_data("temperature"), fits_cut.get_data("temperature")
 
     fid3.create_sky_wcs([30.,45.], (1.0,"arcsec/kpc"))
     fid3.writeto("fid3.fits", clobber=True)
@@ -110,7 +110,7 @@ def test_fits_image():
                                      width=(0.5,"unitary"), image_res=128, 
                                      depth_res=128, depth=(0.5,"unitary"))
 
-    yield assert_equal, fid4["density"], fits_oap["density"]
+    yield assert_equal, fid4.get_data("density"), fits_oap.get_data("density")
 
     cvg = ds.covering_grid(ds.index.max_level, [0.25,0.25,0.25], 
                            [32, 32, 32], fields=["density","temperature"])
@@ -120,9 +120,9 @@ def test_fits_image():
     fid5.update_header("density", "time", 0.1)
     fid5.update_header("all", "units", "cgs")
     
-    assert fid5.get_header("density")["time"] == 0.1
-    assert fid5.get_header("temperature")["units"] == "cgs"
-    assert fid5.get_header("density")["units"] == "cgs"
+    assert fid5["density"].header["time"] == 0.1
+    assert fid5["temperature"].header["units"] == "cgs"
+    assert fid5["density"].header["units"] == "cgs"
     
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
