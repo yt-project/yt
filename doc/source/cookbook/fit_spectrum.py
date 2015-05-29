@@ -100,6 +100,6 @@ wavelength, flux = sp.make_spectrum('lightray.h5',
 order_fits = ['OVI', 'HI']
 
 # Fit spectrum and save fit
-fitted_lines, fitted_flux = generate_total_fit(wavelength.d,
+fitted_lines, fitted_flux = generate_total_fit(wavelength,
                                                flux, order_fits, species_dicts,
                                                output_file='spectrum_fit.h5')
