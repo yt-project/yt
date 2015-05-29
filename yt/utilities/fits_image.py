@@ -297,7 +297,8 @@ class FITSImageData(HDUList):
         if key not in self.keys():
             raise KeyError("%s not an image!" % key)
         idx = self.fields.index(key)
-        data = YTArray(super(FITSImageData, self).pop(idx), self.field_units[key])
+        im = super(FITSImageData, self).pop(idx)
+        data = YTArray(im.data, self.field_units[key])
         self.field_units.pop(key)
         self.fields.remove(key)
         return FITSImageData(data, fields=key, wcs=self.wcs)
@@ -338,8 +339,8 @@ class FITSImageData(HDUList):
             assert_same_wcs(w, image.wcs)
             if img_shape != image.shape:
                 raise RuntimeError("Images do not have the same shape!")
-            for k,v in image.items():
-                data[k] = v
+            for key in image.keys():
+                data[key] = image.get_data(key)
         return cls(data, wcs=w)
 
     def create_sky_wcs(self, sky_center, sky_scale,
