@@ -13,8 +13,7 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, \
-    create_sky_wcs
+from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
