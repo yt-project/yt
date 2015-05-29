@@ -56,7 +56,7 @@ value.  For example:
 
    import yt
    ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
 This object, ``surface``, can be queried for values on the surface.  For
@@ -172,7 +172,7 @@ galaxy simulation:
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
@@ -248,7 +248,7 @@ to output one more type of variable on your surfaces.  For example:
        return (data['density']*data['density']*np.sqrt(data['temperature']))
    add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],

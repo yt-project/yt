@@ -127,8 +127,8 @@ class AbsorptionSpectrum(object):
         field_units = {"dl": "cm", "redshift": "", "temperature": "K"}
         field_data = {}
         if use_peculiar_velocity:
-            input_fields.append('los_velocity')
-            field_units["los_velocity"] = "cm/s"
+            input_fields.append('velocity_los')
+            field_units["velocity_los"] = "cm/s"
         for feature in self.line_list + self.continuum_list:
             if not feature['field_name'] in input_fields:
                 input_fields.append(feature['field_name'])
@@ -171,7 +171,7 @@ class AbsorptionSpectrum(object):
             if use_peculiar_velocity:
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['los_velocity'] / speed_of_light_cgs
+                    field_data['velocity_los'] / speed_of_light_cgs
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
@@ -208,7 +208,7 @@ class AbsorptionSpectrum(object):
             if use_peculiar_velocity:
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['los_velocity'] / speed_of_light_cgs
+                    field_data['velocity_los'] / speed_of_light_cgs
             thermal_b = km_per_cm * np.sqrt((2 * boltzmann_constant_cgs *
                                              field_data['temperature']) /
                                             (amu_cgs * line['atomic_mass']))
@@ -260,7 +260,7 @@ class AbsorptionSpectrum(object):
                 if line['label_threshold'] is not None and \
                         column_density[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
-                        peculiar_velocity = km_per_cm * field_data['los_velocity'][lixel]
+                        peculiar_velocity = km_per_cm * field_data['velocity_los'][lixel]
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],

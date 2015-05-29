@@ -1232,9 +1232,8 @@ class RockstarHaloList(HaloList):
         fglob = path.join(basedir, 'halos_%d.*.bin' % n)
         files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        #Jc = mass_sun_cgs/ ds['mpchcm'] * 1e5
         Jc = 1.0
-        length = 1.0 / ds['mpchcm']
+        length = 1.0 / ds['Mpchcm']
         conv = dict(pos = np.array([length, length, length,
                                     1, 1, 1]), # to unitary
                     r=1.0/ds['kpchcm'], # to unitary

@@ -185,7 +185,7 @@ class CastroFieldInfo(FieldInfoContainer):
                     element, weight = field[2:4], field[4:-1]
                 else:
                     element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
+
                 # Here we can, later, add number density.
 
 
