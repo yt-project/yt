@@ -1225,17 +1225,17 @@ def uconcatenate(arrs, axis=0):
     return v
 
 def ucross(arr1,arr2):
-   """Applies the cross product to two YT arrays.
+    """Applies the cross product to two YT arrays.
 
-   This wrapper around numpy.cross preserves units.  
-   See the documentation of numpy.cross for full
-   details.
-   """
+    This wrapper around numpy.cross preserves units.  
+    See the documentation of numpy.cross for full
+    details.
+    """
 
-   v = np.cross(arr1,arr2)
-   units = arr1.units * arr2.units
-   arr = YTArray(v,units)
-   return arr
+    v = np.cross(arr1,arr2)
+    units = arr1.units * arr2.units
+    arr = YTArray(v,units)
+    return arr
 
 def uintersect1d(arr1, arr2, assume_unique=False):
     """Find the sorted unique elements of the two input arrays.

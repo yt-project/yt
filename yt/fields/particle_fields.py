@@ -245,9 +245,9 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
 def get_angular_momentum_components(ptype, data, spos, svel):
     if data.has_field_parameter("normal"):
-       normal = data.get_field_parameter("normal")
+        normal = data.get_field_parameter("normal")
     else:
-       normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
+        normal = data.ds.arr([0.0,0.0,1.0],"code_length") # default to simulation axis
     bv = data.get_field_parameter("bulk_velocity")
     pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"]).T
     vel = data.ds.arr([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T

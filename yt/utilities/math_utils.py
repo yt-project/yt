@@ -309,28 +309,28 @@ def modify_reference_frame(CoM, L, P=None, V=None):
     if (L[0:2] == 0.0).all():
         # yes it is, now lets check if we are just changing the direction
         # of the z axis or not
-       if L[2] < 0.0:
-          # Just a simple flip of axis to do!
-          if P is not None:
-             P = -P
-          if V is not None:
-             V = -V
+        if L[2] < 0.0:
+            # Just a simple flip of axis to do!
+            if P is not None:
+                P = -P
+            if V is not None:
+                V = -V
 
-          if V is None:
-             return L, P
-          elif P is None:
-             return L, V
-          else:
-              return L, P, V
+            if V is None:
+                return L, P
+            elif P is None:
+                return L, V
+            else:
+                return L, P, V
 
-       else:
-          # Whew! No rotation to do!
-          if V is None:
-             return L, P
-          elif P is None:
-             return L, V
-          else:
-             return L, P, V
+        else:
+            # Whew! No rotation to do!
+            if V is None:
+                return L, P
+            elif P is None:
+                return L, V
+            else:
+                return L, P, V
 
     # Normal vector is not aligned with simulation Z axis
     # Therefore we are going to have to apply a rotation
