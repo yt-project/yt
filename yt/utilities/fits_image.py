@@ -110,7 +110,12 @@ class FITSImageData(HDUList):
                 fn = fields[0]
             img_data = {fn: data}
 
-        self.fields = fields
+        self.fields = []
+        for fd in fields:
+            if isinstance(fd, tuple):
+                self.fields.append(fd[1])
+            else:
+                self.fields.append(fd)
 
         first = True
         self.field_units = {}
