@@ -14,7 +14,9 @@ A base class for "image" plots with colorbars.
 #-----------------------------------------------------------------------------
 from yt.extern.six.moves import builtins
 from yt.extern.six import iteritems
+
 import base64
+import errno
 import numpy as np
 import matplotlib
 import os
@@ -539,7 +541,7 @@ class ImagePlotContainer(object):
             try:
                 os.mkdir(name)
             except OSError as e:
-                if e.errno == 17:
+                if e.errno == errno.EEXIST:
                     pass
                 else:
                     raise
