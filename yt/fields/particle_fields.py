@@ -283,7 +283,7 @@ def standard_particle_fields(registry, ptype,
         L, r_vec, v_vec = modify_reference_frame(center, normal, P=pos, V=vel)
         # adding in the unit registry allows us to have a reference to the dataset
         # and thus we will always get the correct units after applying the cross product.
-        return -ucross(r_vec, v_vec, registry = data.unit_registry)
+        return -ucross(r_vec, v_vec, registry=data.ds.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -292,117 +292,28 @@ def standard_particle_fields(registry, ptype,
               units="cm**2/s",
               validators=[ValidateParameter("center")])
 
-    def _particle_specific_angular_momentum_x(field, data):
-        """
-        Computes the specific angular momentum of a field in the x direction
-
-        If the dataset has the field parameter "normal", then the 
-        specific angular momentum is calculated in the x axis relative
-        to the normal vector.
-
-        Note that the orientation of the x and y axes are arbitrary if a normal
-        vector is defined.
-        """
-        center = data.get_field_parameter('center')
-        pos, vel, normal, bv = get_angular_momentum_components(ptype, data, spos, svel)
-        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
-        pos = pos.T
-        vel = vel.T
-        y, z, yv, zv = pos[1], pos[2], vel[1], vel[2]
-        return yv*z - zv*y
-
-    registry.add_field((ptype, "particle_specific_angular_momentum_x"),
-              function=_particle_specific_angular_momentum_x,
-              particle_type=True,
-              units="cm**2/s",
-              validators=[ValidateParameter("center")])
-
-    def _particle_specific_angular_momentum_y(field, data):
-        """
-        Computes the specific angular momentum of a field in the y direction
-
-        If the dataset has the field parameter "normal", then the 
-        specific angular momentum is calculated in the y axis relative
-        to the normal vector.
-
-        Note that the orientation of the x and y axes are arbitrary if a normal
-        vector is defined.
-        """
-        center = data.get_field_parameter('center')
-        pos, vel, normal, bv = get_angular_momentum_components(ptype, data, spos, svel)
-        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
-        pos = pos.T
-        vel = vel.T
-        x, z, xv, zv = pos[0], pos[2], vel[0], vel[2]
-        return -(xv*z - zv*x)
-
-
-    registry.add_field((ptype, "particle_specific_angular_momentum_y"),
-              function=_particle_specific_angular_momentum_y,
-              particle_type=True,
-              units="cm**2/s",
-              validators=[ValidateParameter("center")])
-
-    def _particle_specific_angular_momentum_z(field, data):
-        """
-        Computes the specific angular momentum of a field in the z direction
-
-        If the dataset has the field parameter "normal", then the 
-        specific angular momentum is calculated in the z axis relative
-        to the normal vector.
-
-        Note that the orientation of the x and y axes are arbitrary if a normal
-        vector is defined.
-        """
-        center = data.get_field_parameter('center')
-        pos, vel, normal, bv = get_angular_momentum_components(ptype, data, spos, svel)
-        L, pos, vel = modify_reference_frame(center, normal, P=pos, V=vel)
-        pos = pos.T
-        vel = vel.T
-        x, y, xv, yv = pos[0], pos[1], vel[0], vel[1]
-        return xv*y - yv*x
-
-
-    registry.add_field((ptype, "particle_specific_angular_momentum_z"),
-              function=_particle_specific_angular_momentum_z,
-              particle_type=True,
-              units="cm**2/s",
-              validators=[ValidateParameter("center")])
-
-    create_magnitude_field(registry, "particle_specific_angular_momentum",
-                           "cm**2/s", ftype=ptype, particle_type=True)
-
-    def _particle_angular_momentum_x(field, data):
-        return data[ptype, "particle_mass"] * \
-               data[ptype, "particle_specific_angular_momentum_x"]
-
-    registry.add_field((ptype, "particle_angular_momentum_x"),
-             function=_particle_angular_momentum_x,
-             units="g*cm**2/s", particle_type=True,
-             validators=[ValidateParameter('center')])
-
-    def _particle_angular_momentum_y(field, data):
-        return data[ptype, "particle_mass"] * \
-               data[ptype, "particle_specific_angular_momentum_y"]
-
-    registry.add_field((ptype, "particle_angular_momentum_y"),
-             function=_particle_angular_momentum_y,
-             units="g*cm**2/s", particle_type=True,
-             validators=[ValidateParameter('center')])
-
-    def _particle_angular_momentum_z(field, data):
-        return data[ptype, "particle_mass"] * \
-               data[ptype, "particle_specific_angular_momentum_z"]
-
-    registry.add_field((ptype, "particle_angular_momentum_z"),
-             function=_particle_angular_momentum_z,
-             units="g*cm**2/s", particle_type=True,
-             validators=[ValidateParameter('center')])
+    def _get_spec_ang_mom_comp(axi, ax, _ptype):
+        def _particle_specific_angular_momentum_component(field, data):
+            return data[_ptype, "particle_specific_angular_momentum"][:, axi]
+        def _particle_angular_momentum_component(field, data):
+            return data[_ptype, "particle_mass"] * \
+                data[ptype, "particle_specific_angular_momentum_%s" % ax]
+        return _particle_specific_angular_momentum_component, \
+            _particle_angular_momentum_component
+    for axi, ax in enumerate("xyz"):
+        f, v = _get_spec_ang_mom_comp(axi, ax, ptype)
+        registry.add_field(
+            (ptype, "particle_specific_angular_momentum_%s" % ax),
+            particle_type = True, function=f, units="cm**2/s",
+            validators=[ValidateParameter("center")]
+        )
+        registry.add_field((ptype, "particle_angular_momentum_%s" % ax),
+            function=v, units="g*cm**2/s", particle_type=True,
+            validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
         am = data[ptype, "particle_mass"] * data[ptype, "particle_specific_angular_momentum"].T
         return am.T
-
 
     registry.add_field((ptype, "particle_angular_momentum"),
               function=_particle_angular_momentum,
@@ -449,74 +360,6 @@ def standard_particle_fields(registry, ptype,
         units="cm",
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
-    def _particle_position_relative_x(field, data):
-        """The x component of the  particle positions in a rotated reference
-        frame
-
-        Relative to the coordinate system defined by the *normal* vector and
-        *center* field parameters.
-
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"]).T
-        L, pos, = modify_reference_frame(center, normal, P=pos)
-        pos = pos.T
-        return pos[0]
-
-    registry.add_field(
-        (ptype, "particle_position_relative_x"),
-        function=_particle_position_relative_x,
-        particle_type=True,
-        units="cm",
-        validators=[ValidateParameter("normal"), ValidateParameter("center")])
-
-    def _particle_position_relative_y(field, data):
-        """The y component of the  particle positions in a rotated reference
-        frame
-
-        Relative to the coordinate system defined by the *normal* vector and
-        *center* field parameters.
-
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"]).T
-        L, pos = modify_reference_frame(center, normal, P=pos)
-        pos = pos.T
-        return pos[1]
-
-    registry.add_field((ptype, "particle_position_relative_y"),
-              function=_particle_position_relative_y,
-              particle_type=True, units="cm",
-              validators=[ValidateParameter("normal"),
-                          ValidateParameter("center")])
-
-
-    def _particle_position_relative_z(field, data):
-        """The z component of the  particle positions in a rotated reference
-        frame
-
-        Relative to the coordinate system defined by the *normal* vector and
-        *center* field parameters.
-
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"]).T
-        L, pos = modify_reference_frame(center, normal, P=pos)
-        pos = pos.T
-        return pos[2]
-
-    registry.add_field((ptype, "particle_position_relative_z"),
-              function=_particle_position_relative_z,
-              particle_type=True, units="cm",
-              validators=[ValidateParameter("normal"),
-                          ValidateParameter("center")])
-
     def _particle_velocity_relative(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
@@ -538,74 +381,22 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
-    def _particle_velocity_relative_x(field, data):
-        """The x component of the particle velocities in an arbitrary coordinate
-        system
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *bulk_velocity* vector and *center* field parameters.
+    def _get_coord_funcs_relative(axi, _ptype):
+        def _particle_pos_rel(field, data):
+            return data[_ptype, "particle_position_relative"][:, axi]
+        def _particle_vel_rel(field, data):
+            return data[_ptype, "particle_velocity_relative"][:, axi]
+        return _particle_vel_rel, _particle_pos_rel
+    for axi, ax in enumerate("xyz"):
+        v, p = _get_coord_funcs_relative(axi, ptype)
+        registry.add_field((ptype, "particle_velocity_relative_%s" % ax),
+            particle_type = True, function = v,
+            units = "code_velocity")
+        registry.add_field((ptype, "particle_position_relative_%s" % ax),
+            particle_type = True, function = p,
+            units = "code_length")
 
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter("bulk_velocity")
-        vel = data.ds.arr([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
-        L, vel = modify_reference_frame(center, normal, V=vel)
-        vel = vel.T
-        return vel[0]
-
-    registry.add_field((ptype, "particle_velocity_relative_x"),
-              function=_particle_velocity_relative_x,
-              particle_type=True, units="cm/s",
-              validators=[ValidateParameter("normal"),
-                          ValidateParameter("center")])
-
-    def _particle_velocity_relative_y(field, data):
-        """The y component of the particle velocities in an arbitrary coordinate
-        system
-
-        Relative to the coordinate system defined by the *normal* vector,
-        *bulk_velocity* vector and *center* field parameters.
-
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter('bulk_velocity')
-        vel = data.ds.arr([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
-        L, vel = modify_reference_frame(center, normal, V=vel)
-        vel = vel.T
-        return vel[1]
-
-    registry.add_field((ptype, "particle_velocity_relative_y"),
-              function=_particle_velocity_relative_y,
-              particle_type=True, units="cm/s",
-              validators=[ValidateParameter("normal"),
-                          ValidateParameter("center")])
-
-    def _particle_velocity_relative_z(field, data):
-        """The z component of the particle velocities in an arbitrary coordinate
-        system
-
-        Relative to the coordinate system defined by the *normal* vector,
-        *bulk_velocity* vector and *center* field parameters.
-
-        Note that the orientation of the x and y axes are arbitrary.
-        """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter("bulk_velocity")
-        vel = data.ds.arr([data[ptype, svel % ax] - bv[iax] for iax, ax in enumerate("xyz")]).T
-        L, vel = modify_reference_frame(center, normal, V=vel)
-        vel = vel.T
-        return vel[2]
-
-    registry.add_field((ptype, "particle_velocity_relative_z"),
-              function=_particle_velocity_relative_z,
-              particle_type=True, units="cm/s",
-              validators=[ValidateParameter("normal"),
-                          ValidateParameter("center")])
 
     # this is just particle radius but we add it with an alias for the sake of
     # consistent naming
