@@ -281,7 +281,9 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         pos, vel, normal, bv = get_angular_momentum_components(ptype, data, spos, svel)
         L, r_vec, v_vec = modify_reference_frame(center, normal, P=pos, V=vel)
-        return ucross(r_vec, v_vec)
+        # adding in the unit registry allows us to have a reference to the dataset
+        # and thus we will always get the correct units after applying the cross product.
+        return -ucross(r_vec, v_vec, registry = data.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -307,7 +309,7 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         vel = vel.T
         y, z, yv, zv = pos[1], pos[2], vel[1], vel[2]
-        return y*zv - z*yv
+        return yv*z - zv*y
 
     registry.add_field((ptype, "particle_specific_angular_momentum_x"),
               function=_particle_specific_angular_momentum_x,
@@ -332,7 +334,7 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         vel = vel.T
         x, z, xv, zv = pos[0], pos[2], vel[0], vel[2]
-        return -(x*zv - z*xv)
+        return -(xv*z - zv*x)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum_y"),
@@ -358,7 +360,7 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         vel = vel.T
         x, y, xv, yv = pos[0], pos[1], vel[0], vel[1]
-        return x*yv - y*xv
+        return xv*y - yv*x
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum_z"),
@@ -398,8 +400,8 @@ def standard_particle_fields(registry, ptype,
              validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
-	am = data[ptype, "particle_mass"] * data[ptype, "particle_specific_angular_momentum"].T
-	return am.T
+        am = data[ptype, "particle_mass"] * data[ptype, "particle_specific_angular_momentum"].T
+        return am.T
 
 
     registry.add_field((ptype, "particle_angular_momentum"),
