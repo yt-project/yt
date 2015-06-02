@@ -88,7 +88,7 @@ class VolumeSource(RenderSource):
 
         Examples
         --------
-        >>> source = RenderSource(ds, 'density')
+        >>> source = VolumeSource(ds, 'density')
 
         """
         super(VolumeSource, self).__init__()
