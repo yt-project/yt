@@ -317,9 +317,9 @@ def modify_reference_frame(CoM, L, P=None, V=None):
             if V is not None:
                 V = -V
 
-        if V is None:
+        if V is None and P is not None:
             return L, P
-        elif P is None:
+        elif P is None and V is not None:
             return L, V
         else:
             return L, P, V
@@ -347,9 +347,11 @@ def modify_reference_frame(CoM, L, P=None, V=None):
     if V is not None:
         V = rotate_vector_3D(V, 1, theta)
     L = rotate_vector_3D(L, 1, theta)
-    if V is None:
+
+    # return the values
+    if V is None and P is not None:
         return L, P
-    if P is None:
+    elif P is None and V is not None:
         return L, V
     else:
         return L, P, V
