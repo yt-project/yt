@@ -22,6 +22,10 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 from yt.visualization.image_writer import apply_colormap
+#from yt.utilities.lib.mesh_traversal.pyx import \
+#    EmbreeVolume
+from yt.utilities.lib.mesh_construction import \
+    ElementMesh
 
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
@@ -280,16 +284,27 @@ class MeshSource(RenderSource):
             raise RuntimeError("Volume not initialized")
 
     def build_default_volume(self):
-        self.volume = PolygonMesh(self.data_source.pf,
-                                  data_source=self.data_source)
+
+        mesh = self.ds.index.meshes[0]
+        vertices = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+        sampler_type = 'surface'
+        field_data = 0
+
+#        self.scene = EmbreeVolume()
+        self.scene = 0
+
+        self.volume = ElementMesh(self.scene,
+                                  vertices,
+                                  indices,
+                                  field_data,
+                                  sampler_type)
+
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
         mylog.debug('Log Fields:' + str(log_fields))
-        self.volume.set_fields([self.field], log_fields, True)
 
     def set_volume(self, volume):
-        assert(isinstance(volume, PolygonMesh))
-        del self.volume
-        self.volume = volume
+        pass
 
     def set_field(self, field, no_ghost=True):
         field = self.data_source._determine_fields(field)[0]
@@ -316,7 +331,16 @@ class MeshSource(RenderSource):
         assert(self.sampler is not None)
 
     def render(self, camera, zbuffer=None):
-        raise NotImplementedError
+
+        self.set_sampler(camera)
+
+        mylog.debug("Using sampler %s" % self.sampler)
+        self.sampler(scene, num_threads=self.num_threads)
+        mylog.debug("Done casting rays")
+
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
+
+        return self.current_image
 
     def finalize_image(self, camera, image):
         image = self.volume.reduce_tree_images(image,

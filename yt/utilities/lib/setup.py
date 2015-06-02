@@ -165,10 +165,15 @@ def configuration(parent_package='',top_path=None):
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     include_dirs = check_for_pyembree()
     if include_dirs is not None:
+        config.add_extension("mesh_construction",
+                             ["yt/utilities/lib/mesh_construction.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["embree"], language="c++",
+                             depends=[])
         config.add_extension("mesh_traversal",
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["m"], language="c++",
+                             libraries=["embree"], language="c++",
                              depends=["yt/utilities/lib/mesh_traversal.pxd"])
     config.add_subpackage("tests")
 
