@@ -18,6 +18,7 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
+from libc.math cimport abs
 from fp_utils cimport fmin, fmax, i64min, i64max
 
 cdef extern from "stdlib.h":
@@ -218,7 +219,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.float64_t, ndim=2] colors,
           int points_per_color=1,
           int thick=1,
-	  int flip=0):
+	      int flip=0,
+          int crop = 0):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -229,19 +231,30 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
     cdef int has_alpha = (image.shape[2] == 4)
+    cdef int no_color = (image.shape[2] < 3)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-        x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
+        x0 = xs[j]
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
+        if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
+            continue
         err = dx - dy
-        if has_alpha:
+
+        if no_color:
+            for i in range(4):
+                alpha[i] = colors[j, 0]
+        elif has_alpha:
             for i in range(4):
                 alpha[i] = colors[j/points_per_color,i]
         else:
             for i in range(3):
                 alpha[i] = colors[j/points_per_color,3]*\
                         colors[j/points_per_color,i]
+
         if x0 < x1:
             sx = 1
         else:
@@ -263,7 +276,9 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                         else:
                             yi0 = yi
 
-                        if has_alpha:
+                        if no_color:
+                            image[xi, yi0, 0] = fmin(alpha[i], image[xi, yi0, 0])
+                        elif has_alpha:
                             image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
                                 outa = 1.0/outa
@@ -276,6 +291,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                                 image[xi, yi0, i] = \
                                         (1.-alpha[i])*image[xi,yi0,i] + alpha[i]
 
+
             if (x0 == x1 and y0 == y1):
                 break
             e2 = 2*err
@@ -286,6 +302,149 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                 err = err + dx
                 y0 += sy
     return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def zlines(np.ndarray[np.float64_t, ndim=3] image,
+        np.ndarray[np.float64_t, ndim=2] zbuffer,
+        np.ndarray[np.int64_t, ndim=1] xs,
+        np.ndarray[np.int64_t, ndim=1] ys,
+        np.ndarray[np.float64_t, ndim=1] zs,
+        np.ndarray[np.float64_t, ndim=2] colors,
+        int points_per_color=1,
+        int thick=1,
+        int flip=0,
+        int crop = 0):
+
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t outa
+    cdef int i, j
+    cdef int dx, dy, sx, sy, e2, err
+    cdef np.int64_t x0, x1, y0, y1, yi0
+    cdef np.float64_t z0, z1, dzx, dzy
+    cdef int has_alpha = (image.shape[2] == 4)
+    cdef int no_color = (image.shape[2] < 3)
+    for j in range(0, nl, 2):
+        # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+        x0 = xs[j]
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
+        z0 = zs[j]
+        z1 = zs[j+1]
+        dx = abs(x1-x0)
+        dy = abs(y1-y0)
+        dzx = (z1-z0) / (dx**2 + dy**2) * dx
+        dzy = (z1-z0) / (dx**2 + dy**2) * dy
+        err = dx - dy
+        if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
+            continue
+
+        for i in range(4):
+            alpha[i] = colors[j/points_per_color, i]
+
+        if x0 < x1:
+            sx = 1
+        else:
+            sx = -1
+        if y0 < y1:
+            sy = 1
+        else:
+            sy = -1
+        while(1):
+            if (x0 < thick and sx == -1): break
+            elif (x0 >= nx-thick+1 and sx == 1): break
+            elif (y0 < thick and sy == -1): break
+            elif (y0 >= ny-thick+1 and sy == 1): break
+            if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
+                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                    for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if flip:
+                            yi0 = ny - yi
+                        else:
+                            yi0 = yi
+                        if z0 < zbuffer[x0, yi0]:
+                            if alpha[3] != 1.0:
+                                talpha = image[x0, yi0, 3]
+                                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                                for i in range(3):
+                                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                                    if image[x0, yi0, 3] == 0.0:
+                                        image[x0, yi0, i] = 0.0
+                            else:
+                                for i in range(4):
+                                    image[x0, yi0, i] = alpha[i]
+                            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                                image[x0, yi0, 3] = 1.0
+                                zbuffer[x0, yi0] = z0
+
+            if (x0 == x1 and y0 == y1):
+                break
+            e2 = 2*err
+            if e2 > -dy:
+                err = err - dy
+                x0 += sx
+                z0 += dzx
+            if e2 < dx :
+                err = err + dx
+                y0 += sy
+                z0 += dzy
+        # assert(np.abs(z0 - z1) < 1.0e-3 * (np.abs(z0) + np.abs(z1)))
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def zpoints(np.ndarray[np.float64_t, ndim=3] image,
+        np.ndarray[np.float64_t, ndim=2] zbuffer,
+        np.ndarray[np.int64_t, ndim=1] xs,
+        np.ndarray[np.int64_t, ndim=1] ys,
+        np.ndarray[np.float64_t, ndim=1] zs,
+        np.ndarray[np.float64_t, ndim=2] colors,
+        int points_per_color=1,
+        int thick=1,
+        int flip=0):
+
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t talpha
+    cdef int i, j
+    cdef np.int64_t x0, y0, yi0
+    cdef np.float64_t z0
+    for j in range(0, nl):
+        x0 = xs[j]
+        y0 = ys[j]
+        z0 = zs[j]
+        if (x0 < 0 or x0 >= nx): continue
+        if (y0 < 0 or y0 >= ny): continue
+        for i in range(4):
+            alpha[i] = colors[j/points_per_color, i]
+        if flip:
+            yi0 = ny - y0
+        else:
+            yi0 = y0
+
+        if z0 < zbuffer[x0, yi0]:
+            if alpha[3] != 1.0:
+                talpha = image[x0, yi0, 3]
+                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                for i in range(3):
+                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                    if image[x0, yi0, 3] == 0.0:
+                        image[x0, yi0, i] = 0.0
+            else:
+                for i in range(4):
+                    image[x0, yi0, i] = alpha[i]
+            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                zbuffer[x0, yi0] = z0
+    return
+
 
 def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
         np.ndarray[np.float64_t, ndim=2] R):

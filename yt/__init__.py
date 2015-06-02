@@ -120,9 +120,10 @@ from yt.fields.api import \
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    DatasetSeries, \
-    ImageArray, particle_filter, create_profile, \
-    Profile1D, Profile2D, Profile3D
+    DatasetSeries, ImageArray, \
+    particle_filter, add_particle_filter, \
+    create_profile, Profile1D, Profile2D, Profile3D, \
+    ParticleProfile
 
 # For backwards compatibility
 TimeSeriesData = deprecated_class(DatasetSeries)
@@ -148,11 +149,15 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, add_cmap, make_colormap, ProfilePlot, PhasePlot
+    show_colormaps, add_cmap, make_colormap, \
+    ProfilePlot, PhasePlot, ParticlePhasePlot, \
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+    volume_render, ColorTransferFunction, TransferFunction, \
+    off_axis_projection
+#    TransferFunctionHelper, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system

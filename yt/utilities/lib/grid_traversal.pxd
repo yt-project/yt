@@ -59,7 +59,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sample_function *sampler,
                      void *data,
                      np.float64_t *return_t = *,
-                     np.float64_t enter_t = *) nogil
+                     np.float64_t max_t = *) nogil
 
 cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
     return (i*vc.dims[1]+j)*vc.dims[2]+k

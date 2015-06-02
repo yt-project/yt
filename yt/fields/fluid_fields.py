@@ -206,7 +206,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
         def func(field, data):
-            ds = div_fac * data["index", "dx"]
+            ds = div_fac * data["index", "d%s" % ax]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),

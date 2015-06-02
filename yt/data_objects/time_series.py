@@ -325,6 +325,14 @@ class DatasetSeries(object):
         
         if isinstance(filenames, str):
             filenames = get_filenames_from_glob_pattern(filenames)
+
+        # This will crash with a less informative error if filenames is not
+        # iterable, but the plural keyword should give users a clue...
+        for fn in filenames:
+            if not isinstance(fn, str):
+                raise YTOutputNotIdentified("DataSeries accepts a list of "
+                                            "strings, but "
+                                            "received {0}".format(fn))
         obj = cls(filenames[:], parallel = parallel,
                   setup_function = setup_function, **kwargs)
         return obj

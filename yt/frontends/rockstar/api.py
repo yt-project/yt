@@ -22,3 +22,5 @@ from .io import \
 
 from .fields import \
      RockstarFieldInfo
+
+from . import tests

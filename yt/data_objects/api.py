@@ -35,7 +35,8 @@ from .profiles import \
     create_profile, \
     Profile1D, \
     Profile2D, \
-    Profile3D
+    Profile3D, \
+    ParticleProfile
 
 from .time_series import \
     DatasetSeries, \
@@ -54,4 +55,5 @@ from .image_array import \
     ImageArray
 
 from .particle_filters import \
-    particle_filter
+    particle_filter, \
+    add_particle_filter

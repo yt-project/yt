@@ -45,6 +45,7 @@ from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
 from yt.utilities.on_demand_imports import _astropy, NotAModule
 
+
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
 delimiters = ["*", "/", "-", "^", "(", ")"]
@@ -360,7 +361,7 @@ class FITSDataset(Dataset):
             self.nan_mask = {"all":nan_mask}
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
-        if isinstance(self.filenames[0], _astropy.pyfits.PrimaryHDU):
+        if isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU):
             self._handle = FITSFileHandler(self.filenames[0])
             fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
         else:
@@ -369,13 +370,18 @@ class FITSDataset(Dataset):
         self._handle._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
-                if os.path.exists(fits_file):
-                    fn = fits_file
+                if isinstance(fits_file, _astropy.pyfits.hdu.image._ImageBaseHDU):
+                    f = _astropy.pyfits.HDUList([fits_file])
+                elif isinstance(fits_file, _astropy.pyfits.HDUList):
+                    f = fits_file
                 else:
-                    fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
-                f = _astropy.pyfits.open(fn, memmap=True,
-                                         do_not_scale_image_data=True,
-                                         ignore_blank=True)
+                    if os.path.exists(fits_file):
+                        fn = fits_file
+                    else:
+                        fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
+                    f = _astropy.pyfits.open(fn, memmap=True,
+                                             do_not_scale_image_data=True,
+                                             ignore_blank=True)
                 self._handle._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":

@@ -67,7 +67,7 @@ class IOHandlerFLASH(BaseIOHandler):
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
         assert(len(ptf) == 1)
-        ptype = ptf.keys()[0]
+        ptype = list(ptf.keys())[0]
         for chunk in chunks:
             start = end = None
             for g1, g2 in particle_sequences(chunk.objs):
@@ -86,7 +86,7 @@ class IOHandlerFLASH(BaseIOHandler):
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
         assert(len(ptf) == 1)
-        ptype = ptf.keys()[0]
+        ptype = list(ptf.keys())[0]
         field_list = ptf[ptype]
         for chunk in chunks:
             for g1, g2 in particle_sequences(chunk.objs):

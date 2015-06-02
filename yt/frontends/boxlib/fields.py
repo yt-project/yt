@@ -73,9 +73,9 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
-        ("particle_momentum_x", (mom_units, [], None)),
-        ("particle_momentum_y", (mom_units, [], None)),
-        ("particle_momentum_z", (mom_units, [], None)),
+        ("particle_momentum_x", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_y", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_z", ("code_mass*code_length/code_time", [], None)),
         # Note that these are *internal* agmomen
         ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
         ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
@@ -185,7 +185,7 @@ class CastroFieldInfo(FieldInfoContainer):
                     element, weight = field[2:4], field[4:-1]
                 else:
                     element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
+
                 # Here we can, later, add number density.
 
 

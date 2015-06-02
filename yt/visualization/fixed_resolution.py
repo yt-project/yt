@@ -19,6 +19,8 @@ from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
+from yt.utilities.lib.api import add_points_to_greyscale_image
+
 from . import _MPL
 import numpy as np
 import weakref
@@ -147,7 +149,6 @@ class FixedResolutionBuffer(object):
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
 
-
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
         result = False
@@ -178,9 +179,6 @@ class FixedResolutionBuffer(object):
         else:
             label = fname
         return label
-
-
-
 
     def _get_info(self, item):
         info = {}
@@ -418,7 +416,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+        buff, sc = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
@@ -428,6 +426,96 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             units *= Unit('cm', registry=dd.ds.unit_registry)
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
-        return ia 
+        return ia
 
 
+class ParticleImageBuffer(FixedResolutionBuffer):
+    """
+
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports particle plots. It splats points onto an image
+    buffer.
+
+    """
+    def __init__(self, data_source, bounds, buff_size, antialias=True,
+                 periodic=False):
+        self.data = {}
+        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size,
+                                       antialias, periodic)
+
+        # set up the axis field names
+        axis = self.axis
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
+        ax_field_template = 'particle_position_%s'
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
+
+    def __getitem__(self, item):
+        if item in self.data: 
+            return self.data[item]
+
+        mylog.info("Splatting (%s) onto a %d by %d mesh" %
+                (item, self.buff_size[0], self.buff_size[1]))
+
+        bounds = []
+        for b in self.bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            bounds.append(b)
+
+        x_data = self.data_source.dd[self.x_field]
+        y_data = self.data_source.dd[self.y_field]
+        data = self.data_source.dd[item]
+
+        # convert to pixels
+        px = (x_data - self.bounds[0]) / (self.bounds[1] - self.bounds[0])
+        py = (y_data - self.bounds[2]) / (self.bounds[3] - self.bounds[2])
+
+        # select only the particles that will actually show up in the image
+        mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),
+                              np.logical_and(py >= 0.0, py <= 1.0))
+
+        weight_field = self.data_source.weight_field
+        if weight_field is None:
+            weight_data = np.ones_like(data.v)
+        else:
+            weight_data = self.data_source.dd[weight_field]
+        splat_vals = weight_data[mask]*data[mask]
+
+        # splat particles
+        buff = np.zeros(self.buff_size)
+        add_points_to_greyscale_image(buff,
+                                      px[mask],
+                                      py[mask],
+                                      splat_vals)
+        ia = ImageArray(buff, input_units=data.units,
+                        info=self._get_info(item))
+
+        # divide by the weight_field, if needed
+        if weight_field is not None:
+            weight_buff = np.zeros(self.buff_size)
+            add_points_to_greyscale_image(weight_buff,
+                                          px[mask],
+                                          py[mask],
+                                          weight_data[mask])
+            weight_array = ImageArray(weight_buff,
+                                      input_units=weight_data.units,
+                                      info=self._get_info(item))
+
+            locs = np.where(ia > 0)
+            ia[locs] /= weight_array[locs]
+
+        self.data[item] = ia
+        return self.data[item]
+
+    # over-ride the base class version, since we don't want to exclude
+    # particle fields
+    def _get_data_source_fields(self):
+        exclude = self.data_source._key_fields + list(self._exclude_fields)
+        fields = getattr(self.data_source, "fields", [])
+        fields += getattr(self.data_source, "field_data", {}).keys()
+        for f in fields:
+            if f not in exclude:
+                self[f]

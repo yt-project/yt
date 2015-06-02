@@ -20,14 +20,15 @@ import shutil
 from yt.testing import \
     fake_random_ds
 import numpy as np
-from yt.visualization.volume_rendering.api import \
+from yt.visualization.volume_rendering.old_camera import \
     PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
-    ColorTransferFunction, ProjectionTransferFunction
+    FisheyeCamera
+from yt.visualization.volume_rendering.api import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
 # This toggles using a temporary directory. Turn off to examine images.
-use_tmpdir = True 
+use_tmpdir = True
 
 
 def setup():
@@ -161,3 +162,10 @@ class CameraTest(TestCase):
             snap
         cam.snapshot('final.png')
         assert_fname('final.png')
+
+    def test_fisheye(self):
+        ds = self.ds
+        tf = self.setup_transfer_function('camera')
+        cam = FisheyeCamera(ds.domain_center, ds.domain_width[0],
+                            360.0, 256, transfer_function=tf, ds=ds)
+        cam.snapshot('fisheye.png')
