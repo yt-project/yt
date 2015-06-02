@@ -307,30 +307,22 @@ def modify_reference_frame(CoM, L, P=None, V=None):
 
     # is the L vector pointing in the Z direction?
     if (L[0:2] == 0.0).all():
-        # yes it is, now lets check if we are just changing the direction
-        # of the z axis or not
+        # the reason why we need to explicitly check for the above
+        # is that arccos returns NaN if L[0:2] == 0.0
+        # this just checks if we need to flip the z axis or not
         if L[2] < 0.0:
-            # Just a simple flip of axis to do!
+            # this is just a simple flip in direction of the z axis
             if P is not None:
                 P = -P
             if V is not None:
                 V = -V
 
-            if V is None:
-                return L, P
-            elif P is None:
-                return L, V
-            else:
-                return L, P, V
-
+        if V is None:
+            return L, P
+        elif P is None:
+            return L, V
         else:
-            # Whew! No rotation to do!
-            if V is None:
-                return L, P
-            elif P is None:
-                return L, V
-            else:
-                return L, P, V
+            return L, P, V
 
     # Normal vector is not aligned with simulation Z axis
     # Therefore we are going to have to apply a rotation
