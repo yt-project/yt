@@ -22,6 +22,7 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 from yt.visualization.image_writer import apply_colormap
+
 from yt.utilities.lib.mesh_traversal import EmbreeVolume, \
     MeshSampler
 from yt.utilities.lib.mesh_construction import \
@@ -251,7 +252,7 @@ class MeshSource(RenderSource):
 
         Examples
         --------
-        >>> source = MeshSource(ds, ('all', 'convected')
+        >>> source = MeshSource(ds, ('all', 'convected'))
 
         """
         super(MeshSource, self).__init__()
@@ -262,8 +263,7 @@ class MeshSource(RenderSource):
         self.current_image = None
         self.double_check = False
         self.num_threads = 0
-        self.num_samples = 10
-        self.sampler_type = 'volume-render'
+        self.sampler_type = 'surface'
 
         # Error checking
         assert(self.field is not None)
@@ -285,20 +285,17 @@ class MeshSource(RenderSource):
 
     def build_default_volume(self):
 
-        mesh = self.ds.index.meshes[0]
-        vertices = mesh.connectivity_coords
-        indices = mesh.connectivity_indices
-        sampler_type = 'surface'
-        field_data = 0
+        field_data = self.data_source[self.field]
+        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
-        # self.scene = EmbreeVolume()
-        # self.scene = 0
+        self.scene = EmbreeVolume()
 
-        # self.volume = ElementMesh(self.scene,
-        #                           vertices,
-        #                           indices,
-        #                           field_data,
-        #                           sampler_type)
+        self.volume = ElementMesh(self.scene,
+                                  vertices,
+                                  indices,
+                                  field_data,
+                                  self.sampler_type)
 
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
         mylog.debug('Log Fields:' + str(log_fields))
