@@ -2,6 +2,8 @@ import numpy as np
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
+from yt.utilities.lib.mesh_traversal import \
+    MeshSampler
 
 
 def data_source_or_all(data_source):
@@ -10,9 +12,25 @@ def data_source_or_all(data_source):
     return data_source
 
 
+def new_mesh_render_sampler(camera, render_source):
+    params = camera._get_sampler_params(render_source)
+    args = (
+        params['vp_pos'],
+        params['vp_dir'],
+        params['center'],
+        params['bounds'],
+        params['image'],
+        params['x_vec'],
+        params['y_vec'],
+        params['width'],
+    )
+
+    sampler = MeshSampler(*args)
+    return sampler
+
+
 def new_volume_render_sampler(camera, render_source):
     params = camera._get_sampler_params(render_source)
-    params.update(transfer_function=render_source.transfer_function)
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
     args = (

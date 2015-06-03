@@ -20,7 +20,7 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler
+    get_corners, new_projection_sampler, new_mesh_render_sampler
 from yt.visualization.image_writer import apply_colormap
 
 from yt.utilities.lib.mesh_traversal import EmbreeVolume, \
@@ -319,9 +319,7 @@ class MeshSource(RenderSource):
     def set_sampler(self, camera):
         """docstring for add_sampler"""
         if self.sampler_type == 'surface':
-            sampler = new_volume_render_sampler(camera, self)
-        elif self.sampler_type == 'projection':
-            sampler = new_projection_sampler(camera, self)
+            sampler = new_mesh_render_sampler(camera, self)
         else:
             NotImplementedError("%s not implemented yet" % self.sampler_type)
         self.sampler = sampler
@@ -332,19 +330,12 @@ class MeshSource(RenderSource):
         self.set_sampler(camera)
 
         mylog.debug("Using sampler %s" % self.sampler)
-        self.sampler(scene, num_threads=self.num_threads)
+        self.sampler(self.scene, num_threads=self.num_threads)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.finalize_image(camera, self.sampler.aimage)
+        self.current_image = self.sampler.aimage
 
         return self.current_image
-
-    def finalize_image(self, camera, image):
-        image = self.volume.reduce_tree_images(image,
-                                               camera.lens.viewpoint)
-        if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
-        return image
 
     def __repr__(self):
         disp = "<Mesh Source>:%s " % str(self.data_source)
