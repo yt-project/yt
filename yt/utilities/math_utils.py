@@ -306,9 +306,9 @@ def modify_reference_frame(CoM, L, P=None, V=None):
         P = P - CoM
 
     # is the L vector pointing in the Z direction?
-    if (L[0:2] == 0.0).all():
+    if np.inner(L[:2], L[:2]) == 0.0:
         # the reason why we need to explicitly check for the above
-        # is that arccos returns NaN if L[0:2] == 0.0
+        # is that formula is used in denominator
         # this just checks if we need to flip the z axis or not
         if L[2] < 0.0:
             # this is just a simple flip in direction of the z axis
@@ -317,20 +317,15 @@ def modify_reference_frame(CoM, L, P=None, V=None):
             if V is not None:
                 V = -V
 
-        if V is None and P is not None:
-            return L, P
-        elif P is None and V is not None:
-            return L, V
-        else:
-            return L, P, V
+        return filter(None, (L, P, V))
 
     # Normal vector is not aligned with simulation Z axis
     # Therefore we are going to have to apply a rotation
     # Now find the angle between modified L and the x-axis.
     LL = L.copy()
-    LL[2] = 0.
-    theta = np.arccos(np.inner(LL, [1.,0,0])/np.inner(LL,LL)**.5)
-    if L[1] < 0:
+    LL[2] = 0.0
+    theta = np.arccos(np.inner(LL, [1.0, 0.0, 0.0]) / np.inner(LL, LL) ** 0.5)
+    if L[1] < 0.0:
         theta = -theta
     # Now rotate all the position, velocity, and L vectors by this much around
     # the z axis.
@@ -340,7 +335,7 @@ def modify_reference_frame(CoM, L, P=None, V=None):
         V = rotate_vector_3D(V, 2, theta)
     L = rotate_vector_3D(L, 2, theta)
     # Now find the angle between L and the z-axis.
-    theta = np.arccos(np.inner(L, [0,0,1])/np.inner(L,L)**.5)
+    theta = np.arccos(np.inner(L, [0.0, 0.0, 1.0]) / np.inner(L, L) ** 0.5)
     # This time we rotate around the y axis.
     if P is not None:
         P = rotate_vector_3D(P, 1, theta)
@@ -348,13 +343,7 @@ def modify_reference_frame(CoM, L, P=None, V=None):
         V = rotate_vector_3D(V, 1, theta)
     L = rotate_vector_3D(L, 1, theta)
 
-    # return the values
-    if V is None and P is not None:
-        return L, P
-    elif P is None and V is not None:
-        return L, V
-    else:
-        return L, P, V
+    return filter(None, (L, P, V))
 
 def compute_rotational_velocity(CoM, L, P, V):
     r"""Computes the rotational velocity for some data around an axis.
