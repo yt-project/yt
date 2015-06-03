@@ -438,7 +438,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # compare against the centroid of the (assumed convex) element.
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
-    cdef np.float64_t pLE[3], pRE[3]
+    cdef np.float64_t pLE[3], pRE[3] 
     cdef np.float64_t LE[3], RE[3]
     cdef int use
     cdef np.int8_t *signs
@@ -449,16 +449,10 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nvertices = conn.shape[1]
     cdef int nf
 
-    # Allocate our signs array
-    if nvertices == 4:
-        nf = TETRA_NF
-    elif nvertices == 6:
-        nf = WEDGE_NF
-    elif nvertices == 8:
-        nf = HEX_NF
-    else:
-        raise RuntimeError
+    # Determine element type from the number of vertices (nvertices)
+    nf = get_element_type(nvertices)
 
+    # Allocate our signs array
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
 
@@ -526,3 +520,14 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     # Else, we deposit!
                     img[pi, pj, pk] = field[ci]
     return img
+
+def get_element_type(nvertices):
+    if nvertices == 4:
+        return TETRA_NF
+    elif nvertices == 6:
+        return WEDGE_NF
+    elif nvertices == 8:
+        return HEX_NF
+    else:
+        raise RuntimeError
+
