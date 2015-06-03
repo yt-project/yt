@@ -109,93 +109,10 @@ such sources are added, they will be integrated as well.
 Modifying the Scene
 -------------------
 
-Experimenting with the Transfer Function
-++++++++++++++++++++++++++++++++++++++++
-
-Adding New Sources
-++++++++++++++++++
-
-Hard and Opaque Objects
-+++++++++++++++++++++++
-
-Moving Around
--------------
-
-Moving the Camera
-+++++++++++++++++
-
-Looking at Things
-+++++++++++++++++
-
-Orienting the Camera
-++++++++++++++++++++
-
-Changing Lenses
-+++++++++++++++
-
-Volume Rendering Method
------------------------
-
-Direct ray casting through a volume enables the generation of new types of
-visualizations and images describing a simulation.  yt has the facility
-to generate volume renderings by a direct ray casting method.  However, the
-ability to create volume renderings informed by analysis by other mechanisms --
-for instance, halo location, angular momentum, spectral energy distributions --
-is useful.
-
-The volume rendering in yt follows a relatively straightforward approach.
-
-#. Create a set of transfer functions governing the emission and absorption as
-   a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
-   These can be functions of any field variable, weighted by independent
-   fields, and even weighted by other evaluated transfer functions.  (See
-   `transfer_functions`.)
-#. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
-   Each of these "bricks" contains the finest available data at any location.
-#. Generate vertex-centered data for all grids in the volume rendered domain.
-#. Order the bricks from front-to-back.
-#. Construct plane of rays parallel to the image plane, with initial values set
-   to zero and located at the back of the region to be rendered.
-#. For every brick, identify which rays intersect.  These are then each 'cast'
-   through the brick.
-
-   #. Every cell a ray intersects is sampled 5 times (adjustable by parameter),
-      and data values at each sampling point are trilinearly interpolated from
-      the vertex-centered data.
-   #. Each transfer function is evaluated at each sample point.  This gives us,
-      for each channel, both emission (:math:`j`) and absorption
-      (:math:`\alpha`) values.
-   #. The value for the pixel corresponding to the current ray is updated with
-      new values calculated by rectangular integration over the path length:
-
-      :math:`v^{n+1}_{i} =  j_{i}\Delta s + (1 - \alpha_{i}\Delta s )v^{n}_{i}`
-
-      where :math:`n` and :math:`n+1` represent the pixel before and after
-      passing through a sample, :math:`i` is the color (red, green, blue) and 
-      :math:`\Delta s` is the path length between samples.
-   #. Determine if any addition integrate will change the sample value; if not,
-      terminate integration.  (This reduces integration time when rendering
-      front-to-back.)
-#. The image is returned to the user:
-
-.. image:: _images/vr_sample.jpg
-   :width: 512
-
-.. _camera_movement:
-
-Camera Movement
----------------
-
-There are multiple ways to manipulate the camera viewpoint to create a series of
-renderings.  For an example, see this cookbook:
-:ref:`cookbook-camera_movement`.  For a current list of
-motion helper functions, see the docstrings associated with
-:class:`~yt.visualization.volume_rendering.camera.Camera`.
-
 .. _transfer_functions:
 
 Transfer Functions
-------------------
+++++++++++++++++++
 
 Transfer functions are the most essential component.  Several different
 fundamental types have been provided, but there are many different ways the
@@ -270,7 +187,82 @@ TransferFunctionHelper
 
 .. notebook:: TransferFunctionHelper_Tutorial.ipynb
 
-.. _healpix_volume_rendering:
+Adding New Sources
+++++++++++++++++++
+
+Hard and Opaque Objects
++++++++++++++++++++++++
+
+Moving Around
+-------------
+
+.. _camera_movement:
+
+Moving the Camera
++++++++++++++++++
+
+There are multiple ways to manipulate the camera viewpoint to create a series of
+renderings.  For an example, see this cookbook:
+:ref:`cookbook-camera_movement`.  For a current list of
+motion helper functions, see the docstrings associated with
+:class:`~yt.visualization.volume_rendering.camera.Camera`.
+
+Looking at Things
++++++++++++++++++
+
+Orienting the Camera
+++++++++++++++++++++
+
+Changing Lenses
++++++++++++++++
+
+Volume Rendering Method
+-----------------------
+
+Direct ray casting through a volume enables the generation of new types of
+visualizations and images describing a simulation.  yt has the facility
+to generate volume renderings by a direct ray casting method.  However, the
+ability to create volume renderings informed by analysis by other mechanisms --
+for instance, halo location, angular momentum, spectral energy distributions --
+is useful.
+
+The volume rendering in yt follows a relatively straightforward approach.
+
+#. Create a set of transfer functions governing the emission and absorption as
+   a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
+   These can be functions of any field variable, weighted by independent
+   fields, and even weighted by other evaluated transfer functions.  (See
+   `transfer_functions`.)
+#. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
+   Each of these "bricks" contains the finest available data at any location.
+#. Generate vertex-centered data for all grids in the volume rendered domain.
+#. Order the bricks from front-to-back.
+#. Construct plane of rays parallel to the image plane, with initial values set
+   to zero and located at the back of the region to be rendered.
+#. For every brick, identify which rays intersect.  These are then each 'cast'
+   through the brick.
+
+   #. Every cell a ray intersects is sampled 5 times (adjustable by parameter),
+      and data values at each sampling point are trilinearly interpolated from
+      the vertex-centered data.
+   #. Each transfer function is evaluated at each sample point.  This gives us,
+      for each channel, both emission (:math:`j`) and absorption
+      (:math:`\alpha`) values.
+   #. The value for the pixel corresponding to the current ray is updated with
+      new values calculated by rectangular integration over the path length:
+
+      :math:`v^{n+1}_{i} =  j_{i}\Delta s + (1 - \alpha_{i}\Delta s )v^{n}_{i}`
+
+      where :math:`n` and :math:`n+1` represent the pixel before and after
+      passing through a sample, :math:`i` is the color (red, green, blue) and 
+      :math:`\Delta s` is the path length between samples.
+   #. Determine if any addition integrate will change the sample value; if not,
+      terminate integration.  (This reduces integration time when rendering
+      front-to-back.)
+#. The image is returned to the user:
+
+.. image:: _images/vr_sample.jpg
+   :width: 512
 
 MPI Parallelization
 -------------------
@@ -361,30 +353,3 @@ will remain.
 
 For an in-depth example, please see the cookbook example on opaque renders here: 
 :ref:`cookbook-opaque_rendering`.
-
-Lighting
---------
-
-Lighting can be optionally used in volume renders by specifying use_light=True
-in the Camera object creation.  If used, one can then change the default
-lighting color and direction by modifying Camera.light_dir and
-Camera.light_rgb.  Lighting works in this context by evaluating not only the
-field value but also its gradient in order to compute the emissivity.  This is
-not the same as casting shadows, but provides a way of highlighting sides of a
-contour.  
-
-Generating a Homogenized Volume
--------------------------------
-
-In order to perform a volume rendering, the data must first be decomposed into
-a HomogenizedVolume object.  This structure splits the domain up into
-single-resolution tiles which cover the domain at the highest resolution
-possible for a given point in space.  This means that every point in space is
-mapped to exactly one data point, which receives its values from the highest
-resolution grid that covers that volume.
-
-The creation of these homogenized volumes is done during the 
-:class:`~yt.visualization.volume_rendering.camera.Camera`  object
-instantiation by default.  However, in some cases it is useful to first build
-your homogenized volume to then be passed in to the camera. A sample usage is shown
-in :ref:`cookbook-amrkdtree_downsampling`.
