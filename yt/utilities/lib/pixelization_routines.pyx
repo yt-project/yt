@@ -452,13 +452,14 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Determine element type from the number of vertices (nvertices)
     nf = get_element_type(nvertices)
 
-    # Allocate our signs array
+    # Allocate subroutine
+    ## Allocate signs array
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
+    ## Allocate vertices pointer array
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
-
     for i in range(nvertices):
         vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
-
+    
     for i in range(3):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -481,12 +482,15 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                 centroid[i] += coords[cj, i]
                 LE[i] = fmin(LE[i], vertices[n][i])
                 RE[i] = fmax(RE[i], vertices[n][i])
+
         centroid[0] /= nvertices
         centroid[1] /= nvertices
         centroid[2] /= nvertices
         use = 1
 
         for i in range(3):
+            # Check whether the element is within the pixel bounding box, i.e.
+            # within the dimensions of the image
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
                 use = 0
                 break
@@ -517,7 +521,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
                         continue
 
-                    # Else, we deposit!
+                    # Otherwise, we will add a pixel to the image buffer
                     img[pi, pj, pk] = field[ci]
     return img
 
@@ -530,4 +534,5 @@ def get_element_type(nvertices):
         return HEX_NF
     else:
         raise RuntimeError
+
 
