@@ -24,6 +24,8 @@ from .utils import new_volume_render_sampler, data_source_or_all, \
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.mesh_traversal import EmbreeVolume, \
     MeshSampler
+from yt.utilities.lib.mesh_construction import \
+    ElementMesh
 
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
@@ -90,7 +92,7 @@ class VolumeSource(RenderSource):
 
         Examples
         --------
-        >>> source = RenderSource(ds, 'density')
+        >>> source = VolumeSource(ds, 'density')
 
         """
         super(VolumeSource, self).__init__()
@@ -222,6 +224,133 @@ class VolumeSource(RenderSource):
     def __repr__(self):
         disp = "<Volume Source>:%s " % str(self.data_source)
         disp += "transfer_function:%s" % str(self.transfer_function)
+        return disp
+
+
+class MeshSource(RenderSource):
+
+    """docstring for MeshSource"""
+    _image = None
+    data_source = None
+
+    def __init__(self, data_source, field, auto=True):
+        r"""Initialize a new unstructured source for rendering.
+
+        A :class:`MeshSource` provides the framework to volume render
+        unstructured mesh data.
+
+        Parameters
+        ----------
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
+        fields : string
+            The name of the field to be rendered.
+        auto: bool, optional
+            If True, will build a default PolygonMesh based on the data.
+
+        Examples
+        --------
+        >>> source = MeshSource(ds, ('all', 'convected')
+
+        """
+        super(MeshSource, self).__init__()
+        self.data_source = data_source_or_all(data_source)
+        field = self.data_source._determine_fields(field)[0]
+        self.field = field
+        self.volume = None
+        self.current_image = None
+        self.double_check = False
+        self.num_threads = 0
+        self.num_samples = 10
+        self.sampler_type = 'volume-render'
+
+        # Error checking
+        assert(self.field is not None)
+        assert(self.data_source is not None)
+
+        if auto:
+            self.build_defaults()
+
+    def build_defaults(self):
+        self.build_default_volume()
+
+    def _validate(self):
+        """Make sure that all dependencies have been met"""
+        if self.data_source is None:
+            raise RuntimeError("Data source not initialized")
+
+        if self.volume is None:
+            raise RuntimeError("Volume not initialized")
+
+    def build_default_volume(self):
+
+        mesh = self.ds.index.meshes[0]
+        vertices = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+        sampler_type = 'surface'
+        field_data = 0
+
+#        self.scene = EmbreeVolume()
+        self.scene = 0
+
+        self.volume = ElementMesh(self.scene,
+                                  vertices,
+                                  indices,
+                                  field_data,
+                                  sampler_type)
+
+        log_fields = [self.data_source.pf.field_info[self.field].take_log]
+        mylog.debug('Log Fields:' + str(log_fields))
+
+    def set_volume(self, volume):
+        pass
+
+    def set_field(self, field, no_ghost=True):
+        field = self.data_source._determine_fields(field)[0]
+        log_field = self.data_source.pf.field_info[field].take_log
+        self.volume.set_fields(field, [log_field], no_ghost)
+        self.field = field
+
+    def set_fields(self, fields, no_ghost=True):
+        fields = self.data_source._determine_fields(fields)
+        log_fields = [self.data_source.ds.field_info[f].take_log
+                      for f in fields]
+        self.volume.set_fields(fields, log_fields, no_ghost)
+        self.field = fields
+
+    def set_sampler(self, camera):
+        """docstring for add_sampler"""
+        if self.sampler_type == 'surface':
+            sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'projection':
+            sampler = new_projection_sampler(camera, self)
+        else:
+            NotImplementedError("%s not implemented yet" % self.sampler_type)
+        self.sampler = sampler
+        assert(self.sampler is not None)
+
+    def render(self, camera, zbuffer=None):
+
+        self.set_sampler(camera)
+
+        mylog.debug("Using sampler %s" % self.sampler)
+        self.sampler(scene, num_threads=self.num_threads)
+        mylog.debug("Done casting rays")
+
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
+
+        return self.current_image
+
+    def finalize_image(self, camera, image):
+        image = self.volume.reduce_tree_images(image,
+                                               camera.lens.viewpoint)
+        if self.transfer_function.grey_opacity is False:
+            image[:, :, 3] = 1.0
+        return image
+
+    def __repr__(self):
+        disp = "<Mesh Source>:%s " % str(self.data_source)
         return disp
 
 

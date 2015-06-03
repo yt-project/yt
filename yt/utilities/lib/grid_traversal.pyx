@@ -25,6 +25,7 @@ from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
+#from mesh_traversal import EmbreeVolume
 
 from cython.parallel import prange, parallel, threadid
 
@@ -786,6 +787,14 @@ cdef class LightSourceRenderSampler(ImageSampler):
         #free(self.vra)
         #free(self.light_dir)
         #free(self.light_rgba)
+
+cdef class MeshSampler(ImageSampler):
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def __call__(self, scene, int num_threads = 0):
+        pass
 
 
 @cython.boundscheck(False)

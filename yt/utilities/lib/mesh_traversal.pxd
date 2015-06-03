@@ -4,3 +4,4 @@ cimport pyembree.rtcore_ray
 
 cdef class EmbreeVolume:
     cdef rtcs.RTCScene scene_i
+
