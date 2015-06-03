@@ -380,7 +380,7 @@ class YTBugreportCmd(YTCommand):
         print("===============================================================")
         print("At any time in advance of the upload of the bug, you should feel free")
         print("to ctrl-C out and submit the bug report manually by going here:")
-        print("   http://hg.yt-project.org/yt/issues/new")
+        print("   http://bitbucket.org/yt_analysis/yt/issues/new")
         print()
         print("Also, in order to submit a bug through this interface, you")
         print("need a Bitbucket account. If you don't have one, exit this ")
@@ -388,7 +388,7 @@ class YTBugreportCmd(YTCommand):
         print()
         print("Have you checked the existing bug reports to make")
         print("sure your bug has not already been recorded by someone else?")
-        print("   http://hg.yt-project.org/yt/issues?status=new&status=open")
+        print("   http://bitbucket.org/yt_analysis/yt/issues?status=new&status=open")
         print()
         print("Finally, are you sure that your bug is, in fact, a bug? It might")
         print("simply be a misunderstanding that could be cleared up by")
@@ -468,7 +468,7 @@ class YTBugreportCmd(YTCommand):
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
-        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
+        url = "http://bitbucket.org/yt_analysis/yt/issue/%s" % retval['local_id']
         print()
         print("===============================================================")
         print()

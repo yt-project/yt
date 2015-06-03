@@ -28,6 +28,10 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.exceptions import YTEmptyProfileData
+from yt.utilities.lib.CICDeposit import \
+    CICDeposit_2, \
+    NGPDeposit_2
+
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -1019,7 +1023,7 @@ class Profile2D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -1030,7 +1034,7 @@ class Profile2D(ProfileND):
     y_min : float
         The minimum value of the y profile field.
     y_max : float
-        The maximum value of hte y profile field.
+        The maximum value of the y profile field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -1101,6 +1105,121 @@ class Profile2D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
 
+
+class ParticleProfile(Profile2D):
+    """An object that represents a *deposited* 2D profile. This is like a
+    Profile2D, except that it is intended for particle data. Instead of just
+    binning the particles, the added fields will be deposited onto the mesh
+    using either the nearest-grid-point or cloud-in-cell interpolation kernels.
+
+    Parameters
+    ----------
+
+    data_source : AMD3DData object
+        The data object to be profiled
+    x_field : string field name
+        The field to profile as a function of along the x axis.
+    x_n : integer
+        The number of bins along the x direction.
+    x_min : float
+        The minimum value of the x profile field.
+    x_max : float
+        The maximum value of the x profile field.
+    y_field : string field name
+        The field to profile as a function of along the y axis
+    y_n : integer
+        The number of bins along the y direction.
+    y_min : float
+        The minimum value of the y profile field.
+    y_max : float
+        The maximum value of the y profile field.
+    weight_field : string field name
+        The field to use for weighting. Default is None.
+    deposition : string, optional
+        The interpolation kernal to be used for
+        deposition. Valid choices:
+        "ngp" : nearest grid point interpolation
+        "cic" : cloud-in-cell interpolation
+
+    """
+    accumulation = False
+    fractional = False
+
+    def __init__(self, data_source,
+                 x_field, x_n, x_min, x_max,
+                 y_field, y_n, y_min, y_max,
+                 weight_field=None, deposition="ngp"):
+
+        x_field = data_source._determine_fields(x_field)[0]
+        y_field = data_source._determine_fields(y_field)[0]
+
+        # set the log parameters to False (since that doesn't make much sense
+        # for deposited data) and also turn off the weight field.
+        super(ParticleProfile, self).__init__(data_source,
+                                              x_field,
+                                              x_n, x_min, x_max, False,
+                                              y_field,
+                                              y_n, y_min, y_max, False,
+                                              weight_field=weight_field)
+
+        self.LeftEdge = [self.x_bins[0], self.y_bins[0]]
+        self.dx = (self.x_bins[-1] - self.x_bins[0]) / x_n
+        self.dy = (self.y_bins[-1] - self.y_bins[0]) / y_n
+        self.CellSize = [self.dx, self.dy]
+        self.CellVolume = np.product(self.CellSize)
+        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
+        self.known_styles = ["ngp", "cic"]
+        if deposition not in self.known_styles:
+            raise NotImplementedError(deposition)
+        self.deposition = deposition
+
+    # Either stick the particle field in the nearest bin,
+    # or spread it out using the 2D CIC deposition function
+    def _bin_chunk(self, chunk, fields, storage):
+        rv = self._get_data(chunk, fields)
+        if rv is None: return
+        fdata, wdata, (bf_x, bf_y) = rv
+        # make sure everything has the same units before deposition.
+        # the units will be scaled to the correct values later.
+        LE = np.array([self.LeftEdge[0].in_units(bf_x.units),
+                       self.LeftEdge[1].in_units(bf_y.units)])
+        cell_size = np.array([self.CellSize[0].in_units(bf_x.units),
+                              self.CellSize[1].in_units(bf_y.units)])
+        for fi, field in enumerate(fields):
+            Np = fdata[:, fi].size
+
+            if self.deposition == "ngp":
+                func = NGPDeposit_2
+            elif self.deposition == 'cic':
+                func = CICDeposit_2
+
+            if self.weight_field is None:
+                deposit_vals = fdata[:, fi]
+            else:
+                deposit_vals = wdata*fdata[:, fi]
+
+            func(bf_x, bf_y, deposit_vals, Np,
+                 storage.values[:, :, fi],
+                 LE,
+                 self.GridDimensions,
+                 cell_size)
+
+            locs = storage.values[:, :, fi] > 0.0
+            storage.used[locs] = True
+
+            if self.weight_field is not None:
+                func(bf_x, bf_y, wdata, Np,
+                     storage.weight_values,
+                     LE,
+                     self.GridDimensions,
+                     cell_size)
+            else:
+                storage.weight_values[locs] = 1.0
+            storage.mvalues[locs, fi] = storage.values[locs, fi] \
+                                        / storage.weight_values[locs]
+        # We've binned it!
+
+
 class Profile3D(ProfileND):
     """An object that represents a 2D profile.
 
@@ -1116,7 +1235,7 @@ class Profile3D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -1127,7 +1246,7 @@ class Profile3D(ProfileND):
     y_min : float
         The minimum value of the y profile field.
     y_max : float
-        The maximum value of hte y profile field.
+        The maximum value of the y profile field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -1138,7 +1257,7 @@ class Profile3D(ProfileND):
     z_min : float
         The minimum value of the z profile field.
     z_max : float
-        The maximum value of hte z profile field.
+        The maximum value of thee z profile field.
     z_log : boolean
         Controls whether or not the bins for the z field are evenly
         spaced in linear (False) or log (True) space.
@@ -1242,10 +1361,12 @@ def sanitize_field_tuple_keys(input_dict, data_source):
     else:
         return input_dict
 
+
 def create_profile(data_source, bin_fields, fields, n_bins=64,
                    extrema=None, logs=None, units=None,
                    weight_field="cell_mass",
-                   accumulation=False, fractional=False):
+                   accumulation=False, fractional=False,
+                   deposition='ngp'):
     r"""
     Create a 1, 2, or 3D profile object.
 
@@ -1289,6 +1410,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     fractional : If True the profile values are divided by the sum of all
         the profile data such that the profile represents a probability
         distribution function.
+    deposition : Controls the type of deposition used for ParticlePhasePlots.
+        Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
+        ignored the if the input fields are not of particle type.
+
 
     Examples
     --------
@@ -1298,7 +1423,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     >>> ds = load("DD0046/DD0046")
     >>> ad = ds.h.all_data()
-    >>> profile = create_profile(ad, [("gas", "density")], 
+    >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
     >>> print profile.x
@@ -1307,8 +1432,19 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     """
     bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
+    is_pfield = [data_source.ds._get_field_info(f).particle_type
+                 for f in bin_fields + fields]
+
     if len(bin_fields) == 1:
         cls = Profile1D
+    elif len(bin_fields) == 2 and np.all(is_pfield):
+        # log bin_fields set to False for Particle Profiles.
+        # doesn't make much sense for CIC deposition.
+        # accumulation and fractional set to False as well.
+        logs = {bin_fields[0]: False, bin_fields[1]: False}
+        accumulation = False
+        fractional = False
+        cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
     elif len(bin_fields) == 3:
@@ -1320,8 +1456,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     units = sanitize_field_tuple_keys(units, data_source)
     extrema = sanitize_field_tuple_keys(extrema, data_source)
     logs = sanitize_field_tuple_keys(logs, data_source)
-    if weight_field is not None:
+    if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
+        if not data_source.ds._get_field_info(weight_field).particle_type:
+            weight_field = None
     if not iterable(n_bins):
         n_bins = [n_bins] * len(bin_fields)
     if not iterable(accumulation):
@@ -1359,12 +1497,18 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
-    args = [data_source]
-    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-        args += [f, n, mi, ma, l]
-    obj = cls(*args, weight_field = weight_field)
-    setattr(obj, "accumulation", accumulation)
-    setattr(obj, "fractional", fractional)
+    if cls is ParticleProfile:
+        args = [data_source]
+        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
+            args += [f, n, mi, ma]
+        obj = cls(*args, weight_field=weight_field, deposition=deposition)
+    else:
+        args = [data_source]
+        for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+            args += [f, n, mi, ma, l]
+        obj = cls(*args, weight_field = weight_field)
+        setattr(obj, "accumulation", accumulation)
+        setattr(obj, "fractional", fractional)
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:
@@ -1407,4 +1551,3 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             else:
                 obj.set_field_unit(field, unit)
     return obj
-

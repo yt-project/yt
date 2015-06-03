@@ -18,6 +18,7 @@ from __future__ import print_function
 import h5py
 import numpy as np
 import stat
+import struct
 import os
 import types
 
@@ -167,7 +168,7 @@ class GadgetDataset(ParticleDataset):
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
-            self.current_time = hvals["Time"] 
+            self.current_time = hvals["Time"]
         else:
             # Now we calculate our time based on the cosmology, because in
             # ComovingIntegration hvals["Time"] will in fact be the expansion
@@ -200,7 +201,7 @@ class GadgetDataset(ParticleDataset):
             else:
                 mylog.info("Assuming length units are in kpc (physical)")
                 self._unit_base = dict(length = (1.0, "kpc"))
-                
+
         # If units passed in by user, decide what to do about
         # co-moving and factors of h
         unit_base = self._unit_base or {}
@@ -242,10 +243,59 @@ class GadgetDataset(ParticleDataset):
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
         self.time_unit = self.length_unit / self.velocity_unit
 
+    @staticmethod
+    def _validate_header(filename):
+        '''
+        This method automatically detects whether the Gadget file is big/little endian 
+        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a 
+        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file 
+        is a Gadget binary file, and endianswap is the endianness character '>' or '<'. 
+        '''
+        try:
+            f = open(filename,'rb')
+        except IOError:
+            try:
+                f = open(filename+".0")
+            except IOError:
+                return False, 1
+        
+        # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
+        # 8 for a Gadget2 binary file with SnapFormat=2 file, 
+        # or the byte swapped equivalents (65536 and 134217728).
+        # The int32 following the header (first 4+256 bytes) must equal this
+        # number.
+        (rhead,) = struct.unpack('<I',f.read(4))
+        # Use value to check endianess
+        if rhead == 256:
+            endianswap = '<'
+        elif rhead == 65536:
+            endianswap = '>'
+        # Disabled for now (does any one still use SnapFormat=2?)
+        # If so, alternate read would be needed based on header.
+        # elif rhead == 8:
+        #     return True, '<'
+        # elif rhead == 134217728:
+        #     return True, '>'
+        else:
+            f.close()
+            return False, 1
+        # Read in particle number from header
+        np0 = sum(struct.unpack(endianswap+'IIIIII',f.read(6*4)))
+        # Read in size of position block. It should be 4 bytes per float, 
+        # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
+        f.seek(4+256+4,0)
+        np1 = struct.unpack(endianswap+'I',f.read(4))[0]/(4*3)
+        f.close()
+        # Compare
+        if np0 == np1:
+            return True, endianswap
+        else:
+            return False, 1
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # We do not allow load() of these files.
-        return False
+        # First 4 bytes used to check load
+        return GadgetDataset._validate_header(args[0])[0]
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
@@ -253,7 +303,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None,
@@ -327,8 +377,8 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     def _set_owls_eagle_units(self):
 
-        # note the contents of the HDF5 Units group are in _unit_base 
-        # note the velocity stored on disk is sqrt(a) dx/dt 
+        # note the contents of the HDF5 Units group are in _unit_base
+        # note the velocity stored on disk is sqrt(a) dx/dt
         self.length_unit = self.quan(self._unit_base["UnitLength_in_cm"], 'cmcm/h')
         self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
         self.velocity_unit = self.quan(self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
@@ -336,13 +386,15 @@ class GadgetHDF5Dataset(GadgetDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Header']
+        veto_groups = ['FOF']
+        valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Constants" not in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+              not any(vg in fh["/"] for vg in veto_groups)
+            fh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid
