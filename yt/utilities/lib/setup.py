@@ -168,12 +168,12 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("mesh_construction",
                              ["yt/utilities/lib/mesh_construction.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["embree"], language="c++",
+                             libraries=["m", "embree"], language="c++",
                              depends=[])
         config.add_extension("mesh_traversal",
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["embree"], language="c++",
+                             libraries=["m", "embree"], language="c++",
                              depends=["yt/utilities/lib/mesh_traversal.pxd"])
     config.add_subpackage("tests")
 

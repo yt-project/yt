@@ -291,14 +291,14 @@ class MeshSource(RenderSource):
         sampler_type = 'surface'
         field_data = 0
 
-#        self.scene = EmbreeVolume()
-        self.scene = 0
+        # self.scene = EmbreeVolume()
+        # self.scene = 0
 
-        self.volume = ElementMesh(self.scene,
-                                  vertices,
-                                  indices,
-                                  field_data,
-                                  sampler_type)
+        # self.volume = ElementMesh(self.scene,
+        #                           vertices,
+        #                           indices,
+        #                           field_data,
+        #                           sampler_type)
 
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
         mylog.debug('Log Fields:' + str(log_fields))
