@@ -422,12 +422,13 @@ cdef int check_face_dot(int nvertices,
     return 1
 
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
-                      np.ndarray[np.int64_t, ndim=2] conn,
-                      buff_size,
-                      np.ndarray[np.float64_t, ndim=1] field,
-                      extents, int index_offset = 0):
+                          np.ndarray[np.int64_t, ndim=2] conn,
+                          buff_size,
+                          np.ndarray[np.float64_t, ndim=1] field,
+                          extents, int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
+
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
@@ -447,6 +448,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t **vertices
     cdef int nvertices = conn.shape[1]
     cdef int nf
+
     # Allocate our signs array
     if nvertices == 4:
         nf = TETRA_NF
@@ -456,10 +458,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         nf = HEX_NF
     else:
         raise RuntimeError
+
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
+
     for i in range(nvertices):
         vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
+
     for i in range(3):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -468,11 +473,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             idds[i] = 0.0
         else:
             idds[i] = 1.0 / dds[i]
+
     for ci in range(conn.shape[0]):
         # Fill the vertices and compute the centroid
         centroid[0] = centroid[1] = centroid[2] = 0
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
+
         for n in range(nvertices): # 8
             cj = conn[ci, n] - index_offset
             for i in range(3):
@@ -484,30 +491,38 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         centroid[1] /= nvertices
         centroid[2] /= nvertices
         use = 1
+
         for i in range(3):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
                 use = 0
                 break
             pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
             pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+
         if use == 0:
             continue
+
         # Now our bounding box intersects, so we get the extents of our pixel
         # region which overlaps with the bounding box, and we'll check each
         # pixel in there.
         # First, we figure out the dot product of the centroid with all the
         # faces.
         check_face_dot(nvertices, centroid, vertices, signs, 0)
+
         for pi in range(pstart[0], pend[0] + 1):
             ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
+
             for pj in range(pstart[1], pend[1] + 1):
                 ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
+
                 for pk in range(pstart[2], pend[2] + 1):
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
+
                     if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
                         continue
+
                     # Else, we deposit!
                     img[pi, pj, pk] = field[ci]
     return img
