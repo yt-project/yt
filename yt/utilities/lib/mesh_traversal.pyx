@@ -23,4 +23,16 @@ cdef class EmbreeVolume:
         rtcs.rtcDeleteScene(self.scene_i)
 
 cdef class MeshSampler(ImageSampler):
-    pass
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def __call__(self, EmbreeVolume volume, int num_threads = 0):
+        '''
+
+        This function is supposed to cast the rays and return the
+        image.
+
+        '''
+
+        pass

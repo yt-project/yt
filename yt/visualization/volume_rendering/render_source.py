@@ -22,7 +22,8 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler
 from yt.visualization.image_writer import apply_colormap
-from yt.utilities.lib.mesh_traversal import EmbreeVolume
+from yt.utilities.lib.mesh_traversal import EmbreeVolume, \
+    MeshSampler
 
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
