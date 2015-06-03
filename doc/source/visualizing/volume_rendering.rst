@@ -1,38 +1,53 @@
 .. _volume_rendering:
 
-Volume Rendering: Making 3D Photorealistic Isocontoured Images
-==============================================================
+3D Visualization and Volume Rendering
+=====================================
 
-Volume rendering, as implemented in yt, is a mechanism by which rays are cast
-through a domain, converting field values to emission and absorption, and producing a final image.
-This provides the ability to create off-axis projections, isocontour images,
-volume emission, and absorption from intervening material.  The primary goal 
-of the volume rendering in yt is to provide the ability to make
-*scientifically-informed* visualizations of simulations.  
+yt has the ability to create 3D visualizations, using a process known as volume
+rendering.  At present, its capabilities are limited to software volume
+rendering, but porting this capability to OpenGL and GPUs is an area of active
+development.
 
-The volume renderer is implemented in a hybrid of Python and Cython, which is
-Python-like code compiled down to C.  It has been optimized, but it is still a
-*software* volume renderer: it does not currently operate on graphics
-processing units (GPUs).  However, while the rendering engine itself may not
-directly translate to GPU code (OpenCL, CUDA or OpenGL), the Python structures:
-partitioning, transfer functions, display, etc., may be useful in the future
-for transitioning the rendering to the GPU.  In addition, this allows users to create
-volume renderings on traditional supercomputing platforms that may not have access to GPUs.
+Constructing a 3D visualization is a process of describing the "scene" that
+will be rendered.  This includes the location of the viewing point (i.e., where
+the "camera" is placed), the method by which a system would be viewed (i.e.,
+the "lens," which may be orthographic, perspective, fisheye, spherical, and so
+on) and the components that will be rendered (render "sources," such as volume
+elements, lines, annotations, and opaque surfaces).  The 3D plotting
+infrastructure then develops a resultant image from this scene, which can be
+saved to a file or viewed inline.
 
-The volume renderer is also threaded using OpenMP.  Many of the commands
-(including `snapshot`) will accept a `num_threads` option.
+By constructing the scene in this programmatic way, full control can be had
+over each component in the scene as well as the method by which the scene is
+rendered; this can be used to prototype visualizations, inject annotation such
+as grid or continent lines, and then to render a production-quality
+visualization.  By changing the "lens" used, a single camera path can output
+images suitable for planetarium domes, immersive and head tracking systems
+(such as the Occulus Rift or recent "spherical" movie viewers such as the
+mobile YouTube app), as well as standard screens.
 
-Scene Interface
-===============
+In versions of yt prior to 3.2, the only volume rendering interface accessible
+was through the "camera" object.  This presented a number of problems,
+principle of which was the inability to describe new scene elements or to
+develop complex visualizations that were independent of the specific elements
+being rendered.  The new "scene" based interface present in yt 3.2 and beyond
+enables both more complex visualizations to be constructed as well as a new,
+more intuitive interface for very simple 3D visualizations.
+
+.. warning:: 3D visualizations can be fun but frustrating!  Tuning the
+             parameters to both look nice and convey useful scientific
+             information can be hard.  We've provided information about best
+             practices and tried to make the interface easy to develop nice
+             visualizations, but getting them *just right* is often
+             time-consuming.
 
 Tutorial
 --------
 
-The scene interface is the product of a refactor to the volume rendering
-framework, and is meant to provide a more modular interface for creating
-renderings of arbitrary data sources. As such, manual composition of a 
-scene can require a bit more work, but we will also provide several helper
-functions that attempt to create satisfactory default volume renderings.
+The scene interface provides a more modular interface for creating renderings
+of arbitrary data sources. As such, manual composition of a scene can require a
+bit more work, but we will also provide several helper functions that attempt
+to create satisfactory default volume renderings.
 
 Here is a working example for rendering the IsolatedGalaxy dataset.
 
@@ -49,11 +64,11 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
 
 When the volume_rendering function is called, first an empty 'Scene' object is
 created. Next, a 'VolumeSource' object is created, which deomposes the grids
-into an AMRKDTree to provide back-to-front rendering of fixed-resolution blocks
-of data.  When the VolumeSource object is created, by default it will create a
-transfer function based on the extrema of the field that you are rendering. The
-transfer function describes how to 'transfer' data values to color and
-brightness.
+into an `AMRKDTree` to provide back-to-front rendering of fixed-resolution
+blocks of data.  When the VolumeSource object is created, by default it will
+create a transfer function based on the extrema of the field that you are
+rendering. The transfer function describes how to 'transfer' data values to
+color and brightness.
 
 Next, a Camera object is created, which by default also creates a default,
 plane-parallel, Lens object. The analog to a real camera is intentional.

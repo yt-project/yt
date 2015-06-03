@@ -28,3 +28,4 @@ Documentation:
 * OpaqueSource
 * RenderSource
 * Narrative Developer Documentation
+* Diagram of Camera, Scene, Lens, Source
