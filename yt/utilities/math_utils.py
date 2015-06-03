@@ -317,7 +317,13 @@ def modify_reference_frame(CoM, L, P=None, V=None):
             if V is not None:
                 V = -V
 
-        return filter(None, (L, P, V))
+        # return the values
+        if V is None and P is not None:
+            return L, P
+        elif P is None and V is not None:
+            return L, V
+        else:
+            return L, P, V
 
     # Normal vector is not aligned with simulation Z axis
     # Therefore we are going to have to apply a rotation
@@ -343,7 +349,13 @@ def modify_reference_frame(CoM, L, P=None, V=None):
         V = rotate_vector_3D(V, 1, theta)
     L = rotate_vector_3D(L, 1, theta)
 
-    return filter(None, (L, P, V))
+    # return the values
+    if V is None and P is not None:
+        return L, P
+    elif P is None and V is not None:
+        return L, V
+    else:
+        return L, P, V
 
 def compute_rotational_velocity(CoM, L, P, V):
     r"""Computes the rotational velocity for some data around an axis.
