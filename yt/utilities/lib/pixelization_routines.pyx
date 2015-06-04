@@ -426,6 +426,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=1] field,
                           extents, int index_offset = 0):
+
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
 
@@ -438,15 +439,15 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # compare against the centroid of the (assumed convex) element.
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
-    cdef np.float64_t pLE[3], pRE[3] 
-    cdef np.float64_t LE[3], RE[3]
+    cdef np.float64_t pLE[3], pRE[3] # bounding box of image buffer
+    cdef np.float64_t LE[3], RE[3] # bounding box for an individual element
     cdef int use
-    cdef np.int8_t *signs
+    cdef np.int8_t *signs # we use this to determine whether a pixel is within the finite element
     cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
     cdef np.int64_t pstart[3], pend[3]
-    cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3]
-    cdef np.float64_t **vertices
-    cdef int nvertices = conn.shape[1]
+    cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3] # dds->[dx, dy, dz]
+    cdef np.float64_t **vertices 
+    cdef int nvertices = conn.shape[1] # get the number of vertices
     cdef int nf
 
     # Determine element type from the number of vertices (nvertices)
