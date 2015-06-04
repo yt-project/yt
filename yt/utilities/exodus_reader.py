@@ -13,9 +13,6 @@ class ExodusData:
     def load_dataset(self):
         dataset = Dataset(self.filename).variables
         nelem = dataset["eb_status"][:].shape[0]
-        varnames = self.get_var_names(dataset)
-        nodnames = self.get_nod_names(dataset)
-
         coord = np.array([dataset["coord%s" % ax][:]
                          for ax in 'xyz']).transpose().copy()
 
@@ -25,10 +22,10 @@ class ExodusData:
             self.coords.append(coord)  # Same for all
             vals = {}
 
-            for j, v in enumerate(varnames):
+            for j, v in enumerate(self.get_var_names(dataset)):
                 vals['gas', v] = dataset["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
 
-            for j, v in enumerate(nodnames):
+            for j, v in enumerate(self.get_nod_names(dataset)):
                 # We want just for this set of nodes all the node variables
                 # Use (ci - 1) to get these values
                 vals['gas', v] = dataset["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
