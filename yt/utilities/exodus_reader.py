@@ -1,12 +1,13 @@
 import string
 from itertools import takewhile
+from collections import OrderedDict
 import numpy as np
 from netCDF4 import Dataset
 
 class ExodusData:
     def __init__(self, filename):
         self.filename = filename
-        self.dataset = []
+        self.dataset = OrderedDict()
         self.coords = []
         self.connects = []
         self.data = []
