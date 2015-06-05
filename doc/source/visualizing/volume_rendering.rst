@@ -64,7 +64,7 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
   # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_rendering(ds, 'density', fname='test_rendering.png')
+  im, sc = yt.volume_render(ds, 'density', fname='test_rendering.png')
 
   # im is the image that was generated.
   # sc is an instance of a Scene object, which allows you to further refine
