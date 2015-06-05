@@ -109,15 +109,24 @@ such sources are added, they will be integrated as well.
 Modifying the Scene
 -------------------
 
+Once a basic scene has been created, where default render sources and basic
+camera operations are utilized, deeper modifications are possible.  These
+modifications can tune the appearance of the render sources (such as which
+colors correspond to which values in the data) as well as the shape of the
+rendered image, the position of the camera in the scene, and other elements
+present in the scene.  Below, we describe a few of the aspects of tuning a
+scene to create a visualization that is communicative and pleasing.
+
 .. _transfer_functions:
 
 Transfer Functions
 ++++++++++++++++++
 
-Transfer functions are the most essential component.  Several different
-fundamental types have been provided, but there are many different ways the
-construct complicated expressions to produce visualizations and images using
-the underlying machinery.
+Transfer functions are the most essential component of a rendering that
+includes volume sources.  Several different fundamental types have been
+provided, but there are many different ways the construct complicated
+expressions to produce visualizations and images using the underlying
+machinery.
 
 .. note::
    All of the information about how transfer functions are used and values
@@ -190,8 +199,21 @@ TransferFunctionHelper
 Adding New Sources
 ++++++++++++++++++
 
+The resulting image of a rendering process is a combination of the different
+sources present in a scene.  While at present there are only a few sources
+available, in principle new sources can be defined and added to yt over time.
+
+By default, the scene will construct a volume object that includes the fluid
+components of a data source. 
+
+Volume Objects
+++++++++++++++
+
 Hard and Opaque Objects
 +++++++++++++++++++++++
+
+Annotations
++++++++++++
 
 Moving Around
 -------------
