@@ -25,7 +25,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         # setup some special fields that only make sense for SPH particles
 
         if (ptype, "FourMetalFractions") in self.ds.field_list:
-            self._setup_four_metal_fractions()
+            self._setup_four_metal_fractions(ptype)
 
         super(GadgetFieldInfo, self).setup_particle_fields(
             ptype, *args, **kwargs)
@@ -33,7 +33,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)
 
-    def _setup_four_metal_fractions(self):
+    def _setup_four_metal_fractions(self, ptype):
         """
         This function breaks the FourMetalFractions field (if present) 
         into its four component metal fraction fields and adds 
@@ -43,12 +43,11 @@ class GadgetFieldInfo(SPHFieldInfo):
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         metal_names = ['C', 'O', 'Si', 'Fe']
-        for i in range(len(metal_fraction_names)):
-        for i, metal_name in enumerate(metal_names)
+        for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
             def _Fraction_wrap(i):
-                def _Fraction(field,data):
+                def _Fraction(field, data):
                     return data[(ptype, 'FourMetalFractions')][:,i]
                 return _Fraction
 
@@ -59,7 +58,7 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             # add the metal density fields
             def _Density_wrap(i):
-                def _Metal_density(field,data):
+                def _Metal_density(field, data):
                     return data[(ptype, 'FourMetalFractions')][:,i] * \
                            data[(ptype, 'density')]
                 return _Metal_density
