@@ -494,13 +494,14 @@ class RAMSESDataset(Dataset):
         #Please note that for all units given in the info file, the boxlen
         #still needs to be folded in, as shown below!
 
-        length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
-        rho_u = self.parameters['unit_d']/ self.parameters['boxlen']**3
+        boxlen=self.parameters['boxlen']
+        length_unit = self.parameters['unit_l'] * boxlen
+        density_unit = self.parameters['unit_d']/ boxlen**3
 
         # In the mass unit, the factors of boxlen cancel back out, so this 
         #is equivalent to unit_d*unit_l**3
 
-        mass_unit = rho_u * length_unit**3
+        mass_unit = density_unit * length_unit**3
 
         # Cosmological runs are done in lookback conformal time. 
         # To convert to proper time, the time unit is calculated from 
