@@ -209,34 +209,128 @@ components of a data source.
 Volume Objects
 ++++++++++++++
 
+When a volume object is added to a scene, rays that cross it will be
+integrated.  The volume object is affiliated with a transfer function, a set of
+voxels (drawn from a data source) and is integrated in a front-to-back manner.
+Depending on whether or not other opaque objects are in the scene, the volume
+may or may not be traversed in its entirety.
+
+.. note:: Behavior is undefined for volume sources that overlap that are added
+          to a scene.
+
 Hard and Opaque Objects
 +++++++++++++++++++++++
+
+In addition to semi-transparent objects, hard surfaces can be added to a scene.
+Currently these surfaces are limited to lines and annotations, but in future
+versions of yt surfaces and texture mapped objects will be included.
+
+The primary objects now available for hard and opaque objects are 
+:class:`~yt.visualization.volume_rendering.api.PointsSource` and
+:class:`~yt.visualization.volume_rendering.api.LineSource`.  These are useful
+if you want to annotate points, for instance by splatting a set of particles
+onto an image, or if you want to draw lines connecting different regions or
+vertices.  For instance, lines can be used to draw outlines of regions or
+continents.
 
 Annotations
 +++++++++++
 
-Moving Around
--------------
+By annotating a visualization, additional information can be drawn out.  yt
+provides three annotations:
+:class:`~yt.visualization.volume_rendering.api.BoxSource`,
+:class:`~yt.visualization.volume_rendering.api.GridsSource`, and
+:class:`~yt.visualization.volume_rendering.api.CoordinateVectorSource`.  These
+annotations will operate in data space and can draw boxes, grid information,
+and also provide a vector orientation within the image.
+
+Care and Usage of the Camera
+----------------------------
+
+When constructing a movie or utilizing volume rendering to visualize particular
+objects or phenomena, control over the exact position of the camera is
+necessary for both aesthetic and scientific reasons.
+
+yt provides methods for moving the camera by altering its position and
+orientation in space.  There are helper methods that can provide easier ways if
+you are guiding visualization based on quantities in the data.
+
+Cameras also posses "lens" objects, which control the manner in which rays are
+shot out of the camera.  Some of these make some camera properties
+(specifically the width property) irrelevant.
 
 .. _camera_movement:
 
-Moving the Camera
-+++++++++++++++++
+Moving and Orienting the Camera
++++++++++++++++++++++++++++++++
 
 There are multiple ways to manipulate the camera viewpoint to create a series of
 renderings.  For an example, see this cookbook:
 :ref:`cookbook-camera_movement`.  For a current list of
 motion helper functions, see the docstrings associated with
-:class:`~yt.visualization.volume_rendering.camera.Camera`.
+:class:`~yt.visualization.volume_rendering.camera.Camera`.  In short, the
+camera possesses a number of properties and methods that make changing its
+position easy.  These properties can be set, and will automatically trigger an
+update of the other properties of the camera:
 
-Looking at Things
-+++++++++++++++++
+ * `position` - the position of the camera in scene-space
+ * `width` - the width of the plane the camera can see
+ * `focus` - the point in space the camera is looking at
+ * `resolution` - the image resolution
 
-Orienting the Camera
-++++++++++++++++++++
+In addition to this, methods such as
+:meth:`~yt.visualization.volume_rendering.camera.Camera.rotate`,
+:meth:`~yt.visualization.volume_rendering.camera.Camera.pitch`,
+:meth:`~yt.visualization.volume_rendering.camera.Camera.yaw`, and
+:meth:`~yt.visualization.volume_rendering.camera.Camera.roll` can rotate the
+camera in space.
+
+When examining a particular point in space, 
+:meth:`~yt.visualization.volume_rendering.camera.Camera.zoom` can be of
+assistance, as it will move the camera toward the focal point by a factor
+related to the current distance between them.
+
+In addition to manual control, the camera also has iteration methods that help
+with moving and rotating.  The 
+:meth:`~yt.visualization.volume_rendering.camera.Camera.rotation`,
+:meth:`~yt.visualization.volume_rendering.camera.Camera.zoomin`, and
+:meth:`~yt.visualization.volume_rendering.camera.Camera.move_to` methods
+provide iteration over a sequence of positions and orientations.  These can be
+used within a loop:
+
+.. python-script::
+
+   for i in sc.camera.zoomin(100, 5):
+       sc.render("frame_%03i.png" % i)
+
+The variable ``i`` is the frame number in the particular loop being called.  In
+this case, this will zoom in by a factor of 100 over the course of 5 frames.
 
 Changing Lenses
 +++++++++++++++
+
+Setting a lens on a camera changes the resulting image.  These lenses can be
+changed at run time or at the time when a camera is initialized by specifying
+the `lens_type` argument with a string.
+
+At the present time, there are a few cameras that can be used:
+`plane-parallel`, `perspective`, `fisheye`, and `spherical`.
+
+ * Plane parallel: This lens type is the standard type used for orthographic
+   projections.  All rays emerge parallel to each other, arranged along a
+   plane.
+ * Perspective: This lens type adjusts for an opening view angle, so that the
+   scene will have an element of perspective to it.
+ * Fisheye: This lens type accepts a field-of-view property, `fov`, that
+   describes how wide an angle the fisheye can see.  Fisheye images are
+   typically used for dome-based presentations; the Hayden planetarium for
+   instance has a field of view of 194.6.  The images returned by this camera
+   will be flat pixel images that can and should be reshaped to the resolution.
+ * Spherical: This is a cylindrical-spherical projection.  Movies rendered in
+   this way can be displayed in head-tracking devices or in YouTube 360 view
+   (for more information see `the YouTube help
+   <https://support.google.com/youtube/answer/6178631?hl=en>`, but it's a
+   simple matter of running a script on an encoded movie file.)
 
 Volume Rendering Method
 -----------------------
