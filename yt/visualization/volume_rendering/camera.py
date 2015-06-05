@@ -197,9 +197,9 @@ class Camera(Orientation):
         self.switch_orientation()
 
     def set_position(self, position, north_vector=None):
-          self.position = position
-          self.switch_orientation(normal_vector=self.focus - self.position,
-                                  north_vector=north_vector)
+        self.position = position
+        self.switch_orientation(normal_vector=self.focus - self.position,
+                                north_vector=north_vector)
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""
