@@ -12,33 +12,14 @@ class ExodusData:
         self.connects = []
         self.data = []
 
-    def load_all(self):
-        if not self.dataset:
-            self.load_dataset()
-
-        self.load_coords()
-        self.load_connects()
-        self.load_data()
-
     def load_dataset(self):
         self.dataset = Dataset(self.filename).variables
 
-    def load_coords(self, axes='xyz'):
-        self.coords = np.array([self.dataset["coord%s" % axis][:]
-                                for axis in axes]).transpose().copy()
+        self.coords = np.array([self.dataset["coord%s" % ax][:]
+                                for ax in 'xyz']).transpose().copy()
 
-    def load_connects(self):
         for i in range(self.get_num_elem()):
             self.add_connect("connect%s" % (i+1))
-
-    def get_num_elem(self):
-        return self.dataset["eb_status"][:].shape[0]
-
-    def add_connect(self, connect_key):
-        self.connects.append(self.dataset[connect_key][:].astype("i8"))
-
-    def load_data(self):
-        for i in range(self.get_num_elem()):
             ci = self.connects[-1]
             vals = {}
 
@@ -50,8 +31,14 @@ class ExodusData:
                 # Use (ci - 1) to get these values
                 vals['gas', nod_name] = self.dataset["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
 
-            self.data.append(vals) 
-        
+            self.data.append(vals)
+
+    def get_num_elem(self):
+        return self.dataset["eb_status"][:].shape[0]
+
+    def add_connect(self, connect_key):
+        self.connects.append(self.dataset[connect_key][:].astype("i8"))
+
     def get_var_names(self):
         return [self.sanitize_string(v.tostring()) for v in
                 self.dataset["name_elem_var"][:]]
