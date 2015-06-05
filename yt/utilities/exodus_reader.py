@@ -8,22 +8,19 @@ class ExodusData:
     def __init__(self, filename):
         self.filename = filename
         self.dataset = OrderedDict()
-        self.coords = []
+        self.coords = np.array([])
         self.connects = []
         self.data = []
 
     def load_dataset(self):
         self.dataset = Dataset(self.filename).variables
 
-        coord = np.array([self.dataset["coord%s" % ax][:]
-                         for ax in 'xyz']).transpose().copy()
+        self.coords = np.array([self.dataset["coord%s" % ax][:]
+                                for ax in 'xyz']).transpose().copy()
 
         for i in range(self.get_num_elem()):
             self.add_connect("connect%s" % (i+1))
-
             ci = self.connects[-1]
-
-            self.coords.append(coord)  # Same for all
             vals = {}
 
             for j, var_name in enumerate(self.get_var_names()):
