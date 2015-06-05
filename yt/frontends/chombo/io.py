@@ -75,7 +75,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith('component_'):
-                comp_number = int(re.match('component_(\d)', key).groups()[0])
+                comp_number = int(re.match('component_(\d+)', key).groups()[0])
                 field_dict[val] = comp_number
         self._field_dict = field_dict
         return self._field_dict
