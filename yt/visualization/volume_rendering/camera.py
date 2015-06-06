@@ -267,10 +267,9 @@ class Camera(Orientation):
         """
         rotate_all = rot_vector is not None
         if rot_vector is None:
-            rot_vector = self.unit_vectors[0]
-        else:
-            rot_vector = ensure_numpy_array(rot_vector)
-            rot_vector = rot_vector/np.linalg.norm(rot_vector)
+            rot_vector = self.north_vector
+        rot_vector = ensure_numpy_array(rot_vector)
+        rot_vector = rot_vector/np.linalg.norm(rot_vector)
 
         R = get_rotation_matrix(theta, rot_vector)
 
