@@ -178,8 +178,8 @@ class TotalQuantity(DerivedQuantity):
 class TotalMass(TotalQuantity):
     r"""
     Calculates the total mass of the object. Returns a YTArray where the
-    first element is total gas mass, the second element is total particle mass,
-    and the third element is the total mass in both particle/grid forms.
+    first element is total gas mass and the second element is total particle 
+    mass.
 
     Examples
     --------
@@ -201,7 +201,7 @@ class TotalMass(TotalQuantity):
             part = super(TotalMass, self).__call__([('all', 'particle_mass')])
         else:
             part = self.data_source.ds.arr([0], 'g')
-        return self.data_source.ds.arr([gas, part, np.sum([gas,part])])
+        return self.data_source.ds.arr([gas, part])
 
 class CenterOfMass(DerivedQuantity):
     r"""
