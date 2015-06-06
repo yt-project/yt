@@ -68,8 +68,11 @@ class TipsyDataset(ParticleDataset):
                  parameter_file=None,
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
-                 bounding_box = None,
+                 bounding_box=None,
                  units_override=None):
+        # Because Tipsy outputs don't have a fixed domain boundary, one can
+        # specify a bounding box which effectively gives a domain_left_edge 
+        # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
         self.n_ref = n_ref
@@ -105,14 +108,6 @@ class TipsyDataset(ParticleDataset):
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
         super(TipsyDataset, self).__init__(filename, dataset_type)
-
-        if bounding_box is not None:
-            bbox = self.arr(bounding_box, 'code_length', dtype="float64")
-            if bbox.shape == (2, 3):
-                bbox = bbox.transpose()
-            self.domain_left_edge = bbox[:,0]
-            self.domain_right_edge = bbox[:,1]
-
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -176,13 +171,21 @@ class TipsyDataset(ParticleDataset):
         self.periodicity = (periodic, periodic, periodic)
         if comoving and period is None:
             period = 1.0
-        if periodic and period is not None:
-            # If we are periodic, that sets our domain width to either 1 or dPeriod.
-            self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
-            self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
-        else:
-            self.domain_left_edge = None
-            self.domain_right_edge = None
+        if self.bounding_box is None:
+            if periodic and period is not None:
+                # If we are periodic, that sets our domain width to either 1 or dPeriod.
+                self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
+                self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
+            else:
+                self.domain_left_edge = None
+                self.domain_right_edge = None
+        else: 
+            bbox = self.arr(self.bounding_box, 'code_length', dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+
         if comoving:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a

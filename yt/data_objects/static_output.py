@@ -751,7 +751,7 @@ class Dataset(object):
         if (self.domain_left_edge is not None and
             self.domain_right_edge is not None):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-            self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+            self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                    DW.units.dimensions)
 
     def _override_code_units(self):

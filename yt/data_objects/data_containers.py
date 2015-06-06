@@ -109,7 +109,7 @@ class YTDataContainer(object):
         are passed as field_parameters.
         """
         # ds is typically set in the new object type created in Dataset._add_object_class
-        # but it can also be passed as a parameter to the constructor, in which case it will 
+        # but it can also be passed as a parameter to the constructor, in which case it will
         # override the default. This code ensures it is never not set.
         if ds is not None:
             self.ds = ds
@@ -436,7 +436,7 @@ class YTDataContainer(object):
         """
         from glue.core import DataCollection, Data
         from glue.qt.glue_application import GlueApplication
-        
+
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
@@ -447,7 +447,16 @@ class YTDataContainer(object):
             app.start()
         else:
             data_collection.append(gdata)
-        
+
+    @property
+    def _hash(self):
+        s = "%s" % self
+        try:
+            import hashlib
+            return hashlib.md5(s.encode('utf-8')).hexdigest()
+        except ImportError:
+            return s
+
     def __reduce__(self):
         args = tuple([self.ds._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +
@@ -457,8 +466,11 @@ class YTDataContainer(object):
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
-        s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                       for i in self._con_args])
+        for i in self._con_args:
+            try:
+                s += ", %s=%s" % (i, getattr(self, i).in_cgs())
+            except AttributeError:
+                s += ", %s=%s" % (i, getattr(self, i))
         return s
 
     @contextmanager
@@ -652,7 +664,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # need to be used in spatial fields later on.
         fields_to_get = []
         # This will be pre-populated with spatial fields
-        fields_to_generate = [] 
+        fields_to_generate = []
         for field in self._determine_fields(fields):
             if field in self.field_data: continue
             finfo = self.ds._get_field_info(*field)
@@ -1313,14 +1325,14 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     """
     This will build a hybrid region based on the boolean logic
     of the regions.
-    
+
     Parameters
     ----------
     regions : list
         A list of region objects and strings describing the boolean logic
         to use when building the hybrid region. The boolean logic can be
         nested using parentheses.
-    
+
     Examples
     --------
     >>> re1 = ds.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
@@ -1362,7 +1374,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         pbar = get_pbar("Building boolean", len(self._all_regions))
         for i, region in enumerate(self._all_regions):
             try:
-                region._get_list_of_grids() # This is no longer supported. 
+                region._get_list_of_grids() # This is no longer supported.
                 alias = region
             except AttributeError:
                 alias = region.data         # This is no longer supported.

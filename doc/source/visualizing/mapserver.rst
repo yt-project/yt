@@ -4,7 +4,7 @@ Mapserver - A Google-Maps-like Interface to your Data
 -----------------------------------------------------
 
 The mapserver is a new, experimental feature.  It's based on `Leaflet
-<http://leaflet.cloudmade.com/>`_, a library written to create zoomable,
+<http://leafletjs.com/>`_, a library written to create zoomable,
 map-tile interfaces.  (Similar to Google Maps.)  yt provides everything you
 need to start up a web server that will interactively re-pixelize an adaptive
 image.  This means you can explore your datasets in a fully pan-n-zoom

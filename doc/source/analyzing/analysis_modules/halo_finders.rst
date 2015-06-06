@@ -65,9 +65,9 @@ Rockstar uses an adaptive hierarchical refinement of friends-of-friends
 groups in six phase-space dimensions and one time dimension, which 
 allows for robust (grid-independent, shape-independent, and noise-
 resilient) tracking of substructure. The code is prepackaged with yt, 
-but also `separately available <http://code.google.com/p/rockstar>`_. The lead 
+but also `separately available <https://bitbucket.org/gfcstanford/rockstar>`_. The lead 
 developer is Peter Behroozi, and the methods are described in `Behroozi
-et al. 2011 <http://rockstar.googlecode.com/files/rockstar_ap101911.pdf>`_. 
+et al. 2011 <http://arxiv.org/abs/1110.4372>`_. 
 In order to run the Rockstar halo finder in yt, make sure you've 
 :ref:`installed it so that it can integrate with yt <rockstar-installation>`.
 
@@ -116,7 +116,7 @@ halo catalog through the ``finder_kwargs`` argument:
   the width of the smallest grid element in the simulation from the
   last data snapshot (i.e. the one where time has evolved the
   longest) in the time series:
-  ``ds_last.index.get_smallest_dx() * ds_last['mpch']``.
+  ``ds_last.index.get_smallest_dx() * ds_last['Mpch']``.
 * ``total_particles``, if supplied, this is a pre-calculated
   total number of dark matter
   particles present in the simulation. For example, this is useful

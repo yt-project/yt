@@ -47,3 +47,6 @@ def test_units_override():
     for test in units_override_check(vf):
         yield test
 
+@requires_file(grs)
+def test_FITSDataset():
+    assert isinstance(data_dir_load(grs), FITSDataset)

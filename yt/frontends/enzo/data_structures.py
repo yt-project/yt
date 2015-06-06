@@ -890,7 +890,7 @@ class EnzoDataset(Dataset):
         elif self.dimensionality == 2:
             self._setup_2d()
 
-    def set_code_units(self):
+    def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
@@ -927,17 +927,6 @@ class EnzoDataset(Dataset):
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-
-        self._override_code_units()
-
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        self.unit_registry.modify("code_length", self.length_unit)
-        self.unit_registry.modify("code_mass", self.mass_unit)
-        self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
-        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
-                               DW.units.dimensions)
 
     def cosmology_get_units(self):
         """
