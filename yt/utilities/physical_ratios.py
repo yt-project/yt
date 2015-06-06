@@ -16,7 +16,9 @@ amu_grams         = 1.660538921e-24
 mass_sun_grams = 1.98841586e33
 temp_sun_kelvin = 5870.0
 luminosity_sun_ergs_per_sec = 3.8270e33
-metallicity_sun = 0.02041
+
+# Consistent with solar abundances used in Cloudy
+metallicity_sun = 0.01295
 
 # Conversion Factors:  X au * mpc_per_au = Y mpc
 # length

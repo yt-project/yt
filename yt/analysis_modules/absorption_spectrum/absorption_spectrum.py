@@ -4,7 +4,7 @@ AbsorptionSpectrum class and member functions.
 
 
 """
-from __future__ import print_function
+
 from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
@@ -21,13 +21,12 @@ import numpy as np
 from .absorption_line import tau_profile
 
 from yt.funcs import get_pbar, mylog
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import \
-    amu_cgs, boltzmann_constant_cgs, \
-    speed_of_light_cgs, km_per_cm
+    boltzmann_constant_cgs, \
+    speed_of_light_cgs
 from yt.utilities.on_demand_imports import _astropy
 
-speed_of_light_kms = speed_of_light_cgs * km_per_cm
 pyfits = _astropy.pyfits
 
 class AbsorptionSpectrum(object):
@@ -49,8 +48,10 @@ class AbsorptionSpectrum(object):
         self.tau_field = None
         self.flux_field = None
         self.spectrum_line_list = None
-        self.lambda_bins = np.linspace(lambda_min, lambda_max, n_lambda)
-        self.bin_width = (lambda_max - lambda_min) / float(n_lambda - 1)
+        self.lambda_bins = YTArray(np.linspace(lambda_min, lambda_max, n_lambda),
+                                   "angstrom")
+        self.bin_width = YTQuantity((lambda_max - lambda_min) / 
+                                    float(n_lambda - 1), "angstrom")
         self.line_list = []
         self.continuum_list = []
 
@@ -76,8 +77,10 @@ class AbsorptionSpectrum(object):
            mass of atom in amu.
         """
         self.line_list.append({'label': label, 'field_name': field_name,
-                               'wavelength': wavelength, 'f_value': f_value,
-                               'gamma': gamma, 'atomic_mass': atomic_mass,
+                               'wavelength': YTQuantity(wavelength, "angstrom"),
+                               'f_value': f_value,
+                               'gamma': gamma,
+                               'atomic_mass': YTQuantity(atomic_mass, "amu"),
                                'label_threshold': label_threshold})
 
     def add_continuum(self, label, field_name, wavelength,
@@ -209,16 +212,15 @@ class AbsorptionSpectrum(object):
                 # include factor of (1 + z) because our velocity is in proper frame.
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['velocity_los'] / speed_of_light_cgs
-            thermal_b = km_per_cm * np.sqrt((2 * boltzmann_constant_cgs *
-                                             field_data['temperature']) /
-                                            (amu_cgs * line['atomic_mass']))
-            thermal_b.convert_to_cgs()
+            thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
+                                  field_data['temperature']) /
+                                  line['atomic_mass'])
             center_bins = np.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
             # ratio of line width to bin width
             width_ratio = ((line['wavelength'] + delta_lambda) * \
-                thermal_b / speed_of_light_kms / self.bin_width).value
+                           thermal_b / speed_of_light_cgs / self.bin_width).in_units("").d
 
             if (width_ratio < 1.0).any():
                 mylog.warn(("%d out of %d line components are unresolved, " +
@@ -240,11 +242,13 @@ class AbsorptionSpectrum(object):
                 my_bin_ratio = spectrum_bin_ratio
                 while True:
                     lambda_bins, line_tau = \
-                        tau_profile(line['wavelength'], line['f_value'],
-                                    line['gamma'], thermal_b[lixel],
-                                    column_density[lixel],
-                                    delta_lambda=delta_lambda[lixel],
-                                    lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
+                        tau_profile(
+                            line['wavelength'], line['f_value'],
+                            line['gamma'], thermal_b[lixel].in_units("km/s"),
+                            column_density[lixel],
+                            delta_lambda=delta_lambda[lixel],
+                            lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
+                        
                     # Widen wavelength window until optical depth reaches a max value at the ends.
                     if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
                       (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
@@ -260,7 +264,7 @@ class AbsorptionSpectrum(object):
                 if line['label_threshold'] is not None and \
                         column_density[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
-                        peculiar_velocity = km_per_cm * field_data['velocity_los'][lixel]
+                        peculiar_velocity = field_data['velocity_los'][lixel].in_units("km/s")
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],
@@ -271,7 +275,7 @@ class AbsorptionSpectrum(object):
                                                     'redshift': field_data['redshift'][lixel],
                                                     'v_pec': peculiar_velocity})
                     pbar.update(i)
-            pbar.finish()
+                pbar.finish()
 
             del column_density, delta_lambda, thermal_b, \
                 center_bins, width_ratio, left_index, right_index
@@ -280,7 +284,7 @@ class AbsorptionSpectrum(object):
         """
         Write out list of spectral lines.
         """
-        print("Writing spectral line list: %s." % filename)
+        mylog.info("Writing spectral line list: %s." % filename)
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
         f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
@@ -295,7 +299,7 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to an ascii file.
         """
-        print("Writing spectrum to ascii file: %s." % filename)
+        mylog.info("Writing spectrum to ascii file: %s." % filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
         for i in range(self.lambda_bins.size):
@@ -307,7 +311,7 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to a fits file.
         """
-        print("Writing spectrum to fits file: %s." % filename)
+        mylog.info("Writing spectrum to fits file: %s." % filename)
         col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_bins)
         col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2])
@@ -319,7 +323,7 @@ class AbsorptionSpectrum(object):
         Write spectrum to an hdf5 file.
 
         """
-        print("Writing spectrum to hdf5 file: %s." % filename)
+        mylog.info("Writing spectrum to hdf5 file: %s." % filename)
         output = h5py.File(filename, 'w')
         output.create_dataset('wavelength', data=self.lambda_bins)
         output.create_dataset('tau', data=self.tau_field)

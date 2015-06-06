@@ -1224,6 +1224,19 @@ def uconcatenate(arrs, axis=0):
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
+def ucross(arr1,arr2, registry=None):
+    """Applies the cross product to two YT arrays.
+
+    This wrapper around numpy.cross preserves units.  
+    See the documentation of numpy.cross for full
+    details.
+    """
+
+    v = np.cross(arr1,arr2)
+    units = arr1.units * arr2.units
+    arr = YTArray(v,units, registry=registry)
+    return arr
+
 def uintersect1d(arr1, arr2, assume_unique=False):
     """Find the sorted unique elements of the two input arrays.
 
