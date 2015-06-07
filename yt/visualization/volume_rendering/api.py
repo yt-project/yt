@@ -31,5 +31,5 @@ from .volume_rendering import volume_render
 from .off_axis_projection import off_axis_projection
 from .scene import Scene
 from .render_source import VolumeSource, OpaqueSource, LineSource, \
-    BoxSource, PointsSource, CoordinateVectorSource
+    BoxSource, PointsSource, CoordinateVectorSource, GridsSource
 from .zbuffer_array import ZBuffer

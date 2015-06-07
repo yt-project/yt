@@ -80,7 +80,6 @@ class Orientation(object):
         north_vector /= np.sqrt(np.dot(north_vector, north_vector))
         east_vector /= np.sqrt(np.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
+        self.north_vector = north_vector
         self.unit_vectors = YTArray([east_vector, north_vector, normal_vector], "")
         self.inv_mat = np.linalg.pinv(self.unit_vectors)
-
-
