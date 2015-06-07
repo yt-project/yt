@@ -442,7 +442,7 @@ class GridsSource(LineSource):
         colors = apply_colormap(
             levels*1.0,
             color_bounds=[0, data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]*1.0/255.
+            cmap_name=cmap)[0, :, :]*alpha/255.
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
