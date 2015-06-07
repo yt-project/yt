@@ -4,9 +4,9 @@
 =====================================
 
 yt has the ability to create 3D visualizations, using a process known as volume
-rendering.  At present, its capabilities are limited to software volume
-rendering, but porting this capability to OpenGL and GPUs is an area of active
-development.
+rendering.  Currently all of the rendering capabilities are implemented in
+software, requiring no specialized hardware. Optimized versions implemented
+with OpenGL and utilizing graphics processors are being actively developed.
 
 Constructing a 3D visualization is a process of describing the "scene" that
 will be rendered.  This includes the location of the viewing point (i.e., where
@@ -70,7 +70,7 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # sc is an instance of a Scene object, which allows you to further refine
   # your renderings.
 
-When the volume_rendering function is called, first an empty
+When the volume_render function is called, first an empty
 :class:`~yt.visualization.volume_rendering.scene.Scene` object is
 created. Next, a 
 :class:`~yt.visualization.volume_rendering.api.VolumeSource`
