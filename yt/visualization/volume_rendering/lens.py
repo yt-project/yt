@@ -268,13 +268,18 @@ class StereoPerspectiveLens(Lens):
                            .reshape(single_resolution_x, camera.resolution[1], 3)
 
         # The left and right are switched because VR is in LHS.
+        # The shifting direction of vectors is opposite to that of positions
+        vectors_left = vectors.d + east_vecs * self.disparity
+        vectors_right = vectors.d + east_vecs * (-self.disparity)
+
+        # The left and right are switched because VR is in LHS.
         positions_left = positions + east_vecs * (-self.disparity)
         positions_right = positions + east_vecs *  self.disparity
 
         uv = np.ones(3, dtype='float64')
 
         image = self.new_image(camera)
-        vectors_comb = np.vstack([vectors, vectors])
+        vectors_comb = np.vstack([vectors_left, vectors_right])
         positions_comb = np.vstack([positions_left, positions_right])
 
         image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)

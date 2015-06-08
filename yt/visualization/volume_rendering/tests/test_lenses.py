@@ -38,7 +38,7 @@ def test_stereoperspective_lens():
     w = ds.arr(w, 'code_length')
     sc = Scene()
     cam = Camera(ds, lens_type='stereo-perspective')
-    cam.resolution = [1024, 256]
+    cam.resolution = [1024, 512]
     cam.position = [0.7, 0.7, 0.7]
     vol = VolumeSource(ds, field=field)
     tf = vol.transfer_function
