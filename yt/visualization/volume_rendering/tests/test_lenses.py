@@ -88,7 +88,7 @@ def test_spherical_lens():
     w = ds.arr(w, 'code_length')
     sc = Scene()
     cam = Camera(ds, lens_type='spherical')
-    cam.resolution = (512, 256)
+    cam.resolution = [512, 256]
     cam.position = [0.6, 0.5, 0.5]
     vol = VolumeSource(ds, field=field)
     tf = vol.transfer_function
@@ -104,7 +104,7 @@ def test_stereospherical_lens():
     w = ds.arr(w, 'code_length')
     sc = Scene()
     cam = Camera(ds, lens_type='stereo-spherical')
-    cam.resolution = (1024, 256)
+    cam.resolution = [1024, 256]
     cam.position = [0.6, 0.5, 0.5]
     vol = VolumeSource(ds, field=field)
     tf = vol.transfer_function
