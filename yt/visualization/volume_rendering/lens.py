@@ -146,32 +146,39 @@ class PerspectiveLens(Lens):
         # self.front_center += self.expand_factor*dl
         # self.back_center -= dl
 
-        px = np.linspace(-camera.width[0]/2.0, camera.width[0]/2.0,
-                         camera.resolution[0])[:, None].d
-        py = np.linspace(-camera.width[1]/2.0, camera.width[1]/2.0,
-                         camera.resolution[1])[None, :].d
-        inv_mat = camera.inv_mat.d
-        positions = np.zeros((camera.resolution[0], camera.resolution[1], 3),
-                             dtype='float64', order='C')
-        positions[:, :, 0] = inv_mat[0, 0]*px + \
-            inv_mat[0, 1]*py + self.back_center.d[0]
-        positions[:, :, 1] = inv_mat[1, 0]*px + \
-            inv_mat[1, 1]*py + self.back_center.d[1]
-        positions[:, :, 2] = inv_mat[2, 0]*px + \
-            inv_mat[2, 1]*py + self.back_center.d[2]
-        # Can we use bounds for anything here?
-        # bounds = (px.min(), px.max(), py.min(), py.max())
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
 
-        # We are likely adding on an odd cutting condition here
-        vectors = self.front_center.d - positions
-        vectors = vectors / (vectors**2).sum()**0.5
-        positions = self.front_center.d - 1.0 * \
-            (((self.back_center.d-self.front_center.d)**2).sum())**0.5*vectors
-        vectors = (self.back_center.d - positions)
+        east_vec = camera.unit_vectors[0].reshape(3,1)
+        north_vec = camera.unit_vectors[1].reshape(3,1)
+        normal_vec = camera.unit_vectors[2].reshape(3,1)
+
+        px = np.mat(np.linspace(-.5, .5, camera.resolution[0]))
+        py = np.mat(np.linspace(-.5, .5, camera.resolution[1]))
+
+        sample_x = camera.width[0] * np.array(east_vec * px).transpose()
+        sample_y = camera.width[1] * np.array(north_vec * py).transpose()
+
+        vectors = np.zeros((camera.resolution[0], camera.resolution[1], 3),
+                           dtype='float64', order='C')
+
+        sample_x = np.repeat(sample_x.reshape(camera.resolution[0],1,3), \
+                             camera.resolution[1], axis=1)
+        sample_y = np.repeat(sample_y.reshape(1,camera.resolution[1],3), \
+                             camera.resolution[0], axis=0)
+
+        normal_vecs = np.tile(normal_vec, camera.resolution[0] * camera.resolution[1])\
+                             .reshape(camera.resolution[0], camera.resolution[1], 3)
+
+        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+
+        positions = np.tile(camera.position, camera.resolution[0] * camera.resolution[1])\
+                           .reshape(camera.resolution[0], camera.resolution[1], 3)
 
         uv = np.ones(3, dtype='float64')
-        vectors.shape = (camera.resolution[0]**2, 1, 3)
-        positions.shape = (camera.resolution[0]**2, 1, 3)
+
         image = self.new_image(camera)
 
         sampler_params =\
@@ -201,6 +208,105 @@ class PerspectiveLens(Lens):
             (self.viewpoint)
         return disp
 
+class StereoPerspectiveLens(Lens):
+
+    """docstring for StereoPerspectiveLens"""
+
+    def __init__(self):
+        super(StereoPerspectiveLens, self).__init__()
+        self.expand_factor = 1.5
+
+    def new_image(self, camera):
+        self.current_image = ImageArray(
+            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def _get_sampler_params(self, camera, render_source):
+        # We should move away from pre-generation of vectors like this and into
+        # the usage of on-the-fly generation in the VolumeIntegrator module
+        # We might have a different width and back_center
+        # dl = (self.back_center - self.front_center)
+        # self.front_center += self.expand_factor*dl
+        # self.back_center -= dl
+
+        self.disparity = camera.width[0].d / 1000.
+        single_resolution_x = np.floor(camera.resolution[0])/2
+
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
+
+        east_vec = camera.unit_vectors[0].reshape(3,1)
+        north_vec = camera.unit_vectors[1].reshape(3,1)
+        normal_vec = camera.unit_vectors[2].reshape(3,1)
+
+        px = np.mat(np.linspace(-.5, .5, single_resolution_x))
+        py = np.mat(np.linspace(-.5, .5, camera.resolution[1]))
+
+        sample_x = camera.width[0] * np.array(east_vec * px).transpose()
+        sample_y = camera.width[1] * np.array(north_vec * py).transpose()
+
+        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
+                           dtype='float64', order='C')
+
+        sample_x = np.repeat(sample_x.reshape(single_resolution_x,1,3), \
+                             camera.resolution[1], axis=1)
+        sample_y = np.repeat(sample_y.reshape(1,camera.resolution[1],3), \
+                             single_resolution_x, axis=0)
+
+        normal_vecs = np.tile(normal_vec, single_resolution_x * camera.resolution[1])\
+                             .reshape(single_resolution_x, camera.resolution[1], 3)
+
+        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+
+        positions = np.tile(camera.position, single_resolution_x * camera.resolution[1])\
+                           .reshape(single_resolution_x, camera.resolution[1], 3)
+        east_vecs = np.tile(east_vec, single_resolution_x * camera.resolution[1])\
+                           .reshape(single_resolution_x, camera.resolution[1], 3)
+
+        # The left and right are switched because VR is in LHS.
+        positions_left = positions + east_vecs * (-self.disparity)
+        positions_right = positions + east_vecs *  self.disparity
+
+        uv = np.ones(3, dtype='float64')
+
+        image = self.new_image(camera)
+        vectors_comb = np.vstack([vectors, vectors])
+        positions_comb = np.vstack([positions_left, positions_right])
+
+        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
+        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+
+        sampler_params =\
+            dict(vp_pos=positions_comb,
+                 vp_dir=vectors_comb,
+                 center=self.back_center.d,
+                 bounds=(0.0, 1.0, 0.0, 1.0),
+                 x_vec=uv,
+                 y_vec=uv,
+                 width=np.zeros(3, dtype='float64'),
+                 image=image
+                 )
+
+        mylog.debug(positions)
+        mylog.debug(vectors)
+
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """
+        For a PerspectiveLens, the viewpoint is the front center.
+        """
+        self.viewpoint = self.front_center
+
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % \
+            (self.viewpoint)
+        return disp
 
 class FisheyeLens(Lens):
 
@@ -295,6 +401,8 @@ class FisheyeLens(Lens):
 
 class SphericalLens(Lens):
 
+    """docstring for SphericalLens"""
+
     def __init__(self):
         super(SphericalLens, self).__init__()
         self.radius = 1.0
@@ -305,13 +413,6 @@ class SphericalLens(Lens):
         self.radius = camera.width.max()
         super(SphericalLens, self).setup_box_properties(camera)
         self.set_viewpoint(camera)
-
-    def new_image(self, camera):
-        self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
-                      4), dtype='float64', order='C'),
-            info={'imtype': 'rendering'})
-        return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
         px = np.linspace(-np.pi, np.pi, camera.resolution[0],
@@ -324,26 +425,29 @@ class SphericalLens(Lens):
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-
         vectors = vectors * camera.width[0]
-        positions = camera.position*vectors.uq + (vectors * 0)
-        R1 = get_rotation_matrix(0.5*np.pi, [1, 0, 0])
-        R2 = get_rotation_matrix(-0.5*np.pi, [0, 0, 1])
+
+        positions = np.tile(camera.position, camera.resolution[0] * camera.resolution[1])\
+                           .reshape(camera.resolution[0], camera.resolution[1], 3)
+
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
         uv = np.dot(R1, camera.unit_vectors)
         uv = np.dot(R2, uv)
         vectors.reshape((camera.resolution[0]*camera.resolution[1], 3))
         vectors = np.dot(vectors, uv)
-        # vectors = np.dot(vectors, self.rotation_matrix)
         vectors.reshape((camera.resolution[0], camera.resolution[1], 3))
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
             image = self.new_image(camera)
+
         dummy = np.ones(3, dtype='float64')
         image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
         vectors.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
         positions.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+
         sampler_params = dict(
             vp_pos=positions,
             vp_dir=vectors,
@@ -390,8 +494,91 @@ class SphericalLens(Lens):
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz
 
+class StereoSphericalLens(Lens):
+
+    """docstring for StereoSphericalLens"""
+
+    def __init__(self):
+        super(StereoSphericalLens, self).__init__()
+        self.radius = 1.0
+        self.center = None
+        self.disparity = 0.
+        self.rotation_matrix = np.eye(3)
+
+    def setup_box_properties(self, camera):
+        self.radius = camera.width.max()
+        super(StereoSphericalLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
+
+    def _get_sampler_params(self, camera, render_source):
+        self.disparity = camera.width[0].d / 1000.
+
+        single_resolution_x = np.floor(camera.resolution[0])/2
+        px = np.linspace(-np.pi, np.pi, single_resolution_x, endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1], endpoint=True)[None,:]
+
+        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
+                           dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+        vectors = vectors * camera.width[0]
+
+        vectors2 = np.zeros((single_resolution_x, camera.resolution[1], 3),
+                            dtype='float64', order='C')
+        vectors2[:,:,0] = -np.sin(px) * np.ones((1, camera.resolution[1]))
+        vectors2[:,:,1] = np.cos(px) * np.ones((1, camera.resolution[1]))
+        vectors2[:,:,2] = 0
+
+        positions = np.tile(camera.position, single_resolution_x * camera.resolution[1])\
+                           .reshape(single_resolution_x, camera.resolution[1], 3)
+
+        # The left and right are switched here since VR is in LHS.
+        positions_left = positions + vectors2 * self.disparity
+        positions_right = positions + vectors2 * (-self.disparity)
+
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, camera.unit_vectors)
+        uv = np.dot(R2, uv)
+        vectors.reshape((single_resolution_x*camera.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        vectors.reshape((single_resolution_x, camera.resolution[1], 3))
+
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
+
+        dummy = np.ones(3, dtype='float64')
+
+        vectors_comb = np.vstack([vectors, vectors])
+        positions_comb = np.vstack([positions_left, positions_right])
+
+        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
+        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+
+        sampler_params = dict(
+            vp_pos=positions_comb,
+            vp_dir=vectors_comb,
+            center=self.back_center.d,
+            bounds=(0.0, 1.0, 0.0, 1.0),
+            x_vec=dummy,
+            y_vec=dummy,
+            width=np.zeros(3, dtype="float64"),
+            image=image)
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """
+        For a PerspectiveLens, the viewpoint is the front center.
+        """
+        self.viewpoint = camera.position
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
+          'stereoperspective': StereoPerspectiveLens,
           'fisheye': FisheyeLens,
-          'spherical': SphericalLens}
+          'spherical': SphericalLens,
+          'stereo-spherical':StereoSphericalLens}
