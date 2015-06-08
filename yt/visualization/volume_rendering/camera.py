@@ -390,7 +390,7 @@ class Camera(Orientation):
         """
         assert isinstance(final, YTArray)
         if exponential:
-            position_diff = (np.array(final)/self.position)*1.0
+            position_diff = (final/self.position)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
             dx = (final - self.position)*1.0/n_steps

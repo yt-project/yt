@@ -51,6 +51,9 @@ class Lens(ParallelAnalysisInterface):
             info={'imtype': 'rendering'})
         return self.current_image
 
+    def _reshape_image(self, image, camera):
+        return image
+
     def setup_box_properties(self, camera):
         unit_vectors = camera.unit_vectors
         width = camera.width
@@ -313,6 +316,13 @@ class SphericalLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
+    def _reshape_image(self, image, camera):
+        nchannels = image.size / float(camera.resolution[0] *
+                                       camera.resolution[1])
+        return image.reshape((camera.resolution[0], 
+                              camera.resolution[1],
+                              nchannels))
+
     def _get_sampler_params(self, camera, render_source):
         px = np.linspace(-np.pi, np.pi, camera.resolution[0],
                          endpoint=True)[:, None]
@@ -326,7 +336,7 @@ class SphericalLens(Lens):
         vectors[:, :, 2] = np.sin(py)
 
         vectors = vectors * camera.width[0]
-        positions = camera.position*vectors.uq + (vectors * 0)
+        positions = camera.position + (vectors * 0)
         R1 = get_rotation_matrix(0.5*np.pi, [1, 0, 0])
         R2 = get_rotation_matrix(-0.5*np.pi, [0, 0, 1])
         uv = np.dot(R1, camera.unit_vectors)
