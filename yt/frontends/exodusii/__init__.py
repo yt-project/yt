@@ -1,5 +1,5 @@
 """
-API for yt.frontends._skeleton
+API for yt.frontends.skeleton
 
 
 
@@ -12,14 +12,3 @@ API for yt.frontends._skeleton
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from .data_structures import \
-      SkeletonGrid, \
-      SkeletonHierarchy, \
-      SkeletonDataset
-
-from .fields import \
-      SkeletonFieldInfo
-
-from .io import \
-      IOHandlerSkeleton

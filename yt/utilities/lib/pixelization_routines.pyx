@@ -456,6 +456,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Allocate subroutine
     ## Allocate signs array
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
+
     ## Allocate vertices pointer array
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
     for i in range(nvertices):
