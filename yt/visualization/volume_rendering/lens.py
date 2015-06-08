@@ -578,7 +578,7 @@ class StereoSphericalLens(Lens):
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
-          'stereoperspective': StereoPerspectiveLens,
+          'stereo-perspective': StereoPerspectiveLens,
           'fisheye': FisheyeLens,
           'spherical': SphericalLens,
           'stereo-spherical':StereoSphericalLens}
