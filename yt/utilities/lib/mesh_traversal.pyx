@@ -40,9 +40,6 @@ cdef class MeshSampler(ImageSampler):
         '''
 
         rtcs.rtcCommit(scene.scene_i)
-        # This routine will iterate over all of the vectors and cast each in
-        # turn.  Might benefit from a more sophisticated intersection check,
-        # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, j, ni, nj, nn
         cdef np.int64_t offset
         cdef np.int64_t iter[4]
@@ -78,7 +75,6 @@ cdef class MeshSampler(ImageSampler):
                 v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
                 v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
                 v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
-                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
                 for i in range(3):
                     ray.org[i] = v_pos[i]
                     ray.dir[i] = im.vp_dir[i]
@@ -103,9 +99,21 @@ cdef class MeshSampler(ImageSampler):
                 offset = j * 3
                 for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                 for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
-                    continue
-
-            free(v_dir)
+                for i in range(3):
+                    ray.org[i] = v_pos[i]
+                    ray.dir[i] = v_dir[i]
+                ray.tnear = 0.0
+                ray.tfar = 1e37
+                ray.geomID = rtcg.RTC_INVALID_GEOMETRY_ID
+                ray.primID = rtcg.RTC_INVALID_GEOMETRY_ID
+                ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
+                ray.mask = -1
+                ray.time = 0
+                vd_i += vd_step
+                rtcs.rtcIntersect(scene.scene_i, ray)
+                data[j] = ray.time
+            self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
+            free(v_dir)
+
         return hit
