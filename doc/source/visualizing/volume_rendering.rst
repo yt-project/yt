@@ -74,8 +74,8 @@ When the volume_render function is called, first an empty
 :class:`~yt.visualization.volume_rendering.scene.Scene` object is
 created. Next, a 
 :class:`~yt.visualization.volume_rendering.api.VolumeSource`
-object is created, which deomposes the volume elements
-into an tree structure to provide back-to-front rendering of fixed-resolution
+object is created, which decomposes the volume elements
+into a tree structure to provide back-to-front rendering of fixed-resolution
 blocks of data.  (If the volume elements are grids, this uses a
 :class:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree` object.) When the
 :class:`~yt.visualization.volume_rendering.api.VolumeSource`
