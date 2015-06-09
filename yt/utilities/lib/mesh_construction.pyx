@@ -1,6 +1,6 @@
 cimport numpy as np
 cimport pyembree.rtcore as rtc 
-from mesh_traversal cimport EmbreeVolume
+from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
@@ -60,7 +60,7 @@ cdef class TriangleMesh:
     Parameters
     ----------
 
-    scene : EmbreeScene
+    scene : YTEmbreeScene
         This is the scene to which the constructed polygons will be
         added.
     vertices : a np.ndarray of floats. 
@@ -93,7 +93,7 @@ cdef class TriangleMesh:
     cdef Vec3f* field_data
     cdef rtcg.RTCFilterFunc filter_func
 
-    def __init__(self, EmbreeVolume scene,
+    def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
                  np.ndarray indices = None):
 
@@ -102,7 +102,7 @@ cdef class TriangleMesh:
         else:
             self._build_from_indices(scene, vertices, indices)
 
-    cdef void _build_from_flat(self, EmbreeVolume scene, 
+    cdef void _build_from_flat(self, YTEmbreeScene scene, 
                                np.ndarray tri_vertices):
         cdef int i, j
         cdef int nt = tri_vertices.shape[0]
@@ -134,7 +134,7 @@ cdef class TriangleMesh:
         self.indices = triangles
         self.mesh = mesh
 
-    cdef void _build_from_indices(self, EmbreeVolume scene,
+    cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray tri_vertices,
                                   np.ndarray tri_indices):
         cdef int i
@@ -202,7 +202,7 @@ cdef class ElementMesh(TriangleMesh):
             
     '''
 
-    def __init__(self, EmbreeVolume scene,
+    def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
                  np.ndarray indices,
                  np.ndarray data,
@@ -226,7 +226,7 @@ cdef class ElementMesh(TriangleMesh):
             raise NotImplementedError
 
 
-    cdef void _build_from_quads(self, EmbreeVolume scene,
+    cdef void _build_from_quads(self, YTEmbreeScene scene,
                                 np.ndarray quad_vertices,
                                 np.ndarray quad_indices,
                                 np.ndarray data):
@@ -283,7 +283,7 @@ cdef class ElementMesh(TriangleMesh):
                                               mesh,
                                               self.filter_func)
 
-    cdef void _build_from_triangles(self, EmbreeVolume scene,
+    cdef void _build_from_triangles(self, YTEmbreeScene scene,
                                     np.ndarray tetra_vertices, 
                                     np.ndarray tetra_indices,
                                     np.ndarray data):

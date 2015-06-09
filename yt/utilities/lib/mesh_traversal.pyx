@@ -18,7 +18,7 @@ cdef void error_printer(const rtc.RTCError code, const char *_str):
     rtc.print_error(code)
     print "ERROR MESSAGE:", _str
 
-cdef class EmbreeVolume:
+cdef class YTEmbreeScene:
 
     def __init__(self):
         self.scene_i = rtcs.rtcNewScene(rtcs.RTC_SCENE_STATIC, rtcs.RTC_INTERSECT1)
@@ -31,7 +31,7 @@ cdef class MeshSampler(ImageSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, EmbreeVolume volume, int num_threads = 0):
+    def __call__(self, YTEmbreeScene scene, int num_threads = 0):
         '''
 
         This function is supposed to cast the rays and return the
@@ -39,7 +39,7 @@ cdef class MeshSampler(ImageSampler):
 
         '''
 
-        rtcs.rtcCommit(volume.scene_i)
+        rtcs.rtcCommit(scene.scene_i)
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
@@ -90,7 +90,7 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 vd_i += vd_step
-                rtcs.rtcIntersect(volume.scene_i, ray)
+                rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
