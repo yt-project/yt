@@ -72,7 +72,7 @@ def off_axis_projection(data_source, center, normal_vector,
         then tri-linearly interpolated along the ray. Not suggested for
         quantitative studies.
     north_vector : optional, array_like, default None
-        A vector that, if specified, restrics the orientation such that the
+        A vector that, if specified, restricts the orientation such that the
         north vector dotted into the image plane points "up". Useful for rotations
     num_threads: integer, optional, default 1
         Use this many OpenMP threads during projection.

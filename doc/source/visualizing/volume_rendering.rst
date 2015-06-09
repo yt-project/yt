@@ -97,10 +97,10 @@ lens, a spherical lens, or some other method of describing the direction and
 origin of rays for rendering. Once the camera is added to the scene object, we
 call the main method of the
 :class:`~yt.visualization.volume_rendering.scene.Scene` class,
-:meth:`~yt.visualization.volume_rendering.scene.Scene.render` .  When called,
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render`.  When called,
 the scene will loop through all of the
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
-that have been added, and integrate the radiative transfer equation through the
+that have been added and integrate the radiative transfer equation through the
 volume. Finally, the image and scene object is returned to the user.
 
 In this example, we don't add on any non-volume rendering sources; however, if
@@ -109,8 +109,8 @@ such sources are added, they will be integrated as well.
 Modifying the Scene
 -------------------
 
-Once a basic scene has been created, where default render sources and basic
-camera operations are utilized, deeper modifications are possible.  These
+Once a basic scene has been created with default render sources and
+camera operations, deeper modifications are possible. These
 modifications can tune the appearance of the render sources (such as which
 colors correspond to which values in the data) as well as the shape of the
 rendered image, the position of the camera in the scene, and other elements
@@ -124,8 +124,8 @@ Transfer Functions
 
 Transfer functions are the most essential component of a rendering that
 includes volume sources.  Several different fundamental types have been
-provided, but there are many different ways the construct complicated
-expressions to produce visualizations and images using the underlying
+provided, but there are many different ways to construct complicated
+expressions that produce visualizations and images using the underlying
 machinery.
 
 .. note::
@@ -157,7 +157,7 @@ call
 :meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
 which will allow you to specify the colors directly.
 
-An alternate method for modifying the colormap is done using
+An alternate method for modifying the colormap is
 :meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
 where you can map a segment of the transfer function space to an entire
 colormap at a single alpha value.  This is sometimes useful for very opaque
