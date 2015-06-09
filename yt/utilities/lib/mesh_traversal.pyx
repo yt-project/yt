@@ -10,6 +10,8 @@ from grid_traversal cimport ImageSampler, \
     ImageContainer
 from cython.parallel import prange, parallel, threadid
 
+rtc.rtcInit(NULL)
+rtc.rtcSetErrorFunction(error_printer)
 
 cdef void error_printer(const rtc.RTCError code, const char *_str):
     print "ERROR CAUGHT IN EMBREE"
@@ -19,8 +21,6 @@ cdef void error_printer(const rtc.RTCError code, const char *_str):
 cdef class EmbreeVolume:
 
     def __init__(self):
-        rtc.rtcInit(NULL)
-        rtc.rtcSetErrorFunction(error_printer)
         self.scene_i = rtcs.rtcNewScene(rtcs.RTC_SCENE_STATIC, rtcs.RTC_INTERSECT1)
 
     def __dealloc__(self):
