@@ -623,6 +623,18 @@ There are also advanced objects for particular use cases:
    ~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree
    ~yt.visualization.volume_rendering.camera.StereoPairCamera
 
+Additional sources can be added to a scene:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.api.VolumeSource
+   ~yt.visualization.volume_rendering.api.PointsSource
+   ~yt.visualization.volume_rendering.api.LineSource
+   ~yt.visualization.volume_rendering.api.BoxSource
+   ~yt.visualization.volume_rendering.api.GridsSource
+   ~yt.visualization.volume_rendering.api.CoordinateVectorSource
+
 Streamlining
 ^^^^^^^^^^^^
 

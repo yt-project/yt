@@ -51,6 +51,9 @@ class Lens(ParallelAnalysisInterface):
             info={'imtype': 'rendering'})
         return self.current_image
 
+    def _reshape_image(self, image, camera):
+        return image
+
     def setup_box_properties(self, camera):
         unit_vectors = camera.unit_vectors
         width = camera.width
