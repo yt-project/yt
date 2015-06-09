@@ -191,7 +191,6 @@ class Scene(object):
 
         for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
-        im = camera.lens._reshape_image(im, camera)
         return im
 
     def camera():
