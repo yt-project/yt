@@ -285,7 +285,7 @@ class MeshSource(RenderSource):
 
     def build_default_volume(self):
 
-        field_data = self.data_source.ds.index.io.fields[0][self.field]
+        field_data = self.data_source[self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
@@ -294,7 +294,7 @@ class MeshSource(RenderSource):
         self.volume = ElementMesh(self.scene,
                                   vertices,
                                   indices,
-                                  field_data,
+                                  field_data.d,
                                   self.sampler_type)
 
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
