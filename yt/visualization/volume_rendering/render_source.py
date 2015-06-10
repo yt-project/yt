@@ -23,10 +23,8 @@ from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_render_sampler
 from yt.visualization.image_writer import apply_colormap
 
-from yt.utilities.lib.mesh_traversal import YTEmbreeScene, \
-    MeshSampler
-from yt.utilities.lib.mesh_construction import \
-    ElementMesh
+from yt.utilities.lib.mesh_traversal import YTEmbreeScene
+from yt.utilities.lib.mesh_construction import ElementMesh
 
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
