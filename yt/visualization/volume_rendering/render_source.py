@@ -285,7 +285,7 @@ class MeshSource(RenderSource):
 
     def build_default_volume(self):
 
-        field_data = self.data_source[self.field]
+        field_data = self.data_source.ds.index.io.fields[0][self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
