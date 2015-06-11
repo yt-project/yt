@@ -271,6 +271,29 @@ Within a field function, these can then be retrieved and used in the same way.
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
 
+Gradient Fields
+---------------
+
+yt provides a way to compute gradients of spatial fields using the
+:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` method. If you 
+have a spatially-based field such as density or temperature, and want to calculate
+the gradient of that field, you can do it like so:
+
+.. code-block:: python
+
+    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+    grad_fields = ds.add_gradient_fields(("gas","temperature"))
+
+where the ``grad_fields`` list will now have a list of new field names that can be used
+in calculations, representing the 3 different components of the field and the magnitude
+of the gradient, e.g., ``"temperature_gradient_x"``, ``"temperature_gradient_y"``,
+``"temperature_gradient_z"``, and ``"temperature_gradient_magnitude"``. To see an example
+of how to create and use these fields, see :ref:`cookbook-complicated-derived-fields`.
+
+.. note::
+
+    ``add_gradient_fields`` currently only supports Cartesian geometries!
+
 General Particle Fields
 -----------------------
 

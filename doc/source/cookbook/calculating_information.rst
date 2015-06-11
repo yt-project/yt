@@ -87,7 +87,8 @@ information.
 Complicated Derived Fields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This recipe demonstrates how to use the ``add_gradient_fields`` method
+This recipe demonstrates how to use the 
+:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` method
 to generate gradient fields and use them in a more complex derived field. 
 
 .. yt_cookbook:: hse_field.py
