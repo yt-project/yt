@@ -40,16 +40,11 @@ cdef class MeshSampler(ImageSampler):
         '''
 
         rtcs.rtcCommit(scene.scene_i)
-        cdef int vi, vj, hit, i, j, ni, nj, nn
+        cdef int vi, vj, i, j, ni, nj, nn
         cdef np.int64_t offset
-        cdef np.int64_t iter[4]
         cdef ImageContainer *im = self.image
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
-        cdef np.float64_t rgba[6]
-        cdef np.float64_t extrema[4]
-        cdef np.float64_t max_t
-        hit = 0
         cdef np.int64_t nx, ny, size
         cdef np.float64_t px, py
         cdef np.float64_t width[3]
@@ -61,8 +56,6 @@ cdef class MeshSampler(ImageSampler):
         size = nx * ny
         data = np.empty(size, dtype="float64")
         cdef rtcr.RTCRay ray
-        cdef int vd_i = 0
-        cdef int vd_step = 1
         if im.vd_strides[0] == -1:
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             for j in range(size):
@@ -85,7 +78,6 @@ cdef class MeshSampler(ImageSampler):
                 ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
                 ray.mask = -1
                 ray.time = 0
-                vd_i += vd_step
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
@@ -109,11 +101,8 @@ cdef class MeshSampler(ImageSampler):
                 ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
                 ray.mask = -1
                 ray.time = 0
-                vd_i += vd_step
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
             free(v_dir)
-
-        return hit

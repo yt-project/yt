@@ -328,7 +328,7 @@ class MeshSource(RenderSource):
         self.set_sampler(camera)
 
         mylog.debug("Using sampler %s" % self.sampler)
-        self.sampler(self.scene, num_threads=self.num_threads)
+        self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
         self.current_image = self.sampler.aimage
