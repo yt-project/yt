@@ -218,9 +218,9 @@ class PerspectiveLens(Lens):
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
                 sight_length = camera.width[2] / sight_angle_cos
             else:
-            # The corner is on the backwards, then put it outside of the image
+            # If the corner is on the backwards, then we put it outside of the image
             # It can not be simply removed because it may connect to other corner
-            # within the image, which produces visible domian boundary line
+            # within the image, which produces visible domain boundary line
                 sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2) / \
                                np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera.position + sight_length * sight_vector[i]
