@@ -275,9 +275,9 @@ Gradient Fields
 ---------------
 
 yt provides a way to compute gradients of spatial fields using the
-:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` method. If you 
-have a spatially-based field such as density or temperature, and want to calculate
-the gradient of that field, you can do it like so:
+:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` 
+method. If you have a spatially-based field such as density or temperature, 
+and want to calculate the gradient of that field, you can do it like so:
 
 .. code-block:: python
 
