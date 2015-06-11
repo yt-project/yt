@@ -203,6 +203,36 @@ class PerspectiveLens(Lens):
         """
         self.viewpoint = self.front_center
 
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+        sight_vector = pos - camera.position
+        pos1 = sight_vector
+        for i in range(0, sight_vector.shape[0]):
+            sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
+            sight_vector[i] = sight_vector[i] / sight_vector_norm
+        sight_center = camera.position + camera.width[2] * camera.unit_vectors[2]
+
+        for i in range(0, sight_vector.shape[0]):
+            sight_angle_cos = np.dot(sight_vector[i], camera.unit_vectors[2])
+            if np.arccos(sight_angle_cos) < 0.5 * np.pi:
+                sight_length = camera.width[2] / sight_angle_cos
+            else:
+            # The corner is on the backwards, then put it outside of the image
+            # It can not be simply removed because it may connect to other corner
+            # within the image, which produces visible domian boundary line
+                sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2) / \
+                               np.sqrt(1 - sight_angle_cos**2)
+            pos1[i] = camera.position + sight_length * sight_vector[i]
+
+        dx = np.dot(pos1 - sight_center, camera.unit_vectors[0])
+        dy = np.dot(pos1 - sight_center, camera.unit_vectors[1])
+        dz = np.dot(pos1 - sight_center, camera.unit_vectors[2])
+        # Transpose into image coords.
+        px = (res[0] * 0.5 + res[0] / camera.width[0] * dx).astype('int')
+        py = (res[1] * 0.5 + res[1] / camera.width[1] * dy).astype('int')
+        return px, py, dz
+
     def __repr__(self):
         disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % \
             (self.viewpoint)
