@@ -195,7 +195,7 @@ def test_add_deposited_particle_field():
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
 def test_add_gradient_fields():
-    gfields = base_ds.add_gradient_fields("density")
+    gfields = base_ds.add_gradient_fields(("gas","density"))
     field_list = [('gas', 'density_gradient_x'),
                   ('gas', 'density_gradient_y'),
                   ('gas', 'density_gradient_z'),
