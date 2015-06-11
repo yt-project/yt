@@ -163,7 +163,7 @@ class FITSImageData(HDUList):
                 if isinstance(width[0], YTQuantity):
                     cdelt = [wh.in_units(units).v/n for wh, n in zip(width, self.shape)]
                 else:
-                    cdelt = [wh/n for wh, n in zip(width, self.shape)]
+                    cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
                 center = [0.0]*self.dimensionality
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
@@ -429,7 +429,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
     if image_res is None:
-        ddims = ds.domain_dimensions*2**ds.index.max_level
+        ddims = ds.domain_dimensions*ds.refine_by**ds.index.max_level
         if iterable(axis):
             nx = ddims.max()
             ny = ddims.max()

@@ -312,8 +312,8 @@ class PPVCube(object):
 
     def _create_intensity(self):
         def _intensity(field, data):
-            v = self.current_v-data["v_los"].v
-            T = data["temperature"].v
+            v = self.current_v-data["v_los"].in_cgs().v
+            T = (data["temperature"]).in_cgs().v
             w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
                                          self.particle_mass, v.flatten(), T.flatten())
             w[np.isnan(w)] = 0.0
