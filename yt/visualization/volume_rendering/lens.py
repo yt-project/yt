@@ -151,15 +151,15 @@ class PerspectiveLens(Lens):
         else:
             image = self.new_image(camera)
 
-        east_vec = camera.unit_vectors[0].reshape(3,1)
-        north_vec = camera.unit_vectors[1].reshape(3,1)
-        normal_vec = camera.unit_vectors[2].reshape(3,1)
+        east_vec = camera.unit_vectors[0]
+        north_vec = camera.unit_vectors[1]
+        normal_vec = camera.unit_vectors[2]
 
         px = np.mat(np.linspace(-.5, .5, camera.resolution[0]))
         py = np.mat(np.linspace(-.5, .5, camera.resolution[1]))
 
-        sample_x = camera.width[0] * np.array(east_vec * px).transpose()
-        sample_y = camera.width[1] * np.array(north_vec * py).transpose()
+        sample_x = camera.width[0] * np.array(east_vec.reshape(3,1) * px).transpose()
+        sample_y = camera.width[1] * np.array(north_vec.reshape(3,1) * py).transpose()
 
         vectors = np.zeros((camera.resolution[0], camera.resolution[1], 3),
                            dtype='float64', order='C')
@@ -261,50 +261,15 @@ class StereoPerspectiveLens(Lens):
         # self.front_center += self.expand_factor*dl
         # self.back_center -= dl
 
-        self.disparity = camera.width[0].d / 1000.
-        single_resolution_x = np.floor(camera.resolution[0])/2
+        self.disparity = camera.width[0] / 2.e3
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
             image = self.new_image(camera)
 
-        east_vec = camera.unit_vectors[0].reshape(3,1)
-        north_vec = camera.unit_vectors[1].reshape(3,1)
-        normal_vec = camera.unit_vectors[2].reshape(3,1)
-
-        px = np.mat(np.linspace(-.5, .5, single_resolution_x))
-        py = np.mat(np.linspace(-.5, .5, camera.resolution[1]))
-
-        sample_x = camera.width[0] * np.array(east_vec * px).transpose()
-        sample_y = camera.width[1] * np.array(north_vec * py).transpose()
-
-        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
-                           dtype='float64', order='C')
-
-        sample_x = np.repeat(sample_x.reshape(single_resolution_x,1,3), \
-                             camera.resolution[1], axis=1)
-        sample_y = np.repeat(sample_y.reshape(1,camera.resolution[1],3), \
-                             single_resolution_x, axis=0)
-
-        normal_vecs = np.tile(normal_vec, single_resolution_x * camera.resolution[1])\
-                             .reshape(single_resolution_x, camera.resolution[1], 3)
-
-        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
-
-        positions = np.tile(camera.position, single_resolution_x * camera.resolution[1])\
-                           .reshape(single_resolution_x, camera.resolution[1], 3)
-        east_vecs = np.tile(east_vec, single_resolution_x * camera.resolution[1])\
-                           .reshape(single_resolution_x, camera.resolution[1], 3)
-
-        # The left and right are switched because VR is in LHS.
-        # The shifting direction of vectors is opposite to that of positions
-        vectors_left = vectors.d + east_vecs * self.disparity
-        vectors_right = vectors.d + east_vecs * (-self.disparity)
-
-        # The left and right are switched because VR is in LHS.
-        positions_left = positions + east_vecs * (-self.disparity)
-        positions_right = positions + east_vecs *  self.disparity
+        vectors_left, positions_left = self._get_positions_vectors(camera, -self.disparity)
+        vectors_right, positions_right = self._get_positions_vectors(camera, self.disparity)
 
         uv = np.ones(3, dtype='float64')
 
@@ -327,10 +292,52 @@ class StereoPerspectiveLens(Lens):
                  image=image
                  )
 
+        return sampler_params
+
+    def _get_positions_vectors(self, camera, disparity):
+
+        single_resolution_x = np.floor(camera.resolution[0]) / 2
+
+        east_vec = camera.unit_vectors[0]
+        north_vec = camera.unit_vectors[1]
+        normal_vec = camera.unit_vectors[2]
+
+        angle_disparity = - np.arctan2(disparity, camera.width[2])
+        R = get_rotation_matrix(angle_disparity, north_vec)
+
+        east_vec_rot = np.dot(R, east_vec)
+        normal_vec_rot = np.dot(R, normal_vec)
+
+        px = np.mat(np.linspace(-.5, .5, single_resolution_x))
+        py = np.mat(np.linspace(-.5, .5, camera.resolution[1]))
+
+        sample_x = camera.width[0] * np.array(east_vec_rot.reshape(3,1) * px).transpose()
+        sample_y = camera.width[1] * np.array(north_vec.reshape(3,1) * py).transpose()
+
+        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
+                           dtype='float64', order='C')
+
+        sample_x = np.repeat(sample_x.reshape(single_resolution_x,1,3), \
+                             camera.resolution[1], axis=1)
+        sample_y = np.repeat(sample_y.reshape(1,camera.resolution[1],3), \
+                             single_resolution_x, axis=0)
+
+        normal_vecs = np.tile(normal_vec_rot, single_resolution_x * camera.resolution[1])\
+                             .reshape(single_resolution_x, camera.resolution[1], 3)
+        east_vecs = np.tile(east_vec_rot, single_resolution_x * camera.resolution[1])\
+                           .reshape(single_resolution_x, camera.resolution[1], 3)
+
+        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+
+        positions = np.tile(camera.position, single_resolution_x * camera.resolution[1])\
+                           .reshape(single_resolution_x, camera.resolution[1], 3)
+
+        positions = positions + east_vecs * disparity # Here the east_vecs is non-rotated one
+
         mylog.debug(positions)
         mylog.debug(vectors)
 
-        return sampler_params
+        return vectors, positions
 
     def set_viewpoint(self, camera):
         """
@@ -546,7 +553,7 @@ class StereoSphericalLens(Lens):
         self.set_viewpoint(camera)
 
     def _get_sampler_params(self, camera, render_source):
-        self.disparity = camera.width[0].d / 1000.
+        self.disparity = camera.width[0] / 1000.
 
         single_resolution_x = np.floor(camera.resolution[0])/2
         px = np.linspace(-np.pi, np.pi, single_resolution_x, endpoint=True)[:,None]
