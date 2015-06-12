@@ -972,7 +972,8 @@ class Dataset(object):
 
         Creates four new grid-based fields that represent the components of
         the gradient of an existing field, plus an extra field for the magnitude
-        of the gradient. Currently only supported in Cartesian geometries.
+        of the gradient. Currently only supported in Cartesian geometries. The 
+        gradient is computed using second-order centered differences. 
 
         Parameters
         ----------
