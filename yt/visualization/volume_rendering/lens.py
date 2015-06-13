@@ -211,6 +211,7 @@ class PerspectiveLens(Lens):
         for i in range(0, sight_vector.shape[0]):
             sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
             sight_vector[i] = sight_vector[i] / sight_vector_norm
+        sight_vector = sight_vector.d
         sight_center = camera.position + camera.width[2] * camera.unit_vectors[2]
 
         for i in range(0, sight_vector.shape[0]):
@@ -338,6 +339,64 @@ class StereoPerspectiveLens(Lens):
         mylog.debug(vectors)
 
         return vectors, positions
+
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+
+        px_left, py_left, dz_left = self._get_px_py_dz(camera, pos, res, -self.disparity)
+        px_right, py_right, dz_right = self._get_px_py_dz(camera, pos, res, self.disparity)
+
+        px = np.hstack([px_left, px_right])
+        py = np.hstack([py_left, py_right])
+        dz = np.hstack([dz_left, dz_right])
+
+        return px, py, dz
+
+    def _get_px_py_dz(self, camera, pos, res, disparity):
+
+        res0_h = np.floor(res[0]) / 2
+
+        east_vec = camera.unit_vectors[0]
+        north_vec = camera.unit_vectors[1]
+        normal_vec = camera.unit_vectors[2]
+
+        angle_disparity = - np.arctan2(disparity, camera.width[2])
+        R = get_rotation_matrix(angle_disparity, north_vec)
+
+        east_vec_rot = np.dot(R, east_vec)
+        normal_vec_rot = np.dot(R, normal_vec)
+
+        camera_position_shift = camera.position + east_vec * disparity
+        sight_vector = pos - camera_position_shift
+        pos1 = sight_vector
+
+        for i in range(0, sight_vector.shape[0]):
+            sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
+            sight_vector[i] = sight_vector[i] / sight_vector_norm
+        sight_vector = sight_vector.d
+        sight_center = camera_position_shift + camera.width[2] * normal_vec_rot
+
+        for i in range(0, sight_vector.shape[0]):
+            sight_angle_cos = np.dot(sight_vector[i], normal_vec_rot)
+            if np.arccos(sight_angle_cos) < 0.5 * np.pi:
+                sight_length = camera.width[2] / sight_angle_cos
+            else:
+            # If the corner is on the backwards, then we put it outside of the image
+            # It can not be simply removed because it may connect to other corner
+            # within the image, which produces visible domain boundary line
+                sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2) / \
+                               np.sqrt(1 - sight_angle_cos**2)
+            pos1[i] = camera_position_shift + sight_length * sight_vector[i]
+
+        dx = np.dot(pos1 - sight_center, east_vec_rot)
+        dy = np.dot(pos1 - sight_center, north_vec)
+        dz = np.dot(pos1 - sight_center, normal_vec_rot)
+        # Transpose into image coords.
+        px = (res0_h * 0.5 + res0_h / camera.width[0] * dx).astype('int')
+        py = (res[1] * 0.5 + res[1] / camera.width[1] * dy).astype('int')
+
+        return px, py, dz
 
     def set_viewpoint(self, camera):
         """
