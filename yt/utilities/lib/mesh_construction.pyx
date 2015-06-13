@@ -174,18 +174,11 @@ cdef class ElementMesh(TriangleMesh):
                  np.ndarray vertices, 
                  np.ndarray indices,
                  np.ndarray data,
-                 sample_type):
+                 sampler_type):
         # We need now to figure out if we've been handed quads or tetrahedra.
         # If it's quads, we can build the mesh slightly differently.
         # http://stackoverflow.com/questions/23723993/converting-quadriladerals-in-an-obj-file-into-triangles
 
-        if sample_type == 'surface':
-            self.filter_func = <rtcg.RTCFilterFunc> sample_surface
-        elif sample_type == 'maximum':
-            self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
-        else:
-            print "Error - sampler type not implemented."
-            raise NotImplementedError
         if indices.shape[1] == 8:
             self._build_from_quads(scene, vertices, indices, data)
         elif indices.shape[1] == 4:
@@ -193,6 +186,7 @@ cdef class ElementMesh(TriangleMesh):
         else:
             raise NotImplementedError
 
+        self._set_sampler_type(scene, sampler_type)
 
     cdef void _build_from_quads(self, YTEmbreeScene scene,
                                 np.ndarray quad_vertices,
@@ -289,6 +283,19 @@ cdef class ElementMesh(TriangleMesh):
         self.vertices = vertices
         self.indices = triangles
         self.mesh = mesh
+
+    def _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
+        if sampler_type == 'surface':
+            self.filter_func = <rtcg.RTCFilterFunc> sample_surface
+        elif sampler_type == 'maximum':
+            self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
+        else:
+            print "Error - sampler type not implemented."
+            raise NotImplementedError
+
+        rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
+                                              self.mesh,
+                                              self.filter_func)
 
     def __dealloc__(self):
         free(self.field_data)
