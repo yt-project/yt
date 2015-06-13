@@ -1,4 +1,6 @@
 #define MAX_NUM_TRI 12
+#define HEX_NT 12
+#define TETRA_NT 4
 
 // This array is used to triangulate the hexahedral mesh elements
 // Each element has six faces with two triangles each.

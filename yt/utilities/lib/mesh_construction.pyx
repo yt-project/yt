@@ -18,6 +18,8 @@ cdef extern from "mesh_construction.h":
     enum:
         MAX_NUM_TRI
 
+    int HEX_NT
+    int TETRA_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
 
@@ -64,7 +66,7 @@ cdef class TriangleMesh:
     cdef Vec3f* field_data
     cdef rtcg.RTCFilterFunc filter_func
     cdef int tpe
-    cdef int[MAX_NUM_TRI][3] tris
+    cdef int[MAX_NUM_TRI][3] tri_array
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
@@ -185,11 +187,11 @@ cdef class ElementMesh(TriangleMesh):
         # http://stackoverflow.com/questions/23723993/converting-quadriladerals-in-an-obj-file-into-triangles
 
         if indices.shape[1] == 8:
-            self.tpe = 12
-            self.tris = triangulate_hex
+            self.tpe = HEX_NT
+            self.tri_array = triangulate_hex
         elif indices.shape[1] == 4:
-            self.tpe = 4
-            self.tris = triangulate_tetra
+            self.tpe = TETRA_NT
+            self.tri_array = triangulate_tetra
         else:
             raise NotImplementedError
 
@@ -229,9 +231,9 @@ cdef class ElementMesh(TriangleMesh):
         for i in range(ne):
             for j in range(self.tpe):
                 ind = self.tpe*i+j
-                triangles[ind].v0 = indices_in[i][self.tris[j][0]]
-                triangles[ind].v1 = indices_in[i][self.tris[j][1]]
-                triangles[ind].v2 = indices_in[i][self.tris[j][2]]
+                triangles[ind].v0 = indices_in[i][self.tri_array[j][0]]
+                triangles[ind].v1 = indices_in[i][self.tri_array[j][1]]
+                triangles[ind].v2 = indices_in[i][self.tri_array[j][2]]
 
         rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER)
 
@@ -249,9 +251,9 @@ cdef class ElementMesh(TriangleMesh):
         for i in range(ne):
             for j in range(self.tpe):
                 ind = self.tpe*i+j
-                field_data[ind].x = data_in[i][self.tris[j][0]]
-                field_data[ind].y = data_in[i][self.tris[j][1]]
-                field_data[ind].z = data_in[i][self.tris[j][2]]
+                field_data[ind].x = data_in[i][self.tri_array[j][0]]
+                field_data[ind].y = data_in[i][self.tri_array[j][1]]
+                field_data[ind].z = data_in[i][self.tri_array[j][2]]
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, field_data)
 
