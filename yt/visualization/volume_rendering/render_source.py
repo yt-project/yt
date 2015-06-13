@@ -20,8 +20,7 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_surface_sampler, \
-    new_mesh_maximum_sampler
+    get_corners, new_projection_sampler, new_mesh_sampler
 from yt.visualization.image_writer import apply_colormap
 
 from yt.utilities.lib.mesh_traversal import YTEmbreeScene
@@ -233,7 +232,7 @@ class MeshSource(RenderSource):
     _image = None
     data_source = None
 
-    def __init__(self, data_source, field, auto=True):
+    def __init__(self, data_source, field, sampler_type='surface'):
         r"""Initialize a new unstructured source for rendering.
 
         A :class:`MeshSource` provides the framework to volume render
@@ -246,8 +245,13 @@ class MeshSource(RenderSource):
             data object or dataset.
         fields : string
             The name of the field to be rendered.
-        auto: bool, optional
-            If True, will build a default PolygonMesh based on the data.
+        sampler_type : string, either 'surface' or 'maximum'
+            The type of volume rendering to use for this MeshSource.
+            If 'surface', each ray will return the value of the field
+            at the point at which it intersects the surface mesh.
+            If 'maximum', each ray will return the largest value of
+            any vertex on any element that the ray intersects.
+            Default is 'surface'.
 
         Examples
         --------
@@ -258,81 +262,47 @@ class MeshSource(RenderSource):
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
-        self.volume = None
+        self.mesh = None
         self.current_image = None
-        self.double_check = False
-        self.num_threads = 0
-        self.sampler_type = 'surface'
+        self.sampler_type = sampler_type
 
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        if auto:
-            self.build_defaults()
-
-    def build_defaults(self):
-        self.build_default_volume()
+        self.build_data_structures()
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
             raise RuntimeError("Data source not initialized")
 
-        if self.volume is None:
-            raise RuntimeError("Volume not initialized")
+        if self.mesh is None:
+            raise RuntimeError("Mesh not initialized")
 
-    def build_default_volume(self):
+    def build_data_structures(self):
 
         field_data = self.data_source[self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+
+        # convert the indices to zero-based indexing
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
         self.scene = YTEmbreeScene()
 
-        self.volume = ElementMesh(self.scene,
-                                  vertices,
-                                  indices,
-                                  field_data.d,
-                                  self.sampler_type)
+        mylog.debug("Using field %s with sampler_type %s" % (self.field,
+                                                             self.sampler_type))
+        self.mesh = ElementMesh(self.scene,
+                                vertices,
+                                indices,
+                                field_data.d,
+                                self.sampler_type)
 
-        log_fields = [self.data_source.pf.field_info[self.field].take_log]
-        mylog.debug('Log Fields:' + str(log_fields))
+    def render(self, camera):
 
-    def set_volume(self, volume):
-        assert(isinstance(volume, ElementMesh))
-        del self.volume
-        self.volume = volume
+        self.sampler = new_mesh_sampler(camera, self)
 
-    def set_field(self, field, no_ghost=True):
-        field = self.data_source._determine_fields(field)[0]
-        log_field = self.data_source.pf.field_info[field].take_log
-        self.volume.set_fields(field, [log_field], no_ghost)
-        self.field = field
-
-    def set_fields(self, fields, no_ghost=True):
-        fields = self.data_source._determine_fields(fields)
-        log_fields = [self.data_source.ds.field_info[f].take_log
-                      for f in fields]
-        self.volume.set_fields(fields, log_fields, no_ghost)
-        self.field = fields
-
-    def set_sampler(self, camera):
-        """docstring for add_sampler"""
-        if self.sampler_type == 'surface':
-            sampler = new_mesh_surface_sampler(camera, self)
-        if self.sampler_type == 'maximum':
-            sampler = new_mesh_maximum_sampler(camera, self)
-        else:
-            NotImplementedError("%s not implemented yet" % self.sampler_type)
-        self.sampler = sampler
-        assert(self.sampler is not None)
-
-    def render(self, camera, zbuffer=None):
-
-        self.set_sampler(camera)
-
-        mylog.debug("Using sampler %s" % self.sampler)
+        mylog.debug("Casting rays")
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
