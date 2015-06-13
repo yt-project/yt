@@ -20,7 +20,8 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_render_sampler
+    get_corners, new_projection_sampler, new_mesh_surface_sampler, \
+    new_mesh_maximum_sampler
 from yt.visualization.image_writer import apply_colormap
 
 from yt.utilities.lib.mesh_traversal import YTEmbreeScene
@@ -299,7 +300,9 @@ class MeshSource(RenderSource):
         mylog.debug('Log Fields:' + str(log_fields))
 
     def set_volume(self, volume):
-        pass
+        assert(isinstance(volume, ElementMesh))
+        del self.volume
+        self.volume = volume
 
     def set_field(self, field, no_ghost=True):
         field = self.data_source._determine_fields(field)[0]
@@ -317,7 +320,9 @@ class MeshSource(RenderSource):
     def set_sampler(self, camera):
         """docstring for add_sampler"""
         if self.sampler_type == 'surface':
-            sampler = new_mesh_render_sampler(camera, self)
+            sampler = new_mesh_surface_sampler(camera, self)
+        if self.sampler_type == 'maximum':
+            sampler = new_mesh_maximum_sampler(camera, self)
         else:
             NotImplementedError("%s not implemented yet" % self.sampler_type)
         self.sampler = sampler

@@ -12,7 +12,24 @@ def data_source_or_all(data_source):
     return data_source
 
 
-def new_mesh_render_sampler(camera, render_source):
+def new_mesh_surface_sampler(camera, render_source):
+    params = camera._get_sampler_params(render_source)
+    args = (
+        params['vp_pos'],
+        params['vp_dir'],
+        params['center'],
+        params['bounds'],
+        params['image'],
+        params['x_vec'],
+        params['y_vec'],
+        params['width'],
+    )
+
+    sampler = MeshSampler(*args)
+    return sampler
+
+
+def new_mesh_maximum_sampler(camera, render_source):
     params = camera._get_sampler_params(render_source)
     args = (
         params['vp_pos'],
