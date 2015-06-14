@@ -991,12 +991,13 @@ class YTSurfaceBase(YTSelectionContainer3D):
     This will create a data object, find a nice value in the center, and
     output the vertices to "triangles.obj" after rescaling them.
 
+    >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
     >>> surf = ds.surface(sp, "density", 5e-27)
     >>> print surf["temperature"]
     >>> print surf.vertices
-    >>> bounds = [(sp.center[i] - 5.0/ds['kpc'],
-    ...            sp.center[i] + 5.0/ds['kpc']) for i in range(3)]
+    >>> bounds = [(sp.center[i] - 5.0*kpc,
+    ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
     """
     _type_name = "surface"
@@ -1225,11 +1226,11 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
-        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='temperature', emit_field = 'Emissivity', 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='temperature', emit_field = 'emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1581,12 +1582,13 @@ class YTSurfaceBase(YTSelectionContainer3D):
         Examples
         --------
 
+        >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
         >>> surf = ds.surface(sp, "density", 5e-27)
         >>> print surf["temperature"]
         >>> print surf.vertices
-        >>> bounds = [(sp.center[i] - 5.0/ds['kpc'],
-        ...            sp.center[i] + 5.0/ds['kpc']) for i in range(3)]
+        >>> bounds = [(sp.center[i] - 5.0*kpc,
+        ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
@@ -1716,12 +1718,11 @@ class YTSurfaceBase(YTSelectionContainer3D):
         Examples
         --------
 
-        >>> from yt.mods import *
-        >>> ds = load("redshift0058")
+        >>> from yt.units import kpc
         >>> dd = ds.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
-        >>> bounds = [(dd.center[i] - 100.0/ds['kpc'],
-        ...            dd.center[i] + 100.0/ds['kpc']) for i in range(3)]
+        >>> bounds = [(dd.center[i] - 100.0*kpc,
+        ...            dd.center[i] + 100.0*kpc) for i in range(3)]
         ...
         >>> surf = ds.surface(dd, "density", rho)
         >>> rv = surf.export_sketchfab(
