@@ -24,13 +24,13 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless
+    dimensionless, current_mks
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, \
-    cgs_conversions
+    mks_base_units, latex_prefixes, yt_base_units
 from yt.units.unit_registry import UnitRegistry
+from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
 import string
@@ -118,10 +118,10 @@ class Unit(Expr):
     is_number = False
 
     # Extra attributes
-    __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry", "cgs_conversion", "is_mks"]
+    __slots__ = ["expr", "is_atomic", "base_value", "base_offset", "dimensions",
+                 "registry"]
 
-    def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
+    def __new__(cls, unit_expr=sympy_one, base_value=None, base_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
@@ -131,13 +131,13 @@ class Unit(Expr):
         ----------
         unit_expr : Unit object, sympy.core.expr.Expr object, or str
             The symbolic unit expression.
-        cgs_value : float
-            The unit's value in cgs.
+        base_value : float
+            The unit's value in yt's base units.
         dimensions : sympy.core.expr.Expr
             A sympy expression representing the dimensionality of this unit.
             It must contain only mass, length, time, temperature and angle
             symbols.
-        offset : float
+        base_offset : float
             The offset necessary to normalize temperature units to a common
             zero point.
         registry : UnitRegistry object
@@ -184,17 +184,17 @@ class Unit(Expr):
             is_atomic = True
 
         #
-        # check cgs_value and dimensions
+        # check base_value and dimensions
         #
 
-        if cgs_value is not None:
-            # check that cgs_value is a float or can be converted to one
+        if base_value is not None:
+            # check that base_value is a float or can be converted to one
             try:
-                cgs_value = float(cgs_value)
+                base_value = float(base_value)
             except ValueError:
-                raise UnitParseError("Could not use cgs_value as a float. " \
-                                     "cgs_value is '%s' (type %s)." \
-                                     % (cgs_value, type(cgs_value)) )
+                raise UnitParseError("Could not use base_value as a float. " \
+                                     "base_value is '%s' (type %s)." \
+                                     % (base_value, type(base_value)) )
 
             # check that dimensions is valid
             if dimensions is not None:
@@ -202,10 +202,10 @@ class Unit(Expr):
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
-            cgs_value = unit_data[0]
+            base_value = unit_data[0]
             dimensions = unit_data[1]
             if len(unit_data) == 3:
-                cgs_offset = unit_data[2]
+                base_offset = unit_data[2]
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -213,25 +213,10 @@ class Unit(Expr):
         # Attach attributes to obj.
         obj.expr = unit_expr
         obj.is_atomic = is_atomic
-        obj.cgs_value = cgs_value
-        obj.cgs_offset = cgs_offset
+        obj.base_value = base_value
+        obj.base_offset = base_offset
         obj.dimensions = dimensions
         obj.registry = registry
-
-        check_atoms = [atom for atom in unit_expr.free_symbols
-                       if str(atom) in cgs_conversions]
-        if len(check_atoms) > 0:
-            conversions = []
-            for atom in check_atoms:
-                conversions.append((atom,symbols(cgs_conversions[str(atom)])))
-            conversion = Unit(unit_expr=unit_expr.subs(conversions),
-                              registry=registry)
-            is_mks = True
-        else:
-            conversion = None
-            is_mks = False
-        obj.cgs_conversion = conversion
-        obj.is_mks = is_mks
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -242,14 +227,14 @@ class Unit(Expr):
 
     ### Some sympy conventions
     def __getnewargs__(self):
-        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions,
+        return (self.expr, self.is_atomic, self.base_value, self.dimensions,
                 self.registry)
 
     def __hash__(self):
         return super(Unit, self).__hash__()
 
     def _hashable_content(self):
-        return (self.expr, self.is_atomic, self.cgs_value, self.dimensions,
+        return (self.expr, self.is_atomic, self.base_value, self.dimensions,
                 self.registry)
     ### end sympy conventions
 
@@ -280,19 +265,19 @@ class Unit(Expr):
                                        "'%s' (type %s). This behavior is "
                                        "undefined." % (u, type(u)))
 
-        cgs_offset = 0.0
-        if self.cgs_offset or u.cgs_offset:
+        base_offset = 0.0
+        if self.base_offset or u.base_offset:
             if u.dimensions is temperature and self.is_dimensionless:
-                cgs_offset = u.cgs_offset
+                base_offset = u.base_offset
             elif self.dimensions is temperature and u.is_dimensionless:
-                cgs_offset = self.cgs_offset
+                base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
                                            "and Celsius cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
-                    cgs_value=(self.cgs_value * u.cgs_value),
-                    cgs_offset=cgs_offset,
+                    base_value=(self.base_value * u.base_value),
+                    base_offset=base_offset,
                     dimensions=(self.dimensions * u.dimensions),
                     registry=self.registry)
 
@@ -303,19 +288,19 @@ class Unit(Expr):
                                        "(type %s). This behavior is "
                                        "undefined." % (u, type(u)))
 
-        cgs_offset = 0.0
-        if self.cgs_offset or u.cgs_offset:
+        base_offset = 0.0
+        if self.base_offset or u.base_offset:
             if u.dimensions is dims.temperature and self.is_dimensionless:
-                cgs_offset = u.cgs_offset
+                base_offset = u.base_offset
             elif self.dimensions is dims.temperature and u.is_dimensionless:
-                cgs_offset = self.cgs_offset
+                base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
                                            "and Celsius cannot be multiplied.")
 
         return Unit(self.expr / u.expr,
-                    cgs_value=(self.cgs_value / u.cgs_value),
-                    cgs_offset=cgs_offset,
+                    base_value=(self.base_value / u.base_value),
+                    base_offset=base_offset,
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
@@ -330,7 +315,7 @@ class Unit(Expr):
                                        "power '%s' (type %s). Failed to cast " \
                                        "it to a float." % (p, type(p)) )
 
-        return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
+        return Unit(self.expr**p, base_value=(self.base_value**p),
                     dimensions=(self.dimensions**p),
                     registry=self.registry)
 
@@ -339,14 +324,14 @@ class Unit(Expr):
         if not isinstance(u, Unit):
             return False
         return \
-          (self.cgs_value == u.cgs_value and self.dimensions == u.dimensions)
+          (self.base_value == u.base_value and self.dimensions == u.dimensions)
 
     def __ne__(self, u):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
             return True
         return \
-          (self.cgs_value != u.cgs_value or self.dimensions != u.dimensions)
+          (self.base_value != u.base_value or self.dimensions != u.dimensions)
 
     def copy(self):
         return copy.deepcopy(self)
@@ -355,12 +340,12 @@ class Unit(Expr):
         if memodict is None:
             memodict = {}
         expr = str(self.expr)
-        cgs_value = copy.deepcopy(self.cgs_value)
-        cgs_offset = copy.deepcopy(self.cgs_offset)
+        base_value = copy.deepcopy(self.base_value)
+        base_offset = copy.deepcopy(self.base_offset)
         dimensions = copy.deepcopy(self.dimensions)
         lut = copy.deepcopy(self.registry.lut)
         registry = UnitRegistry(lut=lut)
-        return Unit(expr, cgs_value, cgs_offset, dimensions, registry)
+        return Unit(expr, base_value, base_offset, dimensions, registry)
 
     #
     # End unit operations
@@ -368,14 +353,6 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
-        first_check = False
-        second_check = False
-        if self.cgs_conversion:
-            first_check = self.cgs_conversion.dimensions / other_unit.dimensions == sympy_one
-        if other_unit.cgs_conversion:
-            second_check = other_unit.cgs_conversion.dimensions / self.dimensions == sympy_one
-        if first_check or second_check:
-            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
@@ -402,34 +379,33 @@ class Unit(Expr):
             units.append("".join([unit_string, power_string]))
         return " * ".join(units)
 
-
+    def get_base_equivalent(self):
+        """
+        Create and return dimensionally-equivalent base units.
+        """
+        units_string = self._get_system_unit_string(yt_base_units)
+        return Unit(units_string, base_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
+    
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
-
         """
-        if self.cgs_conversion:
-            units = self.cgs_conversion
-        else:
-            units = self
-        units_string = units._get_system_unit_string(cgs_base_units)
-        return Unit(units_string, cgs_value=1.0,
-                    dimensions=units.dimensions, registry=self.registry)
+        if current_mks in self.dimensions.free_symbols:
+            raise YTUnitsNotReducible(self, "cgs")
+        units_string = self._get_system_unit_string(cgs_base_units)
+        return Unit(units_string, base_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
-
         """
-        if self.cgs_conversion and not self.is_mks:
-            units = self.cgs_conversion
-        else:
-            units = self
-        units_string = units._get_system_unit_string(mks_base_units)
-        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
-                     get_conversion_factor(units, Unit(units_string))[0])
-        return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=units.dimensions, registry=self.registry)
+        units_string = self._get_system_unit_string(mks_base_units)
+        base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
+        base_value /= get_conversion_factor(self, Unit(units_string))[0]
+        return Unit(units_string, base_value=base_value,
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
@@ -466,12 +442,12 @@ def get_conversion_factor(old_units, new_units):
         Offset between the old unit and new unit.
 
     """
-    ratio = old_units.cgs_value / new_units.cgs_value
-    if old_units.cgs_offset == 0 and new_units.cgs_offset == 0:
+    ratio = old_units.base_value / new_units.base_value
+    if old_units.base_offset == 0 and new_units.base_offset == 0:
         return (ratio, None)
     else:
         if old_units.dimensions is temperature:
-            return ratio, ratio*old_units.cgs_offset - new_units.cgs_offset
+            return ratio, ratio*old_units.base_offset - new_units.base_offset
         else:
             raise InvalidUnitOperation(
                 "Fahrenheit and Celsius are not absolute temperature scales "
@@ -483,7 +459,7 @@ def get_conversion_factor(old_units, new_units):
 
 def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     """
-    Grabs the total cgs_value and dimensions from a valid unit expression.
+    Grabs the total base_value and dimensions from a valid unit expression.
 
     Parameters
     ----------
@@ -495,7 +471,7 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
     """
     # The simplest case first
     if isinstance(unit_expr, Unit):
-        return (unit_expr.cgs_value, unit_expr.dimensions)
+        return (unit_expr.base_value, unit_expr.dimensions)
 
     # Now for the sympy possibilities
     if isinstance(unit_expr, Symbol):
@@ -514,14 +490,14 @@ def _get_unit_data_from_expr(unit_expr, unit_symbol_lut):
         return (conv, unit)
 
     if isinstance(unit_expr, Mul):
-        cgs_value = 1.0
+        base_value = 1.0
         dimensions = 1
         for expr in unit_expr.args:
             unit_data = _get_unit_data_from_expr(expr, unit_symbol_lut)
-            cgs_value *= unit_data[0]
+            base_value *= unit_data[0]
             dimensions *= unit_data[1]
 
-        return (float(cgs_value), dimensions)
+        return (float(base_value), dimensions)
 
     raise UnitParseError("Cannot parse for unit data from '%s'. Please supply" \
                          " an expression of only Unit, Symbol, Pow, and Mul" \

@@ -56,7 +56,7 @@ value.  For example:
 
    import yt
    ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
 This object, ``surface``, can be queried for values on the surface.  For
@@ -86,7 +86,7 @@ easier way!
 Exporting to Sketchfab
 ----------------------
 
-`Sketchfab <http://sketchfab.com>`_ is a website that uses WebGL, a relatively
+`Sketchfab <https://sketchfab.com>`_ is a website that uses WebGL, a relatively
 new technology for displaying 3D graphics in any browser.  It's very fast and
 typically requires no plugins.  Plus, it means that you can share data with
 anyone and they can view it immersively without having to download the data or
@@ -155,7 +155,7 @@ OBJ and MTL Files
 -----------------
 
 If the ability to maneuver around an isosurface of your 3D simulation in
-`Sketchfab <http://sketchfab.com>`_ cost you half a day of work (let's be
+`Sketchfab <https://sketchfab.com>`_ cost you half a day of work (let's be
 honest, 2 days), prepare to be even less productive.  With a new  `OBJ file
 <http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
 upload multiple surfaces of different transparencies in the same file.
@@ -172,7 +172,7 @@ galaxy simulation:
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
@@ -204,7 +204,7 @@ surface to their own min and max values.
 Uploading to SketchFab
 ----------------------
 
-To upload to `Sketchfab <http://sketchfab.com>`_ one only needs to zip the
+To upload to `Sketchfab <https://sketchfab.com>`_ one only needs to zip the
 OBJ and MTL files together, and then upload via your dashboard prompts in
 the usual way.  For example, the above script produces:
 
@@ -248,7 +248,7 @@ to output one more type of variable on your surfaces.  For example:
        return (data['density']*data['density']*np.sqrt(data['temperature']))
    add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],

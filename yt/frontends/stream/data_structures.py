@@ -69,7 +69,8 @@ from yt.utilities.definitions import \
 from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
-           SemiStructuredMesh
+           SemiStructuredMesh, \
+           UnstructuredMesh
 from yt.extern.six import string_types, iteritems
 from .fields import \
     StreamFieldInfo
@@ -708,7 +709,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
             pdata = pdata_ftype
         # This will update the stream handler too
         assign_particle_data(sds, pdata)
-    
+
     return sds
 
 def load_amr_grids(grid_data, domain_dimensions,
@@ -1581,3 +1582,39 @@ def load_octree(octree_mask, data,
     sds.over_refine_factor = over_refine_factor
 
     return sds
+
+class StreamUnstructuredMesh(UnstructuredMesh):
+    _index_offset = 0
+
+    def __init__(self, *args, **kwargs):
+        super(StreamUnstructuredMesh, self).__init__(*args, **kwargs)
+        self._connectivity_length = self.connectivity_indices.shape[1]
+
+
+class StreamUnstructuredIndex(UnstructuredIndex):
+
+    def __init__(self, ds, dataset_type = None):
+        self.stream_handler = ds.stream_handler
+        super(StreamUnstructuredIndex, self).__init__(ds, dataset_type)
+
+    def _initialize_mesh(self):
+        coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
+        connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
+        self.meshes = [StreamUnstructuredMesh(
+          i, self.index_filename, c1, c2, self)
+          for i, (c1, c2) in enumerate(zip(coords, connec))]
+
+    def _setup_data_io(self):
+        if self.stream_handler.io is not None:
+            self.io = self.stream_handler.io
+        else:
+            self.io = io_registry[self.dataset_type](self.ds)
+
+    def _detect_output_fields(self):
+        self.field_list = list(set(self.stream_handler.get_fields()))
+
+class StreamUnstructuredMeshDataset(StreamDataset):
+    _index_class = StreamUnstructuredMesh
+    _field_info_class = StreamFieldInfo
+    _dataset_type = "stream_unstructured"
+

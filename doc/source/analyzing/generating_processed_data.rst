@@ -47,9 +47,29 @@ accessing the desired field.
    frb = FixedResolutionBuffer(sl, (0.3, 0.5, 0.6, 0.8), (512, 512))
    my_image = frb["density"]
 
-This resultant array can be saved out to disk or visualized using a
-hand-constructed Matplotlib image, for instance using
+This image may then be used in a hand-constructed Matplotlib image, for instance using
 :func:`~matplotlib.pyplot.imshow`.
+
+The buffer arrays can be saved out to disk in either HDF5 or FITS format:
+ 
+.. code-block:: python
+
+   frb.export_hdf5("my_images.h5", fields=["density","temperature"])
+   frb.export_fits("my_images.fits", fields=["density","temperature"],
+                   clobber=True, units="kpc")
+
+In the FITS case, there is an option for setting the ``units`` of the coordinate system in
+the file. If you want to overwrite a file with the same name, set ``clobber=True``. 
+
+The :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` can even be exported
+as a 2D dataset itself, which may be operated on in the same way as any other dataset in yt:
+
+.. code-block:: python
+
+   ds_frb = frb.export_dataset(fields=["density","temperature"], nprocs=8)
+   sp = ds_frb.sphere("c", (100.,"kpc"))
+
+where the ``nprocs`` parameter can be used to decompose the image into ``nprocs`` number of grids.
 
 .. _generating-profiles-and-histograms:
 

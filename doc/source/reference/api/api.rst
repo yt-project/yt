@@ -30,6 +30,16 @@ ProfilePlot and PhasePlot
    ~yt.visualization.profile_plotter.PhasePlot
    ~yt.visualization.profile_plotter.PhasePlotMPL
 
+Particle Plots
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.particle_plots.ParticleProjectionPlot
+   ~yt.visualization.particle_plots.ParticlePhasePlot
+   ~yt.visualization.particle_plots.ParticlePlot
+
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -37,6 +47,7 @@ Fixed Resolution Pixelization
    :toctree: generated/
 
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.ParticleImageBuffer
    ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
@@ -408,6 +419,7 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile1D
    ~yt.data_objects.profiles.Profile2D
    ~yt.data_objects.profiles.Profile3D
+   ~yt.data_objects.profiles.ParticleProfile
    ~yt.data_objects.profiles.create_profile
 
 .. _halo_analysis_ref:
@@ -490,6 +502,16 @@ Field Functions
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
+
+
+Particle Filters
+----------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.particle_filters.add_particle_filter
+   ~yt.data_objects.particle_filters.particle_filter
 
 Image Handling
 --------------

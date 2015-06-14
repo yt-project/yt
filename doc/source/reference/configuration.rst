@@ -106,7 +106,7 @@ used internally.
   setting will provide instructions for setting this.
 * ``serialize`` (default: ``'False'``): If true, perform automatic 
   :ref:`object serialization <object-serialization>`
-* ``sketchfab_api_key`` (default: empty): API key for http://sketchfab.com/ for
+* ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
 * ``suppressStreamLogging`` (default: ``'False'``): If true, execution mode will be
   quiet.
