@@ -194,6 +194,18 @@ def test_add_deposited_particle_field():
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
+def test_add_gradient_fields():
+    gfields = base_ds.add_gradient_fields(("gas","density"))
+    field_list = [('gas', 'density_gradient_x'),
+                  ('gas', 'density_gradient_y'),
+                  ('gas', 'density_gradient_z'),
+                  ('gas', 'density_gradient_magnitude')]
+    assert_equal(gfields, field_list)
+    ad = base_ds.all_data()
+    for field in field_list:
+        ret = ad[field]
+        assert str(ret.units) == "g/cm**4"
+
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are
     # intentionally raising lead to spurious GenerationInProgress errors
