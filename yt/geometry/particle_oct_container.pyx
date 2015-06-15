@@ -30,6 +30,10 @@ cimport cython
 from collections import defaultdict
 
 from particle_deposit cimport gind
+from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
+from libcpp.map cimport map
+from libcpp.pair cimport pair
+from cython.operator cimport dereference, preincrement
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -302,6 +306,10 @@ cdef class ParticleForest:
     cdef public object _cached_octrees
     cdef public object _last_octree_subset
     cdef public object _last_oct_handler
+    cdef np.uint32_t *file_markers
+    cdef np.uint64_t n_file_markers
+    cdef np.uint64_t file_marker_i
+    cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] bitmasks
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
                  n_ref = 64, index_order = 7):
@@ -330,6 +338,9 @@ cdef class ParticleForest:
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order * 3), nfiles), dtype="uint8")
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def add_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                       np.uint64_t file_id, int filter,
                       np.float64_t rel_buffer):
@@ -358,6 +369,68 @@ cdef class ParticleForest:
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
         return
+
+    def secondary_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                      np.ndarray[np.uint8_t, ndim=1] mask,
+                      np.uint64_t file_id, int order):
+        cdef np.int64_t no = pos.shape[0]
+        cdef np.int64_t p, i
+        cdef np.uint64_t mi, sub_mi
+        cdef np.float64_t ppos[3]
+        cdef int skip
+        cdef np.float64_t LE[3], box_left[3]
+        cdef np.float64_t RE[3], box_right[3]
+        cdef np.float64_t dds[3]
+        cdef np.int64_t total_hits = 0
+        cdef ParticleOctreeContainer octree = self.index_octree
+        for i in range(3):
+            LE[i] = self.left_edge[i]
+            RE[i] = self.right_edge[i]
+            dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
+        tr = []
+        for p in range(pos.shape[0]):
+            skip = 0
+            for i in range(3):
+                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                    skip = 1
+                    break
+                ppos[i] = pos[p,i]
+            if skip == 1: continue
+            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order)
+            # Only look if it's within the mask
+            if mask[mi] == 0: continue
+            total_hits += 1
+            # Compute the bounding box
+            for i in range(3):
+                box_left[i] = (<np.int64_t>((ppos[i] - LE[i])/dds[i])) * dds[i]
+                box_right[i] = box_left[i] + dds[i]
+            sub_mi = bounded_morton(ppos[0], ppos[1], ppos[2], box_left, box_right, order)
+            self.bitmasks[mi][file_id].set(sub_mi)
+        return total_hits
+
+    def check(self):
+        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it1
+        cdef map[np.int32_t, ewah_bool_array].iterator it2
+        cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p1
+        cdef pair[np.int32_t, ewah_bool_array] p2
+        cdef ewah_bool_array arr, arr_any, arr_two, arr_swap
+        cdef int nm = 0, nc = 0
+        it1 = self.bitmasks.begin()
+        while it1 != self.bitmasks.end():
+            p1 = dereference(it1)
+            it2 = p1.second.begin()
+            arr_any.reset()
+            arr_two.reset()
+            while it2 != p1.second.end():
+                arr = dereference(it2).second
+                arr_any.logicaland(arr, arr_two)
+                arr_any.logicalor(arr, arr_swap)
+                arr_any = arr_swap
+                preincrement(it2)
+            preincrement(it1)
+            nm += arr_any.numberOfOnes()
+            nc += arr_two.numberOfOnes()
+        print "Total of %s / %s collisions" % (nc, nm)
 
     def finalize(self):
         self.index_octree = ParticleOctreeContainer([1,1,1],

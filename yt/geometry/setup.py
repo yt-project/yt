@@ -39,6 +39,7 @@ def configuration(parent_package='',top_path=None):
                 ["yt/geometry/particle_oct_container.pyx"],
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
+                language="c++",
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/geometry_utils.pxd",
                          "yt/geometry/oct_container.pxd",
