@@ -15,6 +15,21 @@ cimport numpy as np
 cimport cython
 from fp_utils cimport iclip
 
+def add_points_to_greyscale_image(
+        np.ndarray[np.float64_t, ndim=2] buffer,
+        np.ndarray[np.float64_t, ndim=1] px,
+        np.ndarray[np.float64_t, ndim=1] py,
+        np.ndarray[np.float64_t, ndim=1] pv):
+    cdef int i, j, k, pi
+    cdef int np = px.shape[0]
+    cdef int xs = buffer.shape[0]
+    cdef int ys = buffer.shape[1]
+    for pi in range(np):
+        j = <int> (xs * px[pi])
+        i = <int> (ys * py[pi])
+        buffer[i, j] += pv[pi]
+    return
+
 def add_points_to_image(
         np.ndarray[np.uint8_t, ndim=3] buffer,
         np.ndarray[np.float64_t, ndim=1] px,
@@ -30,13 +45,9 @@ def add_points_to_image(
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
         for k in range(3):
-            buffer[i, j, k] = 0
+            buffer[i, j, k] = v
+        buffer[i, j, 3] = 255
     return
-    #for i in range(xs):
-    #    for j in range(ys):
-    #        for k in range(3):
-    #            v = buffer[i, j, k]
-    #            buffer[i, j, k] = iclip(v, 0, 255)
 
 def add_rgba_points_to_image(
         np.ndarray[np.float64_t, ndim=3] buffer,

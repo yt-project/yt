@@ -233,7 +233,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ds.domain_left_edge = ds.arr(mi, 'code_length')
         ds.domain_right_edge = ds.arr(ma, 'code_length')
         ds.domain_width = DW = ds.domain_right_edge - ds.domain_left_edge
-        ds.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+        ds.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                  DW.units.dimensions)
 
     def _initialize_index(self, data_file, regions):

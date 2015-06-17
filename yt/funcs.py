@@ -566,7 +566,7 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
-    class MyURLopener(urllib.FancyURLopener):
+    class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
               (url, errcode, errmsg))
@@ -606,12 +606,12 @@ def get_yt_supp():
             print("Okay, I understand.  You can check it out yourself.")
             print("This command will do it:")
             print()
-            print("$ hg clone http://hg.yt-project.org/yt-supplemental/ ", end=' ')
+            print("$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=' ')
             print("%s" % (supp_path))
             print()
             sys.exit(1)
         rv = commands.clone(uu,
-                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)

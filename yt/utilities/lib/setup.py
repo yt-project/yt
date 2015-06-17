@@ -100,8 +100,11 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/misc_utilities.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("pixelization_routines", 
-                ["yt/utilities/lib/pixelization_routines.pyx"],
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+                ["yt/utilities/lib/pixelization_routines.pyx",
+                 "yt/utilities/lib/pixelization_constants.c"],
+               include_dirs=["yt/utilities/lib/"],
+                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
+                                  "yt/utilities/lib/pixelization_constants.h"])
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
