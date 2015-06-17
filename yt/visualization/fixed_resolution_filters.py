@@ -82,10 +82,12 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
 
     """
-    This filter add white noise to
+    This filter adds white noise with the amplitude "bg_lvl" to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.
+    If "bg_lvl" is not present, 10th percentile of the FRB's value is
+    used instead.
     """
-    _filter_name = 'whit_noise'
+    _filter_name = 'white_noise'
 
     def __init__(self, bg_lvl=None):
         self.bg_lvl = bg_lvl
