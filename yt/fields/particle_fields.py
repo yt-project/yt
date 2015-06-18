@@ -61,6 +61,10 @@ sph_whitelist_fields = (
     'Mg_fraction',
     'Si_fraction',
     'Fe_fraction',
+    'C_density',
+    'O_density',
+    'Si_density',
+    'Fe_density'
 )
 
 

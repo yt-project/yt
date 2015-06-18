@@ -1821,7 +1821,7 @@ class ScaleCallback(PlotCallback):
             'color': 'w'
         }
 
-        inset_box_args = {
+        def_inset_box_args = {
             'facecolor': 'black',
             'linewidth': 3,
             'edgecolor': 'white',

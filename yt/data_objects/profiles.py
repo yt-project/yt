@@ -937,6 +937,9 @@ class ProfileND(ParallelAnalysisInterface):
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
 
+    def keys(self):
+        return self.field_data.keys()
+
     def __iter__(self):
         return sorted(self.items())
 
