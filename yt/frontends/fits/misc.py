@@ -18,7 +18,7 @@ from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from yt.units.yt_array import YTQuantity, YTArray
-from yt.utilities.fits_image import FITSImageBuffer
+from yt.utilities.fits_image import FITSImageData
 
 import os
 
@@ -127,7 +127,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     w = subcube.wcs.copy()
     w.wcs.crpix[-1] = 0.5
     w.wcs.crval[-1] = -0.5*width
-    fid = FITSImageBuffer(slab_data, wcs=w)
+    fid = FITSImageData(slab_data, wcs=w)
     for hdu in fid:
         hdu.header.pop("RESTFREQ", None)
         hdu.header.pop("RESTFRQ", None)
