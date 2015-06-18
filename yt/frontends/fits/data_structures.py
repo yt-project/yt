@@ -165,7 +165,7 @@ class FITSHierarchy(GridIndex):
                     units = self._determine_image_units(hdu.header, known_units)
                     try:
                         # Grab field name from btype
-                        fname = hdu.header["btype"].lower()
+                        fname = hdu.header["btype"]
                     except KeyError:
                         # Try to guess the name from the units
                         fname = self._guess_name_from_units(units)
@@ -205,18 +205,6 @@ class FITSHierarchy(GridIndex):
                                   "the same dimensions as the primary and will not be " +
                                   "available as a field.")
 
-        # For line fields, we still read the primary field. Not sure how to extend this
-        # For now, we pick off the first field from the field list.
-        line_db = self.dataset.line_database
-        primary_fname = self.field_list[0][1]
-        for k, v in iteritems(line_db):
-            mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
-            self.field_list.append((self.dataset_type, k))
-            self._ext_map[k] = self._ext_map[primary_fname]
-            self._axis_map[k] = self._axis_map[primary_fname]
-            self._file_map[k] = self._file_map[primary_fname]
-            self.dataset.field_units[k] = self.dataset.field_units[primary_fname]
-
     def _count_grids(self):
         self.num_grids = self.ds.parameters["nprocs"]
 
@@ -242,19 +230,11 @@ class FITSHierarchy(GridIndex):
                 bbox = np.array([[le,re] for le, re in zip(ds.domain_left_edge,
                                                            ds.domain_right_edge)])
                 dims = np.array(ds.domain_dimensions)
-                # If we are creating a dataset of lines, only decompose along the position axes
-                if len(ds.line_database) > 0:
-                    dims[ds.spec_axis] = 1
                 psize = get_psize(dims, self.num_grids)
                 gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
                 self.grid_left_edge = self.ds.arr(gle, "code_length")
                 self.grid_right_edge = self.ds.arr(gre, "code_length")
                 self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
-                # If we are creating a dataset of lines, only decompose along the position axes
-                if len(ds.line_database) > 0:
-                    self.grid_left_edge[:,ds.spec_axis] = ds.domain_left_edge[ds.spec_axis]
-                    self.grid_right_edge[:,ds.spec_axis] = ds.domain_right_edge[ds.spec_axis]
-                    self.grid_dimensions[:,ds.spec_axis] = ds.domain_dimensions[ds.spec_axis]
         else:
             self.grid_left_edge[0,:] = ds.domain_left_edge
             self.grid_right_edge[0,:] = ds.domain_right_edge
@@ -322,8 +302,6 @@ class FITSDataset(Dataset):
                  nan_mask=None,
                  spectral_factor=1.0,
                  z_axis_decomp=False,
-                 line_database=None,
-                 line_width=None,
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None):
@@ -335,19 +313,6 @@ class FITSDataset(Dataset):
 
         self.z_axis_decomp = z_axis_decomp
         self.spectral_factor = spectral_factor
-
-        if line_width is not None:
-            self.line_width = YTQuantity(line_width[0], line_width[1])
-            self.line_units = line_width[1]
-            mylog.info("For line folding, spectral_factor = 1.0")
-            self.spectral_factor = 1.0
-        else:
-            self.line_width = None
-
-        self.line_database = {}
-        if line_database is not None:
-            for k in line_database:
-                self.line_database[k] = YTQuantity(line_database[k], self.line_units)
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
@@ -361,13 +326,13 @@ class FITSDataset(Dataset):
             self.nan_mask = {"all":nan_mask}
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
-        if isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU):
-            self._handle = FITSFileHandler(self.filenames[0])
-            fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
+        self._handle = FITSFileHandler(self.filenames[0])
+        if (isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU) or
+            isinstance(self.filenames[0], _astropy.pyfits.HDUList)):
+            fn = "InMemoryFITSFile_%s" % uuid.uuid4().hex
         else:
-            self._handle = FITSFileHandler(self.filenames[0])
             fn = self.filenames[0]
-        self._handle._fits_files = [self._handle]
+        self._handle._fits_files.append(self._handle)
         if self.num_files > 1:
             for fits_file in auxiliary_files:
                 if isinstance(fits_file, _astropy.pyfits.hdu.image._ImageBaseHDU):
@@ -540,19 +505,13 @@ class FITSDataset(Dataset):
 
         # If nprocs is None, do some automatic decomposition of the domain
         if self.specified_parameters["nprocs"] is None:
-            if len(self.line_database) > 0:
-                dims = 2
-            else:
-                dims = self.dimensionality
             if self.z_axis_decomp:
                 nprocs = np.around(self.domain_dimensions[2]/8).astype("int")
             else:
-                nprocs = np.around(np.prod(self.domain_dimensions)/32**dims).astype("int")
+                nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype("int")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         else:
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]
-
-        self.reversed = False
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.spec_cube = False
@@ -618,41 +577,23 @@ class FITSDataset(Dataset):
             self._z0 = self.wcs.wcs.crval[self.spec_axis]
             self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
 
-            if self.line_width is not None:
-                if self._dz < 0.0:
-                    self.reversed = True
-                    le = self.dims[self.spec_axis]+0.5
-                else:
-                    le = 0.5
-                self.line_width = self.line_width.in_units(self.spec_unit)
-                self.freq_begin = (le-self._p0)*self._dz + self._z0
-                # We now reset these so that they are consistent
-                # with the new setup
-                self._dz = np.abs(self._dz)
-                self._p0 = 0.0
-                self._z0 = 0.0
-                nz = np.rint(self.line_width.value/self._dz).astype("int")
-                self.line_width = self._dz*nz
-                self.domain_left_edge[self.spec_axis] = -0.5*float(nz)
-                self.domain_right_edge[self.spec_axis] = 0.5*float(nz)
-                self.domain_dimensions[self.spec_axis] = nz
-            else:
-                if self.spectral_factor == "auto":
-                    self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
-                                                                             self.lat_axis]]))
-                    self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-                    mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
-                Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
-                self.domain_right_edge[self.spec_axis] = self.domain_left_edge[self.spec_axis] + \
-                                                        self.spectral_factor*Dz
-                self._dz /= self.spectral_factor
-                self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
+            if self.spectral_factor == "auto":
+                self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
+                                                                         self.lat_axis]]))
+                self.spectral_factor /= self.domain_dimensions[self.spec_axis]
+                mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+            Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
+            self.domain_right_edge[self.spec_axis] = self.domain_left_edge[self.spec_axis] + \
+                                                     self.spectral_factor*Dz
+            self._dz /= self.spectral_factor
+            self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
+            
         else:
 
             self.wcs_2d = self.wcs
             self.spec_axis = 2
             self.spec_name = "z"
-            self.spec_unit = "code length"
+            self.spec_unit = "code_length"
 
     def spec2pixel(self, spec_value):
         sv = self.arr(spec_value).in_units(self.spec_unit)

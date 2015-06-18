@@ -13,8 +13,7 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, \
-    create_sky_wcs
+from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
@@ -172,7 +171,7 @@ class PPVCube(object):
         _vlos = create_vlos(normal, self.no_shifting)
         self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
-        _intensity = self.create_intensity()
+        _intensity = self._create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
         if method == "integrate" and weight_field is None:
@@ -313,8 +312,8 @@ class PPVCube(object):
 
     def _create_intensity(self):
         def _intensity(field, data):
-            v = self.current_v-data["v_los"].v
-            T = data["temperature"].v
+            v = self.current_v-data["v_los"].in_cgs().v
+            T = (data["temperature"]).in_cgs().v
             w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
                                          self.particle_mass, v.flatten(), T.flatten())
             w[np.isnan(w)] = 0.0

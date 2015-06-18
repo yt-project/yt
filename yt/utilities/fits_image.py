@@ -25,7 +25,12 @@ import re
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
 
-class FITSImageData(object):
+if isinstance(pyfits, NotAModule):
+    HDUList = object
+else:
+    HDUList = pyfits.HDUList
+
+class FITSImageData(HDUList):
 
     def __init__(self, data, fields=None, units=None, width=None, wcs=None):
         r""" Initialize a FITSImageData object.
@@ -79,17 +84,17 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
-        if units is None: 
+        if units is None:
             units = "cm"
-        if width is None: 
+        if width is None:
             width = 1.0
 
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
 
-        self.hdulist = pyfits.HDUList()
+        super(FITSImageData, self).__init__()
 
-        if isinstance(fields, string_types): 
+        if isinstance(fields, string_types):
             fields = [fields]
 
         if hasattr(data, 'keys'):
@@ -105,7 +110,12 @@ class FITSImageData(object):
                 fn = fields[0]
             img_data = {fn: data}
 
-        self.fields = fields
+        self.fields = []
+        for fd in fields:
+            if isinstance(fd, tuple):
+                self.fields.append(fd[1])
+            else:
+                self.fields.append(fd)
 
         first = True
         self.field_units = {}
@@ -125,13 +135,13 @@ class FITSImageData(object):
                 hdu.header["btype"] = key
                 if hasattr(img_data[key], "units"):
                     hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
-                self.hdulist.append(hdu)
+                self.append(hdu)
 
-        self.shape = self.hdulist[0].shape
+        self.shape = self[0].shape
         self.dimensionality = len(self.shape)
 
         if wcs is None:
-            w = pywcs.WCS(header=self.hdulist[0].header, naxis=self.dimensionality)
+            w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
             if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
@@ -153,7 +163,7 @@ class FITSImageData(object):
                 if isinstance(width[0], YTQuantity):
                     cdelt = [wh.in_units(units).v/n for wh, n in zip(width, self.shape)]
                 else:
-                    cdelt = [wh/n for wh, n in zip(width, self.shape)]
+                    cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
                 center = [0.0]*self.dimensionality
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
@@ -171,7 +181,7 @@ class FITSImageData(object):
         """
         self.wcs = wcs
         h = self.wcs.to_header()
-        for img in self.hdulist:
+        for img in self:
             for k, v in h.items():
                 img.header[k] = v
 
@@ -182,22 +192,21 @@ class FITSImageData(object):
         headers will be updated.
         """
         if field == "all":
-            for img in self.hdulist:
+            for img in self:
                 img.header[key] = value
         else:
             if field not in self.keys():
                 raise KeyError("%s not an image!" % field)
             idx = self.fields.index(field)
-            self.hdulist[idx].header[key] = value
+            self[idx].header[key] = value
+
+    def update_all_headers(self, key, value):
+        mylog.warning("update_all_headers is deprecated. "+
+                      "Use update_header('all', key, value) instead.")
+        self.update_header("all", key, value)
 
     def keys(self):
         return self.fields
-
-    def __getitem__(self, field):
-        if field not in self.keys():
-            raise KeyError("%s not an image!" % field)
-        idx = self.fields.index(field)
-        return YTArray(self.hdulist[idx].data, self.field_units[field])
 
     def has_key(self, key):
         return key in self.fields
@@ -207,20 +216,6 @@ class FITSImageData(object):
 
     def items(self):
         return [(k, self[k]) for k in self.fields]
-
-    def get_header(self, field):
-        """
-        Get the FITS header for a specific field.
-
-        Parameters
-        ----------
-        field : string
-            The field for which to get the corresponding header. 
-        """
-        if field not in self.keys():
-            raise KeyError("%s not an image!" % field)
-        idx = self.fields.index(field)
-        return self.hdulist[idx].header
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
@@ -241,18 +236,12 @@ class FITSImageData(object):
         method of `astropy.io.fits.HDUList`.
         """
         if fields is None:
-            hdus = self.hdulist
+            hdus = pyfits.HDUList(self)
         else:
             hdus = pyfits.HDUList()
             for field in fields:
-                hdus.append(self.hdulist[field])
+                hdus.append(self[field])
         hdus.writeto(fileobj, clobber=clobber, **kwargs)
-
-    def info(self):
-        """
-        Display information about the underlying FITS file. 
-        """
-        self.hdulist.info()
 
     def to_glue(self, label="yt", data_collection=None):
         """
@@ -267,8 +256,8 @@ class FITSImageData(object):
 
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for k,v in self.items():
-            image.add_component(v.v, k)
+        for k,f in self.items():
+            image.add_component(f.data, k)
         if data_collection is None:
             dc = DataCollection([image])
             app = GlueApplication(dc)
@@ -283,7 +272,14 @@ class FITSImageData(object):
         `aplpy.FITSFigure` constructor.
         """
         import aplpy
-        return aplpy.FITSFigure(self.hdulist, **kwargs)
+        return aplpy.FITSFigure(self, **kwargs)
+
+    def get_data(self, field):
+        """
+        Return the data array of the image corresponding to *field*
+        with units attached.
+        """
+        return YTArray(self[field].data, self.field_units[field])
 
     def set_unit(self, field, units):
         """
@@ -291,10 +287,10 @@ class FITSImageData(object):
         """
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
-        new_data = self[field].in_units(units)
         idx = self.fields.index(field)
-        self.hdulist[idx].data = new_data.v
-        self.hdulist[idx].header["bunit"] = units
+        new_data = YTArray(self[idx].data, self.field_units[field]).in_units(units)
+        self[idx].data = new_data.v
+        self[idx].header["bunit"] = units
         self.field_units[field] = units
 
     def pop(self, key):
@@ -305,9 +301,9 @@ class FITSImageData(object):
         """
         if key not in self.keys():
             raise KeyError("%s not an image!" % key)
-        data = self[key]
         idx = self.fields.index(key)
-        self.hdulist.pop(idx)
+        im = super(FITSImageData, self).pop(idx)
+        data = YTArray(im.data, self.field_units[key])
         self.field_units.pop(key)
         self.fields.remove(key)
         return FITSImageData(data, fields=key, wcs=self.wcs)
@@ -348,15 +344,15 @@ class FITSImageData(object):
             assert_same_wcs(w, image.wcs)
             if img_shape != image.shape:
                 raise RuntimeError("Images do not have the same shape!")
-            for k,v in image.items():
-                data[k] = v
+            for key in image.keys():
+                data[key] = image.get_data(key)
         return cls(data, wcs=w)
 
     def create_sky_wcs(self, sky_center, sky_scale,
-                       ctype=["RA---TAN","DEC--TAN"], 
+                       ctype=["RA---TAN","DEC--TAN"],
                        crota=None, cd=None, pc=None):
         """
-        Takes a Cartesian WCS and converts it to one in a 
+        Takes a Cartesian WCS and converts it to one in a
         celestial coordinate system.
 
         Parameters
@@ -410,6 +406,9 @@ class FITSImageData(object):
             new_wcs.wcs.cd = pc
         self.set_wcs(new_wcs)
 
+class FITSImageBuffer(FITSImageData):
+    pass
+
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
         mylog.info("Changing FITS file unit to kpc.")
@@ -430,7 +429,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
     if image_res is None:
-        ddims = ds.domain_dimensions*2**ds.index.max_level
+        ddims = ds.domain_dimensions*ds.refine_by**ds.index.max_level
         if iterable(axis):
             nx = ddims.max()
             ny = ddims.max()
@@ -610,7 +609,7 @@ class FITSProjection(FITSImageData):
         Specify the resolution of the resulting image. If not provided, it will be
         determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, 
+    def __init__(self, ds, axis, fields, center="c", width=None,
                  weight_field=None, image_res=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
@@ -668,7 +667,7 @@ class FITSOffAxisSlice(FITSImageData):
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
     """
-    def __init__(self, ds, normal, fields, center='c', width=None, image_res=512, 
+    def __init__(self, ds, normal, fields, center='c', width=None, image_res=512,
                  north_vector=None):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
@@ -750,8 +749,8 @@ class FITSOffAxisProjection(FITSImageData):
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     """
-    def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'), 
-                 weight_field=None, image_res=512, depth_res=256, 
+    def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
+                 weight_field=None, image_res=512, depth_res=256,
                  north_vector=None, depth=(1.0,"unitary"), no_ghost=False, method='integrate'):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
@@ -762,8 +761,8 @@ class FITSOffAxisProjection(FITSImageData):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1], depth_res)
         for field in fields:
-            buf[field] = off_axis_projection(ds, center, normal, wd, res, field, 
-                                             no_ghost=no_ghost, north_vector=north_vector, 
+            buf[field] = off_axis_projection(ds, center, normal, wd, res, field,
+                                             no_ghost=no_ghost, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0, 1)
         center = ds.arr([0.0] * 2, 'code_length')
         w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
