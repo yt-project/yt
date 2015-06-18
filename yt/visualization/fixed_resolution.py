@@ -327,11 +327,11 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'.
         """
 
-        from yt.utilities.fits_image import FITSImageBuffer
+        from yt.utilities.fits_image import FITSImageData
 
         if fields is None: fields = list(self.data.keys())
 
-        fib = FITSImageBuffer(self, fields=fields, units=units)
+        fib = FITSImageData(self, fields=fields, units=units)
         if other_keys is not None:
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
@@ -470,7 +470,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
+        mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
         dd = self.data_source
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
