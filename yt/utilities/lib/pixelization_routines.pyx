@@ -446,7 +446,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
     cdef np.int64_t pstart[3], pend[3]
     cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3] # dds->[dx, dy, dz]
-    cdef np.float64_t **vertices 
+    cdef np.float64_t **vertices
     cdef int nvertices = conn.shape[1] # get the number of vertices
     cdef int nf
 
@@ -461,7 +461,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
     for i in range(nvertices):
         vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
-    
+
     for i in range(3):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -491,6 +491,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         use = 1
 
         for i in range(3):
+
             # Check whether the element is within the pixel bounding box, i.e.
             # within the dimensions of the image
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:

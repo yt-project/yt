@@ -198,6 +198,28 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
+def fake_random_mesh_ds(nelems, nvertices, ndimensions=3, nslices=2):
+    from yt.frontends.stream.api import load_unstructured_mesh
+    # Create Fake Particle Data
+    data = []
+    data_keys = [('gas', 'diffused'),
+                 ('gas', 'convected'),
+                 ('gas', 'conv_indicator'),
+                 ('gas', 'conv_marker')]
+
+    for _ in range(nslices):
+        fake_data = {}
+        for key in data_keys:
+            fake_data[key] = np.random.random_sample((nelems, nvertices))
+        data.append(fake_data)
+
+    coordinates = np.random.random_sample((nelems, ndimensions))
+
+    connectivity = np.random.random_integers(nelems, size=(nelems, nvertices))
+
+    ds = load_unstructured_mesh(data, connectivity, coordinates)
+    return ds
+
 _geom_transforms = {
     # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
     'cartesian'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
