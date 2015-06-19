@@ -136,6 +136,11 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
                           finfo.units, registry=self.ds.unit_registry)
+            elif "FourMetalFractions" in (item, item[1]):
+                self[item] = \
+                  YTArray(np.ones((self.NumberOfParticles, 4)),
+                          finfo.units, registry=self.ds.unit_registry)
+
             else:
                 # Not a vector
                 self[item] = \

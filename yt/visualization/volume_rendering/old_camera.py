@@ -2278,7 +2278,6 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
-                return tr
             return temp_weightfield
         ds.field_info.add_field(weightfield,
             function=_make_wf(field, weight))
