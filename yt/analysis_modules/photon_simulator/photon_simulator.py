@@ -282,13 +282,20 @@ class PhotonList(object):
             D_A = parse_value(dist, "Mpc")
             redshift = 0.0
 
-        if center == "center" or center == "c":
+        if center in ("center", "c"):
             parameters["center"] = ds.domain_center
-        elif center == "max" or center == "m":
+        elif center in ("max", "m"):
             parameters["center"] = ds.find_max("density")[-1]
         elif iterable(center):
             if isinstance(center, YTArray):
                 parameters["center"] = center.in_units("code_length")
+            elif isinstance(center, tuple):
+                if center[0] == "min":
+                    parameters["center"] = ds.find_min(center[1])[-1]
+                elif center[0] == "max":
+                    parameters["center"] = ds.find_max(center[1])[-1]
+                else:
+                    raise RuntimeError
             else:
                 parameters["center"] = ds.arr(center, "code_length")
         elif center is None:

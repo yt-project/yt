@@ -175,14 +175,14 @@ usage, you might set this parameter lower.
 The ``method`` keyword argument is also optional, and determines how the individual
 photon energies are generated from the spectrum. It may be set to one of two values:
 
-* ``method=1``: Construct the cumulative distribution function of the spectrum and invert
+* ``method="invert_cdf"``: Construct the cumulative distribution function of the spectrum and invert
   it, using uniformly drawn random numbers to determine the photon energies (fast, but relies
   on construction of the CDF and interpolation between the points, so for some spectra it
   may not be accurate enough). 
-* ``method=2``: Generate the photon energies from the spectrum using an acceptance-rejection
+* ``method="accept_reject"``: Generate the photon energies from the spectrum using an acceptance-rejection
   technique (accurate, but likely to be slow). 
 
-``method=1`` (the default) should be sufficient for most cases. 
+``method="invert_cdf"`` (the default) should be sufficient for most cases. 
 
 Next, we need to specify "fiducial" values for the telescope collecting
 area, exposure time, and cosmological redshift. Remember, the initial
@@ -221,6 +221,8 @@ values:
   length units. 
 * ``"center"`` or ``"c"`` corresponds to the domain center. 
 * ``"max"`` or ``"m"`` corresponds to the location of the maximum gas density. 
+* A two-element tuple specifying the max or min of a specific field, e.g.,
+  ``("min","gravitational_potential")``, ``("max","dark_matter_density")``
 
 If ``center`` is not specified, ``from_scratch`` will attempt to use the 
 ``"center"`` field parameter of the ``data_source``. 

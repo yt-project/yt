@@ -67,14 +67,14 @@ class ThermalPhotonModel(PhotonModel):
     photons_per_chunk : integer
         The maximum number of photons that are allocated per chunk. Increase or decrease
         as needed.
-    method : integer, optional
+    method : string, optional
         The method used to generate the photon energies from the spectrum:
-        1: Invert the cumulative distribution function of the spectrum.
-        2: Acceptance-rejection method using the spectrum. 
-        Method 1 should be sufficient for most cases. 
+        "invert_cdf": Invert the cumulative distribution function of the spectrum.
+        "accept_reject": Acceptance-rejection method using the spectrum. 
+        The first method should be sufficient for most cases. 
     """
     def __init__(self, spectral_model, X_H=0.75, Zmet=0.3, 
-                 photons_per_chunk=10000000, method=1):
+                 photons_per_chunk=10000000, method="invert_cdf"):
         self.X_H = X_H
         self.Zmet = Zmet
         self.spectral_model = spectral_model
@@ -189,7 +189,7 @@ class ThermalPhotonModel(PhotonModel):
                                        "exceeds photons_per_chunk (%d)! " % self.photons_per_chunk +
                                        "Increase photons_per_chunk!")
 
-                if self.method == 1:
+                if self.method == "invert_cdf":
                     cumspec_c = np.cumsum(cspec.d)
                     cumspec_m = np.cumsum(mspec.d)
                     cumspec_c = np.insert(cumspec_c, 0, 0.0)
@@ -197,20 +197,20 @@ class ThermalPhotonModel(PhotonModel):
 
                 ei = start_e
                 for cn, Z in zip(number_of_photons[ibegin:iend], metalZ[ibegin:iend]):
-                    if cn > 0:
-                        if self.method == 1:
-                            cumspec = cumspec_c + Z*cumspec_m
-                            cumspec /= cumspec[-1]
-                            randvec = np.random.uniform(size=cn)
-                            randvec.sort()
-                            cell_e = np.interp(randvec, cumspec, ebins)
-                        elif self.method == 2:
-                            tot_spec = cspec.d+Z*mspec.d
-                            tot_spec /= tot_spec.sum()
-                            eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
-                            cell_e = emid[eidxs]
-                        energies[ei:ei+cn] = cell_e
-                        cell_counter += 1
+                    if cn == 0: continue
+                    if self.method == "invert_cdf":
+                        cumspec = cumspec_c + Z*cumspec_m
+                        cumspec /= cumspec[-1]
+                        randvec = np.random.uniform(size=cn)
+                        randvec.sort()
+                        cell_e = np.interp(randvec, cumspec, ebins)
+                    elif self.method == "accept_reject":
+                        tot_spec = cspec.d+Z*mspec.d
+                        tot_spec /= tot_spec.sum()
+                        eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
+                        cell_e = emid[eidxs]
+                    energies[ei:ei+cn] = cell_e
+                    cell_counter += 1
                     pbar.update(cell_counter)
                     ei += cn
 
