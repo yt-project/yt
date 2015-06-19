@@ -56,7 +56,7 @@ class XSpecThermalModel(SpectralModel):
         The number of channels in the spectral model.
     settings : dictionary, optional
         A dictionary of key, value pairs (must both be strings)
-        that can be used to set various 
+        that can be used to set various options in XSPEC.
 
     Examples
     --------
@@ -66,6 +66,7 @@ class XSpecThermalModel(SpectralModel):
                  thermal_broad=False, settings=None):
         self.model_name = model_name
         self.thermal_broad = thermal_broad
+        if settings is None: settings = {}
         self.settings = settings
         super(XSpecThermalModel, self).__init__(emin, emax, nchan)
 
@@ -87,9 +88,8 @@ class XSpecThermalModel(SpectralModel):
         self.thermal_comp.Redshift = zobs
         if self.thermal_broad:
             xspec.Xset.addModelString("APECTHERMAL","yes")
-        if self.settings is not None:
-            for k,v in self.settings.items():
-                xspec.Xset.addModelString(k,v)
+        for k,v in self.settings.items():
+            xspec.Xset.addModelString(k,v)
 
     def get_spectrum(self, kT):
         """
@@ -124,6 +124,9 @@ class XSpecAbsorbModel(SpectralModel):
         The maximum energy for the spectral model.
     nchan : integer, optional
         The number of channels in the spectral model.
+    settings : dictionary, optional
+        A dictionary of key, value pairs (must both be strings)
+        that can be used to set various options in XSPEC.
 
     Examples
     --------
@@ -133,6 +136,7 @@ class XSpecAbsorbModel(SpectralModel):
                  nchan=100000, settings=None):
         self.model_name = model_name
         self.nH = nH
+        if settings is None: settings = {}
         self.settings = settings
         super(XSpecAbsorbModel, self).__init__(emin, emax, nchan)
 
@@ -147,9 +151,8 @@ class XSpecAbsorbModel(SpectralModel):
         self.model = xspec.Model(self.model_name+"*powerlaw")
         self.model.powerlaw.norm = self.nchan/(self.emax.value-self.emin.value)
         self.model.powerlaw.PhoIndex = 0.0
-        if self.settings is not None:
-            for k,v in self.settings.items():
-                xspec.Xset.addModelString(k,v)
+        for k,v in self.settings.items():
+            xspec.Xset.addModelString(k,v)
 
     def get_spectrum(self):
         """
