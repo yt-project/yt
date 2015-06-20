@@ -24,27 +24,25 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
            Dataset
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
+from yt.extern.six import PY3
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from sys import version
 
 def chk23(strin):
-    if version < '3':
+    if PY3:
         return strin
     else:
         return strin.encode('utf-8')
 
 def str23(strin):
-    if version < '3':
+    if PY3:
         return strin
     else:
         if isinstance(strin, list):
@@ -152,7 +150,7 @@ class AthenaHierarchy(GridIndex):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
-        if version < '3':
+        if PY3:
             self._fhandle = file(self.index_filename,'rb')
         else:
             self._fhandle = open(self.index_filename,'rb')

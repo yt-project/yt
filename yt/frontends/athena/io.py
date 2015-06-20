@@ -111,7 +111,6 @@ class IOHandlerAthena(BaseIOHandler):
         return rv
 
 def get_read_table_offset(f):
-    from sys import version
     line = f.readline()
     while True:
         splitup = line.strip().split()
