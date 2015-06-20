@@ -104,7 +104,8 @@ Athena Data
 -----------
 
 Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+ZuHone. Both uniform grid and SMR datasets are supported. yt also 
+recognizes Fargo3D data written to VTK files as Athena data. 
 
 Loading Athena datasets is slightly different depending on whether
 your dataset came from a serial or a parallel run. If the data came
