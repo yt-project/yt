@@ -143,7 +143,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         rv = {self.axis_id['r']: ('theta', 'z'),
               self.axis_id['z']: ('x', 'y'),
               self.axis_id['theta']: ('r', 'z')}
-        for i in rv.keys():
+        for i in list(rv.keys()):
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].upper()] = rv[i]
         self._image_axis_name = rv

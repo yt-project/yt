@@ -470,13 +470,13 @@ class AthenaDataset(Dataset):
                                   "and will be removed in a future release. Use units_override instead.")
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
+        self.geometry = geometry
         Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
-        self.geometry = geometry
         # Unfortunately we now have to mandate that the index gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
