@@ -452,8 +452,7 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1,
-                 geometry="cartesian"):
+                 units_override=None, nprocs=1):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
         if parameters is None:
@@ -470,7 +469,6 @@ class AthenaDataset(Dataset):
                                   "and will be removed in a future release. Use units_override instead.")
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
-        self.geometry = geometry
         Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
         if storage_filename is None:
@@ -584,7 +582,8 @@ class AthenaDataset(Dataset):
         if "gamma" in self.specified_parameters:
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
-            self.parameters["Gamma"] = 5./3. 
+            self.parameters["Gamma"] = 5./3.
+        self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
 
     @classmethod
