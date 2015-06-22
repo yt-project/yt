@@ -76,8 +76,8 @@ def test_d9p():
         .in_units('Msun'), ANATotDMMass
     yield assert_almost_equal, ad[('stars','particle_mass')].sum()\
         .in_units('Msun'), ANATotStarMass
-    yield assert_almost_equal, ad[('art','Density')].sum()\
-        .in_units('Msun/Mpc**3') * Volume, ANATotGasMass
+    yield assert_almost_equal, ad[('gas','cell_mass')].sum()\
+        .in_units('Msun'), ANATotGasMass
 
 
 
