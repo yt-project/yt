@@ -67,7 +67,7 @@ def test_d9p():
     yield assert_almost_equal, Volume, ANAVolume
 
     ANANCells = 4087490
-    yield assert_equal, ds.ncell, ANANCells
+    yield assert_equal, len(ad[('index','cell_volume')]), ANANCells
 
     ANATotDMMass = yt.units.yt_array.YTQuantity(1.01191786811e+14,'Msun')
     ANATotStarMass = yt.units.yt_array.YTQuantity(1.776251e+6,'Msun')
