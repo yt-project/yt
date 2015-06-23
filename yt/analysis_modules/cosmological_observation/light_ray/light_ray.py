@@ -177,6 +177,7 @@ class LightRay(CosmologySplice):
                                            redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
+                                      left_edge=None, right_edge=None,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -236,21 +237,28 @@ class LightRay(CosmologySplice):
                         (box_fraction_used +
                          self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
                     # Random start point
-                    self.light_ray_solution[q]['start'] = np.random.random(3)
-                    theta = np.pi * np.random.random()
-                    phi = 2 * np.pi * np.random.random()
-                    box_fraction_used = 0.0
+                    if left_edge is not None and right_edge is not None:
+                        self.light_ray_solution[q]['start'], \
+                          self.light_ray_solution[q]['end'] = \
+                          non_periodic_ray(left_edge, right_edge,
+                            self.light_ray_solution[q]['traversal_box_fraction'])
+                    else:
+                        self.light_ray_solution[q]['start'] = np.random.random(3)
+                        theta = np.pi * np.random.random()
+                        phi = 2 * np.pi * np.random.random()
+                        box_fraction_used = 0.0
                 else:
                     # Use end point of previous segment and same theta and phi.
                     self.light_ray_solution[q]['start'] = \
                       self.light_ray_solution[q-1]['end'][:]
 
-                self.light_ray_solution[q]['end'] = \
-                  self.light_ray_solution[q]['start'] + \
-                    self.light_ray_solution[q]['traversal_box_fraction'] * \
-                    np.array([np.cos(phi) * np.sin(theta),
-                              np.sin(phi) * np.sin(theta),
-                              np.cos(theta)])
+                if "end" not in self.light_ray_solution[q]:
+                    self.light_ray_solution[q]['end'] = \
+                      self.light_ray_solution[q]['start'] + \
+                        self.light_ray_solution[q]['traversal_box_fraction'] * \
+                        np.array([np.cos(phi) * np.sin(theta),
+                                  np.sin(phi) * np.sin(theta),
+                                  np.cos(theta)])
                 box_fraction_used += \
                   self.light_ray_solution[q]['traversal_box_fraction']
 
@@ -262,6 +270,7 @@ class LightRay(CosmologySplice):
                             'near_redshift':self.near_redshift})
 
     def make_light_ray(self, seed=None,
+                       left_edge=None, right_edge=None, 
                        start_position=None, end_position=None,
                        trajectory=None,
                        fields=None, setup_function=None,
@@ -382,6 +391,7 @@ class LightRay(CosmologySplice):
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
+                                           left_edge=left_edge, right_edge=right_edge,
                                            start_position=start_position,
                                            end_position=end_position,
                                            trajectory=trajectory,
@@ -745,3 +755,22 @@ def periodic_ray(start, end, left=None, right=None):
         t += dt
 
     return segments
+
+def non_periodic_ray(left_edge, right_edge, ray_length, max_iter=500):
+    i = 0
+    while True:
+        start = np.random.random(3) * \
+          (right_edge - left_edge) + left_edge
+        theta = np.pi * np.random.random()
+        phi = 2 * np.pi * np.random.random()
+        end = start + ray_length * \
+          np.array([np.cos(phi) * np.sin(theta),
+                    np.sin(phi) * np.sin(theta),
+                    np.cos(theta)])
+        i += 1
+        if (end >= left_edge).all() and (end <= right_edge).all():
+            #mylog.info("Found ray after %d attempts." % i)
+            return start, end
+        if i > max_iter:
+            mylog.info("Exceed iteration limit.")
+            return None, None
