@@ -274,8 +274,8 @@ class AbsorptionSpectrum(object):
                                                     'b_thermal': thermal_b[lixel],
                                                     'redshift': field_data['redshift'][lixel],
                                                     'v_pec': peculiar_velocity})
-                    pbar.update(i)
-                pbar.finish()
+                pbar.update(i)
+            pbar.finish()
 
             del column_density, delta_lambda, thermal_b, \
                 center_bins, width_ratio, left_index, right_index
