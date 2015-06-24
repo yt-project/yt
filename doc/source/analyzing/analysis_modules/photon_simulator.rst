@@ -155,7 +155,7 @@ photons. For thermal spectra, we have a special ``PhotonModel`` called
 
     thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3,
                                        photons_per_chunk=100000000,
-                                       method=1)
+                                       method="invert_cdf")
 
 Where we pass in the ``SpectralModel``, and can optionally set values for
 the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
