@@ -43,9 +43,12 @@ cdef class ElementSampler:
 
 cdef class P1Sampler2D(ElementSampler):
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def map_real_to_unit(self, 
-                         np.ndarray physical_coord, 
-                         np.ndarray vertices):
+                         np.ndarray[np.float64_t, ndim=1] physical_coord, 
+                         np.ndarray[np.float64_t, ndim=2] vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -69,6 +72,9 @@ cdef class P1Sampler2D(ElementSampler):
     
         return np.array([u, v])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def sample_at_unit_point(self,
                              np.ndarray coord, 
                              np.ndarray vals):
@@ -77,47 +83,45 @@ cdef class P1Sampler2D(ElementSampler):
 
 cdef class P1Sampler3D(ElementSampler):
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def map_real_to_unit(self, 
-                         np.ndarray physical_coord, 
-                         np.ndarray vertices):
+                         np.ndarray[np.float64_t, ndim=1] physical_coord, 
+                         np.ndarray[np.float64_t, ndim=2] vertices):
     
-        x = physical_coord[0]
-        y = physical_coord[1]
-        z = physical_coord[2]
+        b = np.array([physical_coord[0],
+                      physical_coord[1], 
+                      physical_coord[2], 
+                      1.0], dtype=np.float64)
 
-        x1 = vertices[0, 0]
-        y1 = vertices[0, 1]
-        z1 = vertices[0, 2]
+        A = np.empty((4, 4), dtype=np.float64)
+        cdef int i, j
+        for i in range(3):
+            for j in range(4):
+                A[i][j] = vertices[j][i]
+        for j in range(4):
+            A[3][j] = 1.0
 
-        x2 = vertices[1, 0]
-        y2 = vertices[1, 1]
-        z2 = vertices[1, 2]
-    
-        x3 = vertices[2, 0]
-        y3 = vertices[2, 1]
-        z3 = vertices[2, 2]
-    
-        x4 = vertices[3, 0]
-        y4 = vertices[3, 1]
-        z4 = vertices[3, 2]
-    
-        b = np.array([x, y, z, 1])
-        A = np.array([[x1, x2, x3, x4],
-                      [y1, y2, y3, y4],
-                      [z1, z2, z3, z4],
-                      [1,  1,  1,  1] ])
-    
         c = np.linalg.solve(A, b)
     
         return c
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def sample_at_unit_point(self,
-                             np.ndarray coord, 
-                             np.ndarray vals):
-        return vals[0]*coord[0] + vals[1]*coord[1] + \
-               vals[2]*coord[2] + vals[3]*coord[3]
+                             np.ndarray[np.float64_t, ndim=1] coord, 
+                             np.ndarray[np.float64_t, ndim=1] vals):
+        cdef np.float64_t value = 0.0
+        cdef np.int64_t i
+        for i in range(4):
+            value += vals[i]*coord[i]
+        return value
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef np.ndarray[np.float64_t, ndim=1] Q1Function2D(np.ndarray[np.float64_t, ndim=1] x,
                                                    np.ndarray[np.float64_t, ndim=2] v,
                                                    np.ndarray[np.float64_t, ndim=1] phys_x):
@@ -131,7 +135,9 @@ cdef np.ndarray[np.float64_t, ndim=1] Q1Function2D(np.ndarray[np.float64_t, ndim
          v[3][1]*(1+x[0])*(1+x[1]) - 4.0*phys_x[1]
     return np.array([f1, f2])
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef np.ndarray[np.float64_t, ndim=2] Q1Jacobian2D(np.ndarray[np.float64_t, ndim=1] x,
                                                    np.ndarray[np.float64_t, ndim=2] v,
                                                    np.ndarray[np.float64_t, ndim=1] phys_x):
@@ -156,52 +162,63 @@ cdef np.ndarray[np.float64_t, ndim=2] Q1Jacobian2D(np.ndarray[np.float64_t, ndim
 
 cdef class Q1Sampler2D(ElementSampler):
 
-    def map_real_to_unit(self, np.ndarray physical_coord, np.ndarray vertices):
+    def map_real_to_unit(self, np.ndarray[np.float64_t, ndim=1] physical_coord, 
+                         np.ndarray[np.float64_t, ndim=2] vertices):
     
         # initial guess for the Newton solve
-        x0 = np.array([0.0, 0.0])
+        x0 = np.array([0.0, 0.0], dtype=np.float64)
         x = fsolve(Q1Function2D, x0, args=(vertices, physical_coord),
                    fprime=Q1Jacobian2D)
         return x
 
-    def sample_at_unit_point(self, np.ndarray coord, np.ndarray vals):
-        x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
-            vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
-            vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
-            vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
+    def sample_at_unit_point(self, np.ndarray[np.float64_t, ndim=1] coord, 
+                             np.ndarray[np.float64_t, ndim=1] vals):
+        cdef np.float64_t x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
+                              vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
+                              vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
+                              vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
         return 0.25*x
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline np.ndarray[np.float64_t, ndim=1] Q1Function3D(np.ndarray[np.float64_t, ndim=1] x,
+                                                          np.ndarray[np.float64_t, ndim=2] v,
+                                                          np.ndarray[np.float64_t, ndim=1] phys_x):
+    cdef np.float64_t f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+                           v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+                           v[2][0]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+                           v[3][0]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+                           v[4][0]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+                           v[5][0]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+                           v[6][0]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+                           v[7][0]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[0]
+    cdef np.float64_t f1 = v[0][1]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+                           v[1][1]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+                           v[2][1]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+                           v[3][1]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+                           v[4][1]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+                           v[5][1]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+                           v[6][1]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+                           v[7][1]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[1]
+    cdef np.float64_t f2 = v[0][2]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+                           v[1][2]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+                           v[2][2]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+                           v[3][2]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+                           v[4][2]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+                           v[5][2]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+                           v[6][2]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+                           v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
 
-cdef np.ndarray[np.float64_t, ndim=1] Q1Function3D(np.ndarray[np.float64_t, ndim=1] x,
-                                                   np.ndarray[np.float64_t, ndim=2] v,
-                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
-    f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-         v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-         v[2][0]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-         v[3][0]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-         v[4][0]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-         v[5][0]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-         v[6][0]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-         v[7][0]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[0]
-    f1 = v[0][1]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-         v[1][1]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-         v[2][1]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-         v[3][1]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-         v[4][1]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-         v[5][1]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-         v[6][1]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-         v[7][1]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[1]
-    f2 = v[0][2]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-         v[1][2]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-         v[2][2]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-         v[3][2]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-         v[4][2]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-         v[5][2]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-         v[6][2]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-         v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
-    return np.array([f0, f1, f2])
+    A = np.empty(3, dtype=np.float64)
+    A[0] = f0
+    A[1] = f1
+    A[2] = f2
+    return A
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef np.ndarray[np.float64_t, ndim=1] Q1Jacobian3D(np.ndarray[np.float64_t, ndim=1] x,
                                                    np.ndarray[np.float64_t, ndim=2] v,
                                                    np.ndarray[np.float64_t, ndim=1] phys_x):
