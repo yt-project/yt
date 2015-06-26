@@ -1,7 +1,7 @@
 """
 This file contains coordinate mappings between physical coordinates and those
-defined on unit elements, for doing intracell interpolation on finite element
-data.
+defined on unit elements, as well as doing the corresponding intracell 
+interpolation on finite element data.
 
 
 """
@@ -23,8 +23,10 @@ DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
 
 
-class P1Mapping2D:
-    def map_real_to_unit(self, physical_coord, vertices):
+class P1Sampler2D:
+
+    @staticmethod
+    def map_real_to_unit(physical_coord, vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -48,9 +50,20 @@ class P1Mapping2D:
     
         return np.array([u, v])
 
+    @staticmethod
+    def sample_at_unit_point(coord, vals):
+        return vals[0]*(1 - coord[0] - coord[1]) + \
+            vals[1]*coord[0] + vals[2]*coord[1]
 
-class P1Mapping3D:
-    def map_real_to_unit(self, physical_coord, vertices):
+    @classmethod
+    def sample_at_real_point(cls, coord, vertices, vals):
+        mapped_coord = cls.map_real_to_unit(coord, vertices)
+        return cls.sample_at_unit_point(coord, vals)
+
+class P1Sampler3D:
+
+    @staticmethod
+    def map_real_to_unit(physical_coord, vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -82,8 +95,19 @@ class P1Mapping3D:
     
         return c
 
+    @staticmethod
+    def sample_at_unit_point(coord, vals):
+        return vals[0]*coord[0] + vals[1]*coord[1] + \
+            vals[2]*coord[2] + vals[3]*coord[3]
 
-class Q1Mapping2D:
+    @classmethod
+    def sample_at_real_point(cls, coord, vertices, vals):
+        mapped_coord = cls.map_real_to_unit(coord, vertices)
+        return cls.sample_at_unit_point(coord, vals)
+
+
+class Q1Sampler2D:
+
     def map_real_to_unit(self, physical_coord, vertices):
     
         # initial guess for the Newton solve
@@ -91,6 +115,7 @@ class Q1Mapping2D:
         x = fsolve(self._f, x0, args=(vertices, physical_coord), fprime=self._J)
         return x
 
+    @staticmethod
     def _f(x, v, phys_x):
         f1 = v[0][0]*(1-x[0])*(1-x[1]) + \
              v[1][0]*(1+x[0])*(1-x[1]) + \
@@ -102,6 +127,7 @@ class Q1Mapping2D:
              v[3][1]*(1+x[0])*(1+x[1]) - 4.0*phys_x[1]
         return np.array([f1, f2])
 
+    @staticmethod
     def _J(x, v, phys_x):
         f11 = -(1-x[1])*v[0][0] + \
                (1-x[1])*v[1][0] - \
@@ -122,15 +148,15 @@ class Q1Mapping2D:
         return np.array([[f11, f12], [f21, f22]])
 
 
-class Q1Mapping3D:
+class Q1Sampler3D:
 
     def map_real_to_unit(self, physical_coord, vertices):
     
-        # initial guess for the Newton solve
-        x0 = np.array([0.0, 0.0])
+        x0 = np.array([0.0, 0.0, 0.0])  # initial guess
         x = fsolve(self._f, x0, args=(vertices, physical_coord), fprime=self._J)
         return x
 
+    @staticmethod
     def _f(x, v, phys_x):
         f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
              v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
@@ -158,6 +184,7 @@ class Q1Mapping3D:
              v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
         return np.array([f0, f1, f2])
 
+    @staticmethod
     def _J(x, v, phys_x):
     
         f00 = -(1-x[1])*(1-x[2])*v[0][0] + (1-x[1])*(1-x[2])*v[1][0] - \
