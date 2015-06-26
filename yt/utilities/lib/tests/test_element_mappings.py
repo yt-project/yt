@@ -27,8 +27,10 @@ def test_P1Sampler2D():
         physical_x = vertices[i]
         sampler = P1Sampler2D()
         x = sampler.map_real_to_unit(physical_x, vertices)
-        val = P1Sampler2D.sample_at_unit_point(x, field_values)
-        assert_almost_equal(field_values[i], val)
+        val1 = sampler.sample_at_unit_point(x, field_values)
+        assert_almost_equal(field_values[i], val1)
+        val2 = sampler.sample_at_real_point(physical_x, vertices, field_values)
+        assert_almost_equal(val1, val2)
 
 
 def test_P1Sampler3D():
@@ -47,7 +49,7 @@ def test_P1Sampler3D():
         physical_x = vertices[i]
         sampler = P1Sampler3D()
         x = sampler.map_real_to_unit(physical_x, vertices)
-        val1 = P1Sampler3D.sample_at_unit_point(x, field_values)
+        val1 = sampler.sample_at_unit_point(x, field_values)
         assert_almost_equal(field_values[i], val1)
         val2 = sampler.sample_at_real_point(physical_x, vertices, field_values)
         assert_almost_equal(val1, val2)
@@ -69,8 +71,10 @@ def test_Q1Sampler2D():
         physical_x = vertices[i]
         sampler = Q1Sampler2D()
         x = sampler.map_real_to_unit(physical_x, vertices)
-        val = Q1Sampler2D.sample_at_unit_point(x, field_values)
-        assert_almost_equal(field_values[i], val)
+        val1 = sampler.sample_at_unit_point(x, field_values)
+        assert_almost_equal(field_values[i], val1)
+        val2 = sampler.sample_at_real_point(physical_x, vertices, field_values)
+        assert_almost_equal(val1, val2)
 
 
 def test_Q1Sampler3D():
@@ -94,5 +98,7 @@ def test_Q1Sampler3D():
         physical_x = vertices[i]
         sampler = Q1Sampler3D()
         x = sampler.map_real_to_unit(physical_x, vertices)
-        val = Q1Sampler3D.sample_at_unit_point(x, field_values)
-        assert_almost_equal(field_values[i], val)
+        val1 = sampler.sample_at_unit_point(x, field_values)
+        assert_almost_equal(field_values[i], val1)
+        val2 = sampler.sample_at_real_point(physical_x, vertices, field_values)
+        assert_almost_equal(val1, val2)
