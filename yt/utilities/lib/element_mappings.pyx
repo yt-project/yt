@@ -23,10 +23,26 @@ DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
 
 
-class P1Sampler2D:
+class Sampler:
+
+    @classmethod
+    def map_real_to_unit(cls, physical_coord, vertices):
+        raise NotImplementedError
 
     @staticmethod
-    def map_real_to_unit(physical_coord, vertices):
+    def sample_at_unit_point(coord, vals):
+        raise NotImplementedError
+
+    @classmethod
+    def sample_at_real_point(cls, coord, vertices, vals):
+        mapped_coord = cls.map_real_to_unit(coord, vertices)
+        return cls.sample_at_unit_point(coord, vals)
+    
+
+class P1Sampler2D(Sampler):
+
+    @classmethod
+    def map_real_to_unit(cls, physical_coord, vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -55,15 +71,10 @@ class P1Sampler2D:
         return vals[0]*(1 - coord[0] - coord[1]) + \
             vals[1]*coord[0] + vals[2]*coord[1]
 
-    @classmethod
-    def sample_at_real_point(cls, coord, vertices, vals):
-        mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(coord, vals)
-
 class P1Sampler3D:
 
-    @staticmethod
-    def map_real_to_unit(physical_coord, vertices):
+    @classmethod
+    def map_real_to_unit(cls, physical_coord, vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -100,19 +111,15 @@ class P1Sampler3D:
         return vals[0]*coord[0] + vals[1]*coord[1] + \
             vals[2]*coord[2] + vals[3]*coord[3]
 
-    @classmethod
-    def sample_at_real_point(cls, coord, vertices, vals):
-        mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(coord, vals)
-
 
 class Q1Sampler2D:
 
-    def map_real_to_unit(self, physical_coord, vertices):
+    @classmethod
+    def map_real_to_unit(cls, physical_coord, vertices):
     
         # initial guess for the Newton solve
         x0 = np.array([0.0, 0.0])
-        x = fsolve(self._f, x0, args=(vertices, physical_coord), fprime=self._J)
+        x = fsolve(cls._f, x0, args=(vertices, physical_coord), fprime=cls._J)
         return x
 
     @staticmethod
@@ -155,17 +162,14 @@ class Q1Sampler2D:
             vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
         return 0.25*x
 
-    @classmethod
-    def sample_at_real_point(cls, coord, vertices, vals):
-        mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(coord, vals)
 
 class Q1Sampler3D:
 
-    def map_real_to_unit(self, physical_coord, vertices):
+    @classmethod
+    def map_real_to_unit(cls, physical_coord, vertices):
     
         x0 = np.array([0.0, 0.0, 0.0])  # initial guess
-        x = fsolve(self._f, x0, args=(vertices, physical_coord), fprime=self._J)
+        x = fsolve(cls._f, x0, args=(vertices, physical_coord), fprime=cls._J)
         return x
 
     @staticmethod
@@ -252,8 +256,3 @@ class Q1Sampler3D:
             vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
             vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
         return 0.125*x
-
-    @classmethod
-    def sample_at_real_point(cls, coord, vertices, vals):
-        mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(coord, vals)
