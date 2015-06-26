@@ -147,6 +147,18 @@ class Q1Sampler2D:
                (1+x[0])*v[3][1]
         return np.array([[f11, f12], [f21, f22]])
 
+    @staticmethod
+    def sample_at_unit_point(coord, vals):
+        x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
+            vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
+            vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
+            vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
+        return 0.25*x
+
+    @classmethod
+    def sample_at_real_point(cls, coord, vertices, vals):
+        mapped_coord = cls.map_real_to_unit(coord, vertices)
+        return cls.sample_at_unit_point(coord, vals)
 
 class Q1Sampler3D:
 
@@ -228,3 +240,20 @@ class Q1Sampler3D:
                (1-x[0])*(1+x[1])*v[6][2] + (1+x[0])*(1+x[1])*v[7][2]
 
         return np.array([[f00, f01, f02], [f10, f11, f12], [f20, f21, f22]])
+
+    @staticmethod
+    def sample_at_unit_point(coord, vals):
+        x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+            vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+            vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+            vals[3]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+            vals[4]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+            vals[5]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+            vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
+            vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
+        return 0.125*x
+
+    @classmethod
+    def sample_at_real_point(cls, coord, vertices, vals):
+        mapped_coord = cls.map_real_to_unit(coord, vertices)
+        return cls.sample_at_unit_point(coord, vals)
