@@ -23,7 +23,7 @@ DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
 
 
-class Sampler:
+class ElementSampler:
 
     @classmethod
     def map_real_to_unit(cls, physical_coord, vertices):
@@ -36,10 +36,10 @@ class Sampler:
     @classmethod
     def sample_at_real_point(cls, coord, vertices, vals):
         mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(coord, vals)
+        return cls.sample_at_unit_point(mapped_coord, vals)
     
 
-class P1Sampler2D(Sampler):
+class P1Sampler2D(ElementSampler):
 
     @classmethod
     def map_real_to_unit(cls, physical_coord, vertices):
@@ -71,7 +71,7 @@ class P1Sampler2D(Sampler):
         return vals[0]*(1 - coord[0] - coord[1]) + \
             vals[1]*coord[0] + vals[2]*coord[1]
 
-class P1Sampler3D:
+class P1Sampler3D(ElementSampler):
 
     @classmethod
     def map_real_to_unit(cls, physical_coord, vertices):
@@ -112,7 +112,7 @@ class P1Sampler3D:
             vals[2]*coord[2] + vals[3]*coord[3]
 
 
-class Q1Sampler2D:
+class Q1Sampler2D(ElementSampler):
 
     @classmethod
     def map_real_to_unit(cls, physical_coord, vertices):
@@ -163,7 +163,7 @@ class Q1Sampler2D:
         return 0.25*x
 
 
-class Q1Sampler3D:
+class Q1Sampler3D(ElementSampler):
 
     @classmethod
     def map_real_to_unit(cls, physical_coord, vertices):
