@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.testing import *
+from yt.testing import assert_almost_equal
 from yt.utilities.lib.element_mappings import \
     P1Sampler2D, \
     P1Sampler3D, \
@@ -15,21 +15,12 @@ def setup():
 def test_P1Sampler2D():
     NV = 3
     NDIM = 2
-    vertices = np.empty((NV, NDIM))
 
-    vertices[0, 0] = 0.1
-    vertices[0, 1] = 0.2
+    vertices = np.array([[0.1,  0.2],
+                         [0.6,  0.3],
+                         [0.2,  0.7]])
 
-    vertices[1, 0] = 0.6
-    vertices[1, 1] = 0.3
-
-    vertices[2, 0] = 0.2
-    vertices[2, 1] = 0.7
-
-    field_values = np.empty(NV)
-    field_values[0] = 1.0
-    field_values[1] = 2.0
-    field_values[2] = 3.0
+    field_values = np.array([1.0, 2.0, 3.0])
 
     physical_x = np.empty(NDIM)
     for i in range(NV):
@@ -43,29 +34,13 @@ def test_P1Sampler2D():
 def test_P1Sampler3D():
     NV = 4
     NDIM = 3
-    vertices = np.empty((NV, NDIM))
 
-    vertices[0, 0] = 0.1
-    vertices[0, 1] = 0.1
-    vertices[0, 2] = 0.1
+    vertices = np.array([[0.1,  0.1,  0.1],
+                         [0.6,  0.3,  0.2],
+                         [0.2,  0.7,  0.2],
+                         [0.4,  0.4,  0.7]])
 
-    vertices[1, 0] = 0.6
-    vertices[1, 1] = 0.3
-    vertices[1, 2] = 0.2
-
-    vertices[2, 0] = 0.2
-    vertices[2, 1] = 0.7
-    vertices[2, 2] = 0.2
-
-    vertices[3, 0] = 0.4
-    vertices[3, 1] = 0.4
-    vertices[3, 2] = 0.7
-
-    field_values = np.empty(NV)
-    field_values[0] = 1.0
-    field_values[1] = 2.0
-    field_values[2] = 3.0
-    field_values[3] = 4.0
+    field_values = np.array([1.0, 2.0, 3.0, 4.0])
 
     physical_x = np.empty(NDIM)
     for i in range(NV):
@@ -79,25 +54,13 @@ def test_P1Sampler3D():
 def test_Q1Sampler2D():
     NV = 4
     NDIM = 2
-    vertices = np.empty((NV, NDIM))
 
-    vertices[0, 0] = 0.1
-    vertices[0, 1] = 0.2
+    vertices = np.array([[0.1,  0.2],
+                         [0.6,  0.3],
+                         [0.2,  0.7],
+                         [0.7,  0.9]])
 
-    vertices[1, 0] = 0.6
-    vertices[1, 1] = 0.3
-
-    vertices[2, 0] = 0.2
-    vertices[2, 1] = 0.7
-
-    vertices[3, 0] = 0.7
-    vertices[3, 1] = 0.9
-
-    field_values = np.empty(NV)
-    field_values[0] = 1.0
-    field_values[1] = 2.0
-    field_values[2] = 3.0
-    field_values[3] = 4.0
+    field_values = np.array([1.0, 2.0, 3.0, 4.0])
 
     physical_x = np.empty(NDIM)
     for i in range(NV):
@@ -116,10 +79,10 @@ def test_Q1Sampler3D():
                          [1.8658198,  1.00973171, 1.4375],
                          [1.97881594, 1.07088163, 1.4375],
                          [2.12808879, 0.73057381, 1.4375],
-                         [2.00657905, 0.6888599,  1.2],
-                         [1.8658198,  1.00973171, 1.2],
-                         [1.97881594, 1.07088163, 1.2],
-                         [2.12808879, 0.73057381, 1.2]])
+                         [2.00657905, 0.6888599,  1.2   ],
+                         [1.8658198,  1.00973171, 1.2   ],
+                         [1.97881594, 1.07088163, 1.2   ],
+                         [2.12808879, 0.73057381, 1.2   ]])
 
     field_values = np.array([0.4526278, 0.45262656, 0.45262657, 0.4526278,
                              0.54464296, 0.54464149, 0.5446415, 0.54464296])
