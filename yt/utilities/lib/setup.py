@@ -159,7 +159,8 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("write_array",
                          ["yt/utilities/lib/write_array.pyx"])
     config.add_extension("element_mappings",
-                         ["yt/utilities/lib/element_mappings.pyx"])
+                         ["yt/utilities/lib/element_mappings.pyx"],
+                         libraries=["m"])
     config.add_extension("ragged_arrays",
                          ["yt/utilities/lib/ragged_arrays.pyx"])
     config.add_extension("amr_kdtools", 

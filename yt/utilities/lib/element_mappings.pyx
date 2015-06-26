@@ -14,35 +14,38 @@ interpolation on finite element data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+cimport numpy as np
+from numpy cimport ndarray
+cimport cython
 import numpy as np
 from scipy.optimize import fsolve
-cimport numpy as np
-cimport cython
-
-DTYPE = np.float64
-ctypedef np.float64_t DTYPE_t
 
 
-class ElementSampler:
+cdef class ElementSampler:
 
-    @classmethod
-    def map_real_to_unit(cls, physical_coord, vertices):
+    def map_real_to_unit(self,
+                         np.ndarray physical_coord, 
+                         np.ndarray vertices):
         raise NotImplementedError
 
-    @staticmethod
-    def sample_at_unit_point(coord, vals):
+    def sample_at_unit_point(self,
+                             np.ndarray coord, 
+                             np.ndarray vals):
         raise NotImplementedError
 
-    @classmethod
-    def sample_at_real_point(cls, coord, vertices, vals):
-        mapped_coord = cls.map_real_to_unit(coord, vertices)
-        return cls.sample_at_unit_point(mapped_coord, vals)
+    def sample_at_real_point(self,
+                             np.ndarray coord, 
+                             np.ndarray vertices, 
+                             np.ndarray vals):
+        mapped_coord = self.map_real_to_unit(coord, vertices)
+        return self.sample_at_unit_point(mapped_coord, vals)
     
 
-class P1Sampler2D(ElementSampler):
+cdef class P1Sampler2D(ElementSampler):
 
-    @classmethod
-    def map_real_to_unit(cls, physical_coord, vertices):
+    def map_real_to_unit(self, 
+                         np.ndarray physical_coord, 
+                         np.ndarray vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -66,15 +69,17 @@ class P1Sampler2D(ElementSampler):
     
         return np.array([u, v])
 
-    @staticmethod
-    def sample_at_unit_point(coord, vals):
+    def sample_at_unit_point(self,
+                             np.ndarray coord, 
+                             np.ndarray vals):
         return vals[0]*(1 - coord[0] - coord[1]) + \
             vals[1]*coord[0] + vals[2]*coord[1]
 
-class P1Sampler3D(ElementSampler):
+cdef class P1Sampler3D(ElementSampler):
 
-    @classmethod
-    def map_real_to_unit(cls, physical_coord, vertices):
+    def map_real_to_unit(self, 
+                         np.ndarray physical_coord, 
+                         np.ndarray vertices):
     
         x = physical_coord[0]
         y = physical_coord[1]
@@ -106,56 +111,60 @@ class P1Sampler3D(ElementSampler):
     
         return c
 
-    @staticmethod
-    def sample_at_unit_point(coord, vals):
+    def sample_at_unit_point(self,
+                             np.ndarray coord, 
+                             np.ndarray vals):
         return vals[0]*coord[0] + vals[1]*coord[1] + \
-            vals[2]*coord[2] + vals[3]*coord[3]
+               vals[2]*coord[2] + vals[3]*coord[3]
 
 
-class Q1Sampler2D(ElementSampler):
+cdef np.ndarray[np.float64_t, ndim=1] Q1Function2D(np.ndarray[np.float64_t, ndim=1] x,
+                                                   np.ndarray[np.float64_t, ndim=2] v,
+                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
+    f1 = v[0][0]*(1-x[0])*(1-x[1]) + \
+         v[1][0]*(1+x[0])*(1-x[1]) + \
+         v[2][0]*(1-x[0])*(1+x[1]) + \
+         v[3][0]*(1+x[0])*(1+x[1]) - 4.0*phys_x[0]
+    f2 = v[0][1]*(1-x[0])*(1-x[1]) + \
+         v[1][1]*(1+x[0])*(1-x[1]) + \
+         v[2][1]*(1-x[0])*(1+x[1]) + \
+         v[3][1]*(1+x[0])*(1+x[1]) - 4.0*phys_x[1]
+    return np.array([f1, f2])
 
-    @classmethod
-    def map_real_to_unit(cls, physical_coord, vertices):
+
+cdef np.ndarray[np.float64_t, ndim=2] Q1Jacobian2D(np.ndarray[np.float64_t, ndim=1] x,
+                                                   np.ndarray[np.float64_t, ndim=2] v,
+                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
+    f11 = -(1-x[1])*v[0][0] + \
+          (1-x[1])*v[1][0] - \
+          (1+x[1])*v[2][0] + \
+          (1+x[1])*v[3][0]
+    f12 = -(1-x[0])*v[0][0] - \
+          (1+x[0])*v[1][0] + \
+          (1-x[0])*v[2][0] + \
+          (1+x[0])*v[3][0]
+    f21 = -(1-x[1])*v[0][1] + \
+          (1-x[1])*v[1][1] - \
+          (1+x[1])*v[2][1] + \
+          (1+x[1])*v[3][1]
+    f22 = -(1-x[0])*v[0][1] - \
+          (1+x[0])*v[1][1] + \
+          (1-x[0])*v[2][1] + \
+          (1+x[0])*v[3][1]
+    return np.array([[f11, f12], [f21, f22]])
+
+
+cdef class Q1Sampler2D(ElementSampler):
+
+    def map_real_to_unit(self, np.ndarray physical_coord, np.ndarray vertices):
     
         # initial guess for the Newton solve
         x0 = np.array([0.0, 0.0])
-        x = fsolve(cls._f, x0, args=(vertices, physical_coord), fprime=cls._J)
+        x = fsolve(Q1Function2D, x0, args=(vertices, physical_coord),
+                   fprime=Q1Jacobian2D)
         return x
 
-    @staticmethod
-    def _f(x, v, phys_x):
-        f1 = v[0][0]*(1-x[0])*(1-x[1]) + \
-             v[1][0]*(1+x[0])*(1-x[1]) + \
-             v[2][0]*(1-x[0])*(1+x[1]) + \
-             v[3][0]*(1+x[0])*(1+x[1]) - 4.0*phys_x[0]
-        f2 = v[0][1]*(1-x[0])*(1-x[1]) + \
-             v[1][1]*(1+x[0])*(1-x[1]) + \
-             v[2][1]*(1-x[0])*(1+x[1]) + \
-             v[3][1]*(1+x[0])*(1+x[1]) - 4.0*phys_x[1]
-        return np.array([f1, f2])
-
-    @staticmethod
-    def _J(x, v, phys_x):
-        f11 = -(1-x[1])*v[0][0] + \
-               (1-x[1])*v[1][0] - \
-               (1+x[1])*v[2][0] + \
-               (1+x[1])*v[3][0]
-        f12 = -(1-x[0])*v[0][0] - \
-               (1+x[0])*v[1][0] + \
-               (1-x[0])*v[2][0] + \
-               (1+x[0])*v[3][0]
-        f21 = -(1-x[1])*v[0][1] + \
-               (1-x[1])*v[1][1] - \
-               (1+x[1])*v[2][1] + \
-               (1+x[1])*v[3][1]
-        f22 = -(1-x[0])*v[0][1] - \
-               (1+x[0])*v[1][1] + \
-               (1-x[0])*v[2][1] + \
-               (1+x[0])*v[3][1]
-        return np.array([[f11, f12], [f21, f22]])
-
-    @staticmethod
-    def sample_at_unit_point(coord, vals):
+    def sample_at_unit_point(self, np.ndarray coord, np.ndarray vals):
         x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
             vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
             vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
@@ -163,90 +172,90 @@ class Q1Sampler2D(ElementSampler):
         return 0.25*x
 
 
-class Q1Sampler3D(ElementSampler):
+cdef np.ndarray[np.float64_t, ndim=1] Q1Function3D(np.ndarray[np.float64_t, ndim=1] x,
+                                                   np.ndarray[np.float64_t, ndim=2] v,
+                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
+    f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+         v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+         v[2][0]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+         v[3][0]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+         v[4][0]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+         v[5][0]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+         v[6][0]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+         v[7][0]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[0]
+    f1 = v[0][1]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+         v[1][1]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+         v[2][1]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+         v[3][1]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+         v[4][1]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+         v[5][1]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+         v[6][1]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+         v[7][1]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[1]
+    f2 = v[0][2]*(1-x[0])*(1-x[1])*(1-x[2]) + \
+         v[1][2]*(1+x[0])*(1-x[1])*(1-x[2]) + \
+         v[2][2]*(1-x[0])*(1+x[1])*(1-x[2]) + \
+         v[3][2]*(1+x[0])*(1+x[1])*(1-x[2]) + \
+         v[4][2]*(1-x[0])*(1-x[1])*(1+x[2]) + \
+         v[5][2]*(1+x[0])*(1-x[1])*(1+x[2]) + \
+         v[6][2]*(1-x[0])*(1+x[1])*(1+x[2]) + \
+         v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
+    return np.array([f0, f1, f2])
 
-    @classmethod
-    def map_real_to_unit(cls, physical_coord, vertices):
+
+cdef np.ndarray[np.float64_t, ndim=1] Q1Jacobian3D(np.ndarray[np.float64_t, ndim=1] x,
+                                                   np.ndarray[np.float64_t, ndim=2] v,
+                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
+    f00 = -(1-x[1])*(1-x[2])*v[0][0] + (1-x[1])*(1-x[2])*v[1][0] - \
+          (1+x[1])*(1-x[2])*v[2][0] + (1+x[1])*(1-x[2])*v[3][0] - \
+          (1-x[1])*(1+x[2])*v[4][0] + (1-x[1])*(1+x[2])*v[5][0] - \
+          (1+x[1])*(1+x[2])*v[6][0] + (1+x[1])*(1+x[2])*v[7][0]
+    f01 = -(1-x[0])*(1-x[2])*v[0][0] - (1+x[0])*(1-x[2])*v[1][0] + \
+          (1-x[0])*(1-x[2])*v[2][0] + (1+x[0])*(1-x[2])*v[3][0] - \
+          (1-x[0])*(1+x[2])*v[4][0] - (1+x[0])*(1+x[2])*v[5][0] + \
+          (1-x[0])*(1+x[2])*v[6][0] + (1+x[0])*(1+x[2])*v[7][0]
+    f02 = -(1-x[0])*(1-x[1])*v[0][0] - (1+x[0])*(1-x[1])*v[1][0] - \
+          (1-x[0])*(1+x[1])*v[2][0] - (1+x[0])*(1+x[1])*v[3][0] + \
+          (1-x[0])*(1-x[1])*v[4][0] + (1+x[0])*(1-x[1])*v[5][0] + \
+          (1-x[0])*(1+x[1])*v[6][0] + (1+x[0])*(1+x[1])*v[7][0]
+
+    f10 = -(1-x[1])*(1-x[2])*v[0][1] + (1-x[1])*(1-x[2])*v[1][1] - \
+          (1+x[1])*(1-x[2])*v[2][1] + (1+x[1])*(1-x[2])*v[3][1] - \
+          (1-x[1])*(1+x[2])*v[4][1] + (1-x[1])*(1+x[2])*v[5][1] - \
+          (1+x[1])*(1+x[2])*v[6][1] + (1+x[1])*(1+x[2])*v[7][1]
+    f11 = -(1-x[0])*(1-x[2])*v[0][1] - (1+x[0])*(1-x[2])*v[1][1] + \
+          (1-x[0])*(1-x[2])*v[2][1] + (1+x[0])*(1-x[2])*v[3][1] - \
+          (1-x[0])*(1+x[2])*v[4][1] - (1+x[0])*(1+x[2])*v[5][1] + \
+          (1-x[0])*(1+x[2])*v[6][1] + (1+x[0])*(1+x[2])*v[7][1]
+    f12 = -(1-x[0])*(1-x[1])*v[0][1] - (1+x[0])*(1-x[1])*v[1][1] - \
+          (1-x[0])*(1+x[1])*v[2][1] - (1+x[0])*(1+x[1])*v[3][1] + \
+          (1-x[0])*(1-x[1])*v[4][1] + (1+x[0])*(1-x[1])*v[5][1] + \
+          (1-x[0])*(1+x[1])*v[6][1] + (1+x[0])*(1+x[1])*v[7][1]
     
+    f20 = -(1-x[1])*(1-x[2])*v[0][2] + (1-x[1])*(1-x[2])*v[1][2] - \
+          (1+x[1])*(1-x[2])*v[2][2] + (1+x[1])*(1-x[2])*v[3][2] - \
+          (1-x[1])*(1+x[2])*v[4][2] + (1-x[1])*(1+x[2])*v[5][2] - \
+          (1+x[1])*(1+x[2])*v[6][2] + (1+x[1])*(1+x[2])*v[7][2]
+    f21 = -(1-x[0])*(1-x[2])*v[0][2] - (1+x[0])*(1-x[2])*v[1][2] + \
+          (1-x[0])*(1-x[2])*v[2][2] + (1+x[0])*(1-x[2])*v[3][2] - \
+          (1-x[0])*(1+x[2])*v[4][2] - (1+x[0])*(1+x[2])*v[5][2] + \
+          (1-x[0])*(1+x[2])*v[6][2] + (1+x[0])*(1+x[2])*v[7][2]
+    f22 = -(1-x[0])*(1-x[1])*v[0][2] - (1+x[0])*(1-x[1])*v[1][2] - \
+          (1-x[0])*(1+x[1])*v[2][2] - (1+x[0])*(1+x[1])*v[3][2] + \
+          (1-x[0])*(1-x[1])*v[4][2] + (1+x[0])*(1-x[1])*v[5][2] + \
+          (1-x[0])*(1+x[1])*v[6][2] + (1+x[0])*(1+x[1])*v[7][2]
+
+    return np.array([[f00, f01, f02], [f10, f11, f12], [f20, f21, f22]])
+
+
+cdef class Q1Sampler3D(ElementSampler):
+
+    def map_real_to_unit(self, np.ndarray physical_coord, np.ndarray vertices):
         x0 = np.array([0.0, 0.0, 0.0])  # initial guess
-        x = fsolve(cls._f, x0, args=(vertices, physical_coord), fprime=cls._J)
+        x = fsolve(Q1Function3D, x0, args=(vertices, physical_coord),
+                   fprime=Q1Jacobian3D)
         return x
 
-    @staticmethod
-    def _f(x, v, phys_x):
-        f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-             v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-             v[2][0]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-             v[3][0]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-             v[4][0]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-             v[5][0]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-             v[6][0]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-             v[7][0]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[0]
-        f1 = v[0][1]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-             v[1][1]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-             v[2][1]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-             v[3][1]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-             v[4][1]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-             v[5][1]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-             v[6][1]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-             v[7][1]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[1]
-        f2 = v[0][2]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-             v[1][2]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-             v[2][2]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-             v[3][2]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-             v[4][2]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-             v[5][2]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-             v[6][2]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-             v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
-        return np.array([f0, f1, f2])
-
-    @staticmethod
-    def _J(x, v, phys_x):
-    
-        f00 = -(1-x[1])*(1-x[2])*v[0][0] + (1-x[1])*(1-x[2])*v[1][0] - \
-               (1+x[1])*(1-x[2])*v[2][0] + (1+x[1])*(1-x[2])*v[3][0] - \
-               (1-x[1])*(1+x[2])*v[4][0] + (1-x[1])*(1+x[2])*v[5][0] - \
-               (1+x[1])*(1+x[2])*v[6][0] + (1+x[1])*(1+x[2])*v[7][0]
-        f01 = -(1-x[0])*(1-x[2])*v[0][0] - (1+x[0])*(1-x[2])*v[1][0] + \
-               (1-x[0])*(1-x[2])*v[2][0] + (1+x[0])*(1-x[2])*v[3][0] - \
-               (1-x[0])*(1+x[2])*v[4][0] - (1+x[0])*(1+x[2])*v[5][0] + \
-               (1-x[0])*(1+x[2])*v[6][0] + (1+x[0])*(1+x[2])*v[7][0]
-        f02 = -(1-x[0])*(1-x[1])*v[0][0] - (1+x[0])*(1-x[1])*v[1][0] - \
-               (1-x[0])*(1+x[1])*v[2][0] - (1+x[0])*(1+x[1])*v[3][0] + \
-               (1-x[0])*(1-x[1])*v[4][0] + (1+x[0])*(1-x[1])*v[5][0] + \
-               (1-x[0])*(1+x[1])*v[6][0] + (1+x[0])*(1+x[1])*v[7][0]
-        
-
-        f10 = -(1-x[1])*(1-x[2])*v[0][1] + (1-x[1])*(1-x[2])*v[1][1] - \
-               (1+x[1])*(1-x[2])*v[2][1] + (1+x[1])*(1-x[2])*v[3][1] - \
-               (1-x[1])*(1+x[2])*v[4][1] + (1-x[1])*(1+x[2])*v[5][1] - \
-               (1+x[1])*(1+x[2])*v[6][1] + (1+x[1])*(1+x[2])*v[7][1]
-        f11 = -(1-x[0])*(1-x[2])*v[0][1] - (1+x[0])*(1-x[2])*v[1][1] + \
-               (1-x[0])*(1-x[2])*v[2][1] + (1+x[0])*(1-x[2])*v[3][1] - \
-               (1-x[0])*(1+x[2])*v[4][1] - (1+x[0])*(1+x[2])*v[5][1] + \
-               (1-x[0])*(1+x[2])*v[6][1] + (1+x[0])*(1+x[2])*v[7][1]
-        f12 = -(1-x[0])*(1-x[1])*v[0][1] - (1+x[0])*(1-x[1])*v[1][1] - \
-               (1-x[0])*(1+x[1])*v[2][1] - (1+x[0])*(1+x[1])*v[3][1] + \
-               (1-x[0])*(1-x[1])*v[4][1] + (1+x[0])*(1-x[1])*v[5][1] + \
-               (1-x[0])*(1+x[1])*v[6][1] + (1+x[0])*(1+x[1])*v[7][1]
-        
-        f20 = -(1-x[1])*(1-x[2])*v[0][2] + (1-x[1])*(1-x[2])*v[1][2] - \
-               (1+x[1])*(1-x[2])*v[2][2] + (1+x[1])*(1-x[2])*v[3][2] - \
-               (1-x[1])*(1+x[2])*v[4][2] + (1-x[1])*(1+x[2])*v[5][2] - \
-               (1+x[1])*(1+x[2])*v[6][2] + (1+x[1])*(1+x[2])*v[7][2]
-        f21 = -(1-x[0])*(1-x[2])*v[0][2] - (1+x[0])*(1-x[2])*v[1][2] + \
-               (1-x[0])*(1-x[2])*v[2][2] + (1+x[0])*(1-x[2])*v[3][2] - \
-               (1-x[0])*(1+x[2])*v[4][2] - (1+x[0])*(1+x[2])*v[5][2] + \
-               (1-x[0])*(1+x[2])*v[6][2] + (1+x[0])*(1+x[2])*v[7][2]
-        f22 = -(1-x[0])*(1-x[1])*v[0][2] - (1+x[0])*(1-x[1])*v[1][2] - \
-               (1-x[0])*(1+x[1])*v[2][2] - (1+x[0])*(1+x[1])*v[3][2] + \
-               (1-x[0])*(1-x[1])*v[4][2] + (1+x[0])*(1-x[1])*v[5][2] + \
-               (1-x[0])*(1+x[1])*v[6][2] + (1+x[0])*(1+x[1])*v[7][2]
-
-        return np.array([[f00, f01, f02], [f10, f11, f12], [f20, f21, f22]])
-
-    @staticmethod
-    def sample_at_unit_point(coord, vals):
+    def sample_at_unit_point(self, np.ndarray coord, np.ndarray vals):
         x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
             vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
             vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
