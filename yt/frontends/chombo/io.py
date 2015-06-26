@@ -93,15 +93,11 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._particle_field_index = field_dict
         return self._particle_field_index
 
-    def _read_field_names(self, grid):
-        ncomp = int(self._handle.attrs['num_components'])
-        fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
-
     def _read_data(self, grid, field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
-        shape = grid.ActiveDimensions + 2*self.ghost
+        shape = dims + 2*self.ghost
         boxsize = shape.prod()
 
         if self._offsets is not None:
@@ -112,7 +108,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
         data_no_ghost = data.reshape(shape, order='F')
-        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, grid.ActiveDimensions)]
+        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, dims)]
         ghost_slice = ghost_slice[0:self.dim]
         return data_no_ghost[ghost_slice]
 
