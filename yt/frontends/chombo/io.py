@@ -201,43 +201,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
 
 
-class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "chombo2d_hdf5"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self._handle = ds._handle
-        self.dim = 2
-        self._read_ghost_info()
-
-
-class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "chombo1d_hdf5"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self.dim = 1
-        self._handle = ds._handle
-        self._read_ghost_info()
-
-
-class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "pluto_chombo_native"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self._handle = ds._handle
-
-
 def parse_orion_sinks(fn):
     '''
 
