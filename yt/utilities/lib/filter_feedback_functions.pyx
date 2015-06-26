@@ -37,4 +37,3 @@ cdef void sample_surface(void* userPtr,
 
     cdef double val = get_value_trilinear(userPtr, ray)
     ray.time = val
-

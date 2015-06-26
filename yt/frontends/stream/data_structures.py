@@ -50,7 +50,7 @@ from yt.fields.particle_fields import \
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredIndex
+    UnstructuredIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
@@ -69,8 +69,8 @@ from yt.utilities.definitions import \
 from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
-           SemiStructuredMesh, \
-           UnstructuredMesh
+    SemiStructuredMesh, \
+    UnstructuredMesh
 from yt.extern.six import string_types, iteritems
 from .fields import \
     StreamFieldInfo
@@ -1693,7 +1693,7 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     field_units = {}
     particle_types = {}
     sfh = StreamDictFieldHandler()
-    
+
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates})
     for i, d in enumerate(data):

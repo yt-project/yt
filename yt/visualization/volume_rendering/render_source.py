@@ -270,7 +270,9 @@ class MeshSource(RenderSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.build_data_structures()
+        self.scene = YTEmbreeScene()
+
+        self.build_mesh()
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -280,7 +282,7 @@ class MeshSource(RenderSource):
         if self.mesh is None:
             raise RuntimeError("Mesh not initialized")
 
-    def build_data_structures(self):
+    def build_mesh(self):
 
         field_data = self.data_source[self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
@@ -288,10 +290,8 @@ class MeshSource(RenderSource):
         # convert the indices to zero-based indexing
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
-        self.scene = YTEmbreeScene()
-
-        mylog.debug("Using field %s with sampler_type %s" % (self.field,
-                                                             self.sampler_type))
+        mylog.debug("Using field %s and sampler_type %s" % (self.field,
+                                                            self.sampler_type))
         self.mesh = ElementMesh(self.scene,
                                 vertices,
                                 indices,
