@@ -18,7 +18,7 @@ cimport numpy as np
 from numpy cimport ndarray
 cimport cython
 import numpy as np
-from scipy.optimize import fsolve
+from libc.math cimport abs
 
 
 cdef class ElementSampler:
@@ -122,163 +122,153 @@ cdef class P1Sampler3D(ElementSampler):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[np.float64_t, ndim=1] Q1Function2D(np.ndarray[np.float64_t, ndim=1] x,
-                                                   np.ndarray[np.float64_t, ndim=2] v,
-                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
-    f1 = v[0][0]*(1-x[0])*(1-x[1]) + \
-         v[1][0]*(1+x[0])*(1-x[1]) + \
-         v[2][0]*(1-x[0])*(1+x[1]) + \
-         v[3][0]*(1+x[0])*(1+x[1]) - 4.0*phys_x[0]
-    f2 = v[0][1]*(1-x[0])*(1-x[1]) + \
-         v[1][1]*(1+x[0])*(1-x[1]) + \
-         v[2][1]*(1-x[0])*(1+x[1]) + \
-         v[3][1]*(1+x[0])*(1+x[1]) - 4.0*phys_x[1]
-    return np.array([f1, f2])
+@cython.initializedcheck(False)
+cpdef inline void Q1Function2D(double[:] fx,
+                               double[:] x, 
+                               double[:, :] vertices, 
+                               double[:] phys_x) nogil:
+    
+    cdef int i
+    for i in range(2):
+        fx[i] = vertices[0][i]*(1-x[0])*(1-x[1]) \
+              + vertices[1][i]*(1+x[0])*(1-x[1]) \
+              + vertices[2][i]*(1-x[0])*(1+x[1]) \
+              + vertices[3][i]*(1+x[0])*(1+x[1]) - 4.0*phys_x[i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[np.float64_t, ndim=2] Q1Jacobian2D(np.ndarray[np.float64_t, ndim=1] x,
-                                                   np.ndarray[np.float64_t, ndim=2] v,
-                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
-    f11 = -(1-x[1])*v[0][0] + \
-          (1-x[1])*v[1][0] - \
-          (1+x[1])*v[2][0] + \
-          (1+x[1])*v[3][0]
-    f12 = -(1-x[0])*v[0][0] - \
-          (1+x[0])*v[1][0] + \
-          (1-x[0])*v[2][0] + \
-          (1+x[0])*v[3][0]
-    f21 = -(1-x[1])*v[0][1] + \
-          (1-x[1])*v[1][1] - \
-          (1+x[1])*v[2][1] + \
-          (1+x[1])*v[3][1]
-    f22 = -(1-x[0])*v[0][1] - \
-          (1+x[0])*v[1][1] + \
-          (1-x[0])*v[2][1] + \
-          (1+x[0])*v[3][1]
-    return np.array([[f11, f12], [f21, f22]])
+@cython.initializedcheck(False)
+cpdef inline void Q1Jacobian2D(double[:, :] A,
+                               double[:] x, 
+                               double[:, :] v, 
+                               double[:] phys_x) nogil:
+    
+    cdef int i
+    for i in range(2):
+        A[i][0] = -(1-x[1])*v[0][i] + (1-x[1])*v[1][i] - \
+                   (1+x[1])*v[2][i] + (1+x[1])*v[3][i]
+        A[i][1] = -(1-x[0])*v[0][i] - (1+x[0])*v[1][i] + \
+                   (1-x[0])*v[2][i] + (1+x[0])*v[3][i]
 
 
 cdef class Q1Sampler2D(ElementSampler):
 
-    def map_real_to_unit(self, np.ndarray[np.float64_t, ndim=1] physical_coord, 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def map_real_to_unit(self, 
+                         np.ndarray[np.float64_t, ndim=1] physical_x,
                          np.ndarray[np.float64_t, ndim=2] vertices):
-    
-        # initial guess for the Newton solve
-        x0 = np.array([0.0, 0.0], dtype=np.float64)
-        x = fsolve(Q1Function2D, x0, args=(vertices, physical_coord),
-                   fprime=Q1Jacobian2D)
+        x = np.zeros(2, dtype=np.float64)
+        cdef int iterations = 0
+        cdef np.float64_t tolerance = 1.0e-9
+        fx = np.empty(2, dtype=np.float64)
+        A = np.empty((2, 2), dtype=np.float64)
+        Ainv = np.empty((2, 2), dtype=np.float64)
+        Q1Function2D(fx, x, vertices, physical_x)
+        cdef np.float64_t err = np.max(abs(fx))
+        while (err > tolerance and iterations < 100):
+            Q1Jacobian2D(A, x, vertices, physical_x)
+            Ainv = np.linalg.inv(A)
+            x = x - np.dot(Ainv, fx)
+            Q1Function2D(fx, x, vertices, physical_x)
+            err = np.max(abs(fx))
+            iterations += 1
         return x
 
-    def sample_at_unit_point(self, np.ndarray[np.float64_t, ndim=1] coord, 
-                             np.ndarray[np.float64_t, ndim=1] vals):
-        cdef np.float64_t x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
-                              vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
-                              vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
-                              vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def sample_at_unit_point(self, double[:] coord, 
+                             double[:] vals):
+        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
+                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
+                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
+                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
         return 0.25*x
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline np.ndarray[np.float64_t, ndim=1] Q1Function3D(np.ndarray[np.float64_t, ndim=1] x,
-                                                          np.ndarray[np.float64_t, ndim=2] v,
-                                                          np.ndarray[np.float64_t, ndim=1] phys_x):
-    cdef np.float64_t f0 = v[0][0]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-                           v[1][0]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-                           v[2][0]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-                           v[3][0]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-                           v[4][0]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-                           v[5][0]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-                           v[6][0]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-                           v[7][0]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[0]
-    cdef np.float64_t f1 = v[0][1]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-                           v[1][1]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-                           v[2][1]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-                           v[3][1]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-                           v[4][1]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-                           v[5][1]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-                           v[6][1]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-                           v[7][1]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[1]
-    cdef np.float64_t f2 = v[0][2]*(1-x[0])*(1-x[1])*(1-x[2]) + \
-                           v[1][2]*(1+x[0])*(1-x[1])*(1-x[2]) + \
-                           v[2][2]*(1-x[0])*(1+x[1])*(1-x[2]) + \
-                           v[3][2]*(1+x[0])*(1+x[1])*(1-x[2]) + \
-                           v[4][2]*(1-x[0])*(1-x[1])*(1+x[2]) + \
-                           v[5][2]*(1+x[0])*(1-x[1])*(1+x[2]) + \
-                           v[6][2]*(1-x[0])*(1+x[1])*(1+x[2]) + \
-                           v[7][2]*(1+x[0])*(1+x[1])*(1+x[2]) - 8.0*phys_x[2]
-
-    A = np.empty(3, dtype=np.float64)
-    A[0] = f0
-    A[1] = f1
-    A[2] = f2
-    return A
+@cython.initializedcheck(False)
+cpdef inline void Q1Function3D(double[:] fx,
+                               double[:] x, 
+                               double[:, :] vertices, 
+                               double[:] phys_x) nogil:
+    
+    cdef int i
+    for i in range(3):
+        fx[i] = vertices[0][i]*(1-x[0])*(1-x[1])*(1-x[2]) \
+              + vertices[1][i]*(1+x[0])*(1-x[1])*(1-x[2]) \
+              + vertices[2][i]*(1-x[0])*(1+x[1])*(1-x[2]) \
+              + vertices[3][i]*(1+x[0])*(1+x[1])*(1-x[2]) \
+              + vertices[4][i]*(1-x[0])*(1-x[1])*(1+x[2]) \
+              + vertices[5][i]*(1+x[0])*(1-x[1])*(1+x[2]) \
+              + vertices[6][i]*(1-x[0])*(1+x[1])*(1+x[2]) \
+              + vertices[7][i]*(1+x[0])*(1+x[1])*(1+x[2]) \
+              - 8.0*phys_x[i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[np.float64_t, ndim=1] Q1Jacobian3D(np.ndarray[np.float64_t, ndim=1] x,
-                                                   np.ndarray[np.float64_t, ndim=2] v,
-                                                   np.ndarray[np.float64_t, ndim=1] phys_x):
-    f00 = -(1-x[1])*(1-x[2])*v[0][0] + (1-x[1])*(1-x[2])*v[1][0] - \
-          (1+x[1])*(1-x[2])*v[2][0] + (1+x[1])*(1-x[2])*v[3][0] - \
-          (1-x[1])*(1+x[2])*v[4][0] + (1-x[1])*(1+x[2])*v[5][0] - \
-          (1+x[1])*(1+x[2])*v[6][0] + (1+x[1])*(1+x[2])*v[7][0]
-    f01 = -(1-x[0])*(1-x[2])*v[0][0] - (1+x[0])*(1-x[2])*v[1][0] + \
-          (1-x[0])*(1-x[2])*v[2][0] + (1+x[0])*(1-x[2])*v[3][0] - \
-          (1-x[0])*(1+x[2])*v[4][0] - (1+x[0])*(1+x[2])*v[5][0] + \
-          (1-x[0])*(1+x[2])*v[6][0] + (1+x[0])*(1+x[2])*v[7][0]
-    f02 = -(1-x[0])*(1-x[1])*v[0][0] - (1+x[0])*(1-x[1])*v[1][0] - \
-          (1-x[0])*(1+x[1])*v[2][0] - (1+x[0])*(1+x[1])*v[3][0] + \
-          (1-x[0])*(1-x[1])*v[4][0] + (1+x[0])*(1-x[1])*v[5][0] + \
-          (1-x[0])*(1+x[1])*v[6][0] + (1+x[0])*(1+x[1])*v[7][0]
-
-    f10 = -(1-x[1])*(1-x[2])*v[0][1] + (1-x[1])*(1-x[2])*v[1][1] - \
-          (1+x[1])*(1-x[2])*v[2][1] + (1+x[1])*(1-x[2])*v[3][1] - \
-          (1-x[1])*(1+x[2])*v[4][1] + (1-x[1])*(1+x[2])*v[5][1] - \
-          (1+x[1])*(1+x[2])*v[6][1] + (1+x[1])*(1+x[2])*v[7][1]
-    f11 = -(1-x[0])*(1-x[2])*v[0][1] - (1+x[0])*(1-x[2])*v[1][1] + \
-          (1-x[0])*(1-x[2])*v[2][1] + (1+x[0])*(1-x[2])*v[3][1] - \
-          (1-x[0])*(1+x[2])*v[4][1] - (1+x[0])*(1+x[2])*v[5][1] + \
-          (1-x[0])*(1+x[2])*v[6][1] + (1+x[0])*(1+x[2])*v[7][1]
-    f12 = -(1-x[0])*(1-x[1])*v[0][1] - (1+x[0])*(1-x[1])*v[1][1] - \
-          (1-x[0])*(1+x[1])*v[2][1] - (1+x[0])*(1+x[1])*v[3][1] + \
-          (1-x[0])*(1-x[1])*v[4][1] + (1+x[0])*(1-x[1])*v[5][1] + \
-          (1-x[0])*(1+x[1])*v[6][1] + (1+x[0])*(1+x[1])*v[7][1]
+@cython.initializedcheck(False)
+cpdef inline void Q1Jacobian3D(double[:, :] A,
+                               double[:] x, 
+                               double[:, :] v, 
+                               double[:] phys_x) nogil:
     
-    f20 = -(1-x[1])*(1-x[2])*v[0][2] + (1-x[1])*(1-x[2])*v[1][2] - \
-          (1+x[1])*(1-x[2])*v[2][2] + (1+x[1])*(1-x[2])*v[3][2] - \
-          (1-x[1])*(1+x[2])*v[4][2] + (1-x[1])*(1+x[2])*v[5][2] - \
-          (1+x[1])*(1+x[2])*v[6][2] + (1+x[1])*(1+x[2])*v[7][2]
-    f21 = -(1-x[0])*(1-x[2])*v[0][2] - (1+x[0])*(1-x[2])*v[1][2] + \
-          (1-x[0])*(1-x[2])*v[2][2] + (1+x[0])*(1-x[2])*v[3][2] - \
-          (1-x[0])*(1+x[2])*v[4][2] - (1+x[0])*(1+x[2])*v[5][2] + \
-          (1-x[0])*(1+x[2])*v[6][2] + (1+x[0])*(1+x[2])*v[7][2]
-    f22 = -(1-x[0])*(1-x[1])*v[0][2] - (1+x[0])*(1-x[1])*v[1][2] - \
-          (1-x[0])*(1+x[1])*v[2][2] - (1+x[0])*(1+x[1])*v[3][2] + \
-          (1-x[0])*(1-x[1])*v[4][2] + (1+x[0])*(1-x[1])*v[5][2] + \
-          (1-x[0])*(1+x[1])*v[6][2] + (1+x[0])*(1+x[1])*v[7][2]
-
-    return np.array([[f00, f01, f02], [f10, f11, f12], [f20, f21, f22]])
+    cdef int i
+    for i in range(3):
+        A[i][0] = -(1-x[1])*(1-x[2])*v[0][i] + (1-x[1])*(1-x[2])*v[1][i] - \
+                   (1+x[1])*(1-x[2])*v[2][i] + (1+x[1])*(1-x[2])*v[3][i] - \
+                   (1-x[1])*(1+x[2])*v[4][i] + (1-x[1])*(1+x[2])*v[5][i] - \
+                   (1+x[1])*(1+x[2])*v[6][i] + (1+x[1])*(1+x[2])*v[7][i]
+        A[i][1] = -(1-x[0])*(1-x[2])*v[0][i] - (1+x[0])*(1-x[2])*v[1][i] + \
+                   (1-x[0])*(1-x[2])*v[2][i] + (1+x[0])*(1-x[2])*v[3][i] - \
+                   (1-x[0])*(1+x[2])*v[4][i] - (1+x[0])*(1+x[2])*v[5][i] + \
+                   (1-x[0])*(1+x[2])*v[6][i] + (1+x[0])*(1+x[2])*v[7][i]
+        A[i][2] = -(1-x[0])*(1-x[1])*v[0][i] - (1+x[0])*(1-x[1])*v[1][i] - \
+                   (1-x[0])*(1+x[1])*v[2][i] - (1+x[0])*(1+x[1])*v[3][i] + \
+                   (1-x[0])*(1-x[1])*v[4][i] + (1+x[0])*(1-x[1])*v[5][i] + \
+                   (1-x[0])*(1+x[1])*v[6][i] + (1+x[0])*(1+x[1])*v[7][i]
 
 
 cdef class Q1Sampler3D(ElementSampler):
 
-    def map_real_to_unit(self, np.ndarray physical_coord, np.ndarray vertices):
-        x0 = np.array([0.0, 0.0, 0.0])  # initial guess
-        x = fsolve(Q1Function3D, x0, args=(vertices, physical_coord),
-                   fprime=Q1Jacobian3D)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def map_real_to_unit(self, 
+                         np.ndarray[np.float64_t, ndim=1] physical_x,
+                         np.ndarray[np.float64_t, ndim=2] vertices):
+        x = np.zeros(3, dtype=np.float64)
+        cdef int iterations = 0
+        cdef np.float64_t tolerance = 1.0e-9
+        fx = np.empty(3, dtype=np.float64)
+        A = np.empty((3, 3), dtype=np.float64)
+        Ainv = np.empty((3, 3), dtype=np.float64)
+        Q1Function3D(fx, x, vertices, physical_x)
+        cdef np.float64_t err = np.max(abs(fx))
+        while (err > tolerance and iterations < 100):
+            Q1Jacobian3D(A, x, vertices, physical_x)
+            Ainv = np.linalg.inv(A)
+            x = x - np.dot(Ainv, fx)
+            Q1Function3D(fx, x, vertices, physical_x)
+            err = np.max(abs(fx))
+            iterations += 1
         return x
 
-    def sample_at_unit_point(self, np.ndarray coord, np.ndarray vals):
-        x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
-            vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
-            vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
-            vals[3]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
-            vals[4]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
-            vals[5]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
-            vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
-            vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def sample_at_unit_point(self, double[:] coord, double[:] vals):
+        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+                        vals[4]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+                        vals[5]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+                        vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
+                        vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
         return 0.125*x
