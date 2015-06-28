@@ -167,6 +167,47 @@ cdef class NonlinearSolveSampler(ElementSampler):
             iterations += 1
         return x
 
+cdef class Q1Sampler2D(NonlinearSolveSampler):
+
+    def __init__(self):
+        super(Q1Sampler2D, self).__init__()
+        self.dim = 2
+        self.func = Q1Function2D
+        self.jac = Q1Jacobian2D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def sample_at_unit_point(self, double[:] coord, 
+                             double[:] vals):
+        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
+                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
+                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
+                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
+        return 0.25*x
+
+cdef class Q1Sampler3D(NonlinearSolveSampler):
+
+    def __init__(self):
+        super(Q1Sampler3D, self).__init__()
+        self.dim = 3
+        self.func = Q1Function3D
+        self.jac = Q1Jacobian3D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def sample_at_unit_point(self, double[:] coord, double[:] vals):
+        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
+                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
+                        vals[4]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+                        vals[5]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
+                        vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
+                        vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
+        return 0.125*x
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -200,25 +241,6 @@ cdef inline void Q1Jacobian2D(double[:, :] A,
         A[i][1] = -(1-x[0])*v[0][i] - (1+x[0])*v[1][i] + \
                    (1-x[0])*v[2][i] + (1+x[0])*v[3][i]
 
-
-cdef class Q1Sampler2D(NonlinearSolveSampler):
-
-    def __init__(self):
-        super(Q1Sampler2D, self).__init__()
-        self.dim = 2
-        self.func = Q1Function2D
-        self.jac = Q1Jacobian2D
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def sample_at_unit_point(self, double[:] coord, 
-                             double[:] vals):
-        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1]) + \
-                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1]) + \
-                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1]) + \
-                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])
-        return 0.25*x
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -264,26 +286,3 @@ cdef inline void Q1Jacobian3D(double[:, :] A,
                    (1-x[0])*(1+x[1])*v[2][i] - (1+x[0])*(1+x[1])*v[3][i] + \
                    (1-x[0])*(1-x[1])*v[4][i] + (1+x[0])*(1-x[1])*v[5][i] + \
                    (1-x[0])*(1+x[1])*v[6][i] + (1+x[0])*(1+x[1])*v[7][i]
-
-
-cdef class Q1Sampler3D(NonlinearSolveSampler):
-
-    def __init__(self):
-        super(Q1Sampler3D, self).__init__()
-        self.dim = 3
-        self.func = Q1Function3D
-        self.jac = Q1Jacobian3D
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def sample_at_unit_point(self, double[:] coord, double[:] vals):
-        cdef double x = vals[0]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
-                        vals[1]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 - coord[2]) + \
-                        vals[2]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
-                        vals[3]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 - coord[2]) + \
-                        vals[4]*(1.0 - coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
-                        vals[5]*(1.0 + coord[0])*(1.0 - coord[1])*(1.0 + coord[2]) + \
-                        vals[6]*(1.0 - coord[0])*(1.0 + coord[1])*(1.0 + coord[2]) + \
-                        vals[7]*(1.0 + coord[0])*(1.0 + coord[1])*(1.0 + coord[2])
-        return 0.125*x
