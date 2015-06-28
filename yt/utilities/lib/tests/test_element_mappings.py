@@ -15,14 +15,11 @@ def setup():
 def check_all_vertices(sampler, vertices, field_values):
     NV = vertices.shape[0]
     NDIM = vertices.shape[1]
-    physical_x = np.empty(NDIM)
+    x = np.empty(NDIM)
     for i in range(NV):
-        physical_x = vertices[i]
-        x = sampler.map_real_to_unit(physical_x, vertices)
-        val1 = sampler.sample_at_unit_point(x, field_values)
-        assert_almost_equal(field_values[i], val1)
-        val2 = sampler.sample_at_real_point(physical_x, vertices, field_values)
-        assert_almost_equal(val1, val2)
+        x = vertices[i]
+        val = sampler.sample_at_real_point(x, vertices, field_values)
+        assert_almost_equal(val, field_values[i])
 
 
 def test_P1Sampler2D():

@@ -29,7 +29,7 @@ cdef class ElementSampler:
         raise NotImplementedError
 
     def sample_at_unit_point(self,
-                             np.ndarray coord, 
+                             np.ndarray coord,
                              np.ndarray vals):
         raise NotImplementedError
 
@@ -46,40 +46,39 @@ cdef class P1Sampler2D(ElementSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def map_real_to_unit(self, 
-                         np.ndarray[np.float64_t, ndim=1] physical_coord, 
+                         np.ndarray[np.float64_t, ndim=1] physical_x, 
                          np.ndarray[np.float64_t, ndim=2] vertices):
     
-        x = physical_coord[0]
-        y = physical_coord[1]
-
-        x1 = vertices[0, 0]
-        y1 = vertices[0, 1]
-
-        x2 = vertices[1, 0]
-        y2 = vertices[1, 1]
-
-        x3 = vertices[2, 0]
-        y3 = vertices[2, 1]
+        b = np.empty(3, dtype=np.float64)
+        A = np.empty((3, 3), dtype=np.float64)
     
-        A = np.array([[1, x, y], [1, x1, y1], [1, x3, y3]])
-        B = np.array([[1, x2, y2], [1, x1, y1], [1, x3, y3]])
-        u = np.linalg.det(A) / np.linalg.det(B)
-
-        C = np.array([[1, x, y], [1, x1, y1], [1, x2, y2]])
-        D = np.array([[1, x3, y3], [1, x1, y1], [1, x2, y2]])
-        v = np.linalg.det(C) / np.linalg.det(D)
+        b[0] = physical_x[0]
+        b[1] = physical_x[1]
+        b[2] = 1.0
     
-        return np.array([u, v])
+        A[0][0] = vertices[0, 0]
+        A[0][1] = vertices[1, 0]
+        A[0][2] = vertices[2, 0]
+    
+        A[1][0] = vertices[0, 1]
+        A[1][1] = vertices[1, 1]
+        A[1][2] = vertices[2, 1]
+    
+        A[2][0] = 1.0
+        A[2][1] = 1.0
+        A[2][2] = 1.0
+            
+        c = np.linalg.solve(A, b)
+        return c
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def sample_at_unit_point(self,
-                             np.ndarray coord, 
-                             np.ndarray vals):
-        return vals[0]*(1 - coord[0] - coord[1]) + \
-            vals[1]*coord[0] + vals[2]*coord[1]
+    def sample_at_unit_point(self, double[:] coord, 
+                             double[:] vals):
+        return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2]
 
 cdef class P1Sampler3D(ElementSampler):
 
@@ -111,10 +110,10 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def sample_at_unit_point(self,
-                             np.ndarray[np.float64_t, ndim=1] coord, 
-                             np.ndarray[np.float64_t, ndim=1] vals):
-        cdef np.float64_t value = 0.0
-        cdef np.int64_t i
+                             double[:] coord, 
+                             double[:] vals):
+        cdef double value = 0.0
+        cdef int i
         for i in range(4):
             value += vals[i]*coord[i]
         return value
