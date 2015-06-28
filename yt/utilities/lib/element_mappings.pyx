@@ -255,19 +255,23 @@ cdef class Q1Sampler3D(ElementSampler):
     def map_real_to_unit(self, 
                          np.ndarray[np.float64_t, ndim=1] physical_x,
                          np.ndarray[np.float64_t, ndim=2] vertices):
-        x = np.zeros(3, dtype=np.float64)
-        cdef int iterations = 0
+        cdef int dim = 3
         cdef np.float64_t tolerance = 1.0e-9
-        fx = np.empty(3, dtype=np.float64)
-        A = np.empty((3, 3), dtype=np.float64)
-        Ainv = np.empty((3, 3), dtype=np.float64)
-        Q1Function3D(fx, x, vertices, physical_x)
+        func = Q1Function3D
+        jac = Q1Jacobian3D
+
+        x = np.zeros(dim, dtype=np.float64)
+        cdef int iterations = 0
+        fx = np.empty(dim, dtype=np.float64)
+        A = np.empty((dim, dim), dtype=np.float64)
+        Ainv = np.empty((dim, dim), dtype=np.float64)
+        func(fx, x, vertices, physical_x)
         cdef np.float64_t err = np.max(abs(fx))
         while (err > tolerance and iterations < 100):
-            Q1Jacobian3D(A, x, vertices, physical_x)
+            jac(A, x, vertices, physical_x)
             Ainv = np.linalg.inv(A)
             x = x - np.dot(Ainv, fx)
-            Q1Function3D(fx, x, vertices, physical_x)
+            func(fx, x, vertices, physical_x)
             err = np.max(abs(fx))
             iterations += 1
         return x
