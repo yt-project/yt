@@ -138,12 +138,14 @@ ctypedef void (*jac_type)(double[:, :], double[:], double[:, :], double[:])
 cdef class NonlinearSolveSampler(ElementSampler):
 
     cdef int dim
+    cdef int max_iter
     cdef np.float64_t tolerance
     cdef func_type func 
     cdef jac_type jac
 
     def __init__(self):
         self.tolerance = 1.0e-9
+        self.max_iter = 10
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -158,7 +160,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
         Ainv = np.empty((self.dim, self.dim), dtype=np.float64)
         self.func(fx, x, vertices, physical_x)
         cdef np.float64_t err = np.max(abs(fx))
-        while (err > self.tolerance and iterations < 100):
+        while (err > self.tolerance and iterations < self.max_iter):
             self.jac(A, x, vertices, physical_x)
             Ainv = np.linalg.inv(A)
             x = x - np.dot(Ainv, fx)
