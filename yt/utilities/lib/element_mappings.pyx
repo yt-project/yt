@@ -132,14 +132,17 @@ cdef class P1Sampler3D(ElementSampler):
             value += vals[i]*coord[i]
         return value
 
+ctypedef void (*func_type)(double[:], double[:], double[:, :], double[:])
+ctypedef void (*jac_type)(double[:, :], double[:], double[:, :], double[:])
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.initializedcheck(False)
-cpdef inline void Q1Function2D(double[:] fx,
-                               double[:] x, 
-                               double[:, :] vertices, 
-                               double[:] phys_x) nogil:
+cdef inline void Q1Function2D(double[:] fx,
+                              double[:] x, 
+                              double[:, :] vertices, 
+                              double[:] phys_x) nogil:
     
     cdef int i
     for i in range(2):
@@ -152,10 +155,10 @@ cpdef inline void Q1Function2D(double[:] fx,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.initializedcheck(False)
-cpdef inline void Q1Jacobian2D(double[:, :] A,
-                               double[:] x, 
-                               double[:, :] v, 
-                               double[:] phys_x) nogil:
+cdef inline void Q1Jacobian2D(double[:, :] A,
+                              double[:] x, 
+                              double[:, :] v, 
+                              double[:] phys_x) nogil:
     
     cdef int i
     for i in range(2):
@@ -165,30 +168,13 @@ cpdef inline void Q1Jacobian2D(double[:, :] A,
                    (1-x[0])*v[2][i] + (1+x[0])*v[3][i]
 
 
-cdef class Q1Sampler2D(ElementSampler):
+cdef class Q1Sampler2D(NonlinearSolveSampler):
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def map_real_to_unit(self, 
-                         np.ndarray[np.float64_t, ndim=1] physical_x,
-                         np.ndarray[np.float64_t, ndim=2] vertices):
-        x = np.zeros(2, dtype=np.float64)
-        cdef int iterations = 0
-        cdef np.float64_t tolerance = 1.0e-9
-        fx = np.empty(2, dtype=np.float64)
-        A = np.empty((2, 2), dtype=np.float64)
-        Ainv = np.empty((2, 2), dtype=np.float64)
-        Q1Function2D(fx, x, vertices, physical_x)
-        cdef np.float64_t err = np.max(abs(fx))
-        while (err > tolerance and iterations < 100):
-            Q1Jacobian2D(A, x, vertices, physical_x)
-            Ainv = np.linalg.inv(A)
-            x = x - np.dot(Ainv, fx)
-            Q1Function2D(fx, x, vertices, physical_x)
-            err = np.max(abs(fx))
-            iterations += 1
-        return x
+    def __init__(self):
+        super(Q1Sampler2D, self).__init__()
+        self.dim = 2
+        self.func = Q1Function2D
+        self.jac = Q1Jacobian2D
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -205,10 +191,10 @@ cdef class Q1Sampler2D(ElementSampler):
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.initializedcheck(False)
-cpdef inline void Q1Function3D(double[:] fx,
-                               double[:] x, 
-                               double[:, :] vertices, 
-                               double[:] phys_x) nogil:
+cdef inline void Q1Function3D(double[:] fx,
+                              double[:] x, 
+                              double[:, :] vertices, 
+                              double[:] phys_x) nogil:
     
     cdef int i
     for i in range(3):
@@ -226,10 +212,10 @@ cpdef inline void Q1Function3D(double[:] fx,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.initializedcheck(False)
-cpdef inline void Q1Jacobian3D(double[:, :] A,
-                               double[:] x, 
-                               double[:, :] v, 
-                               double[:] phys_x) nogil:
+cdef inline void Q1Jacobian3D(double[:, :] A,
+                              double[:] x, 
+                              double[:, :] v, 
+                              double[:] phys_x) nogil:
     
     cdef int i
     for i in range(3):
@@ -246,8 +232,15 @@ cpdef inline void Q1Jacobian3D(double[:, :] A,
                    (1-x[0])*(1-x[1])*v[4][i] + (1+x[0])*(1-x[1])*v[5][i] + \
                    (1-x[0])*(1+x[1])*v[6][i] + (1+x[0])*(1+x[1])*v[7][i]
 
+cdef class NonlinearSolveSampler(ElementSampler):
 
-cdef class Q1Sampler3D(ElementSampler):
+    cdef int dim
+    cdef np.float64_t tolerance
+    cdef func_type func 
+    cdef jac_type jac
+
+    def __init__(self):
+        self.tolerance = 1.0e-9
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -255,26 +248,30 @@ cdef class Q1Sampler3D(ElementSampler):
     def map_real_to_unit(self, 
                          np.ndarray[np.float64_t, ndim=1] physical_x,
                          np.ndarray[np.float64_t, ndim=2] vertices):
-        cdef int dim = 3
-        cdef np.float64_t tolerance = 1.0e-9
-        func = Q1Function3D
-        jac = Q1Jacobian3D
-
-        x = np.zeros(dim, dtype=np.float64)
+        x = np.zeros(self.dim, dtype=np.float64)
         cdef int iterations = 0
-        fx = np.empty(dim, dtype=np.float64)
-        A = np.empty((dim, dim), dtype=np.float64)
-        Ainv = np.empty((dim, dim), dtype=np.float64)
-        func(fx, x, vertices, physical_x)
+        fx = np.empty(self.dim, dtype=np.float64)
+        A = np.empty((self.dim, self.dim), dtype=np.float64)
+        Ainv = np.empty((self.dim, self.dim), dtype=np.float64)
+        self.func(fx, x, vertices, physical_x)
         cdef np.float64_t err = np.max(abs(fx))
-        while (err > tolerance and iterations < 100):
-            jac(A, x, vertices, physical_x)
+        while (err > self.tolerance and iterations < 100):
+            self.jac(A, x, vertices, physical_x)
             Ainv = np.linalg.inv(A)
             x = x - np.dot(Ainv, fx)
-            func(fx, x, vertices, physical_x)
+            self.func(fx, x, vertices, physical_x)
             err = np.max(abs(fx))
             iterations += 1
         return x
+
+
+cdef class Q1Sampler3D(NonlinearSolveSampler):
+
+    def __init__(self):
+        super(Q1Sampler3D, self).__init__()
+        self.dim = 3
+        self.func = Q1Function3D
+        self.jac = Q1Jacobian3D
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
