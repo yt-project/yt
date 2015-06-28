@@ -135,6 +135,39 @@ cdef class P1Sampler3D(ElementSampler):
 ctypedef void (*func_type)(double[:], double[:], double[:, :], double[:])
 ctypedef void (*jac_type)(double[:, :], double[:], double[:, :], double[:])
 
+cdef class NonlinearSolveSampler(ElementSampler):
+
+    cdef int dim
+    cdef np.float64_t tolerance
+    cdef func_type func 
+    cdef jac_type jac
+
+    def __init__(self):
+        self.tolerance = 1.0e-9
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def map_real_to_unit(self, 
+                         np.ndarray[np.float64_t, ndim=1] physical_x,
+                         np.ndarray[np.float64_t, ndim=2] vertices):
+        x = np.zeros(self.dim, dtype=np.float64)
+        cdef int iterations = 0
+        fx = np.empty(self.dim, dtype=np.float64)
+        A = np.empty((self.dim, self.dim), dtype=np.float64)
+        Ainv = np.empty((self.dim, self.dim), dtype=np.float64)
+        self.func(fx, x, vertices, physical_x)
+        cdef np.float64_t err = np.max(abs(fx))
+        while (err > self.tolerance and iterations < 100):
+            self.jac(A, x, vertices, physical_x)
+            Ainv = np.linalg.inv(A)
+            x = x - np.dot(Ainv, fx)
+            self.func(fx, x, vertices, physical_x)
+            err = np.max(abs(fx))
+            iterations += 1
+        return x
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -231,38 +264,6 @@ cdef inline void Q1Jacobian3D(double[:, :] A,
                    (1-x[0])*(1+x[1])*v[2][i] - (1+x[0])*(1+x[1])*v[3][i] + \
                    (1-x[0])*(1-x[1])*v[4][i] + (1+x[0])*(1-x[1])*v[5][i] + \
                    (1-x[0])*(1+x[1])*v[6][i] + (1+x[0])*(1+x[1])*v[7][i]
-
-cdef class NonlinearSolveSampler(ElementSampler):
-
-    cdef int dim
-    cdef np.float64_t tolerance
-    cdef func_type func 
-    cdef jac_type jac
-
-    def __init__(self):
-        self.tolerance = 1.0e-9
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def map_real_to_unit(self, 
-                         np.ndarray[np.float64_t, ndim=1] physical_x,
-                         np.ndarray[np.float64_t, ndim=2] vertices):
-        x = np.zeros(self.dim, dtype=np.float64)
-        cdef int iterations = 0
-        fx = np.empty(self.dim, dtype=np.float64)
-        A = np.empty((self.dim, self.dim), dtype=np.float64)
-        Ainv = np.empty((self.dim, self.dim), dtype=np.float64)
-        self.func(fx, x, vertices, physical_x)
-        cdef np.float64_t err = np.max(abs(fx))
-        while (err > self.tolerance and iterations < 100):
-            self.jac(A, x, vertices, physical_x)
-            Ainv = np.linalg.inv(A)
-            x = x - np.dot(Ainv, fx)
-            self.func(fx, x, vertices, physical_x)
-            err = np.max(abs(fx))
-            iterations += 1
-        return x
 
 
 cdef class Q1Sampler3D(NonlinearSolveSampler):
