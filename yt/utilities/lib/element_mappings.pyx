@@ -22,6 +22,15 @@ from libc.math cimport abs
 
 
 cdef class ElementSampler:
+    '''
+
+    This is a base class for sampling the value of a finite element solution
+    at an arbitrary point inside a mesh element. In general, this will be done
+    by transforming the requested physical coordinate into a mapped coordinate 
+    system, sampling the solution in mapped coordinates, and returning the result.
+    This is not to be used directly; use one of the subclasses instead.
+
+    '''
 
     def map_real_to_unit(self,
                          np.ndarray physical_coord, 
@@ -42,6 +51,14 @@ cdef class ElementSampler:
     
 
 cdef class P1Sampler2D(ElementSampler):
+    '''
+
+    This implements sampling inside a linear, triangular mesh element.
+    In this case, the mapping is easily invertible and can be done 
+    with no iteration.
+    
+
+    '''
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -81,6 +98,13 @@ cdef class P1Sampler2D(ElementSampler):
         return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2]
 
 cdef class P1Sampler3D(ElementSampler):
+    '''
+
+    This implements sampling inside a linear, tetrahedral mesh element. Like
+    the 2D case, this mapping is linear and can be inverted easily.
+
+    '''
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -137,6 +161,16 @@ ctypedef void (*jac_type)(double[:, :], double[:], double[:, :], double[:])
 
 cdef class NonlinearSolveSampler(ElementSampler):
 
+    '''
+
+    This is a base class for handling element samplers that require
+    a nonlinear solve to invert the mapping between coordinate systems.
+    To do this, we perform Netwon-Raphson iteration using a specificed 
+    system of equations with an analytic Jacobian matrix. This is
+    not to be used directly, use one of the subclasses instead.
+
+    '''
+
     cdef int dim
     cdef int max_iter
     cdef np.float64_t tolerance
@@ -171,6 +205,12 @@ cdef class NonlinearSolveSampler(ElementSampler):
 
 cdef class Q1Sampler2D(NonlinearSolveSampler):
 
+    '''
+
+    This implements sampling inside a 2D quadrilateral mesh element.
+
+    '''
+
     def __init__(self):
         super(Q1Sampler2D, self).__init__()
         self.dim = 2
@@ -189,6 +229,12 @@ cdef class Q1Sampler2D(NonlinearSolveSampler):
         return 0.25*x
 
 cdef class Q1Sampler3D(NonlinearSolveSampler):
+
+    ''' 
+
+    This implements sampling inside a 3d hexahedral mesh element.
+
+    '''
 
     def __init__(self):
         super(Q1Sampler3D, self).__init__()
