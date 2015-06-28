@@ -85,23 +85,37 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def map_real_to_unit(self, 
-                         np.ndarray[np.float64_t, ndim=1] physical_coord, 
-                         np.ndarray[np.float64_t, ndim=2] vertices):
+    @cython.initializedcheck(False)
+    def map_real_to_unit(self, double[:] physical_x, double[:,:] vertices):
     
-        b = np.array([physical_coord[0],
-                      physical_coord[1], 
-                      physical_coord[2], 
-                      1.0], dtype=np.float64)
-
+        b = np.empty(4, dtype=np.float64)
         A = np.empty((4, 4), dtype=np.float64)
-        cdef int i, j
-        for i in range(3):
-            for j in range(4):
-                A[i][j] = vertices[j][i]
-        for j in range(4):
-            A[3][j] = 1.0
+    
+        b[0] = physical_x[0]
+        b[1] = physical_x[1]
+        b[2] = physical_x[2]
+        b[3] = 1.0
+    
+        A[0][0] = vertices[0, 0]
+        A[0][1] = vertices[1, 0]
+        A[0][2] = vertices[2, 0]
+        A[0][3] = vertices[3, 0]
+        
+        A[1][0] = vertices[0, 1]
+        A[1][1] = vertices[1, 1]
+        A[1][2] = vertices[2, 1]
+        A[1][3] = vertices[3, 1]
+        
+        A[2][0] = vertices[0, 2]
+        A[2][1] = vertices[1, 2]
+        A[2][2] = vertices[2, 2]
+        A[2][3] = vertices[3, 2]
 
+        A[3][0] = 1.0
+        A[3][1] = 1.0
+        A[3][2] = 1.0
+        A[3][3] = 1.0
+        
         c = np.linalg.solve(A, b)
     
         return c
