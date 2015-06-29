@@ -47,6 +47,7 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
+
     def __init__(self, id, index, level, start, stop):
         AMRGridPatch.__init__(self, id, filename = index.index_filename,
                               index = index)
@@ -99,12 +100,6 @@ class ChomboHierarchy(GridIndex):
         self.domain_left_edge = ds.domain_left_edge
         self.domain_right_edge = ds.domain_right_edge
         self.dataset_type = dataset_type
-
-        if ds.dimensionality == 1:
-            self.dataset_type = "chombo1d_hdf5"
-        if ds.dimensionality == 2:
-            self.dataset_type = "chombo2d_hdf5"
-
         self.field_indexes = {}
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -114,7 +109,7 @@ class ChomboHierarchy(GridIndex):
         self._handle = ds._handle
 
         tr = self._handle['Chombo_global'].attrs.get("testReal", "float32")
-            
+
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -256,17 +251,10 @@ class ChomboDataset(Dataset):
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
 
-        # look up the dimensionality of the dataset
-        D = self._handle['Chombo_global/'].attrs['SpaceDim']
-        if D == 1:
-            self.dataset_type = 'chombo1d_hdf5'
-        if D == 2:
-            self.dataset_type = 'chombo2d_hdf5'
-
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(self,filename, self.dataset_type,
+        Dataset.__init__(self, filename, self.dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
@@ -398,7 +386,7 @@ class ChomboDataset(Dataset):
 
 class PlutoHierarchy(ChomboHierarchy):
 
-    def __init__(self, ds, dataset_type="pluto_chombo_native"):
+    def __init__(self, ds, dataset_type="chombo_hdf5"):
         ChomboHierarchy.__init__(self, ds, dataset_type)
 
     def _parse_index(self):
@@ -456,7 +444,7 @@ class PlutoDataset(ChomboDataset):
     _index_class = PlutoHierarchy
     _field_info_class = PlutoFieldInfo
 
-    def __init__(self, filename, dataset_type='pluto_chombo_native',
+    def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
                  units_override=None):
 
