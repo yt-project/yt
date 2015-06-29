@@ -21,11 +21,6 @@ from yt.fields.field_info_container import \
     particle_vector_functions, \
     standard_particle_fields
 
-from yt.frontends.boxlib.fields import \
-    rho_units, \
-    mom_units, \
-    eden_units
-
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"
@@ -53,9 +48,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("Y-momentum", (mom_units, ["momentum_y"], None)),
         ("Z-momentum", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
-        ("X-magnfield", ("gauss", ["magnetic_field_x"], None)),
-        ("Y-magnfield", ("gauss", ["magnetic_field_y"], None)),
-        ("Z-magnfield", ("gauss", ["magnetic_field_z"], None)),
+        ("X-magnfield", (b_units, ["magnetic_field_x"], None)),
+        ("Y-magnfield", (b_units, ["magnetic_field_y"], None)),
+        ("Z-magnfield", (b_units, ["magnetic_field_z"], None)),
         ("directrad-dedt-density", (eden_units, ["directrad-dedt-density"], None)),
         ("directrad-dpxdt-density", (mom_units, ["directrad-dpxdt-density"], None)),
         ("directrad-dpydt-density", (mom_units, ["directrad-dpydt-density"], None)),
@@ -66,9 +61,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
-        ("particle_momentum_x", (mom_units, [], None)),
-        ("particle_momentum_y", (mom_units, [], None)),
-        ("particle_momentum_z", (mom_units, [], None)),
+        ("particle_momentum_x", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_y", ("code_mass*code_length/code_time", [], None)),
+        ("particle_momentum_z", ("code_mass*code_length/code_time", [], None)),
         # Note that these are *internal* agmomen
         ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
         ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
