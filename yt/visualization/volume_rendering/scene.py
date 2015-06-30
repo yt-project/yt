@@ -234,7 +234,21 @@ class Scene(object):
         return handle
 
     def annotate_domain(self, ds, color=None):
-        """docstring for annotate_domain"""
+        r"""
+
+        Modifies this scene by drawing the edges of the computational domain.
+        This adds a new BoxSource to the scene corresponding to the domain
+        boundaries and returns the modified scene object.
+
+        Parameters
+        ----------
+
+        ds : :class:`yt.data_objects.api.Dataset`
+            This is the dataset object corresponding to the
+            simulation being rendered. Used to get the domain bounds.
+
+
+        """
         box_source = BoxSource(ds.domain_left_edge,
                                ds.domain_right_edge,
                                color=None)
@@ -249,7 +263,20 @@ class Scene(object):
         return self
 
     def annotate_axes(self, colors=None, alpha=1.0):
-        """docstring for annotate_axes"""
+        r"""
+
+        Modifies this scene by drawing the coordinate axes.
+        This adds a new CoordinateVectorSource to the scene
+        and returns the modified scene object.
+
+        Parameters
+        ----------
+        colors: array-like, shape (3,4), optional
+            The x, y, z RGBA values to use to draw the axes.
+        alpha : float, optional
+            The opacity of the vectors.
+
+        """
         coords = CoordinateVectorSource(colors, alpha)
         self.add_source(coords)
         return self
