@@ -141,7 +141,7 @@ class CameraTest(TestCase):
         cam = ds.camera(self.c, self.L, self.W, self.N, transfer_function=tf,
                         log_fields=[False], north_vector=[0., 0., 1.0])
         cam.zoom(0.5)
-        for snap in cam.zoomin(2.0, 3):
+        for snap in cam.iter_zoom(2.0, 3):
             snap
         for snap in cam.move_to(np.array(self.c) + 0.1, 3,
                                 final_width=None, exponential=False):

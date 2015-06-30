@@ -422,8 +422,8 @@ class Camera(Orientation):
         """
         self.set_width(self.width / factor)
 
-    def zoomin(self, final, n_steps):
-        r"""Loop over a zoomin and return snapshots along the way.
+    def iter_zoom(self, final, n_steps):
+        r"""Loop over a iter_zoom and return snapshots along the way.
 
         This will yield `n_steps` snapshots until the current view has been
         zooming in to a final factor of `final`.
@@ -439,7 +439,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.zoomin(100.0, 10):
+        >>> for i in cam.iter_zoom(100.0, 10):
         ...     sc.render("zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
