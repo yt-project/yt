@@ -380,8 +380,15 @@ The volume rendering in yt follows a relatively straightforward approach.
 .. image:: _images/vr_sample.jpg
    :width: 512
 
+Parallelism
+-----------
+
+yt can utilize both MPI and OpenMP parallelism for volume rendering.  Both, and
+their combination, are described below.
+
 MPI Parallelization
--------------------
++++++++++++++++++++
+
 Currently the volume renderer is parallelized using MPI to decompose the volume
 by attempting to split up the
 :class:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree` in a balanced way.  This
@@ -414,7 +421,7 @@ Caveats:
 For more information about enabling parallelism, see :ref:`parallel-computation`.
 
 OpenMP Parallelization
-----------------------
+++++++++++++++++++++++
 
 The volume rendering also parallelized using the OpenMP interface in Cython.
 While the MPI parallelization is done using domain decomposition, the OpenMP
@@ -430,7 +437,7 @@ The number of threads can be controlled with the num_threads keyword in
 by default by modifying the environment variable OMP_NUM_THREADS. 
 
 Running in Hybrid MPI + OpenMP
-------------------------------
+++++++++++++++++++++++++++++++
 
 The two methods for volume rendering parallelization can be used together to
 leverage large supercomputing resources.  When choosing how to balance the
