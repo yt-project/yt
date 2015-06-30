@@ -22,7 +22,17 @@ import numpy as np
 
 class Camera(Orientation):
 
-    r"""    """
+    r"""    
+
+    The Camera class. A Camera represents of point of view into a
+    Scene. It is defined by a position (the location of the camera
+    in the simulation domain,), a focus (the point at which the
+    camera is pointed), a width (the width of the snapshot that will
+    be taken, a resolution (the number of pixels in the image), and
+    a north_vector (the "up" direction in the resulting image). A
+    camera can use a variety of different Lens objects.
+
+    """
 
     _moved = True
     _width = None
@@ -79,7 +89,8 @@ class Camera(Orientation):
         self.lens.setup_box_properties(self)
 
     def position():
-        doc = "The position property."
+        doc = '''The position is the location of the camera in
+               the coordinate system of the simulation.'''
 
         def fget(self):
             return self._position
@@ -94,7 +105,7 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = "The width property."
+        doc = '''The width of the image that will be produced. '''
 
         def fget(self):
             return self._width
@@ -110,7 +121,7 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = "The focus property."
+        doc = '''The focus defines the point the Camera is pointed at. '''
 
         def fget(self):
             return self._focus
@@ -125,7 +136,8 @@ class Camera(Orientation):
     focus = property(**focus())
 
     def resolution():
-        doc = "The resolution property."
+        doc = '''The resolution is the number of pixels in the image that
+               will be produced. '''
 
         def fget(self):
             return self._resolution
@@ -197,9 +209,9 @@ class Camera(Orientation):
         self.switch_orientation()
 
     def set_position(self, position, north_vector=None):
-          self.position = position
-          self.switch_orientation(normal_vector=self.focus - self.position,
-                                  north_vector=north_vector)
+        self.position = position
+        self.switch_orientation(normal_vector=self.focus - self.position,
+                                north_vector=north_vector)
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""
@@ -264,6 +276,7 @@ class Camera(Orientation):
         --------
 
         >>> cam.rotate(np.pi/4)
+
         """
         rotate_all = rot_vector is not None
         if rot_vector is None:
