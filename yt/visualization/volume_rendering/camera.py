@@ -22,7 +22,7 @@ import numpy as np
 
 class Camera(Orientation):
 
-    r"""    
+    r"""
 
     The Camera class. A Camera represents of point of view into a
     Scene. It is defined by a position (the location of the camera
@@ -403,7 +403,7 @@ class Camera(Orientation):
         theta : float, in radians
             Angle (in radians) by which to rotate the view.
         n_steps : int
-            The number of look_at snapshots to make.
+            The number of snapshots to make.
         rot_vector  : array_like, optional
             Specify the rotation vector around which rotation will
             occur.  Defaults to None, which sets rotation around the
@@ -422,7 +422,7 @@ class Camera(Orientation):
             yield i
 
     def move_to(self, final, n_steps, exponential=False):
-        r"""Loop over a look_at
+        r"""Loop over a movement, creating a zoom or pan.
 
         This will yield `n_steps` until the current view has been
         moved to a final center of `final`.
@@ -432,7 +432,7 @@ class Camera(Orientation):
         final : YTArray
             The final center to move to after `n_steps`
         n_steps : int
-            The number of look_at snapshots to make.
+            The number of snapshots to make.
         exponential : boolean
             Specifies whether the move/zoom transition follows an
             exponential path toward the destination or linear
