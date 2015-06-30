@@ -30,8 +30,12 @@ from yt.utilities.lib.misc_utilities import \
 
 class RenderSource(ParallelAnalysisInterface):
 
-    """Base Class for Render Sources. Will be inherited for volumes,
-       streamlines, etc"""
+    """
+
+    Base Class for Render Sources. Will be inherited for volumes,
+    streamlines, etc.
+
+    """
 
     def __init__(self):
         super(RenderSource, self).__init__()
@@ -46,7 +50,12 @@ class RenderSource(ParallelAnalysisInterface):
 
 
 class OpaqueSource(RenderSource):
-    """docstring for OpaqueSource"""
+    """
+
+    A base class for opaque render sources. Will be inherited from
+    for LineSources, BoxSources, etc.
+
+    """
     def __init__(self):
         super(OpaqueSource, self).__init__()
         self.opaque = True
@@ -65,7 +74,14 @@ class OpaqueSource(RenderSource):
 
 class VolumeSource(RenderSource):
 
-    """docstring for VolumeSource"""
+    """
+
+    A VolumeSource is a class for rendering data from
+    an arbitrary volumetric data source, e.g. a sphere,
+    cylinder, or the entire computational domain.
+
+
+    """
     _image = None
     data_source = None
 
