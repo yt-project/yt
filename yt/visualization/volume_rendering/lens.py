@@ -682,4 +682,4 @@ lenses = {'plane-parallel': PlaneParallelLens,
           'stereo-perspective': StereoPerspectiveLens,
           'fisheye': FisheyeLens,
           'spherical': SphericalLens,
-          'stereo-spherical':StereoSphericalLens}
+          'stereo-spherical': StereoSphericalLens}

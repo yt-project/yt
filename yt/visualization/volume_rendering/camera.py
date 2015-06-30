@@ -161,6 +161,23 @@ class Camera(Orientation):
         return lens_params
 
     def set_lens(self, lens_type):
+        r'''
+
+        Set the lens to be used with this camera. 
+
+        Parameters
+        ----------
+
+        lens_type : string
+            Must be one of the following:
+            'plane-parallel'
+            'perspective'
+            'stereo-perspective'
+            'fisheye'
+            'spherical'
+            'stereo-spherical'
+
+        '''
         if lens_type not in lenses:
             mylog.error("Lens type not available")
             raise RuntimeError()
@@ -198,7 +215,17 @@ class Camera(Orientation):
         self._moved = True
 
     def set_width(self, width):
-        """This must have been created using ds.arr"""
+        r"""
+
+        Set the width of the image that will be produced by this camera.
+        This must be a YTQuantity.
+
+        Parameters
+        ----------
+
+        width : :class:`yt.units.yt_array.YTQuantity`
+
+        """
         assert isinstance(width, YTArray), 'Width must be created with ds.arr'
         if isinstance(width, YTArray):
             width = width.in_units('code_length')
@@ -209,6 +236,21 @@ class Camera(Orientation):
         self.switch_orientation()
 
     def set_position(self, position, north_vector=None):
+        r"""
+
+        Set the position of the camera.
+
+        Parameters
+        ----------
+
+        position : array_like
+            The new position
+        north_vector : array_like, optional
+            The 'up' direction for the plane of rays.  If not specific,
+            calculated automatically.
+
+        """
+
         self.position = position
         self.switch_orientation(normal_vector=self.focus - self.position,
                                 north_vector=north_vector)
