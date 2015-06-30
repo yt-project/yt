@@ -366,7 +366,7 @@ class Camera(Orientation):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield i
 
-    def move_to(self, final, n_steps, exponential=False):
+    def iter_move(self, final, n_steps, exponential=False):
         r"""Loop over a look_at
 
         This will yield `n_steps` until the current view has been
@@ -385,7 +385,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.move_to([0.2,0.3,0.6], 10):
+        >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
         ...     sc.render("move_%04i.png" % i)
         """
         assert isinstance(final, YTArray)

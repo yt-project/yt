@@ -912,7 +912,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
+        >>> for i, snapshot in enumerate(cam.iter_move([0.2,0.3,0.6], 10)):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
         dW = None
@@ -2199,7 +2199,7 @@ class MosaicFisheyeCamera(Camera):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
+        >>> for i, snapshot in enumerate(cam.iter_move([0.2,0.3,0.6], 10)):
         ...     cam.save_image('move_%04i.png' % i)
         """
         if exponential:
