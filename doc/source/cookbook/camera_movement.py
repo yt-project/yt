@@ -23,6 +23,6 @@ for _ in cam.iter_zoom(10.0, 5):
     frame += 1
 
 # Do a rotation over 5 frames
-for _ in cam.rotation(np.pi, 5):
+for _ in cam.iter_rotate(np.pi, 5):
     sc.render('camera_movement_%04i.png' % frame, clip_ratio=8.0)
     frame += 1

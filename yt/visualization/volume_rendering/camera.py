@@ -337,7 +337,7 @@ class Camera(Orientation):
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2])
 
-    def rotation(self, theta, n_steps, rot_vector=None):
+    def iter_rotate(self, theta, n_steps, rot_vector=None):
         r"""Loop over rotate, creating a rotation
 
         This will rotate `n_steps` until the current view has been
@@ -357,7 +357,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.rotation(np.pi, 10):
+        >>> for i in cam.iter_rotate(np.pi, 10):
         ...     im = sc.render("rotation_%04i.png" % i)
         """
 

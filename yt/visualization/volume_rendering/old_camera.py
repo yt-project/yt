@@ -859,7 +859,7 @@ class Camera(ParallelAnalysisInterface):
         self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
 
     def zoomin(self, final, n_steps, clip_ratio = None):
-        r"""Loop over a iter_zoom and return snapshots along the way.
+        r"""Loop over a zoomin and return snapshots along the way.
 
         This will yield `n_steps` snapshots until the current view has been
         zooming in to a final factor of `final`.
@@ -879,7 +879,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.iter_zoom(100.0, 10)):
+        >>> for i, snapshot in enumerate(cam.zoomin(100.0, 10)):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
@@ -912,7 +912,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.iter_move([0.2,0.3,0.6], 10)):
+        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
         dW = None
@@ -2199,7 +2199,7 @@ class MosaicFisheyeCamera(Camera):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.iter_move([0.2,0.3,0.6], 10)):
+        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
         ...     cam.save_image('move_%04i.png' % i)
         """
         if exponential:

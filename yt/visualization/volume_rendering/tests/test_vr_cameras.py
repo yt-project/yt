@@ -156,9 +156,9 @@ class CameraTest(TestCase):
         cam.pitch(np.pi/10)
         cam.yaw(np.pi/10)
         cam.roll(np.pi/10)
-        for snap in cam.rotation(np.pi, 3, rot_vector=None):
+        for snap in cam.iter_rotate(np.pi, 3, rot_vector=None):
             snap
-        for snap in cam.rotation(np.pi, 3, rot_vector=np.random.random(3)):
+        for snap in cam.iter_rotate(np.pi, 3, rot_vector=np.random.random(3)):
             snap
         cam.snapshot('final.png')
         assert_fname('final.png')
