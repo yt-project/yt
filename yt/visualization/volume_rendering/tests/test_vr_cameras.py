@@ -143,13 +143,13 @@ class CameraTest(TestCase):
         cam.zoom(0.5)
         for snap in cam.iter_zoom(2.0, 3):
             snap
-        for snap in cam.iter_move(np.array(self.c) + 0.1, 3,
+        for snap in cam.moveto(np.array(self.c) + 0.1, 3,
                                 final_width=None, exponential=False):
             snap
-        for snap in cam.iter_move(np.array(self.c) - 0.1, 3,
+        for snap in cam.moveto(np.array(self.c) - 0.1, 3,
                                 final_width=2.0*self.W, exponential=False):
             snap
-        for snap in cam.iter_move(np.array(self.c), 3,
+        for snap in cam.moveto(np.array(self.c), 3,
                                 final_width=1.0*self.W, exponential=True):
             snap
         cam.rotate(np.pi/10)
