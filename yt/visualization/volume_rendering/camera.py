@@ -392,7 +392,7 @@ class Camera(Orientation):
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2])
 
-    def rotation(self, theta, n_steps, rot_vector=None):
+    def iter_rotate(self, theta, n_steps, rot_vector=None):
         r"""Loop over rotate, creating a rotation
 
         This will rotate `n_steps` until the current view has been
@@ -412,7 +412,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.rotation(np.pi, 10):
+        >>> for i in cam.iter_rotate(np.pi, 10):
         ...     im = sc.render("rotation_%04i.png" % i)
         """
 
@@ -421,8 +421,8 @@ class Camera(Orientation):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield i
 
-    def move_to(self, final, n_steps, exponential=False):
-        r"""Loop over a movement, creating a zoom or pan.
+    def iter_move(self, final, n_steps, exponential=False):
+        r"""Loop over an iter_move and return snapshots along the way.
 
         This will yield `n_steps` until the current view has been
         moved to a final center of `final`.
@@ -440,7 +440,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.move_to([0.2,0.3,0.6], 10):
+        >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
         ...     sc.render("move_%04i.png" % i)
         """
         assert isinstance(final, YTArray)
@@ -477,8 +477,8 @@ class Camera(Orientation):
         """
         self.set_width(self.width / factor)
 
-    def zoomin(self, final, n_steps):
-        r"""Loop over a zoomin and return snapshots along the way.
+    def iter_zoom(self, final, n_steps):
+        r"""Loop over a iter_zoom and return snapshots along the way.
 
         This will yield `n_steps` snapshots until the current view has been
         zooming in to a final factor of `final`.
@@ -494,7 +494,7 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.zoomin(100.0, 10):
+        >>> for i in cam.iter_zoom(100.0, 10):
         ...     sc.render("zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)

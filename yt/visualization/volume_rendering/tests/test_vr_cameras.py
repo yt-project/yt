@@ -141,24 +141,24 @@ class CameraTest(TestCase):
         cam = ds.camera(self.c, self.L, self.W, self.N, transfer_function=tf,
                         log_fields=[False], north_vector=[0., 0., 1.0])
         cam.zoom(0.5)
-        for snap in cam.zoomin(2.0, 3):
+        for snap in cam.iter_zoom(2.0, 3):
             snap
-        for snap in cam.move_to(np.array(self.c) + 0.1, 3,
+        for snap in cam.iter_move(np.array(self.c) + 0.1, 3,
                                 final_width=None, exponential=False):
             snap
-        for snap in cam.move_to(np.array(self.c) - 0.1, 3,
+        for snap in cam.iter_move(np.array(self.c) - 0.1, 3,
                                 final_width=2.0*self.W, exponential=False):
             snap
-        for snap in cam.move_to(np.array(self.c), 3,
+        for snap in cam.iter_move(np.array(self.c), 3,
                                 final_width=1.0*self.W, exponential=True):
             snap
         cam.rotate(np.pi/10)
         cam.pitch(np.pi/10)
         cam.yaw(np.pi/10)
         cam.roll(np.pi/10)
-        for snap in cam.rotation(np.pi, 3, rot_vector=None):
+        for snap in cam.iter_rotate(np.pi, 3, rot_vector=None):
             snap
-        for snap in cam.rotation(np.pi, 3, rot_vector=np.random.random(3)):
+        for snap in cam.iter_rotate(np.pi, 3, rot_vector=np.random.random(3)):
             snap
         cam.snapshot('final.png')
         assert_fname('final.png')

@@ -13,16 +13,16 @@ v, max_c = ds.find_max('density')
 
 frame = 0
 # Move to the maximum density location over 5 frames
-for _ in cam.move_to(max_c, 5):
+for _ in cam.iter_move(max_c, 5):
     sc.render('camera_movement_%04i.png' % frame, clip_ratio=8.0)
     frame += 1
 
 # Zoom in by a factor of 10 over 5 frames
-for _ in cam.zoomin(10.0, 5):
+for _ in cam.iter_zoom(10.0, 5):
     sc.render('camera_movement_%04i.png' % frame, clip_ratio=8.0)
     frame += 1
 
 # Do a rotation over 5 frames
-for _ in cam.rotation(np.pi, 5):
+for _ in cam.iter_rotate(np.pi, 5):
     sc.render('camera_movement_%04i.png' % frame, clip_ratio=8.0)
     frame += 1
