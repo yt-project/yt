@@ -502,17 +502,6 @@ class Camera(Orientation):
             self.zoom(f)
             yield i
 
-    def project_to_plane(self, pos, res=None):
-        if res is None:
-            res = self.resolution
-        dx = np.dot(pos - self.position.d, self.unit_vectors[1])
-        dy = np.dot(pos - self.position.d, self.unit_vectors[0])
-        dz = np.dot(pos - self.position.d, self.unit_vectors[2])
-        # Transpose into image coords.
-        py = (res[0]/2 + res[0]*(dx/self.width[0].d)).astype('int')
-        px = (res[1]/2 + res[1]*(dy/self.width[1].d)).astype('int')
-        return px, py, dz
-
     def __repr__(self):
         disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t" +
                 "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n") \
