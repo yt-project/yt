@@ -339,6 +339,8 @@ class LineSource(OpaqueSource):
 
         assert(positions.shape[1] == 2)
         assert(positions.shape[2] == 3)
+
+        # convert the positions to the shape expected by zlines, below
         N = positions.shape[0]
         self.positions = positions.reshape((2*N, 3))
 
