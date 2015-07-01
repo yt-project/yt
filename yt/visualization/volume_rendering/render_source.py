@@ -314,9 +314,12 @@ class LineSource(OpaqueSource):
 
         Parameters
         ----------
-        positions: array, shape (N, 3)
-            These positions, in data-space coordinates, are the points to be
-            connected with lines.
+        positions: array, shape (N, 2, 3)
+            These positions, in data-space coordinates, are the starting and
+            stopping points for each pair of lines. For example,
+            positions[0][0] and positions[0][1] would give the (x, y, z)
+            coordinates of the beginning and end points of the first line,
+            respectively.
         colors : array, shape (N, 4), optional
             The colors of the points, including an alpha channel, in floating
             point running from 0..1.  Note that they correspond to the line
@@ -333,7 +336,12 @@ class LineSource(OpaqueSource):
         """
 
         super(LineSource, self).__init__()
-        self.positions = positions
+
+        assert(positions.shape[1] == 2)
+        assert(positions.shape[2] == 3)
+        N = positions.shape[0]
+        self.positions = positions.reshape((2*N, 3))
+
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
@@ -398,6 +406,8 @@ class BoxSource(LineSource):
         vertices = np.empty([24, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
+
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
 
@@ -469,6 +479,7 @@ class GridsSource(LineSource):
         vertices = np.empty([corners.shape[2]*2*12, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
 
         super(GridsSource, self).__init__(vertices, colors, color_stride=24)
 
