@@ -201,7 +201,14 @@ def fake_random_ds(
 def fake_random_mesh_ds(nelems, nvertices, ndimensions=3, nslices=2):
     from yt.frontends.stream.api import load_unstructured_mesh
     # Create Fake Particle Data
-    data = []
+    data = fake_random_gas_ds(nelems, nvertices, nslices)
+    coordinates = np.random.random_sample((nelems, ndimensions))
+    connectivity = np.random.random_integers(nelems, size=(nelems, nvertices))
+    ds = load_unstructured_mesh(data, connectivity, coordinates)
+    return ds
+
+def fake_random_gas_ds(nelems, nvertices, nslices=2):
+    ds = []
     data_keys = [('gas', 'diffused'),
                  ('gas', 'convected'),
                  ('gas', 'conv_indicator'),
@@ -211,13 +218,8 @@ def fake_random_mesh_ds(nelems, nvertices, ndimensions=3, nslices=2):
         fake_data = {}
         for key in data_keys:
             fake_data[key] = np.random.random_sample((nelems, nvertices))
-        data.append(fake_data)
+        ds.append(fake_data)
 
-    coordinates = np.random.random_sample((nelems, ndimensions))
-
-    connectivity = np.random.random_integers(nelems, size=(nelems, nvertices))
-
-    ds = load_unstructured_mesh(data, connectivity, coordinates)
     return ds
 
 _geom_transforms = {

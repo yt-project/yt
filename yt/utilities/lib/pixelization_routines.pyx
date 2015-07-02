@@ -185,10 +185,10 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
-    
+
     imax = radius.argmax()
     rmax = radius[imax] + dradius[imax]
-          
+
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
         img[:] = np.nan
@@ -239,7 +239,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx 
+                    r_i += 0.5*dx
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -250,7 +250,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                     if img[pi, pj] != img[pi, pj]:
                         img[pi, pj] = 0.0
                     img[pi, pj] = field[i]
-                r_i += 0.5*dx 
+                r_i += 0.5*dx
             theta_i += dthetamin
 
     return img
@@ -289,7 +289,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
     nf = field.shape[0]
-    
+
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
         img[:] = np.nan
@@ -429,6 +429,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
+    debug = []
 
     # Two steps:
     #  1. Is image point within the mesh bounding box?
@@ -471,13 +472,14 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         else:
             idds[i] = 1.0 / dds[i]
 
+    # Go through each element
     for ci in range(conn.shape[0]):
         # Fill the vertices and compute the centroid
         centroid[0] = centroid[1] = centroid[2] = 0
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
 
-        for n in range(nvertices): # 8
+        for n in range(nvertices): # 8 for a hexahedral mesh, 4 for a tetrahedral
             cj = conn[ci, n] - index_offset
             for i in range(3):
                 vertices[n][i] = coords[cj, i]
@@ -521,12 +523,14 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
 
-                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
-                        continue
+#                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
+#                        continue
 
                     # Otherwise, we will add a pixel to the image buffer
+                    debug.append(field[ci])
                     img[pi, pj, pk] = field[ci]
-    return img
+
+    return debug,field, img
 
 def get_element_type(nvertices):
     if nvertices == 4:
@@ -537,5 +541,3 @@ def get_element_type(nvertices):
         return HEX_NF
     else:
         raise RuntimeError
-
-
