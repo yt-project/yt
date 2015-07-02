@@ -1,5 +1,6 @@
 import os
 import os.path
+import re
 import glob
 import sys
 import time
@@ -49,19 +50,22 @@ for subdir in REASON_DIRS:
     REASON_FILES.append((dir_name, files))
 
 # Verify that we have Cython installed
+with open(os.path.join("doc", "install_script.sh"), 'r') as fh:
+    cython_ver_regex = re.compile("^CYTHON='Cython-(\d+.\d+)'$")
+    REQ_CYTHON = \
+        [f.groups()[0] for f in map(cython_ver_regex.search,
+                                    fh.readlines()) if f][0]
 try:
     import Cython
-    if version.LooseVersion(Cython.__version__) < version.LooseVersion('0.16'):
-        needs_cython = True
-    else:
-        needs_cython = False
+    needs_cython = \
+        version.LooseVersion(Cython.__version__) < version.LooseVersion(REQ_CYTHON)
 except ImportError as e:
     needs_cython = True
 
 if needs_cython:
     print("Cython is a build-time requirement for the source tree of yt.")
     print("Please either install yt from a provided, release tarball,")
-    print("or install Cython (version 0.16 or higher).")
+    print("or install Cython (version %s or higher)." % REQ_CYTHON)
     print("You may be able to accomplish this by typing:")
     print("     pip install -U Cython")
     sys.exit(1)
