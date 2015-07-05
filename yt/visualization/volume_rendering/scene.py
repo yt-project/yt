@@ -17,7 +17,7 @@ from yt.funcs import mylog
 from yt.extern.six import iteritems, itervalues
 from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridsSource
+    GridSource
 from .zbuffer_array import ZBuffer
 
 
@@ -243,7 +243,7 @@ class Scene(object):
 
     def annotate_grids(self, data_source, alpha=0.3, cmap='algae',
                        min_level=None, max_level=None):
-        grids = GridsSource(data_source, alpha=alpha, cmap=cmap,
+        grids = GridSource(data_source, alpha=alpha, cmap=cmap,
                             min_level=min_level, max_level=max_level)
         self.add_source(grids)
         return self

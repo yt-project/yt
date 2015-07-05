@@ -224,7 +224,7 @@ class VolumeSource(RenderSource):
         return disp
 
 
-class PointsSource(OpaqueSource):
+class PointSource(OpaqueSource):
 
     _image = None
     data_source = None
@@ -249,7 +249,7 @@ class PointsSource(OpaqueSource):
 
         Examples
         --------
-        >>> source = PointsSource(particle_positions)
+        >>> source = PointSource(particle_positions)
 
         """
         self.positions = positions
@@ -385,7 +385,7 @@ class BoxSource(LineSource):
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
 
-class GridsSource(LineSource):
+class GridSource(LineSource):
     def __init__(self, data_source, alpha=0.3, cmap='alage',
                  min_level=None, max_level=None):
         r"""A render source for drawing grids in a scene.
@@ -409,7 +409,7 @@ class GridsSource(LineSource):
         Examples
         --------
         >>> dd = ds.sphere("c", (0.1, "unitary"))
-        >>> source = GridsSource(dd, alpha=1.0)
+        >>> source = GridSource(dd, alpha=1.0)
 
         """
         data_source = data_source_or_all(data_source)
@@ -454,7 +454,7 @@ class GridsSource(LineSource):
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
 
-        super(GridsSource, self).__init__(vertices, colors, color_stride=24)
+        super(GridSource, self).__init__(vertices, colors, color_stride=24)
 
 
 class CoordinateVectorSource(OpaqueSource):

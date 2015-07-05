@@ -226,7 +226,7 @@ Currently these surfaces are limited to lines and annotations, but in future
 versions of yt surfaces and texture mapped objects will be included.
 
 The primary objects now available for hard and opaque objects are 
-:class:`~yt.visualization.volume_rendering.api.PointsSource` and
+:class:`~yt.visualization.volume_rendering.api.PointSource` and
 :class:`~yt.visualization.volume_rendering.api.LineSource`.  These are useful
 if you want to annotate points, for instance by splatting a set of particles
 onto an image, or if you want to draw lines connecting different regions or
@@ -239,7 +239,7 @@ Annotations
 By annotating a visualization, additional information can be drawn out.  yt
 provides three annotations:
 :class:`~yt.visualization.volume_rendering.api.BoxSource`,
-:class:`~yt.visualization.volume_rendering.api.GridsSource`, and
+:class:`~yt.visualization.volume_rendering.api.GridSource`, and
 :class:`~yt.visualization.volume_rendering.api.CoordinateVectorSource`.  These
 annotations will operate in data space and can draw boxes, grid information,
 and also provide a vector orientation within the image.
