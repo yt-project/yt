@@ -250,8 +250,10 @@ Volume Rendering with Annotation
 
 This recipe demonstrates how to write the simulation time, show an
 axis triad indicating the direction of the coordinate system, and show
-the transfer function on a volume rendering.
-See :ref:`volume_rendering` for more information.
+the transfer function on a volume rendering.  Please note that this 
+recipe relies on the old volume rendering interface.  While one can
+continue to use this interface, it may be incompatible with some of the
+new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 
