@@ -826,13 +826,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
-    @property
-    def fcoords_vertex(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.fcoords_vertex
-
-
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
     _dimensionality = 0

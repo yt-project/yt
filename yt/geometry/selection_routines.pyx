@@ -387,6 +387,8 @@ cdef class SelectorObject:
         cdef int npoints, nv = mesh._connectivity_length
         cdef int total = 0
         cdef int offset = mesh._index_offset
+        if nv != 8:
+            raise RuntimeError
         coords = _ensure_code(mesh.connectivity_coords)
         indices = mesh.connectivity_indices
         npoints = indices.shape[0]
