@@ -28,7 +28,8 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
 from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
 from yt.convenience import load
-from yt.testing_data.sample_amr_index import _amr_grid_index
+from yt.sample_data.sample_amr_index import _amr_grid_index
+from yt.sample_data.sample_unstructured_mesh import _coordinates, _connectivity
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
