@@ -316,7 +316,7 @@ class SZProjection(object):
         >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
+        from yt.utilities.fits_image import FITSImageData
 
         dx = self.dx.in_units("kpc")
         dy = dx
@@ -328,10 +328,9 @@ class SZProjection(object):
         w.wcs.cunit = ["kpc"]*2
         w.wcs.ctype = ["LINEAR"]*2
 
+        fib = FITSImageData(self.data, fields=self.data.keys(), wcs=w)
         if sky_scale is not None and sky_center is not None:
-            w = create_sky_wcs(w, sky_center, sky_scale)
-
-        fib = FITSImageBuffer(self.data, fields=self.data.keys(), wcs=w)
+            fib.create_sky_wcs(sky_center, sky_scale)
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only

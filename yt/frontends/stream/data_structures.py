@@ -709,7 +709,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
             pdata = pdata_ftype
         # This will update the stream handler too
         assign_particle_data(sds, pdata)
-    
+
     return sds
 
 def load_amr_grids(grid_data, domain_dimensions,

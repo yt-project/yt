@@ -51,8 +51,11 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("X-magnfield", (b_units, ["magnetic_field_x"], None)),
         ("Y-magnfield", (b_units, ["magnetic_field_y"], None)),
         ("Z-magnfield", (b_units, ["magnetic_field_z"], None)),
-    )
-
+        ("directrad-dedt-density", (eden_units, ["directrad-dedt-density"], None)),
+        ("directrad-dpxdt-density", (mom_units, ["directrad-dpxdt-density"], None)),
+        ("directrad-dpydt-density", (mom_units, ["directrad-dpydt-density"], None)),
+        ("directrad-dpzdt-density", (mom_units, ["directrad-dpzdt-density"], None)),
+        )
     known_particle_fields = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
