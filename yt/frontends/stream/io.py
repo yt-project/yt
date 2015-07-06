@@ -256,6 +256,7 @@ class IOHandlerStreamOctree(BaseIOHandler):
                 subset.fill(field_vals, rv, selector, ind)
         return rv
 
+
 class IOHandlerStreamUnstructured(BaseIOHandler):
     _dataset_type = "stream_unstructured"
     _node_types = ("diffused", "convected")
@@ -267,11 +268,13 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         chunk = chunks[0]
+        mesh_id = chunk.objs[0].mesh_id
         rv = {}
         for field in fields:
             ftype, fname = field
+            nodes_per_element = self.fields[mesh_id][field].shape[1]
             if fname in self._node_types:
-                rv[field] = np.empty((size, 8), dtype="float64")
+                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
             else:
                 rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
