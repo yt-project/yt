@@ -199,13 +199,10 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_random_mesh_ds(nelems, nvertices, ndimensions=3, nslices=2):
+def fake_unstructured_tetrahedral_mesh_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
-    # Create Fake Particle Data
-    data = fake_random_gas_ds(nelems, nvertices, nslices)
-    coordinates = np.random.random_sample((nelems, ndimensions))
-    connectivity = np.random.random_integers(nelems, size=(nelems, nvertices))
-    ds = load_unstructured_mesh(data, connectivity, coordinates)
+    data = fake_random_gas_ds(_coordinates.shape[0], _connectivity.shape[1])
+    ds = load_unstructured_mesh(data, _connectivity, _coordinates)
     return ds
 
 def fake_random_gas_ds(nelems, nvertices, nslices=2):

@@ -429,7 +429,6 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
-    debug = []
 
     # Two steps:
     #  1. Is image point within the mesh bounding box?
@@ -523,14 +522,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
 
-#                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
-#                        continue
+                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
+                        continue
 
                     # Otherwise, we will add a pixel to the image buffer
-                    debug.append(field[ci])
                     img[pi, pj, pk] = field[ci]
 
-    return debug,field, img
+    return img
 
 def get_element_type(nvertices):
     if nvertices == 4:
