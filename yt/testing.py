@@ -199,12 +199,6 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_unstructured_tetrahedral_mesh_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
-    data = fake_random_gas_ds(_coordinates.shape[0], _connectivity.shape[1])
-    ds = load_unstructured_mesh(data, _connectivity, _coordinates)
-    return ds
-
 def fake_random_gas_ds(nelems, nvertices, nslices=2):
     ds = []
     data_keys = [('gas', 'diffused'),
