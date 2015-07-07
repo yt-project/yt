@@ -31,7 +31,10 @@ cdef class MeshSampler(ImageSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, YTEmbreeScene scene, int num_threads = 0):
+    def __call__(self, 
+                 YTEmbreeScene scene,
+                 mesh,
+                 int num_threads = 0):
         '''
 
         This function is supposed to cast the rays and return the
@@ -43,6 +46,7 @@ cdef class MeshSampler(ImageSampler):
         cdef int vi, vj, i, j, ni, nj, nn
         cdef np.int64_t offset
         cdef ImageContainer *im = self.image
+        cdef np.int64_t elemID
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
@@ -79,6 +83,7 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
+                elemID = ray.primID / 12
                 data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)

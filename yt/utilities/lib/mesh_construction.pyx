@@ -17,8 +17,10 @@ import numpy as np
 cdef extern from "mesh_construction.h":
     enum:
         MAX_NUM_TRI
-
+        
+    int HEX_NV
     int HEX_NT
+    int TETRA_NV
     int TETRA_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
@@ -65,8 +67,10 @@ cdef class TriangleMesh:
     cdef unsigned int mesh
     cdef Vec3f* field_data
     cdef rtcg.RTCFilterFunc filter_func
-    cdef int tpe
+    cdef int tpe, vpe
     cdef int[MAX_NUM_TRI][3] tri_array
+    cdef long[:,:] element_indices
+    cdef UserData user_data
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
@@ -85,7 +89,7 @@ cdef class TriangleMesh:
         # but also means we have exactly three times as many vertices as
         # triangles.
         cdef unsigned int mesh = rtcg.rtcNewTriangleMesh(scene.scene_i,
-                    rtcg.RTC_GEOMETRY_STATIC, nt, nt*3, 1) 
+                        rtcg.RTC_GEOMETRY_STATIC, nt, nt*3, 1) 
         
         cdef Vertex* vertices = <Vertex*> rtcg.rtcMapBuffer(scene.scene_i, mesh,
                         rtcg.RTC_VERTEX_BUFFER)
@@ -117,7 +121,7 @@ cdef class TriangleMesh:
         cdef int nt = tri_indices.shape[0]
 
         cdef unsigned int mesh = rtcg.rtcNewTriangleMesh(scene.scene_i,
-                    rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1) 
+                                        rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1)
 
         # set up vertex and triangle arrays. In this case, we just read
         # them directly from the inputs
@@ -182,14 +186,17 @@ cdef class ElementMesh(TriangleMesh):
                  np.ndarray indices,
                  np.ndarray data,
                  sampler_type):
+
         # We need now to figure out if we've been handed quads or tetrahedra.
         # If it's quads, we can build the mesh slightly differently.
         # http://stackoverflow.com/questions/23723993/converting-quadriladerals-in-an-obj-file-into-triangles
 
         if indices.shape[1] == 8:
+            self.vpe = HEX_NV
             self.tpe = HEX_NT
             self.tri_array = triangulate_hex
         elif indices.shape[1] == 4:
+            self.vpe = TETRA_NV
             self.tpe = TETRA_NT
             self.tri_array = triangulate_tetra
         else:
@@ -209,7 +216,7 @@ cdef class ElementMesh(TriangleMesh):
         cdef int nt = self.tpe*ne
 
         cdef unsigned int mesh = rtcg.rtcNewTriangleMesh(scene.scene_i,
-                    rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1) 
+                    rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1)
 
         # first just copy over the vertices
         cdef Vertex* vertices = <Vertex*> rtcg.rtcMapBuffer(scene.scene_i, mesh,
@@ -236,6 +243,7 @@ cdef class ElementMesh(TriangleMesh):
 
         self.vertices = vertices
         self.indices = triangles
+        self.element_indices = indices_in
         self.mesh = mesh
 
     cdef void _set_field_data(self, YTEmbreeScene scene,
@@ -252,9 +260,18 @@ cdef class ElementMesh(TriangleMesh):
                 field_data[ind].y = data_in[i][self.tri_array[j][1]]
                 field_data[ind].z = data_in[i][self.tri_array[j][2]]
 
-        rtcg.rtcSetUserData(scene.scene_i, self.mesh, field_data)
-
         self.field_data = field_data
+
+        cdef UserData user_data
+        user_data.vertices = self.vertices
+        user_data.indices = self.indices
+        user_data.field_data = self.field_data
+        user_data.element_indices = self.element_indices
+        user_data.tpe = self.tpe
+        user_data.vpe = self.vpe
+        self.user_data = user_data
+        
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.user_data)
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
@@ -268,6 +285,27 @@ cdef class ElementMesh(TriangleMesh):
         rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
                                               self.mesh,
                                               self.filter_func)
+
+    # def sample_mesh_element(self, rtcr.RTCRay& ray):
+    #     cdef int primID, elemID
+    #     primID = ray.primID
+    #     elemID = primID / self.tpe
+    #     position = np.empty(3, dtype=np.float64)
+
+    #     position[0] = ray.u*self.vertices[self.indices[primID].v0].x + \
+    #                   ray.v*self.vertices[self.indices[primID].v1].x  + \
+    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].x
+
+    #     position[1] = ray.u*self.vertices[self.indices[primID].v0].y + \
+    #                   ray.v*self.vertices[self.indices[primID].v1].y + \
+    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].y
+
+    #     position[2] = ray.u*self.vertices[self.indices[primID].v0].z + \
+    #                   ray.v*self.vertices[self.indices[primID].v1].z + \
+    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].z
+
+        
+        
 
     def __dealloc__(self):
         if self.field_data is not NULL:
