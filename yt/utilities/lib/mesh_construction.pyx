@@ -206,9 +206,6 @@ cdef class ElementMesh(TriangleMesh):
         cdef int i, j, ind
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
-
-        # There are six faces for every quad.  Each of those will be divided
-        # into two triangles.
         cdef int nt = self.tpe*ne
 
         cdef unsigned int mesh = rtcg.rtcNewTriangleMesh(scene.scene_i,
