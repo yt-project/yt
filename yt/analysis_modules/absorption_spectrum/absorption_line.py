@@ -18,8 +18,16 @@ from yt.utilities.physical_constants import \
     charge_proton_cgs, \
     mass_electron_cgs, \
     speed_of_light_cgs
+from yt.utilities.on_demand_imports import _scipy, NotAModule
 
-def voigt(a,u):
+special = _scipy.special
+
+def voigt_scipy(a, u):
+    x = np.asarray(u).astype(np.float64)
+    y = np.asarray(a).astype(np.float64)
+    return special.wofz(x + 1j * y).real
+
+def voigt_old(a, u):
     """
     NAME:
         VOIGT 
@@ -209,3 +217,8 @@ def tau_profile(lamba_0, f_value, gamma, v_doppler, column_density,
     tauphi = (tau0 * phi).in_units("")               # profile scaled with tau0
 
     return (lambda_bins, tauphi)
+
+if isinstance(special, NotAModule):
+    voigt = voigt_old
+else:
+    voigt = voigt_scipy
