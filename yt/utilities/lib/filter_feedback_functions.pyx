@@ -24,8 +24,8 @@ cdef double get_value_trilinear(void* userPtr,
     return d0*(1.0 - u - v) + d1*u + d2*v
 
 
-cdef double get_value_triangle(void* userPtr,
-                               rtcr.RTCRay& ray):
+cdef double sample_surface_triangle(void* userPtr,
+                                    rtcr.RTCRay& ray):
     cdef int ray_id, elem_id
     cdef double u, v, val
     cdef double d0, d1, d2

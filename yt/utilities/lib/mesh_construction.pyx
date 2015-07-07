@@ -6,7 +6,8 @@ cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
 from filter_feedback_functions cimport \
     maximum_intensity, \
-    sample_surface
+    sample_surface, \
+    sample_surface_triangle
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -275,7 +276,7 @@ cdef class ElementMesh(TriangleMesh):
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
-            self.filter_func = <rtcg.RTCFilterFunc> sample_surface
+            self.filter_func = <rtcg.RTCFilterFunc> sample_surface_triangle
         elif sampler_type == 'maximum':
             self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
         else:
@@ -286,26 +287,6 @@ cdef class ElementMesh(TriangleMesh):
                                               self.mesh,
                                               self.filter_func)
 
-    # def sample_mesh_element(self, rtcr.RTCRay& ray):
-    #     cdef int primID, elemID
-    #     primID = ray.primID
-    #     elemID = primID / self.tpe
-    #     position = np.empty(3, dtype=np.float64)
-
-    #     position[0] = ray.u*self.vertices[self.indices[primID].v0].x + \
-    #                   ray.v*self.vertices[self.indices[primID].v1].x  + \
-    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].x
-
-    #     position[1] = ray.u*self.vertices[self.indices[primID].v0].y + \
-    #                   ray.v*self.vertices[self.indices[primID].v1].y + \
-    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].y
-
-    #     position[2] = ray.u*self.vertices[self.indices[primID].v0].z + \
-    #                   ray.v*self.vertices[self.indices[primID].v1].z + \
-    #                   (1.0 - ray.u - ray.v)*self.vertices[self.indices[primID].v2].z
-
-        
-        
 
     def __dealloc__(self):
         if self.field_data is not NULL:
