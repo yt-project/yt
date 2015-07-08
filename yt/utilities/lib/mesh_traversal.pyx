@@ -47,6 +47,7 @@ cdef class MeshSampler(ImageSampler):
         cdef np.int64_t offset
         cdef ImageContainer *im = self.image
         cdef np.int64_t elemID
+        cdef np.float64_t value
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
@@ -83,8 +84,11 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
-                elemID = ray.primID / 12
-                data[j] = ray.time
+                if ray.primID == -1:
+                    data[j] = 0.0
+                else:
+                    value = mesh.sample_at_point(ray.u, ray.v, ray.primID)
+                    data[j] = value
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
         else:
@@ -107,7 +111,7 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
-                data[j] = ray.time
+                data[j] = ray.primID
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
             free(v_dir)

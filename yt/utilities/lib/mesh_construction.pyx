@@ -4,10 +4,11 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
+from yt.utilities.lib.element_mappings import Q1Sampler3D
 from filter_feedback_functions cimport \
     maximum_intensity, \
     sample_surface, \
-    sample_surface_triangle
+    sample_surface_hex
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -66,7 +67,8 @@ cdef class TriangleMesh:
     cdef Vertex* vertices
     cdef Triangle* indices
     cdef unsigned int mesh
-    cdef Vec3f* field_data
+#    cdef Vec3f* field_data
+    cdef double[:,:] field_data
     cdef rtcg.RTCFilterFunc filter_func
     cdef int tpe, vpe
     cdef int[MAX_NUM_TRI][3] tri_array
@@ -204,7 +206,7 @@ cdef class ElementMesh(TriangleMesh):
             raise NotImplementedError
 
         self._build_from_indices(scene, vertices, indices)
-        self.field_data = NULL
+#        self.field_data = NULL
         self._set_field_data(scene, data)
         self._set_sampler_type(scene, sampler_type)
 
@@ -250,18 +252,18 @@ cdef class ElementMesh(TriangleMesh):
     cdef void _set_field_data(self, YTEmbreeScene scene,
                               np.ndarray data_in):
 
-        cdef int ne = data_in.shape[0]
-        cdef int nt = self.tpe*ne
-        cdef Vec3f* field_data = <Vec3f *>malloc(nt * sizeof(Vec3f))
+        # cdef int ne = data_in.shape[0]
+        # cdef int nt = self.tpe*ne
+        # cdef Vec3f* field_data = <Vec3f *>malloc(nt * sizeof(Vec3f))
 
-        for i in range(ne):
-            for j in range(self.tpe):
-                ind = self.tpe*i+j
-                field_data[ind].x = data_in[i][self.tri_array[j][0]]
-                field_data[ind].y = data_in[i][self.tri_array[j][1]]
-                field_data[ind].z = data_in[i][self.tri_array[j][2]]
+        # for i in range(ne):
+        #     for j in range(self.tpe):
+        #         ind = self.tpe*i+j
+        #         field_data[ind].x = data_in[i][self.tri_array[j][0]]
+        #         field_data[ind].y = data_in[i][self.tri_array[j][1]]
+        #         field_data[ind].z = data_in[i][self.tri_array[j][2]]
 
-        self.field_data = field_data
+        self.field_data = data_in
 
         cdef UserData user_data
         user_data.vertices = self.vertices
@@ -276,18 +278,59 @@ cdef class ElementMesh(TriangleMesh):
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
-            self.filter_func = <rtcg.RTCFilterFunc> sample_surface_triangle
+            self.filter_func = <rtcg.RTCFilterFunc> sample_surface
         elif sampler_type == 'maximum':
             self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError
 
-        rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
-                                              self.mesh,
-                                              self.filter_func)
+#        rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
+#                                              self.mesh,
+#                                              self.filter_func)
+
+    def sample_at_point(self, double u, double v, int primID):
+        
+        cdef int elemID
+        position = self._get_hit_position(u, v, primID)
+        vertices = np.empty((8, 3), dtype=np.float64)
+        
+        elemID = primID / self.tpe
+        element_indices = self.element_indices[elemID]
+        field_data = np.asarray(self.field_data[elemID], dtype=np.float64)
+
+        for i in range(8):
+            vertices[i][0] = self.vertices[element_indices[i]].x
+            vertices[i][1] = self.vertices[element_indices[i]].y
+            vertices[i][2] = self.vertices[element_indices[i]].z    
+                             
+        sampler = Q1Sampler3D()
+        result = sampler.sample_at_real_point(position, vertices, field_data)
+
+        return result
 
 
-    def __dealloc__(self):
-        if self.field_data is not NULL:
-            free(self.field_data)
+    cdef np.ndarray _get_hit_position(self, double u, double v, int primID):
+
+        cdef Triangle tri
+        position = np.empty(3, dtype=np.float64)
+        vertices = np.empty((3, 3), dtype=np.float64)
+        
+        tri = self.indices[primID]
+
+        vertices[0][0] = self.vertices[tri.v0].x
+        vertices[0][1] = self.vertices[tri.v0].y
+        vertices[0][2] = self.vertices[tri.v0].z
+        
+        vertices[1][0] = self.vertices[tri.v1].x
+        vertices[1][1] = self.vertices[tri.v1].y
+        vertices[1][2] = self.vertices[tri.v1].z
+
+        vertices[2][0] = self.vertices[tri.v2].x
+        vertices[2][1] = self.vertices[tri.v2].y
+        vertices[2][2] = self.vertices[tri.v2].z
+
+        position = vertices[0]*(1.0 - u - v) + vertices[1]*u + vertices[2]*v
+
+        return position
+
