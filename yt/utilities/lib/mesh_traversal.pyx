@@ -87,7 +87,7 @@ cdef class MeshSampler(ImageSampler):
                 if ray.primID == -1:
                     data[j] = 0.0
                 else:
-                    value = mesh.sample_at_point(ray.u, ray.v, ray.primID)
+                    value = mesh.sample_triangular(ray.u, ray.v, ray.primID)
                     data[j] = value
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)

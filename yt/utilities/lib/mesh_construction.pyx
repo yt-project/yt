@@ -1,4 +1,5 @@
 cimport numpy as np
+cimport cython
 cimport pyembree.rtcore as rtc 
 from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
@@ -291,11 +292,22 @@ cdef class ElementMesh(TriangleMesh):
 
     def sample_at_point(self, double u, double v, int primID):
         
-        cdef int elemID
+        cdef int elemID, faceID
         position = self._get_hit_position(u, v, primID)
         vertices = np.empty((8, 3), dtype=np.float64)
         
         elemID = primID / self.tpe
+        # faceID = (primID % self.tpe) / 2
+        
+        # faces = np.array([[0, 1, 2, 3],
+        #                   [4, 5, 6, 7],
+        #                   [0, 1, 5, 4],
+        #                   [1, 2, 6, 5],
+        #                   [0, 3, 7, 4],
+        #                   [3, 2, 6, 7]])
+
+        # locs = faces[faceID]
+
         element_indices = self.element_indices[elemID]
         field_data = np.asarray(self.field_data[elemID], dtype=np.float64)
 
@@ -334,3 +346,22 @@ cdef class ElementMesh(TriangleMesh):
 
         return position
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def sample_triangular(self, double u, double v, int primID):
+
+        cdef int i, j
+        cdef double d0, d1, d2
+
+        i = primID / self.tpe
+        j = primID % self.tpe
+
+        d0 = self.field_data[i][self.tri_array[j][0]]
+        d1 = self.field_data[i][self.tri_array[j][1]]
+        d2 = self.field_data[i][self.tri_array[j][2]]
+
+        return d0*(1.0 - u - v) + d1*u + d2*v
+        
+        
