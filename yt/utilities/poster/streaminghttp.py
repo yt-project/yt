@@ -30,6 +30,19 @@ from __future__ import print_function
 import yt.extern.six.moves.http_client as http_client
 import yt.extern.six.moves.urllib as urllib
 import socket
+import sys
+
+def request_has_data(req):
+    if sys.version_info >= (3,0,0):
+        return hasattr(req, "data")
+    else:
+        return req.has_data()
+
+def request_get_data(req):
+    if sys.version_info >= (3,0,0):
+        return req.data
+    else:
+        return req.get_data()
 
 __all__ = ['StreamingHTTPConnection', 'StreamingHTTPRedirectHandler',
         'StreamingHTTPHandler', 'register_openers']
@@ -37,7 +50,7 @@ __all__ = ['StreamingHTTPConnection', 'StreamingHTTPRedirectHandler',
 if hasattr(http_client, 'HTTPS'):
     __all__.extend(['StreamingHTTPSHandler', 'StreamingHTTPSConnection'])
 
-class _StreamingHTTPMixin(object):
+class _StreamingHTTPMixin:
     """Mixin class for HTTP and HTTPS connections that implements a streaming
     send method."""
     def send(self, value):
@@ -89,6 +102,7 @@ class _StreamingHTTPMixin(object):
 class StreamingHTTPConnection(_StreamingHTTPMixin, http_client.HTTPConnection):
     """Subclass of `httplib.HTTPConnection` that overrides the `send()` method
     to support iterable body objects"""
+    pass
 
 class StreamingHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Subclass of `urllib2.HTTPRedirectHandler` that overrides the
@@ -148,8 +162,8 @@ class StreamingHTTPHandler(urllib.request.HTTPHandler):
         if we're using an interable value"""
         # Make sure that if we're using an iterable object as the request
         # body, that we've also specified Content-Length
-        if req.has_data():
-            data = req.get_data()
+        if request_has_data(req):
+            data = request_get_data(req)
             if hasattr(data, 'read') or hasattr(data, 'next'):
                 if not req.has_header('Content-length'):
                     raise ValueError(
@@ -174,8 +188,8 @@ if hasattr(http_client, 'HTTPS'):
         def https_request(self, req):
             # Make sure that if we're using an iterable object as the request
             # body, that we've also specified Content-Length
-            if req.has_data():
-                data = req.get_data()
+            if request_has_data(req):
+                data = request_get_data(req)
                 if hasattr(data, 'read') or hasattr(data, 'next'):
                     if not req.has_header('Content-length'):
                         raise ValueError(

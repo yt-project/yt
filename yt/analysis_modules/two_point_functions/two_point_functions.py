@@ -351,7 +351,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         if self.mine != 0:
             return
         self.recv_done = {}
-        for task in xrange(self.size):
+        for task in range(self.size):
             if task == self.mine: continue
             self.recv_done[task] = np.zeros(1, dtype='int64')
             self.done_hooks.append(self.comm.mpi_nonblocking_recv(self.recv_done[task], \

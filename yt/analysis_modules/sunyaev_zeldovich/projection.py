@@ -259,17 +259,17 @@ class SZProjection(object):
 
         nx, ny = self.nx,self.nx
         signal = np.zeros((self.num_freqs,nx,ny))
-        xo = np.zeros((self.num_freqs))
+        xo = np.zeros(self.num_freqs)
 
         k = int(0)
 
-        start_i = comm.rank*nx/comm.size
-        end_i = (comm.rank+1)*nx/comm.size
+        start_i = comm.rank*nx//comm.size
+        end_i = (comm.rank+1)*nx//comm.size
 
         pbar = get_pbar("Computing SZ signal.", nx*nx)
 
-        for i in xrange(start_i, end_i):
-            for j in xrange(ny):
+        for i in range(start_i, end_i):
+            for j in range(ny):
                 xo[:] = self.xinit[:]
                 SZpack.compute_combo_means(xo, tau[i,j], Te[i,j],
                                            bpar[i,j], omega1[i,j],
@@ -316,7 +316,7 @@ class SZProjection(object):
         >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
+        from yt.utilities.fits_image import FITSImageData
 
         dx = self.dx.in_units("kpc")
         dy = dx
@@ -328,10 +328,9 @@ class SZProjection(object):
         w.wcs.cunit = ["kpc"]*2
         w.wcs.ctype = ["LINEAR"]*2
 
+        fib = FITSImageData(self.data, fields=self.data.keys(), wcs=w)
         if sky_scale is not None and sky_center is not None:
-            w = create_sky_wcs(w, sky_center, sky_scale)
-
-        fib = FITSImageBuffer(self.data, fields=self.data.keys(), wcs=w)
+            fib.create_sky_wcs(sky_center, sky_scale)
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only
@@ -383,7 +382,7 @@ class SZProjection(object):
             cbar_label = self.display_names[field]
             units = self.data[field].units.latex_representation()
             if units is not None and units != "":
-                cbar_label += r'$\/\/('+units+r')$'
+                cbar_label += r'$\ \ ('+units+r')$'
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
             cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")

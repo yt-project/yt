@@ -18,9 +18,10 @@ import h5py
 import numpy as np
 import string, re, gc, time
 from yt.extern.six.moves import cPickle
+from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain, izip
+from itertools import chain
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -34,7 +35,8 @@ from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
+from .grid_container import \
+    GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 
@@ -136,7 +138,7 @@ class GridIndex(Index):
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
-        for level in xrange(self.max_level+1):
+        for level in range(self.max_level+1):
             self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
@@ -179,7 +181,7 @@ class GridIndex(Index):
                                            "# cells^3")
         print(header)
         print("%s" % (len(header.expandtabs())*"-"))
-        for level in xrange(MAXLEVEL):
+        for level in range(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
             print("% 3i\t% 6i\t% 14i\t% 14i" % \
@@ -247,7 +249,7 @@ class GridIndex(Index):
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def _get_grid_tree(self) :
+    def _get_grid_tree(self):
 
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                'code_length')
@@ -256,6 +258,7 @@ class GridIndex(Index):
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')
+        dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids) :
 
@@ -267,21 +270,23 @@ class GridIndex(Index):
             else :
                 parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
             num_children[i] = np.int64(len(grid.Children))
+            dimensions[i,:] = grid.ActiveDimensions
 
-        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
-                        level, num_children)
+        return GridTree(self.num_grids, left_edge, right_edge, dimensions,
+                        parent_ind, level, num_children)
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
+        fast_index = None
         def _gsort(g):
             if g.filename is None:
                 return g.id
             return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
-            dobj._chunk_info[0] = dobj
+            dobj._chunk_info[0] = weakref.proxy(dobj)
         elif getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
@@ -290,20 +295,29 @@ class GridIndex(Index):
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
+        # These next two lines, when uncommented, turn "on" the fast index.
+        #if dobj._type_name != "grid":
+        #    fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj)
+            dobj.size = self._count_selection(dobj, fast_index = fast_index)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
-        dobj._current_chunk = list(self._chunk_all(dobj, cache = False))[0]
+        dobj._current_chunk = list(self._chunk_all(dobj, cache = False,
+                                   fast_index = fast_index))[0]
 
-    def _count_selection(self, dobj, grids = None):
+    def _count_selection(self, dobj, grids = None, fast_index = None):
+        if fast_index is not None:
+            return fast_index.count(dobj.selector)
         if grids is None: grids = dobj._chunk_info
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _chunk_all(self, dobj, cache = True):
+    def _chunk_all(self, dobj, cache = True, fast_index = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache)
+        fast_index = fast_index or getattr(dobj._current_chunk, "_fast_index",
+            None)
+        yield YTDataChunk(dobj, "all", gobjs, dobj.size, 
+                        cache, fast_index = fast_index)
         
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -329,8 +343,8 @@ class GridIndex(Index):
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
     _grid_chunksize = 1000
-    def _chunk_io(self, dobj, cache = True, local_only = False,
-                  preload_fields = None):
+    def _chunk_io(self, dobj, cache=True, local_only=False,
+                  preload_fields=None, chunk_sizing="auto"):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
         if preload_fields is None:
@@ -338,20 +352,35 @@ class GridIndex(Index):
         preload_fields, _ = self._split_fields(preload_fields)
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        fast_index = dobj._current_chunk._fast_index
         for g in gobjs:
             gfiles[g.filename].append(g)
-        for fn in sorted(gfiles):
-            # We can apply a heuristic here to make sure we aren't loading too
-            # many grids all at once.
-            gs = gfiles[fn]
+        # We can apply a heuristic here to make sure we aren't loading too
+        # many grids all at once.
+        if chunk_sizing == "auto":
+            chunk_ngrids = len(gobjs)
+            if chunk_ngrids > 0:
+                nproc = np.float(ytcfg.getint("yt", "__global_parallel_size"))
+                chunking_factor = np.ceil(self._grid_chunksize*nproc/chunk_ngrids).astype("int")
+                size = max(self._grid_chunksize//chunking_factor, 1)
+            else:
+                size = self._grid_chunksize
+        elif chunk_sizing == "config_file":
+            size = ytcfg.getint("yt", "chunk_size")
+        elif chunk_sizing == "just_one":
+            size = 1
+        elif chunk_sizing == "old":
             size = self._grid_chunksize
-            
+        else:
+            raise RuntimeError("%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing)
+        for fn in sorted(gfiles):
+            gs = gfiles[fn]
             for grids in (gs[pos:pos + size] for pos
-                          in xrange(0, len(gs), size)):
+                          in range(0, len(gs), size)):
                 dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
-                        cache = cache)
+                        cache = cache, fast_index = fast_index)
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 
-                            4.0 * self._grid_chunksize):
+                            4.0 * size):
                     yield dc

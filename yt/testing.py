@@ -158,8 +158,8 @@ def fake_random_ds(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
+        particle_fields=None, particle_field_units=None,
         negative = False, nprocs = 1, particles = 0, length_unit=1.0):
-    from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -182,11 +182,18 @@ def fake_random_ds(
             v = v.ravel()
         data[field] = (v, u)
     if particles:
-        for f in ('particle_position_%s' % ax for ax in 'xyz'):
-            data[f] = (np.random.uniform(size = particles), 'code_length')
-        for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-            data[f] = (np.random.random(size = particles) - 0.5, 'cm/s')
-        data['particle_mass'] = (np.random.random(particles), 'g')
+        if particle_fields is not None:
+            for field, unit in zip(particle_fields, particle_field_units):
+                if field in ('particle_position', 'particle_velocity'):
+                    data['io', field] = (np.random.random((particles, 3)), unit)
+                else:
+                    data['io', field] = (np.random.random(size=particles), unit)
+        else:
+            for f in ('particle_position_%s' % ax for ax in 'xyz'):
+                data['io', f] = (np.random.random(size=particles), 'code_length')
+            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+                data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
+            data['io', 'particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug

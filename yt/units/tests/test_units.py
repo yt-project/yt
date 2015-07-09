@@ -72,14 +72,14 @@ def test_dimensionless():
 
     yield assert_true, u1.is_dimensionless
     yield assert_true, u1.expr == 1
-    yield assert_true, u1.cgs_value == 1
+    yield assert_true, u1.base_value == 1
     yield assert_true, u1.dimensions == 1
 
     u2 = Unit("")
 
     yield assert_true, u2.is_dimensionless
     yield assert_true, u2.expr == 1
-    yield assert_true, u2.cgs_value == 1
+    yield assert_true, u2.base_value == 1
     yield assert_true, u2.dimensions == 1
 
 #
@@ -94,32 +94,32 @@ def test_create_from_string():
 
     u1 = Unit("g * cm**2 * s**-2")
     yield assert_true, u1.dimensions == energy
-    yield assert_true, u1.cgs_value == 1.0
+    yield assert_true, u1.base_value == 1.0
 
     # make sure order doesn't matter
     u2 = Unit("cm**2 * s**-2 * g")
     yield assert_true, u2.dimensions == energy
-    yield assert_true, u2.cgs_value == 1.0
+    yield assert_true, u2.base_value == 1.0
 
     # Test rationals
     u3 = Unit("g**0.5 * cm**-0.5 * s**-1")
     yield assert_true, u3.dimensions == magnetic_field
-    yield assert_true, u3.cgs_value == 1.0
+    yield assert_true, u3.base_value == 1.0
 
     # sqrt functions
     u4 = Unit("sqrt(g)/sqrt(cm)/s")
     yield assert_true, u4.dimensions == magnetic_field
-    yield assert_true, u4.cgs_value == 1.0
+    yield assert_true, u4.base_value == 1.0
 
     # commutative sqrt function
     u5 = Unit("sqrt(g/cm)/s")
     yield assert_true, u5.dimensions == magnetic_field
-    yield assert_true, u5.cgs_value == 1.0
+    yield assert_true, u5.base_value == 1.0
 
     # nonzero CGS conversion factor
     u6 = Unit("Msun/pc**3")
     yield assert_true, u6.dimensions == mass/length**3
-    yield assert_array_almost_equal_nulp, np.array([u6.cgs_value]), \
+    yield assert_array_almost_equal_nulp, np.array([u6.base_value]), \
         np.array([mass_sun_grams/cm_per_pc**3])
 
     yield assert_raises, UnitParseError, Unit, 'm**m'
@@ -154,10 +154,10 @@ def test_create_from_expr():
     yield assert_true, u3.expr == s3
     yield assert_true, u4.expr == s4
 
-    yield assert_allclose, u1.cgs_value, pc_cgs, 1e-12
-    yield assert_allclose, u2.cgs_value, yr_cgs, 1e-12
-    yield assert_allclose, u3.cgs_value, pc_cgs * yr_cgs, 1e-12
-    yield assert_allclose, u4.cgs_value, pc_cgs**2 / yr_cgs, 1e-12
+    yield assert_allclose, u1.base_value, pc_cgs, 1e-12
+    yield assert_allclose, u2.base_value, yr_cgs, 1e-12
+    yield assert_allclose, u3.base_value, pc_cgs * yr_cgs, 1e-12
+    yield assert_allclose, u4.base_value, pc_cgs**2 / yr_cgs, 1e-12
 
     yield assert_true, u1.dimensions == length
     yield assert_true, u2.dimensions == time
@@ -176,10 +176,10 @@ def test_create_with_duplicate_dimensions():
     km_cgs = cm_per_km
     Mpc_cgs = cm_per_mpc
 
-    yield assert_true, u1.cgs_value == 1
+    yield assert_true, u1.base_value == 1
     yield assert_true, u1.dimensions == power
 
-    yield assert_allclose, u2.cgs_value, km_cgs / Mpc_cgs, 1e-12
+    yield assert_allclose, u2.base_value, km_cgs / Mpc_cgs, 1e-12
     yield assert_true, u2.dimensions == rate
 
 def test_create_new_symbol():
@@ -187,36 +187,36 @@ def test_create_new_symbol():
     Create unit with unknown symbol.
 
     """
-    u1 = Unit("abc", cgs_value=42, dimensions=(mass/time))
+    u1 = Unit("abc", base_value=42, dimensions=(mass/time))
 
     yield assert_true, u1.expr == Symbol("abc", positive=True)
-    yield assert_true, u1.cgs_value == 42
+    yield assert_true, u1.base_value == 42
     yield assert_true, u1.dimensions == mass / time
 
-    u1 = Unit("abc", cgs_value=42, dimensions=length**3)
+    u1 = Unit("abc", base_value=42, dimensions=length**3)
 
     yield assert_true, u1.expr == Symbol("abc", positive=True)
-    yield assert_true, u1.cgs_value == 42
+    yield assert_true, u1.base_value == 42
     yield assert_true, u1.dimensions == length**3
 
-    u1 = Unit("abc", cgs_value=42, dimensions=length*(mass*length))
+    u1 = Unit("abc", base_value=42, dimensions=length*(mass*length))
 
     yield assert_true, u1.expr == Symbol("abc", positive=True)
-    yield assert_true, u1.cgs_value == 42
+    yield assert_true, u1.base_value == 42
     yield assert_true,  u1.dimensions == length**2*mass
 
-    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+    assert_raises(UnitParseError, Unit, 'abc', base_value=42,
                   dimensions=length**length)
-    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+    assert_raises(UnitParseError, Unit, 'abc', base_value=42,
                   dimensions=length**(length*length))
-    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+    assert_raises(UnitParseError, Unit, 'abc', base_value=42,
                   dimensions=length-mass)
-    assert_raises(UnitParseError, Unit, 'abc', cgs_value=42,
+    assert_raises(UnitParseError, Unit, 'abc', base_value=42,
                   dimensions=length+mass)
 
 def test_create_fail_on_unknown_symbol():
     """
-    Fail to create unit with unknown symbol, without cgs_value and dimensions.
+    Fail to create unit with unknown symbol, without base_value and dimensions.
 
     """
     try:
@@ -244,7 +244,7 @@ def test_create_fail_on_bad_dimensions_type():
 
     """
     try:
-        u1 = Unit("a", cgs_value=1, dimensions="(mass)")
+        u1 = Unit("a", base_value=1, dimensions="(mass)")
     except UnitParseError:
         yield assert_true, True
     else:
@@ -259,20 +259,20 @@ def test_create_fail_on_dimensions_content():
     a = Symbol("a")
 
     try:
-        u1 = Unit("a", cgs_value=1, dimensions=a)
+        u1 = Unit("a", base_value=1, dimensions=a)
     except UnitParseError:
         pass
     else:
-        yield asser_true, False
+        yield assert_true, False
 
 
-def test_create_fail_on_cgs_value_type():
+def test_create_fail_on_base_value_type():
     """
-    Fail to create unit with bad cgs_value type.
+    Fail to create unit with bad base_value type.
 
     """
     try:
-        u1 = Unit("a", cgs_value="a", dimensions=(mass/time))
+        u1 = Unit("a", base_value="a", dimensions=(mass/time))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -323,7 +323,7 @@ def test_multiplication():
     u3 = u1 * u2
 
     yield assert_true, u3.expr == msun_sym * pc_sym
-    yield assert_allclose, u3.cgs_value, msun_cgs * pc_cgs, 1e-12
+    yield assert_allclose, u3.base_value, msun_cgs * pc_cgs, 1e-12
     yield assert_true, u3.dimensions == mass * length
 
     # Pow and Mul operations
@@ -333,7 +333,7 @@ def test_multiplication():
     u6 = u4 * u5
 
     yield assert_true, u6.expr == pc_sym**2 * msun_sym * s_sym
-    yield assert_allclose, u6.cgs_value, pc_cgs**2 * msun_cgs, 1e-12
+    yield assert_allclose, u6.base_value, pc_cgs**2 * msun_cgs, 1e-12
     yield assert_true, u6.dimensions == length**2 * mass * time
 
 
@@ -357,7 +357,7 @@ def test_division():
     u3 = u1 / u2
 
     yield assert_true, u3.expr == pc_sym / (km_sym * s_sym)
-    yield assert_allclose, u3.cgs_value, pc_cgs / km_cgs, 1e-12
+    yield assert_allclose, u3.base_value, pc_cgs / km_cgs, 1e-12
     yield assert_true, u3.dimensions == 1 / time
 
 
@@ -376,17 +376,17 @@ def test_power():
     u2 = u1**2
 
     yield assert_true, u2.dimensions == u1_dims**2
-    yield assert_allclose, u2.cgs_value, (pc_cgs**2 * mK_cgs**4)**2, 1e-12
+    yield assert_allclose, u2.base_value, (pc_cgs**2 * mK_cgs**4)**2, 1e-12
 
     u3 = u1**(-1.0/3)
 
     yield assert_true, u3.dimensions == nsimplify(u1_dims**(-1.0/3))
-    yield assert_allclose, u3.cgs_value, (pc_cgs**2 * mK_cgs**4)**(-1.0/3), 1e-12
+    yield assert_allclose, u3.base_value, (pc_cgs**2 * mK_cgs**4)**(-1.0/3), 1e-12
 
 
 def test_equality():
     """
-    Check unit equality with different symbols, but same dimensions and cgs_value.
+    Check unit equality with different symbols, but same dimensions and base_value.
 
     """
     u1 = Unit("km * s**-1")
@@ -398,9 +398,9 @@ def test_equality():
 # End operation tests.
 #
 
-def test_cgs_equivalent():
+def test_base_equivalent():
     """
-    Check cgs equivalent of a unit.
+    Check base equivalent of a unit.
 
     """
     Msun_cgs = mass_sun_grams
@@ -408,14 +408,14 @@ def test_cgs_equivalent():
 
     u1 = Unit("Msun * Mpc**-3")
     u2 = Unit("g * cm**-3")
-    u3 = u1.get_cgs_equivalent()
+    u3 = u1.get_base_equivalent()
 
     yield assert_true, u2.expr == u3.expr
     yield assert_true, u2 == u3
 
-    yield assert_allclose, u1.cgs_value, Msun_cgs / Mpc_cgs**3, 1e-12
-    yield assert_true, u2.cgs_value == 1
-    yield assert_true, u3.cgs_value == 1
+    yield assert_allclose, u1.base_value, Msun_cgs / Mpc_cgs**3, 1e-12
+    yield assert_true, u2.base_value == 1
+    yield assert_true, u3.base_value == 1
 
     mass_density = mass / length**3
 

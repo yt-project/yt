@@ -1,5 +1,5 @@
 """
-Tipsy tests using the OWLS HDF5-Gadget dataset
+OWLS frontend tests using the snapshot_033 dataset
 
 
 

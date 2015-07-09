@@ -44,10 +44,10 @@ def full_szpack3d(ds, xo):
     Te = data["kT"].ndarray_view()
     betac = np.array(data["velocity_z"]/clight)
     pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
-    for i in xrange(nx):
+    for i in range(nx):
         pbar.update(i)
-        for j in xrange(ny):
-            for k in xrange(nz):
+        for j in range(ny):
+            for k in range(nz):
                 dn[i,j,k] = SZpack.compute_3d(xo, Dtau[i,j,k],
                                               Te[i,j,k], betac[i,j,k],
                                               1.0, 0.0, 0.0, 1.0e-5)
@@ -102,7 +102,7 @@ def test_projection():
     szprj = SZProjection(ds, freqs, mue=mue, high_order=True)
     szprj.on_axis(2, nx=nx)
     deltaI = np.zeros((3,nx,ny))
-    for i in xrange(3):
+    for i in range(3):
         deltaI[i,:,:] = full_szpack3d(ds, xinit[i])
         yield assert_almost_equal, deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6
 

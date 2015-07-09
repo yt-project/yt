@@ -137,6 +137,11 @@ def test_profiles():
         p1d.add_fields(["ones"])
         yield assert_equal, p1d["ones"], np.ones(nb)
 
+        # Verify we can access "ones" after adding a new field
+        # See issue 988
+        p1d.add_fields(["density"])
+        yield assert_equal, p1d["ones"], np.ones(nb)
+
         p2d = Profile2D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
                             weight_field = None)

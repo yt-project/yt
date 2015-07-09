@@ -39,7 +39,7 @@ class UnitRegistry:
     def __contains__(self, item):
         return item in self.lut
 
-    def add(self, symbol, cgs_value, dimensions, tex_repr=None):
+    def add(self, symbol, base_value, dimensions, tex_repr=None):
         """
         Add a symbol to this registry.
 
@@ -47,9 +47,9 @@ class UnitRegistry:
         from yt.units.unit_object import validate_dimensions
 
         # Validate
-        if not isinstance(cgs_value, float):
-            raise UnitParseError("cgs_value must be a float, got a %s."
-                                 % type(cgs_value))
+        if not isinstance(base_value, float):
+            raise UnitParseError("base_value must be a float, got a %s."
+                                 % type(base_value))
 
         validate_dimensions(dimensions)
 
@@ -59,7 +59,7 @@ class UnitRegistry:
         latex_symbol_lut.setdefault(symbol, tex_repr)
 
         # Add to lut
-        self.lut.update({symbol: (cgs_value, dimensions)})
+        self.lut.update({symbol: (base_value, dimensions)})
 
     def remove(self, symbol):
         """
@@ -73,9 +73,9 @@ class UnitRegistry:
 
         del self.lut[symbol]
 
-    def modify(self, symbol, cgs_value):
+    def modify(self, symbol, base_value):
         """
-        Change the cgs value of a dimension.  Useful for adjusting code units
+        Change the base value of a dimension.  Useful for adjusting code units
         after parsing parameters."
 
         """
@@ -84,9 +84,9 @@ class UnitRegistry:
                 "Tried to modify the symbol '%s', but it does not exist" \
                 "in this registry." % symbol)
 
-        if hasattr(cgs_value, "in_cgs"):
-            cgs_value = float(cgs_value.in_cgs().value)
-        self.lut[symbol] = (cgs_value, self.lut[symbol][1])
+        if hasattr(base_value, "in_base"):
+            base_value = float(base_value.in_base().value)
+        self.lut[symbol] = (base_value, self.lut[symbol][1])
 
     def keys(self):
         """

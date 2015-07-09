@@ -5,9 +5,9 @@ How to Develop yt
 
 .. note:: If you already know how to use version control and are comfortable
    with handling it yourself, the quickest way to contribute to yt is to `fork
-   us on BitBucket <http://hg.yt-project.org/yt/fork>`_, `make your changes
+   us on BitBucket <http://bitbucket.org/yt_analysis/yt/fork>`_, `make your changes
    <http://mercurial.selenic.com/>`_, and issue a `pull request
-   <http://hg.yt-project.org/yt/pull>`_.  The rest of this document is just an
+   <http://bitbucket.org/yt_analysis/yt/pull-requests>`_.  The rest of this document is just an
    explanation of how to do that.
 
 yt is a community project!
@@ -134,7 +134,7 @@ for using mercurial with yt:
   process from BitBucket's website.
 * In all likelihood, you only need one fork.  To keep it in sync, you can
   sync from the website.  (See Bitbucket's `Blog Post
-  <http://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
+  <https://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
   about this.)
 * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
   list.
@@ -354,7 +354,7 @@ How To Get The Source Code For Editing
 --------------------------------------
 
 yt is hosted on BitBucket, and you can see all of the yt repositories at
-http://hg.yt-project.org/.  With the yt installation script you should have a
+http://bitbucket.org/yt_analysis/.  With the yt installation script you should have a
 copy of Mercurial for checking out pieces of code.  Make sure you have followed
 the steps above for bootstrapping your development (to assure you have a
 bitbucket account, etc.)

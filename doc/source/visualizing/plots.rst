@@ -23,10 +23,12 @@ Slices & Projections
 --------------------
 
 If you need to take a quick look at a single simulation output, yt
-provides the ``PlotWindow`` interface for generating annotated 2D
-visualizations of simulation data.  You can create a ``PlotWindow`` plot by
+provides the :class:`~yt.visualization.plot_window.PlotWindow` interface for 
+generating annotated 2D visualizations of simulation data.  You can create a 
+:class:`~yt.visualization.plot_window.PlotWindow` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
-create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, 
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
@@ -39,9 +41,12 @@ is requested of it -- for instance, when the width or field is changed
 of fixed size. This is accomplished behind the scenes using
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`.
 
-``PlotWindow`` expose the underlying matplotlib ``figure`` and
-``axes`` objects, making it easy to customize your plots and 
-add new annotations.
+The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the 
+underlying matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+objects, making it easy to customize your plots and 
+add new annotations.  See :ref:`matplotlib-customization` for more information.
 
 .. _slice-plots:
 
@@ -433,6 +438,29 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+
+.. _hiding-colorbar-and-axes:
+
+Hiding the Colorbar and Axis Labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :class:`~yt.visualization.plot_window.PlotWindow` class has functions
+attached for hiding/showing the colorbar and axes.  This allows for making
+minimal plots that focus on the data:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.hide_colorbar()
+   slc.hide_axes()
+   slc.save()
+
+See the cookbook recipe :ref:`show-hide-axes-colorbar` and the 
+`full function description ~yt.visualization.plot_window.PlotWindow` for more
+information.
+
 Fonts
 ~~~~~
 
@@ -582,10 +610,11 @@ function for the colorbar axis.
 Further customization via matplotlib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each ``PlotWindow`` object is really a container for plots - one plot for each
-field specified in the list of fields supplied when the plot object is
-created. The individual plots can be accessed via the ``plots`` dictionary
-attached to each ``PlotWindow`` object:
+Each :class:`~yt.visualization.plot_window.PlotWindow` object is really a 
+container for plots - one plot for each field specified in the list of fields 
+supplied when the plot object is created. The individual plots can be 
+accessed via the ``plots`` dictionary attached to each 
+:class:`~yt.visualization.plot_window.PlotWindow` object:
 
 .. code-block:: python
 
@@ -594,7 +623,11 @@ attached to each ``PlotWindow`` object:
 
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
-matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib primitives via attributes of ``dens_plot``.
+matplotlib 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+objects.  We can access these matplotlib primitives via attributes of 
+``dens_plot``.  
 
 .. code-block:: python
 
@@ -602,10 +635,12 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
     axes = dens_plot.axes
     colorbar_axes = dens_plot.cax
 
-These are the ``figure``, and ``axes`` objects
-that control the actual drawing of the plot.  Arbitrary plot customizations
-are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
-an example.
+These are the 
+`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_ 
+and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_ 
+objects that control the actual drawing of the plot.  Arbitrary plot 
+customizations are possible by manipulating these objects.  See 
+:ref:`matplotlib-primitives` for an example.
 
 .. _how-to-make-1d-profiles:
 
@@ -944,6 +979,206 @@ setting ``accumulation`` to ``-True``.  For ``PhasePlot``, the accumulation can
 be set independently for each axis by setting ``accumulation`` to a list of
 ``True``/ ``-True`` /``False`` values.
 
+.. _particle-plots:
+
+Particle Plots
+--------------
+
+Slice and projection plots both provide a callback for over-plotting particle
+positions onto gas fields. However, sometimes you want to plot the particle 
+quantities by themselves, perhaps because the gas fields are not relevant to 
+the your point, or perhaps because your dataset doesn't contain any gas fields 
+in the first place. Additionally, you may want to plot your particles with a 
+third field, such as particle mass or age,  mapped to a colorbar. 
+:class:`~yt.visualization.particle_plots.ParticlePlot` provides a convenient 
+way to do this in yt. 
+
+The easiest way to make a :class:`~yt.visualization.particle_plots.ParticlePlot` 
+is to use the convenience routine. This has the syntax:
+
+.. code-block:: python
+
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.save()
+
+Here, ``ds`` is a dataset we've previously opened. The commands create a particle
+plot that shows the x and y positions of all the particles in ``ds`` and save the 
+result to a file on the disk. The type of plot returned depends on the fields you 
+pass in; in this case, ``p`` will be an :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`, 
+because the fields are aligned to the coordinate system of the simulation. 
+
+Most of the callbacks the work for slice and projection plots also work for
+:class:`~yt.visualization.particle_plots.ParticleProjectionPlot`.
+For instance, we can zoom in:
+
+.. code-block:: python
+   
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.zoom(10)
+   p.save('zoom')
+
+change the width:
+
+.. code-block:: python
+
+   p.set_width((500, 'kpc'))
+
+or change the axis units:
+
+.. code-block:: python
+
+   p.set_unit('particle_position_x', 'Mpc')
+
+Here is a full example that shows the simplest way to use 
+:class:`~yt.visualization.particle_plots.ParticlePlot`:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p.save()
+
+In the above examples, we are simply splatting particle x and y positions onto 
+a plot using some color. We can also supply an additional particle field, and map
+that to a colorbar. For instance:
+
+.. code-block:: python
+
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y', 
+                           'particle_mass', width=(0.5, 0.5))
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+will create a plot with the particle mass used to set the colorbar. 
+Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot` 
+shows the total ``z_field`` for all the partices in each pixel on the 
+colorbar axis; to plot average quantities instead, one can supply a 
+``weight_field`` argument. 
+
+Here is a complete example that uses the ``particle_mass`` field
+to set the colorbar and shows off some of the modification functions for 
+:class:`~yt.visualization.particle_plots.ParticleProjectionPlot`:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y', 
+                       'particle_mass', width=(0.5, 0.5))
+   p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
+   p.annotate_title('Zoomed-in Particle Plot')
+   p.save()
+
+If the fields passed in to :class:`~yt.visualization.particle_plots.ParticlePlot` 
+do not correspond to a valid :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`, 
+a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` will be returned instead.
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot` is used to plot arbitrary particle 
+fields against each other, and do not support some of the callbacks available in 
+:class:`~yt.visualization.particle_plots.ParticleProjectionPlot` -
+for instance, :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` and 
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` don't make much sense when of your axes is a position
+and the other is a velocity. The modification functions defined for :class:`~yt.visualization.profile_plotter.PhasePlot` 
+should all work, however.
+
+Here is an example of making a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` 
+of ``particle_position_x`` versus ``particle_velocity_z``, with the ``particle_mass`` on the colorbar:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z', ['particle_mass'])
+   p.set_unit('particle_position_x', 'Mpc')
+   p.set_unit('particle_velocity_z', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+and here is one with the particle x and y velocities on the plot axes:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_velocity_x', 'particle_velocity_y', 'particle_mass')
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+   p.save()
+
+If you want more control over the details of the :class:`~yt.visualization.particle_plots.ParticleProjectionPlot` or 
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot`, you can always use these classes directly. For instance, 
+here is an example of using the ``depth`` argument to :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`
+to only plot the particles that live in a thin slice around the center of the
+domain:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   p = yt.ParticleProjectionPlot(ds, 2, ['particle_mass'], width=(0.5, 0.5), depth=0.01)
+   p.set_unit('particle_mass', 'Msun')
+   p.save()
+
+and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
+to only consider the particles that lie within a 50 kpc sphere around the domain center:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   my_sphere = ds.sphere("c", (50.0, "kpc"))
+
+   p = yt.ParticlePhasePlot(my_sphere, "particle_velocity_x", "particle_velocity_y",
+                            "particle_mass")
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+
+   p.save()
+
+Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`
+object seperately using the :func:`~yt.data_objects.profiles.create_profile` function, and then use it
+create a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` object using the 
+:meth:`~yt.visualization.particle_plots.ParticlePhasePlot.from_profile` method. In this example,
+we have also used the ``weight_field`` argument to compute the average ``particle_mass`` in each
+pixel, instead of the total:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   ad = ds.all_data()
+
+   profile = yt.create_profile(ad, ['particle_velocity_x', 'particle_velocity_y'], ['particle_mass'], 
+                               n_bins=800, weight_field='particle_ones')
+
+   p = yt.ParticlePhasePlot.from_profile(profile)
+   p.set_unit('particle_velocity_x', 'km/s')
+   p.set_unit('particle_velocity_y', 'km/s')
+   p.set_unit('particle_mass', 'Msun')
+   p.set_ylim(-400, 400)
+   p.set_xlim(-400, 400)
+   p.save()
+
+Under the hood, the :class:`~yt.data_objects.profiles.ParticleProfile` class works a lot like a 
+:class:`~yt.data_objects.profiles.Profile2D` object, except that instead of just binning the 
+particle field, you can also use higher-order deposition functions like the cloud-in-cell 
+interpolant to spread out the particle quantites over a few cells in the profile. The 
+:func:`~yt.data_objects.profiles.create_profile` will automatically detect when all the fields
+you pass in are particle fields, and return a :class:`~yt.data_objects.profiles.ParticleProfile`
+if that is the case. For a complete description of the :class:`~yt.data_objects.profiles.ParticleProfile`
+class please consult the reference documentation.
+
 .. _interactive-plotting:
 
 Interactive Plotting
@@ -973,6 +1208,81 @@ plot and then call ``.show()`` and the image will appear inline:
                       weight_field='density')
    p.set_figure_size(5)
    p.show()
+
+.. _saving_plots:
+
+Saving Plots
+------------
+
+If you want to save your yt plots, you have a couple of options for customizing 
+the plot filenames. If you don't care what the filenames are, just calling the
+``save`` method with no additional arguments usually suffices:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
+   slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
+   slc.save()
+   
+which will yield PNG plots with the filenames
+
+.. code-block:: bash
+
+   $ ls *.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_density.png
+   sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_kT.png
+
+which has a general form of
+
+.. code-block::
+ 
+   [dataset name]_[plot type]_[axis]_[field name].[suffix]
+   
+Calling ``save`` with a single argument or the ``name`` keyword argument
+specifies an alternative name for the plot:
+
+.. code-block:: python
+
+   slc.save("bananas")
+
+or 
+
+.. code-block:: python
+
+   slc.save(name="bananas")
+
+yields
+
+.. code-block:: bash
+
+   $ ls *.png
+   bananas_Slice_z_kT.png
+   bananas_Slice_z_density.png
+
+If you call ``save`` with a full filename with a file suffix, the plot
+will be saved with that filename:
+
+.. code-block:: python
+ 
+   slc.save("sloshing.png")
+   
+since this will take any field and plot it with this filename, it is
+typically only useful if you are plotting one field. If you want to 
+simply change the image format of the plotted file, use the ``suffix``
+keyword:
+
+.. code-block:: python
+
+   slc.save(name="bananas", suffix="eps")
+
+yielding
+
+.. code-block:: bash
+
+   $ ls *.eps
+   bananas_Slice_z_kT.eps
+   bananas_Slice_z_density.eps
 
 .. _eps-writer:
 

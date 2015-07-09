@@ -7,7 +7,7 @@ def test_update_data() :
     ds.index
     dims = (32,32,32)
     grid_data = [{"temperature":uniform(size=dims)}
-                 for i in xrange(ds.index.num_grids)]
+                 for i in range(ds.index.num_grids)]
     ds.index.update_data(grid_data, {('gas', 'temperature'):'K'})
     prj = ds.proj("temperature", 2)
     prj["temperature"]

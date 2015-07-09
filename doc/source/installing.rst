@@ -39,6 +39,28 @@ will work best for you depends on your precise situation:
   have the the necessary compilers installed (e.g. the ``build-essentials``
   package on debian and ubuntu).
 
+.. _branches-of-yt:
+
+Branches of yt: ``yt``, ``stable``, and ``yt-2.x``
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Before you install yt, you must decide which branch (i.e. version) of the code 
+you prefer to use:
+
+* ``yt`` -- The most up-to-date *development* version with the most current features but sometimes unstable (yt-3.x)
+* ``stable`` -- The latest stable release of yt-3.x
+* ``yt-2.x`` -- The latest stable release of yt-2.x
+
+If this is your first time using the code, we recommend using ``stable``, 
+unless you specifically need some piece of brand-new functionality only 
+available in ``yt`` or need to run an old script developed for ``yt-2.x``.
+There were major API and functionality changes made in yt after version 2.7
+in moving to version 3.0.  For a detailed description of the changes
+between versions 2.x (e.g. branch ``yt-2.x``) and 3.x (e.g. branches ``yt`` and 
+``stable``) see :ref:`yt3differences`.  Lastly, don't feel like you're locked 
+into one branch when you install yt, because you can easily change the active
+branch by following the instructions in :ref:`switching-between-yt-versions`.
+
 .. _install-script:
 
 All-in-One Installation Script
@@ -60,16 +82,22 @@ having yt on your system, you can just delete the directory and yt and all of
 its dependencies will be removed from your system (no scattered files remaining
 throughout your system).
 
+.. _installing-yt:
+
 Running the Install Script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To get the installation script, download it from:
+To get the installation script for the ``stable`` branch of the code, 
+download it from:
 
 .. code-block:: bash
 
-  wget http://hg.yt-project.org/yt/raw/stable/doc/install_script.sh
+  wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
 
-.. _installing-yt:
+If you wish to install a different version of yt (see 
+:ref:`above <branches-of-yt>`), replace ``stable`` with the appropriate 
+branch name (e.g. ``yt``, ``yt-2.x``) in the path above to get the correct 
+install script.
 
 By default, the bash install script will install an array of items, but there
 are additional packages that can be downloaded and installed (e.g. SciPy, enzo,
@@ -213,10 +241,31 @@ Installing yt Using pip or from Source
 ++++++++++++++++++++++++++++++++++++++
 
 To install yt from source, you must make sure you have yt's dependencies
-installed on your system.  These include: a C compiler, ``HDF5``, ``python``,
-``Cython``, ``NumPy``, ``matplotlib``, ``sympy``, and ``h5py``. From here, you
-can use ``pip`` (which comes with ``Python``) to install the latest stable
-version of yt:
+installed on your system. 
+
+If you use a Linux OS, use your distro's package manager to install these yt
+dependencies on your system:
+
+- ``HDF5``
+- ``zeromq``
+- ``sqlite`` 
+- ``mercurial``
+
+Then install the required Python packages with ``pip``:
+
+.. code-block:: bash
+
+  $ pip install -r requirements.txt
+
+If you're using IPython notebooks, you can install its dependencies
+with ``pip`` as well:
+
+.. code-block:: bash
+
+  $ pip install -r optional-requirements.txt
+
+From here, you can use ``pip`` (which comes with ``Python``) to install the latest
+stable version of yt:
 
 .. code-block:: bash
 
@@ -241,7 +290,7 @@ the official repo:
   ``sudo`` depending on where python is installed. See `This StackOverflow
   discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on systems.
+  if you are curious why ``--prefix=`` is neccessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
@@ -308,8 +357,8 @@ for more details.
 
 .. _switching-between-yt-versions:
 
-Switching between yt-2.x and yt-3.x
------------------------------------
+Switching versions of yt: yt-2.x, yt-3.x, stable, and dev
+---------------------------------------------------------
 
 With the release of version 3.0 of yt, development of the legacy yt 2.x series
 has been relegated to bugfixes.  That said, we will continue supporting the 2.x
@@ -335,12 +384,8 @@ c code requires a compilation step for big changes like this):
   hg update <desired-version>
   python setup.py develop
 
-Valid versions to jump to are:
+Valid versions to jump to are described in :ref:`branches-of-yt`).
 
-* ``yt`` -- The latest *dev* changes in yt-3.x (can be unstable)
-* ``stable`` -- The latest stable release of yt-3.x
-* ``yt-2.x`` -- The latest stable release of yt-2.x
-    
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.
 
@@ -366,11 +411,7 @@ update to the appropriate version and recompile.
   hg update <desired-version>
   python setup.py install --user --prefix=
 
-Valid versions to jump to are:
-
-* ``yt`` -- The latest *dev* changes in yt-3.x (can be unstable)
-* ``stable`` -- The latest stable release of yt-3.x
-* ``yt-2.x`` -- The latest stable release of yt-2.x
+Valid versions to jump to are described in :ref:`branches-of-yt`).
     
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.

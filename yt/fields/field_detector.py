@@ -136,6 +136,11 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
                           finfo.units, registry=self.ds.unit_registry)
+            elif "FourMetalFractions" in (item, item[1]):
+                self[item] = \
+                  YTArray(np.ones((self.NumberOfParticles, 4)),
+                          finfo.units, registry=self.ds.unit_registry)
+
             else:
                 # Not a vector
                 self[item] = \
@@ -156,7 +161,10 @@ class FieldDetector(defaultdict):
         return np.random.random((self.nd, self.nd, self.nd))
 
     def smooth(self, *args, **kwargs):
-        return np.random.random((self.nd, self.nd, self.nd))
+        tr = np.random.random((self.nd, self.nd, self.nd))
+        if kwargs['method'] == "volume_weighted":
+            return [tr]
+        return tr
 
     def particle_operation(self, *args, **kwargs):
         return None

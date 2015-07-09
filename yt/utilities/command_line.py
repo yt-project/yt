@@ -21,9 +21,10 @@ from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import urllib
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import urllib, urllib2, base64, os
+import base64, os
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -334,52 +335,6 @@ def _update_yt_stack(path):
         print("The yt stack has been updated successfully.")
         print("Now get back to work!")
 
-def _update_hg(path, skip_rebuild = False):
-    from mercurial import hg, ui, commands
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    u = ui.ui()
-    u.pushbuffer()
-    config_fn = os.path.join(path, ".hg", "hgrc")
-    print("Reading configuration from ", config_fn)
-    u.readconfig(config_fn)
-    repo = hg.repository(u, path)
-    commands.pull(u, repo)
-    f.write(u.popbuffer())
-    f.write("\n\n")
-    u.pushbuffer()
-    commands.identify(u, repo)
-    if "+" in u.popbuffer():
-        print("Can't rebuild modules by myself.")
-        print("You will have to do this yourself.  Here's a sample commands:")
-        print()
-        print("    $ cd %s" % (path))
-        print("    $ hg up")
-        print("    $ %s setup.py develop" % (sys.executable))
-        return 1
-    print("Updating the repository")
-    f.write("Updating the repository\n\n")
-    commands.update(u, repo, check=True)
-    if skip_rebuild: return
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout)
-    f.write("\n\n")
-    if p.returncode:
-        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-        sys.exit(1)
-    f.write("Successful!\n")
-    print("Updated successfully.")
-
-def _get_hg_version(path):
-    from mercurial import hg, ui, commands
-    u = ui.ui()
-    u.pushbuffer()
-    repo = hg.repository(u, path)
-    commands.identify(u, repo)
-    return u.popbuffer()
-
 def get_yt_version():
     try:
         from yt.__hg_version__ import hg_version
@@ -390,7 +345,7 @@ def get_yt_version():
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
     if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = _get_hg_version(path)
+    version = get_hg_version(path)
     return version
 
 # This code snippet is modified from Georg Brandl
@@ -400,45 +355,14 @@ def bb_apicall(endpoint, data, use_pass = True):
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
     if data is not None:
-        data = urllib.urlencode(data)
-    req = urllib2.Request(uri, data)
+        data = urllib.parse.urlencode(data)
+    req = urllib.request.Request(uri, data)
     if use_pass:
         username = raw_input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
-    return urllib2.urlopen(req).read()
-
-def _get_yt_supp(uu):
-    supp_path = os.path.join(os.environ["YT_DEST"], "src",
-                             "yt-supplemental")
-    # Now we check that the supplemental repository is checked out.
-    from mercurial import hg, ui, commands
-    if not os.path.isdir(supp_path):
-        print()
-        print("*** The yt-supplemental repository is not checked ***")
-        print("*** out.  I can do this for you, but because this ***")
-        print("*** is a delicate act, I require you to respond   ***")
-        print("*** to the prompt with the word 'yes'.            ***")
-        print()
-        response = raw_input("Do you want me to try to check it out? ")
-        if response != "yes":
-            print()
-            print("Okay, I understand.  You can check it out yourself.")
-            print("This command will do it:")
-            print()
-            print("$ hg clone http://hg.yt-project.org/yt-supplemental/ ", end=' ')
-            print("%s" % (supp_path))
-            print()
-            sys.exit(1)
-        rv = commands.clone(uu,
-                "http://hg.yt-project.org/yt-supplemental/", supp_path)
-        if rv:
-            print("Something has gone wrong.  Quitting.")
-            sys.exit(1)
-    # Now we think we have our supplemental repository.
-    return supp_path
-
+    return urllib.request.urlopen(req).read()
 
 class YTBugreportCmd(YTCommand):
     name = "bugreport"
@@ -456,7 +380,7 @@ class YTBugreportCmd(YTCommand):
         print("===============================================================")
         print("At any time in advance of the upload of the bug, you should feel free")
         print("to ctrl-C out and submit the bug report manually by going here:")
-        print("   http://hg.yt-project.org/yt/issues/new")
+        print("   http://bitbucket.org/yt_analysis/yt/issues/new")
         print()
         print("Also, in order to submit a bug through this interface, you")
         print("need a Bitbucket account. If you don't have one, exit this ")
@@ -464,7 +388,7 @@ class YTBugreportCmd(YTCommand):
         print()
         print("Have you checked the existing bug reports to make")
         print("sure your bug has not already been recorded by someone else?")
-        print("   http://hg.yt-project.org/yt/issues?status=new&status=open")
+        print("   http://bitbucket.org/yt_analysis/yt/issues?status=new&status=open")
         print()
         print("Finally, are you sure that your bug is, in fact, a bug? It might")
         print("simply be a misunderstanding that could be cleared up by")
@@ -496,7 +420,7 @@ class YTBugreportCmd(YTCommand):
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
             loki = raw_input()
-            tf = temdsile.NamedTemporaryFile(delete=False)
+            tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
             popen = subprocess.call("$EDITOR %s" % fn, shell = True)
@@ -544,7 +468,7 @@ class YTBugreportCmd(YTCommand):
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
-        url = "http://hg.yt-project.org/yt/issue/%s" % retval['local_id']
+        url = "http://bitbucket.org/yt_analysis/yt/issue/%s" % retval['local_id']
         print()
         print("===============================================================")
         print()
@@ -616,197 +540,25 @@ class YTHubRegisterCmd(YTCommand):
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
-        data = urllib.urlencode(data)
+        data = urllib.parse.urlencode(data)
         hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib2.Request(hub_url, data)
+        req = urllib.request.Request(hub_url, data)
         try:
-            status = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as exc:
+            status = urllib.request.urlopen(req).read()
+        except urllib.error.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
                 print("You can't register duplicate users, which is the most")
                 print("common cause of this error.  All values for username,")
                 print("name, and email must be unique in our system.")
                 sys.exit(1)
-        except urllib2.URLError as exc:
+        except urllib.URLError as exc:
             print("Something has gone wrong.  Here's the error message.")
             raise exc
         print()
         print("SUCCESS!")
         print()
 
-
-class YTHubSubmitCmd(YTCommand):
-    name = "hub_submit"
-    args = (
-            dict(longname="--repo", action="store", type=str,
-                 dest="repo", default=".", help="Repository to upload"),
-           )
-    description = \
-        """
-        Submit a mercurial repository to the yt Hub
-        (http://hub.yt-project.org/), creating a BitBucket repo in the process
-        if necessary.
-        """
-
-    def __call__(self, args):
-        import imp
-        api_key = ytcfg.get("yt","hub_api_key")
-        url = ytcfg.get("yt","hub_url")
-        if api_key == '':
-            print()
-            print("You must create an API key before uploading.")
-            print("https://data.yt-project.org/getting_started.html")
-            print()
-            sys.exit(1)
-        from mercurial import hg, ui, commands, error, config
-        uri = "http://hub.yt-project.org/3rdparty/API/api.php"
-        uu = ui.ui()
-        supp_path = _get_yt_supp(uu)
-        try:
-            result = imp.find_module("cedit", [supp_path])
-        except ImportError:
-            print("I was unable to find the 'cedit' module in %s" % (supp_path))
-            print("This may be due to a broken checkout.")
-            print("Sorry, but I'm going to bail.")
-            sys.exit(1)
-        cedit = imp.load_module("cedit", *result)
-        try:
-            result = imp.find_module("hgbb", [supp_path + "/hgbb"])
-        except ImportError:
-            print("I was unable to find the 'hgbb' module in %s" % (supp_path))
-            print("This may be due to a broken checkout.")
-            print("Sorry, but I'm going to bail.")
-            sys.exit(1)
-        hgbb = imp.load_module("hgbb", *result)
-        try:
-            repo = hg.repository(uu, args.repo)
-            conf = config.config()
-            if os.path.exists(os.path.join(args.repo,".hg","hgrc")):
-                conf.read(os.path.join(args.repo, ".hg", "hgrc"))
-            needs_bb = True
-            if "paths" in conf.sections():
-                default = conf['paths'].get("default", "")
-                if default.startswith("bb://") or "bitbucket.org" in default:
-                    needs_bb = False
-                    bb_url = default
-                else:
-                    for alias, value in conf["paths"].items():
-                        if value.startswith("bb://") or "bitbucket.org" in value:
-                            needs_bb = False
-                            bb_url = value
-                            break
-        except error.RepoError:
-            print("Unable to find repo at:")
-            print("   %s" % (os.path.abspath(args.repo)))
-            print()
-            print("Would you like to initialize one?  If this message")
-            print("surprises you, you should perhaps press Ctrl-C to quit.")
-            print("Otherwise, type 'yes' at the prompt.")
-            print()
-            loki = raw_input("Create repo? ")
-            if loki.upper().strip() != "YES":
-                print("Okay, rad -- we'll let you handle it and get back to", end=' ')
-                print(" us.")
-                return 1
-            commands.init(uu, dest=args.repo)
-            repo = hg.repository(uu, args.repo)
-            commands.add(uu, repo)
-            commands.commit(uu, repo, message="Initial automated import by yt")
-            needs_bb = True
-        if needs_bb:
-            print()
-            print("Your repository is not yet on BitBucket, as near as I can tell.")
-            print("Would you like to create a repository there and upload to it?")
-            print("Without this, I don't know what URL to submit!")
-            print()
-            print("Type 'yes' to accept.")
-            print()
-            loki = raw_input("Upload to BitBucket? ")
-            if loki.upper().strip() != "YES": return 1
-            hgrc_path = [cedit.config.defaultpath("user", uu)]
-            hgrc_path = cedit.config.verifypaths(hgrc_path)
-            uu.readconfig(hgrc_path[0])
-            bb_username = uu.config("bb", "username", None)
-            if bb_username is None:
-                print("Can't find your Bitbucket username.  Run the command:")
-                print()
-                print("$ yt bootstrap_dev")
-                print()
-                print("to get set up and ready to go.")
-                return 1
-            bb_repo_name = os.path.basename(os.path.abspath(args.repo))
-            print()
-            print("I am now going to create the repository:")
-            print("    ", bb_repo_name)
-            print("on BitBucket.org and upload this repository to that.")
-            print("If that is not okay, please press Ctrl-C to quit.")
-            print()
-            loki = raw_input("Press Enter to continue.")
-            data = dict(name=bb_repo_name)
-            hgbb._bb_apicall(uu, 'repositories', data)
-            print()
-            print("Created repository!  Now I will set this as the default path.")
-            print()
-            bb_url = "https://%s@bitbucket.org/%s/%s" % (
-                        bb_username, bb_username, bb_repo_name)
-            cedit.config.addsource(uu, repo, "default", bb_url)
-            commands.push(uu, repo, bb_url)
-            # Now we reset
-            bb_url = "https://bitbucket.org/%s/%s" % (
-                        bb_username, bb_repo_name)
-        if bb_url.startswith("bb://"):
-            bb_username, bb_repo_name = bb_url.split("/")[-2:]
-            bb_url = "https://bitbucket.org/%s/%s" % (
-                bb_username, bb_repo_name)
-        # Now we can submit
-        print()
-        print("Okay.  Now we're ready to submit to the Hub.")
-        print("Remember, you can go to the Hub at any time at")
-        print(" http://hub.yt-project.org/")
-        print()
-        print("(Especially if you don't have a user yet!  We can wait.)")
-        print()
-
-        categories = {
-            1: "News",
-            2: "Documents",
-            3: "Simulation Management",
-            4: "Data Management",
-            5: "Analysis and Visualization",
-            6: "Paper Repositories",
-            7: "Astrophysical Utilities",
-            8: "yt Scripts"
-        }
-        cat_id = -1
-        while cat_id not in categories:
-            print()
-            for i, n in sorted(categories.items()):
-                print("%i. %s" % (i, n))
-            print()
-            cat_id = int(raw_input("Which category number does your script fit into? "))
-        print()
-        print("What is the title of your submission? (Usually a repository name) ")
-        title = raw_input("Title? ")
-        print()
-        print("Give us a very brief summary of the project -- enough to get someone")
-        print("interested enough to click the link and see what it's about.  This")
-        print("should be a few sentences at most.")
-        print()
-        summary = raw_input("Summary? ")
-        print()
-        print("Is there a URL that you'd like to point the image to?  Just hit")
-        print("enter if no.")
-        print()
-        image_url = raw_input("Image URL? ").strip()
-        print()
-        print("Okay, we're going to submit!  Press enter to submit, Ctrl-C to back out.")
-        print()
-        loki = raw_input()
-
-        mpd = MinimalProjectDescription(title, bb_url, summary,
-                categories[cat_id], image_url)
-        mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
@@ -842,6 +594,8 @@ class YTInstInfoCmd(YTCommand):
                 print("    %s" % (spath))
                 update_supp = True
         vstring = get_yt_version()
+        if vstring == -1:
+            vstring = "unknown"
         if vstring is not None:
             print()
             print("The current version and changeset for the code is:")
@@ -927,6 +681,9 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
+        if sys.version_info >= (3,0,0):
+            print("yt mapserver is disabled for Python 3.")
+            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
@@ -1087,7 +844,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = ds.current_time*ds['years']
+                time = ds.current_time.in_units("yr")
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
@@ -1293,16 +1050,16 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         import base64, json, pprint
-        image_data = base64.b64encode(open(filename).read())
+        image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
                       'caption': "",
                       'title': "%s uploaded by yt" % filename}
-        data = urllib.urlencode(parameters)
-        req = urllib2.Request('http://api.imgur.com/2/upload.json', data)
+        data = urllib.parse.urlencode(parameters).encode('utf-8')
+        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
         try:
-            response = urllib2.urlopen(req).read()
-        except urllib2.HTTPError as e:
+            response = urllib.request.urlopen(req).read().decode()
+        except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
@@ -1323,6 +1080,15 @@ class YTUploadImageCmd(YTCommand):
 
 def run_main():
     args = parser.parse_args()
+    # The following is a workaround for a nasty Python 3 bug:
+    # http://bugs.python.org/issue16308
+    # http://bugs.python.org/issue9253
+    try:
+        getattr(args, "func")
+    except AttributeError:
+        parser.print_help()
+        sys.exit(0)
+        
     args.func(args)
 
 if __name__ == "__main__": run_main()

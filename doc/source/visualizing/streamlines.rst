@@ -51,33 +51,53 @@ The implementation of streamlining  in yt is described below.
 Example Script
 ++++++++++++++
 
-.. code-block:: python
+.. python-script::
 
     import yt
+    import numpy as np
+    import matplotlib.pylab as pl
+
     from yt.visualization.api import Streamlines
-    
-    ds = yt.load('DD1701') # Load ds 
-    c = np.array([0.5]*3)
+    from yt.units import Mpc
+    from mpl_toolkits.mplot3d import Axes3D
+
+    # Load the dataset
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+    # Define c: the center of the box, N: the number of streamlines, 
+    # scale: the spatial scale of the streamlines relative to the boxsize,
+    # and then pos: the random positions of the streamlines.
+    c = ds.domain_center
     N = 100
-    scale = 1.0
+    scale = ds.domain_width[0]
     pos_dx = np.random.random((N,3))*scale-scale/2.
     pos = c+pos_dx
-    
-    streamlines = Streamlines(ds,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+
+    # Create streamlines of the 3D vector velocity and integrate them through 
+    # the box defined above
+    streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z', 
+                              length=1.0*Mpc, get_magnitude=True)
     streamlines.integrate_through_volume()
-    
-    import matplotlib.pylab as pl
-    from mpl_toolkits.mplot3d import Axes3D
-    fig=pl.figure() 
+
+    # Create a 3D plot, trace the streamlines throught the 3D volume of the plot
+    fig=pl.figure()
     ax = Axes3D(fig)
     for stream in streamlines.streamlines:
         stream = stream[np.all(stream != 0.0, axis=1)]
-    	ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
+        ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
+
+    # Save the plot to disk.
     pl.savefig('streamlines.png')
 
 
 Data Access Along the Streamline
 --------------------------------
+
+.. note::
+
+    This functionality has not been implemented yet in in the 3.x series of
+    yt.  If you are interested in working on this and have questions, please
+    let us know on the yt-dev mailing list.
 
 Once the streamlines are found, a
 :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` object can

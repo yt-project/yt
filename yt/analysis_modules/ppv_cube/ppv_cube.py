@@ -13,8 +13,7 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, \
-    create_sky_wcs
+from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
@@ -26,12 +25,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 import re
 from . import ppv_utils
 from yt.funcs import is_root
+from yt.extern.six import string_types
 
 def create_vlos(normal, no_shifting):
     if no_shifting:
         def _v_los(field, data):
             return data.ds.arr(data["zeros"], "cm/s")
-    elif isinstance(normal, basestring):
+    elif isinstance(normal, string_types):
         def _v_los(field, data): 
             return -data["velocity_%s" % normal]
     else:
@@ -44,16 +44,16 @@ def create_vlos(normal, no_shifting):
             return -vz
     return _v_los
 
-fits_info = {"velocity":("m/s","VELOCITY","v"),
-             "frequency":("Hz","FREQUENCY","f"),
-             "energy":("eV","ENERGY","E"),
-             "wavelength":("angstrom","WAVELENG","lambda")}
+fits_info = {"velocity":("m/s","VOPT","v"),
+             "frequency":("Hz","FREQ","f"),
+             "energy":("eV","ENER","E"),
+             "wavelength":("angstrom","WAVE","lambda")}
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, velocity_bounds, center="c", 
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
-                 method="integrate", no_shifting=False,
+                 method="integrate", weight_field=None, no_shifting=False,
                  north_vector=None, no_ghost=True):
         r""" Initialize a PPVCube object.
 
@@ -88,6 +88,8 @@ class PPVCube(object):
         dims : integer, optional
             The spatial resolution of the cube. Implies nx = ny, e.g. the 
             aspect ratio of the PPVCube's spatial dimensions is 1.
+        thermal_broad : boolean, optional
+            Whether or not to broaden the line using the gas temperature. Default: False.
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
@@ -101,6 +103,8 @@ class PPVCube(object):
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
             "sum" : straight summation over the line of sight.
+        weight_field : string, optional
+            The name of the weighting field.  Set to None for no weight.
         no_shifting : boolean, optional
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
@@ -131,7 +135,7 @@ class PPVCube(object):
         self.thermal_broad = thermal_broad
         self.no_shifting = no_shifting
 
-        if not isinstance(normal, basestring):
+        if not isinstance(normal, string_types):
             width = ds.coordinates.sanitize_width(normal, width, depth)
             width = tuple(el.in_units('code_length').v for el in width)
 
@@ -149,9 +153,7 @@ class PPVCube(object):
                                "methods are supported in PPVCube.")
 
         dd = ds.all_data()
-
         fd = dd._determine_fields(field)[0]
-
         self.field_units = ds._get_field_info(fd).units
 
         self.vbins = ds.arr(np.linspace(velocity_bounds[0],
@@ -169,26 +171,27 @@ class PPVCube(object):
         _vlos = create_vlos(normal, self.no_shifting)
         self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
-        _intensity = self.create_intensity()
+        _intensity = self._create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
-        if method == "integrate":
+        if method == "integrate" and weight_field is None:
             self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
         elif method == "sum":
             self.proj_units = self.field_units
 
         storage = {}
         pbar = get_pbar("Generating cube.", self.nv)
-        for sto, i in parallel_objects(xrange(self.nv), storage=storage):
+        for sto, i in parallel_objects(range(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
-            if isinstance(normal, basestring):
-                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)
+            if isinstance(normal, string_types):
+                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method,
+                              weight_field=weight_field)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny, depth_res), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
-                                          method=method).swapaxes(0,1)
+                                          method=method, weight=weight_field).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
@@ -209,16 +212,6 @@ class PPVCube(object):
 
         self.ds.field_info.pop(("gas","intensity"))
         self.ds.field_info.pop(("gas","v_los"))
-
-    def create_intensity(self):
-        def _intensity(field, data):
-            v = self.current_v-data["v_los"].v
-            T = data["temperature"].v
-            w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
-                                         self.particle_mass, v.flatten(), T.flatten())
-            w[np.isnan(w)] = 0.0
-            return data[self.field]*w.reshape(v.shape)
-        return _intensity
 
     def transform_spectral_axis(self, rest_value, units):
         """
@@ -255,17 +248,18 @@ class PPVCube(object):
         self.dv = self.vbins[1]-self.vbins[0]
 
     @parallel_root_only
-    def write_fits(self, filename, clobber=True, length_unit=None,
+    def write_fits(self, filename, clobber=False, length_unit=None,
                    sky_scale=None, sky_center=None):
         r""" Write the PPVCube to a FITS file.
 
         Parameters
         ----------
         filename : string
-            The name of the file to write.
-        clobber : boolean
-            Whether or not to clobber an existing file with the same name.
-        length_unit : string
+            The name of the file to write to. 
+        clobber : boolean, optional
+            Whether to overwrite a file with the same name that already 
+            exists. Default False.
+        length_unit : string, optional
             The units to convert the coordinates to in the file.
         sky_scale : tuple, optional
             Conversion between an angle unit and a length unit, if sky
@@ -276,7 +270,8 @@ class PPVCube(object):
 
         Examples
         --------
-        >>> cube.write_fits("my_cube.fits", clobber=False, sky_scale=(1.0,"arcsec/kpc"))
+        >>> cube.write_fits("my_cube.fits", clobber=False, 
+        ...                 sky_scale=(1.0,"arcsec/kpc"), sky_center=(30.,45.))
         """
         vunit = fits_info[self.axis_type][0]
         vtype = fits_info[self.axis_type][1]
@@ -299,13 +294,11 @@ class PPVCube(object):
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = ["LINEAR","LINEAR",vtype]
 
+        fib = FITSImageData(self.data.transpose(), fields=self.field, wcs=w)
+        fib.update_all_headers("bunit", re.sub('()', '', str(self.proj_units)))
+        fib.update_all_headers("btype", self.field)
         if sky_scale is not None and sky_center is not None:
-            w = create_sky_wcs(w, sky_center, sky_scale)
-
-        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
-        fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
-        fib[0].header["btype"] = self.field
-
+            fib.create_sky_wcs(sky_center, sky_scale)
         fib.writeto(filename, clobber=clobber)
 
     def __repr__(self):
@@ -316,3 +309,13 @@ class PPVCube(object):
 
     def __getitem__(self, item):
         return self.data[item]
+
+    def _create_intensity(self):
+        def _intensity(field, data):
+            v = self.current_v-data["v_los"].in_cgs().v
+            T = (data["temperature"]).in_cgs().v
+            w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
+                                         self.particle_mass, v.flatten(), T.flatten())
+            w[np.isnan(w)] = 0.0
+            return data[self.field]*w.reshape(v.shape)
+        return _intensity

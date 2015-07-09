@@ -18,7 +18,10 @@ import numpy as np
 import struct
 import os
 import os.path
-
+import sys
+if sys.version_info >= (3,0,0):
+    long = int
+    
 from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -182,6 +185,7 @@ class IOHandlerART(BaseIOHandler):
             return tr[field]
 
 class IOHandlerDarkMatterART(IOHandlerART):
+    _dataset_type = "dm_art"
     def _count_particles(self, data_file):
         return self.ds.parameters['lspecies'][-1]
 
@@ -272,7 +276,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in fields)
+            tr[field] = np.array([])
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]

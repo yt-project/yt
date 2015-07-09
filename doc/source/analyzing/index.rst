@@ -15,6 +15,7 @@ multiple processors to accomplish tasks faster.
    :maxdepth: 2
 
    fields
+   ../developing/creating_derived_fields
    objects
    units/index
    filtering

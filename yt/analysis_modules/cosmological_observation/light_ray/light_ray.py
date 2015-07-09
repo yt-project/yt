@@ -33,6 +33,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 class LightRay(CosmologySplice):
     """
+    LightRay(parameter_filename, simulation_type=None,
+             near_redshift=None, far_redshift=None,
+             use_minimum_datasets=True, deltaz_min=0.0,
+             minimum_coherent_box_fraction=0.0,
+             time_data=True, redshift_data=True,
+             find_outputs=False, load_kwargs=None):
+
     Create a LightRay object.  A light ray is much like a light cone,
     in that it stacks together multiple datasets in order to extend a
     redshift interval.  Unlike a light cone, which does randomly
@@ -94,6 +101,12 @@ class LightRay(CosmologySplice):
         Whether or not to search for datasets in the current 
         directory.
         Default: False.
+    load_kwargs : optional, dict
+        Optional dictionary of kwargs to be passed to the "load" 
+        function, appropriate for use of certain frontends.  E.g.
+        Tipsy using "bounding_box"
+        Gadget using "unit_base", etc.
+        Default : None
 
     """
     def __init__(self, parameter_filename, simulation_type=None,
@@ -101,7 +114,7 @@ class LightRay(CosmologySplice):
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
-                 find_outputs=False):
+                 find_outputs=False, load_kwargs=None):
 
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
@@ -109,13 +122,16 @@ class LightRay(CosmologySplice):
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
         self.parameter_filename = parameter_filename
-
+        if load_kwargs is None:
+            self.load_kwargs = {}
+        else:
+            self.load_kwargs = load_kwargs
         self.light_ray_solution = []
         self._data = {}
 
         # Make a light ray from a single, given dataset.        
         if simulation_type is None:
-            ds = load(parameter_filename)
+            ds = load(parameter_filename, **self.load_kwargs)
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
                 self.cosmology = Cosmology(
@@ -162,7 +178,7 @@ class LightRay(CosmologySplice):
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
-                    raise RuntimeError("LightRay Error: trajectory must have lenght 3.")
+                    raise RuntimeError("LightRay Error: trajectory must have length 3.")
                 r, theta, phi = trajectory
                 self.light_ray_solution[0]['end'] = self.light_ray_solution[0]['start'] + \
                   r * np.array([np.cos(phi) * np.sin(theta),
@@ -243,6 +259,12 @@ class LightRay(CosmologySplice):
                        get_los_velocity=True, redshift=None,
                        njobs=-1):
         """
+        make_light_ray(seed=None, start_position=None, end_position=None,
+                       trajectory=None, fields=None, setup_function=None,
+                       solution_filename=None, data_filename=None,
+                       get_los_velocity=True, redshift=None,
+                       njobs=-1)
+
         Create a light ray and get field values for each lixel.  A light
         ray consists of a list of field values for cells intersected by
         the ray and the path length of the ray through those cells.
@@ -343,9 +365,9 @@ class LightRay(CosmologySplice):
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         if get_los_velocity:
-            all_fields.extend(['x-velocity', 'y-velocity',
-                               'z-velocity', 'los_velocity'])
-            data_fields.extend(['x-velocity', 'y-velocity', 'z-velocity'])
+            all_fields.extend(['velocity_x', 'velocity_y',
+                               'velocity_z', 'velocity_los'])
+            data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
         for my_storage, my_segment in parallel_objects(self.light_ray_solution,
@@ -353,8 +375,9 @@ class LightRay(CosmologySplice):
                                                        njobs=njobs):
 
             # Load dataset for segment.
-            ds = load(my_segment['filename'])
+            ds = load(my_segment['filename'], **self.load_kwargs)
 
+            my_segment['unique_identifier'] = ds.unique_identifier
             if redshift is not None:
                 if ds.cosmological_simulation and redshift != ds.current_redshift:
                     mylog.warn("Generating light ray with different redshift than " +
@@ -363,11 +386,15 @@ class LightRay(CosmologySplice):
 
             if setup_function is not None:
                 setup_function(ds)
-            
-            my_segment["start"] = ds.domain_width * my_segment["start"] + \
-                ds.domain_left_edge
-            my_segment["end"] = ds.domain_width * my_segment["end"] + \
-                ds.domain_left_edge
+
+            if start_position is not None:
+                my_segment["start"] = ds.arr(my_segment["start"], "code_length")
+                my_segment["end"] = ds.arr(my_segment["end"], "code_length")
+            else:
+                my_segment["start"] = ds.domain_width * my_segment["start"] + \
+                  ds.domain_left_edge
+                my_segment["end"] = ds.domain_width * my_segment["end"] + \
+                  ds.domain_left_edge
 
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
@@ -411,10 +438,10 @@ class LightRay(CosmologySplice):
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
-                    sub_vel = ds.arr([sub_ray['x-velocity'],
-                                      sub_ray['y-velocity'],
-                                      sub_ray['z-velocity']])
-                    sub_data['los_velocity'].extend((np.rollaxis(sub_vel, 1) *
+                    sub_vel = ds.arr([sub_ray['velocity_x'],
+                                      sub_ray['velocity_y'],
+                                      sub_ray['velocity_z']])
+                    sub_data['velocity_los'].extend((np.rollaxis(sub_vel, 1) *
                                                      line_of_sight).sum(axis=1)[asort])
                     del sub_vel
 
@@ -422,7 +449,6 @@ class LightRay(CosmologySplice):
                 del sub_ray, asort
 
             for key in sub_data:
-                if key in "xyz": continue
                 sub_data[key] = ds.arr(sub_data[key]).in_cgs()
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
@@ -460,18 +486,32 @@ class LightRay(CosmologySplice):
 
     @parallel_root_only
     def _write_light_ray(self, filename, data):
-        "Write light ray data to hdf5 file."
+        """
+        _write_light_ray(filename, data)
+
+        Write light ray data to hdf5 file.
+        """
 
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
         for field in data.keys():
-            output.create_dataset(field, data=data[field])
-            output[field].attrs["units"] = str(data[field].units)
+            # if the field is a tuple, only use the second part of the tuple
+            # in the hdf5 output (i.e. ('gas', 'density') -> 'density')
+            if isinstance(field, tuple):
+                fieldname = field[1]
+            else:
+                fieldname = field
+            output.create_dataset(fieldname, data=data[field])
+            output[fieldname].attrs["units"] = str(data[field].units)
         output.close()
 
     @parallel_root_only
     def _write_light_ray_solution(self, filename, extra_info=None):
-        "Write light ray solution to a file."
+        """
+        _write_light_ray_solution(filename, extra_info=None)
+
+        Write light ray solution to a file.
+        """
 
         mylog.info("Writing light ray solution to %s." % filename)
         f = open(filename, 'w')
@@ -489,7 +529,11 @@ class LightRay(CosmologySplice):
         f.close()
 
 def _flatten_dict_list(data, exceptions=None):
-    "Flatten the list of dicts into one dict."
+    """
+    _flatten_dict_list(data, exceptions=None)
+
+    Flatten the list of dicts into one dict.
+    """
 
     if exceptions is None: exceptions = []
     new_data = {}
@@ -504,12 +548,20 @@ def _flatten_dict_list(data, exceptions=None):
     return new_data
 
 def vector_length(start, end):
-    "Calculate vector length."
+    """
+    vector_length(start, end)
+    
+    Calculate vector length.
+    """
 
     return np.sqrt(np.power((end - start), 2).sum())
 
 def periodic_distance(coord1, coord2):
-    "Calculate length of shortest vector between to points in periodic domain."
+    """
+    periodic_distance(coord1, coord2)
+
+    Calculate length of shortest vector between to points in periodic domain.
+    """
     dif = coord1 - coord2
 
     dim = np.ones(coord1.shape,dtype=int)
@@ -522,7 +574,21 @@ def periodic_distance(coord1, coord2):
     return np.sqrt((dif * dif).sum(axis=-1))
 
 def periodic_ray(start, end, left=None, right=None):
-    "Break up periodic ray into non-periodic segments."
+    """
+    periodic_ray(start, end, left=None, right=None)
+
+    Break up periodic ray into non-periodic segments. 
+    Accepts start and end points of periodic ray as YTArrays.
+    Accepts optional left and right edges of periodic volume as YTArrays.
+    Returns a list of lists of coordinates, where each element of the 
+    top-most list is a 2-list of start coords and end coords of the 
+    non-periodic ray: 
+
+    [[[x0start,y0start,z0start], [x0end, y0end, z0end]], 
+     [[x1start,y1start,z1start], [x1end, y1end, z1end]], 
+     ...,]
+
+    """
 
     if left is None:
         left = np.zeros(start.shape)

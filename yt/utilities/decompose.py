@@ -21,7 +21,7 @@ SIEVE_PRIMES = \
 
 def decompose_to_primes(max_prime):
     """ Decompose number into the primes """
-    for prime in SIEVE_PRIMES(range(2, max_prime)):
+    for prime in SIEVE_PRIMES(list(range(2, max_prime))):
         if prime * prime > max_prime:
             break
         while max_prime % prime == 0:

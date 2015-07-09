@@ -27,11 +27,12 @@ from yt.fields.particle_fields import \
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
     add_species_field_by_density
-from yt.frontends.gadget.fields import \
-    GadgetFieldInfo
+from yt.frontends.sph.fields import \
+    SPHFieldInfo
 
 
-class OWLSFieldInfo(GadgetFieldInfo):
+
+class OWLSFieldInfo(SPHFieldInfo):
 
     _ions = ("c1", "c2", "c3", "c4", "c5", "c6",
              "fe2", "fe17", "h1", "he1", "he2", "mg1", "mg2", "n2", 
@@ -62,10 +63,11 @@ class OWLSFieldInfo(GadgetFieldInfo):
             )
 
         self.known_particle_fields += new_particle_fields
-        
+
         super(OWLSFieldInfo,self).__init__( *args, **kwargs )
 
-
+        # This enables the machinery in yt.fields.species_fields
+        self.species_names += list(self._elements)
 
     def setup_particle_fields(self, ptype):
         """ additional particle fields derived from those in snapshot.
@@ -116,22 +118,6 @@ class OWLSFieldInfo(GadgetFieldInfo):
         # and now we add the smoothed versions for PartType0
         #-----------------------------------------------------
         if ptype == 'PartType0':
-
-            loaded = []
-            for s in self._elements:
-                for sfx in smoothed_suffixes:
-                    fname = s + sfx
-                    fn = add_volume_weighted_smoothed_field( 
-                        ptype, "particle_position", "particle_mass",
-                        "smoothing_length", "density", fname, self,
-                        self._num_neighbors)
-                    loaded += fn
-
-                    self.alias(("gas", fname), fn[0])
-
-            self._show_field_errors += loaded
-            self.find_dependencies(loaded)
-
 
             # we only add ion fields for gas.  this takes some 
             # time as the ion abundances have to be interpolated

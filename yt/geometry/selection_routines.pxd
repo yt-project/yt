@@ -17,10 +17,19 @@ Geometry selection routine imports.
 cimport numpy as np
 from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
+from grid_visitors cimport GridTreeNode, GridVisitorData, \
+    grid_visitor_function, check_child_masked
 
 ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
+
+cdef inline _ensure_code(arr):
+    if hasattr(arr, "units"):
+        if "code_length" == str(arr.units):
+            return arr
+        arr.convert_to_units("code_length")
+    return arr
 
 cdef class SelectorObject:
     cdef public np.int32_t min_level
@@ -47,6 +56,14 @@ cdef class SelectorObject:
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3], 
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level)
+    cdef void visit_grid_cells(self, GridVisitorData *data,
+                    grid_visitor_function *func, np.uint8_t *cached_mask = ?)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

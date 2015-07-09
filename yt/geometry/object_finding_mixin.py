@@ -20,7 +20,7 @@ from yt.funcs import *
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level, \
     get_box_grids_below_level
-from yt.utilities.lib.GridTree import \
+from yt.geometry.grid_container import \
     MatchPointsToGrids, \
     GridTree
 from yt.utilities.physical_constants import \
@@ -112,7 +112,7 @@ class ObjectFindingMixin(object) :
         Returns the (objects, indices) of grids containing an (x,y,z) point
         """
         mask=np.ones(self.num_grids)
-        for i in xrange(len(coord)):
+        for i in range(len(coord)):
             np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
             np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
         ind = np.where(mask == 1)
@@ -159,7 +159,7 @@ class ObjectFindingMixin(object) :
         cellwidth = (this.RightEdge - this.LeftEdge) / this.ActiveDimensions
         mark = np.zeros(3).astype('int')
         # Find the index for the cell containing this point.
-        for dim in xrange(len(coord)):
+        for dim in range(len(coord)):
             mark[dim] = int((coord[dim] - this.LeftEdge[dim]) / cellwidth[dim])
         out = []
         fields = ensure_list(fields)
@@ -271,6 +271,7 @@ class ObjectFindingMixin(object) :
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')
+        dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids) :
 
@@ -282,6 +283,7 @@ class ObjectFindingMixin(object) :
             else :
                 parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
             num_children[i] = np.int64(len(grid.Children))
+            dimensions[i,:] = grid.ActiveDimensions
 
-        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
-                        level, num_children)
+        return GridTree(self.num_grids, left_edge, right_edge, dimensions,
+                        parent_ind, level, num_children)
