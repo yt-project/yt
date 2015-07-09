@@ -3,7 +3,7 @@ from pyembree.rtcore cimport \
     Triangle, \
     Vec3f
 
-ctypedef struct UserData:
+ctypedef struct MeshDataContainer:
     Vertex* vertices
     Triangle* indices
     double* field_data

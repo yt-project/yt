@@ -5,7 +5,6 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from yt.utilities.lib.element_mappings import Q1Sampler3D
 from filter_feedback_functions cimport \
     sample_hex, \
     sample_tetra
@@ -72,7 +71,7 @@ cdef class TriangleMesh:
     cdef int tpe, vpe
     cdef int[MAX_NUM_TRI][3] tri_array
     cdef long* element_indices
-    cdef UserData user_data
+    cdef MeshDataContainer datac
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
@@ -266,16 +265,16 @@ cdef class ElementMesh(TriangleMesh):
 
         self.field_data = field_data
 
-        cdef UserData user_data
-        user_data.vertices = self.vertices
-        user_data.indices = self.indices
-        user_data.field_data = self.field_data
-        user_data.element_indices = self.element_indices
-        user_data.tpe = self.tpe
-        user_data.vpe = self.vpe
-        self.user_data = user_data
+        cdef MeshDataContainer datac
+        datac.vertices = self.vertices
+        datac.indices = self.indices
+        datac.field_data = self.field_data
+        datac.element_indices = self.element_indices
+        datac.tpe = self.tpe
+        datac.vpe = self.vpe
+        self.datac = datac
         
-        rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.user_data)
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.datac)
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
