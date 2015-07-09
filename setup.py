@@ -1,6 +1,5 @@
 import os
 import os.path
-import re
 import glob
 import sys
 import time
@@ -50,11 +49,7 @@ for subdir in REASON_DIRS:
     REASON_FILES.append((dir_name, files))
 
 # Verify that we have Cython installed
-with open(os.path.join("doc", "install_script.sh"), 'r') as fh:
-    cython_ver_regex = re.compile("^CYTHON='Cython-(\d+.\d+)'$")
-    REQ_CYTHON = \
-        [f.groups()[0] for f in map(cython_ver_regex.search,
-                                    fh.readlines()) if f][0]
+REQ_CYTHON = '0.22'
 try:
     import Cython
     needs_cython = \
