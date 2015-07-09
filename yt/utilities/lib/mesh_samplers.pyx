@@ -15,7 +15,7 @@ cdef inline double determinant_3x3(double* col0,
                                    double* col2) nogil:
     return col0[0]*col1[1]*col2[2] - col0[0]*col1[2]*col2[1] - \
            col0[1]*col1[0]*col2[2] + col0[1]*col1[2]*col2[0] + \
-           col0[2]*col1[0]*col2[1] + col0[2]*col1[1]*col2[0]
+           col0[2]*col1[0]*col2[1] - col0[2]*col1[1]*col2[0]
 
 
 @cython.boundscheck(False)
@@ -193,13 +193,11 @@ cdef double sample_hex_at_real_point(double* vertices,
 cdef void sample_hex(void* userPtr,
                      rtcr.RTCRay& ray) nogil:
     cdef int ray_id, elem_id, i
-    cdef double u, v, val
-    cdef double d0, d1, d2
+    cdef double val
     cdef double[8] field_data
     cdef long[8] element_indices
     cdef double[24] vertices
     cdef double[3] position
-    cdef double result
     cdef MeshDataContainer* data
 
     data = <MeshDataContainer*> userPtr
@@ -223,6 +221,20 @@ cdef void sample_hex(void* userPtr,
     val = sample_hex_at_real_point(vertices, field_data, position)
     ray.time = val
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_hex_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                     np.ndarray[np.float64_t, ndim=1] field_values,
+                     np.ndarray[np.float64_t, ndim=1] physical_x):
+    
+    cdef double val
+   
+    val = sample_hex_at_real_point(<double*> vertices.data, 
+                                   <double*> field_values.data,
+                                   <double*> physical_x.data)
+    return val
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -293,3 +305,20 @@ cdef void sample_tetra(void* userPtr,
         
     val = sample_tetra_at_unit_point(mapped_coord, field_data)
     ray.time = val
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                       np.ndarray[np.float64_t, ndim=1] field_values,
+                       np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+    cdef double[4] mapped_coord
+    tetra_real_to_mapped(mapped_coord, 
+                         <double*> vertices.data,
+                         <double*> physical_x.data)
+
+    val = sample_tetra_at_unit_point(mapped_coord, 
+                                     <double*> field_values.data)
+    return val
