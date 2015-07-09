@@ -10,6 +10,10 @@ The ``photon_simulator`` analysis module enables the creation of
 simulated X-ray photon lists of events from datasets that yt is able
 to read. The simulated events then can be exported to X-ray telescope
 simulators to produce realistic observations or can be analyzed in-line.
+
+For detailed information about the design of the algorithm in yt, check 
+out `the SciPy 2014 Proceedings. <http://conference.scipy.org/proceedings/scipy2014/zuhone.html>`_.
+
 The algorithm is based off of that implemented in
 `PHOX <http://www.mpa-garching.mpg.de/~kdolag/Phox/>`_ for SPH datasets
 by Veronica Biffi and Klaus Dolag. There are two relevant papers:
