@@ -37,6 +37,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy
+import warnings
 
 comm = communication_system.communicators[-1]
 
@@ -1213,8 +1214,8 @@ class EventList(object) :
         hdu.writeto(imagefile, clobber=clobber)
 
     @parallel_root_only
-    def write_spectrum(self, specfile, bin_type="energy", emin=0.1,
-                       emax=10.0, nchan=2000, clobber=False):
+    def write_spectrum(self, specfile, bin_type="channel", emin=0.1,
+                       emax=10.0, nchan=2000, clobber=False, energy_bins=False):
         r"""
         Bin event energies into a spectrum and write it to a FITS binary table. Can bin
         on energy or channel. In that case, the spectral binning will be determined by 
@@ -1234,11 +1235,16 @@ class EventList(object) :
             The maximum energy of the spectral bins in keV. Only used if binning without an RMF.
         nchan : integer, optional
             The number of channels. Only used if binning without an RMF.
+        energy_bins : boolean, optional
+            Bin on energy or channel. Deprecated in favor of *bin_type*. 
         """
+        if energy_bins:
+            bin_type = "energy"
+            warnings.warn("The energy_bins keyword is deprecated. Please use "
+                          "the bin_type keyword instead. Setting bin_type == 'energy'.")
         pyfits = _astropy.pyfits
         if bin_type == "channel" and "ChannelType" in self.parameters:
             spectype = self.parameters["ChannelType"]
-            espec = self.events[spectype]
             f = pyfits.open(self.parameters["RMF"])
             nchan = int(f[1].header["DETCHANS"])
             try:
@@ -1247,19 +1253,13 @@ class EventList(object) :
                 mylog.warning("Cannot determine minimum allowed value for channel. " +
                               "Setting to 0, which may be wrong.")
                 cmin = int(0)
-            try:
-                cmax = int(f[1].header["TLMAX4"])
-            except KeyError:
-                mylog.warning("Cannot determine maximum allowed value for channel. " +
-                              "Setting to DETCHANS, which may be wrong.")
-                cmax = int(nchan)
             f.close()
             minlength = nchan
             if cmin == 1: minlength += 1
             spec = np.bincount(self.events[spectype],minlength=minlength)
             if cmin == 1: spec = spec[1:]
             bins = (np.arange(nchan)+cmin).astype("int32")
-        else:    
+        else:
             espec = self.events["eobs"].d
             erange = (emin, emax)
             spec, ee = np.histogram(espec, bins=nchan, range=erange)
@@ -1302,7 +1302,7 @@ class EventList(object) :
             tbhdu.header["RESPFILE"] = "none"
         if "ARF" in self.parameters:
             tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
-        else:        
+        else:
             tbhdu.header["ANCRFILE"] = "none"
         if "Mission" in self.parameters:
             tbhdu.header["MISSION"] = self.parameters["Mission"]
