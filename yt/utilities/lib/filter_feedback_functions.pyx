@@ -223,16 +223,47 @@ cdef void sample_hex(void* userPtr,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef double sample_tetra_at_unit_point(double* coord, double* vals) nogil:
+    return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2] + vals[3]*coord[3]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef double tetra_real_to_mapped(double* mapped_coord,
+                                 double* vertices,
+                                 double* physical_coord) nogil:
+    cdef int i
+    cdef double d
+    cdef double[3] bvec
+    cdef double[3] col0
+    cdef double[3] col1
+    cdef double[3] col2
+    
+    for i in range(3):
+        bvec[i] = physical_coord[i]   - vertices[9 + i]
+        col0[i] = vertices[0 + i]     - vertices[9 + i]
+        col1[i] = vertices[3 + i]     - vertices[9 + i]
+        col2[i] = vertices[6 + i]     - vertices[9 + i]
+        
+    d = determinant_3x3(col0, col1, col2)
+    mapped_coord[0] = determinant_3x3(bvec, col1, col2)/d
+    mapped_coord[1] = determinant_3x3(col0, bvec, col2)/d
+    mapped_coord[2] = determinant_3x3(col0, col1, bvec)/d
+    mapped_coord[3] = 1.0 - mapped_coord[0] - mapped_coord[1] - mapped_coord[2]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void sample_tetra(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
+
     cdef int ray_id, elem_id, i
-    cdef double u, v, val
-    cdef double d0, d1, d2
-    cdef double[8] field_data
-    cdef long[8] element_indices
-    cdef double[24] vertices
+    cdef double val
+    cdef double[4] field_data
+    cdef long[4] element_indices
+    cdef double[12] vertices
     cdef double[3] position
-    cdef double result
+    cdef double[4] mapped_coord
     cdef UserData* data
 
     data = <UserData*> userPtr
@@ -240,18 +271,19 @@ cdef void sample_tetra(void* userPtr,
     if ray_id == -1:
         return
 
-    elem_id = ray_id / data.tpe
-
     get_hit_position(position, userPtr, ray)
     
-    for i in range(8):
-        element_indices[i] = data.element_indices[elem_id*8+i]
-        field_data[i] = data.field_data[elem_id*8+i]
-
-    for i in range(8):
+    elem_id = ray_id / data.tpe
+    for i in range(4):
+        element_indices[i] = data.element_indices[elem_id*4+i]
+        field_data[i] = data.field_data[elem_id*4+i]
         vertices[i*3] = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    val = sample_hex_at_real_point(vertices, field_data, position)
+    tetra_real_to_mapped(mapped_coord, 
+                         vertices,
+                         position)    
+        
+    val = sample_tetra_at_unit_point(mapped_coord, field_data)
     ray.time = val
