@@ -7,9 +7,7 @@ cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
 from yt.utilities.lib.element_mappings import Q1Sampler3D
 from filter_feedback_functions cimport \
-    maximum_intensity, \
-    sample_surface, \
-    sample_surface_hex
+    sample_hex
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -68,7 +66,6 @@ cdef class TriangleMesh:
     cdef Vertex* vertices
     cdef Triangle* indices
     cdef unsigned int mesh
-#    cdef Vec3f* field_data
     cdef double* field_data
     cdef rtcg.RTCFilterFunc filter_func
     cdef int tpe, vpe
@@ -281,9 +278,7 @@ cdef class ElementMesh(TriangleMesh):
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
-            self.filter_func = <rtcg.RTCFilterFunc> sample_surface_hex
-        elif sampler_type == 'maximum':
-            self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
+            self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError

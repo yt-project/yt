@@ -109,25 +109,6 @@ cdef double maxnorm(double* f) nogil:
         err = fmax(err, fabs(f[i])) 
     return err
 
-
-cdef double get_value_trilinear(void* userPtr,
-                                rtcr.RTCRay& ray):
-    cdef int ray_id
-    cdef double u, v, val
-    cdef double d0, d1, d2
-
-    data = <UserData*> userPtr
-    ray_id = ray.primID
-
-    u = ray.u
-    v = ray.v
-
-    d0 = data.field_data[ray_id].x
-    d1 = data.field_data[ray_id].y
-    d2 = data.field_data[ray_id].z
-
-    return d0*(1.0 - u - v) + d1*u + d2*v
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -171,8 +152,8 @@ cdef double sample_at_real_point(double* vertices,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void sample_surface_hex(void* userPtr,
-                             rtcr.RTCRay& ray) nogil:
+cdef void sample_hex(void* userPtr,
+                     rtcr.RTCRay& ray) nogil:
     cdef int ray_id, elem_id, i
     cdef double u, v, val
     cdef double d0, d1, d2
@@ -237,17 +218,38 @@ cdef void get_hit_position(double* position,
                       vertex_positions[2][i]*ray.v
     
 
-cdef void maximum_intensity(void* userPtr, 
-                            rtcr.RTCRay& ray):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void sample_tetra(void* userPtr,
+                       rtcr.RTCRay& ray) nogil:
+    cdef int ray_id, elem_id, i
+    cdef double u, v, val
+    cdef double d0, d1, d2
+    cdef double[8] field_data
+    cdef long[8] element_indices
+    cdef double[24] vertices
+    cdef double[3] position
+    cdef double result
+    cdef UserData* data
 
-    cdef double val = get_value_trilinear(userPtr, ray)
-    ray.time = max(ray.time, val)
-    ray.geomID = -1  # reject hit
+    data = <UserData*> userPtr
+    ray_id = ray.primID
+    if ray_id == -1:
+        return
 
+    elem_id = ray_id / data.tpe
 
-cdef void sample_surface(void* userPtr, 
-                         rtcr.RTCRay& ray):
+    get_hit_position(position, userPtr, ray)
+    
+    for i in range(8):
+        element_indices[i] = data.element_indices[elem_id*8+i]
+        field_data[i] = data.field_data[elem_id*8+i]
 
-    cdef double val = get_value_trilinear(userPtr, ray)
+    for i in range(8):
+        vertices[i*3] = data.vertices[element_indices[i]].x
+        vertices[i*3 + 1] = data.vertices[element_indices[i]].y
+        vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
+
+    val = sample_at_real_point(vertices, field_data, position)
     ray.time = val
-
