@@ -7,6 +7,7 @@ cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmax
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -16,6 +17,7 @@ cdef inline double determinant_3x3(double* col0,
     return col0[0]*col1[1]*col2[2] - col0[0]*col1[2]*col2[1] - \
            col0[1]*col1[0]*col2[2] + col0[1]*col1[2]*col2[0] + \
            col0[2]*col1[0]*col2[1] + col0[2]*col1[1]*col2[0]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -27,6 +29,7 @@ cdef double maxnorm(double* f) nogil:
     for i in range(1, 2):
         err = fmax(err, fabs(f[i])) 
     return err
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -60,6 +63,7 @@ cdef void get_hit_position(double* position,
                       vertex_positions[1][i]*ray.u + \
                       vertex_positions[2][i]*ray.v
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -88,6 +92,7 @@ cdef inline void linear_hex_f(double* f,
              + vertices[18 + i]*rm*sp*tp \
              + vertices[21 + i]*rp*sp*tp \
              - 8.0*phys_x[i]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -226,6 +231,7 @@ cdef void sample_hex(void* userPtr,
 cdef double sample_tetra_at_unit_point(double* coord, double* vals) nogil:
     return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2] + vals[3]*coord[3]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -250,6 +256,7 @@ cdef double tetra_real_to_mapped(double* mapped_coord,
     mapped_coord[1] = determinant_3x3(col0, bvec, col2)/d
     mapped_coord[2] = determinant_3x3(col0, col1, bvec)/d
     mapped_coord[3] = 1.0 - mapped_coord[0] - mapped_coord[1] - mapped_coord[2]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

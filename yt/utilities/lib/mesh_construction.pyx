@@ -7,7 +7,8 @@ cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
 from yt.utilities.lib.element_mappings import Q1Sampler3D
 from filter_feedback_functions cimport \
-    sample_hex
+    sample_hex, \
+    sample_tetra
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
