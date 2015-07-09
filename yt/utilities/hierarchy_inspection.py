@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import inspect
 from collections import Counter
+from yt.extern.six.moves import reduce
 
 
 def find_lowest_subclasses(candidates):
@@ -31,6 +32,6 @@ def find_lowest_subclasses(candidates):
 
     counters = [Counter(mro) for mro in mros]
 
-    count = reduce(lambda x, y: x+y, counters)
+    count = reduce(lambda x, y: x + y, counters)
 
     return [x for x in count.keys() if count[x] == 1]

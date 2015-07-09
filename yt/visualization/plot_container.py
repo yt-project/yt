@@ -14,7 +14,9 @@ A base class for "image" plots with colorbars.
 #-----------------------------------------------------------------------------
 from yt.extern.six.moves import builtins
 from yt.extern.six import iteritems
+
 import base64
+import errno
 import numpy as np
 import matplotlib
 import os
@@ -213,7 +215,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -240,7 +242,7 @@ class ImagePlotContainer(object):
         """
         log = {}
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -276,7 +278,7 @@ class ImagePlotContainer(object):
         """
 
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -311,7 +313,7 @@ class ImagePlotContainer(object):
 
         """
         if field is 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
@@ -347,7 +349,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -373,7 +375,7 @@ class ImagePlotContainer(object):
 
         """
         if field == 'all':
-            fields = self.plots.keys()
+            fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
@@ -536,7 +538,13 @@ class ImagePlotContainer(object):
             name = str(self.ds)
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
-            os.mkdir(name)
+            try:
+                os.mkdir(name)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    pass
+                else:
+                    raise
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         if suffix is None:

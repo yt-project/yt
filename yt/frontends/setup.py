@@ -37,6 +37,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("chombo/tests")
     config.add_subpackage("eagle/tests")
     config.add_subpackage("enzo/tests")
+    config.add_subpackage("eagle/tests")
     config.add_subpackage("fits/tests")
     config.add_subpackage("flash/tests")
     config.add_subpackage("gadget/tests")

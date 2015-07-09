@@ -26,9 +26,6 @@ class Orientation:
 
         Parameters
         ----------
-        center        : array_like
-           The current "center" of the view port -- the normal_vector connects
-           the center and the origin
         normal_vector : array_like
            A vector normal to the image plane
         north_vector  : array_like, optional
