@@ -5,7 +5,7 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from filter_feedback_functions cimport \
+from mesh_samplers cimport \
     sample_hex, \
     sample_tetra
 from pyembree.rtcore cimport \

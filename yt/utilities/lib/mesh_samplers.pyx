@@ -1,8 +1,7 @@
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
-from yt.utilities.lib.mesh_construction cimport UserData
-from yt.utilities.lib.element_mappings import Q1Sampler3D
+from yt.utilities.lib.mesh_construction cimport MeshDataContainer
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmax
@@ -40,10 +39,10 @@ cdef void get_hit_position(double* position,
     cdef int primID, elemID, i
     cdef double[3][3] vertex_positions
     cdef Triangle tri
-    cdef UserData* data
+    cdef MeshDataContainer* data
 
     primID = ray.primID
-    data = <UserData*> userPtr
+    data = <MeshDataContainer*> userPtr
     tri = data.indices[primID]
 
     vertex_positions[0][0] = data.vertices[tri.v0].x
@@ -201,9 +200,9 @@ cdef void sample_hex(void* userPtr,
     cdef double[24] vertices
     cdef double[3] position
     cdef double result
-    cdef UserData* data
+    cdef MeshDataContainer* data
 
-    data = <UserData*> userPtr
+    data = <MeshDataContainer*> userPtr
     ray_id = ray.primID
     if ray_id == -1:
         return
@@ -271,9 +270,9 @@ cdef void sample_tetra(void* userPtr,
     cdef double[12] vertices
     cdef double[3] position
     cdef double[4] mapped_coord
-    cdef UserData* data
+    cdef MeshDataContainer* data
 
-    data = <UserData*> userPtr
+    data = <MeshDataContainer*> userPtr
     ray_id = ray.primID
     if ray_id == -1:
         return

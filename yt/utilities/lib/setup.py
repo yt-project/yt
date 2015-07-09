@@ -178,11 +178,11 @@ def configuration(parent_package='',top_path=None):
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
                              depends=["yt/utilities/lib/mesh_traversal.pxd"])
-        config.add_extension("filter_feedback_functions",
-                             ["yt/utilities/lib/filter_feedback_functions.pyx"],
+        config.add_extension("mesh_samplers",
+                             ["yt/utilities/lib/mesh_samplers.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
-                             depends=["yt/utilities/lib/filter_feedback_functions.pxd"])
+                             depends=["yt/utilities/lib/mesh_samplers.pxd"])
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
