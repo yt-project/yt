@@ -133,7 +133,7 @@ cdef double get_value_trilinear(void* userPtr,
 @cython.cdivision(True)
 cdef double sample_at_real_point(double* vertices,
                                  double* field_values,
-                                 double* physical_x):
+                                 double* physical_x) nogil:
     
     cdef int i
     cdef double d, val
@@ -168,8 +168,11 @@ cdef double sample_at_real_point(double* vertices,
     val = sample_at_unit_point(x, field_values)
     return val
     
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void sample_surface_hex(void* userPtr,
-                             rtcr.RTCRay& ray):
+                             rtcr.RTCRay& ray) nogil:
     cdef int ray_id, elem_id, i
     cdef double u, v, val
     cdef double d0, d1, d2
@@ -201,9 +204,12 @@ cdef void sample_surface_hex(void* userPtr,
     val = sample_at_real_point(vertices, field_data, position)
     ray.time = val
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void get_hit_position(double* position,
                            void* userPtr,
-                           rtcr.RTCRay& ray):
+                           rtcr.RTCRay& ray) nogil:
     cdef int primID, elemID, i
     cdef double[3][3] vertex_positions
     cdef Triangle tri
