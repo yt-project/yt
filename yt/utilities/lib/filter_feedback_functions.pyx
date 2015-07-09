@@ -20,10 +20,53 @@ cdef inline double determinant_3x3(double* col0,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void func(double* f,
-                      double* x, 
-                      double* vertices, 
-                      double* phys_x) nogil:
+cdef double maxnorm(double* f) nogil:
+    cdef double err
+    cdef int i
+    err = fabs(f[0])
+    for i in range(1, 2):
+        err = fmax(err, fabs(f[i])) 
+    return err
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void get_hit_position(double* position,
+                           void* userPtr,
+                           rtcr.RTCRay& ray) nogil:
+    cdef int primID, elemID, i
+    cdef double[3][3] vertex_positions
+    cdef Triangle tri
+    cdef UserData* data
+
+    primID = ray.primID
+    data = <UserData*> userPtr
+    tri = data.indices[primID]
+
+    vertex_positions[0][0] = data.vertices[tri.v0].x
+    vertex_positions[0][1] = data.vertices[tri.v0].y
+    vertex_positions[0][2] = data.vertices[tri.v0].z
+
+    vertex_positions[1][0] = data.vertices[tri.v1].x
+    vertex_positions[1][1] = data.vertices[tri.v1].y
+    vertex_positions[1][2] = data.vertices[tri.v1].z
+
+    vertex_positions[2][0] = data.vertices[tri.v2].x
+    vertex_positions[2][1] = data.vertices[tri.v2].y
+    vertex_positions[2][2] = data.vertices[tri.v2].z
+
+    for i in range(3):
+        position[i] = vertex_positions[0][i]*(1.0 - ray.u - ray.v) + \
+                      vertex_positions[1][i]*ray.u + \
+                      vertex_positions[2][i]*ray.v
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void linear_hex_f(double* f,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:
     
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
@@ -49,12 +92,12 @@ cdef inline void func(double* f,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void J(double* r,
-                   double* s,
-                   double* t,
-                   double* x, 
-                   double* v, 
-                   double* phys_x) nogil:
+cdef inline void linear_hex_J(double* r,
+                              double* s,
+                              double* t,
+                              double* x, 
+                              double* v, 
+                              double* phys_x) nogil:
     
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
@@ -84,7 +127,7 @@ cdef inline void J(double* r,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double sample_at_unit_point(double* coord, double* vals) nogil:
+cdef double sample_hex_at_unit_point(double* coord, double* vals) nogil:
     cdef double F, rm, rp, sm, sp, tm, tp
     
     rm = 1.0 - coord[0]
@@ -98,23 +141,13 @@ cdef double sample_at_unit_point(double* coord, double* vals) nogil:
         vals[4]*rm*sm*tp + vals[5]*rp*sm*tp + vals[6]*rm*sp*tp + vals[7]*rp*sp*tp
     return 0.125*F
                 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef double maxnorm(double* f) nogil:
-    cdef double err
-    cdef int i
-    err = fabs(f[0])
-    for i in range(1, 2):
-        err = fmax(err, fabs(f[i])) 
-    return err
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double sample_at_real_point(double* vertices,
-                                 double* field_values,
-                                 double* physical_x) nogil:
+cdef double sample_hex_at_real_point(double* vertices,
+                                     double* field_values,
+                                     double* physical_x) nogil:
     
     cdef int i
     cdef double d, val
@@ -132,22 +165,23 @@ cdef double sample_at_real_point(double* vertices,
         x[i] = 0.0
     
     # initial error norm
-    func(f, x, vertices, physical_x)
+    linear_hex_f(f, x, vertices, physical_x)
     err = maxnorm(f)  
    
     # begin Newton iteration
     while (err > tolerance and iterations < 10):
-        J(r, s, t, x, vertices, physical_x)
+        linear_hex_J(r, s, t, x, vertices, physical_x)
         d = determinant_3x3(r, s, t)
         x[0] = x[0] - (determinant_3x3(f, s, t)/d)
         x[1] = x[1] - (determinant_3x3(r, f, t)/d)
         x[2] = x[2] - (determinant_3x3(r, s, f)/d)
-        func(f, x, vertices, physical_x)        
+        linear_hex_f(f, x, vertices, physical_x)        
         err = maxnorm(f)
         iterations += 1
         
-    val = sample_at_unit_point(x, field_values)
+    val = sample_hex_at_unit_point(x, field_values)
     return val
+
     
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -182,41 +216,9 @@ cdef void sample_hex(void* userPtr,
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    val = sample_at_real_point(vertices, field_data, position)
+    val = sample_hex_at_real_point(vertices, field_data, position)
     ray.time = val
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void get_hit_position(double* position,
-                           void* userPtr,
-                           rtcr.RTCRay& ray) nogil:
-    cdef int primID, elemID, i
-    cdef double[3][3] vertex_positions
-    cdef Triangle tri
-    cdef UserData* data
-
-    primID = ray.primID
-    data = <UserData*> userPtr
-    tri = data.indices[primID]
-
-    vertex_positions[0][0] = data.vertices[tri.v0].x
-    vertex_positions[0][1] = data.vertices[tri.v0].y
-    vertex_positions[0][2] = data.vertices[tri.v0].z
-
-    vertex_positions[1][0] = data.vertices[tri.v1].x
-    vertex_positions[1][1] = data.vertices[tri.v1].y
-    vertex_positions[1][2] = data.vertices[tri.v1].z
-
-    vertex_positions[2][0] = data.vertices[tri.v2].x
-    vertex_positions[2][1] = data.vertices[tri.v2].y
-    vertex_positions[2][2] = data.vertices[tri.v2].z
-
-    for i in range(3):
-        position[i] = vertex_positions[0][i]*(1.0 - ray.u - ray.v) + \
-                      vertex_positions[1][i]*ray.u + \
-                      vertex_positions[2][i]*ray.v
-    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -251,5 +253,5 @@ cdef void sample_tetra(void* userPtr,
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    val = sample_at_real_point(vertices, field_data, position)
+    val = sample_hex_at_real_point(vertices, field_data, position)
     ray.time = val
