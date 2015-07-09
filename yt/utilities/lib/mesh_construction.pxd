@@ -6,7 +6,7 @@ from pyembree.rtcore cimport \
 ctypedef struct UserData:
     Vertex* vertices
     Triangle* indices
-    double[:,:] field_data
-    long[:,:] element_indices
+    double* field_data
+    long* element_indices
     int tpe
     int vpe

@@ -69,11 +69,11 @@ cdef class TriangleMesh:
     cdef Triangle* indices
     cdef unsigned int mesh
 #    cdef Vec3f* field_data
-    cdef double[:,:] field_data
+    cdef double* field_data
     cdef rtcg.RTCFilterFunc filter_func
     cdef int tpe, vpe
     cdef int[MAX_NUM_TRI][3] tri_array
-    cdef long[:,:] element_indices
+    cdef long* element_indices
     cdef UserData user_data
 
     def __init__(self, YTEmbreeScene scene,
@@ -206,8 +206,9 @@ cdef class ElementMesh(TriangleMesh):
         else:
             raise NotImplementedError
 
+        self.field_data = NULL
+        self.element_indices = NULL
         self._build_from_indices(scene, vertices, indices)
-#        self.field_data = NULL
         self._set_field_data(scene, data)
         self._set_sampler_type(scene, sampler_type)
 
@@ -238,33 +239,34 @@ cdef class ElementMesh(TriangleMesh):
 
         for i in range(ne):
             for j in range(self.tpe):
-                ind = self.tpe*i+j
-                triangles[ind].v0 = indices_in[i][self.tri_array[j][0]]
-                triangles[ind].v1 = indices_in[i][self.tri_array[j][1]]
-                triangles[ind].v2 = indices_in[i][self.tri_array[j][2]]
+                triangles[self.tpe*i+j].v0 = indices_in[i][self.tri_array[j][0]]
+                triangles[self.tpe*i+j].v1 = indices_in[i][self.tri_array[j][1]]
+                triangles[self.tpe*i+j].v2 = indices_in[i][self.tri_array[j][2]]
 
         rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER)
 
+        cdef long* element_indices = <long *> malloc(ne * self.vpe * sizeof(long))
+    
+        for i in range(ne):
+            for j in range(self.vpe):
+                element_indices[i*self.vpe + j] = indices_in[i][j]
+
+        self.element_indices = element_indices
         self.vertices = vertices
         self.indices = triangles
-        self.element_indices = indices_in
         self.mesh = mesh
 
     cdef void _set_field_data(self, YTEmbreeScene scene,
                               np.ndarray data_in):
 
-        # cdef int ne = data_in.shape[0]
-        # cdef int nt = self.tpe*ne
-        # cdef Vec3f* field_data = <Vec3f *>malloc(nt * sizeof(Vec3f))
+        cdef int ne = data_in.shape[0]
+        cdef double* field_data = <double *> malloc(ne * self.vpe * sizeof(double))
 
-        # for i in range(ne):
-        #     for j in range(self.tpe):
-        #         ind = self.tpe*i+j
-        #         field_data[ind].x = data_in[i][self.tri_array[j][0]]
-        #         field_data[ind].y = data_in[i][self.tri_array[j][1]]
-        #         field_data[ind].z = data_in[i][self.tri_array[j][2]]
+        for i in range(ne):
+            for j in range(self.vpe):
+                field_data[self.vpe*i+j] = data_in[i][j]
 
-        self.field_data = data_in
+        self.field_data = field_data
 
         cdef UserData user_data
         user_data.vertices = self.vertices
@@ -279,89 +281,106 @@ cdef class ElementMesh(TriangleMesh):
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
         if sampler_type == 'surface':
-            self.filter_func = <rtcg.RTCFilterFunc> sample_surface
+            self.filter_func = <rtcg.RTCFilterFunc> sample_surface_hex
         elif sampler_type == 'maximum':
             self.filter_func = <rtcg.RTCFilterFunc> maximum_intensity
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError
 
-#        rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
-#                                              self.mesh,
-#                                              self.filter_func)
+        rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
+                                              self.mesh,
+                                              self.filter_func)
 
-    def sample_at_point(self, double u, double v, int primID):
+    # @cython.boundscheck(False)
+    # @cython.wraparound(False)
+    # @cython.cdivision(True)
+    # @cython.initializedcheck(False)
+    # def sample_at_point(self, double u, double v, int primID):
         
-        cdef int elemID, faceID
-        position = self._get_hit_position(u, v, primID)
-        vertices = np.empty((8, 3), dtype=np.float64)
+    #     cdef int elemID, faceID
+    #     position = self._get_hit_position(u, v, primID)
+    #     vertices = np.empty((8, 3), dtype=np.float64)
         
-        elemID = primID / self.tpe
-        # faceID = (primID % self.tpe) / 2
+    #     elemID = primID / self.tpe
+    #     # faceID = (primID % self.tpe) / 2
         
-        # faces = np.array([[0, 1, 2, 3],
-        #                   [4, 5, 6, 7],
-        #                   [0, 1, 5, 4],
-        #                   [1, 2, 6, 5],
-        #                   [0, 3, 7, 4],
-        #                   [3, 2, 6, 7]])
+    #     # faces = np.array([[0, 1, 2, 3],
+    #     #                   [4, 5, 6, 7],
+    #     #                   [0, 1, 5, 4],
+    #     #                   [1, 2, 6, 5],
+    #     #                   [0, 3, 7, 4],
+    #     #                   [3, 2, 6, 7]])
 
-        # locs = faces[faceID]
+    #     # locs = faces[faceID]
 
-        element_indices = self.element_indices[elemID]
-        field_data = np.asarray(self.field_data[elemID], dtype=np.float64)
+    #     element_indices = self.element_indices[elemID]
+    #     field_data = np.asarray(self.field_data[elemID], dtype=np.float64)
 
-        for i in range(8):
-            vertices[i][0] = self.vertices[element_indices[i]].x
-            vertices[i][1] = self.vertices[element_indices[i]].y
-            vertices[i][2] = self.vertices[element_indices[i]].z    
+    #     for i in range(8):
+    #         vertices[i][0] = self.vertices[element_indices[i]].x
+    #         vertices[i][1] = self.vertices[element_indices[i]].y
+    #         vertices[i][2] = self.vertices[element_indices[i]].z    
                              
-        sampler = Q1Sampler3D()
-        result = sampler.sample_at_real_point(position, vertices, field_data)
+    #     sampler = Q1Sampler3D()
+    #     result = sampler.sample_at_real_point(position, vertices, field_data)
 
-        return result
+    #     return result
 
+    # @cython.boundscheck(False)
+    # @cython.wraparound(False)
+    # @cython.cdivision(True)
+    # @cython.initializedcheck(False)
+    # cdef np.ndarray _get_hit_position(self, double u, double v, int primID):
 
-    cdef np.ndarray _get_hit_position(self, double u, double v, int primID):
-
-        cdef Triangle tri
-        position = np.empty(3, dtype=np.float64)
-        vertices = np.empty((3, 3), dtype=np.float64)
+    #     cdef Triangle tri
+    #     cdef Vertex v0, v1, v2
+    #     cdef int i
+    #     position = np.empty(3, dtype=np.float64)
+    #     vertices = np.empty((3, 3), dtype=np.float64)
         
-        tri = self.indices[primID]
+    #     tri = self.indices[primID]
+    #     v0 = self.vertices[tri.v0]
+    #     v1 = self.vertices[tri.v1]
+    #     v2 = self.vertices[tri.v2]
 
-        vertices[0][0] = self.vertices[tri.v0].x
-        vertices[0][1] = self.vertices[tri.v0].y
-        vertices[0][2] = self.vertices[tri.v0].z
+    #     vertices[0][0] = v0.x
+    #     vertices[0][1] = v0.y
+    #     vertices[0][2] = v0.z
         
-        vertices[1][0] = self.vertices[tri.v1].x
-        vertices[1][1] = self.vertices[tri.v1].y
-        vertices[1][2] = self.vertices[tri.v1].z
+    #     vertices[1][0] = v1.x
+    #     vertices[1][1] = v1.y
+    #     vertices[1][2] = v1.z
 
-        vertices[2][0] = self.vertices[tri.v2].x
-        vertices[2][1] = self.vertices[tri.v2].y
-        vertices[2][2] = self.vertices[tri.v2].z
+    #     vertices[2][0] = v2.x
+    #     vertices[2][1] = v2.y
+    #     vertices[2][2] = v2.z
 
-        position = vertices[0]*(1.0 - u - v) + vertices[1]*u + vertices[2]*v
+    #     for i in range(3):
+    #         position[i] = vertices[0][i]*(1.0 - u - v) + vertices[1][i]*u + vertices[2][i]*v
 
-        return position
+    #     return position
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
-    def sample_triangular(self, double u, double v, int primID):
+    # @cython.boundscheck(False)
+    # @cython.wraparound(False)
+    # @cython.cdivision(True)
+    # @cython.initializedcheck(False)
+    # def sample_triangular(self, double u, double v, int primID):
 
-        cdef int i, j
-        cdef double d0, d1, d2
+    #     cdef int i, j
+    #     cdef double d0, d1, d2
 
-        i = primID / self.tpe
-        j = primID % self.tpe
+    #     i = primID / self.tpe
+    #     j = primID % self.tpe
 
-        d0 = self.field_data[i][self.tri_array[j][0]]
-        d1 = self.field_data[i][self.tri_array[j][1]]
-        d2 = self.field_data[i][self.tri_array[j][2]]
+    #     d0 = self.field_data[i][self.tri_array[j][0]]
+    #     d1 = self.field_data[i][self.tri_array[j][1]]
+    #     d2 = self.field_data[i][self.tri_array[j][2]]
 
-        return d0*(1.0 - u - v) + d1*u + d2*v
+    #     return d0*(1.0 - u - v) + d1*u + d2*v
         
-        
+    def __dealloc__(self):
+        if self.field_data is not NULL:
+            free(self.field_data)
+        if self.element_indices is not NULL:
+            free(self.element_indices)

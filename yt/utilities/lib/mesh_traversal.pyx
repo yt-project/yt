@@ -84,11 +84,7 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
-                if ray.primID == -1:
-                    data[j] = 0.0
-                else:
-                    value = mesh.sample_triangular(ray.u, ray.v, ray.primID)
-                    data[j] = value
+                data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
         else:
@@ -111,7 +107,7 @@ cdef class MeshSampler(ImageSampler):
                 ray.mask = -1
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
-                data[j] = ray.primID
+                data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
             free(v_dir)
