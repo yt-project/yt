@@ -73,7 +73,7 @@ class RockstarDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
-        self.file_count = len(glob.glob(prefix + "*" + self._suffix))
+        self.file_count = len(glob.glob(prefix + ".*" + self._suffix))
         
         # Now we can set up things we already know.
         self.cosmological_simulation = 1

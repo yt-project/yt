@@ -91,6 +91,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
+        if pcount == 0: return morton
         ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(data_file._position_offset, os.SEEK_SET)
@@ -108,7 +109,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             # domain edges.  This helps alleviate that.
             np.clip(pos, self.ds.domain_left_edge + dx,
                          self.ds.domain_right_edge - dx, pos)
-            #del halos
+            del halos
             if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),
