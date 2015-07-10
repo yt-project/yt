@@ -227,10 +227,10 @@ cdef void sample_hex(void* userPtr,
     
     for i in range(8):
         element_indices[i] = data.element_indices[elem_id*8+i]
-        field_data[i] = data.field_data[elem_id*8+i]
+        field_data[i]      = data.field_data[elem_id*8+i]
 
     for i in range(8):
-        vertices[i*3] = data.vertices[element_indices[i]].x
+        vertices[i*3]     = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 

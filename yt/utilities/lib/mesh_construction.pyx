@@ -220,18 +220,25 @@ cdef class ElementMesh(TriangleMesh):
                     rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1)
 
         # first just copy over the vertices
-        cdef Vertex* vertices = <Vertex*> rtcg.rtcMapBuffer(scene.scene_i, mesh,
-                        rtcg.RTC_VERTEX_BUFFER)
+#        cdef Vertex* vertices = <Vertex*> rtcg.rtcMapBuffer(scene.scene_i, mesh,
+#                        rtcg.RTC_VERTEX_BUFFER)
+
+        cdef Vertex* vertices = <Vertex*> malloc(nv * sizeof(Vertex))
 
         for i in range(nv):
             vertices[i].x = vertices_in[i, 0]
             vertices[i].y = vertices_in[i, 1]
             vertices[i].z = vertices_in[i, 2]
-        rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_VERTEX_BUFFER)
+ #       rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_VERTEX_BUFFER)
+       
+        rtcg.rtcSetBuffer(scene.scene_i, mesh, rtcg.RTC_VERTEX_BUFFER,
+                          vertices, 0, sizeof(Vertex))
 
         # now build up the triangles
-        cdef Triangle* triangles = <Triangle*> rtcg.rtcMapBuffer(scene.scene_i,
-                        mesh, rtcg.RTC_INDEX_BUFFER)
+#        cdef Triangle* triangles = <Triangle*> rtcg.rtcMapBuffer(scene.scene_i,
+#                        mesh, rtcg.RTC_INDEX_BUFFER)
+
+        cdef Triangle* triangles = <Triangle*> malloc(nt * sizeof(Triangle))
 
         for i in range(ne):
             for j in range(self.tpe):
@@ -239,7 +246,9 @@ cdef class ElementMesh(TriangleMesh):
                 triangles[self.tpe*i+j].v1 = indices_in[i][self.tri_array[j][1]]
                 triangles[self.tpe*i+j].v2 = indices_in[i][self.tri_array[j][2]]
 
-        rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER)
+#        rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER)
+        rtcg.rtcSetBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER,
+                          triangles, 0, sizeof(Triangle))
 
         cdef long* element_indices = <long *> malloc(ne * self.vpe * sizeof(long))
     
@@ -293,3 +302,5 @@ cdef class ElementMesh(TriangleMesh):
             free(self.field_data)
         if self.element_indices is not NULL:
             free(self.element_indices)
+        free(self.vertices)
+        free(self.indices)
