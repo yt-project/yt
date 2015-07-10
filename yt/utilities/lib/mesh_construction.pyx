@@ -185,8 +185,7 @@ cdef class ElementMesh(TriangleMesh):
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
                  np.ndarray indices,
-                 np.ndarray data,
-                 sampler_type):
+                 np.ndarray data):
 
         # We need now to figure out if we've been handed quads or tetrahedra.
         # If it's quads, we can build the mesh slightly differently.
@@ -207,7 +206,7 @@ cdef class ElementMesh(TriangleMesh):
         self.element_indices = NULL
         self._build_from_indices(scene, vertices, indices)
         self._set_field_data(scene, data)
-        self._set_sampler_type(scene, sampler_type)
+        self._set_sampler_type(scene)
 
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
@@ -276,9 +275,11 @@ cdef class ElementMesh(TriangleMesh):
         
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.datac)
 
-    cdef void _set_sampler_type(self, YTEmbreeScene scene, sampler_type):
-        if sampler_type == 'surface':
+    cdef void _set_sampler_type(self, YTEmbreeScene scene):
+        if self.vpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
+        elif self.vpe == 4:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError

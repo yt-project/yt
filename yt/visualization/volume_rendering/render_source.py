@@ -232,7 +232,7 @@ class MeshSource(RenderSource):
     _image = None
     data_source = None
 
-    def __init__(self, data_source, field, sampler_type='surface'):
+    def __init__(self, data_source, field):
         r"""Initialize a new unstructured source for rendering.
 
         A :class:`MeshSource` provides the framework to volume render
@@ -245,13 +245,6 @@ class MeshSource(RenderSource):
             data object or dataset.
         fields : string
             The name of the field to be rendered.
-        sampler_type : string, either 'surface' or 'maximum'
-            The type of volume rendering to use for this MeshSource.
-            If 'surface', each ray will return the value of the field
-            at the point at which it intersects the surface mesh.
-            If 'maximum', each ray will return the largest value of
-            any vertex on any element that the ray intersects.
-            Default is 'surface'.
 
         Examples
         --------
@@ -264,7 +257,6 @@ class MeshSource(RenderSource):
         self.field = field
         self.mesh = None
         self.current_image = None
-        self.sampler_type = sampler_type
 
         # Error checking
         assert(self.field is not None)
@@ -290,20 +282,17 @@ class MeshSource(RenderSource):
         # convert the indices to zero-based indexing
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
-        mylog.debug("Using field %s and sampler_type %s" % (self.field,
-                                                            self.sampler_type))
         self.mesh = ElementMesh(self.scene,
                                 vertices,
                                 indices,
-                                field_data.d,
-                                self.sampler_type)
+                                field_data.d)
 
     def render(self, camera):
 
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
-        self.sampler(self.scene, self.mesh)
+        self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
         self.current_image = self.sampler.aimage

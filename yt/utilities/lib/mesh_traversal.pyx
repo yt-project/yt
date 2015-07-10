@@ -33,7 +33,6 @@ cdef class MeshSampler(ImageSampler):
     @cython.cdivision(True)
     def __call__(self, 
                  YTEmbreeScene scene,
-                 mesh,
                  int num_threads = 0):
         '''
 

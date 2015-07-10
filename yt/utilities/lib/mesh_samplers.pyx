@@ -1,3 +1,19 @@
+"""
+This file contains coordinate mappings between physical coordinates and those
+defined on unit elements, as well as functions that do the corresponding intracell
+interpolation.
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2015, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
