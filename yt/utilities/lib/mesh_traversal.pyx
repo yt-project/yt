@@ -1,3 +1,18 @@
+"""
+This file contains the MeshSampler class, which handles casting rays at a
+MeshSource using pyembree.
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2015, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 cimport cython
 cimport numpy as np
 import numpy as np

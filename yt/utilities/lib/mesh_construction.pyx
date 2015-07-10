@@ -1,3 +1,20 @@
+"""
+This file contains the ElementMesh, which represents the target that the 
+rays will be cast at when rendering finite element data. This class handles
+the interface between the internal representation of the mesh and the pyembree
+representation.
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2015, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 cimport numpy as np
 cimport cython
 cimport pyembree.rtcore as rtc 
