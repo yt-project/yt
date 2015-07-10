@@ -1019,7 +1019,7 @@ class YTUpdateCmd(YTCommand):
             print()
             print("---")
             print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip())
+            print("Changeset = %s" % vstring.strip().decode("utf-8"))
             print("---")
             print()
             print("This installation CAN be automatically updated.")

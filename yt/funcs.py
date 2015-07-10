@@ -506,7 +506,7 @@ def update_hg(path, skip_rebuild = False):
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
     stdout, stderr = p.communicate()
-    f.write(stdout)
+    f.write(stdout.decode('utf-8'))
     f.write("\n\n")
     if p.returncode:
         print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
