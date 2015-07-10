@@ -1075,6 +1075,76 @@ The ``load_particles`` function also accepts the following keyword parameters:
 
 .. _loading-pyne-data:
 
+Halo Catalog Data
+-----------------
+
+yt has support for reading halo catalogs produced by Rockstar and the inline 
+FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
+particle datasets where each particle represents a single halo.  At this time, 
+yt does not have the ability to load the member particles for a given halo.  
+However, once loaded, further halo analysis can be performed using 
+:ref:`halo_catalog`.
+
+In the case where halo catalogs are written to multiple files, one must only 
+give the path to one of them.
+
+Gadget FOF/SUBFIND
+^^^^^^^^^^^^^^^^^^
+
+The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["Group", "particle_mass"]
+   print ad["Subhalo", "particle_mass"]
+   # Halo ID
+   print ad["Group", "particle_identifier"]
+   print ad["Subhalo", "particle_identifier"]
+   # positions
+   print ad["Group", "particle_position_x"]
+   # velocities
+   print ad["Group", "particle_velocity_x"]
+
+Multidimensional fields can be accessed through the field name followed by an 
+underscore and the index.
+
+.. code-block:: python
+
+   # x component of the spin
+   print ad["Subhalo", "SubhaloSpin_0"]
+
+OWLS FOF/SUBFIND
+^^^^^^^^^^^^^^^^
+
+OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
+The two field types are "FOF" and "SUBFIND".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["FOF", "particle_mass"]
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+The single field type available is "halos".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["halos", "particle_mass"]
+
 PyNE Data
 ---------
 
