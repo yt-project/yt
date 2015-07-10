@@ -188,9 +188,6 @@ cdef class ElementMesh(TriangleMesh):
                  np.ndarray data):
 
         # We need now to figure out if we've been handed quads or tetrahedra.
-        # If it's quads, we can build the mesh slightly differently.
-        # http://stackoverflow.com/questions/23723993/converting-quadriladerals-in-an-obj-file-into-triangles
-
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
@@ -202,8 +199,6 @@ cdef class ElementMesh(TriangleMesh):
         else:
             raise NotImplementedError
 
-        self.field_data = NULL
-        self.element_indices = NULL
         self._build_from_indices(scene, vertices, indices)
         self._set_field_data(scene, data)
         self._set_sampler_type(scene)
@@ -220,38 +215,25 @@ cdef class ElementMesh(TriangleMesh):
                     rtcg.RTC_GEOMETRY_STATIC, nt, nv, 1)
 
         # first just copy over the vertices
-#        cdef Vertex* vertices = <Vertex*> rtcg.rtcMapBuffer(scene.scene_i, mesh,
-#                        rtcg.RTC_VERTEX_BUFFER)
-
         cdef Vertex* vertices = <Vertex*> malloc(nv * sizeof(Vertex))
-
         for i in range(nv):
             vertices[i].x = vertices_in[i, 0]
             vertices[i].y = vertices_in[i, 1]
-            vertices[i].z = vertices_in[i, 2]
- #       rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_VERTEX_BUFFER)
-       
+            vertices[i].z = vertices_in[i, 2]       
         rtcg.rtcSetBuffer(scene.scene_i, mesh, rtcg.RTC_VERTEX_BUFFER,
                           vertices, 0, sizeof(Vertex))
 
         # now build up the triangles
-#        cdef Triangle* triangles = <Triangle*> rtcg.rtcMapBuffer(scene.scene_i,
-#                        mesh, rtcg.RTC_INDEX_BUFFER)
-
         cdef Triangle* triangles = <Triangle*> malloc(nt * sizeof(Triangle))
-
         for i in range(ne):
             for j in range(self.tpe):
                 triangles[self.tpe*i+j].v0 = indices_in[i][self.tri_array[j][0]]
                 triangles[self.tpe*i+j].v1 = indices_in[i][self.tri_array[j][1]]
                 triangles[self.tpe*i+j].v2 = indices_in[i][self.tri_array[j][2]]
-
-#        rtcg.rtcUnmapBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER)
         rtcg.rtcSetBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER,
                           triangles, 0, sizeof(Triangle))
 
-        cdef long* element_indices = <long *> malloc(ne * self.vpe * sizeof(long))
-    
+        cdef long* element_indices = <long *> malloc(ne * self.vpe * sizeof(long))    
         for i in range(ne):
             for j in range(self.vpe):
                 element_indices[i*self.vpe + j] = indices_in[i][j]
@@ -298,9 +280,7 @@ cdef class ElementMesh(TriangleMesh):
                                               self.filter_func)
         
     def __dealloc__(self):
-        if self.field_data is not NULL:
-            free(self.field_data)
-        if self.element_indices is not NULL:
-            free(self.element_indices)
+        free(self.field_data)
+        free(self.element_indices)
         free(self.vertices)
         free(self.indices)
