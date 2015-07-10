@@ -479,10 +479,6 @@ class YTEmptyClass(object):
     pass
 
 def update_hg(path, skip_rebuild = False):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
@@ -492,7 +488,7 @@ def update_hg(path, skip_rebuild = False):
     f = open(os.path.join(path, "yt_updater.log"), "a")
     repo = hglib.open(path)
     repo.pull()
-    ident = repo.identify()
+    ident = repo.identify().decode("utf-8")
     if "+" in ident:
         print("Can't rebuild modules by myself.")
         print("You will have to do this yourself.  Here's a sample commands:")
@@ -519,10 +515,6 @@ def update_hg(path, skip_rebuild = False):
     print("Updated successfully.")
 
 def get_hg_version(path):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
