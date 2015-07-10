@@ -32,8 +32,8 @@ _fields = tuple([(p_type, p_field) for p_type in p_types
                                    for p_field in p_fields])
 
 # a dataset with empty files
-g5 = "gadget_fof/groups_005/fof_subhalo_tab_005.0.hdf5"
-g42 = "gadget_fof/groups_042/fof_subhalo_tab_042.0.hdf5"
+g5 = "gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5"
+g42 = "gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5"
 
 
 @requires_ds(g5)
