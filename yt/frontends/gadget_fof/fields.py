@@ -29,12 +29,20 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
-        ("GroupPos_0", (p_units, ["particle_position_x"], None)),
-        ("GroupPos_1", (p_units, ["particle_position_y"], None)),
-        ("GroupPos_2", (p_units, ["particle_position_z"], None)),
-        ("GroupVel_0", (v_units, ["particle_velocity_x"], None)),
-        ("GroupVel_1", (v_units, ["particle_velocity_y"], None)),
-        ("GroupVel_2", (v_units, ["particle_velocity_z"], None)),
-        ("GroupMass",  (m_units, ["particle_mass"], None)),
-        ("GroupLen",   ("",      ["particle_number"], None)),
+        ("GroupPos_0", (p_units, ["Group", "particle_position_x"], None)),
+        ("GroupPos_1", (p_units, ["Group", "particle_position_y"], None)),
+        ("GroupPos_2", (p_units, ["Group", "particle_position_z"], None)),
+        ("GroupVel_0", (v_units, ["Group", "particle_velocity_x"], None)),
+        ("GroupVel_1", (v_units, ["Group", "particle_velocity_y"], None)),
+        ("GroupVel_2", (v_units, ["Group", "particle_velocity_z"], None)),
+        ("GroupMass",  (m_units, ["Group", "particle_mass"], None)),
+        ("GroupLen",   ("",      ["Group", "particle_number"], None)),
+        ("SubhaloPos_0", (p_units, ["Subhalo", "particle_position_x"], None)),
+        ("SubhaloPos_1", (p_units, ["Subhalo", "particle_position_y"], None)),
+        ("SubhaloPos_2", (p_units, ["Subhalo", "particle_position_z"], None)),
+        ("SubhaloVel_0", (v_units, ["Subhalo", "particle_velocity_x"], None)),
+        ("SubhaloVel_1", (v_units, ["Subhalo", "particle_velocity_y"], None)),
+        ("SubhaloVel_2", (v_units, ["Subhalo", "particle_velocity_z"], None)),
+        ("SubhaloMass",  (m_units, ["Subhalo", "particle_mass"], None)),
+        ("SubhaloLen",   ("",      ["Subhalo", "particle_number"], None)),
 )
