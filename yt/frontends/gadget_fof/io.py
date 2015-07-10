@@ -55,7 +55,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["Group"], dtype="float64")
-        fofindex = np.arange(data_file.total_particles["Group"]) + data_file.index_start["FOF"]
+        fofindex = np.arange(data_file.total_particles["Group"]) + data_file.index_start["Group"]
         for offset_file in data_file.offset_files:
             if fh.filename == offset_file.filename:
                 ofh = fh
@@ -187,21 +187,19 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
-            ### Leave this block of code in case we need to do this.
-            ### This will have to wait until I get a dataset with subhalos.
-            # elif ptype == "SUBFIND" and \
-            #   not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
-            #     # These are actually FOF fields, but they were written after 
-            #     # a load balancing step moved halos around and thus they do not
-            #     # correspond to the halos stored in the FOF group.
-            #     my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
-            #     fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
-            #     if my_div > 1:
-            #         for i in range(my_div):
-            #             fields.append(("FOF", "%s_%d" % (fname, i)))
-            #     else:
-            #         fields.append(("FOF", fname))
-            #     offset_fields.append(fname)
+            elif ptype == "Subfind" and \
+              not fh[field].size % fh["/Subfind"].attrs["Number_of_groups"]:
+                # These are actually Group fields, but they were written after 
+                # a load balancing step moved halos around and thus they do not
+                # correspond to the halos stored in the Group group.
+                my_div = fh[field].size / fh["/Subfind"].attrs["Number_of_groups"]
+                fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
+                if my_div > 1:
+                    for i in range(my_div):
+                        fields.append(("Group", "%s_%d" % (fname, i)))
+                else:
+                    fields.append(("Group", fname))
+                offset_fields.append(fname)
             else:
                 mylog.warn("Cannot add field (%s, %s) with size %d." % \
                            (ptype, fh[field].name, fh[field].size))
