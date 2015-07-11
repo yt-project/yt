@@ -564,7 +564,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                       input_units=weight_data.units,
                                       info=self._get_info(item))
 
-            locs = np.where(ia > 0)
+            locs = np.where(weight_array > 0)
             ia[locs] /= weight_array[locs]
 
         self.data[item] = ia
