@@ -272,7 +272,7 @@ class PointSource(OpaqueSource):
             empty = zbuffer.rgba
             z = zbuffer.z
 
-        # DRAW SOME LINES
+        # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
         zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
