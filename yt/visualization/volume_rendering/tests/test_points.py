@@ -13,7 +13,7 @@ Test for Composite VR.
 import yt
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource, LineSource, BoxSource, PointsSource
+    VolumeSource, OpaqueSource, LineSource, BoxSource, PointSource
 from yt.utilities.lib.misc_utilities import lines
 from yt.data_objects.api import ImageArray
 import numpy as np
@@ -43,7 +43,7 @@ def test_points_vr():
     colors = np.random.random([npoints, 4])
     colors[:,3] = 0.10
 
-    points_source = PointsSource(vertices, colors=colors)
+    points_source = PointSource(vertices, colors=colors)
     sc.add_source(points_source)
     im = sc.render()
     im.write_png("points.png")
