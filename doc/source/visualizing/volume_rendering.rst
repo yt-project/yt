@@ -476,18 +476,3 @@ will remain.
 
 For an in-depth example, please see the cookbook example on opaque renders here: 
 :ref:`cookbook-opaque_rendering`.
-
-Making Production Quality Movies
---------------------------------
-
-There are a number of aspects of generating movies at production quality that
-can be tweaked and adjusted.  At least two planetarium shows have been created
-that have in part used the new volume rendering framework in yt 3.2, including
-Seismodome and Solar Superstorms.  The scripts used to create Seismodome can be
-found in this repository: https://bitbucket.org/seismodome/movie_scripts , but
-may now be out of date as they were updated during the course of production
-before the new volume rendering API was stabilized.  Among other things, these
-scripts show how to use multiple lenses from a single source, how to rotate
-objects and cameras (sometimes by hand), and how to transform between
-coordinate systems.  A low-resolution 360 movie generated with this script can
-be seen here: https://www.youtube.com/watch?v=0J1colZzOCk .
