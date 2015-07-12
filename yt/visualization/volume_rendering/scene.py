@@ -13,6 +13,7 @@ The volume rendering Scene class.
 
 
 import numpy as np
+from collections import OrderedDict
 from yt.funcs import mylog
 from yt.extern.six import iteritems, itervalues
 from .camera import Camera
@@ -75,7 +76,7 @@ class Scene(object):
 
         """
         super(Scene, self).__init__()
-        self.sources = {}
+        self.sources = OrderedDict()
         self.camera = None
 
     def get_source(self, source_num):
