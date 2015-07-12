@@ -27,7 +27,13 @@ from yt.utilities.lib.grid_traversal import \
 
 class Lens(ParallelAnalysisInterface):
 
-    """docstring for Lens"""
+    """
+
+    A base class for setting up Lens objects. A Lens,
+    along with a Camera, is used to defined the set of
+    rays that will be used for rendering.
+
+    """
 
     def __init__(self, ):
         super(Lens, self).__init__()
@@ -75,7 +81,12 @@ class Lens(ParallelAnalysisInterface):
 
 class PlaneParallelLens(Lens):
 
-    """docstring for PlaneParallelLens"""
+    r'''
+
+    This lens type is the standard type used for orthographic projections. 
+    All rays emerge parallel to each other, arranged along a plane.
+
+    '''
 
     def __init__(self, ):
         super(PlaneParallelLens, self).__init__()
@@ -125,7 +136,12 @@ class PlaneParallelLens(Lens):
 
 class PerspectiveLens(Lens):
 
-    """docstring for PerspectiveLens"""
+    r'''
+
+    This lens type adjusts for an opening view angle, so that the scene will 
+    have an element of perspective to it.
+
+    '''
 
     def __init__(self):
         super(PerspectiveLens, self).__init__()
@@ -238,6 +254,7 @@ class PerspectiveLens(Lens):
         disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % \
             (self.viewpoint)
         return disp
+
 
 class StereoPerspectiveLens(Lens):
 
@@ -409,9 +426,18 @@ class StereoPerspectiveLens(Lens):
             (self.viewpoint)
         return disp
 
+
 class FisheyeLens(Lens):
 
-    """docstring for FisheyeLens"""
+    r"""
+
+    This lens type accepts a field-of-view property, fov, that describes how wide 
+    an angle the fisheye can see. Fisheye images are typically used for dome-based 
+    presentations; the Hayden planetarium for instance has a field of view of 194.6. 
+    The images returned by this camera will be flat pixel images that can and should 
+    be reshaped to the resolution.    
+
+    """
 
     def __init__(self):
         super(FisheyeLens, self).__init__()
@@ -461,7 +487,7 @@ class FisheyeLens(Lens):
 
     def set_viewpoint(self, camera):
         """
-        For a PerspectiveLens, the viewpoint is the front center.
+        For a FisheyeLens, the viewpoint is the front center.
         """
         self.viewpoint = camera.position
 
@@ -502,7 +528,12 @@ class FisheyeLens(Lens):
 
 class SphericalLens(Lens):
 
-    """docstring for SphericalLens"""
+    r"""
+
+    This is a cylindrical-spherical projection. Movies rendered in this way 
+    can be displayed in head-tracking devices or in YouTube 360 view.
+    
+    """
 
     def __init__(self):
         super(SphericalLens, self).__init__()
@@ -595,6 +626,7 @@ class SphericalLens(Lens):
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz
 
+
 class StereoSphericalLens(Lens):
 
     """docstring for StereoSphericalLens"""
@@ -682,4 +714,4 @@ lenses = {'plane-parallel': PlaneParallelLens,
           'stereo-perspective': StereoPerspectiveLens,
           'fisheye': FisheyeLens,
           'spherical': SphericalLens,
-          'stereo-spherical':StereoSphericalLens}
+          'stereo-spherical': StereoSphericalLens}

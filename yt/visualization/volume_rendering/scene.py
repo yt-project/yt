@@ -22,29 +22,6 @@ from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
 from .zbuffer_array import ZBuffer
 
 
-class SceneHandle(object):
-    """docstring for SceneHandle"""
-    def __init__(self, scene, camera, source, lens):
-        mylog.debug("Entering %s" % str(self))
-        self.scene = scene
-        self.camera = camera
-        self.source = source
-        self.lens = lens
-
-    def __repr__(self):
-        desc = super(SceneHandle, self).__repr__()
-        desc += str(self)
-        return desc
-
-    def __str__(self):
-        desc = "Scene Handler\n"
-        desc += ".scene: " + self.scene.__repr__() + "\n"
-        desc += ".camera: " + self.camera.__repr__() + "\n"
-        desc += ".source: " + self.source.__repr__() + "\n"
-        desc += ".lens: " + self.lens.__repr__() + "\n"
-        return desc
-
-
 class Scene(object):
 
     """The Scene Class
@@ -218,24 +195,38 @@ class Scene(object):
         return locals()
     camera = property(**camera())
 
-    # Are these useful?
     def set_camera(self, camera):
+        r"""
+
+        Set the camera to be used by this scene.
+
+        """
         self.camera = camera
 
     def get_camera(self, camera):
+        r"""
+
+        Get the camera currently used by this scene.
+
+        """
         return self.camera
 
-    def get_handle(self, key=None):
-        """docstring for get_handle"""
-
-        if key is None:
-            key = self.sources.keys()[0]
-        handle = SceneHandle(self, self.camera, self.sources[key],
-                             self.sources[key].lens)
-        return handle
-
     def annotate_domain(self, ds, color=None):
-        """docstring for annotate_domain"""
+        r"""
+
+        Modifies this scene by drawing the edges of the computational domain.
+        This adds a new BoxSource to the scene corresponding to the domain
+        boundaries and returns the modified scene object.
+
+        Parameters
+        ----------
+
+        ds : :class:`yt.data_objects.api.Dataset`
+            This is the dataset object corresponding to the
+            simulation being rendered. Used to get the domain bounds.
+
+
+        """
         box_source = BoxSource(ds.domain_left_edge,
                                ds.domain_right_edge,
                                color=None)
@@ -250,7 +241,20 @@ class Scene(object):
         return self
 
     def annotate_axes(self, colors=None, alpha=1.0):
-        """docstring for annotate_axes"""
+        r"""
+
+        Modifies this scene by drawing the coordinate axes.
+        This adds a new CoordinateVectorSource to the scene
+        and returns the modified scene object.
+
+        Parameters
+        ----------
+        colors: array-like, shape (3,4), optional
+            The x, y, z RGBA values to use to draw the axes.
+        alpha : float, optional
+            The opacity of the vectors.
+
+        """
         coords = CoordinateVectorSource(colors, alpha)
         self.add_source(coords)
         return self

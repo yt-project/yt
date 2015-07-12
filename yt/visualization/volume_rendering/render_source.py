@@ -30,8 +30,12 @@ from yt.utilities.lib.misc_utilities import \
 
 class RenderSource(ParallelAnalysisInterface):
 
-    """Base Class for Render Sources. Will be inherited for volumes,
-       streamlines, etc"""
+    """
+
+    Base Class for Render Sources. Will be inherited for volumes,
+    streamlines, etc.
+
+    """
 
     def __init__(self):
         super(RenderSource, self).__init__()
@@ -46,7 +50,12 @@ class RenderSource(ParallelAnalysisInterface):
 
 
 class OpaqueSource(RenderSource):
-    """docstring for OpaqueSource"""
+    """
+
+    A base class for opaque render sources. Will be inherited from
+    for LineSources, BoxSources, etc.
+
+    """
     def __init__(self):
         super(OpaqueSource, self).__init__()
         self.opaque = True
@@ -65,7 +74,14 @@ class OpaqueSource(RenderSource):
 
 class VolumeSource(RenderSource):
 
-    """docstring for VolumeSource"""
+    """
+
+    A VolumeSource is a class for rendering data from
+    an arbitrary volumetric data source, e.g. a sphere,
+    cylinder, or the entire computational domain.
+
+
+    """
     _image = None
     data_source = None
 
@@ -298,9 +314,12 @@ class LineSource(OpaqueSource):
 
         Parameters
         ----------
-        positions: array, shape (N, 3)
-            These positions, in data-space coordinates, are the points to be
-            connected with lines.
+        positions: array, shape (N, 2, 3)
+            These positions, in data-space coordinates, are the starting and
+            stopping points for each pair of lines. For example,
+            positions[0][0] and positions[0][1] would give the (x, y, z)
+            coordinates of the beginning and end points of the first line,
+            respectively.
         colors : array, shape (N, 4), optional
             The colors of the points, including an alpha channel, in floating
             point running from 0..1.  Note that they correspond to the line
@@ -317,7 +336,14 @@ class LineSource(OpaqueSource):
         """
 
         super(LineSource, self).__init__()
-        self.positions = positions
+
+        assert(positions.shape[1] == 2)
+        assert(positions.shape[2] == 3)
+
+        # convert the positions to the shape expected by zlines, below
+        N = positions.shape[0]
+        self.positions = positions.reshape((2*N, 3))
+
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
@@ -382,6 +408,8 @@ class BoxSource(LineSource):
         vertices = np.empty([24, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
+
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
 
@@ -453,6 +481,7 @@ class GridSource(LineSource):
         vertices = np.empty([corners.shape[2]*2*12, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
 
         super(GridSource, self).__init__(vertices, colors, color_stride=24)
 
