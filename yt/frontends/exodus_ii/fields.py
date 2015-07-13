@@ -1,5 +1,5 @@
 """
-Skeleton-specific fields
+ExodusII-specific fields
 
 
 
@@ -22,7 +22,7 @@ from yt.fields.field_info_container import \
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
 
-class SkeletonFieldInfo(FieldInfoContainer):
+class ExodusIIFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
@@ -34,7 +34,7 @@ class SkeletonFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds):
-        super(SkeletonFieldInfo, self).__init__(ds)
+        super(ExodusIIFieldInfo, self).__init__(ds)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):

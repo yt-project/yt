@@ -1,5 +1,5 @@
 """
-Skeleton-specific IO functions
+ExodusII-specific IO functions
 
 
 
@@ -16,9 +16,9 @@ Skeleton-specific IO functions
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-class IOHandlerSkeleton(BaseIOHandler):
+class IOHandlerExodusII(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = "skeleton"
+    _dataset_type = "exodus_ii"
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).

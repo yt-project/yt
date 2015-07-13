@@ -1,5 +1,5 @@
 """
-Skeleton data structures
+Exodus II data structures
 
 
 
@@ -19,9 +19,9 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from .fields import SkeletonFieldInfo
+from .fields import ExodusIIFieldInfo
 
-class SkeletonGrid(AMRGridPatch):
+class ExodusIIGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level, start, dimensions):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
@@ -34,12 +34,12 @@ class SkeletonGrid(AMRGridPatch):
         self.ActiveDimensions = dimensions.copy()
 
     def __repr__(self):
-        return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return "ExodusIIGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class SkeletonHierarchy(GridIndex):
-    grid = SkeletonGrid
+class ExodusIIHierarchy(GridIndex):
+    grid = ExodusIIGrid
 
-    def __init__(self, ds, dataset_type='skeleton'):
+    def __init__(self, ds, dataset_type='exodus_ii'):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.parameter_filename
@@ -81,14 +81,14 @@ class SkeletonHierarchy(GridIndex):
         # identified.
         pass
 
-class SkeletonDataset(Dataset):
-    _index_class = SkeletonHierarchy
-    _field_info_class = SkeletonFieldInfo
+class ExodusIIDataset(Dataset):
+    _index_class = ExodusIIHierarchy
+    _field_info_class = ExodusIIFieldInfo
 
-    def __init__(self, filename, dataset_type='skeleton',
+    def __init__(self, filename, dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
-        self.fluid_types += ('skeleton',)
+        self.fluid_types += ('exodus_ii',)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename

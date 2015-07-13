@@ -1,5 +1,5 @@
 """
-API for yt.frontends._skeleton
+API for yt.frontends.exodus_ii
 
 
 
@@ -14,12 +14,12 @@ API for yt.frontends._skeleton
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      SkeletonGrid, \
-      SkeletonHierarchy, \
-      SkeletonDataset
+      ExodusIIGrid, \
+      ExodusIIHierarchy, \
+      ExodusIIDataset
 
 from .fields import \
-      SkeletonFieldInfo
+      ExodusIIFieldInfo
 
 from .io import \
-      IOHandlerSkeleton
+      IOHandlerExodusII
