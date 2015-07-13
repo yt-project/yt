@@ -241,6 +241,7 @@ class ARTDataset(Dataset):
         boxh = self.parameters['boxh']
         aexpn = self.parameters["aexpn"]
         hubble = self.parameters['hubble']
+        gamma = self.parameters['gamma']
 
         r0 = boxh/ng
         v0 = 50.0*r0*np.sqrt(Om0)
@@ -248,13 +249,15 @@ class ARTDataset(Dataset):
         aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
         velocity = v0/aexpn*1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
+        T0 = 3.03e5 * r0**2 * wmu * Om0
+        temperature = T0 * (gamma - 1.) / (aexpn**2)
 
         self.cosmological_simulation = True
         self.mass_unit = self.quan(mass, "g*%s" % ng**3)
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
-
+        self.temperature_unit = self.quan(temperature, "K")
 
     def _parse_parameter_file(self):
         """
