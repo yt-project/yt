@@ -132,9 +132,26 @@ def off_axis_projection(data_source, center, normal_vector,
     if weight is None:
         vol.set_fields([item])
     else:
-        vol.set_fields([item, weight])
+        # This is a temporary field, which we will remove at the end.
+        weightfield = ("index", "temp_weightfield")
+        def _make_wf(f, w):
+            def temp_weightfield(a, b):
+                tr = b[f].astype("float64") * b[w]
+                return b.apply_units(tr, a.units)
+                return tr
+            return temp_weightfield
+        data_source.ds.field_info.add_field(weightfield,
+            function=_make_wf(item, weight))
+        # Now we have to tell the dataset to add it and to calculate
+        # its dependencies..
+        deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
+        data_source.ds.field_dependencies.update(deps)
+        fields = [weightfield, weight]
+        vol.set_fields(fields)
     camera = Camera(data_source)
     camera.set_width(width)
+    camera.switch_orientation(normal_vector=normal_vector,
+                              north_vector=north_vector)
     camera.focus = center
     sc.camera = camera
     sc.add_source(vol)
@@ -185,7 +202,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if method == "integrate":
         if weight is None:
-            dl = width[2]
+            dl = width[2].in_units("cm")
             image *= dl
         else:
             image[:,:,0] /= image[:,:,1]
