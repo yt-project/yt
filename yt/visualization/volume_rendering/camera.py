@@ -378,8 +378,9 @@ class Camera(ParallelAnalysisInterface):
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
-            lines(im.d, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
-                  np.array([color, color]), 1, thickness, flip=1)
+            px = np.array([px0, px0+dx], dtype='int64')
+            py = np.array([py0, py0+dy], dtype='int64')
+            lines(im.d, px, py, np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -427,11 +428,11 @@ class Camera(ParallelAnalysisInterface):
         py1 = int(self.resolution[0]*(dx1/self.width[0]))
         px0 = int(self.resolution[1]*(dy0/self.width[1]))
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
-
+        px = np.array([px0, px1], dtype="int64")
+        py = np.array([py0, py1], dtype="int64")
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im.d, np.array([px0, px1]), np.array([py0, py1]),
-              np.array([color,color]), flip=1)
+        lines(im.d, px, py, np.array([color,color]), flip=1)
 
     def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
@@ -515,7 +516,7 @@ class Camera(ParallelAnalysisInterface):
        
         # we flipped it in snapshot to get the orientation correct, so
         # flip the lines
-        lines(im.d, px.d, py.d, color.reshape(1,4), 24, flip=1)
+        lines(im.d, px.d.astype("int64"), py.d.astype("int64"), color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -2251,7 +2252,6 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
-                return tr
             return temp_weightfield
         ds.field_info.add_field(weightfield,
             function=_make_wf(field, weight))
@@ -2411,9 +2411,10 @@ class ProjectionCamera(Camera):
             if self.weight is None:
                 dl = self.width[2].in_units("cm")
             else:
-                image[:,:,0] /= image[:,:,1]
+                image[:, : ,0] /= image[:, :, 1]
 
-        return ImageArray(image[:,:,0], finfo.units)*dl
+        return ImageArray(image[:, :, 0], finfo.units, 
+                          registry=ds.unit_registry) * dl
 
 
     def _render(self, double_check, num_threads, image, sampler):

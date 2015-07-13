@@ -331,7 +331,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
     This data object in particular can be somewhat expensive to create.
     It's also important to note that unlike the other 2D data objects, this
-    oject provides px, py, pz, as some cells may have a height from the
+    object provides px, py, pz, as some cells may have a height from the
     plane.
 
     Examples
@@ -729,7 +729,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> sp = ds.sphere("max", (1.0, 'mpc'))
+    >>> sp = ds.sphere("max", (1.0, 'Mpc'))
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"

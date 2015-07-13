@@ -1,14 +1,20 @@
 import os.path
 import yt
+from yt.config import ytcfg
 from yt.testing import \
     assert_equal, requires_file, assert_raises
 from yt.utilities.exceptions import YTUnitOperationError
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
+
 def setup():
-    from yt.config import ytcfg
     ytcfg["yt", "serialize"] = "True"
+
+
+def teardown():
+    ytcfg["yt", "serialize"] = "False"
+
 
 @requires_file(G30)
 def test_store():

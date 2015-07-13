@@ -10,8 +10,11 @@ Unit test for the AbsorptionSpectrum analysis module
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt
-from yt.testing import *
+import numpy as np
+from yt.testing import \
+    assert_allclose, requires_file, requires_module
+from yt.analysis_modules.absorption_spectrum.absorption_line import \
+    voigt_old, voigt_scipy
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 from yt.analysis_modules.cosmological_observation.api import LightRay
 import tempfile
@@ -19,6 +22,7 @@ import os
 import shutil
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
+
 
 @requires_file(COSMO_PLUS)
 def test_absorption_spectrum():
@@ -44,22 +48,24 @@ def test_absorption_spectrum():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700 # Angstromss
+    wavelength = 1215.6700  # Angstromss
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
 
-    sp.add_line(my_label, field, wavelength, f_value, gamma, mass, label_threshold=1.e10)
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 912.323660 # Angstroms
+    wavelength = 912.323660  # Angstroms
     normalization = 1.6e17
     index = 3.0
 
     sp.add_continuum(my_label, field, wavelength, normalization, index)
 
-    wavelength, flux = sp.make_spectrum('lightray.h5', output_file='spectrum.txt',
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.txt',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
 
@@ -93,25 +99,34 @@ def test_absorption_spectrum_fits():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700 # Angstromss
+    wavelength = 1215.6700  # Angstromss
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
 
-    sp.add_line(my_label, field, wavelength, f_value, gamma, mass, label_threshold=1.e10)
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 912.323660 # Angstroms
+    wavelength = 912.323660  # Angstroms
     normalization = 1.6e17
     index = 3.0
 
     sp.add_continuum(my_label, field, wavelength, normalization, index)
 
-    wavelength, flux = sp.make_spectrum('lightray.h5', output_file='spectrum.fits',
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.fits',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
 
     # clean up
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+
+@requires_module("scipy")
+def test_voigt_profiles():
+    a = 1.7e-4
+    x = np.linspace(5.0, -3.6, 60)
+    yield assert_allclose, voigt_old(a, x), voigt_scipy(a, x), 1e-8

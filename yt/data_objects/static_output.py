@@ -35,6 +35,8 @@ from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.fields.fluid_fields import \
+    setup_gradient_fields
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -751,7 +753,7 @@ class Dataset(object):
         if (self.domain_left_edge is not None and
             self.domain_right_edge is not None):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-            self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+            self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                    DW.units.dimensions)
 
     def _override_code_units(self):
@@ -964,6 +966,50 @@ class Dataset(object):
             take_log=False,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
+
+    def add_gradient_fields(self, input_field):
+        """Add gradient fields. 
+
+        Creates four new grid-based fields that represent the components of
+        the gradient of an existing field, plus an extra field for the magnitude
+        of the gradient. Currently only supported in Cartesian geometries. The 
+        gradient is computed using second-order centered differences. 
+
+        Parameters
+        ----------
+        input_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct field type.
+
+        Returns
+        -------
+        A list of field name tuples for the newly created fields.
+        
+        Examples
+        --------
+        >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
+        >>> print(grad_fields)
+        [('gas', 'temperature_gradient_x'), 
+         ('gas', 'temperature_gradient_y'), 
+         ('gas', 'temperature_gradient_z'), 
+         ('gas', 'temperature_gradient_magnitude')]
+        """
+        self.index
+        if isinstance(input_field, tuple):
+            ftype, input_field = input_field[0], input_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ftype, input_field].units
+        setup_gradient_fields(self.field_info, (ftype, input_field), units)
+        # Now we make a list of the fields that were just made, to check them
+        # and to return them
+        grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
+                       for suffix in "xyz"]
+        grad_fields.append((ftype,input_field+"_gradient_magnitude"))
+        deps, _ = self.field_info.check_derived_fields(grad_fields)
+        self.field_dependencies.update(deps)
+        return grad_fields
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

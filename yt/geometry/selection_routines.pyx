@@ -601,7 +601,8 @@ cdef class SelectorObject:
         return mask.view("bool")
 
     def __hash__(self):
-        return hash(self._hash_vals() + self._base_hash())
+        return hash(("mine", self._hash_vals()) +
+                    ("base", self._base_hash()))
 
     def _hash_vals(self):
         raise NotImplementedError

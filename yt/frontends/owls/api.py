@@ -22,5 +22,8 @@ from .fields import \
 
 from .io import \
     IOHandlerOWLS
+
+from .simulation_handling import \
+    OWLSSimulation
     
 from . import tests

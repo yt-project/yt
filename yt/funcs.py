@@ -479,10 +479,6 @@ class YTEmptyClass(object):
     pass
 
 def update_hg(path, skip_rebuild = False):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
@@ -492,7 +488,7 @@ def update_hg(path, skip_rebuild = False):
     f = open(os.path.join(path, "yt_updater.log"), "a")
     repo = hglib.open(path)
     repo.pull()
-    ident = repo.identify()
+    ident = repo.identify().decode("utf-8")
     if "+" in ident:
         print("Can't rebuild modules by myself.")
         print("You will have to do this yourself.  Here's a sample commands:")
@@ -510,7 +506,7 @@ def update_hg(path, skip_rebuild = False):
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
     stdout, stderr = p.communicate()
-    f.write(stdout)
+    f.write(stdout.decode('utf-8'))
     f.write("\n\n")
     if p.returncode:
         print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
@@ -519,10 +515,6 @@ def update_hg(path, skip_rebuild = False):
     print("Updated successfully.")
 
 def get_hg_version(path):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
@@ -566,7 +558,7 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
-    class MyURLopener(urllib.FancyURLopener):
+    class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
               (url, errcode, errmsg))
@@ -606,12 +598,12 @@ def get_yt_supp():
             print("Okay, I understand.  You can check it out yourself.")
             print("This command will do it:")
             print()
-            print("$ hg clone http://hg.yt-project.org/yt-supplemental/ ", end=' ')
+            print("$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=' ')
             print("%s" % (supp_path))
             print()
             sys.exit(1)
         rv = commands.clone(uu,
-                "http://hg.yt-project.org/yt-supplemental/", supp_path)
+                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)

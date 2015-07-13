@@ -186,7 +186,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         rv = {self.axis_id['r']: ('theta', 'phi'),
               self.axis_id['theta']: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
               self.axis_id['phi']: ('R', 'z')}
-        for i in rv.keys():
+        for i in list(rv.keys()):
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv

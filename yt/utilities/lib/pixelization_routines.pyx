@@ -17,7 +17,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max
+from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
+from yt.utilities.exceptions import YTPixelizeError
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -37,6 +38,135 @@ cdef extern from "pixelization_constants.h":
     int WEDGE_IND
     int WEDGE_NF
     np.uint8_t wedge_face_defs[MAX_NUM_FACES][2][2]
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
+                       np.ndarray[np.float64_t, ndim=1] py,
+                       np.ndarray[np.float64_t, ndim=1] pdx,
+                       np.ndarray[np.float64_t, ndim=1] pdy,
+                       np.ndarray[np.float64_t, ndim=1] data,
+                       int cols, int rows, bounds,
+                       int antialias = 1,
+                       period = None,
+                       int check_period = 1):
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t period_x = 0.0, period_y = 0.0
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
+    cdef int nx, ny, ndx, ndy
+    cdef int i, j, p, xi, yi
+    cdef int lc, lr, rc, rr
+    cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
+    # These are the temp vars we get from the arrays
+    cdef np.float64_t oxsp, oysp, xsp, ysp, dxsp, dysp, dsp
+    # Some periodicity helpers
+    cdef int xiter[2], yiter[2]
+    cdef np.float64_t xiterv[2], yiterv[2]
+    cdef np.ndarray[np.float64_t, ndim=2] my_array
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> rows)
+    px_dy = height / (<np.float64_t> cols)
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if rows == 0 or cols == 0:
+        raise YTPixelizeError("Cannot scale to zero size")
+    if px.shape[0] != py.shape[0] or \
+       px.shape[0] != pdx.shape[0] or \
+       px.shape[0] != pdy.shape[0] or \
+       px.shape[0] != data.shape[0]:
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    my_array = np.zeros((rows, cols), "float64")
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    # Here's a basic outline of what we're going to do here.  The xiter and
+    # yiter variables govern whether or not we should check periodicity -- are
+    # we both close enough to the edge that it would be important *and* are we
+    # periodic?
+    #
+    # The other variables are all either pixel positions or data positions.
+    # Pixel positions will vary regularly from the left edge of the window to
+    # the right edge of the window; px_dx and px_dy are the dx (cell width, not
+    # half-width).  ipx_dx and ipx_dy are the inverse, for quick math.
+    #
+    # The values in xsp, dxsp, x_min and their y counterparts, are the
+    # data-space coordinates, and are related to the data fed in.  We make some
+    # modifications for periodicity.
+    #
+    # Inside the finest loop, we compute the "left column" (lc) and "lower row"
+    # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
+    # depositing into them the data value.  Overlap computes the relative
+    # overlap of a data value with a pixel.
+    with nogil:
+        for p in range(px.shape[0]):
+            xiter[1] = yiter[1] = 999
+            oxsp = px[p]
+            oysp = py[p]
+            dxsp = pdx[p]
+            dysp = pdy[p]
+            dsp = data[p]
+            if check_period == 1:
+                if (oxsp - dxsp < x_min):
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif (oxsp + dxsp > x_max):
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if (oysp - dysp < y_min):
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif (oysp + dysp > y_max):
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+            overlap1 = overlap2 = 1.0
+            for xi in range(2):
+                if xiter[xi] == 999: continue
+                xsp = oxsp + xiterv[xi]
+                if (xsp + dxsp < x_min) or (xsp - dxsp > x_max): continue
+                for yi in range(2):
+                    if yiter[yi] == 999: continue
+                    ysp = oysp + yiterv[yi]
+                    if (ysp + dysp < y_min) or (ysp - dysp > y_max): continue
+                    lc = <int> fmax(((xsp-dxsp-x_min)*ipx_dx),0)
+                    lr = <int> fmax(((ysp-dysp-y_min)*ipx_dy),0)
+                    # NOTE: This is a different way of doing it than in the C
+                    # routines.  In C, we were implicitly casting the
+                    # initialization to int, but *not* the conditional, which
+                    # was allowed an extra value:
+                    #     for(j=lc;j<rc;j++)
+                    # here, when assigning lc (double) to j (int) it got
+                    # truncated, but no similar truncation was done in the
+                    # comparison of j to rc (double).  So give ourselves a
+                    # bonus row and bonus column here.
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), rows)
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), cols)
+                    for i in range(lr, rr):
+                        lypx = px_dy * i + y_min
+                        rypx = px_dy * (i+1) + y_min
+                        if antialias == 1:
+                            overlap2 = ((fmin(rypx, ysp+dysp)
+                                       - fmax(lypx, (ysp-dysp)))*ipx_dy)
+                        if overlap2 < 0.0: continue
+                        for j in range(lc, rc):
+                            lxpx = px_dx * j + x_min
+                            rxpx = px_dx * (j+1) + x_min
+                            if antialias == 1:
+                                overlap1 = ((fmin(rxpx, xsp+dxsp)
+                                           - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
+                                if overlap1 < 0.0: continue
+                                my_array[j,i] += (dsp * overlap1) * overlap2
+                            else:
+                                my_array[j,i] = dsp
+    return my_array
+
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

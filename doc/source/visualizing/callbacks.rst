@@ -483,7 +483,7 @@ Overplot Text
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='max', width=(10, 'kpc'))
-   s.annotate_text((2, 2), coord_system='plot', 'Galaxy!')
+   s.annotate_text((2, 2), 'Galaxy!', coord_system='plot')
    s.save()
 
 .. _annotate-title:

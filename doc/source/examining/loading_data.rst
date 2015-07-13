@@ -104,7 +104,11 @@ Athena Data
 -----------
 
 Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+ZuHone. Both uniform grid and SMR datasets are supported. 
+
+.. note: 
+   yt also recognizes Fargo3D data written to VTK files as 
+   Athena data, but support for Fargo3D data is preliminary. 
 
 Loading Athena datasets is slightly different depending on whether
 your dataset came from a serial or a parallel run. If the data came
@@ -469,6 +473,8 @@ which may be used to make deposited image fields from the event data for differe
   first image in the primary file. If this is not the case,
   yt will raise a warning and will not load this field.
 
+.. _additional_fits_options:
+
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
@@ -570,6 +576,35 @@ package must be installed.
 ``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
 utilized more here.
 
+``create_spectral_slabs``
+"""""""""""""""""""""""""
+
+.. note::
+
+  The following functionality requires the `spectral-cube <http://spectral-cube.readthedocs.org>`_
+  library to be installed. 
+  
+If you have a spectral intensity dataset of some sort, and would like to extract emission in 
+particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
+used to generate a dataset with these slabs as different fields. In this example, we use it
+to extract individual lines from an intensity cube:
+
+.. code-block:: python
+
+  slab_centers = {'13CN': (218.03117, 'GHz'),
+                  'CH3CH2CHO': (218.284256, 'GHz'),
+                  'CH3NH2': (218.40956, 'GHz')}
+  slab_width = (0.05, "GHz")
+  ds = create_spectral_slabs("intensity_cube.fits",
+                                    slab_centers, slab_width,
+                                    nan_mask=0.0)
+
+All keyword arguments to `create_spectral_slabs` are passed on to `load` when creating the dataset
+(see :ref:`additional_fits_options` above). In the returned dataset, the different slabs will be
+different fields, with the field names taken from the keys in ``slab_centers``. The WCS coordinates 
+on the spectral axis are reset so that the center of the domain along this axis is zero, and the 
+left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
+
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -635,13 +670,14 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
    import yt
    ds = yt.load("snapshot_061.hdf5")
 
-However, yt cannot detect raw-binary Gadget data, and so you must specify the
-format as being Gadget:
+Gadget data in raw binary format can also be loaded with the ``load`` command. 
+This is only supported for snapshots created with the ``SnapFormat`` parameter 
+set to 1 (the standard for Gadget-2).
 
 .. code-block:: python
 
    import yt
-   ds = yt.GadgetDataset("snapshot_061")
+   ds = yt.load("snapshot_061")
 
 .. _particle-bbox:
 
