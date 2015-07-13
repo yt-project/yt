@@ -28,7 +28,7 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.extern.six import PY3
+from yt.extern.six import PY2, PY3
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
@@ -36,13 +36,13 @@ from yt.utilities.decompose import \
     decompose_array, get_psize
 
 def chk23(strin):
-    if PY3:
+    if PY2:
         return strin
     else:
         return strin.encode('utf-8')
 
 def str23(strin):
-    if PY3:
+    if PY2:
         return strin
     else:
         if isinstance(strin, list):
@@ -137,7 +137,7 @@ def parse_line(line, grid):
     elif chk23("time") in splitup:
         time_index = splitup.index(chk23("time"))
         grid['time'] = float(str23(splitup[time_index+1]))
-    
+
 class AthenaHierarchy(GridIndex):
 
     grid = AthenaGrid
@@ -150,7 +150,7 @@ class AthenaHierarchy(GridIndex):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
-        if PY3:
+        if PY2:
             self._fhandle = file(self.index_filename,'rb')
         else:
             self._fhandle = open(self.index_filename,'rb')
@@ -232,7 +232,7 @@ class AthenaHierarchy(GridIndex):
             line = f.readline()
         f.close()
 
-        # It seems some datasets have a mismatch between ncells and 
+        # It seems some datasets have a mismatch between ncells and
         # the actual grid dimensions.
         if np.prod(grid['dimensions']) != grid['ncells']:
             grid['dimensions'] -= 1
@@ -315,9 +315,9 @@ class AthenaHierarchy(GridIndex):
             j=j+1
 
         gres = glis + gdims*gdds
-        # Now we convert the glis, which were left edges (floats), to indices 
+        # Now we convert the glis, which were left edges (floats), to indices
         # from the domain left edge.  Then we do a bunch of fixing now that we
-        # know the extent of all the grids. 
+        # know the extent of all the grids.
         glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
         self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
@@ -473,8 +473,8 @@ class AthenaDataset(Dataset):
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
-        # Unfortunately we now have to mandate that the index gets 
-        # instantiated so that we can make sure we have the correct left 
+        # Unfortunately we now have to mandate that the index gets
+        # instantiated so that we can make sure we have the correct left
         # and right domain edges.
         self.index
 
@@ -563,7 +563,7 @@ class AthenaDataset(Dataset):
         if dataset_dir.endswith("id0"):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
-            
+
         gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
@@ -571,7 +571,7 @@ class AthenaDataset(Dataset):
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         ndots = dname.count(".")
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
-        self.nvtk = len(gridlistread)+1 
+        self.nvtk = len(gridlistread)+1
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
@@ -599,4 +599,3 @@ class AthenaDataset(Dataset):
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
-
