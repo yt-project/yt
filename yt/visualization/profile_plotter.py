@@ -535,7 +535,7 @@ class ProfilePlot(object):
             self.profiles[i] = \
                 create_profile(p.data_source, p.x_field,
                                n_bins=len(p.x_bins)-1,
-                               fields=p.field_map.values(),
+                               fields=list(p.field_map.values()),
                                weight_field=p.weight_field,
                                accumulation=p.accumulation,
                                fractional=p.fractional,
@@ -1155,7 +1155,7 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
@@ -1210,7 +1210,7 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
