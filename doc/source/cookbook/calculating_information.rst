@@ -82,6 +82,17 @@ information.
 
 .. yt_cookbook:: derived_field.py
 
+.. _cookbook-complicated-derived-fields:
+
+Complicated Derived Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to use the 
+:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` method
+to generate gradient fields and use them in a more complex derived field. 
+
+.. yt_cookbook:: hse_field.py
+
 Using Particle Filters to Calculate Star Formation Rates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

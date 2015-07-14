@@ -159,7 +159,7 @@ class FITSHierarchy(GridIndex):
             naxis4 = 1
         for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
-                if isinstance(hdu, _astropy.pyfits.BinTableHDU):
+                if isinstance(hdu, _astropy.pyfits.BinTableHDU) or hdu.header["naxis"] == 0:
                     continue
                 if self._ensure_same_dims(hdu):
                     units = self._determine_image_units(hdu.header, known_units)
@@ -386,14 +386,17 @@ class FITSDataset(Dataset):
                          (self.events_info["y"][1]-self.events_info["y"][0])/self.reblock]
         else:
             self.events_data = False
-            self.first_image = 0
+            # Sometimes the primary hdu doesn't have an image
+            if len(self._handle) > 1 and self._handle[0].header["naxis"] == 0:
+                self.first_image = 1
+            else:
+                self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
             self.naxis = self.primary_header["naxis"]
-            self.axis_names = [self.primary_header["ctype%d" % (i+1)]
+            self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
                                for i in range(self.naxis)]
             self.dims = [self.primary_header["naxis%d" % (i+1)]
                          for i in range(self.naxis)]
-
             wcs = _astropy.pywcs.WCS(header=self.primary_header)
             if self.naxis == 4:
                 self.wcs = _astropy.pywcs.WCS(naxis=3)
@@ -515,12 +518,20 @@ class FITSDataset(Dataset):
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.spec_cube = False
+        self.wcs_2d = None
         x = 0
         for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += np.any(y)
-        if x == self.dimensionality and self.axis_names != ['LINEAR','LINEAR']: 
-            self._setup_spec_cube()
+        if x == self.dimensionality:
+            if self.axis_names == ['LINEAR','LINEAR']:
+                self.wcs_2d = self.wcs
+                self.lat_axis = 1
+                self.lon_axis = 0
+                self.lat_name = "Y"
+                self.lon_name = "X"
+            else:
+                self._setup_spec_cube()
 
     def _setup_spec_cube(self):
 
@@ -587,7 +598,7 @@ class FITSDataset(Dataset):
                                                      self.spectral_factor*Dz
             self._dz /= self.spectral_factor
             self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
-            
+
         else:
 
             self.wcs_2d = self.wcs
@@ -620,8 +631,8 @@ class FITSDataset(Dataset):
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
                 fileh = _astropy.pyfits.open(args[0])
             valid = fileh[0].header["naxis"] >= 2
-            if len(fileh) > 1 and fileh[1].name == "EVENTS":
-                valid = fileh[1].header["naxis"] >= 2
+            if len(fileh) > 1:
+                valid = fileh[1].header["naxis"] >= 2 or valid
             fileh.close()
             return valid
         except:

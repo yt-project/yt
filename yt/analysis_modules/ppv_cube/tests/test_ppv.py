@@ -1,5 +1,5 @@
 """
-Unit test the sunyaev_zeldovich analysis module.
+Unit test the PPVCube analysis module.
 """
 
 #-----------------------------------------------------------------------------

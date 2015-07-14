@@ -66,6 +66,57 @@ A more complex example, showing a few yt helper functions that can make
 setting up multiple axes with colorbars easier than it would be using only
 matplotlib can be found in the :ref:`advanced-multi-panel` cookbook recipe.
 
+.. _frb-filters:
+
+Fixed Resolution Buffer Filters
+-------------------------------
+
+The FRB can be modified by using set of predefined filters in order to e.g.
+create realistically looking, mock observation images out of simulation data.
+Applying filter is an irreversible operation, hence the order in which you are
+using them matters.
+
+.. python-script::
+
+   import matplotlib
+   matplotlib.use('Agg')
+   from matplotlib import pyplot as plt
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   slc = ds.slice('z', 0.5)
+   frb = slc.to_frb((20, 'kpc'), 512)
+   frb.apply_gauss_beam(nbeam=30, sigma=2.0)
+   frb.apply_white_noise(5e-23)
+   plt.imshow(frb['density'].d)
+   plt.savefig('frb_filters.png')
+
+Currently available filters:
+
+Gaussian Smoothing
+~~~~~~~~~~~~~~~~~~
+
+.. function:: apply_gauss_beam(self, nbeam=30, sigma=2.0)
+
+   (This is a proxy for
+   :class:`~yt.visualization.fixed_resolution_filters.FixedResolutionBufferGaussBeamFilter`.)
+
+    This filter convolves the FRB with 2d Gaussian that is "nbeam" pixel wide
+    and has standard deviation "sigma".
+
+White Noise
+~~~~~~~~~~~
+
+.. function:: apply_white_noise(self, bg_lvl=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.fixed_resolution_filters.FixedResolutionBufferWhiteNoiseFilter`.)
+
+    This filter adds white noise with the amplitude "bg_lvl" to the FRB.
+    If "bg_lvl" is not present, 10th percentile of the FRB's values is used
+    instead.
+
 .. _manual-line-plots:
 
 Line Plots

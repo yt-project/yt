@@ -452,9 +452,16 @@ class EnzoHierarchy(GridIndex):
             if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
+            ptypes = self.dataset.particle_types
+            ptypes_raw = self.dataset.particle_types_raw
         else:
             field_list = None
+            ptypes = None
+            ptypes_raw = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
+        self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
+        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes_raw))
+
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
