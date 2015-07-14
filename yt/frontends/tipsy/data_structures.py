@@ -180,7 +180,7 @@ class TipsyDataset(ParticleDataset):
                 self.domain_left_edge = None
                 self.domain_right_edge = None
         else: 
-            bbox = self.arr(self.bounding_box, 'code_length', dtype="float64")
+            bbox = self.arr(self.bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
