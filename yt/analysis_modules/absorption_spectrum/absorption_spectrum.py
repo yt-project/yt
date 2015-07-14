@@ -26,6 +26,12 @@ from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     speed_of_light_cgs
 from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    communication_system, \
+    parallel_objects, \
+    parallel_root_only
+
+comm = communication_system.communicators[-1]
 
 pyfits = _astropy.pyfits
 
@@ -239,7 +245,7 @@ class AbsorptionSpectrum(object):
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)
-            for i, lixel in enumerate(valid_lines):
+            for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
                 my_bin_ratio = spectrum_bin_ratio
                 while True:
                     lambda_bins, line_tau = \
@@ -277,10 +283,14 @@ class AbsorptionSpectrum(object):
                                                     'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
+            self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
+            self.spectrum_line_list = comm.par_combine_object(
+                self.spectrum_line_list, "cat", datatype="list")
 
             del column_density, delta_lambda, thermal_b, \
                 center_bins, width_ratio, left_index, right_index
 
+    @parallel_root_only
     def _write_spectrum_line_list(self, filename):
         """
         Write out list of spectral lines.
@@ -296,6 +306,7 @@ class AbsorptionSpectrum(object):
                                                 line['redshift'], line['v_pec']))
         f.close()
 
+    @parallel_root_only
     def _write_spectrum_ascii(self, filename):
         """
         Write spectrum to an ascii file.
@@ -308,6 +319,7 @@ class AbsorptionSpectrum(object):
                                     self.tau_field[i], self.flux_field[i]))
         f.close()
 
+    @parallel_root_only
     def _write_spectrum_fits(self, filename):
         """
         Write spectrum to a fits file.
@@ -319,6 +331,7 @@ class AbsorptionSpectrum(object):
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
 
+    @parallel_root_only
     def _write_spectrum_hdf5(self, filename):
         """
         Write spectrum to an hdf5 file.
