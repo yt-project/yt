@@ -156,7 +156,8 @@ class AbsorptionSpectrum(object):
             self._write_spectrum_fits(output_file)
         else:
             self._write_spectrum_ascii(output_file)
-        self._write_spectrum_line_list(line_list_file)
+        if line_list_file is not None:
+            self._write_spectrum_line_list(line_list_file)
 
         del field_data
         return (self.lambda_bins, self.flux_field)
