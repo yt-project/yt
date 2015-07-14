@@ -60,3 +60,8 @@ class ARTFieldInfo(FieldInfoContainer):
         ("particle_metallicity1", ("", [], None)),
         ("particle_metallicity2", ("", [], None)),
     )
+
+    def setup_fluid_fields(self):
+        def _temperature(data):
+            return self.temperature_unit * data['art', 'GasEnergy'] / data['art', 'Density']
+        self.add_field(('gas', 'temperature'), function=_temperature, units='K')
