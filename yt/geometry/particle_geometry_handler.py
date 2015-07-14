@@ -126,11 +126,10 @@ class ParticleIndex(Index):
             data_files = getattr(dobj, "data_files", None)
             buffer_files = getattr(dobj, "buffer_files", None)
             if data_files is None:
-                dfi, count, omask, bdfi = self.regions.identify_data_files(
-                                        dobj.selector)
+                dfi, = np.where(self.regions.identify_data_files(dobj.selector))
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
-                mylog.debug("Maximum particle count of %s identified", count)
+                #mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
                 over_refine_factor = self.ds.over_refine_factor)
