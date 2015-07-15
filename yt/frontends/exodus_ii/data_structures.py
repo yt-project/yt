@@ -13,6 +13,7 @@ Exodus II data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import time
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -85,10 +86,12 @@ class ExodusIIDataset(Dataset):
     _index_class = ExodusIIHierarchy
     _field_info_class = ExodusIIFieldInfo
 
-    def __init__(self, filename, dataset_type='exodus_ii',
+    def __init__(self, filename,
+                 dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
         self.fluid_types += ('exodus_ii',)
+        self.parameter_filename = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -110,29 +113,20 @@ class ExodusIIDataset(Dataset):
         pass
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be updated to be in code units at a later time.  This includes
-        # the cosmological parameters.
-        #
-        #   self.unique_identifier
-        #   self.parameters             <= full of code-specific items of use
+        self.parameters                 = self.ds.info_records
+        self.unique_identifier          = self.parameters['Version Info']['Executable Time']
+        self.current_time               = self.parameters['Version Info']['Current Time']
+        self.dimensionality             = 3
         #   self.domain_left_edge       <= array of float64
         #   self.domain_right_edge      <= array of float64
-        #   self.dimensionality         <= int
+
         #   self.domain_dimensions      <= array of int64
         #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
-        pass
+        self.cosmological_simulation    = 0
+        self.current_redshift           = 0
+        self.omega_lambda               = 0
+        self.omega_matter               = 0
+        self.hubble_constant            = 0
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
