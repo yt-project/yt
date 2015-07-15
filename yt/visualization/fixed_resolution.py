@@ -27,7 +27,6 @@ from . import _MPL
 import numpy as np
 import weakref
 import re
-import string
 
 class FixedResolutionBuffer(object):
     r"""
@@ -178,13 +177,13 @@ class FixedResolutionBuffer(object):
             pstr = m.string[m.start()+1:m.end()-1]
             segments = fname.split("_")
             for i,s in enumerate(segments):
-                segments[i] = string.capitalize(s)
+                segments[i] = s.capitalize()
                 if s == pstr:
                     ipstr = i
             element = segments[ipstr-1]
             roman = pnum2rom[pstr[1:]]
             label = element + '\ ' + roman + '\ ' + \
-                string.join(segments[ipstr+1:], '\ ')
+                '\ '.join(segments[ipstr+1:])
         else:
             label = fname
         return label
