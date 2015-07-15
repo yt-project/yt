@@ -343,7 +343,7 @@ class LightCone(CosmologySplice):
             del output["object"]
 
         # Combine results from each slice.
-        all_slices = all_storage.keys()
+        all_slices = list(all_storage.keys())
         all_slices.sort()
         for my_slice in all_slices:
             if save_slice_images:

@@ -12,14 +12,18 @@ Miscellaneous FITS routines
 
 import numpy as np
 import base64
-from yt.extern.six.moves import StringIO
+from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.utilities.fits_image import FITSImageData
-
+if PY3:
+    from io import BytesIO as IO
+else:
+    from yt.extern.six.moves import StringIO as IO
+    
 import os
 
 def _make_counts(emin, emax):
@@ -255,12 +259,12 @@ class PlotWindowWCS(object):
 
     def _repr_html_(self):
         ret = ''
-        for k, v in self.plots.iteritems():
+        for k, v in self.plots.items():
             canvas = FigureCanvasAgg(v)
-            f = StringIO()
+            f = IO()
             canvas.print_figure(f)
             f.seek(0)
-            img = base64.b64encode(f.read())
+            img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
                    r'src="data:image/png;base64,%s"><br>' % img
         return ret
