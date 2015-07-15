@@ -49,7 +49,7 @@ class IOHandlerExodusII(BaseIOHandler):
         # dict gets returned at the end and it should be flat, with selected
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
-        lunks = list(chunks)
+        chunks = list(chunks) # chunks in this case correspond to mesh_id or slices in the ExodusII data
         rv = {}
         for field in fields:
             rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
