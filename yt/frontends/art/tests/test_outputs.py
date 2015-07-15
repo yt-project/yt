@@ -79,6 +79,8 @@ def test_d9p():
     yield assert_almost_equal, ad[('gas','cell_mass')].sum()\
         .in_units('Msun'), ANATotGasMass
 
+    ANATotTemp = yt.units.yt_array.YTQuantity(1.5019e11, 'K') #just leaves
+    yield assert_equal, ad[('gas','temperature')].sum(), ANATotTemp
 
 
 @requires_file(d9p)
