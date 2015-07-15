@@ -20,10 +20,12 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.fortran_utils as fpu
-try:
-    from cStringIO import StringIO as IO
-except ImportError:
+from yt.extern.six import PY3
+
+if PY3:
     from io import BytesIO as IO
+else:
+    from cStringIO import StringIO as IO
 
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
