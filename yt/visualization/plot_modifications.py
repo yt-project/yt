@@ -647,6 +647,7 @@ class StreamlineCallback(PlotCallback):
     Add streamlines to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
+    *field_color* is a field to be used to colormap the streamlines.
     """
     _type_name = "streamlines"
     def __init__(self, field_x, field_y, factor=16,
@@ -685,16 +686,15 @@ class StreamlineCallback(PlotCallback):
                              (x0, x1, y0, y1),).transpose()
         if self.field_color:
             self.field_color = _MPL.Pixelize(plot.data['px'],
-                                        plot.data['py'],
-                                        plot.data['pdx'],
-                                        plot.data['pdy'],
-                                        plot.data[self.field_color],
-                                        int(nx), int(ny),
-                                        (x0, x1, y0, y1),).transpose()
+                                             plot.data['py'],
+                                             plot.data['pdx'],
+                                             plot.data['pdy'],
+                                             plot.data[self.field_color],
+                                             int(nx), int(ny),
+                                             (x0, x1, y0, y1),).transpose()
 
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
-        print(xx0, xx1, yy0, yy1)
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens, 'color':self.field_color}
         streamplot_args.update(self.plot_args)
