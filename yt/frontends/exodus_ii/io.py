@@ -24,7 +24,7 @@ class IOHandlerExodusII(BaseIOHandler):
     _node_types = ("diffused", "convected")
     _INDEX_OFFSET = 1
 
-    def __init__(self):
+    def __init__(self, filename):
         self.filename = filename
         self.ds       = ExodusIIData(filename)
         self.ds.read()
@@ -45,12 +45,10 @@ class IOHandlerExodusII(BaseIOHandler):
         chunks = list(chunks) # chunks in this case correspond to mesh_id or slices in the ExodusII data
         rv = {}
         for field in fields:
-            rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
-
-        for field in fields:
             ftype, fname = field
             ind = _INDEX_OFFSET
-            for chunk in chunks
+            for chunk in chunks:
+                rv[field] = chunk
 
         return rv
 

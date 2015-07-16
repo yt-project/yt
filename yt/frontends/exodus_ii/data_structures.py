@@ -13,7 +13,6 @@ Exodus II data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import time
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -21,6 +20,8 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from .fields import ExodusIIFieldInfo
+from .io import IOHandlerExodusII
+import numpy as np
 
 class ExodusIIGrid(AMRGridPatch):
     _id_offset = 0
@@ -86,12 +87,15 @@ class ExodusIIDataset(Dataset):
     _index_class = ExodusIIHierarchy
     _field_info_class = ExodusIIFieldInfo
 
-    def __init__(self, filename,
+    def __init__(self,
+                 filename,
                  dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
+
+        self.ds = IOHandlerExodusII(filename).ds
         self.fluid_types += ('exodus_ii',)
-        self.parameter_filename = filename
+        self.parameter_filename = storage_filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -114,7 +118,7 @@ class ExodusIIDataset(Dataset):
     
     def _parse_parameter_file(self):
         self.parameters                 = self.ds.info_records
-        self.unique_identifier          = self.parameters['Version Info']['Executable Time']
+        self.unique_identifier          = self.parameters['Version Info']['Executable Timestamp']
         self.current_time               = self.parameters['Version Info']['Current Time']
         self.dimensionality             = 3
         self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
