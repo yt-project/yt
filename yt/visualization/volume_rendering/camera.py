@@ -22,7 +22,17 @@ import numpy as np
 
 class Camera(Orientation):
 
-    r"""    """
+    r"""
+
+    The Camera class. A Camera represents of point of view into a
+    Scene. It is defined by a position (the location of the camera
+    in the simulation domain,), a focus (the point at which the
+    camera is pointed), a width (the width of the snapshot that will
+    be taken, a resolution (the number of pixels in the image), and
+    a north_vector (the "up" direction in the resulting image). A
+    camera can use a variety of different Lens objects.
+
+    """
 
     _moved = True
     _width = None
@@ -79,7 +89,8 @@ class Camera(Orientation):
         self.lens.setup_box_properties(self)
 
     def position():
-        doc = "The position property."
+        doc = '''The position is the location of the camera in
+               the coordinate system of the simulation.'''
 
         def fget(self):
             return self._position
@@ -94,7 +105,7 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = "The width property."
+        doc = '''The width of the image that will be produced. '''
 
         def fget(self):
             return self._width
@@ -110,7 +121,7 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = "The focus property."
+        doc = '''The focus defines the point the Camera is pointed at. '''
 
         def fget(self):
             return self._focus
@@ -125,7 +136,8 @@ class Camera(Orientation):
     focus = property(**focus())
 
     def resolution():
-        doc = "The resolution property."
+        doc = '''The resolution is the number of pixels in the image that
+               will be produced. '''
 
         def fget(self):
             return self._resolution
@@ -149,6 +161,23 @@ class Camera(Orientation):
         return lens_params
 
     def set_lens(self, lens_type):
+        r'''
+
+        Set the lens to be used with this camera.
+
+        Parameters
+        ----------
+
+        lens_type : string
+            Must be one of the following:
+            'plane-parallel'
+            'perspective'
+            'stereo-perspective'
+            'fisheye'
+            'spherical'
+            'stereo-spherical'
+
+        '''
         if lens_type not in lenses:
             mylog.error("Lens type not available")
             raise RuntimeError()
@@ -186,7 +215,17 @@ class Camera(Orientation):
         self._moved = True
 
     def set_width(self, width):
-        """This must have been created using ds.arr"""
+        r"""
+
+        Set the width of the image that will be produced by this camera.
+        This must be a YTQuantity.
+
+        Parameters
+        ----------
+
+        width : :class:`yt.units.yt_array.YTQuantity`
+
+        """
         assert isinstance(width, YTArray), 'Width must be created with ds.arr'
         if isinstance(width, YTArray):
             width = width.in_units('code_length')
@@ -197,6 +236,21 @@ class Camera(Orientation):
         self.switch_orientation()
 
     def set_position(self, position, north_vector=None):
+        r"""
+
+        Set the position of the camera.
+
+        Parameters
+        ----------
+
+        position : array_like
+            The new position
+        north_vector : array_like, optional
+            The 'up' direction for the plane of rays.  If not specific,
+            calculated automatically.
+
+        """
+
         self.position = position
         self.switch_orientation(normal_vector=self.focus - self.position,
                                 north_vector=north_vector)
@@ -264,13 +318,13 @@ class Camera(Orientation):
         --------
 
         >>> cam.rotate(np.pi/4)
+
         """
         rotate_all = rot_vector is not None
         if rot_vector is None:
-            rot_vector = self.unit_vectors[0]
-        else:
-            rot_vector = ensure_numpy_array(rot_vector)
-            rot_vector = rot_vector/np.linalg.norm(rot_vector)
+            rot_vector = self.north_vector
+        rot_vector = ensure_numpy_array(rot_vector)
+        rot_vector = rot_vector/np.linalg.norm(rot_vector)
 
         R = get_rotation_matrix(theta, rot_vector)
 
@@ -338,7 +392,8 @@ class Camera(Orientation):
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2])
 
-    def rotation(self, theta, n_steps, rot_vector=None):
+    def iter_rotate(self, theta, n_steps, rot_vector=None):
+
         r"""Loop over rotate, creating a rotation
 
         This will rotate `n_steps` until the current view has been
@@ -349,7 +404,7 @@ class Camera(Orientation):
         theta : float, in radians
             Angle (in radians) by which to rotate the view.
         n_steps : int
-            The number of look_at snapshots to make.
+            The number of snapshots to make.
         rot_vector  : array_like, optional
             Specify the rotation vector around which rotation will
             occur.  Defaults to None, which sets rotation around the
@@ -358,8 +413,9 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.rotation(np.pi, 10):
+        >>> for i in cam.iter_rotate(np.pi, 10):
         ...     im = sc.render("rotation_%04i.png" % i)
+
         """
 
         dtheta = (1.0*theta)/n_steps
@@ -367,8 +423,8 @@ class Camera(Orientation):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield i
 
-    def move_to(self, final, n_steps, exponential=False):
-        r"""Loop over a look_at
+    def iter_move(self, final, n_steps, exponential=False):
+        r"""Loop over an iter_move and return snapshots along the way.
 
         This will yield `n_steps` until the current view has been
         moved to a final center of `final`.
@@ -378,7 +434,7 @@ class Camera(Orientation):
         final : YTArray
             The final center to move to after `n_steps`
         n_steps : int
-            The number of look_at snapshots to make.
+            The number of snapshots to make.
         exponential : boolean
             Specifies whether the move/zoom transition follows an
             exponential path toward the destination or linear
@@ -386,12 +442,13 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.move_to([0.2,0.3,0.6], 10):
+        >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
         ...     sc.render("move_%04i.png" % i)
+
         """
         assert isinstance(final, YTArray)
         if exponential:
-            position_diff = (np.array(final)/self.position)*1.0
+            position_diff = (final/self.position)*1.0
             dx = position_diff**(1.0/n_steps)
         else:
             dx = (final - self.position)*1.0/n_steps
@@ -423,8 +480,8 @@ class Camera(Orientation):
         """
         self.set_width(self.width / factor)
 
-    def zoomin(self, final, n_steps):
-        r"""Loop over a zoomin and return snapshots along the way.
+    def iter_zoom(self, final, n_steps):
+        r"""Loop over a iter_zoom and return snapshots along the way.
 
         This will yield `n_steps` snapshots until the current view has been
         zooming in to a final factor of `final`.
@@ -440,24 +497,13 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> for i in cam.zoomin(100.0, 10):
+        >>> for i in cam.iter_zoom(100.0, 10):
         ...     sc.render("zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):
             self.zoom(f)
             yield i
-
-    def project_to_plane(self, pos, res=None):
-        if res is None:
-            res = self.resolution
-        dx = np.dot(pos - self.position.d, self.unit_vectors[1])
-        dy = np.dot(pos - self.position.d, self.unit_vectors[0])
-        dz = np.dot(pos - self.position.d, self.unit_vectors[2])
-        # Transpose into image coords.
-        py = (res[0]/2 + res[0]*(dx/self.width[0].d)).astype('int')
-        px = (res[1]/2 + res[1]*(dy/self.width[1].d)).astype('int')
-        return px, py, dz
 
     def __repr__(self):
         disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t" +

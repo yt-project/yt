@@ -14,7 +14,7 @@ import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
 import yt.units.dimensions as ytdims

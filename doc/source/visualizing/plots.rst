@@ -311,7 +311,8 @@ creating the final image buffer.
 .. _off-axis-projection-function:
 
 To avoid manually creating a camera and setting the transfer
-function, yt provides the :func:`~yt.visualization.volume_rendering.camera.off_axis_projection`
+function, yt provides the
+:func:`~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection`
 function, which wraps the camera interface to create an off axis
 projection image buffer.  These images can be saved to disk or
 used in custom plots.  This snippet creates an off axis

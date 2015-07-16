@@ -222,12 +222,12 @@ def test_add_field_unit_semantics():
     def unitless_data(field, data):
             return np.ones(data['density'].shape)
 
-    ds.add_field('density_alias_no_units', function=density_alias)
-    ds.add_field('density_alias_auto', function=density_alias,
+    ds.add_field(('gas','density_alias_no_units'), function=density_alias)
+    ds.add_field(('gas','density_alias_auto'), function=density_alias,
                  units='auto')
-    ds.add_field('density_alias_wrong_units', function=density_alias,
+    ds.add_field(('gas','density_alias_wrong_units'), function=density_alias,
                  units='m/s')
-    ds.add_field('density_alias_unparseable_units', function=density_alias,
+    ds.add_field(('gas','density_alias_unparseable_units'), function=density_alias,
                  units='dragons')
 
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_no_units')
@@ -238,11 +238,11 @@ def test_add_field_unit_semantics():
     dens = ad['density_alias_auto']
     assert_equal(str(dens.units), 'g/cm**3')
 
-    ds.add_field('dimensionless', function=unitless_data)
-    ds.add_field('dimensionless_auto', function=unitless_data,
+    ds.add_field(('gas','dimensionless'), function=unitless_data)
+    ds.add_field(('gas','dimensionless_auto'), function=unitless_data,
                  units='auto')
-    ds.add_field('dimensionless_explicit', function=unitless_data, units='')
-    ds.add_field('dimensionful', function=unitless_data, units='g/cm**3')
+    ds.add_field(('gas','dimensionless_explicit'), function=unitless_data, units='')
+    ds.add_field(('gas','dimensionful'), function=unitless_data, units='g/cm**3')
 
     assert_equal(str(ad['dimensionless'].units), 'dimensionless')
     assert_equal(str(ad['dimensionless_auto'].units), 'dimensionless')

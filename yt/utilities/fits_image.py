@@ -122,7 +122,7 @@ class FITSImageData(HDUList):
         for key in fields:
             if key not in exclude_fields:
                 if hasattr(img_data[key], "units"):
-                    self.field_units[key] = str(img_data[key].units)
+                    self.field_units[key] = img_data[key].units
                 else:
                     self.field_units[key] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % key)

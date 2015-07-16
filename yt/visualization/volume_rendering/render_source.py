@@ -33,8 +33,12 @@ from yt.utilities.lib.misc_utilities import \
 
 class RenderSource(ParallelAnalysisInterface):
 
-    """Base Class for Render Sources. Will be inherited for volumes,
-       streamlines, etc"""
+    """
+
+    Base Class for Render Sources. Will be inherited for volumes,
+    streamlines, etc.
+
+    """
 
     def __init__(self):
         super(RenderSource, self).__init__()
@@ -49,7 +53,12 @@ class RenderSource(ParallelAnalysisInterface):
 
 
 class OpaqueSource(RenderSource):
-    """docstring for OpaqueSource"""
+    """
+
+    A base class for opaque render sources. Will be inherited from
+    for LineSources, BoxSources, etc.
+
+    """
     def __init__(self):
         super(OpaqueSource, self).__init__()
         self.opaque = True
@@ -68,7 +77,14 @@ class OpaqueSource(RenderSource):
 
 class VolumeSource(RenderSource):
 
-    """docstring for VolumeSource"""
+    """
+
+    A VolumeSource is a class for rendering data from
+    an arbitrary volumetric data source, e.g. a sphere,
+    cylinder, or the entire computational domain.
+
+
+    """
     _image = None
     data_source = None
 
@@ -91,7 +107,7 @@ class VolumeSource(RenderSource):
 
         Examples
         --------
-        >>> source = VolumeSource(ds, 'density')
+        >>> source = RenderSource(ds, 'density')
 
         """
         super(VolumeSource, self).__init__()
@@ -216,6 +232,7 @@ class VolumeSource(RenderSource):
     def finalize_image(self, camera, image):
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
+        image.shape = camera.resolution[0], camera.resolution[1], 4
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
         return image
@@ -304,13 +321,34 @@ class MeshSource(RenderSource):
         return disp
 
 
-class PointsSource(OpaqueSource):
+class PointSource(OpaqueSource):
 
-    """Add set of opaque points to a scene."""
     _image = None
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
+        r"""A rendering source of opaque points in the scene.
+
+        This class provides a mechanism for adding points to a scene; these
+        points will be opaque, and can also be colored.
+
+        Parameters
+        ----------
+        positions: array, shape (N, 3)
+            These positions, in data-space coordinates, are the points to be
+            added to the scene.
+        colors : array, shape (N, 4), optional
+            The colors of the points, including an alpha channel, in floating
+            point running from 0..1.
+        color_stride : int, optional
+            The stride with which to access the colors when putting them on the
+            scene.
+
+        Examples
+        --------
+        >>> source = PointSource(particle_positions)
+
+        """
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -331,7 +369,7 @@ class PointsSource(OpaqueSource):
             empty = zbuffer.rgba
             z = zbuffer.z
 
-        # DRAW SOME LINES
+        # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
         zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
@@ -340,19 +378,53 @@ class PointsSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Line Source>"
+        disp = "<Points Source>"
         return disp
 
 
 class LineSource(OpaqueSource):
 
-    """Add set of opaque lines to a scene."""
     _image = None
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
+        r"""A render source for a sequence of opaque line segments.
+
+        This class provides a mechanism for adding lines to a scene; these
+        points will be opaque, and can also be colored.
+
+        Parameters
+        ----------
+        positions: array, shape (N, 2, 3)
+            These positions, in data-space coordinates, are the starting and
+            stopping points for each pair of lines. For example,
+            positions[0][0] and positions[0][1] would give the (x, y, z)
+            coordinates of the beginning and end points of the first line,
+            respectively.
+        colors : array, shape (N, 4), optional
+            The colors of the points, including an alpha channel, in floating
+            point running from 0..1.  Note that they correspond to the line
+            segment succeeding each point; this means that strictly speaking
+            they need only be (N-1) in length.
+        color_stride : int, optional
+            The stride with which to access the colors when putting them on the
+            scene.
+
+        Examples
+        --------
+        >>> source = LineSource(np.random.random((10, 3)))
+
+        """
+
         super(LineSource, self).__init__()
-        self.positions = positions
+
+        assert(positions.shape[1] == 2)
+        assert(positions.shape[2] == 3)
+
+        # convert the positions to the shape expected by zlines, below
+        N = positions.shape[0]
+        self.positions = positions.reshape((2*N, 3))
+
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
@@ -386,8 +458,26 @@ class LineSource(OpaqueSource):
 
 
 class BoxSource(LineSource):
-    """Add a box to the scene"""
     def __init__(self, left_edge, right_edge, color=None):
+        r"""A render source for a box drawn with line segments.
+
+        This render source will draw a box, with transparent faces, in data
+        space coordinates.  This is useful for annotations.
+
+        Parameters
+        ----------
+        left_edge: array-like, shape (3,), float
+            The left edge coordinates of the box.
+        right_edge : array-like, shape (3,), float
+            The right edge coordinates of the box.
+        color : array-like, shape (4,), float, optional
+            The colors (including alpha) to use for the lines.
+
+        Examples
+        --------
+        >>> source = BoxSource(grid_obj.LeftEdge, grid_obj.RightEdge)
+
+        """
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
         color = ensure_numpy_array(color)
@@ -399,13 +489,38 @@ class BoxSource(LineSource):
         vertices = np.empty([24, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
+
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
 
 
-class GridsSource(LineSource):
-    """Add grids to the scene"""
+class GridSource(LineSource):
     def __init__(self, data_source, alpha=0.3, cmap='alage',
                  min_level=None, max_level=None):
+        r"""A render source for drawing grids in a scene.
+
+        This render source will draw blocks that are within a given data
+        source, by default coloring them by their level of resolution.
+
+        Parameters
+        ----------
+        data_source: :class:`~yt.data_objects.api.DataContainer`
+            The data container that will be used to identify grids to draw.
+        alpha : float
+            The opacity of the grids to draw.
+        cmap : color map name
+            The color map to use to map resolution levels to color.
+        min_level : int, optional
+            Minimum level to draw
+        max_level : int, optional
+            Maximum level to draw
+
+        Examples
+        --------
+        >>> dd = ds.sphere("c", (0.1, "unitary"))
+        >>> source = GridSource(dd, alpha=1.0)
+
+        """
         data_source = data_source_or_all(data_source)
         corners = []
         levels = []
@@ -437,7 +552,7 @@ class GridsSource(LineSource):
         colors = apply_colormap(
             levels*1.0,
             color_bounds=[0, data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]*1.0/255.
+            cmap_name=cmap)[0, :, :]*alpha/255.
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
@@ -447,13 +562,30 @@ class GridsSource(LineSource):
         vertices = np.empty([corners.shape[2]*2*12, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
+        vertices = vertices.reshape((12, 2, 3))
 
-        super(GridsSource, self).__init__(vertices, colors, color_stride=24)
+        super(GridSource, self).__init__(vertices, colors, color_stride=24)
 
 
 class CoordinateVectorSource(OpaqueSource):
-    """Add coordinate vectors to the scene"""
     def __init__(self, colors=None, alpha=1.0):
+        r"""Draw coordinate vectors on the scene.
+
+        This will draw a set of coordinate vectors on the camera image.  They
+        will appear in the lower right of the image.
+
+        Parameters
+        ----------
+        colors: array-like, shape (3,4), optional
+            The x, y, z RGBA values to use to draw the vectors.
+        alpha : float, optional
+            The opacity of the vectors.
+
+        Examples
+        --------
+        >>> source = CoordinateVectorSource()
+
+        """
         super(CoordinateVectorSource, self).__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
