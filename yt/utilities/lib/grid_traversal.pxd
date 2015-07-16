@@ -70,7 +70,6 @@ cdef struct VolumeContainer:
     np.float64_t idds[3]
     int dims[3]
 
-
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object source_mask

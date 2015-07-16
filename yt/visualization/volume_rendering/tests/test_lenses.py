@@ -107,3 +107,4 @@ def test_stereospherical_lens():
     sc.camera = cam
     sc.add_source(vol)
     sc.render('test_stereospherical_%s.png' % field[1], clip_ratio=6.0)
+
