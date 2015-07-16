@@ -27,6 +27,7 @@ _frontends = [
     'fits',
     'flash',
     'gadget',
+    'gadget_fof',
     'gdf',
     'halo_catalog',
     'http_stream',
