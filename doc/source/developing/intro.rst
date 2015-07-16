@@ -147,7 +147,7 @@ yt Community Code of Conduct
 ----------------------------
 
 The community of participants in open source 
-Astronomy projects is made up of members from around the
+Scientific projects is made up of members from around the
 globe with a diverse set of skills, personalities, and
 experiences. It is through these differences that our
 community experiences success and continued growth. We
@@ -203,7 +203,7 @@ As members of the community,
   code of conduct, and to not remain silent when we see
   violations of the code of conduct. We will take action
   when members of our community violate this code such as
-  contacting confidential@astropy.org (all emails sent to
+  contacting confidential@yt-project.org (all emails sent to
   this address will be treated with the strictest
   confidence) or talking privately with the person.
 
