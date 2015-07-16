@@ -239,7 +239,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  ('R', 'z'),
               self.axis_id['altitude']:
                  ('longitude', 'latitude')}
-        for i in rv.keys():
+        for i in list(rv.keys()):
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv

@@ -12,7 +12,7 @@ ts = yt.load('GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*')
 
 storage = {}
 
-# By using the piter() function, we can iterate on every dataset in 
+# By using the piter() function, we can iterate on every dataset in
 # the TimeSeries object.  By using the storage keyword, we can populate
 # a dictionary where the dataset is the key, and sto.result is the value
 # for later use when the loop is complete.
@@ -25,13 +25,13 @@ for store, ds in ts.piter(storage=storage):
     sphere = ds.sphere("c", (100., "kpc"))
     # Calculate the entropy within that sphere
     entr = sphere["entropy"].sum()
-    # Store the current time and sphere entropy for this dataset in our 
+    # Store the current time and sphere entropy for this dataset in our
     # storage dictionary as a tuple
     store.result = (ds.current_time.in_units('Gyr'), entr)
 
 # Convert the storage dictionary values to a Nx2 array, so the can be easily
 # plotted
-arr = np.array(storage.values())
+arr = np.array(list(storage.values()))
 
 # Plot up the results: time versus entropy
 plt.semilogy(arr[:,0], arr[:,1], 'r-')

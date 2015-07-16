@@ -32,7 +32,7 @@ class IOHandlerFITS(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         pdata = self.ds._handle[self.ds.first_image].data
         assert(len(ptf) == 1)
-        ptype = ptf.keys()[0]
+        ptype = list(ptf.keys())[0]
         x = np.asarray(pdata.field("X"), dtype="=f8")
         y = np.asarray(pdata.field("Y"), dtype="=f8")
         z = np.ones(x.shape)
@@ -43,7 +43,7 @@ class IOHandlerFITS(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         pdata = self.ds._handle[self.ds.first_image].data
         assert(len(ptf) == 1)
-        ptype = ptf.keys()[0]
+        ptype = list(ptf.keys())[0]
         field_list = ptf[ptype]
         x = np.asarray(pdata.field("X"), dtype="=f8")
         y = np.asarray(pdata.field("Y"), dtype="=f8")

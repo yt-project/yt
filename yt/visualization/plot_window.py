@@ -534,7 +534,7 @@ class PlotWindow(ImagePlotContainer):
 
         if hasattr(self,'zlim'):
             centerz = (self.zlim[1] + self.zlim[0])/2.
-            mw = np.max([width[0], width[1]])
+            mw = self.ds.arr(width).max()
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
 

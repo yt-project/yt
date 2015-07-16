@@ -174,7 +174,7 @@ The field plugin system works in this order:
 
 Field plugins can be loaded dynamically, although at present this is not
 particularly useful.  Plans for extending field plugins to dynamically load, to
-enable simple definition of common types (gradient, divergence, etc), and to
+enable simple definition of common types (divergence, curl, etc), and to
 more verbosely describe available fields, have been put in place for future
 versions.
 

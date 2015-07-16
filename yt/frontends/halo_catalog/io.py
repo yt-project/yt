@@ -39,7 +39,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(ptf.keys()[0] == "halos")
+        assert(list(ptf.keys())[0] == "halos")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -57,7 +57,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(ptf.keys()[0] == "halos")
+        assert(list(ptf.keys())[0] == "halos")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)

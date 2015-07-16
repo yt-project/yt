@@ -11,7 +11,6 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-from yt.extern.six.moves import zip as izip
 
 import matplotlib
 import matplotlib.colors as cc
@@ -86,9 +85,9 @@ _kamae_blu = np.minimum(255,
                 194.5*_vs**2.88+99.72*np.exp(-77.24*(_vs-0.742)**2.0)
               + 45.40*_vs**0.089+10.0)/255.0
 
-cdict = {'red':zip(_vs,_kamae_red,_kamae_red),
-         'green':zip(_vs,_kamae_grn,_kamae_grn),
-         'blue':zip(_vs,_kamae_blu,_kamae_blu)}
+cdict = {'red':np.transpose([_vs,_kamae_red,_kamae_red]),
+         'green':np.transpose([_vs,_kamae_grn,_kamae_grn]),
+         'blue':np.transpose([_vs,_kamae_blu,_kamae_blu])}
 add_cmap('kamae', cdict)
 
 # This one is a simple black & green map
@@ -160,9 +159,9 @@ add_cmap("cubehelix", _cubehelix_data)
 _vs = np.linspace(0,1,256)
 for k,v in list(_cm.color_map_luts.items()):
     if k not in yt_colormaps and k not in mcm.cmap_d:
-        cdict = { 'red': zip(_vs,v[0],v[0]),
-                  'green': zip(_vs,v[1],v[1]),
-                  'blue': zip(_vs,v[2],v[2]) }
+        cdict = { 'red': np.transpose([_vs,v[0],v[0]]),
+                  'green': np.transpose([_vs,v[1],v[1]]),
+                  'blue': np.transpose([_vs,v[2],v[2]]) }
         add_cmap(k, cdict)
 
 def _extract_lookup_table(cmap_name):
@@ -402,9 +401,9 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     #   Second number is the (0..1) number to interpolate to when coming *from below*
     #   Third number is the (0..1) number to interpolate to when coming *from above*
     _vs = np.linspace(0,1,256)
-    cdict = {'red':   zip(_vs, cmap[:,0], cmap[:,0]),
-             'green': zip(_vs, cmap[:,1], cmap[:,1]),
-             'blue':  zip(_vs, cmap[:,2], cmap[:,2])}
+    cdict = {'red':   np.transpose([_vs, cmap[:,0], cmap[:,0]]),
+             'green': np.transpose([_vs, cmap[:,1], cmap[:,1]]),
+             'blue':  np.transpose([_vs, cmap[:,2], cmap[:,2]])}
 
     if name is not None:
         add_cmap(name, cdict)
