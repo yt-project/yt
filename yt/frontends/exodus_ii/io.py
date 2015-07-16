@@ -21,6 +21,7 @@ from yt.utilities.io_handler import \
 class IOHandlerExodusII(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "exodus_ii"
+    _node_types = ("diffused", "convected")
     _INDEX_OFFSET = 1
 
     def __init__(self):
@@ -29,17 +30,9 @@ class IOHandlerExodusII(BaseIOHandler):
         self.ds.read()
 
     def _read_particle_coords(self, chunks, ptf):
-        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
-        # chunks is a list of chunks, and ptf is a dict where the keys are
-        # ptypes and the values are lists of fields.
         pass
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # This gets called after the arrays have been allocated.  It needs to
-        # yield ((ptype, field), data) where data is the masked results of
-        # reading ptype, field and applying the selector to the data read in.
-        # Selector objects have a .select_points(x,y,z) that returns a mask, so
-        # you need to do your masking here.
         pass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

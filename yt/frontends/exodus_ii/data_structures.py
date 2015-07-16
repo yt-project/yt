@@ -111,17 +111,19 @@ class ExodusIIDataset(Dataset):
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
         pass
-
+    
     def _parse_parameter_file(self):
         self.parameters                 = self.ds.info_records
         self.unique_identifier          = self.parameters['Version Info']['Executable Time']
         self.current_time               = self.parameters['Version Info']['Current Time']
         self.dimensionality             = 3
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
-
-        #   self.domain_dimensions      <= array of int64
-        #   self.periodicity            <= three-element tuple of booleans
+        self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
+                                                    self.ds.coordinates[:,0].max()],
+                                                   'float64')
+        self.domain_right_edge           = np.array([self.ds.coordinates[:,1].min(),
+                                                     self.ds.coordinates[:,1].max()],
+                                                    'float64')
+        self.periodicity                = (False, False, False)
         self.cosmological_simulation    = 0
         self.current_redshift           = 0
         self.omega_lambda               = 0
