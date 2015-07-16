@@ -109,4 +109,3 @@ def get_corners(le, re):
         [re[0], re[1], re[2]],
         [le[0], re[1], re[2]],
         ], dtype='float64')
->>>>>>> other
