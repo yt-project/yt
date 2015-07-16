@@ -1,7 +1,6 @@
 import yt
 import matplotlib.pyplot as plt
 import numpy as np
-from IPython import embed
 
 # Enable parallelism in the script (assuming it was called with
 # `mpirun -np <n_procs>` )
