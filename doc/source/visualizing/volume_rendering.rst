@@ -46,52 +46,6 @@ more intuitive interface for very simple 3D visualizations.
              visualizations, but getting them *just right* is often
              time-consuming.
 
-Scene Interface
-===============
-
-Tutorial
---------
-
-The scene interface is the product of a refactor to the volume rendering
-framework, and is meant to provide a more modular interface for creating
-renderings of arbitrary data sources. As such, manual composition of a 
-scene can require a bit more work, but we will also provide several helper
-functions that attempt to create satisfactory default volume renderings.
-
-Here is a working example for rendering the IsolatedGalaxy dataset.
-
-.. python-script::
-  import yt
-  # load the data
-  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-  # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_rendering(ds, 'density', fname='test_rendering.png')
-
-  # im is the image that was generated.
-  # sc is an instance of a Scene object, which allows you to further refine
-  # your renderings.
-
-When the volume_rendering function is called, first an empty 'Scene' object is
-created. Next, a 'VolumeSource' object is created, which deomposes the grids
-into an AMRKDTree to provide back-to-front rendering of fixed-resolution blocks
-of data.  When the VolumeSource object is created, by default it will create a
-transfer function based on the extrema of the field that you are rendering. The
-transfer function describes how to 'transfer' data values to color and
-brightness.
-
-Next, a Camera object is created, which by default also creates a default,
-plane-parallel, Lens object. The analog to a real camera is intentional.
-A camera can take a picture of a scene from a particular point in time and
-space.  However, you can swap in different lenses like, for example, a fisheye
-lens. Once the camera is added to the scene object, we call the main method of
-the Scene class, 'render'. When called, the scene will loop through all of the
-RenderSource objects that have been added, and integrate the radiative transfer
-equation through the volume. Finally, the image and scene object is returned to
-the user.
-
-Camera Interface
-================
-
 Tutorial
 --------
 
