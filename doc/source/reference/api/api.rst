@@ -227,8 +227,6 @@ Chombo
    ~yt.frontends.chombo.data_structures.Orion2Hierarchy
    ~yt.frontends.chombo.data_structures.Orion2Dataset
    ~yt.frontends.chombo.io.IOHandlerChomboHDF5
-   ~yt.frontends.chombo.io.IOHandlerChombo2DHDF5
-   ~yt.frontends.chombo.io.IOHandlerChombo1DHDF5
    ~yt.frontends.chombo.io.IOHandlerOrion2HDF5
 
 Enzo

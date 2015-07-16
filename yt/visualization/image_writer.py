@@ -170,7 +170,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
                                        alpha_channel], axis=-1)
     if transpose:
-        bitmap_array = bitmap_array.swapaxes(0,1)
+        bitmap_array = bitmap_array.swapaxes(0,1).copy(order="C")
     if filename is not None:
         pw.write_png(bitmap_array, filename)
     else:
