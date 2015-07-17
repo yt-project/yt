@@ -64,8 +64,11 @@ class ARTFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         def _temperature(field, data):
             r0 = data.ds.parameters['boxh'] / data.ds.parameters['ng']
-            T0 = 3.03e5 * r0**2 * data.ds.parameters['wmu'] * data.ds.parameters['Om0']
-            T0 = T0 * (data.ds.parameters['gamma']-1.) / (data.ds.parameters['aexpn']**2)
-            T_conv = data.ds.quan(T0, 'K/code_velocity**2')
-            return  T_conv * data['art', 'GasEnergy'] / data['art', 'Density']
-        self.add_field(('gas', 'temperature'), function=_temperature, units='K')
+            tr = data.ds.quan(3.03e5 * r0**2, 'K/code_velocity**2')
+            tr *= data.ds.parameters['wmu'] * data.ds.parameters['Om0']
+            tr *= (data.ds.parameters['gamma'] - 1.)
+            tr /= data.ds.parameters['aexpn']**2
+            return  tr * data['art', 'GasEnergy'] / data['art', 'Density']
+        self.add_field(('gas', 'temperature'),
+                       function=_temperature, 
+                       units='K')
