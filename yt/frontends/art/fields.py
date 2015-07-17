@@ -72,3 +72,32 @@ class ARTFieldInfo(FieldInfoContainer):
         self.add_field(('gas', 'temperature'),
                        function=_temperature, 
                        units='K')
+
+        def _get_vel(axis):
+            def velocity(field, data):
+                return (data[('gas','momentum_%s' % axis)] /
+                        data[('gas','density')])
+            return velocity
+        for ax in 'xyz':
+            self.add_field(('gas','velocity_%s' % ax),
+                           function = _get_vel(ax),
+                           units='cm/s')
+
+        def _momentum_magnitude(field, data):
+            tr = (data['gas','momentum_x']**2 +
+                  data['gas','momentum_y']**2 +
+                  data['gas','momentum_z']**2)**0.5
+            tr *= data['index','cell_volume'].in_units('cm**3')
+            return tr
+        self.add_field(('gas', 'momentum_magnitude'),
+                       function=_momentum_magnitude,
+                       units='g*cm/s')
+
+        def _velocity_magnitude(field, data):
+            tr = data['gas','momentum_magnitude']
+            tr /= data['gas','cell_mass']
+            return tr
+        self.add_field(('gas', 'velocity_magnitude'),
+                       function=_velocity_magnitude,
+                       units='cm/s')
+
