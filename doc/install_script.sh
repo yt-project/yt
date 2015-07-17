@@ -641,7 +641,7 @@ SYMPY='sympy-0.7.6'
 TORNADO='tornado-4.0.2'
 ZEROMQ='zeromq-4.0.5'
 ZLIB='zlib-1.2.8'
-SETUPTOOLS='setuptools-16.0'
+SETUPTOOLS='setuptools-18.0.1'
 
 # Now we dump all our SHA512 files out.
 echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
@@ -669,7 +669,7 @@ echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a
 echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
 echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
-echo '38a89aad89dc9aa682dbfbca623e2f69511f5e20d4a3526c01aabbc7e93ae78f20aac566676b431e111540b41540a1c4f644ce4174e7ecf052318612075e02dc  setuptools-16.0.tar.gz' > setuptools-16.0.tar.gz.sha512
+echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
