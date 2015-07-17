@@ -101,3 +101,34 @@ class ARTFieldInfo(FieldInfoContainer):
                        function=_velocity_magnitude,
                        units='cm/s')
 
+        def _metal_density(field, data):
+            tr = data['gas','metal_ia_density']
+            tr += data['gas','metal_ii_density']
+            return tr
+        self.add_field(('gas','metal_density'),
+                       function=_metal_density,
+                       units='g/cm**3')
+
+        def _metal_mass_fraction(field, data):
+            tr = data['gas','metal_density']
+            tr /= data['gas','density']
+            return tr
+        self.add_field(('gas', 'metal_mass_fraction'),
+                       function=_metal_mass_fraction,
+                       units='')
+
+        def _H_mass_fraction(field, data):
+            tr = (1. - data.ds.parameters['Y_p'] - 
+                  data['gas', 'metal_mass_fraction'])
+            return tr
+        self.add_field(('gas', 'H_mass_fraction'),
+                       function=_H_mass_fraction,
+                       units='')
+
+        def _metallicity(field, data):
+            tr = data['gas','metal_mass_fraction']
+            tr /= data['gas','H_mass_fraction']
+            return tr
+        self.add_field(('gas', 'metallicity'),
+                       function=_metallicity,
+                       units='')
