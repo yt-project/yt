@@ -604,8 +604,8 @@ cdef class SelectorObject:
 
     def __hash__(self):
         cdef np.int64_t hash_val = 0
-        for n, v in self._hash_vals() + self._base_hash():
-            hash_val ^= hash((n, v))
+        for v in self._hash_vals() + self._base_hash():
+            hash_val ^= hash(v)
         return hash_val
 
     def _hash_vals(self):
