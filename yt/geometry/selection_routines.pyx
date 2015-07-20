@@ -1296,7 +1296,7 @@ cdef class OrthoRaySelector(SelectorObject):
         return 0
 
     def _hash_vals(self):
-        return (("px_ax", self.px_ax)
+        return (("px_ax", self.px_ax),
                 ("py_ax", self.py_ax),
                 ("px", self.px),
                 ("py", self.py),
