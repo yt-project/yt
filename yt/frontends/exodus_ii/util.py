@@ -66,7 +66,7 @@ def load_info_records(info_records):
     return group_by_sections(info_records_parsed)
     
 def group_by_sections(info_records):
-    # 1. Split by top groupings    
+    # 1. Split by top groupings
     top_levels = get_top_levels(info_records)
     # 2. Determine if in section by index number
     grouped = OrderedDict()

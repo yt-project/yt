@@ -12,11 +12,14 @@ ExodusII-specific IO functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from .util import ExodusIIData
 import numpy as np
 
 from yt.utilities.io_handler import \
+    io_registry
+from yt.utilities.io_handler import \
     BaseIOHandler
+from yt.utilities.file_handler import \
+    ExodusIIFileHandler
 
 class IOHandlerExodusII(BaseIOHandler):
     _particle_reader = False
@@ -26,8 +29,8 @@ class IOHandlerExodusII(BaseIOHandler):
 
     def __init__(self, filename):
         self.filename = filename
-        self.ds       = ExodusIIData(filename)
-        self.ds.read()
+        exodus_ii_handler       = ExodusIIFileHandler(filename)
+        self.ds  = exodus_ii_handler.dataset
 
     def _read_particle_coords(self, chunks, ptf):
         pass

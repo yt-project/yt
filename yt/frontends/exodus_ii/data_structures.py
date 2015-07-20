@@ -12,6 +12,8 @@ Exodus II data structures
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+import numpy as np
+import re
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -19,9 +21,11 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from .fields import ExodusIIFieldInfo
-from .io import IOHandlerExodusII
-import numpy as np
+from .io import \
+    IOHandlerExodusII
+from .fields import \
+    ExodusIIFieldInfo
+from .util import load_info_records
 
 class ExodusIIGrid(AMRGridPatch):
     _id_offset = 0
@@ -117,16 +121,16 @@ class ExodusIIDataset(Dataset):
         pass
     
     def _parse_parameter_file(self):
-        self.parameters                 = self.ds.info_records
-        self.unique_identifier          = self.parameters['Version Info']['Executable Timestamp']
-        self.current_time               = self.parameters['Version Info']['Current Time']
-        self.dimensionality             = 3
-        self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
-                                                    self.ds.coordinates[:,0].max()],
-                                                   'float64')
-        self.domain_right_edge           = np.array([self.ds.coordinates[:,1].min(),
-                                                     self.ds.coordinates[:,1].max()],
-                                                    'float64')
+        self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
+        self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
+        self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
+        self.dimensionality             = self.ds.variables['coor_names'].shape[0]
+        # self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
+        #                                             self.ds.coordinates[:,0].max()],
+        #                                            'float64')
+        # self.domain_right_edge           = np.array([self.ds.coordinates[:,1].min(),
+        #                                              self.ds.coordinates[:,1].max()],
+        #                                             'float64')
         self.periodicity                = (False, False, False)
         self.cosmological_simulation    = 0
         self.current_redshift           = 0
