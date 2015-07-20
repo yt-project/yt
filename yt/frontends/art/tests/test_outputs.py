@@ -47,40 +47,46 @@ def test_d9p():
 
 
     ad = ds.all_data()
-    ANANStars = 6255
-    yield assert_equal, ad[('stars','particle_type')].size, ANANStars
-    yield assert_equal, ad[('specie4', 'particle_type')].size, ANANStars
-    ANANDM = 2833405
-    yield assert_equal, ad[('darkmatter','particle_type')].size, ANANDM
-    yield assert_equal, ad[('darkmatter','particle_type')].size, ANANDM
+    # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
+    AnaNStars = 6255
+    yield assert_equal, ad[('stars','particle_type')].size, AnaNStars
+    yield assert_equal, ad[('specie4', 'particle_type')].size, AnaNStars
+    AnaNDM = 2833405
+    yield assert_equal, ad[('darkmatter','particle_type')].size, AnaNDM
     yield assert_equal, ad[('specie0', 'particle_type')].size + \
         ad[('specie1', 'particle_type')].size + \
         ad[('specie2', 'particle_type')].size + \
-        ad[('specie3', 'particle_type')].size, ANANDM
+        ad[('specie3', 'particle_type')].size, AnaNDM
 
-    ANABoxSize = yt.units.yt_array.YTQuantity(7.1442196564,'Mpc')
-    ANAVolume = yt.units.yt_array.YTQuantity(364.640074656,'Mpc**3')
+    AnaBoxSize = yt.units.yt_array.YTQuantity(7.1442196564,'Mpc')
+    AnaVolume = yt.units.yt_array.YTQuantity(364.640074656,'Mpc**3')
     Volume = 1
     for i in ds.domain_width.in_units('Mpc'):
-        yield assert_almost_equal, i, ANABoxSize
+        yield assert_almost_equal, i, AnaBoxSize
         Volume *= i
-    yield assert_almost_equal, Volume, ANAVolume
+    yield assert_almost_equal, Volume, AnaVolume
 
-    ANANCells = 4087490
-    yield assert_equal, len(ad[('index','cell_volume')]), ANANCells
+    AnaNCells = 4087490
+    yield assert_equal, len(ad[('index','cell_volume')]), AnaNCells
 
-    ANATotDMMass = yt.units.yt_array.YTQuantity(1.01191786811e+14,'Msun')
-    ANATotStarMass = yt.units.yt_array.YTQuantity(1.776251e+6,'Msun')
-    ANATotGasMass = yt.units.yt_array.YTQuantity(1.781994e+13,'Msun')
+    AnaTotDMMass = yt.units.yt_array.YTQuantity(1.01191786811e+14,'Msun')
     yield assert_almost_equal, ad[('darkmatter','particle_mass')].sum()\
-        .in_units('Msun'), ANATotDMMass
-    yield assert_almost_equal, ad[('stars','particle_mass')].sum()\
-        .in_units('Msun'), ANATotStarMass
-    yield assert_almost_equal, ad[('gas','cell_mass')].sum()\
-        .in_units('Msun'), ANATotGasMass
+        .in_units('Msun'), AnaTotDMMass
 
-    ANATotTemp = yt.units.yt_array.YTQuantity(1.5019e11, 'K') #just leaves
-    yield assert_equal, ad[('gas','temperature')].sum(), ANATotTemp
+    AnaTotStarMass = yt.units.yt_array.YTQuantity(1776251.,'Msun')
+    yield assert_almost_equal, ad[('stars','particle_mass')].sum()\
+        .in_units('Msun'), AnaTotStarMass
+
+    AnaTotStarMassInitial = yt.units.yt_array.YTQuantity(2422854.,'Msun')
+    yield assert_almost_equal, ad[('stars','particle_mass_initial')].sum()\
+        .in_units('Msun'), AnaTotStarMass
+
+    AnaTotGasMass = yt.units.yt_array.YTQuantity(1.781994e+13,'Msun')
+    yield assert_almost_equal, ad[('gas','cell_mass')].sum()\
+        .in_units('Msun'), AnaTotGasMass
+
+    AnaTotTemp = yt.units.yt_array.YTQuantity(1.5019e11, 'K') #just leaves
+    yield assert_equal, ad[('gas','temperature')].sum(), AnaTotTemp
 
 
 @requires_file(d9p)
