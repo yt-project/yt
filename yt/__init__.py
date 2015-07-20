@@ -103,7 +103,9 @@ from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate, \
     uintersect1d, \
-    uunion1d
+    uunion1d, \
+    loadtxt, \
+    savetxt
 
 from yt.fields.api import \
     field_plugins, \
@@ -169,4 +171,3 @@ from yt.testing import \
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
-

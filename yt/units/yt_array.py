@@ -1227,7 +1227,7 @@ def uconcatenate(arrs, axis=0):
 def ucross(arr1,arr2, registry=None):
     """Applies the cross product to two YT arrays.
 
-    This wrapper around numpy.cross preserves units.  
+    This wrapper around numpy.cross preserves units.
     See the documentation of numpy.cross for full
     details.
     """
@@ -1308,3 +1308,32 @@ def get_binary_op_return_class(cls1, cls2):
     else:
         raise RuntimeError("Undefined operation for a YTArray subclass. "
                            "Received operand types (%s) and (%s)" % (cls1, cls2))
+
+def loadtxt(fname, dtype='float', delimiter='\t', usecols=None):
+    f = open(fname, 'r')
+    line = f.readline()
+    f.close()
+    u = line.strip().split()[1:]
+    if usecols is None:
+        units = u
+    else:
+        units = []
+        for col in usecols:
+            units.append(u[col])
+    arrays = np.loadtxt(fname, dtype=dtype, comments="#",
+                        delimiter=delimiter, converters=None,
+                        unpack=True, usecols=usecols, ndmin=0)
+    return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
+
+def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n'):
+    if not isinstance(arrays, list):
+        arrays = [arrays]
+    units = []
+    for array in arrays:
+        if hasattr(array, "units"):
+            units.append(str(array.units))
+        else:
+            units.append("dimensionless")
+    header = "\t".join(units)
+    np.savetxt(fname, np.transpose(arrays), header=header,
+               fmt=fmt, delimiter=delimiter, newline=newline)
