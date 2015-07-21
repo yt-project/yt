@@ -110,7 +110,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     def allocate_domains(self, domain_counts):
         pass
 
-    def finalize(self, int domain_id = 0, int morton_index = 0):
+    def finalize(self, int domain_id = 0):
         #This will sort the octs in the oct list
         #so that domains appear consecutively
         #And then find the oct index/offset for
@@ -131,11 +131,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
             self.oct_list[i].domain = domain_id
-            if morton_index == 0 or self.oct_list[i].children != NULL:
-                self.oct_list[i].file_ind = -1
-            elif self.oct_list[i].children == NULL:
-                self.oct_list[i].file_ind = index_counter
-                index_counter += 1
         self.max_level = max_level
 
     cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
@@ -207,7 +202,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                     self.filter_particles(cur, data, p, level, order)
                 else:
                     cur = cur.children[cind(ind[0],ind[1],ind[2])]
-            cur.file_ind += 1
+            # If our n_ref is 1, we are always refining, which means we're an
+            # index octree.  In this case, we should store the index for fast
+            # lookup later on when we find neighbors and the like.
+            if self.n_ref == 1:
+                cur.file_ind = index
+            else:
+                cur.file_ind += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -370,12 +371,15 @@ cdef class ParticleForest:
             morton_count[mi] = mask[mi] = 1
         return
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def secondary_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                       np.ndarray[np.uint8_t, ndim=1] mask,
                       np.uint64_t file_id, int order):
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p, i
-        cdef np.uint64_t mi, sub_mi
+        cdef np.uint64_t mi, nsub_mi, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3], box_left[3]
@@ -388,6 +392,9 @@ cdef class ParticleForest:
             RE[i] = self.right_edge[i]
             dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
         tr = []
+        cdef np.ndarray[np.uint64_t, ndim=2] sub_mi
+        sub_mi = np.zeros((2, pos.shape[0]), dtype="uint64")
+        nsub_mi = 0
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
@@ -404,8 +411,26 @@ cdef class ParticleForest:
             for i in range(3):
                 box_left[i] = (<np.int64_t>((ppos[i] - LE[i])/dds[i])) * dds[i]
                 box_right[i] = box_left[i] + dds[i]
-            sub_mi = bounded_morton(ppos[0], ppos[1], ppos[2], box_left, box_right, order)
-            self.bitmasks[mi][file_id].set(sub_mi)
+            sub_mi[0, nsub_mi] = mi
+            sub_mi[1, nsub_mi] = bounded_morton(ppos[0], ppos[1], ppos[2],
+                                                box_left, box_right, order)
+            nsub_mi += 1
+        print sub_mi.size,
+        sub_mi = sub_mi[:,:nsub_mi]
+        print sub_mi.size
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort(sub_mi)
+        last_submi = last_mi = 0
+        for i in range(nsub_mi):
+            p = ind[i]
+            if not (sub_mi[1,p] >= last_submi):
+                print last_mi, last_submi, sub_mi[0,p], sub_mi[1,p]
+                raise RuntimeError
+            self.bitmasks[sub_mi[0,p]][file_id].set(sub_mi[1,p])
+            if last_mi == sub_mi[0,p]:
+                last_submi = sub_mi[1,p]
+            else:
+                last_submi = 0
+            last_mi = sub_mi[0,p]
         return total_hits
 
     def check(self):
@@ -430,7 +455,7 @@ cdef class ParticleForest:
             preincrement(it1)
             nm += arr_any.numberOfOnes()
             nc += arr_two.numberOfOnes()
-        print "Total of %s / %s collisions" % (nc, nm)
+        print "Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm)
 
     def finalize(self):
         self.index_octree = ParticleOctreeContainer([1,1,1],
@@ -442,7 +467,7 @@ cdef class ParticleForest:
         mi, = np.where(self.morton_count > 0)
         mi = mi.astype("uint64")
         self.index_octree.add(mi, self.index_order)
-        self.index_octree.finalize(morton_index = 1)
+        self.index_octree.finalize()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
