@@ -17,7 +17,6 @@ import re
 import stat
 import os
 import time
-import netCDF4
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
