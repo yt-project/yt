@@ -241,19 +241,18 @@ def parse_orion_sinks(fn):
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
+        index['particle_mdot']      = 14
         index['particle_burnstate'] = 15
 
-    elif len(line.strip().split()) == 18:
+    elif (len(line.strip().split()) == 18 or len(line.strip().split()) == 19):
         # these are the newer style, add luminosity as well
         index['particle_mlast']     = 10
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
-        index['particle_burnstate'] = 15,
+        index['particle_mdot']      = 14
+        index['particle_burnstate'] = 15
         index['particle_luminosity']= 16
-
     else:
         # give a warning if none of the above apply:
         mylog.warning('Warning - could not figure out particle output file')
