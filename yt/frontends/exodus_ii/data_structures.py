@@ -138,11 +138,11 @@ class ExodusIIDataset(Dataset):
         self.dimensionality             = self.ds.variables['coor_names'].shape[0]
         self.parameters['num_elem']     = self.ds['eb_status'].shape[0]
         self.parameters['var_names']    = self._get_var_names()
-        self.parameters['nod_names']   = self._get_nod_names()
+        self.parameters['nod_names']    = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
         self.parameters['connectivity'] = self._load_connectivity()
         self.domain_left_edge           = self._load_domain_edge(0)
-        self.domain_right_edge           = self._load_domain_edge(1)
+        self.domain_right_edge          = self._load_domain_edge(1)
         self.periodicity                = (False, False, False)
         self.cosmological_simulation    = 0
         self.current_redshift           = 0
