@@ -241,7 +241,6 @@ class ARTDataset(Dataset):
         boxh = self.parameters['boxh']
         aexpn = self.parameters["aexpn"]
         hubble = self.parameters['hubble']
-        gamma = self.parameters['gamma']
 
         r0 = boxh/ng
         v0 = 50.0*r0*np.sqrt(Om0)
