@@ -20,6 +20,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.file_handler import \
     ExodusIIFileHandler
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerExodusII(BaseIOHandler):
     _particle_reader = False

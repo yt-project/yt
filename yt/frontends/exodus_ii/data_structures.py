@@ -14,6 +14,9 @@ Exodus II data structures
 #-----------------------------------------------------------------------------
 import numpy as np
 import re
+import stat
+import os
+import time
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -22,7 +25,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from .io import \
-    IOHandlerExodusII
+    IOHandlerExodusII, mylog
 from .fields import \
     ExodusIIFieldInfo
 from .util import load_info_records
@@ -100,6 +103,7 @@ class ExodusIIDataset(Dataset):
         self.ds = IOHandlerExodusII(filename).ds
         self.fluid_types += ('exodus_ii',)
         self.parameter_filename = storage_filename
+        self.filename = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -121,9 +125,15 @@ class ExodusIIDataset(Dataset):
         pass
     
     def _parse_parameter_file(self):
-        self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
-        self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
-        self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
+        if 'info_records' in self.ds.variables.keys():
+            self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
+            self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
+            self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
+        else:
+            mylog.warning("No info_records found")
+            self.unique_identifier = self.filename.__hash__()
+            self.current_time      = 0.0
+
         self.dimensionality             = self.ds.variables['coor_names'].shape[0]
         # self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
         #                                             self.ds.coordinates[:,0].max()],
@@ -137,6 +147,7 @@ class ExodusIIDataset(Dataset):
         self.omega_lambda               = 0
         self.omega_matter               = 0
         self.hubble_constant            = 0
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
