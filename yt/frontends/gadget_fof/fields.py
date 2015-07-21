@@ -57,4 +57,5 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
         (v_units, "particle_velocity_z"),
         (m_units, "particle_mass"),
         ("",      "particle_number"),
+        ("",      "particle_ones"),
     )
