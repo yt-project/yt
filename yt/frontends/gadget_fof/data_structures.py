@@ -95,7 +95,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
-        ds.particle_types_raw = ds.particle_types
+        ds.particle_types_raw = tuple(sorted(ds.particle_types))
             
     def _setup_geometry(self):
         super(GadgetFOFParticleIndex, self)._setup_geometry()
