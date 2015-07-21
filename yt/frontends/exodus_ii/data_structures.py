@@ -141,12 +141,8 @@ class ExodusIIDataset(Dataset):
         self.parameters['nod_names']   = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
         self.parameters['connectivity'] = self._load_connectivity()
-        # self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
-        #                                             self.ds.coordinates[:,0].max()],
-        #                                            'float64')
-        # self.domain_right_edge           = np.array([self.ds.coordinates[:,1].min(),
-        #                                              self.ds.coordinates[:,1].max()],
-        #                                             'float64')
+        self.domain_left_edge           = self._load_left_edge()
+        self.domain_right_edge           = self._load_right_edge()
         self.periodicity                = (False, False, False)
         self.cosmological_simulation    = 0
         self.current_redshift           = 0
@@ -181,6 +177,16 @@ class ExodusIIDataset(Dataset):
             connectivity.append(self.ds.variables["connect%d" % (i+1)][:].astype("i8"))
 
         return connectivity
+
+    def _load_left_edge(self):
+        return np.array([self.parameters['coordinates'][:,0].min(),
+                         self.parameters['coordinates'][:,0].max()],
+                        'float64')
+
+    def _load_right_edge(self):
+        return np.array([self.parameters['coordinates'][:,1].min(),
+                         self.parameters['coordinates'][:,1].max()],
+                        'float64')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
