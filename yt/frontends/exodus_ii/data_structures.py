@@ -130,10 +130,11 @@ class ExodusIIDataset(Dataset):
             self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
         else:
             mylog.warning("No info_records found")
-            self.unique_identifier = self.filename.__hash__()
+            self.unique_identifier = self.parameter_filename.__hash__()
             self.current_time      = 0.0
 
         self.dimensionality             = self.ds.variables['coor_names'].shape[0]
+        self.parameters['coordinates']  = self._load_coordinates()
         # self.domain_left_edge           = np.array([self.ds.coordinates[:,0].min(),
         #                                             self.ds.coordinates[:,0].max()],
         #                                            'float64')
@@ -147,6 +148,14 @@ class ExodusIIDataset(Dataset):
         self.omega_matter               = 0
         self.hubble_constant            = 0
 
+    def _load_coordinates(self):
+        if self.dimensionality == 3:
+            coord_axes = 'xyz'
+        elif self.dimensionality == 2:
+            coord_axes = 'xy'
+
+        return np.array([self.ds.variables["coord%s" % ax][:]
+                         for ax in coord_axes]).transpose().copy()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
