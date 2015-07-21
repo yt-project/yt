@@ -102,8 +102,7 @@ class ExodusIIDataset(Dataset):
 
         self.ds = IOHandlerExodusII(filename).ds
         self.fluid_types += ('exodus_ii',)
-        self.parameter_filename = storage_filename
-        self.filename = filename
+        self.parameter_filename = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
