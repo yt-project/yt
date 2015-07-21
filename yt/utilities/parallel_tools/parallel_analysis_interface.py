@@ -349,8 +349,8 @@ class ProcessorPool(object):
     def __init__(self):
         self.comm = communication_system.communicators[-1]
         self.size = self.comm.size
-        self.ranks = range(self.size)
-        self.available_ranks = range(self.size)
+        self.ranks = list(range(self.size))
+        self.available_ranks = list(range(self.size))
         self.workgroups = []
 
     def add_workgroup(self, size=None, ranks=None, name=None):
@@ -1259,7 +1259,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         self.num_items = len(items)
         self.items = items
         assert(self.num_items >= self.comm.size)
-        self.owned = range(self.comm.size)
+        self.owned = list(range(self.comm.size))
         self.pointer = 0
         if parallel_capable:
             communication_system.push_with_ids([self.comm.rank])
