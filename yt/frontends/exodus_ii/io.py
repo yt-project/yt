@@ -15,8 +15,6 @@ ExodusII-specific IO functions
 import numpy as np
 
 from yt.utilities.io_handler import \
-    io_registry
-from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.file_handler import \
     ExodusIIFileHandler

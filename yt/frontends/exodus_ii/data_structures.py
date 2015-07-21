@@ -24,6 +24,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.io_handler import \
+    io_registry
 from .io import \
     IOHandlerExodusII, mylog
 from .fields import \
@@ -162,19 +164,15 @@ class ExodusIIDataset(Dataset):
             coord_axes = 'xyz'
         elif self.dimensionality == 2:
             coord_axes = 'xy'
-
         mylog.info("Loading coordinates for axes %s" % coord_axes)
-
         return np.array([self.ds.variables["coord%s" % ax][:]
                          for ax in coord_axes]).transpose().copy()
     
     def _load_connectivity(self):
         mylog.info("Loading connectivity")
         connectivity = []
-
         for i in range(self.parameters['num_elem']):
             connectivity.append(self.ds.variables["connect%d" % (i+1)][:].astype("i8"))
-
         return connectivity
 
     def _load_domain_edge(self, domain_idx):

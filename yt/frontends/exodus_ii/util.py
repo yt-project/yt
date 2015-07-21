@@ -30,14 +30,12 @@ def group_by_sections(info_records):
             grouped[top_level[1]].append(info_records[idx])
 
     version_info = OrderedDict()
-
     for line in grouped['Version Info']:
         split_line = line.split(":")
         key = split_line[0]
         val = ":".join(split_line[1:]).lstrip().rstrip()
         if key != '':
             version_info[key] = val
-
     grouped['Version Info'] = version_info
     
     return grouped
