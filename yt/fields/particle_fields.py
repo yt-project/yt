@@ -839,4 +839,17 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
                        units = "g/cm**3")
     return [field_name]
 
+def add_union_field(registry, ptype, field_name, units):
+    """
+    Create a field that is the concatenation of multiple particle types.
+    This allows us to create fields for particle unions using alias names.
+    """
 
+    def _cat_field(field, data):
+        return uconcatenate([data[dep_type, field_name]
+                             for dep_type in data.ds.particle_types_raw])
+
+    registry.add_field((ptype, field_name),
+                       function=_cat_field,
+                       particle_type=True,
+                       units=units)
