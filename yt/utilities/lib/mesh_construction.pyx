@@ -82,7 +82,7 @@ cdef class ElementMesh:
     cdef rtcg.RTCFilterFunc filter_func
     cdef int tpe, vpe
     cdef int[MAX_NUM_TRI][3] tri_array
-    cdef long* element_indices
+    cdef int* element_indices
     cdef MeshDataContainer datac
 
     def __init__(self, YTEmbreeScene scene,
@@ -136,7 +136,7 @@ cdef class ElementMesh:
         rtcg.rtcSetBuffer(scene.scene_i, mesh, rtcg.RTC_INDEX_BUFFER,
                           triangles, 0, sizeof(Triangle))
 
-        cdef long* element_indices = <long *> malloc(ne * self.vpe * sizeof(long))    
+        cdef int* element_indices = <int *> malloc(ne * self.vpe * sizeof(int))    
         for i in range(ne):
             for j in range(self.vpe):
                 element_indices[i*self.vpe + j] = indices_in[i][j]
@@ -154,7 +154,7 @@ cdef class ElementMesh:
 
         for i in range(ne):
             for j in range(self.vpe):
-                field_data[self.vpe*i+j] = data_in[i][j]
+                field_data[i*self.vpe+j] = data_in[i][j]
 
         self.field_data = field_data
 
