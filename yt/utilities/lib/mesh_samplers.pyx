@@ -52,7 +52,7 @@ cdef double maxnorm(double* f) nogil:
 cdef void get_hit_position(double* position,
                            void* userPtr,
                            rtcr.RTCRay& ray) nogil:
-    cdef int primID, elemID, i
+    cdef int primID, i
     cdef double[3][3] vertex_positions
     cdef Triangle tri
     cdef MeshDataContainer* data
@@ -100,12 +100,12 @@ cdef inline void linear_hex_f(double* f,
     for i in range(3):
         f[i] = vertices[0 + i]*rm*sm*tm \
              + vertices[3 + i]*rp*sm*tm \
-             + vertices[6 + i]*rm*sp*tm \
-             + vertices[9 + i]*rp*sp*tm \
+             + vertices[6 + i]*rp*sp*tm \
+             + vertices[9 + i]*rm*sp*tm \
              + vertices[12 + i]*rm*sm*tp \
              + vertices[15 + i]*rp*sm*tp \
-             + vertices[18 + i]*rm*sp*tp \
-             + vertices[21 + i]*rp*sp*tp \
+             + vertices[18 + i]*rp*sp*tp \
+             + vertices[21 + i]*rm*sp*tp \
              - 8.0*phys_x[i]
 
 
@@ -130,18 +130,18 @@ cdef inline void linear_hex_J(double* r,
     tp = 1.0 + x[2]
     
     for i in range(3):
-        r[i] = -sm*tm*v[0 + i]  + sm*tm*v[3 + i]  - \
-                sp*tm*v[6 + i]  + sp*tm*v[9 + i]  - \
-                sm*tp*v[12 + i] + sm*tp*v[15 + i] - \
-                sp*tp*v[18 + i] + sp*tp*v[21 + i]
+        r[i] = -sm*tm*v[0 + i]  + sm*tm*v[3 + i]  + \
+                sp*tm*v[6 + i]  - sp*tm*v[9 + i]  - \
+                sm*tp*v[12 + i] + sm*tp*v[15 + i] + \
+                sp*tp*v[18 + i] - sp*tp*v[21 + i]
         s[i] = -rm*tm*v[0 + i]  - rp*tm*v[3 + i]  + \
-                rm*tm*v[6 + i]  + rp*tm*v[9 + i]  - \
+                rp*tm*v[6 + i]  + rm*tm*v[9 + i]  - \
                 rm*tp*v[12 + i] - rp*tp*v[15 + i] + \
-                rm*tp*v[18 + i] + rp*tp*v[21 + i]
+                rp*tp*v[18 + i] + rm*tp*v[21 + i]
         t[i] = -rm*sm*v[0 + i]  - rp*sm*v[3 + i]  - \
-                rm*sp*v[6 + i]  - rp*sp*v[9 + i]  + \
+                rp*sp*v[6 + i]  - rm*sp*v[9 + i]  + \
                 rm*sm*v[12 + i] + rp*sm*v[15 + i] + \
-                rm*sp*v[18 + i] + rp*sp*v[21 + i]
+                rp*sp*v[18 + i] + rm*sp*v[21 + i]
                 
                 
 @cython.boundscheck(False)
@@ -157,8 +157,8 @@ cdef double sample_hex_at_unit_point(double* coord, double* vals) nogil:
     tm = 1.0 - coord[2]
     tp = 1.0 + coord[2]
     
-    F = vals[0]*rm*sm*tm + vals[1]*rp*sm*tm + vals[2]*rm*sp*tm + vals[3]*rp*sp*tm + \
-        vals[4]*rm*sm*tp + vals[5]*rp*sm*tp + vals[6]*rm*sp*tp + vals[7]*rp*sp*tp
+    F = vals[0]*rm*sm*tm + vals[1]*rp*sm*tm + vals[2]*rp*sp*tm + vals[3]*rm*sp*tm + \
+        vals[4]*rm*sm*tp + vals[5]*rp*sm*tp + vals[6]*rp*sp*tp + vals[7]*rm*sp*tp
     return 0.125*F
                 
 
@@ -189,7 +189,7 @@ cdef double sample_hex_at_real_point(double* vertices,
     err = maxnorm(f)  
    
     # begin Newton iteration
-    while (err > tolerance and iterations < 10):
+    while (err > tolerance and iterations < 100):
         linear_hex_J(r, s, t, x, vertices, physical_x)
         d = determinant_3x3(r, s, t)
         x[0] = x[0] - (determinant_3x3(f, s, t)/d)
@@ -198,7 +198,7 @@ cdef double sample_hex_at_real_point(double* vertices,
         linear_hex_f(f, x, vertices, physical_x)        
         err = maxnorm(f)
         iterations += 1
-        
+
     val = sample_hex_at_unit_point(x, field_values)
     return val
 
@@ -211,7 +211,7 @@ cdef void sample_hex(void* userPtr,
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[8] field_data
-    cdef long[8] element_indices
+    cdef int[8] element_indices
     cdef double[24] vertices
     cdef double[3] position
     cdef MeshDataContainer* data
@@ -262,9 +262,9 @@ cdef double sample_tetra_at_unit_point(double* coord, double* vals) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double tetra_real_to_mapped(double* mapped_coord,
-                                 double* vertices,
-                                 double* physical_coord) nogil:
+cdef void tetra_real_to_mapped(double* mapped_coord,
+                               double* vertices,
+                               double* physical_coord) nogil:
     cdef int i
     cdef double d
     cdef double[3] bvec
@@ -294,7 +294,7 @@ cdef void sample_tetra(void* userPtr,
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[4] field_data
-    cdef long[4] element_indices
+    cdef int[4] element_indices
     cdef double[12] vertices
     cdef double[3] position
     cdef double[4] mapped_coord
@@ -307,7 +307,7 @@ cdef void sample_tetra(void* userPtr,
 
     get_hit_position(position, userPtr, ray)
     
-    elem_id = ray_id / data.tpe
+    elem_id = ray_id / 4
     for i in range(4):
         element_indices[i] = data.element_indices[elem_id*4+i]
         field_data[i] = data.field_data[elem_id*4+i]
