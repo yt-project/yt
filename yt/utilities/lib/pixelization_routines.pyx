@@ -19,6 +19,7 @@ cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
 from yt.utilities.exceptions import YTPixelizeError
+from yt.utilities.lib.mesh_samplers cimport sample_hex_at_real_point
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -422,10 +423,10 @@ cdef int check_face_dot(int nvertices,
     return 1
 
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
-                      np.ndarray[np.int64_t, ndim=2] conn,
-                      buff_size,
-                      np.ndarray[np.float64_t, ndim=1] field,
-                      extents, int index_offset = 0):
+                          np.ndarray[np.int64_t, ndim=2] conn,
+                          buff_size,
+                          np.ndarray[np.float64_t, ndim=2] field,
+                          extents, int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     # Two steps:
@@ -445,6 +446,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.int64_t pstart[3], pend[3]
     cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3]
     cdef np.float64_t **vertices
+    cdef np.float64_t *flat_vertices
+    cdef np.float64_t *field_vals
+    cdef np.float64_t *physical_x
     cdef int nvertices = conn.shape[1]
     cdef int nf
     # Allocate our signs array
@@ -458,6 +462,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         raise RuntimeError
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
     vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
+    flat_vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
+    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * nvertices)
+    physical_x = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
     for i in range(nvertices):
         vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
     for i in range(3):
@@ -475,8 +482,10 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         RE[0] = RE[1] = RE[2] = -1e60
         for n in range(nvertices): # 8
             cj = conn[ci, n] - index_offset
+            field_vals[n] = field[ci, n]
             for i in range(3):
                 vertices[n][i] = coords[cj, i]
+                flat_vertices[3*n + i] = coords[cj, i]
                 centroid[i] += coords[cj, i]
                 LE[i] = fmin(LE[i], vertices[n][i])
                 RE[i] = fmax(RE[i], vertices[n][i])
@@ -500,14 +509,21 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         check_face_dot(nvertices, centroid, vertices, signs, 0)
         for pi in range(pstart[0], pend[0] + 1):
             ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
+            physical_x[0] = ppoint[0]
             for pj in range(pstart[1], pend[1] + 1):
                 ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
+                physical_x[1] = ppoint[1]
                 for pk in range(pstart[2], pend[2] + 1):
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
+                    physical_x[2] = ppoint[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
                     if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
                         continue
                     # Else, we deposit!
-                    img[pi, pj, pk] = field[ci]
+                    img[pi, pj, pk] = field[ci, 0]
+#                    img[pi, pj, pk] = sample_hex_at_real_point(flat_vertices, \
+#                                                               field_vals, \
+#                                                               physical_x)
+
     return img
