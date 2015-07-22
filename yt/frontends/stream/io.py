@@ -259,7 +259,7 @@ class IOHandlerStreamOctree(BaseIOHandler):
 
 class IOHandlerStreamUnstructured(BaseIOHandler):
     _dataset_type = "stream_unstructured"
-    _node_types = ("diffused", "convected")
+    _node_types = ("diffused", "convected", "u")
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
