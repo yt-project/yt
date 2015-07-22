@@ -494,6 +494,9 @@ class LightRay(CosmologySplice):
 
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
+        for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
+            output.attrs[attr] = getattr(self.cosmology, attr)
+        output.attrs["data_type"] = "light_ray"
         for field in data.keys():
             # if the field is a tuple, only use the second part of the tuple
             # in the hdf5 output (i.e. ('gas', 'density') -> 'density')
