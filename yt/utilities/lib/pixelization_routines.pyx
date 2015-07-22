@@ -521,9 +521,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
                         continue
                     # Else, we deposit!
-                    img[pi, pj, pk] = field[ci, 0]
-#                    img[pi, pj, pk] = sample_hex_at_real_point(flat_vertices, \
-#                                                               field_vals, \
-#                                                               physical_x)
+#                    img[pi, pj, pk] = field[ci, 0]
+                    img[pi, pj, pk] = sample_hex_at_real_point(flat_vertices, \
+                                                               field_vals, \
+                                                               physical_x)
 
     return img
