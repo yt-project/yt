@@ -22,7 +22,10 @@ class TestFilters():
         cls.frb = p.to_frb((1, 'unitary'), 64)
 
     def teardown(self):
-        del self.frb["density"]
+        try:
+            del self.frb["density"]
+        except KeyError:
+            pass
 
     def test_white_noise_filter(self):
         self.frb.apply_white_noise()
