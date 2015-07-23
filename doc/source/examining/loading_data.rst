@@ -268,7 +268,7 @@ Pluto Data
 Support for Pluto AMR data is provided through the Chombo frontend, which
 is currently maintained by Andrew Myers. Pluto output files that don't use
 the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
-you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+you can use the ``yt.load`` command on the ``*.hdf5`` files. For example, the 
 KelvinHelmholtz sample dataset is a directory that contains the following
 files:
 
