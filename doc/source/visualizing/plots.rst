@@ -1224,18 +1224,18 @@ the plot filenames. If you don't care what the filenames are, just calling the
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
    slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
    slc.save()
-   
+
 which will yield PNG plots with the filenames
 
 .. code-block:: bash
 
-   $ ls *.png
+   $ ls \*.png
    sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_density.png
    sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_kT.png
 
 which has a general form of
 
-.. code-block::
+.. code-block:: bash
  
    [dataset name]_[plot type]_[axis]_[field name].[suffix]
    
@@ -1256,7 +1256,7 @@ yields
 
 .. code-block:: bash
 
-   $ ls *.png
+   $ ls \*.png
    bananas_Slice_z_kT.png
    bananas_Slice_z_density.png
 
