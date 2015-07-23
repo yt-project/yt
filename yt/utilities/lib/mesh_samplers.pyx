@@ -288,6 +288,23 @@ cdef void tetra_real_to_mapped(double* mapped_coord,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef double sample_tetra_at_real_point(double* vertices,
+                                       double* field_values,
+                                       double* physical_x) nogil:
+    cdef double val
+    cdef double mapped_coord[4]
+
+    tetra_real_to_mapped(mapped_coord, 
+                         vertices,
+                         physical_x)    
+        
+    val = sample_tetra_at_unit_point(mapped_coord, field_values)
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void sample_tetra(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
 
@@ -315,11 +332,7 @@ cdef void sample_tetra(void* userPtr,
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    tetra_real_to_mapped(mapped_coord, 
-                         vertices,
-                         position)    
-        
-    val = sample_tetra_at_unit_point(mapped_coord, field_data)
+    val = sample_tetra_at_real_point(vertices, field_data, position)
     ray.time = val
 
 @cython.boundscheck(False)

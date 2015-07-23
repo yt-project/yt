@@ -11,3 +11,7 @@ cdef void sample_tetra(void* userPtr,
 cdef double sample_hex_at_real_point(double* vertices,
                                      double* field_values,
                                      double* physical_x) nogil
+
+cdef double sample_tetra_at_real_point(double* vertices,
+                                       double* field_values,
+                                       double* physical_x) nogil
