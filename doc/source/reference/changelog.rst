@@ -19,7 +19,7 @@ since version 3.0.
 
 
 Major changes:
-++++++++++++++
+^^^^^^^^^^^^^^
 
 * The RADMC-3D export analysis module has been updated. `PR 1358 <https://bitbucket.org/yt_analysis/yt/pull-request/1358>`_, `PR 1332 <https://bitbucket.org/yt_analysis/yt/pull-request/1332>`_.
 
@@ -41,7 +41,7 @@ Major changes:
 * The documentation has been reorganized and has seen substantial improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
 
 Minor or bugfix changes:
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 * The Ampere unit now accepts SI prefixes.  `PR 1393 <https://bitbucket.org/yt_analysis/yt/pull-request/1393>`_.
 
@@ -156,6 +156,7 @@ infrastructure will be extended in future versions for high-fidelity
 representation of unstructured mesh datasets.
 
 Highlighted changes in yt 3.0:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Units now permeate the code base, enabling self-consistent unit
    transformations of all arrays and quantities returned by yt.
@@ -204,6 +205,7 @@ This is a scheduled release, bringing to a close the development in the 2.x
 series.  Below are the itemized, aggregate changes since version 2.5.
 
 Major changes:
+^^^^^^^^^^^^^^
 
   * yt is now licensed under the 3-clause BSD license.
   * HEALPix has been removed for the time being, as a result of licensing
@@ -227,6 +229,7 @@ Major changes:
   * ProjectionPlot now accepts a data_source keyword argument
 
 Minor or bugfix changes:
+^^^^^^^^^^^^^^^^^^^^^^^^
 
   * Fix for volume rendering on the command line
   * map_to_colormap will no longer return out-of-bounds errors
@@ -307,7 +310,7 @@ In this release, plots can be displayed inline.  The Reason HTML5 GUI will be
 merged with the IPython notebook in a future release.
 
 Install Script Changes:
-~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^
 
  * SciPy can now be installed
  * Rockstar can now be installed
@@ -326,7 +329,7 @@ Install Script Changes:
 We've also improved support for installing on OSX, Ubuntu and OpenSUSE.
 
 Most Visible Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Nearly 200 pull requests and over 1000 changesets have been merged since yt
    2.4 was release on August 2nd, 2012.
@@ -409,7 +412,7 @@ a few of the changes to the scripting API.  You can
 `download it here <http://yt-project.org/files/yt24.ipynb>`_.
 
 Most Visible Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Threaded volume renderer, completely refactored from the ground up for
    speed and parallelism.
@@ -432,7 +435,7 @@ Most Visible Improvements
    plot collections right from the yt command line!
 
 Other Changes
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
  * :class:`~yt.visualization.plot_window.ProjectionPlot` and 
    :class:`~yt.visualization.plot_window.SlicePlot` supplant the functionality
