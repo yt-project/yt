@@ -256,27 +256,27 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v, quantity='distance', 
+    def get_smallest_appropriate_unit(self, v, quantity='distance',
                                       return_quantity=False):
         """
-        Returns the largest whole unit smaller than the YTQuantity passed to 
+        Returns the largest whole unit smaller than the YTQuantity passed to
         it as a string.
 
-        The quantity keyword can be equal to `distance` or `time`.  In the 
-        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
-        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr', 
+        The quantity keyword can be equal to `distance` or `time`.  In the
+        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun',
+        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr',
         's', 'ms', etc.
-        
-        If return_quantity is set to True, it finds the largest YTQuantity 
-        object with a whole unit and a power of ten as the coefficient, and it 
+
+        If return_quantity is set to True, it finds the largest YTQuantity
+        object with a whole unit and a power of ten as the coefficient, and it
         returns this YTQuantity.
         """
         good_u = None
         if quantity == 'distance':
-            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun',
                         'km', 'cm', 'um', 'nm', 'pm']
         elif quantity == 'time':
-            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr', 
+            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr',
                         'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
         else:
             raise SyntaxError("Specified quantity must be equal to 'distance'"\
@@ -301,7 +301,7 @@ class Dataset(object):
                 uq = self.quan(j, good_u)
                 if uq <= v:
                     return uq
-        else:            
+        else:
             return good_u
 
     def has_key(self, key):
@@ -600,7 +600,7 @@ class Dataset(object):
     def find_field_values_at_point(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        coordinates. Returns a list of field values in the same order as 
+        coordinates. Returns a list of field values in the same order as
         the input *fields*.
         """
         return self.point(coords)[fields]
@@ -608,7 +608,7 @@ class Dataset(object):
     def find_field_values_at_points(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field
         values in the same order as the input *fields*.
 
         This is quite slow right now as it creates a new data object for each
@@ -788,8 +788,7 @@ class Dataset(object):
 
         input_array : iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units object
+        input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -816,6 +815,7 @@ class Dataset(object):
                  1.00010449]) Mpc
 
         """
+
         if self._arr is not None:
             return self._arr
         self._arr = functools.partial(YTArray, registry = self.unit_registry)
@@ -834,8 +834,7 @@ class Dataset(object):
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units
+        input_units : String unit specification, unit symbol or astropy object
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -862,6 +861,7 @@ class Dataset(object):
         1.543e+25 cm
 
         """
+
         if self._quan is not None:
             return self._quan
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
@@ -969,12 +969,12 @@ class Dataset(object):
         return ("deposit", field_name)
 
     def add_gradient_fields(self, input_field):
-        """Add gradient fields. 
+        """Add gradient fields.
 
         Creates four new grid-based fields that represent the components of
         the gradient of an existing field, plus an extra field for the magnitude
-        of the gradient. Currently only supported in Cartesian geometries. The 
-        gradient is computed using second-order centered differences. 
+        of the gradient. Currently only supported in Cartesian geometries. The
+        gradient is computed using second-order centered differences.
 
         Parameters
         ----------
@@ -986,14 +986,14 @@ class Dataset(object):
         Returns
         -------
         A list of field name tuples for the newly created fields.
-        
+
         Examples
         --------
         >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
         >>> print(grad_fields)
-        [('gas', 'temperature_gradient_x'), 
-         ('gas', 'temperature_gradient_y'), 
-         ('gas', 'temperature_gradient_z'), 
+        [('gas', 'temperature_gradient_x'),
+         ('gas', 'temperature_gradient_y'),
+         ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
         """
         self.index

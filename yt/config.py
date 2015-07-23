@@ -1,11 +1,10 @@
 """
 This module is very simple.  It imports the configuration
 we have written for yt.
-Everything will be returned in a global config dictionary: ytcfg
-
-
+Everything will be returned in a global config dictionary ``ytcfg``
 
 """
+
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
