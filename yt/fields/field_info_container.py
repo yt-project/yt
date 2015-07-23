@@ -29,6 +29,7 @@ from yt.utilities.exceptions import \
 from .field_plugin_registry import \
     field_plugins
 from .particle_fields import \
+    add_union_field, \
     particle_deposition_functions, \
     particle_vector_functions, \
     particle_scalar_functions, \
@@ -47,6 +48,7 @@ class FieldInfoContainer(dict):
     fallback = None
     known_other_fields = ()
     known_particle_fields = ()
+    extra_union_fields = ()
 
     def __init__(self, ds, field_list, slice_info = None):
         self._show_field_errors = []
@@ -116,6 +118,13 @@ class FieldInfoContainer(dict):
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
+
+    def setup_extra_union_fields(self, ptype="all"):
+        if ptype != "all":
+            raise RuntimeError("setup_extra_union_fields is currently" + 
+                               "only enabled for particle type \"all\".")
+        for units, field in self.extra_union_fields:
+            add_union_field(self, ptype, field, units)
 
     def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
         # We can in principle compute this, but it is not yet implemented.

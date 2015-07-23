@@ -23,13 +23,10 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
 
-p_types  = ("Group", "Subhalo")
-p_fields = ("particle_position_x", "particle_position_y",
-            "particle_position_z", "particle_velocity_x",
-            "particle_velocity_y", "particle_velocity_z",
-            "particle_mass", "particle_identifier")
-_fields = tuple([(p_type, p_field) for p_type in p_types
-                                   for p_field in p_fields])
+_fields = ("particle_position_x", "particle_position_y",
+           "particle_position_z", "particle_velocity_x",
+           "particle_velocity_y", "particle_velocity_z",
+           "particle_mass", "particle_identifier")
 
 # a dataset with empty files
 g5 = "gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5"
