@@ -120,6 +120,9 @@ class FieldInfoContainer(dict):
                                    ftype=ftype)
 
     def setup_extra_union_fields(self, ptype="all"):
+        if ptype != "all":
+            raise RuntimeError("setup_extra_union_fields is currently" + 
+                               "only enabled for particle type \"all\".")
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
