@@ -19,7 +19,9 @@ cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
 from yt.utilities.exceptions import YTPixelizeError
-from yt.utilities.lib.mesh_samplers cimport sample_hex_at_real_point
+from yt.utilities.lib.mesh_samplers cimport \
+    sample_hex_at_real_point, \
+    sample_tetra_at_real_point
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -391,12 +393,13 @@ cdef int check_face_dot(int nvertices,
     else:
         return -1
     cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
+
     for n in range(nf):
         vi1a = faces[n][0][0]
         vi1b = faces[n][0][1]
         vi2a = faces[n][1][0]
         vi2b = faces[n][1][1]
-        # Shared vertex is vi1b and vi2b
+        # Shared vertex is vi1a and vi2a
         for i in range(3):
             vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
             vec2[i] = vertices[vi2b][i] - vertices[vi2a][i]
@@ -414,13 +417,15 @@ cdef int check_face_dot(int nvertices,
             else:
                 signs[n] = 1
         else:
-            if dp < 0 and signs[n] < 0:
+            if dp <= 0 and signs[n] < 0:
                 continue
             elif dp >= 0 and signs[n] > 0:
                 continue
             else: # mismatch!
                 return 0
     return 1
+
+ctypedef double (*sample_function_ptr)(double*, double*, double*)
 
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
@@ -451,13 +456,17 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *physical_x
     cdef int nvertices = conn.shape[1]
     cdef int nf
+    cdef sample_function_ptr sampler
+    
     # Allocate our signs array
     if nvertices == 4:
         nf = TETRA_NF
+        sampler = sample_tetra_at_real_point
     elif nvertices == 6:
         nf = WEDGE_NF
     elif nvertices == 8:
         nf = HEX_NF
+        sampler = sample_hex_at_real_point
     else:
         raise RuntimeError
     signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
@@ -522,8 +531,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                         continue
                     # Else, we deposit!
 #                    img[pi, pj, pk] = field[ci, 0]
-                    img[pi, pj, pk] = sample_hex_at_real_point(flat_vertices, \
-                                                               field_vals, \
-                                                               physical_x)
+                    img[pi, pj, pk] = sampler(flat_vertices, \
+                                              field_vals, \
+                                              physical_x)
 
     return img
