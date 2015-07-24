@@ -42,6 +42,8 @@ default_unit_symbol_lut = {
     "gauss": (1.0, dimensions.magnetic_field_cgs),
     "degC": (1.0, dimensions.temperature, -273.15),
     "statA": (1.0, dimensions.current_cgs),
+    "statV": (1.0, dimensions.electric_potential_cgs),
+    "statohm": (1.0, dimensions.resistance_cgs),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -49,9 +51,12 @@ default_unit_symbol_lut = {
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
     "N": (1.0e5, dimensions.force),
-    "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_mks),
-    "A": (0.1*speed_of_light_cm_per_s, dimensions.current_mks),
-    "T": (1.0e4, dimensions.magnetic_field_mks),
+    "C": (1.0, dimensions.charge_mks),
+    "A": (1.0, dimensions.current_mks),
+    "T": (1000.0, dimensions.magnetic_field_mks),
+    "Pa": (10.0, dimensions.pressure),
+    "V": (1.0e7, dimensions.electric_potential_mks),
+    "ohm": (1.0e7, dimensions.resistance_mks),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -118,7 +123,8 @@ default_unit_symbol_lut = {
     "G": (1.0, dimensions.magnetic_field_cgs),
     "d": (1.0, dimensions.time),
     "Angstrom": (cm_per_ang, dimensions.length),
-
+    "statC": (1.0, dimensions.charge_cgs),
+    
     # Planck units
     "m_pl": (planck_mass_grams, dimensions.mass),
     "l_pl": (planck_length_cm, dimensions.length),
@@ -131,26 +137,26 @@ default_unit_symbol_lut = {
 
 # Add LaTeX representations for units with trivial representations.
 latex_symbol_lut = {
-    "unitary" : "",
-    "dimensionless" : "",
-    "code_length" : "\\rm{code}\/\\rm{length}",
-    "code_time" : "\\rm{code}\/\\rm{time}",
-    "code_mass" : "\\rm{code}\/\\rm{mass}",
-    "code_temperature" : "\\rm{code}\/\\rm{temperature}",
-    "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
-    "code_velocity" : "\\rm{code}\/\\rm{velocity}",
-    "code_magnetic" : "\\rm{code}\/\\rm{magnetic}",
-    "Msun" : "\\rm{M}_\\odot",
-    "msun" : "\\rm{M}_\\odot",
-    "Rsun" : "\\rm{R}_\\odot",
-    "rsun" : "\\rm{R}_\\odot",
-    "Lsun" : "\\rm{L}_\\odot",
-    "Tsun" : "\\rm{T}_\\odot",
-    "Zsun" : "\\rm{Z}_\\odot",
+    "unitary" : r"",
+    "dimensionless" : r"",
+    "code_length" : r"\rm{code}\ \rm{length}",
+    "code_time" : r"\rm{code}\ \rm{time}",
+    "code_mass" : r"\rm{code}\ \rm{mass}",
+    "code_temperature" : r"\rm{code}\ \rm{temperature}",
+    "code_metallicity" : r"\rm{code}\ \rm{metallicity}",
+    "code_velocity" : r"\rm{code}\ \rm{velocity}",
+    "code_magnetic" : r"\rm{code}\ \rm{magnetic}",
+    "Msun" : r"\rm{M}_\odot",
+    "msun" : r"\rm{M}_\odot",
+    "Rsun" : r"\rm{R}_\odot",
+    "rsun" : r"\rm{R}_\odot",
+    "Lsun" : r"\rm{L}_\odot",
+    "Tsun" : r"\rm{T}_\odot",
+    "Zsun" : r"\rm{Z}_\odot",
 }
 for key in default_unit_symbol_lut:
     if key not in latex_symbol_lut:
-        latex_symbol_lut[key] = "\\rm{" + key + "}"
+        latex_symbol_lut[key] = r"\rm{" + key + r"}"
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
 unit_prefixes = {
@@ -202,15 +208,24 @@ prefixable_units = (
     "A",
     "C",
     "statA",
+    "Pa",
+    "V",
+    "statV",
+    "ohm",
+    "statohm",
 )
 
-cgs_base_units = {
+yt_base_units = {
     dimensions.mass:'g',
     dimensions.length:'cm',
     dimensions.time:'s',
     dimensions.temperature:'K',
     dimensions.angle:'radian',
+    dimensions.current_mks:'A',
 }
+
+cgs_base_units = yt_base_units.copy()
+cgs_base_units.pop(dimensions.current_mks)
 
 mks_base_units = {
     dimensions.mass:'kg',
@@ -220,14 +235,3 @@ mks_base_units = {
     dimensions.angle:'radian',
     dimensions.current_mks:'A',
 }
-
-cgs_conversions = {
-    "C":"esu",
-    "T":"gauss",
-    "A":"statA",
-}
-
-for conv in cgs_conversions.keys():
-    if conv in prefixable_units:
-        for p in unit_prefixes:
-            cgs_conversions[p+conv] = p+cgs_conversions[conv]

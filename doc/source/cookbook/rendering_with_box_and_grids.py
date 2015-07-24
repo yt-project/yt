@@ -15,7 +15,7 @@ mi, ma = ad.quantities.extrema("density")
 # We bump up our minimum to cut out some of the background fluid
 tf = yt.ColorTransferFunction((np.log10(mi)+2.0, np.log10(ma)))
 
-# Add three guassians, evenly spaced between the min and
+# Add three Gaussians, evenly spaced between the min and
 # max specified above with widths of 0.02 and using the
 # gist_stern colormap.
 tf.add_layers(3, w=0.02, colormap="gist_stern")

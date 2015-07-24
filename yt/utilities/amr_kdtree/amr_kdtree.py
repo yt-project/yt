@@ -3,6 +3,8 @@ AMR kD-Tree Framework
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -15,7 +17,7 @@ AMR kD-Tree Framework
 from yt.funcs import *
 import numpy as np
 import h5py
-from amr_kdtools import \
+from .amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image
 
 from yt.utilities.lib.amr_kdtools import Node, add_pygrids, find_node, \
@@ -504,7 +506,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                     les[0], res[0], gids[0], nids[0]) 
 
         N = nids.shape[0]
-        for i in xrange(N):
+        for i in range(N):
             n = self.get_node(nids[i])
             n.set_left_edge(les[i])
             n.set_right_edge(res[i])
@@ -543,6 +545,6 @@ if __name__ == "__main__":
     hv = AMRKDTree(ds)
     t2 = time()
 
-    print kd_sum_volume(hv.tree.trunk)
-    print kd_node_check(hv.tree.trunk)
-    print 'Time: %e seconds' % (t2-t1)
+    print(kd_sum_volume(hv.tree.trunk))
+    print(kd_node_check(hv.tree.trunk))
+    print('Time: %e seconds' % (t2-t1))

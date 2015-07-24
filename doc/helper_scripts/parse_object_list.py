@@ -29,5 +29,5 @@ def write_docstring(f, name, cls):
 
 for n,c in sorted(ds.__dict__.items()):
     if hasattr(c, '_con_args'):
-        print n
+        print(n)
         write_docstring(output, n, c)

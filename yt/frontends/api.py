@@ -13,7 +13,8 @@ API for yt.frontends
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import sys, types, os, glob, cPickle, time, importlib
+import sys, types, os, glob, time, importlib
+from yt.extern.six.moves import cPickle as pickle
 
 _frontends = [
     'art',
@@ -26,6 +27,7 @@ _frontends = [
     'fits',
     'flash',
     'gadget',
+    'gadget_fof',
     'gdf',
     'halo_catalog',
     'http_stream',

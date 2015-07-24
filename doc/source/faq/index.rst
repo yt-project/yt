@@ -465,74 +465,14 @@ values corresponding to different log levels are:
    ``DEBUG``,10
    ``NOTSET``,0
    
+Can I always load custom data objects, fields, quantities, and colormaps with every dataset?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _plugin-file:
-
-Can I always load custom data objects, fields, and quantities with every dataset?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The plugin file is a means of modifying the available fields, quantities, data
-objects and so on without modifying the source code of yt.  The plugin file
-will be executed if it is detected.  It must be located in a ``.yt`` folder
-in your home directory and be named ``my_plugins.py``:
-
-.. code-block:: bash
-
-   $HOME/.yt/my_plugins.py
-
-The code in this file can add fields, define functions, define
-datatypes, and on and on.  It is executed at the bottom of ``yt.mods``, and so
-it is provided with the entire namespace available in the module ``yt.mods``.
-For example, if I created a plugin file containing:
-
-.. code-block:: python
-
-   def _myfunc(field, data):
-       return np.random.random(data["density"].shape)
-   add_field("some_quantity", function=_myfunc, units='')
-
-then all of my data objects would have access to the field "some_quantity".
-Note that the units must be specified as a string, see
-:ref:`data_selection_and_fields` for more details on units and derived fields.
-
-.. note::
-
-   Since the ``my_plugins.py`` is parsed inside of ``yt.mods``, you must import
-   yt using ``yt.mods`` to use the plugins file.  If you import using
-   ``import yt``, the plugins file will not be parsed.  You can tell that your
-   plugins file is being parsed by watching for a logging message when you
-   import yt.  Note that both the ``yt load`` and ``iyt`` command line entry
-   points invoke ``from yt.mods import *``, so the ``my_plugins.py`` file
-   will be parsed if you enter yt that way.
-
-You can also define other convenience functions in your plugin file.  For
-instance, you could define some variables or functions, and even import common
-modules:
-
-.. code-block:: python
-
-   import os
-
-   HOMEDIR="/home/username/"
-   RUNDIR="/scratch/runs/"
-
-   def load_run(fn):
-       if not os.path.exists(RUNDIR + fn):
-           return None
-       return load(RUNDIR + fn)
-
-In this case, we've written ``load_run`` to look in a specific directory to see
-if it can find an output with the given name.  So now we can write scripts that
-use this function:
-
-.. code-block:: python
-
-   from yt.mods import *
-
-   my_run = load_run("hotgasflow/DD0040/DD0040")
-
-And because we have imported from ``yt.mods`` we have access to the
-``load_run`` function defined in our plugin file.
+The :ref:`plugin-file` provides a means for always running custom code whenever
+yt is loaded up.  This custom code can be new data objects, or fields, or 
+colormaps, which will then be accessible in any future session without having 
+modified the source code directly.  See the description in :ref:`plugin-file`
+for more details.
 
 How do I cite yt?
 ^^^^^^^^^^^^^^^^^

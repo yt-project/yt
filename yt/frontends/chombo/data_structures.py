@@ -18,7 +18,6 @@ import re
 import os
 import weakref
 import numpy as np
-import six
 
 from stat import \
     ST_CTIME
@@ -26,6 +25,7 @@ from stat import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -47,6 +47,7 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
+
     def __init__(self, id, index, level, start, stop):
         AMRGridPatch.__init__(self, id, filename = index.index_filename,
                               index = index)
@@ -99,12 +100,6 @@ class ChomboHierarchy(GridIndex):
         self.domain_left_edge = ds.domain_left_edge
         self.domain_right_edge = ds.domain_right_edge
         self.dataset_type = dataset_type
-
-        if ds.dimensionality == 1:
-            self.dataset_type = "chombo1d_hdf5"
-        if ds.dimensionality == 2:
-            self.dataset_type = "chombo2d_hdf5"
-
         self.field_indexes = {}
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -114,7 +109,7 @@ class ChomboHierarchy(GridIndex):
         self._handle = ds._handle
 
         tr = self._handle['Chombo_global'].attrs.get("testReal", "float32")
-            
+
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -149,14 +144,14 @@ class ChomboHierarchy(GridIndex):
         output_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("component"):
-                output_fields.append(val)
+                output_fields.append(val.decode("ascii"))
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         particle_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
-                particle_fields.append(val)
+                particle_fields.append(val.decode("ascii"))
         self.field_list.extend([("io", c) for c in particle_fields])
 
     def _count_grids(self):
@@ -256,17 +251,10 @@ class ChomboDataset(Dataset):
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
 
-        # look up the dimensionality of the dataset
-        D = self._handle['Chombo_global/'].attrs['SpaceDim']
-        if D == 1:
-            self.dataset_type = 'chombo1d_hdf5'
-        if D == 2:
-            self.dataset_type = 'chombo2d_hdf5'
-
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(self,filename, self.dataset_type,
+        Dataset.__init__(self, filename, self.dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
@@ -283,6 +271,7 @@ class ChomboDataset(Dataset):
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
+        self.magnetic_unit = self.quan(1.0, "gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
@@ -397,7 +386,7 @@ class ChomboDataset(Dataset):
 
 class PlutoHierarchy(ChomboHierarchy):
 
-    def __init__(self, ds, dataset_type="pluto_chombo_native"):
+    def __init__(self, ds, dataset_type="chombo_hdf5"):
         ChomboHierarchy.__init__(self, ds, dataset_type)
 
     def _parse_index(self):
@@ -455,7 +444,7 @@ class PlutoDataset(ChomboDataset):
     _index_class = PlutoHierarchy
     _field_info_class = PlutoFieldInfo
 
-    def __init__(self, filename, dataset_type='pluto_chombo_native',
+    def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
                  units_override=None):
 
@@ -540,14 +529,14 @@ class Orion2Hierarchy(ChomboHierarchy):
         output_fields = []
         for key, val in self._handle.attrs.items():
             if key.startswith("component"):
-                output_fields.append(val)
+                output_fields.append(val.decode("ascii"))
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         self.particle_filename = self.index_filename[:-4] + 'sink'
         if not os.path.exists(self.particle_filename):
             return
-        pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
+        pfield_list = [("io", str(c)) for c in self.io.particle_field_index.keys()]
         self.field_list.extend(pfield_list)
 
     def _read_particles(self):
@@ -563,7 +552,7 @@ class Orion2Hierarchy(ChomboHierarchy):
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
-                for i in xrange(len(coord)):
+                for i in range(len(coord)):
                     np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
                     np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
                 ind = np.where(mask == 1)

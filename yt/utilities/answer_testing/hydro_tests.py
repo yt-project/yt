@@ -4,6 +4,7 @@ Hydro tests
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +17,7 @@ Hydro tests
 import matplotlib
 import pylab
 from yt.mods import *
-from output_tests import SingleOutputTest, YTDatasetTest, create_test
+from .output_tests import SingleOutputTest, YTDatasetTest, create_test
 
 class TestProjection(YTDatasetTest):
 

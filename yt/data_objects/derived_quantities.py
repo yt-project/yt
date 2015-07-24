@@ -29,17 +29,19 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     HUGE
 from yt.utilities.math_utils import prec_accum
+from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}
 
+class RegisteredDerivedQuantity(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if name != "DerivedQuantity":
+            derived_quantity_registry[name] = cls
+
+@add_metaclass(RegisteredDerivedQuantity)
 class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if name != "DerivedQuantity":
-                derived_quantity_registry[name] = cls
 
     def __init__(self, data_source):
         self.data_source = data_source
@@ -93,6 +95,10 @@ class DerivedQuantityCollection(object):
 class WeightedAverageQuantity(DerivedQuantity):
     r"""
     Calculates the weight average of a field or fields.
+
+    Returns a YTQuantity for each field requested; if one,
+    it returns a single YTQuantity, if many, it returns a list of YTQuantities
+    in order of the listed fields.  
 
     Where f is the field and w is the weight, the weighted average is
     Sum_i(f_i \* w_i) / Sum_i(w_i).
@@ -171,8 +177,9 @@ class TotalQuantity(DerivedQuantity):
 
 class TotalMass(TotalQuantity):
     r"""
-    Calculates the total mass in gas and particles. Returns a tuple where the
-    first part is total gas mass and the second part is total particle mass.
+    Calculates the total mass of the object. Returns a YTArray where the
+    first element is total gas mass and the second element is total particle 
+    mass.
 
     Examples
     --------
@@ -187,11 +194,14 @@ class TotalMass(TotalQuantity):
         fi = self.data_source.ds.field_info
         fields = []
         if ("gas", "cell_mass") in fi:
-            fields.append(("gas", "cell_mass"))
+            gas = super(TotalMass, self).__call__([('gas', 'cell_mass')])
+        else:
+            gas = self.data_source.ds.arr([0], 'g')
         if ("all", "particle_mass") in fi:
-            fields.append(("all", "particle_mass"))
-        rv = super(TotalMass, self).__call__(fields)
-        return rv
+            part = super(TotalMass, self).__call__([('all', 'particle_mass')])
+        else:
+            part = self.data_source.ds.arr([0], 'g')
+        return self.data_source.ds.arr([gas, part])
 
 class CenterOfMass(DerivedQuantity):
     r"""
@@ -328,7 +338,10 @@ class BulkVelocity(DerivedQuantity):
 class WeightedVariance(DerivedQuantity):
     r"""
     Calculates the weighted variance and weighted mean for a field
-    or list of fields.
+    or list of fields. Returns a YTArray for each field requested; if one,
+    it returns a single YTArray, if many, it returns a list of YTArrays
+    in order of the listed fields.  The first element of each YTArray is
+    the weighted variance, and the second element is the weighted mean.
 
     Where f is the field, w is the weight, and <f_w> is the weighted mean,
     the weighted variance is
@@ -378,14 +391,14 @@ class WeightedVariance(DerivedQuantity):
         my_weight = values.pop(-1)
         all_weight = my_weight.sum(dtype=np.float64)
         rvals = []
-        for i in range(len(values) / 2):
+        for i in range(int(len(values) / 2)):
             my_mean = values[i]
-            my_var2 = values[i + len(values) / 2]
+            my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            rvals.append(np.sqrt((my_weight * (my_var2 +
-                                               (my_mean - all_mean)**2)).sum(dtype=np.float64) /
-                                               all_weight))
-            rvals.append(all_mean)
+            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight * 
+                                                 (my_var2 + (my_mean - 
+                                                  all_mean)**2)).sum(dtype=np.float64) 
+                                                  / all_weight)), all_mean]))
         return rvals
 
 class AngularMomentumVector(DerivedQuantity):
@@ -393,6 +406,7 @@ class AngularMomentumVector(DerivedQuantity):
     Calculates the angular momentum vector, using gas and/or particles.
 
     The angular momentum vector is the mass-weighted mean specific angular momentum.
+    Returns a YTArray of the vector.
 
     Parameters
     ----------
@@ -414,10 +428,6 @@ class AngularMomentumVector(DerivedQuantity):
 
     """
     def count_values(self, use_gas=True, use_particles=True):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
         num_vals = 0
         if use_gas: num_vals += 4
         if use_particles: num_vals += 4
@@ -451,11 +461,15 @@ class AngularMomentumVector(DerivedQuantity):
             jy += values.pop(0).sum(dtype=np.float64)
             jz += values.pop(0).sum(dtype=np.float64)
             m  += values.pop(0).sum(dtype=np.float64)
-        return (jx / m, jy / m, jz / m)
+        return self.data_source.ds.arr([jx / m, jy / m, jz / m])
 
 class Extrema(DerivedQuantity):
     r"""
     Calculates the min and max value of a field or list of fields.
+    Returns a YTArray for each field requested.  If one, a single YTArray
+    is returned, if many, a list of YTArrays in order of field list is 
+    returned.  The first element of each YTArray is the minimum of the
+    field and the second is the maximum of the field.
 
     Parameters
     ----------
@@ -498,7 +512,7 @@ class Extrema(DerivedQuantity):
 
     def reduce_intermediate(self, values):
         # The values get turned into arrays here.
-        return [(mis.min(), mas.max() )
+        return [self.data_source.ds.arr([mis.min(), mas.max()])
                 for mis, mas in zip(values[::2], values[1::2])]
 
 class MaxLocation(DerivedQuantity):

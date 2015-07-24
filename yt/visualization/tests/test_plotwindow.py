@@ -41,21 +41,21 @@ def assert_fname(fname):
 
     with open(fname, 'rb') as fimg:
         data = fimg.read()
-    data = str(data)
     image_type = ''
 
     # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith('\211PNG\r\n\032\n'):
+    if data.startswith(b'\211PNG\r\n\032\n'):
         image_type = '.png'
     # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith('\377\330'):
+    elif data.startswith(b'\377\330'):
         image_type = '.jpeg'
-    elif data.startswith('%!PS-Adobe'):
-        if 'EPSF' in data[:data.index('\n')]:
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
             image_type = '.eps'
         else:
             image_type = '.ps'
-    elif data.startswith('%PDF'):
+    elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
     return image_type == os.path.splitext(fname)[1]
@@ -152,6 +152,28 @@ PROJECTION_METHODS = (
     'mip'
 )
 
+def simple_contour(test_obj, plot):
+    plot.annotate_contour(test_obj.plot_field)
+
+def simple_velocity(test_obj, plot):
+    plot.annotate_velocity()
+
+def simple_streamlines(test_obj, plot):
+    ax = test_obj.plot_axis
+    xax = test_obj.ds.coordinates.x_axis[ax]
+    yax = test_obj.ds.coordinates.y_axis[ax]
+    xn = test_obj.ds.coordinates.axis_name[xax]
+    yn = test_obj.ds.coordinates.axis_name[yax]
+    plot.annotate_streamlines("velocity_%s" % xn,
+                              "velocity_%s" % yn)
+
+CALLBACK_TESTS = (
+    ("simple_contour", (simple_contour,)),
+    ("simple_velocity", (simple_velocity,)),
+    #("simple_streamlines", (simple_streamlines,)),
+    #("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
+)
+
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
@@ -166,6 +188,9 @@ def test_attributes():
                                                args, decimals)
                 test_attributes.__name__ = test.description
                 yield test
+                for n, r in CALLBACK_TESTS:
+                    yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                        args, decimals, callback_id=n, callback_runners=r)
 
 
 @requires_ds(WT)
@@ -179,7 +204,42 @@ def test_attributes_wt():
         for args in ATTR_ARGS[attr_name]:
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
+            for n, r in CALLBACK_TESTS:
+                yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                    args, decimals, callback_id=n, callback_runners=r)
 
+class TestHideAxesColorbar(unittest.TestCase):
+
+    ds = None
+
+    def setUp(self):
+        if self.ds is None:
+            self.ds = fake_random_ds(64)
+            self.slc = SlicePlot(self.ds, 0, "density")
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
+
+    def test_hide_show_axes(self):
+        self.slc.hide_axes()
+        self.slc.save()
+        self.slc.show_axes()
+        self.slc.save()
+
+    def test_hide_show_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.save()
+        self.slc.show_colorbar()
+        self.slc.save()
+
+    def test_hide_axes_colorbar(self):
+        self.slc.hide_colorbar()
+        self.slc.hide_axes()
+        self.slc.save()
 
 class TestSetWidth(unittest.TestCase):
 

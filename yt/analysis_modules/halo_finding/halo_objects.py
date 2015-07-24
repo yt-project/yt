@@ -15,7 +15,6 @@ HOP-output data handling
 
 import gc
 import h5py
-import itertools
 import math
 import numpy as np
 import random
@@ -23,8 +22,10 @@ import sys
 import glob
 import os
 import os.path as path
+from functools import cmp_to_key
 from collections import defaultdict
 from yt.extern.six import add_metaclass
+from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
 from yt.funcs import mylog, ensure_dir_exists
@@ -39,7 +40,7 @@ from yt.utilities.physical_constants import \
     TINY
 from yt.utilities.physical_ratios import \
      rho_crit_g_cm3_h2
-    
+
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
 
@@ -110,8 +111,8 @@ class Halo(object):
             ds = self.ds.sphere(self.CoM, self._radjust * self.max_radius)
         elif self._name == "LoadedHalo":
             ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.ds.quan(self.max_radius, 'code_length'), \
-	    self.ds.index.get_smallest_dx()))
+            self.ds.quan(self.max_radius, 'code_length'), \
+            self.ds.index.get_smallest_dx()))
         sp_pid = ds['particle_index']
         self._ds_sort = sp_pid.argsort()
         sp_pid = sp_pid[self._ds_sort]
@@ -138,9 +139,9 @@ class Halo(object):
         c[2] = self["particle_position_z"] - self.ds.domain_left_edge[2]
         com = []
         for i in range(3):
-            # A halo is likely periodic around a boundary if the distance 
+            # A halo is likely periodic around a boundary if the distance
             # between the max and min particle
-            # positions are larger than half the box. 
+            # positions are larger than half the box.
             # So skip the rest if the converse is true.
             # Note we might make a change here when periodicity-handling is
             # fully implemented.
@@ -333,8 +334,8 @@ class Halo(object):
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
                    + ["particle_index"]:
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
-	handle.create_dataset("/%s/particle_mass" % gn,
-		data=self["particle_mass"].in_units('Msun'))
+        handle.create_dataset("/%s/particle_mass" % gn,
+                              data=self["particle_mass"].in_units('Msun'))
         if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
@@ -444,7 +445,7 @@ class Halo(object):
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
         # Get some pertinent information about the halo.
-        self.mass_bins = self.ds.arr(np.zeros(self.bin_count + 1, 
+        self.mass_bins = self.ds.arr(np.zeros(self.bin_count + 1,
                                               dtype='float64'),'Msun')
         dist = np.empty(thissize, dtype='float64')
         cen = self.center_of_mass()
@@ -452,7 +453,7 @@ class Halo(object):
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
         # yt.math.
-        for pos in itertools.izip(self["particle_position_x"],
+        for pos in izip(self["particle_position_x"],
                 self["particle_position_y"], self["particle_position_z"]):
             dist[mark] = periodic_dist(cen, pos, period)
             mark += 1
@@ -469,13 +470,13 @@ class Halo(object):
                 self.mass_bins[index] += \
                 np.sum(self["particle_mass"][inds == index]).in_units('Msun')
         # Now forward sum the masses in the bins.
-        for i in xrange(self.bin_count):
+        for i in range(self.bin_count):
             self.mass_bins[i + 1] += self.mass_bins[i]
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
             (4./3. * math.pi * rho_crit * \
             (self.radial_bins )**3.0)
-        
+
     def _get_ellipsoid_parameters_basic(self):
         np.seterr(all='ignore')
         # check if there are 4 particles to form an ellipsoid
@@ -501,7 +502,7 @@ class Halo(object):
         for axis in range(np.size(DW)):
             cases = np.array([position[axis],
                                 position[axis] + DW[axis],
-                              position[axis] - DW[axis]])        
+                              position[axis] - DW[axis]])
             # pick out the smallest absolute distance from com
             position[axis] = np.choose(np.abs(cases).argmin(axis=0), cases)
         # find the furthest particle's index
@@ -571,7 +572,7 @@ class RockstarHalo(Halo):
     _name = "RockstarHalo"
     # See particle_mask
     _radjust = 4.
-    
+
     def maximum_density(self):
         r"""Not implemented."""
         return -1
@@ -635,11 +636,11 @@ class RockstarHalo(Halo):
     def get_ellipsoid_parameters(self):
         r"""Calculate the parameters that describe the ellipsoid of
         the particles that constitute the halo.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
@@ -650,7 +651,7 @@ class RockstarHalo(Halo):
               #. mag_C as a float.
               #. e0_vector as an array.
               #. tilt as a float.
-        
+
         Examples
         --------
         >>> params = halos[0].get_ellipsoid_parameters()
@@ -662,22 +663,22 @@ class RockstarHalo(Halo):
             basic_parameters[4], basic_parameters[5]]), basic_parameters[6]]
         toreturn.extend(updated)
         return tuple(toreturn)
-    
+
     def get_ellipsoid(self):
         r"""Returns an ellipsoidal data object.
-        
+
         This will generate a new, empty ellipsoidal data object for this
         halo.
-        
+
         Parameters
         ----------
         None.
-        
+
         Returns
         -------
         ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
             The ellipsoidal data object.
-        
+
         Examples
         --------
         >>> ell = halos[0].get_ellipsoid()
@@ -686,7 +687,7 @@ class RockstarHalo(Halo):
         ell = self.data.ds.ellipsoid(ep[0], ep[1], ep[2], ep[3],
             ep[4], ep[5])
         return ell
-    
+
 class HOPHalo(Halo):
     _name = "HOPHalo"
     pass
@@ -745,7 +746,7 @@ class LoadedHalo(Halo):
         self._saved_fields = {}
         self._ds_sort = None
         self._particle_mask = None
-	self._pid_sort = None
+        self._pid_sort = None
 
 
     def __getitem__(self, key):
@@ -763,27 +764,27 @@ class LoadedHalo(Halo):
             self.size, key)
         if field_data is not None:
             if key == 'particle_index':
-                #this is an index for turning data sorted by particle index 
-		#into the same order as the fields on disk
-		self._pid_sort = field_data.argsort().argsort()
-	    #convert to YTArray using the data from disk
-	    if key == 'particle_mass':
-		field_data = self.ds.arr(field_data, 'Msun')
-	    else:
-	        field_data = self.ds.arr(field_data, 
-		    self.ds._get_field_info('unknown',key).units)
+                #this is an index for turning data sorted by particle index
+                #into the same order as the fields on disk
+                self._pid_sort = field_data.argsort().argsort()
+            #convert to YTArray using the data from disk
+            if key == 'particle_mass':
+                field_data = self.ds.arr(field_data, 'Msun')
+            else:
+                field_data = self.ds.arr(field_data,
+                    self.ds._get_field_info('unknown',key).units)
             self._saved_fields[key] = field_data
             return self._saved_fields[key]
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
         ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.ds.quan(self.max_radius, 'code_length'), \
-	    self.ds.index.get_smallest_dx()))
-	# If particle_mask hasn't been called once then _ds_sort won't have
-	# the proper values set yet
+            self.ds.quan(self.max_radius, 'code_length'), \
+            self.ds.index.get_smallest_dx()))
+        # If particle_mask hasn't been called once then _ds_sort won't have
+        # the proper values set yet
         if self._particle_mask is None:
-	    self.particle_mask
+            self.particle_mask
         return ds[key][self._ds_sort][self.particle_mask][self._pid_sort]
 
     def _get_particle_data(self, halo, fnames, size, field):
@@ -856,21 +857,21 @@ class LoadedHalo(Halo):
             basic_parameters[4], basic_parameters[5]]), basic_parameters[6]]
         toreturn.extend(updated)
         return tuple(toreturn)
-    
+
     def get_ellipsoid(self):
-        r"""Returns an ellipsoidal data object.        
+        r"""Returns an ellipsoidal data object.
         This will generate a new, empty ellipsoidal data object for this
         halo.
-        
+
         Parameters
         ----------
         None.
-        
+
         Returns
         -------
         ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
             The ellipsoidal data object.
-        
+
         Examples
         --------
         >>> ell = halos[0].get_ellipsoid()
@@ -947,11 +948,11 @@ class TextHalo(LoadedHalo):
     def maximum_density(self):
         r"""Undefined for text halos."""
         return -1
-    
+
     def maximum_density_location(self):
         r"""Undefined, default to CoM"""
         return self.center_of_mass()
-    
+
     def get_size(self):
         # Have to just get it from the sphere.
         return self["particle_position_x"].size
@@ -964,8 +965,8 @@ class HaloList(object):
     def __init__(self, data_source, dm_only=True, redshift=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
-        *dm_only* is True (default), only run it on the dark matter particles, 
-        otherwise on all particles.  Returns an iterable collection of 
+        *dm_only* is True (default), only run it on the dark matter particles,
+        otherwise on all particles.  Returns an iterable collection of
         *HopGroup* items.
         """
         self._data_source = data_source
@@ -1051,7 +1052,7 @@ class HaloList(object):
         ellipsoid_data : bool.
             Whether to print the ellipsoidal information to the file.
             Default = False.
-        
+
         Examples
         --------
         >>> halos.write_out("HopAnalysis.out")
@@ -1144,10 +1145,10 @@ class RockstarHaloList(HaloList):
     _halo_dt = np.dtype([('id', np.int64), ('pos', (np.float32, 6)),
         ('corevel', (np.float32, 3)), ('bulkvel', (np.float32, 3)),
         ('m', np.float32), ('r', np.float32), ('child_r', np.float32),
-        ('vmax_r', np.float32), 
+        ('vmax_r', np.float32),
         ('mgrav', np.float32), ('vmax', np.float32),
         ('rvmax', np.float32), ('rs', np.float32),
-        ('klypin_rs', np.float32), 
+        ('klypin_rs', np.float32),
         ('vrms', np.float32), ('J', (np.float32, 3)),
         ('energy', np.float32), ('spin', np.float32),
         ('alt_m', (np.float32, 4)), ('Xoff', np.float32),
@@ -1221,9 +1222,9 @@ class RockstarHaloList(HaloList):
         """
         Read the out_*.list text file produced
         by Rockstar into memory."""
-        
+
         ds = self.ds
-        # In order to read the binary data, we need to figure out which 
+        # In order to read the binary data, we need to figure out which
         # binary files belong to this output.
         basedir = os.path.dirname(self.out_list)
         s = self.out_list.split('_')[-1]
@@ -1232,9 +1233,8 @@ class RockstarHaloList(HaloList):
         fglob = path.join(basedir, 'halos_%d.*.bin' % n)
         files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        #Jc = mass_sun_cgs/ ds['mpchcm'] * 1e5
         Jc = 1.0
-        length = 1.0 / ds['mpchcm']
+        length = 1.0 / ds['Mpchcm']
         conv = dict(pos = np.array([length, length, length,
                                     1, 1, 1]), # to unitary
                     r=1.0/ds['kpchcm'], # to unitary
@@ -1524,12 +1524,14 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 id += 1
 
         def haloCmp(h1, h2):
+            def cmp(a, b):
+                return (a > b) - (a < b)
             c = cmp(h1.total_mass(), h2.total_mass())
             if c != 0:
                 return -1 * c
             if c == 0:
                 return cmp(h1.center_of_mass()[0], h2.center_of_mass()[0])
-        self._groups.sort(haloCmp)
+        self._groups.sort(key=cmp_to_key(haloCmp))
         sorted_max_dens = {}
         for i, halo in enumerate(self._groups):
             if halo.id in self._max_dens:
@@ -1874,7 +1876,7 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
 
 class LoadTextHaloes(GenericHaloFinder, TextHaloList):
     r"""Load a text file of halos.
-    
+
     Like LoadHaloes, but when all that is available is a plain
     text file. This assumes the text file has the 3-positions of halos
     along with a radius. The halo objects created are spheres.
@@ -1883,7 +1885,7 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
     ----------
     fname : String
         The name of the text file to read in.
-    
+
     columns : dict
         A dict listing the column name : column number pairs for data
         in the text file. It is zero-based (like Python).
@@ -1891,7 +1893,7 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
         Any column name outside of ['x', 'y', 'z', 'r'] will be attached
         to each halo object in the supplementary dict 'supp'. See
         example.
-    
+
     comment : String
         If the first character of a line is equal to this, the line is
         skipped. Default = "#".
@@ -1916,7 +1918,7 @@ class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
     Parameters
     ----------
     fname : String
-        The name of the Rockstar file to read in. Default = 
+        The name of the Rockstar file to read in. Default =
         "rockstar_halos/out_0.list'.
 
     Examples

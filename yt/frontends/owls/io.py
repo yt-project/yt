@@ -5,6 +5,7 @@ OWLS data-file handling function
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -32,11 +33,11 @@ def _get_h5_handle(fn):
     try:
         f = h5py.File(fn, "r")
     except IOError as e:
-        print "ERROR OPENING %s" % (fn)
+        print("ERROR OPENING %s" % (fn))
         if os.path.exists(fn):
-            print "FILENAME EXISTS"
+            print("FILENAME EXISTS")
         else:
-            print "FILENAME DOES NOT EXIST"
+            print("FILENAME DOES NOT EXIST")
         raise
     return f
 
@@ -69,7 +70,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: x.filename):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
@@ -87,7 +88,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: x.filename):
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:

@@ -18,7 +18,10 @@ import numpy as np
 import struct
 import os
 import os.path
-
+import sys
+if sys.version_info >= (3,0,0):
+    long = int
+    
 from yt.funcs import *
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -130,7 +133,7 @@ class IOHandlerART(BaseIOHandler):
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 tr[field], = rp(['v'+ax])
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
             for ptb, size, m in zip(pbool, sizes, self.ws):
@@ -167,7 +170,7 @@ class IOHandlerART(BaseIOHandler):
             tr[field] = temp
             del data
         # We check again, after it's been filled
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             # We now divide by NGrid in order to make this match up.  Note that
             # this means that even when requested in *code units*, we are
             # giving them as modified by the ng value.  This only works for
@@ -182,6 +185,7 @@ class IOHandlerART(BaseIOHandler):
             return tr[field]
 
 class IOHandlerDarkMatterART(IOHandlerART):
+    _dataset_type = "dm_art"
     def _count_particles(self, data_file):
         return self.ds.parameters['lspecies'][-1]
 
@@ -235,7 +239,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 tr[field], = rp(['v'+ax])
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
             for ptb, size, m in zip(pbool, sizes, self.ws):
@@ -265,14 +269,14 @@ class IOHandlerDarkMatterART(IOHandlerART):
             tr[field] = temp
             del data
         # We check again, after it's been filled
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             # We now divide by NGrid in order to make this match up.  Note that
             # this means that even when requested in *code units*, we are
             # giving them as modified by the ng value.  This only works for
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in fields)
+            tr[field] = np.array([])
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]
@@ -478,7 +482,8 @@ def read_star_field(file, field=None):
     data = {}
     with open(file, 'rb') as fh:
         for dtype, variables in star_struct:
-            found = field in variables or field == variables
+            found = (isinstance(variables, tuple) and field in variables) or \
+                field == variables
             if found:
                 data[field] = read_vector(fh, dtype[1], dtype[0])
             else:

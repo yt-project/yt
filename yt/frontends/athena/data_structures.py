@@ -24,17 +24,49 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
            Dataset
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
+from yt.extern.six import PY2, PY3
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import \
     decompose_array, get_psize
+
+def chk23(strin):
+    if PY2:
+        return strin
+    else:
+        return strin.encode('utf-8')
+
+def str23(strin):
+    if PY2:
+        return strin
+    else:
+        if isinstance(strin, list):
+            return [s.decode('utf-8') for s in strin]
+        else:
+            return strin.decode('utf-8')
+
+def check_readline(fl):
+    line = fl.readline()
+    chk = chk23("SCALARS")
+    if chk in line and not line.startswith(chk):
+        line = line[line.find(chk):]
+    chk = chk23("VECTORS")
+    if chk in line and not line.startswith(chk):
+        line = line[line.find(chk):]
+    return line
+
+def check_break(line):
+    splitup = line.strip().split()
+    do_break = chk23('SCALAR') in splitup
+    do_break = (chk23('VECTOR') in splitup) & do_break
+    do_break = (chk23('TABLE') in splitup) & do_break
+    do_break = (len(line) == 0) & do_break
+    return do_break
 
 def _get_convert(fname):
     def _conv(data):
@@ -79,44 +111,49 @@ class AthenaGrid(AMRGridPatch):
 def parse_line(line, grid):
     # grid is a dictionary
     splitup = line.strip().split()
-    if "vtk" in splitup:
-        grid['vtk_version'] = splitup[-1]
-    elif "time=" in splitup:
-        time_index = splitup.index("time=")
-        grid['time'] = float(splitup[time_index+1].rstrip(','))
-        grid['level'] = int(splitup[time_index+3].rstrip(','))
-        grid['domain'] = int(splitup[time_index+5].rstrip(','))                        
-    elif "DIMENSIONS" in splitup:
-        grid['dimensions'] = np.array(splitup[-3:]).astype('int')
-    elif "ORIGIN" in splitup:
-        grid['left_edge'] = np.array(splitup[-3:]).astype('float64')
-    elif "SPACING" in splitup:
-        grid['dds'] = np.array(splitup[-3:]).astype('float64')
-    elif "CELL_DATA" in splitup:
-        grid["ncells"] = int(splitup[-1])
-    elif "SCALARS" in splitup:
-        field = splitup[1]
+    if chk23("vtk") in splitup:
+        grid['vtk_version'] = str23(splitup[-1])
+    elif chk23("time=") in splitup:
+        time_index = splitup.index(chk23("time="))
+        grid['time'] = float(str23(splitup[time_index+1]).rstrip(','))
+        grid['level'] = int(str23(splitup[time_index+3]).rstrip(','))
+        grid['domain'] = int(str23(splitup[time_index+5]).rstrip(','))
+    elif chk23("DIMENSIONS") in splitup:
+        grid['dimensions'] = np.array(str23(splitup[-3:])).astype('int')
+    elif chk23("ORIGIN") in splitup:
+        grid['left_edge'] = np.array(str23(splitup[-3:])).astype('float64')
+    elif chk23("SPACING") in splitup:
+        grid['dds'] = np.array(str23(splitup[-3:])).astype('float64')
+    elif chk23("CELL_DATA") in splitup or chk23("POINT_DATA") in splitup:
+        grid["ncells"] = int(str23(splitup[-1]))
+    elif chk23("SCALARS") in splitup:
+        field = str23(splitup[1])
         grid['read_field'] = field
         grid['read_type'] = 'scalar'
-    elif "VECTORS" in splitup:
-        field = splitup[1]
+    elif chk23("VECTORS") in splitup:
+        field = str23(splitup[1])
         grid['read_field'] = field
         grid['read_type'] = 'vector'
+    elif chk23("time") in splitup:
+        time_index = splitup.index(chk23("time"))
+        grid['time'] = float(str23(splitup[time_index+1]))
 
 class AthenaHierarchy(GridIndex):
 
     grid = AthenaGrid
     _dataset_type='athena'
     _data_file = None
-    
+
     def __init__(self, ds, dataset_type='athena'):
         self.dataset = weakref.proxy(ds)
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
-        #self.directory = os.path.dirname(self.index_filename)
-        self._fhandle = file(self.index_filename,'rb')
+        if PY2:
+            self._fhandle = file(self.index_filename,'rb')
+        else:
+            self._fhandle = open(self.index_filename,'rb')
         GridIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
@@ -124,21 +161,19 @@ class AthenaHierarchy(GridIndex):
     def _detect_output_fields(self):
         field_map = {}
         f = open(self.index_filename,'rb')
-        def check_readline(fl):
-            line = fl.readline()
-            if "SCALARS" in line and not line.startswith("SCALARS"):
-                line = line[line.find("SCALARS"):]
-            if "VECTORS" in line and not line.startswith("VECTORS"):
-                line = line[line.find("VECTORS"):]
-            return line
         line = check_readline(f)
-        while line != '':
+        chkwhile = chk23('')
+        while line != chkwhile:
             splitup = line.strip().split()
-            if "DIMENSIONS" in splitup:
-                grid_dims = np.array(splitup[-3:]).astype('int')
+            chkd = chk23("DIMENSIONS")
+            chkc = chk23("CELL_DATA")
+            chkp = chk23("POINT_DATA")
+            if chkd in splitup:
+                field = str23(splitup[-3:])
+                grid_dims = np.array(field).astype('int')
                 line = check_readline(f)
-            elif "CELL_DATA" in splitup:
-                grid_ncells = int(splitup[-1])
+            elif chkc in splitup or chkp in splitup:
+                grid_ncells = int(str23(splitup[-1]))
                 line = check_readline(f)
                 if np.prod(grid_dims) != grid_ncells:
                     grid_dims -= 1
@@ -152,30 +187,33 @@ class AthenaHierarchy(GridIndex):
                 line = check_readline(f)
         read_table = False
         read_table_offset = f.tell()
-        while line != '':
+        while line != chkwhile:
             splitup = line.strip().split()
-            if 'SCALARS' in line and 'SCALARS' not in splitup:
-                splitup = line[line.find('SCALARS'):].strip().split()
-            if 'VECTORS' in line and 'VECTORS' not in splitup:
-                splitup = line[line.find('VECTORS'):].strip().split()
-            if 'SCALARS' in splitup:
-                field = ("athena", splitup[1])
+            chks = chk23('SCALARS')
+            chkv = chk23('VECTORS')
+            if chks in line and chks not in splitup:
+                splitup = str23(line[line.find(chks):].strip().split())
+            if chkv in line and chkv not in splitup:
+                splitup = str23(line[line.find(chkv):].strip().split())
+            if chks in splitup:
+                field = ("athena", str23(splitup[1]))
+                dtype = str23(splitup[-1]).lower()
                 if not read_table:
                     line = check_readline(f) # Read the lookup table line
                     read_table = True
-                field_map[field] = ('scalar', f.tell() - read_table_offset)
+                field_map[field] = ('scalar', f.tell() - read_table_offset, dtype)
                 read_table=False
-
-            elif 'VECTORS' in splitup:
-                field = splitup[1]
+            elif chkv in splitup:
+                field = str23(splitup[1])
+                dtype = str23(splitup[-1]).lower()
                 for ax in 'xyz':
                     field_map[("athena","%s_%s" % (field, ax))] =\
-                            ('vector', f.tell() - read_table_offset)
+                            ('vector', f.tell() - read_table_offset, dtype)
             line = check_readline(f)
 
         f.close()
 
-        self.field_list = field_map.keys()
+        self.field_list = list(field_map.keys())
         self._field_map = field_map
 
     def _count_grids(self):
@@ -190,23 +228,17 @@ class AthenaHierarchy(GridIndex):
         line = f.readline()
         while grid['read_field'] is None:
             parse_line(line, grid)
-            if "SCALAR" in line.strip().split():
-                break
-            if "VECTOR" in line.strip().split():
-                break
-            if 'TABLE' in line.strip().split():
-                break
-            if len(line) == 0: break
+            if check_break(line): break
             line = f.readline()
         f.close()
 
-        # It seems some datasets have a mismatch between ncells and 
+        # It seems some datasets have a mismatch between ncells and
         # the actual grid dimensions.
         if np.prod(grid['dimensions']) != grid['ncells']:
             grid['dimensions'] -= 1
             grid['dimensions'][grid['dimensions']==0]=1
         if np.prod(grid['dimensions']) != grid['ncells']:
-            mylog.error('product of dimensions %i not equal to number of cells %i' % 
+            mylog.error('product of dimensions %i not equal to number of cells %i' %
                   (np.prod(grid['dimensions']), grid['ncells']))
             raise TypeError
 
@@ -216,10 +248,10 @@ class AthenaHierarchy(GridIndex):
         if dataset_dir.endswith("id0"):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
-                        
+
         gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.index_filename)
-        if 'id0' in dname :
+        if 'id0' in dname:
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
@@ -242,26 +274,35 @@ class AthenaHierarchy(GridIndex):
             line = f.readline()
             while gridread['read_field'] is None:
                 parse_line(line, gridread)
-                if "SCALAR" in line.strip().split():
-                    break
-                if "VECTOR" in line.strip().split():
-                    break 
-                if 'TABLE' in line.strip().split():
-                    break
-                if len(line) == 0: break
+                splitup = line.strip().split()
+                if chk23('X_COORDINATES') in splitup:
+                    gridread['left_edge'] = np.zeros(3)
+                    gridread['dds'] = np.zeros(3)
+                    v = np.fromfile(f, dtype='>f8', count=2)
+                    gridread['left_edge'][0] = v[0]-0.5*(v[1]-v[0])
+                    gridread['dds'][0] = v[1]-v[0]
+                if chk23('Y_COORDINATES') in splitup:
+                    v = np.fromfile(f, dtype='>f8', count=2)
+                    gridread['left_edge'][1] = v[0]-0.5*(v[1]-v[0])
+                    gridread['dds'][1] = v[1]-v[0]
+                if chk23('Z_COORDINATES') in splitup:
+                    v = np.fromfile(f, dtype='>f8', count=2)
+                    gridread['left_edge'][2] = v[0]-0.5*(v[1]-v[0])
+                    gridread['dds'][2] = v[1]-v[0]
+                if check_break(line): break
                 line = f.readline()
             f.close()
-            levels[j] = gridread['level']
+            levels[j] = gridread.get('level', 0)
             glis[j,0] = gridread['left_edge'][0]
             glis[j,1] = gridread['left_edge'][1]
             glis[j,2] = gridread['left_edge'][2]
-            # It seems some datasets have a mismatch between ncells and 
+            # It seems some datasets have a mismatch between ncells and
             # the actual grid dimensions.
             if np.prod(gridread['dimensions']) != gridread['ncells']:
                 gridread['dimensions'] -= 1
                 gridread['dimensions'][gridread['dimensions']==0]=1
             if np.prod(gridread['dimensions']) != gridread['ncells']:
-                mylog.error('product of dimensions %i not equal to number of cells %i' % 
+                mylog.error('product of dimensions %i not equal to number of cells %i' %
                       (np.prod(gridread['dimensions']), gridread['ncells']))
                 raise TypeError
             gdims[j,0] = gridread['dimensions'][0]
@@ -270,21 +311,21 @@ class AthenaHierarchy(GridIndex):
             # Setting dds=1 for non-active dimensions in 1D/2D datasets
             gridread['dds'][gridread['dimensions']==1] = 1.
             gdds[j,:] = gridread['dds']
-            
+
             j=j+1
 
         gres = glis + gdims*gdds
-        # Now we convert the glis, which were left edges (floats), to indices 
+        # Now we convert the glis, which were left edges (floats), to indices
         # from the domain left edge.  Then we do a bunch of fixing now that we
-        # know the extent of all the grids. 
+        # know the extent of all the grids.
         glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
         self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
         self.dataset.domain_width = \
-                (self.dataset.domain_right_edge - 
+                (self.dataset.domain_right_edge -
                  self.dataset.domain_left_edge)
         self.dataset.domain_center = \
-                0.5*(self.dataset.domain_left_edge + 
+                0.5*(self.dataset.domain_left_edge +
                      self.dataset.domain_right_edge)
         self.dataset.domain_dimensions = \
                 np.round(self.dataset.domain_width/gdds[0]).astype('int')
@@ -358,7 +399,6 @@ class AthenaHierarchy(GridIndex):
                                                         dx*self.grid_dimensions,
                                                         decimals=12),
                                                "code_length")
-        
         if self.dataset.dimensionality <= 2:
             self.grid_right_edge[:,2] = dre[2]
         if self.dataset.dimensionality == 1:
@@ -433,8 +473,8 @@ class AthenaDataset(Dataset):
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
-        # Unfortunately we now have to mandate that the index gets 
-        # instantiated so that we can make sure we have the correct left 
+        # Unfortunately we now have to mandate that the index gets
+        # instantiated so that we can make sure we have the correct left
         # and right domain edges.
         self.index
 
@@ -467,13 +507,22 @@ class AthenaDataset(Dataset):
         line = self._handle.readline()
         while grid['read_field'] is None:
             parse_line(line, grid)
-            if "SCALAR" in line.strip().split():
-                break
-            if "VECTOR" in line.strip().split():
-                break
-            if 'TABLE' in line.strip().split():
-                break
-            if len(line) == 0: break
+            splitup = line.strip().split()
+            if chk23('X_COORDINATES') in splitup:
+                grid['left_edge'] = np.zeros(3)
+                grid['dds'] = np.zeros(3)
+                v = np.fromfile(self._handle, dtype='>f8', count=2)
+                grid['left_edge'][0] = v[0]-0.5*(v[1]-v[0])
+                grid['dds'][0] = v[1]-v[0]
+            if chk23('Y_COORDINATES') in splitup:
+                v = np.fromfile(self._handle, dtype='>f8', count=2)
+                grid['left_edge'][1] = v[0]-0.5*(v[1]-v[0])
+                grid['dds'][1] = v[1]-v[0]
+            if chk23('Z_COORDINATES') in splitup:
+                v = np.fromfile(self._handle, dtype='>f8', count=2)
+                grid['left_edge'][2] = v[0]-0.5*(v[1]-v[0])
+                grid['dds'][2] = v[1]-v[0]
+            if check_break(line): break
             line = self._handle.readline()
 
         self.domain_left_edge = grid['left_edge']
@@ -514,7 +563,7 @@ class AthenaDataset(Dataset):
         if dataset_dir.endswith("id0"):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
-            
+
         gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
@@ -522,16 +571,16 @@ class AthenaDataset(Dataset):
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         ndots = dname.count(".")
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
-        self.nvtk = len(gridlistread)+1 
+        self.nvtk = len(gridlistread)+1
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
-        if self.specified_parameters.has_key("gamma"):
+        if "gamma" in self.specified_parameters:
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
-            self.parameters["Gamma"] = 5./3. 
+            self.parameters["Gamma"] = 5./3.
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
 
@@ -550,4 +599,3 @@ class AthenaDataset(Dataset):
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
-

@@ -22,9 +22,8 @@ import string
 import re
 
 from threading import Thread
-import Queue
 
-from itertools import izip
+from yt.extern.six.moves import zip as izip
 
 from yt.funcs import *
 from yt.config import ytcfg
@@ -181,7 +180,7 @@ class EnzoGridGZ(EnzoGrid):
         for field in ensure_list(fields):
             if field in self.field_list:
                 conv_factor = 1.0
-                if self.ds.field_info.has_key(field):
+                if field in self.ds.field_info:
                     conv_factor = self.ds.field_info[field]._convert_function(self)
                 if self.ds.field_info[field].particle_type: continue
                 temp = self.index.io._read_raw_data_set(self, field)
@@ -209,7 +208,7 @@ class EnzoHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
 
         # For some reason, r8 seems to want Float64
-        if ds.has_key("CompilerPrecision") \
+        if "CompilerPrecision" in ds \
             and ds["CompilerPrecision"] == "r4":
             self.float_type = 'float32'
         else:
@@ -294,7 +293,7 @@ class EnzoHierarchy(GridIndex):
         else:
             active_particles = False
             nap = None
-        for grid_id in xrange(self.num_grids):
+        for grid_id in range(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
@@ -369,7 +368,6 @@ class EnzoHierarchy(GridIndex):
         self.grid_levels[sgi] = second_grid.Level
 
     def _rebuild_top_grids(self, level = 0):
-        #for level in xrange(self.max_level+1):
         mylog.info("Rebuilding grids on level %s", level)
         cmask = (self.grid_levels.flat == (level + 1))
         cmsum = cmask.sum()
@@ -454,9 +452,16 @@ class EnzoHierarchy(GridIndex):
             if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
+            ptypes = self.dataset.particle_types
+            ptypes_raw = self.dataset.particle_types_raw
         else:
             field_list = None
+            ptypes = None
+            ptypes_raw = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
+        self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
+        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes_raw))
+
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
@@ -707,7 +712,7 @@ class EnzoDataset(Dataset):
         """
         Gets a parameter not in the parameterDict.
         """
-        if self.parameters.has_key(parameter):
+        if parameter in self.parameters:
             return self.parameters[parameter]
         for line in open(self.parameter_filename):
             if line.find("#") >= 1: # Keep the commented lines
@@ -892,7 +897,7 @@ class EnzoDataset(Dataset):
         elif self.dimensionality == 2:
             self._setup_2d()
 
-    def set_code_units(self):
+    def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
@@ -929,17 +934,6 @@ class EnzoDataset(Dataset):
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-
-        self._override_code_units()
-
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        self.unit_registry.modify("code_length", self.length_unit)
-        self.unit_registry.modify("code_mass", self.mass_unit)
-        self.unit_registry.modify("code_time", self.time_unit)
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
-        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
-                               DW.units.dimensions)
 
     def cosmology_get_units(self):
         """
@@ -1001,7 +995,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)
         for i in self.parameters:
-            if isinstance(self.parameters[i], types.TupleType):
+            if isinstance(self.parameters[i], tuple):
                 self.parameters[i] = np.array(self.parameters[i])
             if i.endswith("Units") and not i.startswith("Temperature"):
                 dataType = i[:-5]
@@ -1009,7 +1003,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         self.domain_left_edge = self.parameters["DomainLeftEdge"].copy()
         self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
         for i in self.conversion_factors:
-            if isinstance(self.conversion_factors[i], types.TupleType):
+            if isinstance(self.conversion_factors[i], tuple):
                 self.conversion_factors[i] = np.array(self.conversion_factors[i])
         for p, v in self._parameter_override.items():
             self.parameters[p] = v

@@ -13,10 +13,7 @@ Some convenience functions, objects, and iterators
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import glob
-import numpy as np
-import os, os.path, inspect, types
-from functools import wraps
+import os, os.path, types
 
 # Named imports
 from yt.funcs import *
@@ -25,6 +22,7 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     simulation_time_series_registry, \
     EnzoRunDatabase
+from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def load(*args ,**kwargs):
     """
@@ -36,21 +34,22 @@ def load(*args ,**kwargs):
     """
     if len(args) == 0:
         try:
-            import Tkinter, tkFileDialog
+            from yt.extern.six.moves import tkinter
+            import tkinter, tkFileDialog
         except ImportError:
             raise YTOutputNotIdentified(args, kwargs)
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
         if filename != None:
             return load(filename)
         else:
             raise YTOutputNotIdentified(args, kwargs)
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, types.StringTypes)
+    args = [os.path.expanduser(arg) if isinstance(arg, str)
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
-        if isinstance(arg, types.StringTypes):
+        if isinstance(arg, str):
             if os.path.exists(arg):
                 valid_file.append(True)
             elif arg.startswith("http"):
@@ -76,12 +75,17 @@ def load(*args ,**kwargs):
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
+
+    # convert to classes
+    candidates = [output_type_registry[c] for c in candidates]
+    # Find only the lowest subclasses, i.e. most specialised front ends
+    candidates = find_lowest_subclasses(candidates)
     if len(candidates) == 1:
-        return output_type_registry[candidates[0]](*args, **kwargs)
+        return candidates[0](*args, **kwargs)
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
-           and isinstance(args[0], types.StringTypes):
+           and isinstance(args[0], str):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"
@@ -90,6 +94,7 @@ def load(*args ,**kwargs):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
         raise YTOutputNotIdentified(args, kwargs)
+
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
@@ -139,11 +144,11 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
         valid_file = True
     else:
         valid_file = False
-        
+
     if not valid_file:
-        raise YTOutputNotIdentified((parameter_filename, simulation_type), 
+        raise YTOutputNotIdentified((parameter_filename, simulation_type),
                                     dict(find_outputs=find_outputs))
-    
-    return simulation_time_series_registry[simulation_type](parameter_filename, 
+
+    return simulation_time_series_registry[simulation_type](parameter_filename,
                                                             find_outputs=find_outputs)
 

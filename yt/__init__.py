@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.1"
+__version__ = "3.2"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -120,9 +120,10 @@ from yt.fields.api import \
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    DatasetSeries, \
-    ImageArray, particle_filter, create_profile, \
-    Profile1D, Profile2D, Profile3D
+    DatasetSeries, ImageArray, \
+    particle_filter, add_particle_filter, \
+    create_profile, Profile1D, Profile2D, Profile3D, \
+    ParticleProfile
 
 # For backwards compatibility
 TimeSeriesData = deprecated_class(DatasetSeries)
@@ -148,7 +149,9 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, ProfilePlot, PhasePlot
+    show_colormaps, add_cmap, make_colormap, \
+    ProfilePlot, PhasePlot, ParticlePhasePlot, \
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \

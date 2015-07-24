@@ -225,7 +225,7 @@ class YTSliceBase(YTSelectionContainer2D):
 
     Parameters
     ----------
-    axis : int
+    axis : int or char
         The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coord : float
         The coordinate along the axis at which to slice.  This is in
@@ -331,7 +331,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
     This data object in particular can be somewhat expensive to create.
     It's also important to note that unlike the other 2D data objects, this
-    oject provides px, py, pz, as some cells may have a height from the
+    object provides px, py, pz, as some cells may have a height from the
     plane.
 
     Examples
@@ -729,11 +729,11 @@ class YTCutRegionBase(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> sp = ds.sphere("max", (1.0, 'mpc'))
+    >>> sp = ds.sphere("max", (1.0, 'Mpc'))
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ("data_source", "conditionals")
+    _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
                  field_parameters=None, base_object=None):
         if base_object is not None:

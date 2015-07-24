@@ -1,18 +1,14 @@
 #
 # Hi there!  Welcome to the yt installation script.
 #
+# First things first, if you experience problems, please visit the Help 
+# section at http://yt-project.org.
+#
 # This script is designed to create a fully isolated Python installation
 # with the dependencies you need to run yt.
 #
-# There are a few options, but you only need to set *one* of them.  And
-# that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
-# installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up.
-#
-# If you experience problems, please visit the Help section at 
-# http://yt-project.org.
-#
+# There are a few options, but you only need to set *one* of them, which is 
+# the next one, DEST_DIR:
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
@@ -23,9 +19,15 @@ then
     DEST_DIR=${YT_DEST}
 fi
 
+# What follows are some other options that you may or may not need to change.
+
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
 #HDF5_DIR=
+
+# If you've got yt some other place, set this to point to it. The script will
+# already check the current directory and the one above it in the tree.
+YT_DIR=""
 
 # If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
@@ -33,6 +35,9 @@ fi
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
+INST_PY3=0      # Install Python 3 along with Python 2. If this is turned
+                # on, all Python packages (including yt) will be installed
+                # in Python 3 (except Mercurial, which requires Python 2).
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
@@ -49,9 +54,6 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
-
-# If you've got yt some other place, set this to point to it.
-YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
 MPL_SUPP_LDFLAGS=""
@@ -111,6 +113,7 @@ function write_config
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
+    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_ROCKSTAR=${INST_ROCKSTAR} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
@@ -300,7 +303,7 @@ function host_specific
         echo "  * patch"
         echo 
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-g++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
@@ -415,6 +418,10 @@ printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
 
+printf "%-15s = %s so I " "INST_PY3" "${INST_PY3}"
+get_willwont ${INST_PY3}
+echo "be installing Python 3"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -487,6 +494,13 @@ function do_exit
     exit 1
 }
 
+if [ $INST_PY3 -eq 1 ]
+then
+	 PYTHON_EXEC='python3.4'
+else 
+	 PYTHON_EXEC='python2.7'
+fi
+
 function do_setup_py
 {
     [ -e $1/done ] && return
@@ -501,19 +515,27 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
+    if [[ $LIB =~ .*mercurial.* ]] 
+    then
+        PYEXE="python2.7"
+    else
+        PYEXE=${PYTHON_EXEC}
+    fi
     case $LIB in
         *h5py*)
-            BUILD_ARGS="--hdf5=${HDF5_DIR}"
+            pushd $LIB &> /dev/null
+            ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            popd &> /dev/null
             ;;
         *numpy*)
-            if [ -e ${DEST_DIR}/lib/python2.7/site-packages/numpy/__init__.py ]
+            if [ -e ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/numpy/__init__.py ]
             then
-                VER=$(${DEST_DIR}/bin/python -c 'from distutils.version import StrictVersion as SV; \
+                VER=$(${DEST_DIR}/bin/${PYTHON_EXEC} -c 'from distutils.version import StrictVersion as SV; \
                                                  import numpy; print SV(numpy.__version__) < SV("1.8.0")')
                 if [ $VER == "True" ]
                 then
                     echo "Removing previous NumPy instance (see issue #889)"
-                    rm -rf ${DEST_DIR}/lib/python2.7/site-packages/{numpy*,*.pth}
+                    rm -rf ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/{numpy*,*.pth}
                 fi
             fi
             ;;
@@ -521,8 +543,8 @@ function do_setup_py
             ;;
     esac
     cd $LIB
-    ( ${DEST_DIR}/bin/python2.7 setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -590,60 +612,64 @@ echo '0f714ae2eace0141b1381abf1160dc8f8a521335e886f99919caf3beb31df1fe271d67c7b2
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH
 export LD_LIBRARY_PATH=${DEST_DIR}/lib:$LD_LIBRARY_PATH
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
-CYTHON='Cython-0.20.2'
+PYTHON2='Python-2.7.9'
+PYTHON3='Python-3.4.3'
+CYTHON='Cython-0.22'
 PYX='PyX-0.12.1'
-PYTHON='Python-2.7.8'
 BZLIB='bzip2-1.0.6'
-FREETYPE_VER='freetype-2.4.12'
-H5PY='h5py-2.3.1'
-HDF5='hdf5-1.8.14'
-IPYTHON='ipython-2.2.0'
+FREETYPE_VER='freetype-2.4.12' 
+H5PY='h5py-2.5.0'
+HDF5='hdf5-1.8.14' 
+IPYTHON='ipython-2.4.1'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
-MATPLOTLIB='matplotlib-1.4.0'
-MERCURIAL='mercurial-3.1'
-NOSE='nose-1.3.4'
-NUMPY='numpy-1.8.2'
-PYTHON_HGLIB='python-hglib-1.0'
-PYZMQ='pyzmq-14.3.1'
+MATPLOTLIB='matplotlib-1.4.3'
+MERCURIAL='mercurial-3.4'
+NOSE='nose-1.3.6'
+NUMPY='numpy-1.9.2'
+PYTHON_HGLIB='python-hglib-1.6'
+PYZMQ='pyzmq-14.5.0'
 ROCKSTAR='rockstar-0.99.6'
-SCIPY='scipy-0.14.0'
+SCIPY='scipy-0.15.1'
 SQLITE='sqlite-autoconf-3071700'
-SYMPY='sympy-0.7.5'
-TORNADO='tornado-4.0.1'
-ZEROMQ='zeromq-4.0.4'
+SYMPY='sympy-0.7.6'
+TORNADO='tornado-4.0.2'
+ZEROMQ='zeromq-4.0.5'
 ZLIB='zlib-1.2.8'
+SETUPTOOLS='setuptools-18.0.1'
 
 # Now we dump all our SHA512 files out.
-echo '118e3ebd76f50bda8187b76654e65caab2c2c403df9b89da525c2c963dedc7b38d898ae0b92d44b278731d969a891eb3f7b5bcc138cfe3e037f175d4c87c29ec  Cython-0.20.2.tar.gz' > Cython-0.20.2.tar.gz.sha512
+echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
-echo '4b05f0a490ddee37e8fc7970403bb8b72c38e5d173703db40310e78140d9d5c5732789d69c68dbd5605a623e4582f5b9671f82b8239ecdb34ad4261019dace6a  Python-2.7.8.tgz' > Python-2.7.8.tgz.sha512
+echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a913543731635f90859536244ac37dca9adf0fc2aa1b215ba884839d160  Python-2.7.9.tgz' > Python-2.7.9.tgz.sha512
+echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
-echo 'f0da1d2ac855c02fb828444d719a1b23a580adb049335f3e732ace67558a125ac8cd3b3a68ac6bf9d10aa3ab19e4672b814eb28cc8c66910750c62efb655d744  h5py-2.3.1.tar.gz' > h5py-2.3.1.tar.gz.sha512
+echo '4a83f9ae1855a7fad90133b327d426201c8ccfd2e7fbe9f39b2d61a2eee2f3ebe2ea02cf80f3d4e1ad659f8e790c173df8cc99b87d0b7ce63d34aa88cfdc7939  h5py-2.5.0.tar.gz' > h5py-2.5.0.tar.gz.sha512
 echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
-echo '4953bf5e9d6d5c6ad538d07d62b5b100fd86a37f6b861238501581c0059bd4655345ca05cf395e79709c38ce4cb9c6293f5d11ac0252a618ad8272b161140d13  ipython-2.2.0.tar.gz' > ipython-2.2.0.tar.gz.sha512
+echo 'a9cffc08ba10c47b0371b05664e55eee0562a30ef0d4bbafae79e52e5b9727906c45840c0918122c06c5672ac65e6eb381399f103e1a836aca003eda81b2acde  ipython-2.4.1.tar.gz' > ipython-2.4.1.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
-echo '60aa386639dec17b4f579955df60f2aa7c8ccd589b3490bb9afeb2929ea418d5d1a36a0b02b8d4a6734293076e9069429956c56cf8bd099b756136f2657cf9d4  matplotlib-1.4.0.tar.gz' > matplotlib-1.4.0.tar.gz.sha512
-echo '1ee2fe7a241bf81087e55d9e4ee8fa986f41bb0655d4828d244322c18f3958a1f3111506e2df15aefcf86100b4fe530fcab2d4c041b5945599ed3b3a889d50f5  mercurial-3.1.tar.gz' > mercurial-3.1.tar.gz.sha512
-echo '19499ab08018229ea5195cdac739d6c7c247c5aa5b2c91b801cbd99bad12584ed84c5cfaaa6fa8b4893a46324571a2f8a1988a1381f4ddd58390e597bd7bdc24  nose-1.3.4.tar.gz' > nose-1.3.4.tar.gz.sha512
-echo '996e6b8e2d42f223e44660f56bf73eb8ab124f400d89218f8f5e4d7c9860ada44a4d7c54526137b0695c7a10f36e8834fbf0d42b7cb20bcdb5d5c245d673385c  numpy-1.8.2.tar.gz' > numpy-1.8.2.tar.gz.sha512
-echo '9c0a61299779aff613131aaabbc255c8648f0fa7ab1806af53f19fbdcece0c8a68ddca7880d25b926d67ff1b9201954b207919fb09f6a290acb078e8bbed7b68  python-hglib-1.0.tar.gz' > python-hglib-1.0.tar.gz.sha512
-echo '3d93a8fbd94fc3f1f90df68257cda548ba1adf3d7a819e7a17edc8681894003ac7ae6abd319473054340c11443a6a3817b931366fd7dae78e3807d549c544f8b  pyzmq-14.3.1.tar.gz' > pyzmq-14.3.1.tar.gz.sha512
-echo 'ad1278740c1dc44c5e1b15335d61c4552b66c0439325ed6eeebc5872a1c0ba3fce1dd8509116b318d01e2d41da2ee49ec168da330a7fafd22511138b29f7235d  scipy-0.14.0.tar.gz' > scipy-0.14.0.tar.gz.sha512
+echo '51b0f58b2618b47b653e17e4f6b6a1215d3a3b0f1331ce3555cc7435e365d9c75693f289ce12fe3bf8f69fd57b663e545f0f1c2c94e81eaa661cac0689e125f5  matplotlib-1.4.3.tar.gz' > matplotlib-1.4.3.tar.gz.sha512
+echo 'a61b0d4cf528136991243bb23ac972c11c50ab5681d09f8b2d12cf7d37d3a9d76262f7fe6e7a1834bf6d03e8dc0ebbd9231da982e049e09830341dabefe5d064  mercurial-3.4.tar.gz' > mercurial-3.4.tar.gz.sha512
+echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
+echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
+echo 'bfd10455e74e30df568c4c4827140fb6cc29893b0e062ce1764bd52852ec7487a70a0f5ea53c3fca7886f5d36365c9f4db52b8c93cad35fb67beeb44a2d56f2d  python-hglib-1.6.tar.gz' > python-hglib-1.6.tar.gz.sha512
+echo '20164f7b05c308e0f089c07fc46b1c522094f3ac136f2e0bba84f19cb63dfd36152a2465df723dd4d93c6fbd2de4f0d94c160e2bbc353a92cfd680eb03cbdc87  pyzmq-14.5.0.tar.gz' > pyzmq-14.5.0.tar.gz.sha512
+echo 'fff4412d850c431a1b4e6ee3b17958ee5ab3beb81e6cb8a8e7d56d368751eaa8781d7c3e69d932dc002d718fddc66a72098acfe74cfe29ec80b24e6736317275  scipy-0.15.1.tar.gz' > scipy-0.15.1.tar.gz.sha512
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
-echo '8a46e75abc3ed2388b5da9cb0e5874ae87580cf3612e2920b662d8f8eee8047efce5aa998eee96661d3565070b1a6b916c8bed74138b821f4e09115f14b6677d  sympy-0.7.5.tar.gz' > sympy-0.7.5.tar.gz.sha512
-echo 'a4e0231e77ebbc2885bab648b292b842cb15c84d66a1972de18cb00fcc611eae2794b872f070ab7d5af32dd0c6c1773527fe1332bd382c1821e1f2d5d76808fb  tornado-4.0.1.tar.gz' > tornado-4.0.1.tar.gz.sha512
-echo '7d70855d0537971841810a66b7a943a88304f6991ce445df19eea034aadc53dbce9d13be92bf44cfef1f3e19511a754eb01006a3968edc1ec3d1766ea4730cda  zeromq-4.0.4.tar.gz' > zeromq-4.0.4.tar.gz.sha512
+echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a3c3e4e3d485809750ce07507a6488e776a388a7a9a713110882fcf  sympy-0.7.6.tar.gz' > sympy-0.7.6.tar.gz.sha512
+echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
+echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
+echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -658,10 +684,11 @@ echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f18
 [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
-get_ytproject $PYTHON.tgz
+[ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
+[ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
+get_ytproject $PYTHON2.tgz
 get_ytproject $NUMPY.tar.gz
 get_ytproject $MATPLOTLIB.tar.gz
-get_ytproject $MERCURIAL.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
@@ -669,6 +696,7 @@ get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
+get_ytproject $SETUPTOOLS.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e $BZLIB/done ]
@@ -785,11 +813,11 @@ then
     fi
 fi
 
-if [ ! -e $PYTHON/done ]
+if [ ! -e $PYTHON2/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
-    [ ! -e $PYTHON ] && tar xfz $PYTHON.tgz
-    cd $PYTHON
+    echo "Installing Python 2. This may take a while, but don't worry. yt loves you."
+    [ ! -e $PYTHON2 ] && tar xfz $PYTHON2.tgz
+    cd $PYTHON2
     ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -800,7 +828,30 @@ then
     cd ..
 fi
 
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
+if [ $INST_PY3 -eq 1 ]
+then
+    if [ ! -e $PYTHON3/done ]
+    then
+        echo "Installing Python 3. Because two Pythons are better than one."
+        [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
+        cd $PYTHON3
+        ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+        ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+fi
+
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
+
+# Install setuptools
+do_setup_py $SETUPTOOLS
 
 if [ $INST_HG -eq 1 ]
 then
@@ -845,12 +896,10 @@ fi
 
 # This fixes problems with gfortran linking.
 unset LDFLAGS
-
-echo "Installing distribute"
-( ${DEST_DIR}/bin/python2.7 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
-
+ 
 echo "Installing pip"
-( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${GETFILE} https://bootstrap.pypa.io/get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/${PYTHON_EXEC} get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 if [ $INST_SCIPY -eq 0 ]
 then
@@ -914,7 +963,11 @@ then
    echo "[gui_support]" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
    echo "macosx = False" >> ${DEST_DIR}/src/$MATPLOTLIB/setup.cfg
 fi
+
+_user_DISPLAY=$DISPLAY
+unset DISPLAY   # see (yt-user link missing: "Installation failure" 01/29/15)
 do_setup_py $MATPLOTLIB
+export DISPLAY=${_user_DISPLAY}
 if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
@@ -942,8 +995,8 @@ then
 fi
 
 do_setup_py $IPYTHON
-do_setup_py $H5PY
 do_setup_py $CYTHON
+do_setup_py $H5PY
 do_setup_py $NOSE
 do_setup_py $PYTHON_HGLIB
 do_setup_py $SYMPY
@@ -980,13 +1033,14 @@ cd $YT_DIR
 
 echo "Installing yt"
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
-( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
-if !( ( ${DEST_DIR}/bin/python2.7 -c "import readline" 2>&1 )>> ${LOG_FILE})
+if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
+	[[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
 then
-    if !( ( ${DEST_DIR}/bin/python2.7 -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
+    if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
         echo "Installing pure-python readline"
         ( ${DEST_DIR}/bin/pip install gnureadline 2>&1 ) 1>> ${LOG_FILE}

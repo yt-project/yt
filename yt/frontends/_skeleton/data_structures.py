@@ -38,7 +38,7 @@ class SkeletonGrid(AMRGridPatch):
 
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
-    
+
     def __init__(self, ds, dataset_type='skeleton'):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
@@ -54,11 +54,11 @@ class SkeletonHierarchy(GridIndex):
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
         pass
-    
+
     def _count_grids(self):
         # This needs to set self.num_grids
         pass
-        
+
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
         #   self.grid_left_edge         (N, 3) <= float64
@@ -67,9 +67,9 @@ class SkeletonHierarchy(GridIndex):
         #   self.grid_particle_count    (N, 1) <= int
         #   self.grid_levels            (N, 1) <= int
         #   self.grids                  (N, 1) <= grid objects
-        #   
+        #
         pass
-                        
+
     def _populate_grid_objects(self):
         # For each grid, this must call:
         #   grid._prepare_grid()
@@ -84,7 +84,7 @@ class SkeletonHierarchy(GridIndex):
 class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
-    
+
     def __init__(self, filename, dataset_type='skeleton',
                  storage_filename=None,
                  units_override=None):
@@ -132,6 +132,7 @@ class SkeletonDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
+        pass
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

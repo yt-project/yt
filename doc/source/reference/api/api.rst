@@ -30,6 +30,16 @@ ProfilePlot and PhasePlot
    ~yt.visualization.profile_plotter.PhasePlot
    ~yt.visualization.profile_plotter.PhasePlotMPL
 
+Particle Plots
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.particle_plots.ParticleProjectionPlot
+   ~yt.visualization.particle_plots.ParticlePhasePlot
+   ~yt.visualization.particle_plots.ParticlePlot
+
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -37,6 +47,7 @@ Fixed Resolution Pixelization
    :toctree: generated/
 
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.ParticleImageBuffer
    ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
@@ -137,15 +148,18 @@ These objects generate an "index" into multiresolution data.
 Units
 -----
 
-These classes enable yt's symbolic unit handling system.
+These classes and functions enable yt's symbolic unit handling system.
 
 .. autosummary::
    :toctree: generated/
 
+   yt.data_objects.static_output.Dataset.arr
+   yt.data_objects.static_output.Dataset.quan
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
+
 
 Frontends
 ---------
@@ -213,8 +227,6 @@ Chombo
    ~yt.frontends.chombo.data_structures.Orion2Hierarchy
    ~yt.frontends.chombo.data_structures.Orion2Dataset
    ~yt.frontends.chombo.io.IOHandlerChomboHDF5
-   ~yt.frontends.chombo.io.IOHandlerChombo2DHDF5
-   ~yt.frontends.chombo.io.IOHandlerChombo1DHDF5
    ~yt.frontends.chombo.io.IOHandlerOrion2HDF5
 
 Enzo
@@ -405,6 +417,7 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile1D
    ~yt.data_objects.profiles.Profile2D
    ~yt.data_objects.profiles.Profile3D
+   ~yt.data_objects.profiles.ParticleProfile
    ~yt.data_objects.profiles.create_profile
 
 .. _halo_analysis_ref:
@@ -487,6 +500,16 @@ Field Functions
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
+
+
+Particle Filters
+----------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.particle_filters.add_particle_filter
+   ~yt.data_objects.particle_filters.particle_filter
 
 Image Handling
 --------------
@@ -675,6 +698,7 @@ See also :ref:`callbacks`.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
@@ -682,13 +706,14 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.GridBoundaryCallback
    ~yt.visualization.plot_modifications.HaloCatalogCallback
    ~yt.visualization.plot_modifications.ImageLineCallback
-   ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
+   ~yt.visualization.plot_modifications.RayCallback
+   ~yt.visualization.plot_modifications.ScaleCallback
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
@@ -696,6 +721,19 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.TitleCallback
    ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
+
+Colormap Functions
+------------------
+
+
+See also :ref:`colormaps`.
+
+.. autosummary::
+   :toctree: generated/
+   
+   ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.make_colormap
+   ~yt.visualization.color_maps.show_colormaps
 
 Function List
 -------------

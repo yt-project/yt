@@ -24,6 +24,7 @@ cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
+from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -51,13 +52,6 @@ grid_eps = 0.0
 # First, bounding box / object intersection routines.
 # These all respect the interface "dobj" and a set of left_edges, right_edges,
 # sometimes also accepting level and mask information.
-
-def _ensure_code(arr):
-    if hasattr(arr, "units"):
-        if "code_length" == str(arr.units):
-            return arr
-        arr.convert_to_units("code_length")
-    return arr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -431,7 +425,6 @@ cdef class SelectorObject:
         cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
         cdef int i, j, k
         cdef np.float64_t dds[3]
-        cdef np.float64_t pos[3]
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
         for i in range(3):
@@ -440,14 +433,29 @@ cdef class SelectorObject:
             left_edge[i] = oleft_edge[i]
             right_edge[i] = oright_edge[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
-        cdef int total = 0
-        cdef int temp
         # Check for the level bounds
         cdef np.int32_t level = gobj.Level
-        if level < self.min_level or level > self.max_level:
-            return mask.astype("bool")
         # We set this to 1 if we ignore child_mask
-        cdef int this_level = 0
+        cdef int total
+        total = self.fill_mask_selector(left_edge, right_edge, dds, dim,
+                                        child_mask, mask, level)
+        if total == 0: return None
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3], 
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level):
+        cdef int i, j, k
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        if level < self.min_level or level > self.max_level:
+            return 0
         if level == self.max_level:
             this_level = 1
         with nogil:
@@ -463,8 +471,68 @@ cdef class SelectorObject:
                         pos[2] += dds[2]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
-        if total == 0: return None
-        return mask.astype("bool")
+        return total
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void visit_grid_cells(self, GridVisitorData *data,
+                              grid_visitor_function *func,
+                              np.uint8_t *cached_mask = NULL):
+        # This function accepts a grid visitor function, the data that
+        # corresponds to the current grid being examined (the most important
+        # aspect of which is the .grid attribute, along with index values and
+        # void* pointers to arrays) and a possibly-pre-generated cached mask.
+        # Each cell is visited with the grid visitor function.
+        cdef np.float64_t left_edge[3], right_edge[3]
+        cdef np.float64_t dds[3]
+        cdef int dim[3], level, i
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        level = data.grid.level
+        if level < self.min_level or level > self.max_level:
+            return
+        if level == self.max_level:
+            this_level = 1
+        cdef np.uint8_t child_masked, selected
+        for i in range(3):
+            left_edge[i] = data.grid.left_edge[i]
+            right_edge[i] = data.grid.right_edge[i]
+            dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
+            dim[i] = data.grid.dims[i]
+        with nogil:
+            pos[0] = left_edge[0] + dds[0] * 0.5
+            data.pos[0] = 0
+            for i in range(dim[0]):
+                pos[1] = left_edge[1] + dds[1] * 0.5
+                data.pos[1] = 0
+                for j in range(dim[1]):
+                    pos[2] = left_edge[2] + dds[2] * 0.5
+                    data.pos[2] = 0
+                    for k in range(dim[2]):
+                        # We short-circuit if we have a cache; if we don't, we
+                        # only set selected to true if it's *not* masked by a
+                        # child and it *is* selected.
+                        if cached_mask != NULL:
+                            selected = ba_get_value(cached_mask,
+                                                    data.global_index)
+                        else:
+                            if this_level == 1:
+                                child_masked = 0
+                            else:
+                                child_masked = check_child_masked(data)
+                            if child_masked == 0:
+                                selected = self.select_cell(pos, dds)
+                            else:
+                                selected = 0
+                        func(data, selected)
+                        data.global_index += 1
+                        pos[2] += dds[2]
+                        data.pos[2] += 1
+                    pos[1] += dds[1]
+                    data.pos[1] += 1
+                pos[0] += dds[0]
+                data.pos[0] += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -535,19 +603,24 @@ cdef class SelectorObject:
         return mask.view("bool")
 
     def __hash__(self):
-        return hash(self._hash_vals() + self._base_hash())
+        cdef np.int64_t hash_val = 0
+        for v in self._hash_vals() + self._base_hash():
+            hash_val ^= hash(v)
+        return hash_val
 
     def _hash_vals(self):
         raise NotImplementedError
 
     def _base_hash(self):
-        return (self.min_level, self.max_level, self.overlap_cells,
-                self.periodicity[0],
-                self.periodicity[1],
-                self.periodicity[2],
-                self.domain_width[0],
-                self.domain_width[1],
-                self.domain_width[2])
+        return (("min_level", self.min_level),
+                ("max_level", self.max_level),
+                ("overlap_cells", self.overlap_cells),
+                ("periodicity[0]", self.periodicity[0]),
+                ("periodicity[1]", self.periodicity[1]),
+                ("periodicity[2]", self.periodicity[2]),
+                ("domain_width[0]", self.domain_width[0]),
+                ("domain_width[1]", self.domain_width[1]),
+                ("domain_width[2]", self.domain_width[2]))
 
 
 cdef class PointSelector(SelectorObject):
@@ -601,7 +674,9 @@ cdef class PointSelector(SelectorObject):
             return 0
 
     def _hash_vals(self):
-        return (self.p[0], self.p[1], self.p[2])
+        return (("p[0]", self.p[0]),
+                ("p[1]", self.p[1]),
+                ("p[2]", self.p[2]))
 
 point_selector = PointSelector
 
@@ -702,8 +777,11 @@ cdef class SphereSelector(SelectorObject):
         return 1
 
     def _hash_vals(self):
-        return (self.radius, self.radius2,
-                self.center[0], self.center[1], self.center[2])
+        return (("radius", self.radius),
+                ("radius2", self.radius2),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]))
 
 sphere_selector = SphereSelector
 
@@ -798,8 +876,12 @@ cdef class RegionSelector(SelectorObject):
         return 1
 
     def _hash_vals(self):
-        return (self.left_edge[0], self.left_edge[1], self.left_edge[2],
-                self.right_edge[0], self.right_edge[1], self.right_edge[2])
+        return (("left_edge[0]", self.left_edge[0]),
+                ("left_edge[1]", self.left_edge[1]),
+                ("left_edge[2]", self.left_edge[2]),
+                ("right_edge[0]", self.right_edge[0]),
+                ("right_edge[1]", self.right_edge[1]),
+                ("right_edge[2]", self.right_edge[2]))
 
 region_selector = RegionSelector
 
@@ -830,7 +912,10 @@ cdef class CutRegionSelector(SelectorObject):
         return 1
 
     def _hash_vals(self):
-        return self._conditionals
+        t = ()
+        for i, c in enumerate(self._conditionals):
+            t += ("conditional[%s]" % i, c)
+        return ("conditionals", t)
 
 cut_region_selector = CutRegionSelector
 
@@ -936,9 +1021,15 @@ cdef class DiskSelector(SelectorObject):
         return 0
 
     def _hash_vals(self):
-        return (self.norm_vec[0], self.norm_vec[1], self.norm_vec[2],
-                self.center[0], self.center[1], self.center[2],
-                self.radius, self.radius2, self.height)
+        return (("norm_vec[0]", self.norm_vec[0]),
+                ("norm_vec[1]", self.norm_vec[1]),
+                ("norm_vec[2]", self.norm_vec[2]),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]),
+                ("radius", self.radius),
+                ("radius2", self.radius2),
+                ("height", self.height))
 
 disk_selector = DiskSelector
 
@@ -1015,8 +1106,10 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return 1
 
     def _hash_vals(self):
-        return (self.norm_vec[0], self.norm_vec[1], self.norm_vec[2],
-                self.d)
+        return (("norm_vec[0]", self.norm_vec[0]),
+                ("norm_vec[1]", self.norm_vec[1]), 
+                ("norm_vec[2]", self.norm_vec[2]),
+                ("d", self.d))
 
 cutting_selector = CuttingPlaneSelector
 
@@ -1104,7 +1197,8 @@ cdef class SliceSelector(SelectorObject):
         return 0
 
     def _hash_vals(self):
-        return (self.axis, self.coord)
+        return (("axis", self.axis),
+                ("coord", self.coord))
 
 slice_selector = SliceSelector
 
@@ -1202,7 +1296,11 @@ cdef class OrthoRaySelector(SelectorObject):
         return 0
 
     def _hash_vals(self):
-        return (self.px_ax, self.py_ax, self.px, self.py, self.axis)
+        return (("px_ax", self.px_ax),
+                ("py_ax", self.py_ax),
+                ("px", self.px),
+                ("py", self.py),
+                ("axis", self.axis))
 
 ortho_ray_selector = OrthoRaySelector
 
@@ -1426,9 +1524,15 @@ cdef class RaySelector(SelectorObject):
         return self.select_bbox(left_edge, right_edge)
 
     def _hash_vals(self):
-        return (self.p1[0], self.p1[1], self.p1[2],
-                self.p2[0], self.p2[1], self.p2[2],
-                self.vec[0], self.vec[1], self.vec[2])
+        return (("p1[0]", self.p1[0]),
+                ("p1[1]", self.p1[1]),
+                ("p1[2]", self.p1[2]),
+                ("p2[0]", self.p2[0]),
+                ("p2[1]", self.p2[1]),
+                ("p2[2]", self.p2[2]),
+                ("vec[0]", self.vec[0]),
+                ("vec[1]", self.vec[1]),
+                ("vec[2]", self.vec[2]))
 
 ray_selector = RaySelector
 
@@ -1553,11 +1657,21 @@ cdef class EllipsoidSelector(SelectorObject):
         return 0
 
     def _hash_vals(self):
-        return (self.vec[0][0], self.vec[0][1], self.vec[0][2],
-                self.vec[1][0], self.vec[1][1], self.vec[1][2],
-                self.vec[2][0], self.vec[2][1], self.vec[2][2],
-                self.mag[0], self.mag[1], self.mag[2],
-                self.center[0], self.center[1], self.center[2])
+        return (("vec[0][0]", self.vec[0][0]),
+                ("vec[0][1]", self.vec[0][1]),
+                ("vec[0][2]", self.vec[0][2]),
+                ("vec[1][0]", self.vec[1][0]),
+                ("vec[1][1]", self.vec[1][1]),
+                ("vec[1][2]", self.vec[1][2]),
+                ("vec[2][0]", self.vec[2][0]),
+                ("vec[2][1]", self.vec[2][1]),
+                ("vec[2][2]", self.vec[2][2]),
+                ("mag[0]", self.mag[0]),
+                ("mag[1]", self.mag[1]),
+                ("mag[2]", self.mag[2]),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]))
 
 ellipsoid_selector = EllipsoidSelector
 

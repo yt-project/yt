@@ -5,6 +5,7 @@ Gadget data-file handling functions
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -14,19 +15,16 @@ Gadget data-file handling functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
-import types
 import os
 
 from yt.frontends.owls.io import \
     IOHandlerOWLS
-from yt.geometry.oct_container import \
-    _ORDER_MAX
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
     compute_morton
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
@@ -35,7 +33,10 @@ ZeroMass = object()
     
 class IOHandlerGadgetBinary(BaseIOHandler):
     _dataset_type = "gadget_binary"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    _vector_fields = (("Coordinates", 3),
+                      ("Velocity", 3),
+                      ("Velocities", 3),
+                      ("FourMetalFractions", 4))
 
     # Particle types (Table 3 in GADGET-2 user guide)
     #
@@ -56,6 +57,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     _var_mass = None
 
     def __init__(self, ds, *args, **kwargs):
+        self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
@@ -128,17 +130,17 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         else:
             dt = "float32"
         if name in self._vector_fields:
-            count *= 3
+            count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count = count)
         if name in self._vector_fields:
-            arr = arr.reshape((count/3, 3), order="C")
+            factor = self._vector_fields[name]
+            arr = arr.reshape((count/factor, factor), order="C")
         return arr.astype("float64")
 
     def _initialize_index(self, data_file, regions):
         count = sum(data_file.total_particles.values())
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
-        dx = (DRE - DLE) / 2**_ORDER_MAX
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
@@ -165,7 +167,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
-            if not isinstance(field, types.StringTypes):
+            if not isinstance(field, str):
                 field = field[0]
             if not any( (ptype, field) in field_list
                         for ptype in self._ptypes):
@@ -180,7 +182,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 offsets[(ptype, field)] = pos
                 any_ptypes = True
                 if field in self._vector_fields:
-                    pos += 3 * pcount[ptype] * fs
+                    pos += self._vector_fields[field] * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
             pos += 4
@@ -202,10 +204,12 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             if count == 0: continue
             m = domain.header["Massarr"][i]
             for field in self._fields:
-                if isinstance(field, types.TupleType):
+                if isinstance(field, tuple):
                     field, req = field
                     if req is ZeroMass:
                         if m > 0.0 : continue
+                    elif isinstance(req, tuple) and ptype in req:
+                        pass
                     elif req != ptype:
                         continue
                 field_list.append((ptype, field))

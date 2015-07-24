@@ -34,7 +34,7 @@ from yt.units.unit_object import \
 def derived_field(**kwargs):
     def inner_decorator(function):
         if 'name' not in kwargs:
-            kwargs['name'] = function.func_name
+            kwargs['name'] = function.__name__
         kwargs['function'] = function
         add_field(**kwargs)
         return function
@@ -63,7 +63,8 @@ class DerivedField(object):
        arguments (field, data)
     units : str
        A plain text string encoding the unit.  Powers must be in
-       python syntax (** instead of ^).
+       python syntax (** instead of ^). If set to "auto" the units will be
+       inferred from the units of the return value of the field function.
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -106,9 +107,12 @@ class DerivedField(object):
 
         # handle units
         if units is None:
-            self.units = ""
+            self.units = ''
         elif isinstance(units, str):
-            self.units = units
+            if units.lower() == 'auto':
+                self.units = None
+            else:
+                self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
         else:
@@ -152,7 +156,7 @@ class DerivedField(object):
         This returns a list of names of fields that this field depends on.
         """
         e = FieldDetector(*args, **kwargs)
-        if self._function.func_name == '<lambda>':
+        if self._function.__name__ == '<lambda>':
             e.requested.append(self.name)
         else:
             e[self.name]
@@ -211,7 +215,7 @@ class DerivedField(object):
             units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\/\/ (%s)" % (units)
+            data_label += r"\ \ (%s)" % (units)
 
         data_label += r"$"
         return data_label

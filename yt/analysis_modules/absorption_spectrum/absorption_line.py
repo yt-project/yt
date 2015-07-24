@@ -16,13 +16,18 @@ Absorption line generating functions.
 import numpy as np
 from yt.utilities.physical_constants import \
     charge_proton_cgs, \
-    cm_per_km, \
-    km_per_cm, \
     mass_electron_cgs, \
     speed_of_light_cgs
+from yt.utilities.on_demand_imports import _scipy, NotAModule
 
+special = _scipy.special
 
-def voigt(a,u):
+def voigt_scipy(a, u):
+    x = np.asarray(u).astype(np.float64)
+    y = np.asarray(a).astype(np.float64)
+    return special.wofz(x + 1j * y).real
+
+def voigt_old(a, u):
     """
     NAME:
         VOIGT 
@@ -140,67 +145,80 @@ def voigt(a,u):
     k1 = k1.astype(np.float64).clip(0)
     return k1
 
-def tau_profile(lam0, fval, gamma, vkms, column_density, 
-                deltav=None, delta_lambda=None,
+def tau_profile(lamba_0, f_value, gamma, v_doppler, column_density, 
+                delta_v=None, delta_lambda=None,
                 lambda_bins=None, n_lambda=12000, dlambda=0.01):
-    """
+    r"""
     Create an optical depth vs. wavelength profile for an 
     absorption line using a voigt profile.
-    :param lam0 (float): central wavelength (angstroms).
-    :param fval (float): f-value.
-    :param gamma (float): gamma value.
-    :param vkms (float): doppler b-parameter.
-    :param column_density (float): column density (cm^-2).
-    :param deltav (float): velocity offset from lam0 (km/s).
-    Default: None (no shift).
-    :param delta_lambda (float): wavelength offset in angstroms.
-    Default: None (no shift).
-    :param lambda_bins (array): array of wavelengths in angstroms.
-    Default: None
-    :param n_lambda (float): size of lambda bins to create 
-    array if lambda_bins is None.  Default: 12000
-    :param dlambda (float): lambda bin width if lambda_bins is 
-    None. Default: 0.01
+
+    Parameters
+    ----------
+    
+    lamba_0 : float YTQuantity in length units
+       central wavelength.
+    f_value : float
+       absorption line f-value.
+    gamma : float
+       absorption line gamma value.
+    v_doppler : float YTQuantity in velocity units
+       doppler b-parameter.
+    column_density : float YTQuantity in (length units)^-2
+       column density.
+    delta_v : float YTQuantity in velocity units
+       velocity offset from lamba_0.
+       Default: None (no shift).
+    delta_lambda : float YTQuantity in length units
+        wavelength offset.
+        Default: None (no shift).
+    lambda_bins : YTArray in length units
+        wavelength array for line deposition.  If None, one will be 
+        created using n_lambda and dlambda.
+        Default: None.
+    n_lambda : int
+        size of lambda bins to create if lambda_bins is None.
+        Default: 12000.
+    dlambda : float 
+        lambda bin width in angstroms if lambda_bins is None.
+        Default: 0.01.
+        
     """
 
-    ## constants
-    me = mass_electron_cgs              # grams mass electron 
-    e = charge_proton_cgs               # esu 
-    c = speed_of_light_cgs * km_per_cm  # km/s
-    ccgs = speed_of_light_cgs           # cm/s 
-
-    ## shift lam0 by deltav
-    if deltav is not None:
-        lam1 = lam0 * (1 + deltav / c)
+    ## shift lamba_0 by delta_v
+    if delta_v is not None:
+        lam1 = lamba_0 * (1 + delta_v / speed_of_light_cgs)
     elif delta_lambda is not None:
-        lam1 = lam0 + delta_lambda
+        lam1 = lamba_0 + delta_lambda
     else:
-        lam1 = lam0
+        lam1 = lamba_0
 
     ## conversions
-    vdop = vkms * cm_per_km           # in cm/s
-    lam0cgs = lam0 / 1.e8             # rest wavelength in cm
-    lam1cgs = lam1 / 1.e8             # line wavelength in cm
-    nu1 = ccgs / lam1cgs              # line freq in Hz
-    nudop = vdop / ccgs * nu1         # doppler width in Hz
-    lamdop = vdop / ccgs * lam1       # doppler width in Ang
+    nu1 = speed_of_light_cgs / lam1           # line freq in Hz
+    nudop = v_doppler / speed_of_light_cgs * nu1   # doppler width in Hz
+    lamdop = v_doppler / speed_of_light_cgs * lam1 # doppler width in Ang
 
     ## create wavelength
     if lambda_bins is None:
         lambda_bins = lam1 + \
             np.arange(n_lambda, dtype=np.float) * dlambda - \
-            n_lambda * dlambda / 2    # wavelength vector (angstroms)
-    nua = ccgs / (lambda_bins / 1.e8) # frequency vector (Hz)
+            n_lambda * dlambda / 2  # wavelength vector (angstroms)
+    nua = (speed_of_light_cgs / lambda_bins)  # frequency vector (Hz)
 
     ## tau_0
-    tau_X = np.sqrt(np.pi) * e**2 / (me * ccgs) * \
-        column_density * fval / vdop
-    tau0 = tau_X * lam0cgs
+    tau_X = np.sqrt(np.pi) * charge_proton_cgs**2 / \
+      (mass_electron_cgs * speed_of_light_cgs) * \
+      column_density * f_value / v_doppler
+    tau0 = tau_X * lamba_0
 
     # dimensionless frequency offset in units of doppler freq
-    x = (nua - nu1) / nudop
-    a = gamma / (4 * np.pi * nudop)   # damping parameter 
-    phi = voigt(a, x)                 # profile
-    tauphi = tau0 * phi               # profile scaled with tau0
+    x = ((nua - nu1) / nudop).in_units("")
+    a = (gamma / (4 * np.pi * nudop)).in_units("s")  # damping parameter 
+    phi = voigt(a, x)                                # line profile
+    tauphi = (tau0 * phi).in_units("")               # profile scaled with tau0
 
     return (lambda_bins, tauphi)
+
+if isinstance(special, NotAModule):
+    voigt = voigt_old
+else:
+    voigt = voigt_scipy

@@ -124,6 +124,41 @@ See :ref:`off-axis-projections` for more information.
 
 .. yt_cookbook:: simple_off_axis_projection.py
 
+.. _cookbook-simple-particle-plot:
+
+Simple Particle Plot
+~~~~~~~~~~~~~~~~~~~~
+
+You can also use yt to make particle-only plots. This script shows how to
+plot all the particle x and y positions in a dataset, using the particle mass
+to set the color scale.
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_xy_plot.py
+
+.. _cookbook-non-spatial-particle-plot:
+
+Non-spatial Particle Plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You are not limited to plotting spatial fields on the x and y axes. This
+example shows how to plot the particle x-coordinates versus their z-velocities,
+again using the particle mass to set the colorbar. 
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_xvz_plot.py
+
+.. _cookbook-single-color-particle-plot:
+
+Single-color Particle Plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you don't want to display a third field on the color bar axis, simply pass
+in a color string instead of a particle field.
+See :ref:`particle-plots` for more information.
+
+.. yt_cookbook:: particle_one_color_plot.py
+
 .. _cookbook-simple_volume_rendering:
 
 Simple Volume Rendering
@@ -135,12 +170,15 @@ See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: simple_volume_rendering.py
 
-Showing and Hiding Axes Labels and Colorbars
+.. _show-hide-axes-colorbar:
+
+Showing and Hiding Axis Labels and Colorbars
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This example illustrates how to create a SlicePlot and then suppress the axes
 labels and colorbars.  This is useful when you don't care about the physical
-scales and just want to take a closer look at the raw plot data.
+scales and just want to take a closer look at the raw plot data.  See 
+:ref:`hiding-colorbar-and-axes` for more information.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
 
@@ -178,3 +216,24 @@ recipe to generate the image, but it works for any NxNx4 image array
 information.
 
 .. yt_cookbook:: image_background_colors.py
+
+.. _annotations-recipe:
+
+Annotating Plots to Include Lines, Text, Shapes, etc.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It can be useful to add annotations to plots to show off certain features
+and make it easier for your audience to understand the plot's purpose.  There
+are a variety of available :ref:`plot modifications <callbacks>` one can use 
+to add annotations to their plots.  Below includes just a handful, but please
+look at the other :ref:`plot modifications <callbacks>` to get a full 
+description of what you can do to highlight your figures.
+
+.. yt_cookbook:: annotations.py
+
+Annotating Plots with a Timestamp and Physical Scale
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When creating movies of multiple outputs from the same simulation (see :ref:`time-series-analysis`), it can be helpful to include a timestamp and the physical scale of each individual output.  This is simply achieved using the :ref:`annotate_timestamp() <annotate-timestamp>` and :ref:`annotate_scale() <annotate-scale>` callbacks on your plots.  For more information about similar plot modifications using other callbacks, see the section on :ref:`Plot Modifications <callbacks>`.  
+
+.. yt_cookbook:: annotate_timestamp_and_scale.py

@@ -5,6 +5,7 @@ Data structures for Tipsy frontend
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
@@ -67,22 +68,28 @@ class TipsyDataset(ParticleDataset):
                  parameter_file=None,
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
+                 bounding_box=None,
                  units_override=None):
+        # Because Tipsy outputs don't have a fixed domain boundary, one can
+        # specify a bounding box which effectively gives a domain_left_edge 
+        # and domain_right_edge
+        self.bounding_box = bounding_box
+        self.filter_bbox = (bounding_box is not None)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
             field_dtypes = {}
         success, self.endian = self._validate_header(filename)
         if not success:
-            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
-            print "%s != (%s == %s + %s + %s)" % (
+            print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
+            print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
                 tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
-                self.parameters['nstar'])
-            print "Often this can be fixed by changing the 'endian' parameter."
-            print "This defaults to '>' but may in fact be '<'."
+                self.parameters['nstar']))
+            print("Often this can be fixed by changing the 'endian' parameter.")
+            print("This defaults to '>' but may in fact be '<'.")
             raise RuntimeError
         self.storage_filename = None
 
@@ -91,6 +98,7 @@ class TipsyDataset(ParticleDataset):
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
+
         self._cosmology_parameters = cosmology_parameters
         if parameter_file is not None:
             parameter_file = os.path.abspath(parameter_file)
@@ -163,13 +171,21 @@ class TipsyDataset(ParticleDataset):
         self.periodicity = (periodic, periodic, periodic)
         if comoving and period is None:
             period = 1.0
-        if periodic and period is not None:
-            # If we are periodic, that sets our domain width to either 1 or dPeriod.
-            self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
-            self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
-        else:
-            self.domain_left_edge = None
-            self.domain_right_edge = None
+        if self.bounding_box is None:
+            if periodic and period is not None:
+                # If we are periodic, that sets our domain width to either 1 or dPeriod.
+                self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
+                self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
+            else:
+                self.domain_left_edge = None
+                self.domain_right_edge = None
+        else: 
+            bbox = np.array(self.bounding_box, dtype="float64")
+            if bbox.shape == (2, 3):
+                bbox = bbox.transpose()
+            self.domain_left_edge = bbox[:,0]
+            self.domain_right_edge = bbox[:,1]
+
         if comoving:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
@@ -192,7 +208,9 @@ class TipsyDataset(ParticleDataset):
         f.close()
 
     def _set_derived_attrs(self):
-        if self.domain_left_edge is None or self.domain_right_edge is None:
+        if self.bounding_box is None and (
+                self.domain_left_edge is None or
+                self.domain_right_edge is None):
             self.domain_left_edge = np.nan
             self.domain_right_edge = np.nan
             self.index

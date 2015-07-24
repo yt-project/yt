@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import time
+from yt.extern.six import string_types
 
 try:
     import sqlite3
@@ -771,7 +772,7 @@ class SelectQuery(BaseQuery):
     def group_by(self, clause):
         model = self.query_context
         
-        if isinstance(clause, basestring):
+        if isinstance(clause, string_types):
             fields = (clause,)
         elif isinstance(clause, (list, tuple)):
             fields = clause
@@ -801,7 +802,7 @@ class SelectQuery(BaseQuery):
         )
 
     def parse_select_query(self, alias_map):
-        if isinstance(self.query, basestring):
+        if isinstance(self.query, string_types):
             if self.query in ('*', self.model._meta.pk_name) and self.use_aliases():
                 return '%s.%s' % (alias_map[self.model], self.query)
             return self.query
@@ -1108,7 +1109,7 @@ class DateTimeField(Field):
     db_field = 'datetime'
     
     def python_value(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, string_types):
             value = value.rsplit('.', 1)[0]
             return datetime(*time.strptime(value, '%Y-%m-%d %H:%M:%S')[:6])
         return value
@@ -1163,7 +1164,7 @@ class ForeignRelatedObject(object):
         if not getattr(instance, self.cache_name, None):
             id = getattr(instance, self.field_name, 0)
             qr = self.to.select().where(**{self.to._meta.pk_name: id}).execute()
-            setattr(instance, self.cache_name, qr.next())
+            setattr(instance, self.cache_name, next(qr))
         return getattr(instance, self.cache_name)
     
     def __set__(self, instance, obj):
@@ -1402,7 +1403,7 @@ class Model(object):
     def get(cls, *args, **kwargs):
         query = cls.select().where(*args, **kwargs).paginate(1, 1)
         try:
-            return query.execute().next()
+            return next(query.execute())
         except StopIteration:
             raise cls.DoesNotExist('instance matching query does not exist:\nSQL: %s\nPARAMS: %s' % (
                 query.sql()

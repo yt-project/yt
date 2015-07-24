@@ -20,7 +20,8 @@ import uuid
 from yt.fields.derived_field import \
     ValidateSpatial
 from yt.funcs import mylog
-    
+from yt.extern.six import string_types
+
 from .clump_info_items import \
     clump_info_registry
 from .clump_validators import \
@@ -42,7 +43,8 @@ def add_contour_field(ds, contour_key):
                  function=_contours,
                  validators=[ValidateSpatial(0)],
                  take_log=False,
-                 display_field=False)
+                 display_field=False,
+                 units='')
 
 class Clump(object):
     children = None
@@ -267,7 +269,7 @@ def get_lowest_clumps(clump, clump_list=None):
 
 def write_clump_index(clump, level, fh):
     top = False
-    if not isinstance(fh, file):
+    if isinstance(fh, string_types):
         fh = open(fh, "w")
         top = True
     for q in range(level):
@@ -284,7 +286,7 @@ def write_clump_index(clump, level, fh):
 
 def write_clumps(clump, level, fh):
     top = False
-    if not isinstance(fh, file):
+    if isinstance(fh, string_types):
         fh = open(fh, "w")
         top = True
     if ((clump.children is None) or (len(clump.children) == 0)):
