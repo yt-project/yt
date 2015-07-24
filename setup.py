@@ -114,7 +114,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 # End snippet
 ######
 
-VERSION = "3.2dev"
+VERSION = "3.3-dev"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
