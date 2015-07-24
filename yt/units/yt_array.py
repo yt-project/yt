@@ -1310,6 +1310,8 @@ def get_binary_op_return_class(cls1, cls2):
                            "Received operand types (%s) and (%s)" % (cls1, cls2))
 
 def loadtxt(fname, dtype='float', delimiter='\t', usecols=None):
+    r"""
+    """
     f = open(fname, 'r')
     line = f.readline()
     f.close()
@@ -1325,7 +1327,40 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None):
                         unpack=True, usecols=usecols, ndmin=0)
     return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
 
-def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n'):
+def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n',
+            header='', footer='', comments='#'):
+    r"""
+    
+    Parameters
+    ----------
+    fname : string
+        The file to write the YTArrays to.
+    arrays : list of YTArrays or single YTArray
+        The array(s) to write to the file.
+    fmt : str or sequence of strs, optional
+        A single format (%10.5f), or a sequence of formats. 
+    delimiter : string, optional
+        String or character separating columns.
+    newline : string, optional
+        String or character separating lines.
+    header : string, optional
+        String that will be written at the beginning of the file, before the
+        unit header.
+    footer : string, optional
+        String that will be written at the end of the file.
+    comments : str, optional
+        String that will be prepended to the ``header`` and ``footer`` strings,
+        to mark them as comments. Default: '# ',  as expected by e.g.
+        ``yt.loadtxt``.
+    
+    Examples
+    --------
+    >>> sp = ds.sphere("c", (100,"kpc"))
+    >>> a = sphere["density"]
+    >>> b = sphere["temperature"]
+    >>> c = sphere["velocity_x"]
+    >>> yt.savetxt("sphere.dat", [a,b,c], header='My sphere stuff', delimiter="\t")
+    """
     if not isinstance(arrays, list):
         arrays = [arrays]
     units = []
@@ -1334,6 +1369,7 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n'):
             units.append(str(array.units))
         else:
             units.append("dimensionless")
-    header = "\t".join(units)
+    header = header + newline + delimiter.join(units)
     np.savetxt(fname, np.transpose(arrays), header=header,
-               fmt=fmt, delimiter=delimiter, newline=newline)
+               fmt=fmt, delimiter=delimiter, footer=footer,
+               newline=newline, comments=comments)
