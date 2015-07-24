@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 
 from matplotlib.patches import Circle
 from matplotlib.colors import colorConverter
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 from yt.funcs import *
 from yt.extern.six import add_metaclass
@@ -93,7 +94,7 @@ class PlotCallback(object):
 
     def convert_to_plot(self, plot, coord, offset=True):
         """
-        Convert coordinates from projected data coordinates to PlotWindow 
+        Convert coordinates from projected data coordinates to PlotWindow
         plot coordinates.  Projected data coordinates are two dimensional
         and refer to the location relative to the specific axes being plotted,
         although still in simulation units.  PlotWindow plot coordinates
@@ -134,7 +135,7 @@ class PlotCallback(object):
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
-        Given a set of x,y (and z) coordinates and a coordinate system, 
+        Given a set of x,y (and z) coordinates and a coordinate system,
         convert the coordinates (and transformation) ready for final plotting.
 
         Coordinate systems
@@ -144,16 +145,16 @@ class PlotCallback(object):
 
         plot : 2D coordinates as defined by the final axis locations
 
-        axis : 2D coordinates within the axis object from (0,0) in lower left 
+        axis : 2D coordinates within the axis object from (0,0) in lower left
                to (1,1) in upper right.  Same as matplotlib axis coords.
 
-        figure : 2D coordinates within figure object from (0,0) in lower left 
+        figure : 2D coordinates within figure object from (0,0) in lower left
                  to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError("Coordinates in 'data' coordinate system " 
+                raise SyntaxError("Coordinates in 'data' coordinate system "
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
@@ -165,7 +166,7 @@ class PlotCallback(object):
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError("Coordinates in 'axis' coordinate system " 
+                raise SyntaxError("Coordinates in 'axis' coordinate system "
                                   "need to be in 2D")
             return coord
         # if in figure coords, define the transform correctly
@@ -204,25 +205,25 @@ class PlotCallback(object):
         local_font_properties.set_file(None)
         local_font_properties.set_family('stixgeneral')
 
-        if 'family' in kwargs: 
+        if 'family' in kwargs:
             local_font_properties.set_family(kwargs['family'])
-        if 'file' in kwargs: 
+        if 'file' in kwargs:
             local_font_properties.set_file(kwargs['file'])
-        if 'fontconfig_pattern' in kwargs: 
+        if 'fontconfig_pattern' in kwargs:
             local_font_properties.set_fontconfig_pattern(kwargs['fontconfig_pattern'])
-        if 'name' in kwargs: 
+        if 'name' in kwargs:
             local_font_properties.set_name(kwargs['name'])
-        if 'size' in kwargs: 
+        if 'size' in kwargs:
             local_font_properties.set_size(kwargs['size'])
-        if 'slant' in kwargs: 
+        if 'slant' in kwargs:
             local_font_properties.set_slant(kwargs['slant'])
-        if 'stretch' in kwargs: 
+        if 'stretch' in kwargs:
             local_font_properties.set_stretch(kwargs['stretch'])
-        if 'style' in kwargs: 
+        if 'style' in kwargs:
             local_font_properties.set_style(kwargs['style'])
-        if 'variant' in kwargs: 
+        if 'variant' in kwargs:
             local_font_properties.set_variant(kwargs['variant'])
-        if 'weight' in kwargs: 
+        if 'weight' in kwargs:
             local_font_properties.set_weight(kwargs['weight'])
 
         # For each label, set the font properties and color to the figure
@@ -235,7 +236,7 @@ class PlotCallback(object):
 class VelocityCallback(PlotCallback):
     """
     annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
-    
+
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
     length unit using *scale_units* (see
@@ -274,8 +275,8 @@ class VelocityCallback(PlotCallback):
                 bv_y = bv[yi]
             else: bv_x = bv_y = YTQuantity(0, 'cm/s')
 
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
-                                 scale_units=self.scale_units, 
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
+                                 scale_units=self.scale_units,
                                  normalize=self.normalize, bv_x=bv_x, bv_y=bv_y)
         return qcb(plot)
 
@@ -316,16 +317,16 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None, 
+    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None,
                     normalize=False, bv_x=0, bv_y=0):
 
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
-    *scale* is the data units per arrow length unit using *scale_units* 
+    *scale* is the data units per arrow length unit using *scale_units*
     (see matplotlib.axes.Axes.quiver for more info)
     """
     _type_name = "quiver"
-    def __init__(self, field_x, field_y, factor=16, scale=None, 
+    def __init__(self, field_x, field_y, factor=16, scale=None,
                  scale_units=None, normalize=False, bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -405,7 +406,7 @@ class ContourCallback(PlotCallback):
     """
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args=None, label=False, take_log=None, 
+                 plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'k'}
@@ -436,10 +437,10 @@ class ContourCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
 
         plot._axes.hold(True)
-        
+
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
-        
+
         # Multiply by dx and dy to go from data->plot
         dx = (xx1 - xx0) / (x1-x0)
         dy = (yy1 - yy0) / (y1-y0)
@@ -456,7 +457,7 @@ class ContourCallback(PlotCallback):
                 z = data[self.field]
             elif plot._type_name in ['Projection','Slice']:
                 #Makes a copy of the position fields "px" and "py" and adds the
-                #appropriate shift to the copied field.  
+                #appropriate shift to the copied field.
 
                 AllX = np.zeros(data["px"].size, dtype='bool')
                 AllY = np.zeros(data["py"].size, dtype='bool')
@@ -472,7 +473,7 @@ class ContourCallback(PlotCallback):
                     YShifted[ylim] += shift * dom_y
                     AllX |= xlim
                     AllY |= ylim
-            
+
                 # At this point XShifted and YShifted are the shifted arrays of
                 # position data in data coordinates
                 wI = (AllX & AllY)
@@ -481,7 +482,7 @@ class ContourCallback(PlotCallback):
                 x = ((XShifted[wI]-x0)*dx).ndarray_view() + xx0
                 y = ((YShifted[wI]-y0)*dy).ndarray_view() + yy0
                 z = data[self.field][wI]
-        
+
             # Both the input and output from the triangulator are in plot
             # coordinates
             if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
@@ -494,27 +495,27 @@ class ContourCallback(PlotCallback):
                 zi = LinearTriInterpolator(triangulation, z)(xi,yi)
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
-        
+
         if self.take_log is None:
             field = data._determine_fields([self.field])[0]
             self.take_log = plot.ds._get_field_info(*field).take_log
 
         if self.take_log: zi=np.log10(zi)
 
-        if self.take_log and self.clim is not None: 
+        if self.take_log and self.clim is not None:
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
-        
-        if self.clim is not None: 
+
+        if self.clim is not None:
             self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
-        
+
         cset = plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
-        
+
         if self.label:
             plot._axes.clabel(cset, **self.text_args)
-        
+
 
 class GridBoundaryCallback(PlotCallback):
     """
@@ -586,7 +587,7 @@ class GridBoundaryCallback(PlotCallback):
         levels = levels[new_indices]
         GLE = GLE[new_indices]
         GRE = GRE[new_indices]
-        
+
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
@@ -646,19 +647,21 @@ class StreamlineCallback(PlotCallback):
     Add streamlines to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
+    *field_color* is a field to be used to colormap the streamlines.
     """
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor = 16,
-                 density = 1, plot_args=None):
+    def __init__(self, field_x, field_y, factor=16,
+                 density=1, field_color=None, plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {}
         self.field_x = field_x
         self.field_y = field_y
+        self.field_color = field_color
         self.factor = factor
         self.dens = density
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
-        
+
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -681,10 +684,19 @@ class StreamlineCallback(PlotCallback):
                              plot.data[self.field_y],
                              int(nx), int(ny),
                              (x0, x1, y0, y1),).transpose()
+        if self.field_color:
+            self.field_color = _MPL.Pixelize(plot.data['px'],
+                                             plot.data['py'],
+                                             plot.data['pdx'],
+                                             plot.data['pdy'],
+                                             plot.data[self.field_color],
+                                             int(nx), int(ny),
+                                             (x0, x1, y0, y1),).transpose()
+
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
-                           'density': self.dens}
+                           'density': self.dens, 'color':self.field_color}
         streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -707,7 +719,7 @@ class LinePlotCallback(PlotCallback):
     coord_system : string, optional
         This string defines the coordinate system of the coordinates p1 and p2.
         Valid coordinates are:
-            
+
             "data" -- the 3D dataset coordinates
 
             "plot" -- the 2D coordinates defined by the actual plot limits
@@ -723,17 +735,17 @@ class LinePlotCallback(PlotCallback):
         the line.  By default, it is: {'color':'white', 'linewidth':2}
 
     Examples
-    -------- 
+    --------
 
-    >>> # Overplot a diagonal white line from the lower left corner to upper 
+    >>> # Overplot a diagonal white line from the lower left corner to upper
     >>> # right corner
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_line([0,0], [1,1], coord_system='axis')
     >>> s.save()
- 
-    >>> # Overplot a red dashed line from data coordinate (0.1, 0.2, 0.3) to 
+
+    >>> # Overplot a red dashed line from data coordinate (0.1, 0.2, 0.3) to
     >>> # (0.5, 0.6, 0.7)
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -741,10 +753,10 @@ class LinePlotCallback(PlotCallback):
     >>> s.annotate_line([0.1, 0.2, 0.3], [0.5, 0.6, 0.7], coord_system='data',
                         plot_args={'color':'red', 'lineStyles':'--'})
     >>> s.save()
- 
+
     """
     _type_name = "line"
-    def __init__(self, p1, p2, data_coords=False, coord_system="data", 
+    def __init__(self, p1, p2, data_coords=False, coord_system="data",
                  plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'white', 'linewidth':2}
@@ -767,7 +779,7 @@ class LinePlotCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, 
+        plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform,
                         **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -786,7 +798,7 @@ class ImageLineCallback(LinePlotCallback):
     _type_name = "image_line"
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args=None):
-        super(ImageLineCallback, self).__init__(p1, p2, data_coords, 
+        super(ImageLineCallback, self).__init__(p1, p2, data_coords,
                                                 coord_system, plot_args)
         warnings.warn("The ImageLineCallback (annotate_image_line()) is "
                       "deprecated.  Please use the LinePlotCallback "
@@ -893,8 +905,8 @@ class ArrowCallback(PlotCallback):
     """
     annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
 
-    Overplot an arrow pointing at a position for highlighting a specific 
-    feature.  Arrow points from lower left to the designated position with 
+    Overplot an arrow pointing at a position for highlighting a specific
+    feature.  Arrow points from lower left to the designated position with
     arrow length "length".
 
     Parameters
@@ -924,7 +936,7 @@ class ArrowCallback(PlotCallback):
         the arrow.  By default, it is: {'color':'white', 'linewidth':2}
 
     Examples
-    -------- 
+    --------
 
     >>> # Overplot an arrow pointing to feature at data coord: (0.2, 0.3, 0.4)
     >>> import yt
@@ -932,19 +944,19 @@ class ArrowCallback(PlotCallback):
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_arrow([0.2,0.3,0.4])
     >>> s.save()
- 
-    >>> # Overplot a red arrow with longer length pointing to plot coordinate 
+
+    >>> # Overplot a red arrow with longer length pointing to plot coordinate
     >>> # (0.1, -0.1)
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_arrow([0.1, -0.1, length=0.06, coord_system='plot', 
+    >>> s.annotate_arrow([0.1, -0.1, length=0.06, coord_system='plot',
     ...                  plot_args={'color':'red'})
     >>> s.save()
- 
+
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, coord_system='data', 
+    def __init__(self, pos, code_size=None, length=0.03, coord_system='data',
                  plot_args=None):
         def_plot_args = {'color':'white', 'linewidth':2}
         self.pos = pos
@@ -956,7 +968,7 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x,y = self.sanitize_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1017,7 +1029,7 @@ class MarkerAnnotateCallback(PlotCallback):
         the marker.  By default, it is: {'color':'white', 's':50}
 
     Examples
-    -------- 
+    --------
 
     >>> # Overplot a white X on a feature at data location (0.5, 0.5, 0.5)
     >>> import yt
@@ -1025,7 +1037,7 @@ class MarkerAnnotateCallback(PlotCallback):
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_marker([0.4, 0.5, 0.6])
     >>> s.save()
- 
+
     >>> # Overplot a big yellow circle at axis location (0.1, 0.2)
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -1033,7 +1045,7 @@ class MarkerAnnotateCallback(PlotCallback):
     >>> s.annotate_marker([0.1, 0.2], marker='o', coord_system='axis',
     ...                   plot_args={'color':'yellow', 's':200})
     >>> s.save()
- 
+
     """
     _type_name = "marker"
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
@@ -1046,12 +1058,12 @@ class MarkerAnnotateCallback(PlotCallback):
         self.transform = None
 
     def __call__(self, plot):
-        x,y = self.sanitize_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        plot._axes.scatter(x, y, marker = self.marker, 
+        plot._axes.scatter(x, y, marker = self.marker,
                            transform=self.transform, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1059,7 +1071,7 @@ class MarkerAnnotateCallback(PlotCallback):
 
 class SphereCallback(PlotCallback):
     """
-    annotate_sphere(center, radius, circle_args=None, 
+    annotate_sphere(center, radius, circle_args=None,
                     coord_system='data', text=None, text_args=None):
 
     Overplot a circle with designated center and radius with optional text.
@@ -1073,9 +1085,9 @@ class SphereCallback(PlotCallback):
         The radius of the circle in code coordinates
 
     circle_args : dict, optional
-        This dictionary is passed to the MPL circle object. By default, 
+        This dictionary is passed to the MPL circle object. By default,
         {'color':'white'}
-        
+
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
@@ -1094,11 +1106,11 @@ class SphereCallback(PlotCallback):
         Optional text to include next to the circle.
 
     text_args : dictionary, optional
-        This dictionary is passed to the MPL text function. By default, 
+        This dictionary is passed to the MPL text function. By default,
         it is: {'color':'white'}
 
     Examples
-    -------- 
+    --------
 
     >>> # Overplot a white circle of radius 100 kpc over the central galaxy
     >>> import yt
@@ -1106,7 +1118,7 @@ class SphereCallback(PlotCallback):
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_sphere([0.5, 0.5, 0.5], radius=(100, 'kpc'))
     >>> s.save()
- 
+
     """
     _type_name = "sphere"
     def __init__(self, center, radius, circle_args=None,
@@ -1131,7 +1143,7 @@ class SphereCallback(PlotCallback):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
 
-        # This assures the radius has the appropriate size in 
+        # This assures the radius has the appropriate size in
         # the different coordinate systems, since one cannot simply
         # apply a different transform for a length in the same way
         # you can for a coordinate.
@@ -1139,11 +1151,11 @@ class SphereCallback(PlotCallback):
             self.radius = self.radius * self.pixel_scale(plot)[0]
         else:
             self.radius /= (plot.xlim[1]-plot.xlim[0]).v
-        
-        x,y = self.sanitize_coord_system(plot, self.center, 
+
+        x,y = self.sanitize_coord_system(plot, self.center,
                                coord_system=self.coord_system)
 
-        cir = Circle((x, y), self.radius, transform=self.transform, 
+        cir = Circle((x, y), self.radius, transform=self.transform,
                      **self.circle_args)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1151,7 +1163,7 @@ class SphereCallback(PlotCallback):
 
         plot._axes.add_patch(cir)
         if self.text is not None:
-            label = plot._axes.text(x, y, self.text, transform=self.transform, 
+            label = plot._axes.text(x, y, self.text, transform=self.transform,
                                     **self.text_args)
             self._set_font_properties(plot, [label], **self.text_args)
 
@@ -1162,11 +1174,11 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, coord_system='data', text_args=None, 
+    annotate_text(pos, text, coord_system='data', text_args=None,
                   inset_box_args=None):
 
-    Overplot text on the plot at a specified position. If you desire an inset 
-    box around your text, set one with the inset_box_args dictionary 
+    Overplot text on the plot at a specified position. If you desire an inset
+    box around your text, set one with the inset_box_args dictionary
     keyword.
 
     Parameters
@@ -1193,7 +1205,7 @@ class TextLabelCallback(PlotCallback):
 
     text_args : dictionary, optional
         This dictionary is passed to the MPL text function for generating
-        the text.  By default, it is: {'color':'white'} and uses the defaults 
+        the text.  By default, it is: {'color':'white'} and uses the defaults
         for the other fonts in the image.
 
     inset_box_args : dictionary, optional
@@ -1201,9 +1213,9 @@ class TextLabelCallback(PlotCallback):
         FancyBboxPatch object as the inset box around the text.  Default: {}
 
     Examples
-    -------- 
+    --------
 
-    >>> # Overplot white text at data location [0.55, 0.7, 0.4] 
+    >>> # Overplot white text at data location [0.55, 0.7, 0.4]
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
@@ -1216,15 +1228,15 @@ class TextLabelCallback(PlotCallback):
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_text([0.2, 0.8], "Here is a galaxy", coord_system='axis',
-    ...                 text_args={'color':'yellow'}, 
-    ...                 inset_box_args={'boxstyle':'square,pad=0.3', 
-    ...                                 'facecolor':'black', 
-    ...                                 'linewidth':3, 
+    ...                 text_args={'color':'yellow'},
+    ...                 inset_box_args={'boxstyle':'square,pad=0.3',
+    ...                                 'facecolor':'black',
+    ...                                 'linewidth':3,
     ...                                 'edgecolor':'white', 'alpha':0.5})
     >>> s.save()
     """
     _type_name = "text"
-    def __init__(self, pos, text, data_coords=False, coord_system='data', 
+    def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         def_text_args = {'color':'white'}
         self.pos = pos
@@ -1242,7 +1254,7 @@ class TextLabelCallback(PlotCallback):
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
-        x,y = self.sanitize_coord_system(plot, self.pos, 
+        x,y = self.sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
 
         # Set the font properties of text from this callback to be
@@ -1250,7 +1262,7 @@ class TextLabelCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        label = plot._axes.text(x, y, self.text, transform=self.transform, 
+        label = plot._axes.text(x, y, self.text, transform=self.transform,
                                 bbox=self.inset_box_args, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
@@ -1259,7 +1271,7 @@ class TextLabelCallback(PlotCallback):
 
 class PointAnnotateCallback(TextLabelCallback):
     """
-    annotate_point(pos, text, coord_system='data', text_args=None, 
+    annotate_point(pos, text, coord_system='data', text_args=None,
                    inset_box_args=None)
 
     This callback is deprecated, as it is simply a wrapper around
@@ -1268,10 +1280,10 @@ class PointAnnotateCallback(TextLabelCallback):
 
     """
     _type_name = "point"
-    def __init__(self, pos, text, data_coords=False, coord_system='data', 
+    def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
-        super(PointAnnotateCallback, self).__init__(pos, text, data_coords, 
-                                                    coord_system, text_args, 
+        super(PointAnnotateCallback, self).__init__(pos, text, data_coords,
+                                                    coord_system, text_args,
                                                     inset_box_args)
         warnings.warn("The PointAnnotateCallback (annotate_point()) is "
                       "deprecated.  Please use the TextLabelCallback "
@@ -1288,15 +1300,15 @@ class HaloCatalogCallback(PlotCallback):
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
-    virial radius of each halo. 
+    virial radius of each halo.
 
     circle_args: Contains the arguments controlling the
-        appearance of the circles, supplied to the 
+        appearance of the circles, supplied to the
         Matplotlib patch Circle.
     width: the width over which to select halos to plot,
         useful when overplotting to a slice plot. Accepts
         a tuple in the form (1.0, 'Mpc').
-    annotate_field: Accepts a field contained in the 
+    annotate_field: Accepts a field contained in the
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
@@ -1312,7 +1324,7 @@ class HaloCatalogCallback(PlotCallback):
     _descriptor = None
 
     def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
-                 width=None, annotate_field=None, text_args=None, 
+                 width=None, annotate_field=None, text_args=None,
                  font_kwargs=None, factor=1.0):
 
         PlotCallback.__init__(self)
@@ -1341,7 +1353,7 @@ class HaloCatalogCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        
+
         halo_data= self.halo_catalog.halos_ds.all_data()
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
@@ -1365,7 +1377,7 @@ class HaloCatalogCallback(PlotCallback):
         # Convert halo radii to a radius in pixels
         radius = halo_data['virial_radius'][:].in_units(units)
         radius = np.array(radius*pixel_scale*self.factor/data_scale)
-        
+
         if self.width:
             pz = halo_data[field_z][:].in_units(units)/data_scale
             pz = data.ds.arr(pz, 'code_length')
@@ -1382,8 +1394,8 @@ class HaloCatalogCallback(PlotCallback):
             radius = radius[indices]
 
         for x,y,r in zip(px, py, radius):
-            plot._axes.add_artist(Circle(xy=(x,y), 
-                radius = r, **self.circle_args)) 
+            plot._axes.add_artist(Circle(xy=(x,y),
+                radius = r, **self.circle_args))
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1393,7 +1405,7 @@ class HaloCatalogCallback(PlotCallback):
             annotate_dat = halo_data[self.annotate_field]
             texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             labels = []
-            for pos_x, pos_y, t in zip(px, py, texts): 
+            for pos_x, pos_y, t in zip(px, py, texts):
                 labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
 
             # Set the font properties of text from this callback to be
@@ -1500,16 +1512,16 @@ class TitleCallback(PlotCallback):
         self._set_font_properties(plot, [label])
 
 class TriangleFacetsCallback(PlotCallback):
-    """ 
+    """
     annotate_triangle_facets(triangle_vertices, plot_args=None )
 
-    Intended for representing a slice of a triangular faceted 
-    geometry in a slice plot. 
+    Intended for representing a slice of a triangular faceted
+    geometry in a slice plot.
 
-    Uses a set of *triangle_vertices* to find all trangles the plane of a 
-    SlicePlot intersects with. The lines between the intersection points 
+    Uses a set of *triangle_vertices* to find all trangles the plane of a
+    SlicePlot intersects with. The lines between the intersection points
     of the triangles are then added to the plot to create an outline
-    of the geometry represented by the triangles. 
+    of the geometry represented by the triangles.
     """
     _type_name = "triangle_facets"
     def __init__(self, triangle_vertices, plot_args=None):
@@ -1542,17 +1554,17 @@ class TriangleFacetsCallback(PlotCallback):
 
 class TimestampCallback(PlotCallback):
     """
-    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True, 
-                       redshift=False, time_format="t = {time:.0f} {units}", 
-                       time_unit=None, redshift_format="z = {redshift:.2f}", 
-                       draw_inset_box=False, coord_system='axis', 
+    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True,
+                       redshift=False, time_format="t = {time:.0f} {units}",
+                       time_unit=None, redshift_format="z = {redshift:.2f}",
+                       draw_inset_box=False, coord_system='axis',
                        text_args=None, inset_box_args=None)
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
-    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
-    specified, it will automatically choose appropriate units.  It allows for 
-    custom formatting of the time and redshift information, as well as the 
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are
+    specified, it will automatically choose appropriate units.  It allows for
+    custom formatting of the time and redshift information, as well as the
     specification of an inset box around the text.
 
     Parameters
@@ -1560,13 +1572,13 @@ class TimestampCallback(PlotCallback):
 
     x_pos, y_pos : floats, optional
         The image location of the timestamp in the coord system defined by the
-        coord_system kwarg.  Setting x_pos and y_pos overrides the corner 
+        coord_system kwarg.  Setting x_pos and y_pos overrides the corner
         parameter.
 
     corner : string, optional
         Corner sets up one of 4 predeterimined locations for the timestamp
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be overridden by the 
+        'lower_right' (also allows None). This value will be overridden by the
         optional x_pos and y_pos keywords.
 
     time : boolean, optional
@@ -1578,26 +1590,26 @@ class TimestampCallback(PlotCallback):
         be used solo or in conjunction with the time parameter.
 
     time_format : string, optional
-        This specifies the format of the time output assuming "time" is the 
+        This specifies the format of the time output assuming "time" is the
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
         The time can be specified to arbitrary precision according to printf
-        formatting codes (defaults to .1f -- a float with 1 digits after 
-        decimal).  Example: "Age = {time:.2f} {units}". 
+        formatting codes (defaults to .1f -- a float with 1 digits after
+        decimal).  Example: "Age = {time:.2f} {units}".
 
     time_unit : string, optional
-        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr', 
+        time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr',
         'Myr', etc.)
 
     redshift_format : string, optional
         This specifies the format of the redshift output.  The redshift can
-        be specified to arbitrary precision according to printf formatting 
+        be specified to arbitrary precision according to printf formatting
         codes (defaults to 0.2f -- a float with 2 digits after decimal).
-        Example: "REDSHIFT = {redshift:03.3g}", 
+        Example: "REDSHIFT = {redshift:03.3g}",
 
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the text
-        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch 
-        object.  
+        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch
+        object.
 
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
@@ -1615,17 +1627,17 @@ class TimestampCallback(PlotCallback):
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 
+        text object.  Defaults: {'color':'white',
         'horizontalalignment':'center', 'verticalalignment':'top'}.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        FancyBboxPatch object as the inset box around the text.  
-        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+        FancyBboxPatch object as the inset box around the text.
+        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black',
                   'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
     Example
-    ------- 
+    -------
 
     >>> import yt
     >>> ds = yt.load('Enzo_64/DD0020/data0020')
@@ -1633,15 +1645,15 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
-    def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True, 
-                 redshift=False, time_format="t = {time:.1f} {units}", 
-                 time_unit=None, redshift_format="z = {redshift:.2f}", 
-                 draw_inset_box=False, coord_system='axis', 
+    def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
+                 redshift=False, time_format="t = {time:.1f} {units}",
+                 time_unit=None, redshift_format="z = {redshift:.2f}",
+                 draw_inset_box=False, coord_system='axis',
                  text_args=None, inset_box_args=None):
 
         def_text_args = {'color':'white', 'horizontalalignment':'center',
                          'verticalalignment':'top'}
-        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black', 
+        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black',
                               'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
 
         # Set position based on corner argument.
@@ -1665,11 +1677,11 @@ class TimestampCallback(PlotCallback):
         # Setting pos overrides corner argument
         if self.pos[0] is None or self.pos[1] is None:
             if self.corner == 'upper_left':
-                self.pos = (0.03, 0.97)
+                self.pos = (0.03, 0.96)
                 self.text_args['horizontalalignment'] = 'left'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'upper_right':
-                self.pos = (0.97, 0.97)
+                self.pos = (0.97, 0.96)
                 self.text_args['horizontalalignment'] = 'right'
                 self.text_args['verticalalignment'] = 'top'
             elif self.corner == 'lower_left':
@@ -1685,8 +1697,8 @@ class TimestampCallback(PlotCallback):
                 self.text_args['horizontalalignment'] = 'center'
                 self.text_args['verticalalignment'] = 'center'
             else:
-                raise SyntaxError("Argument 'corner' must be set to " 
-                                  "'upper_left', 'upper_right', 'lower_left', " 
+                raise SyntaxError("Argument 'corner' must be set to "
+                                  "'upper_left', 'upper_right', 'lower_left', "
                                   "'lower_right', or None")
 
         self.text = ""
@@ -1697,10 +1709,10 @@ class TimestampCallback(PlotCallback):
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
                 self.time_unit = plot.ds.get_smallest_appropriate_unit( \
-                                            plot.ds.current_time, 
+                                            plot.ds.current_time,
                                             quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
-            self.text += self.time_format.format(time=float(t), 
+            self.text += self.time_format.format(time=float(t),
                                                  units=self.time_unit)
 
         # If time and redshift both shown, do one on top of the other
@@ -1717,56 +1729,58 @@ class TimestampCallback(PlotCallback):
             self.text += self.redshift_format.format(redshift=float(z))
 
         # This is just a fancy wrapper around the TextLabelCallback
-        tcb = TextLabelCallback(self.pos, self.text, 
+        tcb = TextLabelCallback(self.pos, self.text,
                                 coord_system=self.coord_system,
-                                text_args=self.text_args, 
+                                text_args=self.text_args,
                                 inset_box_args=self.inset_box_args)
         return tcb(plot)
 
 class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
-                   max_frac=0.2, min_frac=0.018, coord_system='axis',
-                   text_args=None, plot_args=None)
+                   max_frac=0.16, min_frac=0.015, coord_system='axis',
+                   size_bar_args=None, draw_inset_box=False,
+                   inset_box_args=None)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
-    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the 
-    distance scale you desire to show on the plot.  If no coeff and units are 
-    specified, an appropriate pair will be determined such that your scale bar 
-    is never smaller than min_frac or greater than max_frac of your plottable 
-    axis length.  For additional text and plot arguments for the text and line,
-    include them as dictionaries to pass to text_args and plot_args.
-    
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
+    distance scale you desire to show on the plot.  If no coeff and units are
+    specified, an appropriate pair will be determined such that your scale bar
+    is never smaller than min_frac or greater than max_frac of your plottable
+    axis length.  Additional customization of the scale bar is possible by
+    adjusting the size_bar_args dictionary.  This accepts keyword arguments
+    for the AnchoredSizeBar class in matplotlib's axes_grid toolkit.
+
     Parameters
     ----------
 
     corner : string, optional
-        Corner sets up one of 4 predeterimined locations for the timestamp
+        Corner sets up one of 4 predeterimined locations for the scale bar
         to be displayed in the image: 'upper_left', 'upper_right', 'lower_left',
-        'lower_right' (also allows None). This value will be overridden by the 
+        'lower_right' (also allows None). This value will be overridden by the
         optional 'pos' keyword.
 
     coeff : float, optional
         The coefficient of the unit defining the distance scale (e.g. 10 kpc or
-        100 Mpc) for overplotting.  If set to None along with unit keyword, 
+        100 Mpc) for overplotting.  If set to None along with unit keyword,
         coeff will be automatically determined to be a power of 10
         relative to the best-fit unit.
 
     unit : string, optional
-        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc', 
+        unit must be a valid yt distance unit (e.g. 'm', 'km', 'AU', 'pc',
         'kpc', etc.) or set to None.  If set to None, will be automatically
         determined to be the best-fit to the data.
 
     pos : 2- or 3-element tuples, lists, or arrays, optional
-        The image location of the timestamp in the coord system defined by the
-        coord_system kwarg.  Setting pos overrides the corner parameter.
+        The image location of the scale bar in the plot coordinate system.
+        Setting pos overrides the corner parameter.
 
     min_frac, max_frac: float, optional
-        The minimum/maximum fraction of the axis width for the scale bar to 
+        The minimum/maximum fraction of the axis width for the scale bar to
         extend. A value of 1 would allow the scale bar to extend across the
-        entire axis width.  Only used for automatically calculating 
-        best-fit coeff and unit when neither is specified, otherwise 
+        entire axis width.  Only used for automatically calculating
+        best-fit coeff and unit when neither is specified, otherwise
         disregarded.
 
     coord_system : string, optional
@@ -1783,17 +1797,23 @@ class ScaleCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    text_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white', 
-        'horizontalalignment':'center', 'verticalalignment':'top'}.
+    size_bar_args : dictionary, optional
+        A dictionary of parameters to be passed to the Matplotlib
+        AnchoredSizeBar initializer.
+        Defaults: {'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}
 
-    plot_args : dictionary, optional
-        A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        line object.  Defaults: {'color':'white', 'linewidth':3}.
+    draw_inset_box : boolean, optional
+        Whether or not an inset box should be included around the scale bar.
+
+    inset_box_args : dictionary, optional
+        A dictionary of keyword arguments to be passed to the matplotlib Patch
+        object that represents the inset box.
+        Defaults: {'facecolor': 'black', 'linewidth': 3, 'edgecolor', 'white',
+                   'alpha': 0.5, 'boxstyle': 'square'}
+
 
     Example
-    ------- 
+    -------
 
     >>> import yt
     >>> ds = yt.load('Enzo_64/DD0020/data0020')
@@ -1801,12 +1821,24 @@ class ScaleCallback(PlotCallback):
     >>> s.annotate_scale()
     """
     _type_name = "scale"
-    def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None, 
-                 max_frac=0.20, min_frac=0.018, coord_system='axis',
-                 text_args=None, plot_args=None):
+    def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
+                 max_frac=0.16, min_frac=0.015, coord_system='axis',
+                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
 
-        def_text_args = {'color':'white'}
-        def_plot_args = {'color':'white', 'linewidth':3}
+        def_size_bar_args = {
+            'pad': 0.05,
+            'sep': 5,
+            'borderpad': 1,
+            'color': 'w'
+        }
+
+        def_inset_box_args = {
+            'facecolor': 'black',
+            'linewidth': 3,
+            'edgecolor': 'white',
+            'alpha': 0.5,
+            'boxstyle': 'square',
+        }
 
         # Set position based on corner argument.
         self.corner = corner
@@ -1816,43 +1848,44 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
-        if text_args is None: text_args = def_text_args
-        self.text_args = text_args
-        # This assures the line and the text are aligned
-        self.text_args['horizontalalignment'] = 'center'
-        self.text_args['verticalalignment'] = 'top'
-        if plot_args is None: plot_args = def_plot_args
-        self.plot_args = plot_args
+        if size_bar_args is None:
+            self.size_bar_args = def_size_bar_args
+        else:
+            self.size_bar_args = size_bar_args
+        if inset_box_args is None:
+            self.inset_box_args = def_inset_box_args
+        else:
+            self.inset_box_args = inset_box_args
+        self.draw_inset_box = draw_inset_box
 
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
-        ysize = plot.ylim[1] - plot.ylim[0]
-        if xsize != ysize:
-            raise RuntimeError("Scale callback only works for plots with "
-                               "axis ratios of 1. Here: xsize = %s, ysize "
-                               " = %s." % (xsize, ysize))
+        if plot.aspect != 1.0:
+            raise NotImplementedError(
+                "Scale callback has only been implemented for plots with no "
+                "aspect ratio scaling. (aspect = {%s})".format(plot._aspect))
 
         # Setting pos overrides corner argument
         if self.pos is None:
             if self.corner == 'upper_left':
-                self.pos = (0.12, 0.971)
+                self.pos = (0.11, 0.952)
             elif self.corner == 'upper_right':
-                self.pos = (0.88, 0.971)
+                self.pos = (0.89, 0.952)
             elif self.corner == 'lower_left':
-                self.pos = (0.12, 0.062)
+                self.pos = (0.11, 0.052)
             elif self.corner == 'lower_right':
-                self.pos = (0.88, 0.062)
+                self.pos = (0.89, 0.052)
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                raise SyntaxError("Argument 'corner' must be set to " 
-                                  "'upper_left', 'upper_right', 'lower_left', " 
+                raise SyntaxError("Argument 'corner' must be set to "
+                                  "'upper_left', 'upper_right', 'lower_left', "
                                   "'lower_right', or None")
 
         # When identifying a best fit distance unit, do not allow scale marker
-        # to be greater than max_frac fraction of xaxis or under min_frac 
-        # fraction of xaxis 
+        # to be greater than max_frac fraction of xaxis or under min_frac
+        # fraction of xaxis
         max_scale = self.max_frac * xsize
         min_scale = self.min_frac * xsize
 
@@ -1861,30 +1894,38 @@ class ScaleCallback(PlotCallback):
 
         # If no units are set, then identify a best fit distance unit
         if self.unit is None:
-            min_scale = plot.ds.get_smallest_appropriate_unit(min_scale, 
-                                                   return_quantity=True)
-            max_scale = plot.ds.get_smallest_appropriate_unit(max_scale, 
-                                                   return_quantity=True)
+            min_scale = plot.ds.get_smallest_appropriate_unit(
+                min_scale, return_quantity=True)
+            max_scale = plot.ds.get_smallest_appropriate_unit(
+                max_scale, return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        self.text = "{scale} {units}".format(scale=int(self.coeff), 
-                                             units=self.unit)
-        image_scale = (plot.frb.convert_distance_x(self.scale) / \
+        text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
+        image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
 
-        # This is just a fancy wrapper around the TextLabelCallback and the
-        # ImageLineCallback
-        pos_line_start = (self.pos[0]-image_scale/2, self.pos[1]+0.01)
-        pos_line_end = (self.pos[0]+image_scale/2, self.pos[1]+0.01)
-        icb = LinePlotCallback(pos_line_start, pos_line_end, 
-                               coord_system=self.coord_system, 
-                               plot_args=self.plot_args)
-        icb(plot)
-        tcb = TextLabelCallback(self.pos, self.text, 
-                                coord_system=self.coord_system,
-                                text_args=self.text_args)
-        return tcb(plot)
+        size_vertical = self.size_bar_args.pop('size_vertical', .005)
+        fontproperties = self.size_bar_args.pop(
+            'fontproperties', plot.font_properties)
+        frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
+
+        # this "anchors" the size bar to a box centered on self.pos in axis
+        # coordinates
+        self.size_bar_args['bbox_to_anchor'] = self.pos
+        self.size_bar_args['bbox_transform'] = plot._axes.transAxes
+
+        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, 10,
+                              size_vertical=size_vertical,
+                              fontproperties=fontproperties,
+                              frameon=frameon,
+                              **self.size_bar_args)
+
+        bar.patch.set(**self.inset_box_args)
+
+        plot._axes.add_artist(bar)
+
+        return plot
 
 class RayCallback(PlotCallback):
     """
@@ -1893,14 +1934,14 @@ class RayCallback(PlotCallback):
     Adds a line representing the projected path of a ray across the plot.
     The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
-    
+
     Parameters
     ----------
 
     ray : YTOrthoRayBase, YTRayBase, or LightRay
         Ray is the object that we want to include.  We overplot the projected
-        trajectory of the ray.  If the object is a 
-        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay 
+        trajectory of the ray.  If the object is a
+        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
         object, it will only plot the segment of the LightRay that intersects
         the dataset currently displayed.
 
@@ -1909,7 +1950,7 @@ class RayCallback(PlotCallback):
         line object.  Defaults: {'color':'white', 'linewidth':2}.
 
     Examples
-    -------- 
+    --------
 
     >>> # Overplot a ray and an ortho_ray object on a projection
     >>> import yt
@@ -1963,8 +2004,8 @@ class RayCallback(PlotCallback):
     def _process_light_ray(self, plot):
         """
         Get the start_coord and end_coord of a LightRay object.
-        Identify which of the sections of the LightRay is in the 
-        dataset that is currently being plotted.  If there is one, return the 
+        Identify which of the sections of the LightRay is in the
+        dataset that is currently being plotted.  If there is one, return the
         start and end of the corresponding ray segment
         """
 
@@ -1993,12 +2034,12 @@ class RayCallback(PlotCallback):
             raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
                               "LightRay object.")
 
-        # if start_coord and end_coord are all False, it means no intersecting 
+        # if start_coord and end_coord are all False, it means no intersecting
         # ray segment with this plot.
         if not all(start_coord) and not all(end_coord):
             return plot
 
-        # if possible, break periodic ray into non-periodic 
+        # if possible, break periodic ray into non-periodic
         # segments and add each of them individually
         if any(plot.ds.periodicity):
             segments = periodic_ray(start_coord, end_coord,

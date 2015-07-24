@@ -35,6 +35,8 @@ from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
+from yt.fields.fluid_fields import \
+    setup_gradient_fields
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -254,27 +256,27 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v, quantity='distance', 
+    def get_smallest_appropriate_unit(self, v, quantity='distance',
                                       return_quantity=False):
         """
-        Returns the largest whole unit smaller than the YTQuantity passed to 
+        Returns the largest whole unit smaller than the YTQuantity passed to
         it as a string.
 
-        The quantity keyword can be equal to `distance` or `time`.  In the 
-        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
-        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr', 
+        The quantity keyword can be equal to `distance` or `time`.  In the
+        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun',
+        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr',
         's', 'ms', etc.
-        
-        If return_quantity is set to True, it finds the largest YTQuantity 
-        object with a whole unit and a power of ten as the coefficient, and it 
+
+        If return_quantity is set to True, it finds the largest YTQuantity
+        object with a whole unit and a power of ten as the coefficient, and it
         returns this YTQuantity.
         """
         good_u = None
         if quantity == 'distance':
-            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun',
                         'km', 'cm', 'um', 'nm', 'pm']
         elif quantity == 'time':
-            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr', 
+            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr',
                         'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
         else:
             raise SyntaxError("Specified quantity must be equal to 'distance'"\
@@ -299,7 +301,7 @@ class Dataset(object):
                 uq = self.quan(j, good_u)
                 if uq <= v:
                     return uq
-        else:            
+        else:
             return good_u
 
     def has_key(self, key):
@@ -373,6 +375,7 @@ class Dataset(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
+        self.field_info.setup_extra_union_fields()
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
@@ -597,7 +600,7 @@ class Dataset(object):
     def find_field_values_at_point(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        coordinates. Returns a list of field values in the same order as 
+        coordinates. Returns a list of field values in the same order as
         the input *fields*.
         """
         return self.point(coords)[fields]
@@ -605,7 +608,7 @@ class Dataset(object):
     def find_field_values_at_points(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field
         values in the same order as the input *fields*.
 
         This is quite slow right now as it creates a new data object for each
@@ -785,8 +788,7 @@ class Dataset(object):
 
         input_array : iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units object
+        input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -813,6 +815,7 @@ class Dataset(object):
                  1.00010449]) Mpc
 
         """
+
         if self._arr is not None:
             return self._arr
         self._arr = functools.partial(YTArray, registry = self.unit_registry)
@@ -831,8 +834,7 @@ class Dataset(object):
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units
+        input_units : String unit specification, unit symbol or astropy object
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -859,6 +861,7 @@ class Dataset(object):
         1.543e+25 cm
 
         """
+
         if self._quan is not None:
             return self._quan
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
@@ -964,6 +967,50 @@ class Dataset(object):
             take_log=False,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
+
+    def add_gradient_fields(self, input_field):
+        """Add gradient fields.
+
+        Creates four new grid-based fields that represent the components of
+        the gradient of an existing field, plus an extra field for the magnitude
+        of the gradient. Currently only supported in Cartesian geometries. The
+        gradient is computed using second-order centered differences.
+
+        Parameters
+        ----------
+        input_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct field type.
+
+        Returns
+        -------
+        A list of field name tuples for the newly created fields.
+
+        Examples
+        --------
+        >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
+        >>> print(grad_fields)
+        [('gas', 'temperature_gradient_x'),
+         ('gas', 'temperature_gradient_y'),
+         ('gas', 'temperature_gradient_z'),
+         ('gas', 'temperature_gradient_magnitude')]
+        """
+        self.index
+        if isinstance(input_field, tuple):
+            ftype, input_field = input_field[0], input_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ftype, input_field].units
+        setup_gradient_fields(self.field_info, (ftype, input_field), units)
+        # Now we make a list of the fields that were just made, to check them
+        # and to return them
+        grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
+                       for suffix in "xyz"]
+        grad_fields.append((ftype,input_field+"_gradient_magnitude"))
+        deps, _ = self.field_info.check_derived_fields(grad_fields)
+        self.field_dependencies.update(deps)
+        return grad_fields
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

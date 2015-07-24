@@ -92,7 +92,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
     >>> streamlines = Streamlines(ds, [0.5]*3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
-    >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+    >>> matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
 
     """
     _type_name = "streamline"
@@ -961,15 +961,15 @@ class YTSurfaceBase(YTSelectionContainer3D):
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
 
-    This object simply returns the vertices of all the triangles
-    calculated by the marching cubes algorithm; for more complex
-    operations, such as identifying connected sets of cells above a given
-    threshold, see the extract_connected_sets function.  This is more
-    useful for calculating, for instance, total isocontour area, or
+    This object simply returns the vertices of all the triangles calculated by
+    the `marching cubes <http://en.wikipedia.org/wiki/Marching_cubes>`_
+    algorithm; for more complex operations, such as identifying connected sets
+    of cells above a given threshold, see the extract_connected_sets function.
+    This is more useful for calculating, for instance, total isocontour area, or
     visualizing in an external program (such as `MeshLab
-    <http://meshlab.sf.net>`_.)  The object has the properties .vertices
-    and will sample values if a field is requested.  The values are
-    interpolated to the center of a given face.
+    <http://meshlab.sf.net>`_.)  The object has the properties .vertices and
+    will sample values if a field is requested.  The values are interpolated to
+    the center of a given face.
 
     Parameters
     ----------
@@ -981,22 +981,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
     field_value : float
         The value at which the isocontour should be calculated.
 
-    References
-    ----------
-
-    .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
-
     Examples
     --------
     This will create a data object, find a nice value in the center, and
     output the vertices to "triangles.obj" after rescaling them.
 
+    >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
-    >>> surf = ds.surface(sp, "Density", 5e-27)
-    >>> print surf["Temperature"]
+    >>> surf = ds.surface(sp, "density", 5e-27)
+    >>> print surf["temperature"]
     >>> print surf.vertices
-    >>> bounds = [(sp.center[i] - 5.0/ds['kpc'],
-    ...            sp.center[i] + 5.0/ds['kpc']) for i in range(3)]
+    >>> bounds = [(sp.center[i] - 5.0*kpc,
+    ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
     """
     _type_name = "surface"
@@ -1069,11 +1065,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
         r"""This calculates the flux over the surface.
 
-        This function will conduct marching cubes on all the cells in a given
-        data container (grid-by-grid), and then for each identified triangular
-        segment of an isocontour in a given cell, calculate the gradient (i.e.,
-        normal) in the isocontoured field, interpolate the local value of the
-        "fluxing" field, the area of the triangle, and then return:
+        This function will conduct `marching cubes
+        <http://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        given data container (grid-by-grid), and then for each identified
+        triangular segment of an isocontour in a given cell, calculate the
+        gradient (i.e., normal) in the isocontoured field, interpolate the local
+        value of the "fluxing" field, the area of the triangle, and then return:
 
         area * local_flux_value * (n dot v)
 
@@ -1117,9 +1114,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         calculate the metal flux over it.
 
         >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "Density", 5e-27)
+        >>> surf = ds.surface(sp, "density", 5e-27)
         >>> flux = surf.calculate_flux(
-        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
+        ...     "velocity_x", "velocity_y", "velocity_z", "metal_density")
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
@@ -1204,18 +1201,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
         >>> distf = 3.1e18*1e3 # distances into kpc
-        >>> surf = ds.surface(sp, "Density", 5e-27)
+        >>> surf = ds.surface(sp, "density", 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
+        >>> mi, ma = sp.quantities.extrema('temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', dist_fac = distf, 
+        ...                      color_field='temperature', dist_fac = distf, 
         ...                      plot_index = i, color_field_max = ma, 
         ...                      color_field_min = mi)
 
@@ -1224,12 +1221,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
-        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
-        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'Density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...     surf = ds.surface(sp,'density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='temperature', emit_field = 'emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1459,18 +1456,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
         >>> distf = 3.1e18*1e3 # distances into kpc
-        >>> surf = ds.surface(sp, "Density", 5e-27)
+        >>> surf = ds.surface(sp, "density", 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
+        >>> mi, ma = sp.quantities.extrema('temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='Temperature', dist_fac = distf,
+        ...                      color_field='temperature', dist_fac = distf,
         ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
@@ -1479,12 +1476,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
-        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
-        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='Temperature', emit_field = 'Emissivity',
+        ...                      color_field='temperature', emit_field = 'emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
@@ -1581,12 +1578,13 @@ class YTSurfaceBase(YTSelectionContainer3D):
         Examples
         --------
 
+        >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "Density", 5e-27)
-        >>> print surf["Temperature"]
+        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> print surf["temperature"]
         >>> print surf.vertices
-        >>> bounds = [(sp.center[i] - 5.0/ds['kpc'],
-        ...            sp.center[i] + 5.0/ds['kpc']) for i in range(3)]
+        >>> bounds = [(sp.center[i] - 5.0*kpc,
+        ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
         if self.vertices is None:
@@ -1716,18 +1714,17 @@ class YTSurfaceBase(YTSelectionContainer3D):
         Examples
         --------
 
-        >>> from yt.mods import *
-        >>> ds = load("redshift0058")
+        >>> from yt.units import kpc
         >>> dd = ds.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
-        >>> bounds = [(dd.center[i] - 100.0/ds['kpc'],
-        ...            dd.center[i] + 100.0/ds['kpc']) for i in range(3)]
+        >>> bounds = [(dd.center[i] - 100.0*kpc,
+        ...            dd.center[i] + 100.0*kpc) for i in range(3)]
         ...
-        >>> surf = ds.surface(dd, "Density", rho)
+        >>> surf = ds.surface(dd, "density", rho)
         >>> rv = surf.export_sketchfab(
         ...     title = "Testing Upload",
         ...     description = "A simple test of the uploader",
-        ...     color_field = "Temperature",
+        ...     color_field = "temperature",
         ...     color_map = "hot",
         ...     color_log = True,
         ...     bounds = bounds)

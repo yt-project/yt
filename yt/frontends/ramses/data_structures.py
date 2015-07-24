@@ -491,13 +491,22 @@ class RAMSESDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        # Note that unit_l *already* converts to proper!
-        # Also note that unit_l must be multiplied by the boxlen parameter to
-        # ensure we are correctly set up for the current domain.
-        length_unit = self.parameters['unit_l']
-        boxlen = self.parameters['boxlen']
-        density_unit = self.parameters['unit_d']
-        mass_unit = density_unit * (length_unit * boxlen)**3
+        #Please note that for all units given in the info file, the boxlen
+        #still needs to be folded in, as shown below!
+
+        boxlen=self.parameters['boxlen']
+        length_unit = self.parameters['unit_l'] * boxlen
+        density_unit = self.parameters['unit_d']/ boxlen**3
+
+        # In the mass unit, the factors of boxlen cancel back out, so this 
+        #is equivalent to unit_d*unit_l**3
+
+        mass_unit = density_unit * length_unit**3
+
+        # Cosmological runs are done in lookback conformal time. 
+        # To convert to proper time, the time unit is calculated from 
+        # the expansion factor. This is not yet  done here!
+
         time_unit = self.parameters['unit_t']
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))

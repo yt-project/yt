@@ -8,7 +8,7 @@ matplotlib colormaps as well for nearly all functions.  Individual
 visualization functions usually allow you to specify a colormap with the 
 ``cmap`` flag.
 
-.. _palettable:
+.. _install-palettable:
 
 Palettable and ColorBrewer2 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

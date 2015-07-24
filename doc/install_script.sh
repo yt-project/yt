@@ -1,18 +1,14 @@
 #
 # Hi there!  Welcome to the yt installation script.
 #
+# First things first, if you experience problems, please visit the Help 
+# section at http://yt-project.org.
+#
 # This script is designed to create a fully isolated Python installation
 # with the dependencies you need to run yt.
 #
-# There are a few options, but you only need to set *one* of them.  And
-# that's the next one, DEST_DIR.  But, if you want to use an existing HDF5
-# installation you can set HDF5_DIR, or if you want to use some other
-# subversion checkout of yt, you can set YT_DIR, too.  (It'll already
-# check the current directory and one up.
-#
-# If you experience problems, please visit the Help section at 
-# http://yt-project.org.
-#
+# There are a few options, but you only need to set *one* of them, which is 
+# the next one, DEST_DIR:
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
@@ -23,9 +19,15 @@ then
     DEST_DIR=${YT_DEST}
 fi
 
+# What follows are some other options that you may or may not need to change.
+
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
 #HDF5_DIR=
+
+# If you've got yt some other place, set this to point to it. The script will
+# already check the current directory and the one above it in the tree.
+YT_DIR=""
 
 # If you need to supply arguments to the NumPy or SciPy build, supply them here
 # This one turns on gfortran manually:
@@ -33,6 +35,9 @@ fi
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
+INST_PY3=0      # Install Python 3 along with Python 2. If this is turned
+                # on, all Python packages (including yt) will be installed
+                # in Python 3 (except Mercurial, which requires Python 2).
 INST_HG=1       # Install Mercurial or not?  If hg is not already
                 # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
@@ -49,9 +54,6 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
 INST_0MQ=1      # Install 0mq (for IPython) and affiliated bindings?
 INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
-
-# If you've got yt some other place, set this to point to it.
-YT_DIR=""
 
 # If you need to pass anything to matplotlib, do so here.
 MPL_SUPP_LDFLAGS=""
@@ -111,6 +113,7 @@ function write_config
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
+    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_ROCKSTAR=${INST_ROCKSTAR} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
@@ -415,6 +418,10 @@ printf "%-15s = %s so I " "INST_SQLITE3" "${INST_SQLITE3}"
 get_willwont ${INST_SQLITE3}
 echo "be installing SQLite3"
 
+printf "%-15s = %s so I " "INST_PY3" "${INST_PY3}"
+get_willwont ${INST_PY3}
+echo "be installing Python 3"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
@@ -487,6 +494,13 @@ function do_exit
     exit 1
 }
 
+if [ $INST_PY3 -eq 1 ]
+then
+	 PYTHON_EXEC='python3.4'
+else 
+	 PYTHON_EXEC='python2.7'
+fi
+
 function do_setup_py
 {
     [ -e $1/done ] && return
@@ -501,21 +515,27 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
+    if [[ $LIB =~ .*mercurial.* ]] 
+    then
+        PYEXE="python2.7"
+    else
+        PYEXE=${PYTHON_EXEC}
+    fi
     case $LIB in
         *h5py*)
             pushd $LIB &> /dev/null
-            ( ${DEST_DIR}/bin/python2.7 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
             popd &> /dev/null
             ;;
         *numpy*)
-            if [ -e ${DEST_DIR}/lib/python2.7/site-packages/numpy/__init__.py ]
+            if [ -e ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/numpy/__init__.py ]
             then
-                VER=$(${DEST_DIR}/bin/python -c 'from distutils.version import StrictVersion as SV; \
+                VER=$(${DEST_DIR}/bin/${PYTHON_EXEC} -c 'from distutils.version import StrictVersion as SV; \
                                                  import numpy; print SV(numpy.__version__) < SV("1.8.0")')
                 if [ $VER == "True" ]
                 then
                     echo "Removing previous NumPy instance (see issue #889)"
-                    rm -rf ${DEST_DIR}/lib/python2.7/site-packages/{numpy*,*.pth}
+                    rm -rf ${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/{numpy*,*.pth}
                 fi
             fi
             ;;
@@ -523,8 +543,8 @@ function do_setup_py
             ;;
     esac
     cd $LIB
-    ( ${DEST_DIR}/bin/python2.7 setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -592,14 +612,15 @@ echo '0f714ae2eace0141b1381abf1160dc8f8a521335e886f99919caf3beb31df1fe271d67c7b2
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH
 export LD_LIBRARY_PATH=${DEST_DIR}/lib:$LD_LIBRARY_PATH
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
 
+PYTHON2='Python-2.7.9'
+PYTHON3='Python-3.4.3'
 CYTHON='Cython-0.22'
 PYX='PyX-0.12.1'
-PYTHON='Python-2.7.9'
 BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12' 
 H5PY='h5py-2.5.0'
@@ -620,11 +641,13 @@ SYMPY='sympy-0.7.6'
 TORNADO='tornado-4.0.2'
 ZEROMQ='zeromq-4.0.5'
 ZLIB='zlib-1.2.8'
+SETUPTOOLS='setuptools-18.0.1'
 
 # Now we dump all our SHA512 files out.
 echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
 echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a913543731635f90859536244ac37dca9adf0fc2aa1b215ba884839d160  Python-2.7.9.tgz' > Python-2.7.9.tgz.sha512
+echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
@@ -646,6 +669,7 @@ echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a
 echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
 echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
+echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -660,10 +684,11 @@ echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f18
 [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
-get_ytproject $PYTHON.tgz
+[ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
+[ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
+get_ytproject $PYTHON2.tgz
 get_ytproject $NUMPY.tar.gz
 get_ytproject $MATPLOTLIB.tar.gz
-get_ytproject $MERCURIAL.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
@@ -671,6 +696,7 @@ get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
+get_ytproject $SETUPTOOLS.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e $BZLIB/done ]
@@ -787,11 +813,11 @@ then
     fi
 fi
 
-if [ ! -e $PYTHON/done ]
+if [ ! -e $PYTHON2/done ]
 then
-    echo "Installing Python.  This may take a while, but don't worry.  yt loves you."
-    [ ! -e $PYTHON ] && tar xfz $PYTHON.tgz
-    cd $PYTHON
+    echo "Installing Python 2. This may take a while, but don't worry. yt loves you."
+    [ ! -e $PYTHON2 ] && tar xfz $PYTHON2.tgz
+    cd $PYTHON2
     ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -802,7 +828,30 @@ then
     cd ..
 fi
 
-export PYTHONPATH=${DEST_DIR}/lib/python2.7/site-packages/
+if [ $INST_PY3 -eq 1 ]
+then
+    if [ ! -e $PYTHON3/done ]
+    then
+        echo "Installing Python 3. Because two Pythons are better than one."
+        [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
+        cd $PYTHON3
+        ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+        ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
+        ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
+        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+fi
+
+export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
+
+# Install setuptools
+do_setup_py $SETUPTOOLS
 
 if [ $INST_HG -eq 1 ]
 then
@@ -847,12 +896,10 @@ fi
 
 # This fixes problems with gfortran linking.
 unset LDFLAGS
-
-echo "Installing distribute"
-( ${DEST_DIR}/bin/python2.7 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
-
+ 
 echo "Installing pip"
-( ${DEST_DIR}/bin/easy_install-2.7 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${GETFILE} https://bootstrap.pypa.io/get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${DEST_DIR}/bin/${PYTHON_EXEC} get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 if [ $INST_SCIPY -eq 0 ]
 then
@@ -986,13 +1033,14 @@ cd $YT_DIR
 
 echo "Installing yt"
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
-( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/python2.7 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( export PATH=$DEST_DIR/bin:$PATH ; ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
-if !( ( ${DEST_DIR}/bin/python2.7 -c "import readline" 2>&1 )>> ${LOG_FILE})
+if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
+	[[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
 then
-    if !( ( ${DEST_DIR}/bin/python2.7 -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
+    if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
         echo "Installing pure-python readline"
         ( ${DEST_DIR}/bin/pip install gnureadline 2>&1 ) 1>> ${LOG_FILE}

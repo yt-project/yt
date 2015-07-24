@@ -400,7 +400,7 @@ def virial_quantities(halo, fields,
         The field used as the overdensity from which interpolation is done to 
         calculate virial quantities.
         Default: ("gas", "overdensity")
-    critical_density : float
+    critical_overdensity : float
         The value of the overdensity at which to evaulate the virial quantities.  
         Overdensity is with respect to the critical density.
         Default: 200

@@ -104,7 +104,11 @@ Athena Data
 -----------
 
 Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+ZuHone. Both uniform grid and SMR datasets are supported. 
+
+.. note: 
+   yt also recognizes Fargo3D data written to VTK files as 
+   Athena data, but support for Fargo3D data is preliminary. 
 
 Loading Athena datasets is slightly different depending on whether
 your dataset came from a serial or a parallel run. If the data came
@@ -264,7 +268,7 @@ Pluto Data
 Support for Pluto AMR data is provided through the Chombo frontend, which
 is currently maintained by Andrew Myers. Pluto output files that don't use
 the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
-you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+you can use the ``yt.load`` command on the ``*.hdf5`` files. For example, the 
 KelvinHelmholtz sample dataset is a directory that contains the following
 files:
 
@@ -469,6 +473,8 @@ which may be used to make deposited image fields from the event data for differe
   first image in the primary file. If this is not the case,
   yt will raise a warning and will not load this field.
 
+.. _additional_fits_options:
+
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
@@ -569,6 +575,35 @@ package must be installed.
 
 ``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
 utilized more here.
+
+``create_spectral_slabs``
+"""""""""""""""""""""""""
+
+.. note::
+
+  The following functionality requires the `spectral-cube <http://spectral-cube.readthedocs.org>`_
+  library to be installed. 
+  
+If you have a spectral intensity dataset of some sort, and would like to extract emission in 
+particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
+used to generate a dataset with these slabs as different fields. In this example, we use it
+to extract individual lines from an intensity cube:
+
+.. code-block:: python
+
+  slab_centers = {'13CN': (218.03117, 'GHz'),
+                  'CH3CH2CHO': (218.284256, 'GHz'),
+                  'CH3NH2': (218.40956, 'GHz')}
+  slab_width = (0.05, "GHz")
+  ds = create_spectral_slabs("intensity_cube.fits",
+                                    slab_centers, slab_width,
+                                    nan_mask=0.0)
+
+All keyword arguments to `create_spectral_slabs` are passed on to `load` when creating the dataset
+(see :ref:`additional_fits_options` above). In the returned dataset, the different slabs will be
+different fields, with the field names taken from the keys in ``slab_centers``. The WCS coordinates 
+on the spectral axis are reset so that the center of the domain along this axis is zero, and the 
+left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1043,6 +1078,76 @@ The ``load_particles`` function also accepts the following keyword parameters:
        The bounding box for the particle positions.
 
 .. _loading-pyne-data:
+
+Halo Catalog Data
+-----------------
+
+yt has support for reading halo catalogs produced by Rockstar and the inline 
+FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
+particle datasets where each particle represents a single halo.  At this time, 
+yt does not have the ability to load the member particles for a given halo.  
+However, once loaded, further halo analysis can be performed using 
+:ref:`halo_catalog`.
+
+In the case where halo catalogs are written to multiple files, one must only 
+give the path to one of them.
+
+Gadget FOF/SUBFIND
+^^^^^^^^^^^^^^^^^^
+
+The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["Group", "particle_mass"]
+   print ad["Subhalo", "particle_mass"]
+   # Halo ID
+   print ad["Group", "particle_identifier"]
+   print ad["Subhalo", "particle_identifier"]
+   # positions
+   print ad["Group", "particle_position_x"]
+   # velocities
+   print ad["Group", "particle_velocity_x"]
+
+Multidimensional fields can be accessed through the field name followed by an 
+underscore and the index.
+
+.. code-block:: python
+
+   # x component of the spin
+   print ad["Subhalo", "SubhaloSpin_0"]
+
+OWLS FOF/SUBFIND
+^^^^^^^^^^^^^^^^
+
+OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
+The two field types are "FOF" and "SUBFIND".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["FOF", "particle_mass"]
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+The single field type available is "halos".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["halos", "particle_mass"]
 
 PyNE Data
 ---------

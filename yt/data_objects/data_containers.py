@@ -1025,9 +1025,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
         Triangles in that isocontour.
 
         This function simply returns the vertices of all the triangles
-        calculated by the marching cubes algorithm; for more complex
-        operations, such as identifying connected sets of cells above a given
-        threshold, see the extract_connected_sets function.  This is more
+        calculated by the `marching cubes
+        <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm; for more
+        complex operations, such as identifying connected sets of cells above a
+        given threshold, see the extract_connected_sets function.  This is more
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
         <http://meshlab.sf.net>`_.)
@@ -1057,11 +1058,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
             If `sample_values` is specified, this will be returned and will
             contain the values of the field specified at the center of each
             triangle.
-
-        References
-        ----------
-
-        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
 
         Examples
         --------
@@ -1123,11 +1119,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         consideration of global connectedness, and calculates the flux over
         those contours.
 
-        This function will conduct marching cubes on all the cells in a given
-        data container (grid-by-grid), and then for each identified triangular
-        segment of an isocontour in a given cell, calculate the gradient (i.e.,
-        normal) in the isocontoured field, interpolate the local value of the
-        "fluxing" field, the area of the triangle, and then return:
+        This function will conduct `marching cubes
+        <http://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        given data container (grid-by-grid), and then for each identified
+        triangular segment of an isocontour in a given cell, calculate the
+        gradient (i.e., normal) in the isocontoured field, interpolate the local
+        value of the "fluxing" field, the area of the triangle, and then return:
 
         area * local_flux_value * (n dot v)
 
@@ -1164,11 +1161,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         flux : float
             The summed flux.  Note that it is not currently scaled; this is
             simply the code-unit area times the fields.
-
-        References
-        ----------
-
-        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
 
         Examples
         --------
