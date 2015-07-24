@@ -11,6 +11,124 @@ Contributors
 The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
 most up-to-date list of everyone who has contributed to the yt source code.
 
+Version 3.2
+-----------
+
+Major enhancements
+^^^^^^^^^^^^^^^^^^
+
+* Particle-Only Plots - a series of new plotting functions for visualizing 
+  particle data.  See here for more information.
+* Late-stage beta support for Python 3 - unit tests and answer tests pass for 
+  all the major frontends under python 3.4, and yt should now be mostly if not 
+  fully usable.  Because many of the yt developers are still on Python 2 at 
+  this point, this should be considered a “late stage beta” as there may be 
+  remaining issues yet to be identified or worked out.
+* Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn 
+  how to load halo catalogs as regular yt datasets.
+* Custom colormaps can now be easily defined and added - see here to learn how!
+* Now supporting Fargo3D data
+* Performance improvements throughout the code base for memory and speed
+
+Minor enhancements
+^^^^^^^^^^^^^^^^^^
+
+* Various updates to the following frontends: ART, Athena, Castro, Chombo, 
+  Gadget, GDF, Maestro, Pluto, RAMSES, Rockstar, SDF, Tipsy
+* Numerous documentation updates
+* Generic hexahedral mesh pixelizer
+* Adding annotate_ray() callback for plots
+* AbsorptionSpectrum returned to full functionality and now using faster SciPy 
+  Voigt profile
+* Add a color_field argument to annotate_streamline
+* Smoothing lengths auto-calculated for Tipsy Datasets
+* Adding SimulationTimeSeries support for Gadget and OWLS.
+* Generalizing derived quantity outputs to all be YTArrays or lists of 
+  YTArrays as appropriate
+* Star analysis returned to full functionality
+* FITS image writing refactor
+* Adding gradient fields on the fly
+* Adding support for Gadget Nx4 metallicity fields
+* Updating value of solar metal mass fraction to be consistent with Cloudy.
+* Gadget raw binary snapshot handling & non-cosmological simulation units
+* Adding support for LightRay class to work with Gadget+Tipsy
+* Add support for subclasses of frontends
+* Dependencies updated
+* Serialization for projections using minimal representation
+* Adding Grid visitors in Cython
+* Improved semantics for derived field units
+* Add a yaw() method for the PerspectiveCamera + switch back to LHS
+* Adding annotate_clear() function to remove previous callbacks from a plot
+* Added documentation for hexahedral mesh on website
+* Speed up nearest neighbor evaluation
+* Add a convenience method to create deposited particle fields
+* UI and docs updates for 3D streamlines
+* Ensure particle fields are tested in the field unit tests
+* Allow a suffix to be specified to save()
+* Add profiling using airspeed velocity
+* Various plotting enhancements and bugfixes
+* Use hglib to update
+* Various minor updates to halo_analysis toolkit
+* Docker-based tests for install_script.sh
+* Adding support for single and non-cosmological datasets to LightRay
+* Adding the Pascal unit
+* Add weight_field to PPVCube
+* FITS reader: allow HDU in auxiliary
+* Fixing electromagnetic units
+* Specific Angular Momentum [xyz] computed relative to a normal vector
+
+Bugfixes
+^^^^^^^^
+
+* Adding ability to create union fields from alias fields
+* Small fix to allow enzo AP datasets to load in parallel when no APs present
+* Use proper cell dimension in gradient function.
+* Minor memory optimization for smoothed particle fields
+* Fix thermal_energy for Enzo HydroMethod==6
+* Make sure annotate_particles handles unitful widths properly
+* Improvements for add_particle_filter and particle_filter
+* Specify registry in off_axis_projection's image finalization
+* Apply fix for particle momentum units to the boxlib frontend
+* Avoid traceback in "yt version" when python-hglib is not installed
+* Expose no_ghost from export_sketchfab down to _extract_isocontours_from_grid
+* Fix broken magnetic_unit attribute
+* Fixing an off-by-one error in the set x/y lim methods for profile plots
+* Providing better error messages to PlotWindow callbacks
+* Updating annotate_timestamp to avoid auto-override
+* Updating callbacks to consistently define coordinate system
+* Fixing species fields for OWLS and tipsy
+* Fix extrapolation for vertex-centered data
+* Fix periodicity check in FRBs
+* Rewrote project_to_plane() in PerspectiveCamera for draw_domain()
+* Fix intermittent failure in test_add_deposited_particle_field
+* Improve minorticks for a symlog plot with one-sided data
+* Fix smoothed covering grid cell computation
+* Absorption spectrum generator now 3.0 compliant
+* Fix off-by-one-or-more in particle smallest dx
+* Fix dimensionality mismatch error in covering grid
+* Fix curvature term in cosmology calculator
+* Fix geographic axes and pixelization
+* Ensure axes aspect ratios respect the user-selected plot aspect ratio
+* Avoid clobbering field_map when calling profile.add_fields
+* Fixing the arbitrary grid deposit code
+* Fix spherical plotting centering
+* Make the behavior of to_frb consistent with the docstring
+* Ensure projected units are initialized when there are no chunks.
+* Removing "field already exists" warnings from the Owls and Gadget frontends
+* Various photon simulator bugs
+* Fixed use of LaTeX math mode
+* Fix upload_image
+* Enforce plot width in CSS when displayed in a notebook
+* Fix cStringIO.StringIO -> cStringIO in png_writer
+* Add some input sanitizing and error checking to covering_grid initializer
+* Fix for geographic plotting
+* Use the correct filename template for single-file OWLS datasets.
+* Fix Enzo IO performance for 32 bit datasets
+* Adding a number density field for Enzo MultiSpecies=0 datasets.
+* Fix RAMSES block ordering
+* Updating ragged array tests for NumPy 1.9.1
+* Force returning lists for HDF5FileHandler
+
 Version 3.1
 -----------
 
