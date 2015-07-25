@@ -238,10 +238,12 @@ class LightRay(CosmologySplice):
                          self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
                     # Random start point
                     if left_edge is not None and right_edge is not None:
+                        ds = load(self.light_ray_solution[q]["filename"])
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
-                          non_periodic_ray(left_edge, right_edge,
+                          non_periodic_ray(ds, left_edge, right_edge,
                             self.light_ray_solution[q]['traversal_box_fraction'])
+                        del ds
                     else:
                         self.light_ray_solution[q]['start'] = np.random.random(3)
                         theta = np.pi * np.random.random()
@@ -756,7 +758,7 @@ def periodic_ray(start, end, left=None, right=None):
 
     return segments
 
-def non_periodic_ray(left_edge, right_edge, ray_length, max_iter=500):
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=2):
     i = 0
     while True:
         start = np.random.random(3) * \
@@ -768,9 +770,13 @@ def non_periodic_ray(left_edge, right_edge, ray_length, max_iter=500):
                     np.sin(phi) * np.sin(theta),
                     np.cos(theta)])
         i += 1
-        if (end >= left_edge).all() and (end <= right_edge).all():
-            #mylog.info("Found ray after %d attempts." % i)
-            return start, end
+        test_ray = ds.ray(start, end)
+        if (end >= left_edge).all() and (end <= right_edge).all() and \
+                (test_ray["grid_level"] >= min_level).all():
+            mylog.info("Found ray after %d attempts." % i)
+            del test_ray
+            return start, end.d
+        del test_ray
         if i > max_iter:
             mylog.info("Exceed iteration limit.")
             return None, None
