@@ -45,4 +45,17 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
         ("SubhaloVel_2", (v_units, ["Subhalo", "particle_velocity_z"], None)),
         ("SubhaloMass",  (m_units, ["Subhalo", "particle_mass"], None)),
         ("SubhaloLen",   ("",      ["Subhalo", "particle_number"], None)),
-)
+    )
+
+    # these are extra fields to be created for the "all" particle type
+    extra_union_fields = (
+        (p_units, "particle_position_x"),
+        (p_units, "particle_position_y"),
+        (p_units, "particle_position_z"),
+        (v_units, "particle_velocity_x"),
+        (v_units, "particle_velocity_y"),
+        (v_units, "particle_velocity_z"),
+        (m_units, "particle_mass"),
+        ("",      "particle_number"),
+        ("",      "particle_ones"),
+    )

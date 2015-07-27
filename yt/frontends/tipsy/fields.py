@@ -16,6 +16,8 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 from yt.frontends.sph.fields import SPHFieldInfo
+from yt.fields.particle_fields import add_volume_weighted_smoothed_field, add_nearest_neighbor_field
+from yt.utilities.physical_constants import mp, kb
 
 class TipsyFieldInfo(SPHFieldInfo):
     aux_particle_fields = {
@@ -44,3 +46,29 @@ class TipsyFieldInfo(SPHFieldInfo):
                 self.aux_particle_fields[field[1]] not in self.known_particle_fields:
                 self.known_particle_fields += (self.aux_particle_fields[field[1]],)
         super(TipsyFieldInfo,self).__init__(ds, field_list, slice_info)
+
+    def setup_particle_fields(self, ptype, *args, **kwargs):
+
+        # setup some special fields that only make sense for SPH particles
+
+        if ptype in ("PartType0", "Gas"):
+            self.setup_gas_particle_fields(ptype)
+
+        super(TipsyFieldInfo, self).setup_particle_fields(
+            ptype, *args, **kwargs)
+
+
+    def setup_gas_particle_fields(self, ptype):
+
+        def _smoothing_length(field, data):
+            # For now, we hardcode num_neighbors.  We should make this configurable
+            # in the future.
+            num_neighbors = 64
+            fn, = add_nearest_neighbor_field(ptype, "particle_position", self, num_neighbors)
+            return data[ptype, 'nearest_neighbor_distance_%d' % num_neighbors]
+
+        self.add_field(
+            (ptype, "smoothing_length"),
+            function=_smoothing_length,
+            particle_type=True,
+            units="code_length")

@@ -183,7 +183,7 @@ def subfind_field_list(fh, ptype, pcount):
                 my_div = fh[field].size / pcount[ptype]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
-                    for i in range(my_div):
+                    for i in range(int(my_div)):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
@@ -195,7 +195,7 @@ def subfind_field_list(fh, ptype, pcount):
                 my_div = fh[field].size / fh["/Subfind"].attrs["Number_of_groups"]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
-                    for i in range(my_div):
+                    for i in range(int(my_div)):
                         fields.append(("Group", "%s_%d" % (fname, i)))
                 else:
                     fields.append(("Group", fname))
