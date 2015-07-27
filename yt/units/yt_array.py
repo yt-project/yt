@@ -1309,48 +1309,76 @@ def get_binary_op_return_class(cls1, cls2):
         raise RuntimeError("Undefined operation for a YTArray subclass. "
                            "Received operand types (%s) and (%s)" % (cls1, cls2))
 
-def loadtxt(fname, dtype='float', delimiter='\t', usecols=None):
+def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, skiprows=0,
+            comments='#'):
     r"""
+    Load YTArrays with unit information from a text file. Each row in the
+    text file must have the same number of values.
+
+    Parameters
+    ----------
+    fname : str
+        Filename to read. 
+    dtype : data-type, optional
+        Data-type of the resulting array; default: float.
+    delimiter : str, optional
+        The string used to separate values.  By default, this is any
+        whitespace.
+    usecols : sequence, optional
+        Which columns to read, with 0 being the first.  For example,
+        ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
+        The default, None, results in all columns being read.
+    skiprows : int, optional
+        Skip the first `skiprows` lines; default: 0.
+    comments : str, optional
+        The character used to indicate the start of a comment;
+        default: '#'.
+
+    Examples
+    --------
+    >>> temp, velx = yt.loadtxt("sphere.dat", usecols=(1,2), delimiter="\t")
     """
     f = open(fname, 'r')
-    line = f.readline()
+    next_one = False
+    for line in f.readlines():
+        words = line.strip.split()
+        if next_one:
+            units = words[1:]
+            break
+        elif words[1] == "Units":
+            next_one = True
     f.close()
-    u = line.strip().split()[1:]
-    if usecols is None:
-        units = u
-    else:
-        units = []
-        for col in usecols:
-            units.append(u[col])
+    if usecols is not None:
+        units = [units[col] for col in usecols]
     arrays = np.loadtxt(fname, dtype=dtype, comments="#",
                         delimiter=delimiter, converters=None,
-                        unpack=True, usecols=usecols, ndmin=0)
+                        unpack=True, usecols=usecols, ndmin=0,
+                        skiprows=skiprows, comments=comments)
     return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
 
-def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n',
-            header='', footer='', comments='#'):
+def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
+            footer='', comments='#'):
     r"""
+    Write YTArrays with unit information to a text file.
     
     Parameters
     ----------
-    fname : string
+    fname : str
         The file to write the YTArrays to.
     arrays : list of YTArrays or single YTArray
         The array(s) to write to the file.
     fmt : str or sequence of strs, optional
         A single format (%10.5f), or a sequence of formats. 
-    delimiter : string, optional
+    delimiter : str, optional
         String or character separating columns.
-    newline : string, optional
-        String or character separating lines.
-    header : string, optional
+    header : str, optional
         String that will be written at the beginning of the file, before the
         unit header.
-    footer : string, optional
+    footer : str, optional
         String that will be written at the end of the file.
     comments : str, optional
         String that will be prepended to the ``header`` and ``footer`` strings,
-        to mark them as comments. Default: '# ',  as expected by e.g.
+        to mark them as comments. Default: '# ', as expected by e.g.
         ``yt.loadtxt``.
     
     Examples
@@ -1369,7 +1397,7 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', newline='\n',
             units.append(str(array.units))
         else:
             units.append("dimensionless")
-    header = header + newline + delimiter.join(units)
+    header = header + "%s Units\n" % comments + delimiter.join(units)
     np.savetxt(fname, np.transpose(arrays), header=header,
                fmt=fmt, delimiter=delimiter, footer=footer,
-               newline=newline, comments=comments)
+               newline='\n', comments=comments)
