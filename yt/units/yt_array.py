@@ -1339,12 +1339,11 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
     next_one = False
     for line in f.readlines():
         words = line.strip().split()
-        if len(words) > 1 and words[0] == comments:
-            if next_one:
-                units = words[1:]
-                break
-            elif words[1] == "Units":
-                next_one = True
+        if next_one:
+            units = words[1:]
+            break
+        if len(words) == 2 and words[1] == "Units":
+            next_one = True
     f.close()
     if usecols is not None:
         units = [units[col] for col in usecols]
@@ -1377,7 +1376,7 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
         String that will be prepended to the ``header`` and ``footer`` strings,
         to mark them as comments. Default: '# ', as expected by e.g.
         ``yt.loadtxt``.
-    
+
     Examples
     --------
     >>> sp = ds.sphere("c", (100,"kpc"))
