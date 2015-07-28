@@ -1309,8 +1309,7 @@ def get_binary_op_return_class(cls1, cls2):
         raise RuntimeError("Undefined operation for a YTArray subclass. "
                            "Received operand types (%s) and (%s)" % (cls1, cls2))
 
-def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, skiprows=0,
-            comments='#'):
+def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
     r"""
     Load YTArrays with unit information from a text file. Each row in the
     text file must have the same number of values.
@@ -1328,8 +1327,6 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, skiprows=0,
         Which columns to read, with 0 being the first.  For example,
         ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
         The default, None, results in all columns being read.
-    skiprows : int, optional
-        Skip the first `skiprows` lines; default: 0.
     comments : str, optional
         The character used to indicate the start of a comment;
         default: '#'.
@@ -1341,19 +1338,19 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, skiprows=0,
     f = open(fname, 'r')
     next_one = False
     for line in f.readlines():
-        words = line.strip.split()
-        if next_one:
-            units = words[1:]
-            break
-        elif words[1] == "Units":
-            next_one = True
+        words = line.strip().split()
+        if len(words) > 1 and words[0] == comments:
+            if next_one:
+                units = words[1:]
+                break
+            elif words[1] == "Units":
+                next_one = True
     f.close()
     if usecols is not None:
         units = [units[col] for col in usecols]
-    arrays = np.loadtxt(fname, dtype=dtype, comments="#",
+    arrays = np.loadtxt(fname, dtype=dtype, comments=comments,
                         delimiter=delimiter, converters=None,
-                        unpack=True, usecols=usecols, ndmin=0,
-                        skiprows=skiprows, comments=comments)
+                        unpack=True, usecols=usecols, ndmin=0)
     return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
 
 def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
@@ -1397,7 +1394,9 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
             units.append(str(array.units))
         else:
             units.append("dimensionless")
-    header = header + "%s Units\n" % comments + delimiter.join(units)
+    if header != '':
+        header += '\n'
+    header += " Units\n " + '\t'.join(units)
     np.savetxt(fname, np.transpose(arrays), header=header,
                fmt=fmt, delimiter=delimiter, footer=footer,
                newline='\n', comments=comments)
