@@ -48,7 +48,7 @@ class LightRay(CosmologySplice):
     synthetic QSO lines of sight.
 
     Light rays can also be made from single datasets.
-    
+
     Once the LightRay object is set up, use LightRay.make_light_ray to
     begin making rays.  Different randomizations can be created with a
     single object by providing different random seeds to make_light_ray.
@@ -58,17 +58,17 @@ class LightRay(CosmologySplice):
     parameter_filename : string
         The path to the simulation parameter file or dataset.
     simulation_type : optional, string
-        The simulation type.  If None, the first argument is assumed to 
+        The simulation type.  If None, the first argument is assumed to
         refer to a single dataset.
         Default: None
     near_redshift : optional, float
-        The near (lowest) redshift for a light ray containing multiple 
-        datasets.  Do not use is making a light ray from a single 
+        The near (lowest) redshift for a light ray containing multiple
+        datasets.  Do not use is making a light ray from a single
         dataset.
         Default: None
     far_redshift : optional, float
-        The far (highest) redshift for a light ray containing multiple 
-        datasets.  Do not use is making a light ray from a single 
+        The far (highest) redshift for a light ray containing multiple
+        datasets.  Do not use is making a light ray from a single
         dataset.
         Default: None
     use_minimum_datasets : optional, bool
@@ -98,11 +98,11 @@ class LightRay(CosmologySplice):
         datasets for time series.
         Default: True.
     find_outputs : optional, bool
-        Whether or not to search for datasets in the current 
+        Whether or not to search for datasets in the current
         directory.
         Default: False.
     load_kwargs : optional, dict
-        Optional dictionary of kwargs to be passed to the "load" 
+        Optional dictionary of kwargs to be passed to the "load"
         function, appropriate for use of certain frontends.  E.g.
         Tipsy using "bounding_box"
         Gadget using "unit_base", etc.
@@ -129,7 +129,7 @@ class LightRay(CosmologySplice):
         self.light_ray_solution = []
         self._data = {}
 
-        # Make a light ray from a single, given dataset.        
+        # Make a light ray from a single, given dataset.
         if simulation_type is None:
             ds = load(parameter_filename, **self.load_kwargs)
             if ds.cosmological_simulation:
@@ -156,7 +156,7 @@ class LightRay(CosmologySplice):
                                            time_data=time_data,
                                            redshift_data=redshift_data)
 
-    def _calculate_light_ray_solution(self, seed=None, 
+    def _calculate_light_ray_solution(self, seed=None,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -185,12 +185,12 @@ class LightRay(CosmologySplice):
                                 np.sin(phi) * np.sin(theta),
                                 np.cos(theta)])
             self.light_ray_solution[0]['traversal_box_fraction'] = \
-              vector_length(self.light_ray_solution[0]['start'], 
+              vector_length(self.light_ray_solution[0]['start'],
                             self.light_ray_solution[0]['end'])
 
         # the normal way (random start positions and trajectories for each dataset)
         else:
-            
+
             # For box coherence, keep track of effective depth travelled.
             box_fraction_used = 0.0
 
@@ -285,15 +285,15 @@ class LightRay(CosmologySplice):
             Default: None.
         trajectory : optional, list of floats
             Used only if creating a light ray from a single dataset.
-            The (r, theta, phi) direction of the light ray.  Use either 
+            The (r, theta, phi) direction of the light ray.  Use either
             end_position or trajectory, not both.
             Default: None.
         fields : optional, list
             A list of fields for which to get data.
             Default: None.
         setup_function : optional, callable, accepts a ds
-            This function will be called on each dataset that is loaded 
-            to create the light ray.  For, example, this can be used to 
+            This function will be called on each dataset that is loaded
+            to create the light ray.  For, example, this can be used to
             add new derived fields.
             Default: None.
         solution_filename : optional, string
@@ -308,13 +308,13 @@ class LightRay(CosmologySplice):
             each point in the ray.
             Default: True.
         redshift : optional, float
-            Used with light rays made from single datasets to specify a 
-            starting redshift for the ray.  If not used, the starting 
-            redshift will be 0 for a non-cosmological dataset and 
+            Used with light rays made from single datasets to specify a
+            starting redshift for the ray.  If not used, the starting
+            redshift will be 0 for a non-cosmological dataset and
             the dataset redshift for a cosmological dataset.
             Default: None.
         njobs : optional, int
-            The number of parallel jobs over which the segments will 
+            The number of parallel jobs over which the segments will
             be split.  Choose -1 for one processor per segment.
             Default: -1.
 
@@ -322,7 +322,7 @@ class LightRay(CosmologySplice):
         --------
 
         Make a light ray from multiple datasets:
-        
+
         >>> import yt
         >>> from yt.analysis_modules.cosmological_observation.light_ray.api import \
         ...     LightRay
@@ -348,12 +348,12 @@ class LightRay(CosmologySplice):
         ...                       data_filename="my_ray.h5",
         ...                       fields=["temperature", "density"],
         ...                       get_los_velocity=True)
-        
+
         """
 
         # Calculate solution.
-        self._calculate_light_ray_solution(seed=seed, 
-                                           start_position=start_position, 
+        self._calculate_light_ray_solution(seed=seed,
+                                           start_position=start_position,
                                            end_position=end_position,
                                            trajectory=trajectory,
                                            filename=solution_filename)
@@ -400,7 +400,7 @@ class LightRay(CosmologySplice):
                 next_redshift = my_segment["redshift"]
             elif self.near_redshift == self.far_redshift:
                 next_redshift = my_segment["redshift"] - \
-                  self._deltaz_forward(my_segment["redshift"], 
+                  self._deltaz_forward(my_segment["redshift"],
                                        ds.domain_width[0].in_units("Mpccm / h") *
                                        my_segment["traversal_box_fraction"])
             elif my_segment.get("next", None) is None:
@@ -453,7 +453,7 @@ class LightRay(CosmologySplice):
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
-                (sub_data['dl'] / vector_length(my_segment['start'], 
+                (sub_data['dl'] / vector_length(my_segment['start'],
                                                 my_segment['end']).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
@@ -496,6 +496,7 @@ class LightRay(CosmologySplice):
         output = h5py.File(filename, 'w')
         for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
             output.attrs[attr] = getattr(self.cosmology, attr)
+        output.attrs["redshift"] = self.near_redshift
         output.attrs["data_type"] = "light_ray"
         for field in data.keys():
             # if the field is a tuple, only use the second part of the tuple
@@ -553,7 +554,7 @@ def _flatten_dict_list(data, exceptions=None):
 def vector_length(start, end):
     """
     vector_length(start, end)
-    
+
     Calculate vector length.
     """
 
@@ -580,15 +581,15 @@ def periodic_ray(start, end, left=None, right=None):
     """
     periodic_ray(start, end, left=None, right=None)
 
-    Break up periodic ray into non-periodic segments. 
+    Break up periodic ray into non-periodic segments.
     Accepts start and end points of periodic ray as YTArrays.
     Accepts optional left and right edges of periodic volume as YTArrays.
-    Returns a list of lists of coordinates, where each element of the 
-    top-most list is a 2-list of start coords and end coords of the 
-    non-periodic ray: 
+    Returns a list of lists of coordinates, where each element of the
+    top-most list is a 2-list of start coords and end coords of the
+    non-periodic ray:
 
-    [[[x0start,y0start,z0start], [x0end, y0end, z0end]], 
-     [[x1start,y1start,z1start], [x1end, y1end, z1end]], 
+    [[[x0start,y0start,z0start], [x0end, y0end, z0end]],
+     [[x1start,y1start,z1start], [x1end, y1end, z1end]],
      ...,]
 
     """
