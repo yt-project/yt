@@ -426,6 +426,43 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
+    def to_dataframe(self, fields = None):
+        r"""Export a data object to a pandas DataFrame.
+
+        This function will take a data object and construct from it and
+        optionally a list of fields a pandas DataFrame object.  If pandas is
+        not importable, this will raise ImportError.
+
+        Parameters
+        ----------
+        fields : list of strings or tuples, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        df : DataFrame
+            The data contained in the object.
+
+        Examples
+        --------
+
+        >>> dd = ds.all_data()
+        >>> df1 = dd.to_dataframe(["density", "temperature"])
+        >>> dd["velocity_magnitude"]
+        >>> df2 = dd.to_dataframe()
+        """
+        import pandas as pd
+        data = {}
+        if fields is not None:
+            for f in fields:
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        df = pd.DataFrame(data)
+        return df
+
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
