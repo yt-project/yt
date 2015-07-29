@@ -17,7 +17,7 @@ import tempfile
 import os
 import numpy as np
 import shutil
-from yt.testing import fake_random_ds
+from yt.testing import fake_random_ds, requires_module
 from yt.convenience import load
 from numpy.testing import \
     assert_equal
@@ -29,6 +29,8 @@ from yt.utilities.fits_image import \
 from yt.visualization.volume_rendering.camera import \
     off_axis_projection
 
+
+@requires_module("astropy")
 def test_fits_image():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -87,7 +89,7 @@ def test_fits_image():
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
 
     fid3 = FITSImageData(cut_frb, fields=["density","temperature"], units="cm")
-    fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"], 
+    fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"],
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5,"unitary"))
 
@@ -103,26 +105,26 @@ def test_fits_image():
     assert new_fid3.wcs.wcs.ctype[0] == "RA---TAN"
     assert new_fid3.wcs.wcs.ctype[1] == "DEC--TAN"
 
-    buf = off_axis_projection(ds, ds.domain_center, [0.1, 0.2, -0.9], 
+    buf = off_axis_projection(ds, ds.domain_center, [0.1, 0.2, -0.9],
                               0.5, 128, "density").swapaxes(0, 1)
     fid4 = FITSImageData(buf, fields="density", width=100.0)
-    fits_oap = FITSOffAxisProjection(ds, [0.1, 0.2, -0.9], "density", 
-                                     width=(0.5,"unitary"), image_res=128, 
+    fits_oap = FITSOffAxisProjection(ds, [0.1, 0.2, -0.9], "density",
+                                     width=(0.5,"unitary"), image_res=128,
                                      depth_res=128, depth=(0.5,"unitary"))
 
     yield assert_equal, fid4.get_data("density"), fits_oap.get_data("density")
 
-    cvg = ds.covering_grid(ds.index.max_level, [0.25,0.25,0.25], 
+    cvg = ds.covering_grid(ds.index.max_level, [0.25,0.25,0.25],
                            [32, 32, 32], fields=["density","temperature"])
     fid5 = FITSImageData(cvg, fields=["density","temperature"])
     assert fid5.dimensionality == 3
 
     fid5.update_header("density", "time", 0.1)
     fid5.update_header("all", "units", "cgs")
-    
+
     assert fid5["density"].header["time"] == 0.1
     assert fid5["temperature"].header["units"] == "cgs"
     assert fid5["density"].header["units"] == "cgs"
-    
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
