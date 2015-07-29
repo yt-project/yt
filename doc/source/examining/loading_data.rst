@@ -104,7 +104,11 @@ Athena Data
 -----------
 
 Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+ZuHone. Both uniform grid and SMR datasets are supported. 
+
+.. note: 
+   yt also recognizes Fargo3D data written to VTK files as 
+   Athena data, but support for Fargo3D data is preliminary. 
 
 Loading Athena datasets is slightly different depending on whether
 your dataset came from a serial or a parallel run. If the data came
@@ -264,7 +268,7 @@ Pluto Data
 Support for Pluto AMR data is provided through the Chombo frontend, which
 is currently maintained by Andrew Myers. Pluto output files that don't use
 the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
-you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+you can use the ``yt.load`` command on the ``*.hdf5`` files. For example, the 
 KelvinHelmholtz sample dataset is a directory that contains the following
 files:
 
@@ -1074,6 +1078,76 @@ The ``load_particles`` function also accepts the following keyword parameters:
        The bounding box for the particle positions.
 
 .. _loading-pyne-data:
+
+Halo Catalog Data
+-----------------
+
+yt has support for reading halo catalogs produced by Rockstar and the inline 
+FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
+particle datasets where each particle represents a single halo.  At this time, 
+yt does not have the ability to load the member particles for a given halo.  
+However, once loaded, further halo analysis can be performed using 
+:ref:`halo_catalog`.
+
+In the case where halo catalogs are written to multiple files, one must only 
+give the path to one of them.
+
+Gadget FOF/SUBFIND
+^^^^^^^^^^^^^^^^^^
+
+The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["Group", "particle_mass"]
+   print ad["Subhalo", "particle_mass"]
+   # Halo ID
+   print ad["Group", "particle_identifier"]
+   print ad["Subhalo", "particle_identifier"]
+   # positions
+   print ad["Group", "particle_position_x"]
+   # velocities
+   print ad["Group", "particle_velocity_x"]
+
+Multidimensional fields can be accessed through the field name followed by an 
+underscore and the index.
+
+.. code-block:: python
+
+   # x component of the spin
+   print ad["Subhalo", "SubhaloSpin_0"]
+
+OWLS FOF/SUBFIND
+^^^^^^^^^^^^^^^^
+
+OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
+The two field types are "FOF" and "SUBFIND".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["FOF", "particle_mass"]
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+The single field type available is "halos".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # The halo mass
+   print ad["halos", "particle_mass"]
 
 PyNE Data
 ---------

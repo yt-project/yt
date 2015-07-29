@@ -152,6 +152,28 @@ PROJECTION_METHODS = (
     'mip'
 )
 
+def simple_contour(test_obj, plot):
+    plot.annotate_contour(test_obj.plot_field)
+
+def simple_velocity(test_obj, plot):
+    plot.annotate_velocity()
+
+def simple_streamlines(test_obj, plot):
+    ax = test_obj.plot_axis
+    xax = test_obj.ds.coordinates.x_axis[ax]
+    yax = test_obj.ds.coordinates.y_axis[ax]
+    xn = test_obj.ds.coordinates.axis_name[xax]
+    yn = test_obj.ds.coordinates.axis_name[yax]
+    plot.annotate_streamlines("velocity_%s" % xn,
+                              "velocity_%s" % yn)
+
+CALLBACK_TESTS = (
+    ("simple_contour", (simple_contour,)),
+    ("simple_velocity", (simple_velocity,)),
+    #("simple_streamlines", (simple_streamlines,)),
+    #("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
+)
+
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
@@ -166,6 +188,9 @@ def test_attributes():
                                                args, decimals)
                 test_attributes.__name__ = test.description
                 yield test
+                for n, r in CALLBACK_TESTS:
+                    yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                        args, decimals, callback_id=n, callback_runners=r)
 
 
 @requires_ds(WT)
@@ -179,6 +204,9 @@ def test_attributes_wt():
         for args in ATTR_ARGS[attr_name]:
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
+            for n, r in CALLBACK_TESTS:
+                yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                    args, decimals, callback_id=n, callback_runners=r)
 
 class TestHideAxesColorbar(unittest.TestCase):
 

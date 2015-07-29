@@ -222,7 +222,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-
+        
     @validate_plot
     def save(self, name=None, suffix=None):
         r"""
@@ -530,15 +530,20 @@ class ProfilePlot(object):
                 xma = xmax
             extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
             units = {p.x_field: str(p.x.units)}
+            if self.x_log is None:
+                logs = None
+            else:
+                logs = {p.x_field: self.x_log}
             for field in p.field_map.values():
                 units[field] = str(p.field_data[field].units)
             self.profiles[i] = \
                 create_profile(p.data_source, p.x_field,
                                n_bins=len(p.x_bins)-1,
-                               fields=p.field_map.values(),
+                               fields=list(p.field_map.values()),
                                weight_field=p.weight_field,
                                accumulation=p.accumulation,
                                fractional=p.fractional,
+                               logs=logs,
                                extrema=extrema, units=units)
         return self
 
@@ -1146,6 +1151,14 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
                    p.y_field: ((p.y_bins.min(), str(p.y.units)),
                                (p.y_bins.max(), str(p.y.units)))}
+        if self.x_log is not None or self.y_log is not None:
+            logs = {}
+        else:
+            logs = None
+        if self.x_log is not None:
+            logs[p.x_field] = self.x_log
+        if self.y_log is not None:
+            logs[p.y_field] = self.y_log
         deposition = getattr(self.profile, "deposition", None)
         if deposition is None:
             additional_kwargs = {'accumulation': p.accumulation,
@@ -1155,11 +1168,12 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
             extrema=extrema,
+            logs=logs,
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
@@ -1201,6 +1215,14 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
                                (p.x_bins.max(), str(p.x.units))),
                    p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        if self.x_log is not None or self.y_log is not None:
+            logs = {}
+        else:
+            logs = None
+        if self.x_log is not None:
+            logs[p.x_field] = self.x_log
+        if self.y_log is not None:
+            logs[p.y_field] = self.y_log
         deposition = getattr(self.profile, "deposition", None)
         if deposition is None:
             additional_kwargs = {'accumulation': p.accumulation,
@@ -1210,11 +1232,12 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
             extrema=extrema,
+            logs=logs,
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])

@@ -255,7 +255,6 @@ class ARTDataset(Dataset):
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
 
-
     def _parse_parameter_file(self):
         """
         Get the various simulation parameters & constants.
