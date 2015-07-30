@@ -26,7 +26,7 @@ from numpy import \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
     logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
-    floor, ceil, trunc, fmax, fmin
+    floor, ceil, trunc, fmax, fmin, fabs
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
@@ -139,7 +139,7 @@ unary_operators = (
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
     rad2deg, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
-    signbit, floor, ceil, trunc, modf, frexp,
+    signbit, floor, ceil, trunc, modf, frexp, fabs
 )
 
 binary_operators = (
@@ -223,6 +223,7 @@ class YTArray(np.ndarray):
         mod: preserve_units,
         fmod: preserve_units,
         absolute: passthrough_unit,
+        fabs: passthrough_unit,
         rint: return_without_unit,
         sign: return_without_unit,
         conj: passthrough_unit,
