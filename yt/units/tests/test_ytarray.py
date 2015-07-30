@@ -631,7 +631,7 @@ def unary_ufunc_comparison(ufunc, a):
         # In-place copies do not drop units.
         assert_true(hasattr(out, 'units'))
         assert_true(not hasattr(ret, 'units'))
-    elif ufunc in (np.absolute, np.conjugate, np.floor, np.ceil,
+    elif ufunc in (np.absolute, np.fabs, np.conjugate, np.floor, np.ceil,
                    np.trunc, np.negative):
         ret = ufunc(a, out=out)
 
