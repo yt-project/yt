@@ -133,7 +133,7 @@ class IOHandlerART(BaseIOHandler):
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 tr[field], = rp(['v'+ax])
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
             for ptb, size, m in zip(pbool, sizes, self.ws):
@@ -170,7 +170,7 @@ class IOHandlerART(BaseIOHandler):
             tr[field] = temp
             del data
         # We check again, after it's been filled
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             # We now divide by NGrid in order to make this match up.  Note that
             # this means that even when requested in *code units*, we are
             # giving them as modified by the ng value.  This only works for
@@ -239,7 +239,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 tr[field], = rp(['v'+ax])
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
             for ptb, size, m in zip(pbool, sizes, self.ws):
@@ -269,7 +269,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             tr[field] = temp
             del data
         # We check again, after it's been filled
-        if fname == "particle_mass":
+        if fname.startswith("particle_mass"):
             # We now divide by NGrid in order to make this match up.  Note that
             # this means that even when requested in *code units*, we are
             # giving them as modified by the ng value.  This only works for
@@ -482,7 +482,8 @@ def read_star_field(file, field=None):
     data = {}
     with open(file, 'rb') as fh:
         for dtype, variables in star_struct:
-            found = field in variables or field == variables
+            found = (isinstance(variables, tuple) and field in variables) or \
+                field == variables
             if found:
                 data[field] = read_vector(fh, dtype[1], dtype[0])
             else:

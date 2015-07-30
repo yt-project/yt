@@ -961,15 +961,15 @@ class YTSurfaceBase(YTSelectionContainer3D):
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
 
-    This object simply returns the vertices of all the triangles
-    calculated by the marching cubes algorithm; for more complex
-    operations, such as identifying connected sets of cells above a given
-    threshold, see the extract_connected_sets function.  This is more
-    useful for calculating, for instance, total isocontour area, or
+    This object simply returns the vertices of all the triangles calculated by
+    the `marching cubes <http://en.wikipedia.org/wiki/Marching_cubes>`_
+    algorithm; for more complex operations, such as identifying connected sets
+    of cells above a given threshold, see the extract_connected_sets function.
+    This is more useful for calculating, for instance, total isocontour area, or
     visualizing in an external program (such as `MeshLab
-    <http://meshlab.sf.net>`_.)  The object has the properties .vertices
-    and will sample values if a field is requested.  The values are
-    interpolated to the center of a given face.
+    <http://meshlab.sf.net>`_.)  The object has the properties .vertices and
+    will sample values if a field is requested.  The values are interpolated to
+    the center of a given face.
 
     Parameters
     ----------
@@ -980,11 +980,6 @@ class YTSurfaceBase(YTSelectionContainer3D):
         which will be isocontoured.
     field_value : float
         The value at which the isocontour should be calculated.
-
-    References
-    ----------
-
-    .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
 
     Examples
     --------
@@ -1070,11 +1065,12 @@ class YTSurfaceBase(YTSelectionContainer3D):
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
         r"""This calculates the flux over the surface.
 
-        This function will conduct marching cubes on all the cells in a given
-        data container (grid-by-grid), and then for each identified triangular
-        segment of an isocontour in a given cell, calculate the gradient (i.e.,
-        normal) in the isocontoured field, interpolate the local value of the
-        "fluxing" field, the area of the triangle, and then return:
+        This function will conduct `marching cubes
+        <http://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        given data container (grid-by-grid), and then for each identified
+        triangular segment of an isocontour in a given cell, calculate the
+        gradient (i.e., normal) in the isocontoured field, interpolate the local
+        value of the "fluxing" field, the area of the triangle, and then return:
 
         area * local_flux_value * (n dot v)
 

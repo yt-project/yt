@@ -1,5 +1,5 @@
 """
-OWLSSubfind data-file handling function
+GadgetFOF data-file handling function
 
 
 
@@ -25,13 +25,11 @@ from yt.utilities.io_handler import \
 
 from yt.utilities.lib.geometry_utils import compute_morton
 
-from yt.geometry.oct_container import _ORDER_MAX
-
-class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
-    _dataset_type = "subfind_hdf5"
+class IOHandlerGadgetFOFHDF5(BaseIOHandler):
+    _dataset_type = "gadget_fof_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerOWLSSubfindHDF5, self).__init__(ds)
+        super(IOHandlerGadgetFOFHDF5, self).__init__(ds)
         self.offset_fields = set([])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -48,7 +46,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
-                    coords = f[ptype]["CenterOfMass"].value.astype("float64")
+                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -56,8 +54,8 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                     yield ptype, (x, y, z)
 
     def _read_offset_particle_field(self, field, data_file, fh):
-        field_data = np.empty(data_file.total_particles["FOF"], dtype="float64")
-        fofindex = np.arange(data_file.total_particles["FOF"]) + data_file.index_start["FOF"]
+        field_data = np.empty(data_file.total_particles["Group"], dtype="float64")
+        fofindex = np.arange(data_file.total_particles["Group"]) + data_file.index_start["Group"]
         for offset_file in data_file.offset_files:
             if fh.filename == offset_file.filename:
                 ofh = fh
@@ -68,7 +66,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             subend = min(fofindex[-1] - subindex[0], subindex.size - 1)
             fofstart = substart + subindex[0] - fofindex[0]
             fofend = subend + subindex[0] - fofindex[0]
-            field_data[fofstart:fofend + 1] = ofh["SUBFIND"][field][substart:subend + 1]
+            field_data[fofstart:fofend + 1] = ofh["Subhalo"][field][substart:subend + 1]
         return field_data
                     
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -83,7 +81,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
-                    coords = f[ptype]["CenterOfMass"].value.astype("float64")
+                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -122,12 +120,12 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         ind = 0
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
-            dx = np.finfo(f["FOF"]['CenterOfMass'].dtype).eps
+            dx = np.finfo(f["Group"]["GroupPos"].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
 
             for ptype in data_file.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
-                pos = f[ptype]["CenterOfMass"].value.astype("float64")
+                pos = f[ptype]["%sPos" % ptype].value.astype("float64")
                 pos = np.resize(pos, (data_file.total_particles[ptype], 3))
                 pos = data_file.ds.arr(pos, "code_length")
                 
@@ -152,14 +150,9 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            pcount = {"FOF": f["FOF"].attrs["Number_of_groups"]}
-            if "SUBFIND" in f:
-                # We need this to figure out where the offset fields are stored.
-                data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
-                pcount["SUBFIND"] = f["FOF"].attrs["Number_of_subgroups"]
-            else:
-                data_file.total_offset = 0
-                pcount["SUBFIND"] = 0
+            pcount = {"Group": f["Header"].attrs["Ngroups_ThisFile"],
+                      "Subhalo": f["Header"].attrs["Nsubgroups_ThisFile"]}
+            data_file.total_offset = 0 # need to figure out how subfind works here
             return pcount
 
     def _identify_fields(self, data_file):
@@ -180,10 +173,7 @@ def subfind_field_list(fh, ptype, pcount):
     fields = []
     offset_fields = []
     for field in fh.keys():
-        if "PartType" in field:
-            # These are halo member particles
-            continue
-        elif isinstance(fh[field], h5py.Group):
+        if isinstance(fh[field], h5py.Group):
             my_fields, my_offset_fields = \
               subfind_field_list(fh[field], ptype, pcount)
             fields.extend(my_fields)
@@ -197,18 +187,18 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
-            elif ptype == "SUBFIND" and \
-              not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
-                # These are actually FOF fields, but they were written after 
+            elif ptype == "Subfind" and \
+              not fh[field].size % fh["/Subfind"].attrs["Number_of_groups"]:
+                # These are actually Group fields, but they were written after 
                 # a load balancing step moved halos around and thus they do not
-                # correspond to the halos stored in the FOF group.
-                my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
+                # correspond to the halos stored in the Group group.
+                my_div = fh[field].size / fh["/Subfind"].attrs["Number_of_groups"]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
                     for i in range(int(my_div)):
-                        fields.append(("FOF", "%s_%d" % (fname, i)))
+                        fields.append(("Group", "%s_%d" % (fname, i)))
                 else:
-                    fields.append(("FOF", fname))
+                    fields.append(("Group", fname))
                 offset_fields.append(fname)
             else:
                 mylog.warn("Cannot add field (%s, %s) with size %d." % \
