@@ -1073,7 +1073,8 @@ class YTArray(np.ndarray):
                                         unit.base_value, out=out_arr)
                             unit = Unit(registry=unit.registry)
         else:
-            raise RuntimeError("Operation is not defined.")
+            raise RuntimeError("Support for the %s ufunc has not been added "
+                               "to YTArray." % str(context[0]))
         if unit is None:
             out_arr = np.array(out_arr, copy=False)
             return out_arr
