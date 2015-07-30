@@ -852,6 +852,12 @@ def get_sph_theta(coords, normal):
     
     res_normal = resize_vector(normal, coords)
 
+    # check if the normal vector is normalised
+    # since arccos requires the vector to be normalised
+    L2 = np.atleast_1d(np.linalg.norm(res_normal))
+    L2[L2==0] = 1
+    res_normal = res_normal / L2
+
     tile_shape = [1] + list(coords.shape)[1:]
     
     J = np.tile(res_normal,tile_shape)
