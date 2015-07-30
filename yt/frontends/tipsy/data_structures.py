@@ -167,9 +167,9 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
-        comoving = self.parameters.get('bComove', False)
         self.periodicity = (periodic, periodic, periodic)
-        if comoving and period is None:
+        self.comoving = self.parameters.get('bComove', False)
+        if self.comoving and period is None:
             period = 1.0
         if self.bounding_box is None:
             if periodic and period is not None:
@@ -186,7 +186,9 @@ class TipsyDataset(ParticleDataset):
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
 
-        if comoving:
+        # If the cosmology parameters dictionary got set when data is
+        # loaded, we can assume it's a cosmological data set
+        if self.comoving or self._cosmology_parameters is not None:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
@@ -224,8 +226,12 @@ class TipsyDataset(ParticleDataset):
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
             self.mass_unit = self.quan(mu, 'Msun')
             density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
-            # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
-            self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)  
+
+            # If self.comoving is set, we know this is a gasoline data set,
+            # and we do the conversion on the hubble constant.
+            if self.comoving:
+                # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
+                self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
