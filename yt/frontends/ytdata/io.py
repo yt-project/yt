@@ -1,5 +1,5 @@
 """
-HaloCatalog data-file handling function
+YTData data-file handling function
 
 
 
@@ -7,7 +7,7 @@ HaloCatalog data-file handling function
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2015, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -18,17 +18,20 @@ import h5py
 import numpy as np
 
 from yt.utilities.exceptions import *
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.lib.geometry_utils import \
+    compute_morton
 
-from yt.geometry.oct_container import _ORDER_MAX
+from yt.geometry.oct_container import \
+    _ORDER_MAX
 
-class IOHandlerHaloCatalogHDF5(BaseIOHandler):
-    _dataset_type = "halocatalog_hdf5"
+class IOHandlerYTDataHDF5(BaseIOHandler):
+    _dataset_type = "ytdata_hdf5"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError

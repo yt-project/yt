@@ -1,5 +1,5 @@
 """
-Data structures for HaloCatalog frontend.
+Data structures for YTData frontend.
 
 
 
@@ -7,7 +7,7 @@ Data structures for HaloCatalog frontend.
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2015, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -24,7 +24,7 @@ import time
 import os
 
 from .fields import \
-    HaloCatalogFieldInfo
+    YTDataFieldInfo
 
 from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
@@ -37,25 +37,25 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
     
-class HaloCatalogHDF5File(ParticleFile):
+class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
 
-        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
+        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
     
-class HaloCatalogDataset(Dataset):
+class YTDataDataset(Dataset):
     _index_class = ParticleIndex
-    _file_class = HaloCatalogHDF5File
-    _field_info_class = HaloCatalogFieldInfo
+    _file_class = YTDataHDF5File
+    _field_info_class = YTDataFieldInfo
     _suffix = ".h5"
 
-    def __init__(self, filename, dataset_type="halocatalog_hdf5",
+    def __init__(self, filename, dataset_type="ytdata_hdf5",
                  n_ref = 16, over_refine_factor = 1, units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HaloCatalogDataset, self).__init__(filename, dataset_type,
+        super(YTDataDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override)
 
     def _parse_parameter_file(self):

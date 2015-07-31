@@ -14,14 +14,14 @@ API for ytData frontend
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-# from .data_structures import \
-#      ytDataDataset
+from .data_structures import \
+    YTDataDataset
 
-# from .io import \
-#      IOHandlerytDataHDF5
+from .io import \
+    IOHandlerYTDataHDF5
 
-# from .fields import \
-#      ytDataFieldInfo
+from .fields import \
+    YTDataFieldInfo
 
 from .utilties import \
     to_yt_dataset
