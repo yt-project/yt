@@ -32,8 +32,10 @@ cdef struct NeighborList:
     np.int64_t pn       # Particle number
     np.float64_t r2     # radius**2
 
+ctypedef np.float64_t (*kernel_func) (np.float64_t)
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
+    cdef kernel_func sph_kernel
     cdef public object nvals
     cdef np.float64_t DW[3]
     cdef int nfields

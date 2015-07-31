@@ -48,8 +48,10 @@ cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
         kernel = 0.
     return kernel
 
+ctypedef np.float64_t (*kernel_func) (np.float64_t)
 cdef class ParticleDepositOperation:
     # We assume each will allocate and define their own temporary storage
+    cdef kernel_func sph_kernel
     cdef public object nvals
     cdef public int update_values
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
