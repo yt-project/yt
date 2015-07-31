@@ -249,14 +249,6 @@ class TipsyDataset(ParticleDataset):
 
         # If unit base is defined by the user, override all relevant units
         if self._unit_base is not None:
-            if 'time' in self._unit_base.keys():
-                time = self._unit_base['time']
-
-                if not isinstance(time, YTQuantity):
-                    time = self.quan(*time)
-
-                self.time_unit = time
-
             if 'length' in self._unit_base.keys():
                 length = self._unit_base['length']
 
@@ -272,6 +264,18 @@ class TipsyDataset(ParticleDataset):
                     mass = self.quan(*mass)
 
                 self.mass_unit = mass
+
+            density_unit = self.mass_unit / self.length_unit**3
+            self.time_unit = 1.0 / np.sqrt(G * density_unit)
+
+            if 'time' in self._unit_base.keys():
+                time = self._unit_base['time']
+
+                if not isinstance(time, YTQuantity):
+                    time = self.quan(*time)
+
+                self.time_unit = time
+
 
     @staticmethod
     def _validate_header(filename):
