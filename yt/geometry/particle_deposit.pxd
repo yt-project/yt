@@ -38,7 +38,7 @@ cdef inline int gind(int i, int j, int k, int dims[3]):
 # Standard SPH kernel for use with the Grid method #
 ####################################################
 
-cdef inline np.float64_t sph_kernel(np.float64_t x) nogil:
+cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
     cdef np.float64_t kernel
     if x <= 0.5:
         kernel = 1.-6.*x*x*(1.-x)
