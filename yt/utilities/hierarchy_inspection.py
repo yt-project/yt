@@ -27,6 +27,8 @@ def find_lowest_subclasses(candidates):
     # lowest class
     if len(candidates) == 1:
         return candidates
+    elif len(candidates) == 0:
+        return []
 
     mros = [inspect.getmro(c) for c in candidates]
 
