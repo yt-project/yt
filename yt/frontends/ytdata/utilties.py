@@ -17,7 +17,10 @@ Utility functions for ytdata frontend.
 import h5py
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog
+from yt.units.yt_array import \
+    YTArray
 
 def to_yt_dataset(ds, filename, data, extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
@@ -60,7 +63,7 @@ def to_yt_dataset(ds, filename, data, extra_attrs=None):
                    "cosmological_simulation", "omega_lambda",
                    "omega_matter", "hubble_constant"]
 
-    fh = h5py.file(filename, "w")
+    fh = h5py.File(filename, "w")
     for attr in base_attrs:
         if isinstance(ds, dict):
             my_val = ds.get(attr, None)
@@ -73,13 +76,16 @@ def to_yt_dataset(ds, filename, data, extra_attrs=None):
             my_val = my_val.in_cgs()
         fh.attrs[attr] = my_val
     for attr in extra_attrs:
-        my_val = extra_attrs[my_val]
+        my_val = extra_attrs[attr]
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
         fh.attrs[attr] = my_val
     if "data_type" not in extra_attrs:
         fh.attrs["data_type"] = "unknown"
     for field in data:
+        # for now, let's avoid writing "code" units
+        if hasattr(field, "units"):
+            data[field].convert_to_cgs()
         dataset = _yt_array_hdf5(fh, field, data[field])
     fh.close()
 

@@ -506,7 +506,16 @@ class YTDataContainer(object):
         keyword = "%s_%s" % (str(self.ds), self._type_name)
         filename = get_output_filename(filename, keyword, ".h5")
 
-        
+        data = {}
+        if fields is not None:
+            for f in fields:
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self._con_args])
+        extra_attrs["data_type"] = self._type_name
+        to_yt_dataset(self.ds, filename, data, extra_attrs=extra_attrs)
 
         return filename
         
