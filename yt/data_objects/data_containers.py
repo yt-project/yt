@@ -514,7 +514,8 @@ class YTDataContainer(object):
             data.update(self.field_data)
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args])
-        extra_attrs["data_type"] = self._type_name
+        extra_attrs["data_type"] = "yt_data_container"
+        extra_attrs["container_type"] = self._type_name
         to_yt_dataset(self.ds, filename, data, extra_attrs=extra_attrs)
 
         return filename

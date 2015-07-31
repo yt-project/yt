@@ -50,7 +50,27 @@ def to_yt_dataset(ds, filename, data, extra_attrs=None):
     Examples
     --------
 
-    COMING SOON!
+    >>> import yt
+    >>> from yt.frontends.ytdata.api import to_yt_dataset
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> sphere = ds.sphere([0.5]*3, (10, "Mpc")
+    >>> sphere_density = sphere["density"]
+    >>> region = ds.box([0.]*3, [0.25]*3)
+    >>> region_density = region["density"]
+    >>> data = {}
+    >>> data["sphere_density"] = sphere_density
+    >>> data["region_density"] = region_density
+    >>> to_yt_dataset(ds, "density_data.h5", data)
+
+    >>> import yt
+    >>> from yt.frontends.ytdata.api import to_yt_dataset
+    >>> from yt.units.yt_array import YTArray, YTQuantity
+    >>> data = {"density": YTArray(np.random.random(10), "g/cm**3"),
+    ...         "temperature": YTArray(np.random.random(10), "K")}
+    >>> ds_data = {"domain_left_edge": YTArray(np.zeros(3), "cm"),
+    ...            "domain_right_edge": YTArray(np.ones(3), "cm"),
+    ...            "current_time": YTQuantity(10, "Myr")}
+    >>> to_yt_dataset(ds_data, "random_data.h5", data)
     
     """
 
@@ -81,7 +101,7 @@ def to_yt_dataset(ds, filename, data, extra_attrs=None):
             my_val = my_val.in_cgs()
         fh.attrs[attr] = my_val
     if "data_type" not in extra_attrs:
-        fh.attrs["data_type"] = "unknown"
+        fh.attrs["data_type"] = "yt_array_data"
     for field in data:
         # for now, let's avoid writing "code" units
         if hasattr(field, "units"):
