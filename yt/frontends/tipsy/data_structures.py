@@ -32,6 +32,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.physical_constants import \
     G, \
     cm_per_kpc
+from yt import YTQuantity
 
 from .fields import \
     TipsyFieldInfo
@@ -230,8 +231,11 @@ class TipsyDataset(ParticleDataset):
             # If self.comoving is set, we know this is a gasoline data set,
             # and we do the conversion on the hubble constant.
             if self.comoving:
-                # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
-                self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)
+                # Gasoline's hubble constant, dHubble0, is stored units of
+                # proper code time.
+                self.hubble_constant *= np.sqrt(G.in_units(
+                    'kpc**3*Msun**-1*s**-2') * density_unit).value / (
+                    3.2407793e-18)
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
@@ -242,6 +246,32 @@ class TipsyDataset(ParticleDataset):
             self.length_unit = self.quan(lu, 'kpc')
             density_unit = self.mass_unit / self.length_unit**3
         self.time_unit = 1.0 / np.sqrt(G * density_unit)
+
+        # If unit base is defined by the user, override all relevant units
+        if self._unit_base is not None:
+            if 'time' in self._unit_base.keys():
+                time = self._unit_base['time']
+
+                if not isinstance(time, YTQuantity):
+                    time = self.quan(*time)
+
+                self.time_unit = time
+
+            if 'length' in self._unit_base.keys():
+                length = self._unit_base['length']
+
+                if not isinstance(length, YTQuantity):
+                    length = self.quan(*length)
+
+                self.length_unit = length
+
+            if 'mass' in self._unit_base.keys():
+                mass = self._unit_base['mass']
+
+                if not isinstance(mass, YTQuantity):
+                    mass = self.quan(*mass)
+
+                self.mass_unit = mass
 
     @staticmethod
     def _validate_header(filename):
