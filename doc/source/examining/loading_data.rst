@@ -1366,8 +1366,8 @@ indexing and mesh-identification with that described in
 
 .. _specifying-cosmology-tipsy:
 
-Specifying Tipsy Cosmological Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specifying Tipsy Cosmological Parameters and Setting Default Units
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Cosmological parameters can be specified to Tipsy to enable computation of
 default units.  The parameters recognized are of this form:
@@ -1379,5 +1379,25 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-These will be used set the units, if they are specified.
+If you wish to set the default units directly, you can do so by using the ``unit_base`` keyword in the load statement.
+
+ .. code-block:: python
+
+    import yt
+    ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
+
+
+Loading Cosmological Simulations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are not using a parameter file (i.e. non-Gasoline users), then you must use keyword ``cosmology_parameters``
+when loading your data set to indicate to yt that it is a cosmological data set. If you do not wish to set any
+non-default cosmological parameters, you may pass an empty dictionary.
+
+ .. code-block:: python
+
+    import yt
+    ds = yt.load(filename, cosmology_parameters={})
+
+
 
