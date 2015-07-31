@@ -22,7 +22,7 @@ from libc.math cimport sqrt
 
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
-from .particle_deposit cimport sph_kernel, gind
+from .particle_deposit cimport sph_kernel_cubic, gind
 
 cdef extern from "platform_dep.h":
     void *alloca(int)

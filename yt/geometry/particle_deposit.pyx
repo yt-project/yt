@@ -25,9 +25,11 @@ from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
 cdef class ParticleDepositOperation:
-    def __init__(self, nvals):
+    def __init__(self, nvals, kernel='cubic'):
         self.nvals = nvals
         self.update_values = 0 # This is the default
+        if kernel == 'cubic':
+            self.sph_kernel = sph_kernel_cubic
 
     def initialize(self, *args):
         raise NotImplementedError
@@ -227,7 +229,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]
-                    self.temp[gind(i,j,k,dim) + offset] = sph_kernel(dist)
+                    self.temp[gind(i,j,k,dim) + offset] = self.sph_kernel(dist)
                     kernel_sum += self.temp[gind(i,j,k,dim) + offset]
         # Having found the kernel, deposit accordingly into gdata
         for i from ib0[0] <= i <= ib1[0]:
@@ -492,4 +494,3 @@ cdef class NNParticleField(ParticleDepositOperation):
         return self.onnfield
 
 deposit_nearest = NNParticleField
-
