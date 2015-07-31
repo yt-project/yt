@@ -176,7 +176,6 @@ class AbsorptionSpectrum(object):
         if njobs == "auto":
             comm = _get_comm(())
             njobs = min(comm.size, len(self.line_list))
-            print("this many groups: %d" % njobs)
         
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
                                     line_list_file is not None, njobs=njobs)
