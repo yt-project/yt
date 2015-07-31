@@ -112,9 +112,9 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_file, output_file='spectrum.h5',
-                      line_list_file='lines.txt',
-                      use_peculiar_velocity=True, njobs=-1):
+    def make_spectrum(self, input_file, output_file="spectrum.h5",
+                      line_list_file="lines.txt",
+                      use_peculiar_velocity=True, njobs="auto"):
         """
         Make spectrum from ray data using the line list.
 
@@ -123,20 +123,35 @@ class AbsorptionSpectrum(object):
 
         input_file : string
            path to input ray data.
-        output_file : string
+        output_file : optional, string
            path for output file.  File formats are chosen based on the 
            filename extension.  ``.h5`` for hdf5, ``.fits`` for fits, 
            and everything else is ASCII.
-        use_peculiar_velocity : bool
+           Default: "spectrum.h5"
+        line_list_file : optional, string
+           path to file in which the list of all deposited lines 
+           will be saved.  If set to None, the line list will not 
+           be saved.  Note, when running in parallel, combining the 
+           line lists can be quite slow, so it is recommended to set 
+           this to None when running in parallel unless you really
+           want them.
+           Default: "lines.txt"
+        use_peculiar_velocity : optional, bool
            if True, include line of sight velocity for shifting lines.
-        njobs : int
+           Default: True
+        njobs : optional, int or "auto"
            the number of process groups into which the loop over
            absorption lines will be divided.  If set to -1, each 
            absorption line will be deposited by exactly one processor.
            If njobs is set to a value less than the total number of 
            available processors (N), then the deposition of an 
            individual line will be parallelized over (N / njobs)
-           processors.
+           processors.  If set to "auto", it will first try to 
+           parallelize over the list of lines and only parallelize 
+           the line deposition if there are more processors than
+           lines.  This is the optimal strategy for parallelizing 
+           spectrum generation.
+           Default: "auto"
         """
 
         input_fields = ['dl', 'redshift', 'temperature']
@@ -158,8 +173,13 @@ class AbsorptionSpectrum(object):
         self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
 
+        if njobs == "auto":
+            comm = _get_comm(())
+            njobs = min(comm.size, len(self.line_list))
+            print("this many groups: %d" % njobs)
+        
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
-                                    line_list_file is not None)
+                                    line_list_file is not None, njobs=njobs)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
         self.flux_field = np.exp(-self.tau_field)
@@ -221,7 +241,7 @@ class AbsorptionSpectrum(object):
         # Widen wavelength window until optical depth reaches a max value at the ends.
         max_tau = 0.001
 
-        for line in parallel_objects(self.line_list, njobs=2):
+        for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
             delta_lambda = line['wavelength'] * field_data['redshift']
             if use_peculiar_velocity:
