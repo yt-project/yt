@@ -19,8 +19,6 @@ import numpy as np
 from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
 
 m_units = "g"
 p_units = "cm"

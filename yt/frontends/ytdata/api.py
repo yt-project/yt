@@ -23,5 +23,5 @@ from .io import \
 from .fields import \
     YTDataFieldInfo
 
-from .utilties import \
+from .utilities import \
     to_yt_dataset

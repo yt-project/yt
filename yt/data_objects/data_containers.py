@@ -31,7 +31,7 @@ from yt.funcs import get_output_filename
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.frontends.ytdata.api import \
+from yt.frontends.ytdata.utilities import \
     to_yt_dataset
 from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
