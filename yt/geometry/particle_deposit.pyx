@@ -25,7 +25,7 @@ from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
 cdef class ParticleDepositOperation:
-    def __init__(self, nvals, kernel_name='cubic'):
+    def __init__(self, nvals, kernel_name):
         self.nvals = nvals
         self.update_values = 0 # This is the default
         self.sph_kernel = get_kernel_func(kernel_name)

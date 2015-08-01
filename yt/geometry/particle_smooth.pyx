@@ -74,7 +74,7 @@ cdef void cart_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
     opos[2] = ipos[2]
 
 cdef class ParticleSmoothOperation:
-    def __init__(self, nvals, nfields, max_neighbors, kernel_name='cubic'):
+    def __init__(self, nvals, nfields, max_neighbors, kernel_name):
         # This is the set of cells, in grids, blocks or octs, we are handling.
         cdef int i
         self.nvals = nvals
