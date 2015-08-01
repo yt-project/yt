@@ -80,7 +80,20 @@ cdef inline np.float64_t sph_kernel_quintic(np.float64_t x) nogil:
         kernel = 0.
     return kernel * Cquintic
 
+# I don't know the way to use a dict in a cdef class.
+# So in order to mimic a registry functionality,
+# I manually created a function to lookup the kernel functions.
 ctypedef np.float64_t (*kernel_func) (np.float64_t)
+cdef inline kernel_func get_kernel_func(str kernel_name):
+    if kernel_name == 'cubic':
+        return sph_kernel_cubic
+    elif kernel_name == 'quartic':
+        return sph_kernel_quartic
+    elif kernel_name == 'quintic':
+        return sph_kernel_quintic
+    else:
+        raise NotImplementedError
+
 cdef class ParticleDepositOperation:
     # We assume each will allocate and define their own temporary storage
     cdef kernel_func sph_kernel

@@ -74,7 +74,7 @@ cdef void cart_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
     opos[2] = ipos[2]
 
 cdef class ParticleSmoothOperation:
-    def __init__(self, nvals, nfields, max_neighbors, kernel='cubic'):
+    def __init__(self, nvals, nfields, max_neighbors, kernel_name='cubic'):
         # This is the set of cells, in grids, blocks or octs, we are handling.
         cdef int i
         self.nvals = nvals
@@ -83,8 +83,7 @@ cdef class ParticleSmoothOperation:
         self.neighbors = <NeighborList *> malloc(
             sizeof(NeighborList) * self.maxn)
         self.neighbor_reset()
-        if kernel == 'cubic':
-            self.sph_kernel = sph_kernel_cubic
+        self.sph_kernel = get_kernel_func(kernel_name)
 
     def initialize(self, *args):
         raise NotImplementedError
