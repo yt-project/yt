@@ -508,15 +508,47 @@ class YTDataContainer(object):
 
         data = {}
         if fields is not None:
-            for f in fields:
+            for f in self._determine_fields(fields):
                 data[f] = self[f]
         else:
             data.update(self.field_data)
+        data_fields = data.keys()
+
+        need_grid_fields = False
+        need_particle_fields = False
+        ptypes = []
+        ftypes = {}
+        for field in data_fields:
+            if self.ds.field_info[field].particle_type:
+                if field[0] not in ptypes:
+                    ptypes.append(field[0])
+                ftypes[field] = field[0]
+                need_particle_fields = True
+            else:
+                ftypes[field] = "grid"
+                need_grid_fields = True
+
+        for ax in "xyz":
+            if need_particle_fields:
+                for ptype in ptypes:
+                    p_field = (ptype, "particle_position_%s" % ax)
+                    if p_field in self.ds.field_info and p_field not in data:
+                        data_fields.append(field)
+                        ftypes[p_field] = p_field[0]
+                        data[p_field] = self[p_field]
+            if need_grid_fields:
+                g_field = ("index", ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+                    
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args])
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
-        to_yt_dataset(self.ds, filename, data, extra_attrs=extra_attrs)
+        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
+                      extra_attrs=extra_attrs)
 
         return filename
         

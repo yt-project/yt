@@ -22,7 +22,8 @@ from yt.funcs import \
 from yt.units.yt_array import \
     YTArray
 
-def to_yt_dataset(ds, filename, data, extra_attrs=None):
+def to_yt_dataset(ds, filename, data, field_types=None,
+                  extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
 
     This function can be used to create a yt loadable dataset from a 
@@ -103,10 +104,17 @@ def to_yt_dataset(ds, filename, data, extra_attrs=None):
     if "data_type" not in extra_attrs:
         fh.attrs["data_type"] = "yt_array_data"
     for field in data:
+        if field_types is None:
+            field_type = "data"
+        else:
+            field_type = field_types[field]
+        if field_type not in fh:
+            fh.create_group(field_type)
+        
         # for now, let's avoid writing "code" units
         if hasattr(field, "units"):
             data[field].convert_to_cgs()
-        dataset = _yt_array_hdf5(fh, field, data[field])
+        dataset = _yt_array_hdf5(fh[field_type], field, data[field])
     fh.close()
 
 def _hdf5_yt_array(fh, field, ds=None):
@@ -163,7 +171,7 @@ def _yt_array_hdf5(fh, field, data):
     
     """
 
-    dataset = fh.create_dataset(field, data=data)
+    dataset = fh.create_dataset(str(field), data=data)
     units = ""
     if isinstance(data, YTArray):
         units = str(data.units)
