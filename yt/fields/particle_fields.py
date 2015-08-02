@@ -766,8 +766,12 @@ def add_particle_average(registry, ptype, field_name,
 
 def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
-        nneighbors = None):
-    field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
+        nneighbors = None, kernel_name = 'cubic'):
+    if kernel_name == 'cubic':
+        field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
+    else:
+        field_name = ("deposit", "%s_%s_smoothed_%s" % (ptype, kernel_name,
+                      smoothed_field))
     field_units = registry[ptype, smoothed_field].units
     def _vol_weight(field, data):
         pos = data[ptype, coord_name]
@@ -789,7 +793,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
-                         create_octree=True)[0]
+                         create_octree=True,
+                         kernel_name=kernel_name)[0]
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         rv = data.apply_units(rv, field_units)
