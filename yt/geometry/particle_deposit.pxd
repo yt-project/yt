@@ -53,9 +53,9 @@ cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
 ########################################################
 
 # quartic spline
-cdef np.float64_t Cquartic = 5.**6/512/np.pi
-cdef inline np.float64_t sph_kernel_quartic(np.float64_t x) nogil:
+cdef inline np.float64_t sph_kernel_quartic(np.float64_t x):
     cdef np.float64_t kernel
+    cdef np.float64_t C = 5.**6/512/np.pi
     if x < 1:
         kernel = (1.-x)**4
         if x < 3./5:
@@ -64,12 +64,12 @@ cdef inline np.float64_t sph_kernel_quartic(np.float64_t x) nogil:
                 kernel += 10*(1./5-x)**4
     else:
         kernel = 0.
-    return kernel * Cquartic
+    return kernel * C
 
 # quintic spline
-cdef np.float64_t Cquintic = 3.**7/40/np.pi
-cdef inline np.float64_t sph_kernel_quintic(np.float64_t x) nogil:
+cdef inline np.float64_t sph_kernel_quintic(np.float64_t x):
     cdef np.float64_t kernel
+    cdef np.float64_t C = 3.**7/40/np.pi
     if x < 1:
         kernel = (1.-x)**5
         if x < 2./3:
@@ -78,7 +78,7 @@ cdef inline np.float64_t sph_kernel_quintic(np.float64_t x) nogil:
                 kernel += 15*(1./3-x)**5
     else:
         kernel = 0.
-    return kernel * Cquintic
+    return kernel * C
 
 # I don't know the way to use a dict in a cdef class.
 # So in order to mimic a registry functionality,
