@@ -821,8 +821,12 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
-def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
-    field_name = (ptype, "smoothed_density")
+def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
+                       kernel_name = 'cubic'):
+    if kernel_name == 'cubic':
+        field_name = (ptype, "smoothed_density")
+    else:
+        field_name = (ptype, "%s_smoothed_density" % (kernel_name))
     field_units = registry[ptype, mass_name].units
     def _nth_neighbor(field, data):
         pos = data[ptype, coord_name]
@@ -832,7 +836,8 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
         densities = mass * 0.0
         data.particle_operation(pos, [mass, densities],
                          method="density",
-                         nneighbors = nneighbors)
+                         nneighbors = nneighbors,
+                         kernel_name = kernel_name)
         ones = pos.prod(axis=1) # Get us in code_length**3
         ones[:] = 1.0
         densities /= ones
