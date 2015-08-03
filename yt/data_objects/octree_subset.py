@@ -283,7 +283,7 @@ class OctreeSubset(YTSelectionContainer):
         return vals
 
     def particle_operation(self, positions, fields = None,
-            method = None, nneighbors = 64):
+            method = None, nneighbors = 64, kernel_name = 'cubic'):
         r"""Operate on particles, in a particle-against-particle fashion.
 
         This uses the octree indexing system to call a "smoothing" operation
