@@ -22,6 +22,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
+from yt.geometry.unstructured_mesh_handler import \
+     UnstructuredIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.io_handler import \
@@ -48,7 +50,7 @@ class ExodusIIGrid(AMRGridPatch):
     def __repr__(self):
         return "ExodusIIGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class ExodusIIHierarchy(GridIndex):
+class ExodusIIHierarchy(UnstructuredIndex):
     grid = ExodusIIGrid
 
     def __init__(self, ds, dataset_type='exodus_ii'):
