@@ -22,7 +22,7 @@ from libc.math cimport sqrt
 
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
-from .particle_deposit cimport sph_kernel, gind
+from .particle_deposit cimport kernel_func, get_kernel_func, gind
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
@@ -34,6 +34,7 @@ cdef struct NeighborList:
 
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
+    cdef kernel_func sph_kernel
     cdef public object nvals
     cdef np.float64_t DW[3]
     cdef int nfields

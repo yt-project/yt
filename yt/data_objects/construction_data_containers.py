@@ -682,11 +682,13 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     def RightEdge(self):
         return self.right_edge
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(self.ActiveDimensions.prod(), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
@@ -1787,5 +1789,3 @@ class YTSurfaceBase(YTSelectionContainer3D):
         else:
             mylog.error("Problem uploading.")
         return upload_id
-
-
