@@ -127,14 +127,14 @@ class ExodusIIDataset(Dataset):
         pass
     
     def _parse_parameter_file(self):
-        if 'info_records' in self.ds.variables.keys():
-            self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
-            self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
-            self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
-        else:
-            mylog.warning("No info_records found")
-            self.unique_identifier = self.parameter_filename.__hash__()
-            self.current_time      = 0.0
+        # if 'info_records' in self.ds.variables.keys():
+        #     self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
+        #     self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
+        #     self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
+        # else:
+        #     mylog.warning("No info_records found")
+        #     self.unique_identifier = self.parameter_filename.__hash__()
+        #     self.current_time      = 0.0
 
         self.dimensionality             = self.ds.variables['coor_names'].shape[0]
         self.parameters['num_elem']     = self.ds['eb_status'].shape[0]
@@ -152,21 +152,35 @@ class ExodusIIDataset(Dataset):
         self.hubble_constant            = 0
 
     def _get_var_names(self):
-        return [sanitize_string(v.tostring()) for v in
-                self.ds.variables["name_elem_var"]]
+        try:
+            return [sanitize_string(v.tostring()) for v in
+                    self.ds.variables["name_elem_var"]]
+        except KeyError:
+            mylog.warning("name_elem_var not found")
+            return []
 
     def _get_nod_names(self):
-        return [sanitize_string(v.tostring()) for v in
-                self.ds.variables["name_nod_var"]]
+        try:
+            return [sanitize_string(v.tostring()) for v in
+                    self.ds.variables["name_nod_var"]]
+        except KeyError:
+            mylog.warning("name_nod_var not found")
+            return []
 
     def _load_coordinates(self):
         if self.dimensionality == 3:
             coord_axes = 'xyz'
         elif self.dimensionality == 2:
             coord_axes = 'xy'
-        mylog.info("Loading coordinates for axes %s" % coord_axes)
-        return np.array([self.ds.variables["coord%s" % ax][:]
-                         for ax in coord_axes]).transpose().copy()
+
+        mylog.info("Loading coordinates")
+
+        if 'coord' in self.ds.variables.keys():
+            return np.array([coord for coord in
+                             self.ds.variables["coord"][:]]).transpose().copy()
+        else:
+            return np.array([self.ds.variables["coord%s" % ax][:]
+                             for ax in coord_axes]).transpose().copy()
     
     def _load_connectivity(self):
         mylog.info("Loading connectivity")
