@@ -36,7 +36,7 @@ from .util import \
     load_info_records, sanitize_string
 
 class ExodusIIGrid(AMRGridPatch):
-    _id_offset = 0
+    _id_offset = 1
     def __init__(self, id, index, level, start, dimensions):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
