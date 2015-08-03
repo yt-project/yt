@@ -42,7 +42,6 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
-INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
@@ -107,7 +106,6 @@ function write_config
     echo INST_BZLIB=${INST_BZLIB} >> ${CONFIG_FILE}
     echo INST_PNG=${INST_PNG} >> ${CONFIG_FILE}
     echo INST_FTYPE=${INST_FTYPE} >> ${CONFIG_FILE}
-    echo INST_ENZO=${INST_ENZO} >> ${CONFIG_FILE}
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
@@ -418,10 +416,6 @@ echo "be installing SQLite3"
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
-
-printf "%-15s = %s so I " "INST_ENZO" "${INST_ENZO}"
-get_willwont ${INST_ENZO}
-echo "be checking out Enzo"
 
 printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
@@ -976,14 +970,6 @@ then
     ( ${DEST_DIR}/bin/pip install readline 2>&1 ) 1>> ${LOG_FILE}
 fi
 
-if [ $INST_ENZO -eq 1 ]
-then
-    echo "Cloning a copy of Enzo."
-    cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
-    cd $MY_PWD
-fi
-
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
    ( grep -q python2.6 $HOME/.matplotlib/fontList.cache )
 then
@@ -1033,16 +1019,6 @@ function print_afterword
       echo "Mercurial has also been installed:"
       echo
       echo "$DEST_DIR/bin/hg"
-      echo
-    fi
-    if [ $INST_ENZO -eq 1 ]
-    then
-      echo "Enzo has also been checked out, but not built."
-      echo
-      echo "$DEST_DIR/src/enzo-hg-stable"
-      echo
-      echo "The value of YT_DEST can be used as an HDF5 installation location."
-      echo "Questions about Enzo should be directed to the Enzo User List."
       echo
     fi
     echo
