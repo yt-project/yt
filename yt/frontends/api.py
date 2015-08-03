@@ -31,6 +31,7 @@ _frontends = [
     'gdf',
     'halo_catalog',
     'http_stream',
+    'light_ray',
     'moab',
     'owls',
     'owls_subfind',

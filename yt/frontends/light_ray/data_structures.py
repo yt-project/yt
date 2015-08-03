@@ -66,8 +66,7 @@ class LightRayDataset(Dataset):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
-        self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
-        self.file_count = len(glob.glob(prefix + "*" + self._suffix))
+        self.file_count = 1
 
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
