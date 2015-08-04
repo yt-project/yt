@@ -378,7 +378,6 @@ cdef void sample_tetra(void* userPtr,
     cdef int[4] element_indices
     cdef double[12] vertices
     cdef double[3] position
-    cdef double[4] mapped_coord
     cdef MeshDataContainer* data
 
     data = <MeshDataContainer*> userPtr

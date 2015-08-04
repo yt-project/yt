@@ -19,13 +19,10 @@ cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
 from yt.utilities.exceptions import YTPixelizeError
-from yt.utilities.lib.mesh_samplers cimport \
-    sample_hex_at_unit_point, \
-    sample_tetra_at_unit_point, \
-    hex_real_to_mapped, \
-    tetra_real_to_mapped, \
-    hex_check_inside, \
-    tetra_check_inside
+from yt.utilities.lib.element_mappings cimport \
+    ElementSampler, \
+    P1Sampler3D, \
+    Q1Sampler3D
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -459,25 +456,16 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
-    cdef int nf
-    cdef sample_function_ptr sample_func
-    cdef transform_function_ptr transform_func
-    cdef check_function_ptr check_inside
     cdef double* mapped_coord
+    cdef ElementSampler sampler
 
     # Allocate storage for the mapped coordinate
     if nvertices == 4:
-        nf = TETRA_NF
-        sample_func = sample_tetra_at_unit_point
-        transform_func = tetra_real_to_mapped
-        check_inside = tetra_check_inside
         mapped_coord = <double*> alloca(sizeof(double) * 4)
+        sampler = P1Sampler3D()
     elif nvertices == 8:
-        nf = HEX_NF
-        sample_func = sample_hex_at_unit_point
-        transform_func = hex_real_to_mapped
-        check_inside = hex_check_inside
         mapped_coord = <double*> alloca(sizeof(double) * 3)
+        sampler = Q1Sampler3D()
     else:
         raise RuntimeError
 
@@ -523,11 +511,11 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
-                    transform_func(mapped_coord, vertices, ppoint)
-                    if not check_inside(mapped_coord):
+                    sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
+                    if not sampler.check_inside(mapped_coord):
                         continue
                     # Else, we deposit!
-                    img[pi, pj, pk] = sample_func(mapped_coord,
-                                                  field_vals)
+                    img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
+                                                                   field_vals)
 
     return img
