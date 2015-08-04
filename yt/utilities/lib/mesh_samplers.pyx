@@ -1,7 +1,6 @@
 """
-This file contains coordinate mappings between physical coordinates and those
-defined on unit elements, as well as functions that do the corresponding intracell
-interpolation.
+This file contains functions that sample a surface mesh at the point hit by
+a ray. These can be used with pyembree in the form of "filter feedback functions."
 
 
 """
@@ -19,6 +18,7 @@ cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
 from yt.utilities.lib.mesh_construction cimport MeshDataContainer
 from yt.utilities.lib.element_mappings cimport \
+    ElementSampler, \
     P1Sampler3D, \
     Q1Sampler3D
 cimport numpy as np
