@@ -26,9 +26,9 @@ from libc.math cimport fabs, fmax
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline double determinant_3x3(double* col0, 
-                                   double* col1, 
-                                   double* col2) nogil:
+cdef double determinant_3x3(double* col0, 
+                            double* col1, 
+                            double* col2) nogil:
     return col0[0]*col1[1]*col2[2] - col0[0]*col1[2]*col2[1] - \
            col0[1]*col1[0]*col2[2] + col0[1]*col1[2]*col2[0] + \
            col0[2]*col1[0]*col2[1] - col0[2]*col1[1]*col2[0]
@@ -241,13 +241,54 @@ cdef void sample_hex(void* userPtr,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef void hex_real_to_mapped(double* mapped_x,
+                             double* vertices,
+                             double* physical_x) nogil:
+    
+    cdef int i
+    cdef double d, val
+    cdef double[3] f
+    cdef double[3] r
+    cdef double[3] s
+    cdef double[3] t
+    cdef double[3] x
+    cdef double tolerance = 1.0e-9
+    cdef int iterations = 0
+    cdef double err
+   
+    # initial guess
+    for i in range(3):
+        x[i] = 0.0
+    
+    # initial error norm
+    linear_hex_f(f, x, vertices, physical_x)
+    err = maxnorm(f)  
+   
+    # begin Newton iteration
+    while (err > tolerance and iterations < 10):
+        linear_hex_J(r, s, t, x, vertices, physical_x)
+        d = determinant_3x3(r, s, t)
+        x[0] = x[0] - (determinant_3x3(f, s, t)/d)
+        x[1] = x[1] - (determinant_3x3(r, f, t)/d)
+        x[2] = x[2] - (determinant_3x3(r, s, f)/d)
+        linear_hex_f(f, x, vertices, physical_x)        
+        err = maxnorm(f)
+        iterations += 1
+
+    for i in range(3):
+        mapped_x[i] = x[i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def test_hex_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
                      np.ndarray[np.float64_t, ndim=1] field_values,
                      np.ndarray[np.float64_t, ndim=1] physical_x):
-    
+
     cdef double val
-   
-    val = sample_hex_at_real_point(<double*> vertices.data, 
+
+    val = sample_hex_at_real_point(<double*> vertices.data,
                                    <double*> field_values.data,
                                    <double*> physical_x.data)
     return val
