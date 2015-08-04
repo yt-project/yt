@@ -10,12 +10,12 @@
 // here: http://homepages.cae.wisc.edu/~tautges/papers/cnmev3.pdf
 // Note that this is the case for Exodus II data.
 int triangulate_hex[MAX_NUM_TRI][3] = {
-  {0, 1, 2}, {0, 2, 3}, // Face is 0 1 2 3 
+  {0, 2, 1}, {0, 3, 2}, // Face is 3 2 1 0 
   {4, 5, 6}, {4, 6, 7}, // Face is 4 5 6 7
   {0, 1, 5}, {0, 5, 4}, // Face is 0 1 5 4
   {1, 2, 6}, {1, 6, 5}, // Face is 1 2 6 5
-  {0, 3, 7}, {0, 7, 4}, // Face is 0 3 7 4
-  {3, 2, 6}, {3, 6, 7}  // Face is 3 2 6 7
+  {0, 7, 3}, {0, 4, 7}, // Face is 3 0 4 7
+  {3, 6, 2}, {3, 7, 6}  // Face is 2 3 7 6
 };
 
 // Similarly, this is used to triangulate the tetrahedral cells
