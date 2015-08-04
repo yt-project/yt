@@ -138,6 +138,7 @@ class ExodusIIDataset(Dataset):
         self.parameters['nod_names']    = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
         self.parameters['connectivity'] = self._load_connectivity()
+        self.data                       = self._load_data()
         self.domain_left_edge           = self._load_domain_edge(0)
         self.domain_right_edge          = self._load_domain_edge(1)
         self.periodicity                = (False, False, False)
@@ -203,6 +204,24 @@ class ExodusIIDataset(Dataset):
         for i in range(self.parameters['num_elem']):
             connectivity.append(self.ds.variables["connect%d" % (i+1)][:].astype("i8"))
         return connectivity
+
+    def _load_data(self):
+        data = []
+        for i in range(self.parameters['num_elem']):
+            ci = self.parameters['connectivity'][-1]
+            vals = {}
+
+            for j, var_name in enumerate(self.parameters['var_names']):
+                vals['gas', var_name] = self.ds["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
+
+            for j, nod_name in enumerate(self.parameters['nod_names']):
+                # We want just for this set of nodes all the node variables
+                # Use (ci - 1) to get these values
+                vals['gas', nod_name] = self.ds["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
+
+            data.append(vals)
+
+        return data
 
     def _load_domain_edge(self, domain_idx):
         return np.array([self.parameters['coordinates'][:,domain_idx].min(),
