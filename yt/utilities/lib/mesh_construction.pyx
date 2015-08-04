@@ -170,6 +170,7 @@ cdef class ElementMesh:
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.datac)
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene):
+
         if self.vpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         elif self.vpe == 4:

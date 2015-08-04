@@ -429,10 +429,6 @@ cdef int check_face_dot(int nvertices,
     return 1
 
 
-ctypedef double (*sample_function_ptr)(double*, double*)
-ctypedef void (*transform_function_ptr)(double*, double*, double*)
-ctypedef int (*check_function_ptr)(double*)
-
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
                           buff_size,

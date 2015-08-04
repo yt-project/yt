@@ -91,7 +91,7 @@ cdef class ElementSampler:
         self.map_real_to_unit(mapped_coord, vertices, physical_x)
         val = self.sample_at_unit_point(mapped_coord, field_values)
         return val
-    
+
 
 cdef class P1Sampler3D(ElementSampler):
     '''
