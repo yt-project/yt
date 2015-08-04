@@ -20,8 +20,10 @@ cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
 from yt.utilities.exceptions import YTPixelizeError
 from yt.utilities.lib.mesh_samplers cimport \
-    sample_hex_at_real_point, \
-    sample_tetra_at_real_point
+    sample_hex_at_unit_point, \
+    sample_tetra_at_unit_point, \
+    hex_real_to_mapped, \
+    tetra_real_to_mapped
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -41,6 +43,7 @@ cdef extern from "pixelization_constants.h":
     int WEDGE_IND
     int WEDGE_NF
     np.uint8_t wedge_face_defs[MAX_NUM_FACES][2][2]
+
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -362,6 +365,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                 img[i, j] = field[fi]
     return img
 
+
 # This function accepts a set of vertices (for a polyhedron) that are
 # assumed to be in order for bottom, then top, in the same clockwise or
 # counterclockwise direction (i.e., like points 1-8 in Figure 4 of the ExodusII
@@ -425,7 +429,9 @@ cdef int check_face_dot(int nvertices,
                 return 0
     return 1
 
-ctypedef double (*sample_function_ptr)(double*, double*, double*)
+
+ctypedef double (*sample_function_ptr)(double*, double*)
+ctypedef void (*transform_function_ptr)(double*, double*, double*)
 
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
@@ -437,45 +443,41 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
-    # Second is more intensive.  It will require a bunch of dot and cross
-    # products.  We are not guaranteed that the elements will be in the correct
-    # order such that cross products are pointing in right direction, so we
-    # compare against the centroid of the (assumed convex) element.
+    # Second is more intensive.  It will converting the element vertices to the
+    # mapped coordinate system, and checking whether the result in in-bounds or not
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
     cdef np.float64_t pLE[3], pRE[3]
     cdef np.float64_t LE[3], RE[3]
     cdef int use
-    cdef np.int8_t *signs
     cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
     cdef np.int64_t pstart[3], pend[3]
-    cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3]
-    cdef np.float64_t **vertices
-    cdef np.float64_t *flat_vertices
+    cdef np.float64_t ppoint[3], idds[3], dds[3]
+    cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
-    cdef np.float64_t *physical_x
     cdef int nvertices = conn.shape[1]
     cdef int nf
-    cdef sample_function_ptr sampler
-    
-    # Allocate our signs array
+    cdef sample_function_ptr sample_func
+    cdef transform_function_ptr transform_func
+    cdef double* mapped_coord
+
+    # Allocate storage for the mapped coordinate
     if nvertices == 4:
         nf = TETRA_NF
-        sampler = sample_tetra_at_real_point
-    elif nvertices == 6:
-        nf = WEDGE_NF
+        sample_func = sample_tetra_at_unit_point
+        transform_func = tetra_real_to_mapped
+        mapped_coord = <double*> alloca(sizeof(double) * 4)
     elif nvertices == 8:
         nf = HEX_NF
-        sampler = sample_hex_at_real_point
+        sample_func = sample_hex_at_unit_point
+        transform_func = hex_real_to_mapped
+        mapped_coord = <double*> alloca(sizeof(double) * 3)
     else:
         raise RuntimeError
-    signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
-    vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
-    flat_vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
+
+    vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * nvertices)
-    physical_x = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    for i in range(nvertices):
-        vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
+
     for i in range(3):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -485,22 +487,16 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         else:
             idds[i] = 1.0 / dds[i]
     for ci in range(conn.shape[0]):
-        # Fill the vertices and compute the centroid
-        centroid[0] = centroid[1] = centroid[2] = 0
+        # Fill the vertices
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
         for n in range(nvertices): # 8
             cj = conn[ci, n] - index_offset
             field_vals[n] = field[ci, n]
             for i in range(3):
-                vertices[n][i] = coords[cj, i]
-                flat_vertices[3*n + i] = coords[cj, i]
-                centroid[i] += coords[cj, i]
-                LE[i] = fmin(LE[i], vertices[n][i])
-                RE[i] = fmax(RE[i], vertices[n][i])
-        centroid[0] /= nvertices
-        centroid[1] /= nvertices
-        centroid[2] /= nvertices
+                vertices[3*n + i] = coords[cj, i]
+                LE[i] = fmin(LE[i], vertices[3*n+i])
+                RE[i] = fmax(RE[i], vertices[3*n+i])
         use = 1
         for i in range(3):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
@@ -513,26 +509,21 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         # Now our bounding box intersects, so we get the extents of our pixel
         # region which overlaps with the bounding box, and we'll check each
         # pixel in there.
-        # First, we figure out the dot product of the centroid with all the
-        # faces.
-        check_face_dot(nvertices, centroid, vertices, signs, 0)
         for pi in range(pstart[0], pend[0] + 1):
             ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
-            physical_x[0] = ppoint[0]
             for pj in range(pstart[1], pend[1] + 1):
                 ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
-                physical_x[1] = ppoint[1]
                 for pk in range(pstart[2], pend[2] + 1):
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
-                    physical_x[2] = ppoint[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
-                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
+                    hex_real_to_mapped(mapped_coord, vertices, ppoint)
+                    if (math.fabs(mapped_coord[0]) - 1.0 > 1.0e-8 or
+                        math.fabs(mapped_coord[1]) - 1.0 > 1.0e-8 or 
+                        math.fabs(mapped_coord[2]) - 1.0 > 1.0e-8):
                         continue
                     # Else, we deposit!
-#                    img[pi, pj, pk] = field[ci, 0]
-                    img[pi, pj, pk] = sampler(flat_vertices, \
-                                              field_vals, \
-                                              physical_x)
+                    img[pi, pj, pk] = sample_hex_at_unit_point(mapped_coord,
+                                                               field_vals)
 
     return img
