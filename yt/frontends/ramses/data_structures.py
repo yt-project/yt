@@ -495,8 +495,8 @@ class RAMSESDataset(Dataset):
         #still needs to be folded in, as shown below!
 
         boxlen=self.parameters['boxlen']
-        length_unit = self.parameters['unit_l'] * boxlen
-        density_unit = self.parameters['unit_d']/ boxlen**3
+        length_unit = self.parameters['unit_l']
+        density_unit = self.parameters['unit_d']
 
         # In the mass unit, the factors of boxlen cancel back out, so this 
         #is equivalent to unit_d*unit_l**3
@@ -518,13 +518,13 @@ class RAMSESDataset(Dataset):
 
         self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
+        self.time_unit = self.quan(time_unit, "s")
         self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
-        self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
-        self.temperature_unit = (self.velocity_unit**2 * mp *
-                                 mean_molecular_weight_factor / kb)
-        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
+        self.temperature_unit = (self.pressure_unit/self.density_unit*mp/kb)
+ 
 
     def _parse_parameter_file(self):
         # hardcoded for now
