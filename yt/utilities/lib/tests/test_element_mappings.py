@@ -40,8 +40,7 @@ def test_P1Sampler3D():
 
     field_values = np.array([1.0, 2.0, 3.0, 4.0])
 
-    sampler = test_tetra_sampler
-    check_all_vertices(sampler, vertices, field_values)
+    check_all_vertices(test_tetra_sampler, vertices, field_values)
 
 
 def test_Q1Sampler3D():
@@ -57,5 +56,4 @@ def test_Q1Sampler3D():
     field_values = np.array([0.4526278, 0.45262656, 0.45262657, 0.4526278,
                              0.54464296, 0.54464149, 0.5446415, 0.54464296])
 
-    sampler = test_hex_sampler
-    check_all_vertices(sampler, vertices, field_values)
+    check_all_vertices(test_hex_sampler, vertices, field_values)
