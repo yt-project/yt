@@ -23,7 +23,9 @@ from yt.utilities.lib.mesh_samplers cimport \
     sample_hex_at_unit_point, \
     sample_tetra_at_unit_point, \
     hex_real_to_mapped, \
-    tetra_real_to_mapped
+    tetra_real_to_mapped, \
+    hex_check_inside, \
+    tetra_check_inside
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -432,6 +434,7 @@ cdef int check_face_dot(int nvertices,
 
 ctypedef double (*sample_function_ptr)(double*, double*)
 ctypedef void (*transform_function_ptr)(double*, double*, double*)
+ctypedef int (*check_function_ptr)(double*)
 
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
@@ -459,6 +462,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nf
     cdef sample_function_ptr sample_func
     cdef transform_function_ptr transform_func
+    cdef check_function_ptr check_inside
     cdef double* mapped_coord
 
     # Allocate storage for the mapped coordinate
@@ -466,11 +470,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         nf = TETRA_NF
         sample_func = sample_tetra_at_unit_point
         transform_func = tetra_real_to_mapped
+        check_inside = tetra_check_inside
         mapped_coord = <double*> alloca(sizeof(double) * 4)
     elif nvertices == 8:
         nf = HEX_NF
         sample_func = sample_hex_at_unit_point
         transform_func = hex_real_to_mapped
+        check_inside = hex_check_inside
         mapped_coord = <double*> alloca(sizeof(double) * 3)
     else:
         raise RuntimeError
@@ -517,13 +523,11 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
-                    hex_real_to_mapped(mapped_coord, vertices, ppoint)
-                    if (math.fabs(mapped_coord[0]) - 1.0 > 1.0e-8 or
-                        math.fabs(mapped_coord[1]) - 1.0 > 1.0e-8 or 
-                        math.fabs(mapped_coord[2]) - 1.0 > 1.0e-8):
+                    transform_func(mapped_coord, vertices, ppoint)
+                    if not check_inside(mapped_coord):
                         continue
                     # Else, we deposit!
-                    img[pi, pj, pk] = sample_hex_at_unit_point(mapped_coord,
-                                                               field_vals)
+                    img[pi, pj, pk] = sample_func(mapped_coord,
+                                                  field_vals)
 
     return img

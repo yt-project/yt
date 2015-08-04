@@ -22,8 +22,12 @@ cdef void hex_real_to_mapped(double* mapped_x,
 
 cdef double sample_hex_at_unit_point(double* coord, double* vals) nogil
 
+cdef int hex_check_inside(double* mapped_coord) nogil
+
 cdef void tetra_real_to_mapped(double* mapped_coord,
                                double* vertices,
                                double* physical_coord) nogil
 
 cdef double sample_tetra_at_unit_point(double* coord, double* vals) nogil
+
+cdef int tetra_check_inside(double* mapped_coord) nogil

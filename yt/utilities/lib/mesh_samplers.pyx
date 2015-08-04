@@ -165,6 +165,17 @@ cdef double sample_hex_at_unit_point(double* coord, double* vals) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef int hex_check_inside(double* mapped_coord) nogil:    
+    if (fabs(mapped_coord[0]) - 1.0 > 1.0e-8 or
+        fabs(mapped_coord[1]) - 1.0 > 1.0e-8 or 
+        fabs(mapped_coord[2]) - 1.0 > 1.0e-8):
+        return 0
+    return 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef double sample_hex_at_real_point(double* vertices,
                                      double* field_values,
                                      double* physical_x) nogil:
@@ -298,6 +309,18 @@ def test_hex_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
 @cython.cdivision(True)
 cdef double sample_tetra_at_unit_point(double* coord, double* vals) nogil:
     return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2] + vals[3]*coord[3]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef int tetra_check_inside(double* mapped_coord) nogil:    
+    cdef int i
+    for i in range(4):
+        if (mapped_coord[i] < -1.0e-8 or
+            mapped_coord[i] - 1.0 > 1.0e-8):
+            return 0
+    return 1
 
 
 @cython.boundscheck(False)
