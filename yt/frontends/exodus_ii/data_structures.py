@@ -129,16 +129,10 @@ class ExodusIIDataset(Dataset):
         pass
     
     def _parse_parameter_file(self):
-        if 'info_records' in self.ds.variables.keys():
-            self.parameters['info_records'] = load_info_records(self.ds.variables['info_records'])
-            self.unique_identifier          = self.parameters['info_records']['Version Info']['Executable Timestamp']
-            self.current_time               = self.parameters['info_records']['Version Info']['Current Time']
-        else:
-            mylog.warning("No info_records found")
-            self.unique_identifier = self.parameter_filename.__hash__()
-            self.current_time      = 0.0
-
         self.dimensionality             = self.ds.variables['coor_names'].shape[0]
+        self.parameters['info_records'] = self._load_info_records()
+        self.unique_identifier          = self._get_unique_identifier()
+        self.current_time               = self._get_current_time()
         self.parameters['num_elem']     = self.ds['eb_status'].shape[0]
         self.parameters['var_names']    = self._get_var_names()
         self.parameters['nod_names']    = self._get_nod_names()
@@ -152,6 +146,25 @@ class ExodusIIDataset(Dataset):
         self.omega_lambda               = 0
         self.omega_matter               = 0
         self.hubble_constant            = 0
+
+    def _load_info_records(self):
+        try:
+            return load_info_records(self.ds.variables['info_records'])
+        except KeyError:
+            mylog.warning("No info_records found")
+            return []
+
+    def _get_unique_identifier(self):
+        try:
+            return self.parameters['info_records']['Version Info']['Executable Timestamp']
+        except KeyError:
+            return self.parameter_filename.__hash__()
+
+    def _get_current_time(self):
+        try:
+            return self.parameters['info_records']['Version Info']['Current Time']
+        except KeyError:
+            return 0.0
 
     def _get_var_names(self):
         try:
