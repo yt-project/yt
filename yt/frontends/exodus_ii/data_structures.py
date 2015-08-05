@@ -147,6 +147,7 @@ class ExodusIIDataset(Dataset):
         self.omega_lambda               = 0
         self.omega_matter               = 0
         self.hubble_constant            = 0
+        self._load_variables()
 
     def _load_info_records(self):
         try:
@@ -227,6 +228,10 @@ class ExodusIIDataset(Dataset):
         return np.array([self.parameters['coordinates'][:,domain_idx].min(),
                          self.parameters['coordinates'][:,domain_idx].max()],
                         'float64')
+
+    def _load_variables(self):
+        for key in self.ds.variables.keys():
+            self.parameters[key] = self.ds.variables[key][:]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
