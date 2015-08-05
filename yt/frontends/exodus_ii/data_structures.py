@@ -151,27 +151,27 @@ class ExodusIIDataset(Dataset):
     def _load_info_records(self):
         try:
             return load_info_records(self.ds.variables['info_records'])
-        except KeyError:
+        except (KeyError, TypeError):
             mylog.warning("No info_records found")
             return []
 
     def _get_unique_identifier(self):
         try:
             return self.parameters['info_records']['Version Info']['Executable Timestamp']
-        except KeyError:
+        except (KeyError, TypeError):
             return self.parameter_filename.__hash__()
 
     def _get_current_time(self):
         try:
             return self.parameters['info_records']['Version Info']['Current Time']
-        except KeyError:
+        except (KeyError, TypeError):
             return 0.0
 
     def _get_var_names(self):
         try:
             return [sanitize_string(v.tostring()) for v in
                     self.ds.variables["name_elem_var"]]
-        except KeyError:
+        except (KeyError, TypeError):
             mylog.warning("name_elem_var not found")
             return []
 
@@ -179,7 +179,7 @@ class ExodusIIDataset(Dataset):
         try:
             return [sanitize_string(v.tostring()) for v in
                     self.ds.variables["name_nod_var"]]
-        except KeyError:
+        except (KeyError, TypeError):
             mylog.warning("name_nod_var not found")
             return []
 
