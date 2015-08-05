@@ -112,11 +112,12 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return {'halos': data_file.header['num_halos']}
+        with h5py.File(data_file.filename, "r") as f:
+            return {"grid": f["grid"].attrs["num_elements"]}
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            fields = [("halos", field) for field in f]
-            units = dict([(("halos", field), 
-                           f[field].attrs["units"]) for field in f])
+            fields = [("grid", field) for field in f["grid"]]
+            units = dict([(("grid", field), 
+                           f["grid"][field].attrs["units"]) for field in f["grid"]])
         return fields, units

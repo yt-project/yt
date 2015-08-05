@@ -74,8 +74,8 @@ class YTDataDataset(Dataset):
                      "domain_left_edge", "domain_right_edge"]:
             setattr(self, attr, hvals[attr])
         self.periodicity = (True, True, True)
-        self.particle_types = ("halos")
-        self.particle_types_raw = ("halos")
+        self.particle_types = ("grid")
+        self.particle_types_raw = ("grid")
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
@@ -92,7 +92,8 @@ class YTDataDataset(Dataset):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
             if "data_type" in f.attrs and \
-              f.attrs["data_type"] in ["yt_array_data",
+              f.attrs["data_type"] in ["light_ray",
+                                       "yt_array_data",
                                        "yt_data_container"]:
                 return True
         return False
