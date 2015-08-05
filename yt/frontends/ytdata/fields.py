@@ -30,7 +30,7 @@ class YTDataFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
-        ("particle_position_x", (p_units, [], None)),
-        ("particle_position_y", (p_units, [], None)),
-        ("particle_position_z", (p_units, [], None)),
+        ("x", (p_units, ["particle_position_x"], None)),
+        ("y", (p_units, ["particle_position_y"], None)),
+        ("z", (p_units, ["particle_position_z"], None)),
     )
