@@ -568,7 +568,7 @@ class GridSource(LineSource):
         vertices = np.empty([corners.shape[2]*2*12, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
-        vertices = vertices.reshape((12, 2, 3))
+        vertices = vertices.reshape((corners.shape[2]*12, 2, 3))
 
         super(GridSource, self).__init__(vertices, colors, color_stride=24)
 
