@@ -208,7 +208,7 @@ class ExodusIIDataset(Dataset):
     def _load_data(self):
         data = []
         for i in range(self.parameters['num_elem']):
-            ci = self.parameters['connectivity'][-1]
+            ci = self.parameters['connectivity'][i]
             vals = {}
 
             for j, var_name in enumerate(self.parameters['var_names']):
