@@ -131,6 +131,7 @@ class LightRay(CosmologySplice):
 
         # Make a light ray from a single, given dataset.
         if simulation_type is None:
+            self.simulation_type = simulation_type
             ds = load(parameter_filename, **self.load_kwargs)
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
@@ -364,6 +365,8 @@ class LightRay(CosmologySplice):
         data_fields = fields[:]
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
+        all_fields.extend(['x', 'y', 'z'])
+        data_fields.extend(['x', 'y', 'z'])
         if get_los_velocity:
             all_fields.extend(['velocity_x', 'velocity_y',
                                'velocity_z', 'velocity_los'])
@@ -491,13 +494,26 @@ class LightRay(CosmologySplice):
 
         Write light ray data to hdf5 file.
         """
-
         mylog.info("Saving light ray data to %s." % filename)
         output = h5py.File(filename, 'w')
         for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
             output.attrs[attr] = getattr(self.cosmology, attr)
-        output.attrs["redshift"] = self.near_redshift
+        output.attrs["current_redshift"] = self.near_redshift
+        if self.simulation_type == None:
+            ds = load(parameter_filename, **self.load_kwargs)
+            # Do these need to be in CGS, like how halo_catalog does it?
+            output.attrs["domain_left_edge"] = ds.domain_left_edge
+            output.attrs["domain_right_edge"] = ds.domain_right_edge
+            output.attrs["cosmological_simulation"] = ds.cosmological_simulation
+        else:
+            # Do these need to be in CGS, like how halo_catalog does it?
+            output.attrs["domain_left_edge"] = self.simulation.domain_left_edge
+            output.attrs["domain_right_edge"] = self.simulation.domain_right_edge
+            output.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
+        output.attrs["current_time"] = self.cosmology.t_from_z(self.near_redshift).in_cgs()
         output.attrs["data_type"] = "light_ray"
+        group = output.create_group("grid")
+        group.attrs["num_elements"] = data['x'].size
         for field in data.keys():
             # if the field is a tuple, only use the second part of the tuple
             # in the hdf5 output (i.e. ('gas', 'density') -> 'density')
@@ -505,8 +521,8 @@ class LightRay(CosmologySplice):
                 fieldname = field[1]
             else:
                 fieldname = field
-            output.create_dataset(fieldname, data=data[field])
-            output[fieldname].attrs["units"] = str(data[field].units)
+            group.create_dataset(fieldname, data=data[field])
+            group[fieldname].attrs["units"] = str(data[field].units)
         output.close()
 
     @parallel_root_only
