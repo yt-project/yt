@@ -42,17 +42,17 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
+        assert(list(ptf.keys())[0] == "grid")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with h5py.File(data_file.filename, "r") as f:
-                x = f['particle_position_x'].value.astype("float64")
-                y = f['particle_position_y'].value.astype("float64")
-                z = f['particle_position_z'].value.astype("float64")
-                yield "halos", (x, y, z)
+                x = f["grid"]['x'].value.astype("float64")
+                y = f["grid"]['y'].value.astype("float64")
+                z = f["grid"]['z'].value.astype("float64")
+                yield "grid", (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -60,17 +60,18 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
+        assert(list(ptf.keys())[0] == "grid")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            pcount = data_file.header['num_halos']
+            all_count = self._count_particles(data_file)
+            pcount = all_count["grid"]
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    x = f['particle_position_x'].value.astype("float64")
-                    y = f['particle_position_y'].value.astype("float64")
-                    z = f['particle_position_z'].value.astype("float64")
+                    x = f["grid"]['x'].value.astype("float64")
+                    y = f["grid"]['y'].value.astype("float64")
+                    z = f["grid"]['z'].value.astype("float64")
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -79,20 +80,21 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        pcount = data_file.header["num_halos"]
+        all_count = self._count_particles(data_file)
+        pcount = all_count["grid"]
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
         with h5py.File(data_file.filename, "r") as f:
-            if not f.keys(): return None
+            if not f["grid"].keys(): return None
             pos = np.empty((pcount, 3), dtype="float64")
             pos = data_file.ds.arr(pos, "code_length")
-            dx = np.finfo(f['particle_position_x'].dtype).eps
+            dx = np.finfo(f["grid"]['x'].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
-            pos[:,0] = f["particle_position_x"].value
-            pos[:,1] = f["particle_position_y"].value
-            pos[:,2] = f["particle_position_z"].value
+            pos[:,0] = f["grid"]["x"].value
+            pos[:,1] = f["grid"]["y"].value
+            pos[:,2] = f["grid"]["z"].value
             # These are 32 bit numbers, so we give a little lee-way.
             # Otherwise, for big sets of particles, we often will bump into the
             # domain edges.  This helps alleviate that.
