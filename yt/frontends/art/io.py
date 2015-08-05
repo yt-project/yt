@@ -305,14 +305,15 @@ def interpolate_ages(data, file_stars, interp_tb=None, interp_ages=None,
                                      field="t_stars")
         # timestamp of file should match amr timestamp
         if current_time:
-            tdiff = YTQuantity(b2t(t_stars),'Gyr') - current_time.in_units('Gyr')
+            tdiff = YTQuantity(b2t(t_stars), 'Gyr') - current_time.in_units('Gyr')
             if np.abs(tdiff) > 1e-4:
                 mylog.info("Timestamp mismatch in star " +
                            "particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
+        interp_tb = YTArray(interp_tb, 'Gyr')
+        interp_ages = YTArray(interp_ages, 'Gyr')
     temp = np.interp(data, interp_tb, interp_ages)
-    temp *= 1.0e9*sec_per_year
     return interp_tb, interp_ages, temp
 
 

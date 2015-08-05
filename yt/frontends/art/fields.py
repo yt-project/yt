@@ -55,7 +55,7 @@ class ARTFieldInfo(FieldInfoContainer):
         ("particle_mass", ("code_mass", [], None)),
         ("particle_index", ("", [], None)),
         ("particle_species", ("", ["particle_type"], None)),
-        ("particle_creation_time", ("code_time", [], None)),
+        ("particle_creation_time", ("Gyr", [], None)),
         ("particle_mass_initial", ("code_mass", [], None)),
         ("particle_metallicity1", ("", [], None)),
         ("particle_metallicity2", ("", [], None)),

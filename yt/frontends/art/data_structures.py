@@ -38,7 +38,6 @@ from yt.data_objects.particle_unions import \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.units.yt_array import YTQuantity
 
 from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
@@ -352,8 +351,7 @@ class ARTDataset(Dataset):
         if self.force_max_level is not None:
             self.max_level = self.force_max_level
         self.hubble_time = 1.0/(self.hubble_constant*100/3.08568025e19)
-        self.current_time = YTQuantity(b2t(self.parameters['t']),'Gyr').\
-            in_units('s')
+        self.current_time = self.quan(b2t(self.parameters['t']), 'Gyr')
         self.gamma = self.parameters["gamma"]
         mylog.info("Max level is %02i", self.max_level)
 
@@ -595,8 +593,7 @@ class DarkMatterARTDataset(ARTDataset):
 #            self.max_level = self.force_max_level
         self.hubble_time = 1.0/(self.hubble_constant*100/3.08568025e19)
         self.parameters['t'] = a2b(self.parameters['aexpn'])
-        self.current_time = YTQuantity(b2t(self.parameters['t']),'Gyr').\
-            in_unit('s')
+        self.current_time = self.quan(b2t(self.parameters['t']), 'Gyr')
         self.gamma = self.parameters["gamma"]
         mylog.info("Max level is %02i", self.max_level)
 
