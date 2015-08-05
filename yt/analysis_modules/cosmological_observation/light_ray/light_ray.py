@@ -502,13 +502,13 @@ class LightRay(CosmologySplice):
         if self.simulation_type == None:
             ds = load(parameter_filename, **self.load_kwargs)
             # Do these need to be in CGS, like how halo_catalog does it?
-            output.attrs["domain_left_edge"] = ds.domain_left_edge
-            output.attrs["domain_right_edge"] = ds.domain_right_edge
+            output.attrs["domain_left_edge"] = ds.domain_left_edge.in_cgs()
+            output.attrs["domain_right_edge"] = ds.domain_right_edge.in_cgs()
             output.attrs["cosmological_simulation"] = ds.cosmological_simulation
         else:
             # Do these need to be in CGS, like how halo_catalog does it?
-            output.attrs["domain_left_edge"] = self.simulation.domain_left_edge
-            output.attrs["domain_right_edge"] = self.simulation.domain_right_edge
+            output.attrs["domain_left_edge"] = self.simulation.domain_left_edge.in_cgs()
+            output.attrs["domain_right_edge"] = self.simulation.domain_right_edge.in_cgs()
             output.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
         output.attrs["current_time"] = self.cosmology.t_from_z(self.near_redshift).in_cgs()
         output.attrs["data_type"] = "light_ray"
