@@ -112,8 +112,8 @@ def configuration(parent_package='',top_path=None):
                  "yt/utilities/lib/pixelization_constants.c"],
                include_dirs=["yt/utilities/lib/"],
                language="c++",
-               libraries=["m", "embree"], depends=["yt/utilities/lib/fp_utils.pxd",
-                                  "yt/utilities/lib/pixelization_constants.h"])
+               libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
+                                   "yt/utilities/lib/pixelization_constants.h"])
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
