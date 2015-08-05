@@ -151,7 +151,7 @@ class ExodusIIDataset(Dataset):
     def _load_variables(self):
         ds = IOHandlerExodusII(self.parameter_filename).ds
         for key in ds.variables.keys():
-            self.parameters[key] = ds.variables[key][:]
+            self.parameters[key] = ds.variables[key]
 
     def _load_info_records(self):
         try:
