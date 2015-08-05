@@ -35,7 +35,7 @@ class TestEmptyLoad(unittest.TestCase):
         # create empty directory
         os.makedirs("empty_directory")
 
-    def teardown(self):
+    def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
