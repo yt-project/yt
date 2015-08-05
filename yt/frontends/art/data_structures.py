@@ -293,6 +293,7 @@ class ARTDataset(Dataset):
             self.iOctFree, self.nOct = fpu.read_vector(f, 'i', '>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
+            amr_header_vals = None
             # estimate the root level
             float_center, fl, iocts, nocts, root_level = _read_art_level_info(
                 f,
@@ -340,14 +341,14 @@ class ARTDataset(Dataset):
 
         # setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.omega_lambda = amr_header_vals['Oml0']
-        self.omega_matter = amr_header_vals['Om0']
-        self.hubble_constant = amr_header_vals['hubble']
-        self.min_level = amr_header_vals['min_level']
-        self.max_level = amr_header_vals['max_level']
+        self.omega_lambda = self.parameters['Oml0']
+        self.omega_matter = self.parameters['Om0']
+        self.hubble_constant = self.parameters['hubble']
+        self.min_level = self.parameters['min_level']
+        self.max_level = self.parameters['max_level']
         if self.limit_level is not None:
             self.max_level = min(
-                self.limit_level, amr_header_vals['max_level'])
+                self.limit_level, self.parameters['max_level'])
         if self.force_max_level is not None:
             self.max_level = self.force_max_level
         self.hubble_time = 1.0/(self.hubble_constant*100/3.08568025e19)
