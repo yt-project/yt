@@ -22,13 +22,19 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler
 from yt.visualization.image_writer import apply_colormap
-
-from yt.utilities.lib.mesh_traversal import YTEmbreeScene
-from yt.utilities.lib.mesh_construction import ElementMesh
-
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
+
+from yt.utilities.on_demand_imports import NotAModule
+try:
+    from yt.utilities.lib import mesh_traversal
+except ImportError:
+    mesh_traversal = NotAModule("pyembree")
+try:
+    from yt.utilities.lib import mesh_construction
+except ImportError:
+    mesh_construction = NotAModule("pyembree")
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -279,7 +285,7 @@ class MeshSource(RenderSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.scene = YTEmbreeScene()
+        self.scene = mesh_traversal.YTEmbreeScene()
 
         self.build_mesh()
 
@@ -299,10 +305,10 @@ class MeshSource(RenderSource):
         # convert the indices to zero-based indexing
         indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
 
-        self.mesh = ElementMesh(self.scene,
-                                vertices,
-                                indices,
-                                field_data.d)
+        self.mesh = mesh_construction.ElementMesh(self.scene,
+                                                  vertices,
+                                                  indices,
+                                                  field_data.d)
 
     def render(self, camera):
 
