@@ -40,9 +40,9 @@ def test_composite_vr():
 
     # DRAW SOME LINES
     npoints = 100
-    vertices = np.random.random([npoints, 3])
+    vertices = np.random.random([npoints, 2, 3])
     colors = np.random.random([npoints, 4])
-    colors[:,3] = 0.10
+    colors[:, 3] = 0.10
 
     box_source = BoxSource(ds.domain_left_edge, ds.domain_right_edge, color=[1.,1.,1.,1.0])
     sc.add_source(box_source)
