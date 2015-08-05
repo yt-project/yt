@@ -2,8 +2,11 @@ import numpy as np
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
-from yt.utilities.lib.mesh_traversal import MeshSampler
-
+from yt.utilities.on_demand_imports import NotAModule
+try:
+    from yt.utilities.lib import mesh_traversal
+except ImportError:
+    mesh_traversal = NotAModule("pyembree")
 
 def data_source_or_all(data_source):
     if isinstance(data_source, Dataset):
@@ -24,7 +27,7 @@ def new_mesh_sampler(camera, render_source):
         params['width'],
     )
 
-    sampler = MeshSampler(*args)
+    sampler = mesh_traversal.MeshSampler(*args)
     return sampler
 
 
