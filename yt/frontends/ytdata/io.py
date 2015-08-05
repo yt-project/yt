@@ -47,7 +47,8 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            pcount = data_file.header['num_halos']
+            all_count = self._count_particles(data_file)
+            pcount = all_count["grid"]
             with h5py.File(data_file.filename, "r") as f:
                 x = f["grid"]['x'].value.astype("float64")
                 y = f["grid"]['y'].value.astype("float64")
