@@ -17,7 +17,7 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.file_handler import \
-    ExodusIIFileHandler
+    NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerExodusII(BaseIOHandler):
@@ -28,7 +28,7 @@ class IOHandlerExodusII(BaseIOHandler):
 
     def __init__(self, filename):
         self.filename = filename
-        exodus_ii_handler       = ExodusIIFileHandler(filename)
+        exodus_ii_handler       = NetCDF4FileHandler(filename)
         self.ds  = exodus_ii_handler.dataset
 
     def _read_particle_coords(self, chunks, ptf):

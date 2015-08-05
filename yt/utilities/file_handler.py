@@ -75,7 +75,7 @@ class FITSFileHandler(HDF5FileHandler):
     def close(self):
         pass
 
-class ExodusIIFileHandler(object):
+class NetCDF4FileHandler(object):
     def __init__(self, filename):
         from netCDF4 import Dataset
         ds = Dataset(filename)
