@@ -77,7 +77,7 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        data = f[field][mask].astype("float64")
+                        data = f["grid"][field][mask].astype("float64")
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
