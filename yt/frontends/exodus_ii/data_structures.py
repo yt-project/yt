@@ -105,7 +105,6 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.ds = IOHandlerExodusII(filename).ds
         self.fluid_types += ('exodus_ii',)
         self.parameter_filename = filename
         Dataset.__init__(self, filename, dataset_type,
@@ -129,11 +128,12 @@ class ExodusIIDataset(Dataset):
         pass
     
     def _parse_parameter_file(self):
-        self.dimensionality             = self.ds.variables['coor_names'].shape[0]
+        self._load_variables()
+        self.dimensionality             = self.parameters['coor_names'].shape[0]
         self.parameters['info_records'] = self._load_info_records()
         self.unique_identifier          = self._get_unique_identifier()
         self.current_time               = self._get_current_time()
-        self.parameters['num_elem']     = self.ds['eb_status'].shape[0]
+        self.parameters['num_elem']     = self.parameters['eb_status'].shape[0]
         self.parameters['var_names']    = self._get_var_names()
         self.parameters['nod_names']    = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
@@ -147,11 +147,15 @@ class ExodusIIDataset(Dataset):
         self.omega_lambda               = 0
         self.omega_matter               = 0
         self.hubble_constant            = 0
-        self._load_variables()
+
+    def _load_variables(self):
+        ds = IOHandlerExodusII(self.parameter_filename).ds
+        for key in ds.variables.keys():
+            self.parameters[key] = ds.variables[key][:]
 
     def _load_info_records(self):
         try:
-            return load_info_records(self.ds.variables['info_records'])
+            return load_info_records(self.parameters['info_records'])
         except (KeyError, TypeError):
             mylog.warning("No info_records found")
             return []
@@ -171,7 +175,7 @@ class ExodusIIDataset(Dataset):
     def _get_var_names(self):
         try:
             return [sanitize_string(v.tostring()) for v in
-                    self.ds.variables["name_elem_var"]]
+                    self.parameters["name_elem_var"]]
         except (KeyError, TypeError):
             mylog.warning("name_elem_var not found")
             return []
@@ -179,7 +183,7 @@ class ExodusIIDataset(Dataset):
     def _get_nod_names(self):
         try:
             return [sanitize_string(v.tostring()) for v in
-                    self.ds.variables["name_nod_var"]]
+                    self.parameters["name_nod_var"]]
         except (KeyError, TypeError):
             mylog.warning("name_nod_var not found")
             return []
@@ -192,18 +196,18 @@ class ExodusIIDataset(Dataset):
 
         mylog.info("Loading coordinates")
 
-        if 'coord' in self.ds.variables.keys():
+        if 'coord' in self.parameters.keys():
             return np.array([coord for coord in
-                             self.ds.variables["coord"][:]]).transpose().copy()
+                             self.parameters["coord"][:]]).transpose().copy()
         else:
-            return np.array([self.ds.variables["coord%s" % ax][:]
+            return np.array([self.parameters["coord%s" % ax][:]
                              for ax in coord_axes]).transpose().copy()
     
     def _load_connectivity(self):
         mylog.info("Loading connectivity")
         connectivity = []
         for i in range(self.parameters['num_elem']):
-            connectivity.append(self.ds.variables["connect%d" % (i+1)][:].astype("i8"))
+            connectivity.append(self.parameters["connect%d" % (i+1)][:].astype("i8"))
         return connectivity
 
     def _load_data(self):
@@ -213,12 +217,12 @@ class ExodusIIDataset(Dataset):
             vals = {}
 
             for j, var_name in enumerate(self.parameters['var_names']):
-                vals['gas', var_name] = self.ds["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
+                vals['gas', var_name] = self.parameters["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
 
             for j, nod_name in enumerate(self.parameters['nod_names']):
                 # We want just for this set of nodes all the node variables
                 # Use (ci - 1) to get these values
-                vals['gas', nod_name] = self.ds["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
+                vals['gas', nod_name] = self.parameters["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
 
             data.append(vals)
 
@@ -228,10 +232,6 @@ class ExodusIIDataset(Dataset):
         return np.array([self.parameters['coordinates'][:,domain_idx].min(),
                          self.parameters['coordinates'][:,domain_idx].max()],
                         'float64')
-
-    def _load_variables(self):
-        for key in self.ds.variables.keys():
-            self.parameters[key] = self.ds.variables[key][:]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
