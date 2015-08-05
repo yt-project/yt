@@ -290,7 +290,7 @@ class DualEPS(object):
         self.axes_drawn = True
 
 #=============================================================================
-
+    
     def axis_box_yt(self, plot, units=None, bare_axes=False,
                     tickcolor=None, xlabel=None, ylabel=None, **kwargs):
         r"""Wrapper around DualEPS.axis_box to automatically fill in the
@@ -355,7 +355,32 @@ class DualEPS(object):
                         _ylabel = 'y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
-        elif isinstance(plot, (ProfilePlot, PhasePlot)):
+        elif isinstance(plot, ProfilePlot):
+            subplot = plot.axes.values()[0]
+            # limits for axes
+            xlimits = subplot.get_xlim()
+            _xrange = (YTQuantity(xlimits[0], 'm'), YTQuantity(xlimits[1], 'm')) # unit hardcoded but afaik it is not used anywhere so it doesn't matter
+            if list(plot.axes.ylim.viewvalues())[0][0] is None:
+                ylimits = subplot.get_ylim()
+            else:
+                ylimits = list(plot.axes.ylim.viewvalues())[0]
+            _yrange = (YTQuantity(ylimits[0], 'm'), YTQuantity(ylimits[1], 'm')) # unit hardcoded but afaik it is not used anywhere so it doesn't matter
+            # axis labels
+            xaxis = subplot.xaxis
+            _xlabel = pyxize_label(xaxis.label.get_text())
+            yaxis = subplot.yaxis
+            _ylabel = pyxize_label(yaxis.label.get_text())
+            # set log if necessary
+            if subplot.get_xscale() == "log":
+                 _xlog = True 
+            else:
+                 _xlog = False
+            if subplot.get_yscale() == "log":
+                 _ylog = True 
+            else:
+                 _ylog = False
+            _tickcolor = None 
+        elif isinstance(plot, PhasePlot):
             k = plot.plots.keys()[0]
             _xrange = plot[k].axes.get_xlim()
             _yrange = plot[k].axes.get_ylim()
@@ -502,10 +527,7 @@ class DualEPS(object):
             _p1 = plot.plots[self.field].figure
             force_square = True
         elif isinstance(plot, ProfilePlot):
-            plot._redraw_image()
-            # Remove colorbar
-            _p1 = plot._figure
-            _p1.delaxes(_p1.axes[1])
+            _p1 = plot.figures.items()[0][1]
         elif isinstance(plot, np.ndarray):
             fig = plt.figure()
             iplot = plt.figimage(plot)
@@ -689,6 +711,9 @@ class DualEPS(object):
         >>> d.colorbar_yt(p)
         >>> d.save_fig()
         """
+        
+        if isinstance(plot, ProfilePlot):
+            raise RuntimeError("When using ProfilePlots you must either set yt_nocbar=True or provide colorbar flags so that the profiles don't have colorbars")
         _cmap = None
         if field != None:
             self.field = plot.data_source._determine_fields(field)[0]
@@ -1108,6 +1133,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                 if yaxis_flags[index] != None:
                     yaxis = yaxis_flags[index]
             if _yt:
+                this_plot._setup_plots()
                 if xlabels != None:
                     xlabel = xlabels[i]
                 else:
