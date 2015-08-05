@@ -264,7 +264,11 @@ class GadgetDataset(ParticleDataset):
         # or the byte swapped equivalents (65536 and 134217728).
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
-        (rhead,) = struct.unpack('<I',f.read(4))
+        try:
+            (rhead,) = struct.unpack('<I',f.read(4))
+        except struct.error:
+            f.close()
+            return False, 1
         # Use value to check endianess
         if rhead == 256:
             endianswap = '<'

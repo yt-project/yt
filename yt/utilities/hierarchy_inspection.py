@@ -32,6 +32,9 @@ def find_lowest_subclasses(candidates):
 
     counters = [Counter(mro) for mro in mros]
 
+    if len(counters) == 0:
+        return counters
+
     count = reduce(lambda x, y: x + y, counters)
 
     return [x for x in count.keys() if count[x] == 1]
