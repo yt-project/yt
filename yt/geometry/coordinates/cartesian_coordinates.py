@@ -18,10 +18,9 @@ import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
-    _get_coord_fields, \
-    _get_vert_fields
+    _get_coord_fields,
 import yt.visualization._MPL as _MPL
-from yt.fields.derived_field import NullFunc
+
 
 class CartesianCoordinateHandler(CoordinateHandler):
 
@@ -40,10 +39,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
             registry.add_field(("index", "%s" % ax), function = f2,
                                display_field = False,
                                units = "code_length")
-            f3 = _get_vert_fields(axi)
-            registry.add_field(("index", "vertex_%s" % ax), function = f3,
-                               display_field = False,
-                               units = "code_length")
+            #f3 = _get_vert_fields(axi)
+            #registry.add_field(("index", "vertex_%s" % ax), function = f3,
+            #                   display_field = False,
+            #                   units = "code_length")
         def _cell_volume(field, data):
             rv  = data["index", "dx"].copy(order='K')
             rv *= data["index", "dy"]
