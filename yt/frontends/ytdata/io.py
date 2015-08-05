@@ -120,7 +120,7 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            fields = [("grid", field) for field in f["grid"]]
-            units = dict([(("grid", field), 
+            fields = [("grid", str(field)) for field in f["grid"]]
+            units = dict([(("grid", str(field)), 
                            f["grid"][field].attrs["units"]) for field in f["grid"]])
         return fields, units
