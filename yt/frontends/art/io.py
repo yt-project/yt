@@ -300,11 +300,11 @@ def _determine_field_size(pf, field, lspecies, ptmax):
 def interpolate_ages(data, file_stars, interp_tb=None, interp_ages=None,
                      current_time=None):
     if interp_tb is None:
-        tdum, adum = read_star_field(file_stars,
-                                     field="tdum")
+        t_stars, a_stars = read_star_field(file_stars,
+                                     field="t_stars")
         # timestamp of file should match amr timestamp
         if current_time:
-            tdiff = b2t(tdum)-current_time/(sec_per_year*1e9)
+            tdiff = b2t(t_stars)-current_time/(sec_per_year*1e9)
             if np.abs(tdiff) < 1e-4:
                 mylog.info("Timestamp mismatch in star " +
                            "particle header")
