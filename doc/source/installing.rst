@@ -201,13 +201,40 @@ system architecture. Next, run the script, e.g.:
 
   bash Miniconda-3.3.0-Linux-x86_64.sh
 
-Make sure that the Anaconda ``bin`` directory is in your path, and then issue:
+For both Anaconda or Miniconda installations, make sure that the Anaconda ``bin`` directory is in your path, and then issue:
 
 .. code-block:: bash
 
   conda install yt
 
 which will install yt along with all of its dependencies.
+
+Obtaining Source Code
+^^^^^^^^^^^^^^^^^^^^^
+
+There are two ways to get the yt source code when using an Anaconda
+installation.
+
+Option 1:
+
+Clone the yt repository with:
+
+.. code-block:: bash
+
+  hg clone https://bitbucket.org/yt_analysis/yt
+
+Once inside the yt directory, update to the appropriate branch and
+run ``setup.py``. For example, the following commands will allow you
+to see the tip of the development branch.
+
+.. code-block:: bash
+
+  hg up yt
+  python setup.py develop
+
+This should provide you with the most up to date source code. 
+
+Option 2:
 
 Recipes to build conda packages for yt are available at
 https://github.com/conda/conda-recipes.  To build the yt conda recipe, first
