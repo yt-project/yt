@@ -201,7 +201,7 @@ system architecture. Next, run the script, e.g.:
 
   bash Miniconda-3.3.0-Linux-x86_64.sh
 
-For both Anaconda or Miniconda installations, make sure that the Anaconda ``bin`` directory is in your path, and then issue:
+For both the Anaconda and Miniconda installations, make sure that the Anaconda ``bin`` directory is in your path, and then issue:
 
 .. code-block:: bash
 
