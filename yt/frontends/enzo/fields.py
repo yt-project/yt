@@ -137,7 +137,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                        ("enzo", "%s_Density" % species))
 
     def setup_species_fields(self):
-        species_names = [fn.rsplit("_Density")[0] for ft, fn in 
+        species_names = [fn.rsplit("_Density")[0] for ft, fn in
                          self.field_list if fn.endswith("_Density")]
         species_names = [sp for sp in species_names
                          if sp in known_species_names]
@@ -149,6 +149,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         for sp in species_names:
             self.add_species_field(sp)
             self.species_names.append(known_species_names[sp])
+        self.species_names.sort()  # bb #1059
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
