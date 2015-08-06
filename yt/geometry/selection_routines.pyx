@@ -607,7 +607,8 @@ cdef class SelectorObject:
         # http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
         cdef np.int64_t hash_val = 0
         for v in self._hash_vals() + self._base_hash():
-            hash_val = (hash_val * 16777619) ^ hash(v)  # FNV hash
+            # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
+            hash_val = (hash_val * 16777619) ^ hash(v)
         return hash_val
 
     def _hash_vals(self):
