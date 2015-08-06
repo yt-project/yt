@@ -34,7 +34,7 @@ def check_recipe(cmd):
     try:
         subprocess.check_call(cmd)
         result = True
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         print(("Stdout output:\n", e.output))
         result = False
     assert result
