@@ -20,6 +20,7 @@ import numpy as np
 
 from .absorption_line import tau_profile
 
+from yt.convenience import load
 from yt.funcs import get_pbar, mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import \
@@ -108,7 +109,7 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_file, output_file='spectrum.h5',
+    def make_spectrum(self, input_ds, output_file='spectrum.h5',
                       line_list_file='lines.txt',
                       use_peculiar_velocity=True):
         """
@@ -117,8 +118,8 @@ class AbsorptionSpectrum(object):
         Parameters
         ----------
 
-        input_file : string
-           path to input ray data.
+        input_ds : string or dataset
+           path to input ray data or a loaded ray dataset
         output_file : string
            path for output file.  File formats are chosen based on the filename extension.
            ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
@@ -128,7 +129,6 @@ class AbsorptionSpectrum(object):
 
         input_fields = ['dl', 'redshift', 'temperature']
         field_units = {"dl": "cm", "redshift": "", "temperature": "K"}
-        field_data = {}
         if use_peculiar_velocity:
             input_fields.append('velocity_los')
             field_units["velocity_los"] = "cm/s"
@@ -137,10 +137,9 @@ class AbsorptionSpectrum(object):
                 input_fields.append(feature['field_name'])
                 field_units[feature["field_name"]] = "cm**-3"
 
-        input = h5py.File(input_file, 'r')
-        for field in input_fields:
-            field_data[field] = YTArray(input[field].value, field_units[field])
-        input.close()
+        if isinstance(input_ds, str):
+            input_ds = load(input_ds)
+        field_data = input_ds.all_data()
 
         self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
