@@ -485,7 +485,7 @@ class LightRay(CosmologySplice):
         if data_filename is not None:
             self._write_light_ray(data_filename, all_data)
             ray_ds = load(data_filename)
-            return ray_ds.all_data()
+            return ray_ds
         else:
             return None
 
