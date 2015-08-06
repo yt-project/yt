@@ -34,7 +34,7 @@ including how it can be used and all of the possible "methods" that can be
 called on it.  ``dir()`` will return the available commands and objects that
 can be directly called, and ``dir(something)`` will return information about
 all the commands that ``something`` provides.  This probably sounds a bit
-opaque, but it will become clearer with time -- it's also probably heldsul to
+opaque, but it will become clearer with time -- it's also probably helpful to
 call ``help`` on any or all of the objects we create during this orientation.
 
 To start up Python, at your prompt simply type:
