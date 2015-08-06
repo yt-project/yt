@@ -480,12 +480,14 @@ class LightRay(CosmologySplice):
         # Flatten the list into a single dictionary containing fields
         # for the whole ray.
         all_data = _flatten_dict_list(all_data, exceptions=['segment_redshift'])
+        self._data = all_data
 
         if data_filename is not None:
             self._write_light_ray(data_filename, all_data)
-
-        self._data = all_data
-        return all_data
+            ray_ds = load(data_filename)
+            return ray_ds.all_data()
+        else:
+            return None
 
     @parallel_root_only
     def _write_light_ray(self, filename, data):
