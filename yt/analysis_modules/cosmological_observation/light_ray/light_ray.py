@@ -489,6 +489,9 @@ class LightRay(CosmologySplice):
         else:
             return None
 
+    def __getitem__(self, field):
+        return self._data[field]
+
     @parallel_root_only
     def _write_light_ray(self, filename, data):
         """
