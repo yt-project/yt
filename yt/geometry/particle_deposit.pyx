@@ -351,7 +351,8 @@ cdef class CICDeposit(ParticleDepositOperation):
                       np.int64_t domain_ind
                       ):
 
-        cdef int i, j, k, ii
+        cdef int i, j, k
+        cdef np.uint64_t ii
         cdef int ind[3]
         cdef np.float64_t rpos[3]
         cdef np.float64_t rdds[3][2]
