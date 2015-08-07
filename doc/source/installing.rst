@@ -232,7 +232,8 @@ to see the tip of the development branch.
   hg up yt
   python setup.py develop
 
-This should provide you with the most up to date source code. 
+This will make sure you are running a version of yt corresponding to the 
+most up-to-date source code.
 
 Option 2:
 
