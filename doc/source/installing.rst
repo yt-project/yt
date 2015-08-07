@@ -39,6 +39,12 @@ will work best for you depends on your precise situation:
   have the the necessary compilers installed (e.g. the ``build-essentials``
   package on debian and ubuntu).
 
+.. note::
+  See `Parallel Computation
+  <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_
+  for a discussion on using yt in parallel.
+
+
 .. _branches-of-yt:
 
 Branches of yt: ``yt``, ``stable``, and ``yt-2.x``
