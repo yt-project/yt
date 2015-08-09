@@ -176,7 +176,13 @@ class YTArray(np.ndarray):
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
     dtype : string or NumPy dtype object
-        The dtype of the array data.
+        The dtype of the array data. Defaults to the dtype of the input data,
+        or, if none is found, uses np.float64
+    bypass_validation : boolean
+        If True, all input validation is skipped. Using this option may produce
+        corrupted, invalid units or array data, but can lead to significant
+        speedups in the input validation logic adds significant overhead. If set,
+        input_units *must* be a valid unit object. Defaults to False.
 
     Examples
     --------
@@ -295,9 +301,16 @@ class YTArray(np.ndarray):
 
     __array_priority__ = 2.0
 
-    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+    def __new__(cls, input_array, input_units=None, registry=None, dtype=None,
+                bypass_validation=False):
         if dtype is None:
             dtype = getattr(input_array, 'dtype', np.float64)
+        if bypass_validation is True:
+            obj = np.asarray(input_array, dtype=dtype).view(cls)
+            obj.units = input_units
+            if registry is not None:
+                obj.units.registry = registry
+            return obj
         if input_array is NotImplemented:
             return input_array
         if registry is None and isinstance(input_units, (str, bytes)):
@@ -992,7 +1005,7 @@ class YTArray(np.ndarray):
     def __getitem__(self, item):
         ret = super(YTArray, self).__getitem__(item)
         if ret.shape == ():
-            return YTQuantity(ret, self.units)
+            return YTQuantity(ret, self.units, bypass_validation=True)
         else:
             return ret
 
@@ -1159,11 +1172,11 @@ class YTQuantity(YTArray):
 
     """
     def __new__(cls, input_scalar, input_units=None, registry=None,
-                dtype=np.float64):
+                dtype=np.float64, bypass_validation=False):
         if not isinstance(input_scalar, (numeric_type, np.number, np.ndarray)):
             raise RuntimeError("YTQuantity values must be numeric")
         ret = YTArray.__new__(cls, input_scalar, input_units, registry,
-                              dtype=dtype)
+                              dtype=dtype, bypass_validation=bypass_validation)
         if ret.size > 1:
             raise RuntimeError("YTQuantity instances must be scalars")
         return ret
