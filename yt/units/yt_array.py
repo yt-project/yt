@@ -139,8 +139,8 @@ def validate_comparison_units(this, other, op_string):
     if isinstance(other, YTArray):
         if not this.units.same_dimensions_as(other.units):
             raise YTUnitOperationError(op_string, this.units, other.units)
-
-        return other.in_units(this.units)
+        if this.units.expr != other.units.expr:
+            return other.in_units(this.units)
 
     return other
 
