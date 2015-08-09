@@ -1009,6 +1009,17 @@ class YTArray(np.ndarray):
         else:
             return ret
 
+    def __iter__(self):
+        nextret = None
+        for item in self.ndarray_view():
+            if nextret is None:
+                ret = YTQuantity(item, self.units, bypass_validation=True)
+            else:
+                ret = nextret
+                np.put(ret, 0, item)
+            nextret = ret.copy()
+            yield ret
+
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if isinstance(ret, YTQuantity) and ret.shape != ():
@@ -1103,6 +1114,10 @@ class YTArray(np.ndarray):
         unit, lut = state[0]
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
+
+    def __copy__(self):
+        ret = super(YTArray, self).__copy__()
+        return type(self)(ret, self.units)
 
     def __deepcopy__(self, memodict=None):
         """copy.deepcopy implementation
