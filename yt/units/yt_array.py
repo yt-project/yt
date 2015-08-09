@@ -1012,7 +1012,7 @@ class YTArray(np.ndarray):
 
     def __iter__(self):
         nextret = None
-        for item in self.ndarray_view():
+        for item in np.nditer(self.ndarray_view()):
             if nextret is None:
                 ret = YTQuantity(item, self.units, bypass_validation=True)
             else:
