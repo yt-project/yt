@@ -554,6 +554,17 @@ def test_selecting():
     yield assert_true, a_slice.base is a
 
 
+def test_iteration():
+    """
+    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    """
+    a = np.arange(3)
+    b = YTArray(np.arange(3), 'cm')
+    for ia, ib, in zip(a, b):
+        yield assert_equal, ia, ib.value
+        yield assert_equal, ib.units, b.units
+
+
 def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
