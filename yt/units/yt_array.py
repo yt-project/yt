@@ -1115,10 +1115,6 @@ class YTArray(np.ndarray):
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 
-    def __copy__(self):
-        ret = super(YTArray, self).__copy__()
-        return type(self)(ret, self.units)
-
     def __deepcopy__(self, memodict=None):
         """copy.deepcopy implementation
 
