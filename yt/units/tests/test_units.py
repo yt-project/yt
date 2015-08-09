@@ -21,6 +21,7 @@ from numpy.testing import \
     assert_approx_equal, assert_array_almost_equal_nulp, \
     assert_allclose, assert_raises
 from nose.tools import assert_true
+import operator
 from sympy import Symbol
 from yt.testing import fake_random_ds
 
@@ -30,7 +31,7 @@ from yt.units.dimensions import \
 # functions
 from yt.units.unit_object import get_conversion_factor
 # classes
-from yt.units.unit_object import Unit, UnitParseError
+from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
 # objects
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
@@ -441,3 +442,10 @@ def test_is_code_unit():
     yield assert_true, u4.is_code_unit
     yield assert_true, not u5.is_code_unit
     yield assert_true, not u6.is_code_unit
+
+def test_temperature_offsets():
+    u1 = Unit('degC')
+    u2 = Unit('degF')
+
+    assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
+    assert_raises(InvalidUnitOperation, operator.div, u1, u2)
