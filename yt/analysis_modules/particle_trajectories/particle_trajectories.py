@@ -16,7 +16,7 @@ from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.funcs import *
+from yt.funcs import mylog, get_pbar
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
 from collections import OrderedDict
