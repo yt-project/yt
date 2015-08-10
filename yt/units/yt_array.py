@@ -1010,17 +1010,6 @@ class YTArray(np.ndarray):
         else:
             return ret
 
-    def __iter__(self):
-        nextret = None
-        for item in np.nditer(self.ndarray_view(), op_flags=["readwrite"]):
-            if nextret is None:
-                ret = YTQuantity(item, self.units, bypass_validation=True)
-            else:
-                ret = nextret
-                np.put(ret, 0, item)
-            nextret = ret.copy()
-            yield ret
-
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if isinstance(ret, YTQuantity) and ret.shape != ():
