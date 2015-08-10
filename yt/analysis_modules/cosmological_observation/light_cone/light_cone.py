@@ -24,8 +24,6 @@ from yt.analysis_modules.cosmological_observation.cosmology_splice import \
     CosmologySplice
 from yt.convenience import \
     load
-from yt.utilities.cosmology import \
-    Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
