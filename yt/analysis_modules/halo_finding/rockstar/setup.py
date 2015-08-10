@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import setuptools
-import os, sys, os.path
-
 import os.path
+import sys
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration

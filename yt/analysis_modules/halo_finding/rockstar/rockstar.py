@@ -16,23 +16,21 @@ from __future__ import absolute_import
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import \
-     DatasetSeries
+    DatasetSeries
 from yt.funcs import \
-     is_root
+    is_root, mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, ProcessorPool, Communicator
-from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
+    ParallelAnalysisInterface, ProcessorPool
+from yt.analysis_modules.halo_finding.halo_objects import \
+    RockstarHaloList
 from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
 from . import rockstar_interface
 
 import socket
 import time
-import threading
-import signal
 import os
-from os import environ
-from os import mkdir
+import numpy as np
 from os import path
 
 class InlineRunner(ParallelAnalysisInterface):
@@ -202,7 +200,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             mylog.info("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
-        if ytcfg.getboolean("yt", "inline") == True:
+        if ytcfg.getboolean("yt", "inline") is True:
             self.runner = InlineRunner()
         else:
             self.runner = StandardRunner(num_readers, num_writers)
@@ -247,8 +245,6 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         dd = tds.all_data()
         # Get DM particle mass.
-        all_fields = set(tds.derived_field_list + tds.field_list)
-        has_particle_type = ("particle_type" in all_fields)
 
         particle_mass = self.particle_mass
         if particle_mass is None:
