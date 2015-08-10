@@ -24,6 +24,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.unstructured_mesh_handler import \
      UnstructuredIndex
+from yt.data_objects.unstructured_mesh import \
+     UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.io_handler import \
@@ -35,65 +37,15 @@ from .fields import \
 from .util import \
     load_info_records, sanitize_string
 
-class ExodusIIGrid(AMRGridPatch):
-    _id_offset = 1
-    def __init__(self, id, index, level, start, dimensions):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename,
-                              index=index)
-        self.Parent = []
-        self.Children = []
-        self.Level = level
-        self.start_index = start.copy()
-        self.stop_index = self.start_index + dimensions
-        self.ActiveDimensions = dimensions.copy()
+class ExodusIIUnstructuredMesh(UnstructuredMesh):
+    _index_offset = 1
 
-    def __repr__(self):
-        return "ExodusIIGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+    def __init__(self, *args, **kwargs):
+        super(ExodusIIUnstructuredMesh, self).__init__(*args, **kwargs)
 
-class ExodusIIHierarchy(UnstructuredIndex):
-    grid = ExodusIIGrid
-
-    def __init__(self, ds, dataset_type='exodus_ii'):
-        self.dataset_type = dataset_type
-        # for now, the index file is the dataset!
-        self.index_filename = self.dataset.parameter_filename
-        self.directory = os.path.dirname(self.index_filename)
-        GridIndex.__init__(self, ds, dataset_type)
-
-    def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
-        pass
-
-    def _count_grids(self):
-        # This needs to set self.num_grids
-        pass
-
-    def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #
-        pass
-
-    def _populate_grid_objects(self):
-        # For each grid, this must call:
-        #   grid._prepare_grid()
-        #   grid._setup_dx()
-        # This must also set:
-        #   grid.Children <= list of child grids
-        #   grid.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
-        pass
+class ExodusIIUnstructuredIndex(UnstructuredIndex):
+    def __init__(self, ds, dataset_type = 'exodus_ii'):
+        super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
 
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIHierarchy
