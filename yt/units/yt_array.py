@@ -1362,7 +1362,6 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
     if len(units) != num_cols:
         mylog.warning("Malformed or incomplete units header. Arrays will be "
                       "dimensionless!")
-        print(num_cols)
         units = ["dimensionless"]*num_cols
     arrays = np.loadtxt(fname, dtype=dtype, comments=comments,
                         delimiter=delimiter, converters=None,
