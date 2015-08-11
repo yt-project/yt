@@ -1009,7 +1009,18 @@ def test_electromagnetic():
     V = YTQuantity(1.0, "statV")
     V_mks = V.to_equivalent("V", "SI")
     yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
-    
+
+def test_ytarray_coercion():
+    a = YTArray([1, 2, 3], 'cm')
+    q = YTQuantity(3, 'cm')
+    na = np.array([1, 2, 3])
+
+    assert_isinstance(a*q, YTArray)
+    assert_isinstance(q*na, YTArray)
+    assert_isinstance(q*3, YTQuantity)
+    assert_isinstance(q*np.float64(3), YTQuantity)
+    assert_isinstance(q*np.array(3), YTQuantity)
+
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')

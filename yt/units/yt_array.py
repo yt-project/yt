@@ -1085,7 +1085,7 @@ class YTArray(np.ndarray):
             if ret_class is YTQuantity:
                 # This happens if you do ndarray * YTQuantity. Explicitly
                 # casting to YTArray avoids creating a YTQuantity with size > 1
-                return YTArray(np.array(out_arr, unit))
+                return YTArray(np.array(out_arr), unit)
             return ret_class(np.array(out_arr, copy=False), unit)
 
 
