@@ -411,7 +411,7 @@ class Halo(object):
         """
         self.virial_info(bins=bins)
         over = (self.overdensity > virial_overdensity)
-        if (over is True).any():
+        if over.any():
             vir_bin = max(np.arange(bins + 1)[over])
             return vir_bin
         else:
