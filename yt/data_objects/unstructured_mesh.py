@@ -45,8 +45,6 @@ class UnstructuredMesh(YTSelectionContainer):
         self.mesh_id = mesh_id
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
-        if connectivity_indices.shape[1] != self._connectivity_length:
-            raise RuntimeError
         self.connectivity_coords = connectivity_coords
         self.ds = index.dataset
         self._index = index
@@ -57,6 +55,9 @@ class UnstructuredMesh(YTSelectionContainer):
         self._current_fluid_type = self.ds.default_fluid_type
 
     def _check_consistency(self):
+        if connectivity_indices.shape[1] != self._connectivity_length:
+            raise RuntimeError
+
         for gi in range(self.connectivity_indices.shape[0]):
             ind = self.connectivity_indices[gi, :] - self._index_offset
             coords = self.connectivity_coords[ind, :]

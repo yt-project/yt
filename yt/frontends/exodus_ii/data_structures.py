@@ -46,6 +46,7 @@ class ExodusIIUnstructuredMesh(UnstructuredMesh):
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'exodus_ii'):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
+        self._connectivity_length = self.meshes[0].connectivity_indices.shape[1]
 
     def _initialize_mesh(self):
         self.meshes = [ExodusIIUnstructuredMesh(
@@ -53,6 +54,12 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
                        for mesh_id, (conn_ind, conn_coord) in
                        enumerate(zip(self.dataset.parameters['connectivity'],
                                      self.dataset.parameters['coordinates']))]
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.dataset_type](self.index_filename)
+
+    def _detect_output_fields(self):
+        pass
 
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
@@ -64,7 +71,7 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.fluid_types +              = ('exodus_ii',)
+        self.fluid_types               += ('exodus_ii',)
         self.parameter_filename         = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override = units_override)
