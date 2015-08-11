@@ -1352,7 +1352,8 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
         else:
             # Here we catch the first line of numbers
             try:
-                float(words[0])
+                for word in words:
+                    float(word)
                 num_cols = len(words)
                 break
             except ValueError:
