@@ -57,11 +57,12 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.fluid_types += ('exodus_ii',)
-        self.parameter_filename = filename
+        self.fluid_types +              = ('exodus_ii',)
+        self.parameter_filename         = filename
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
-        self.storage_filename = storage_filename
+                         units_override = units_override)
+        self.index_filename             = filename
+        self.storage_filename           = storage_filename
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -101,6 +102,10 @@ class ExodusIIDataset(Dataset):
         self.hubble_constant            = 0
 
     def _load_variables(self):
+        """
+        Loads each key-pair in the Exodus II input file
+        as a parameter
+        """
         ds = IOHandlerExodusII(self.parameter_filename).ds
         for key in ds.variables.keys():
             self.parameters[key] = ds.variables[key]
