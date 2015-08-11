@@ -47,6 +47,13 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'exodus_ii'):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
 
+    def _initialize_mesh(self):
+        self.meshes = [ExodusIIUnstructuredMesh(
+            mesh_id, self.index_filename, conn_ind, conn_coord, self)
+                       for mesh_id, (conn_ind, conn_coord) in
+                       enumerate(zip(self.dataset.parameters['connectivity'],
+                                     self.dataset.parameters['coordinates']))]
+
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
     _field_info_class = ExodusIIFieldInfo
@@ -112,7 +119,7 @@ class ExodusIIDataset(Dataset):
 
     def _load_info_records(self):
         """
-        Returns parsed version of the info_records
+        Returns parsed version of the info_records.
         """
         try:
             return load_info_records(self.parameters['info_records'])
