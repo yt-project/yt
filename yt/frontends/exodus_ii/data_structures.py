@@ -128,6 +128,9 @@ class ExodusIIDataset(Dataset):
             return 0.0
 
     def _get_var_names(self):
+        """
+        Returns the names of the element vars, if available
+        """
         try:
             return [sanitize_string(v.tostring()) for v in
                     self.parameters["name_elem_var"]]
@@ -136,6 +139,9 @@ class ExodusIIDataset(Dataset):
             return []
 
     def _get_nod_names(self):
+        """
+        Returns the names of the node vars, if available
+        """
         try:
             return [sanitize_string(v.tostring()) for v in
                     self.parameters["name_nod_var"]]
@@ -144,6 +150,9 @@ class ExodusIIDataset(Dataset):
             return []
 
     def _load_coordinates(self):
+        """
+        Loads the coordinates for the mesh
+        """
         if self.dimensionality == 3:
             coord_axes = 'xyz'
         elif self.dimensionality == 2:
@@ -159,6 +168,9 @@ class ExodusIIDataset(Dataset):
                              for ax in coord_axes]).transpose().copy()
     
     def _load_connectivity(self):
+        """
+        Loads the connectivity data for the mesh
+        """
         mylog.info("Loading connectivity")
         connectivity = []
         for i in range(self.parameters['num_elem']):
@@ -166,6 +178,9 @@ class ExodusIIDataset(Dataset):
         return connectivity
 
     def _load_data(self):
+        """
+        Loads the fluid data
+        """
         data = []
         for i in range(self.parameters['num_elem']):
             ci = self.parameters['connectivity'][i]
@@ -184,6 +199,12 @@ class ExodusIIDataset(Dataset):
         return data
 
     def _load_domain_edge(self, domain_idx):
+        """
+        Loads the boundaries for the domain edge
+        
+        Parameters:
+        - domain_idx: 0 corresponds to the left edge, 1 corresponds to the right edge
+        """
         return np.array([self.parameters['coordinates'][:,domain_idx].min(),
                          self.parameters['coordinates'][:,domain_idx].max()],
                         'float64')
