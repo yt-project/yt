@@ -1010,7 +1010,7 @@ def test_electromagnetic():
     V_mks = V.to_equivalent("V", "SI")
     yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
 
-def test_ytarray_coersion():
+def test_ytarray_coercion():
     a = YTArray([1, 2, 3], 'cm')
     q = YTQuantity(3, 'cm')
     na = np.array([1, 2, 3])
