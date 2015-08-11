@@ -40,6 +40,7 @@ from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
 from yt.units.equivalencies import equivalence_registry
+from yt.utilities.logger import ytLogger as mylog
 
 NULL_UNIT = Unit()
 
@@ -1337,19 +1338,37 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
     """
     f = open(fname, 'r')
     next_one = False
+    units = []
+    num_cols = -1
     for line in f.readlines():
         words = line.strip().split()
-        if next_one:
-            units = words[1:]
-            break
-        if len(words) == 2 and words[1] == "Units":
-            next_one = True
+        if len(words) == 0:
+            continue
+        if line[0] == comments:
+            if next_one:
+                units = words[1:]
+            if len(words) == 2 and words[1] == "Units":
+                next_one = True
+        else:
+            # Here we catch the first line of numbers
+            try:
+                float(words[0])
+                num_cols = len(words)
+                break
+            except ValueError:
+                mylog.warning("Unrecognized character at beginning of line: \"%s\"." % line[0])
     f.close()
-    if usecols is not None:
-        units = [units[col] for col in usecols]
+    if len(units) != num_cols:
+        mylog.warning("Malformed or incomplete units header. Arrays will be "
+                      "dimensionless!")
+        print(num_cols)
+        units = ["dimensionless"]*num_cols
     arrays = np.loadtxt(fname, dtype=dtype, comments=comments,
                         delimiter=delimiter, converters=None,
                         unpack=True, usecols=usecols, ndmin=0)
+    if usecols is not None:
+        units = [units[col] for col in usecols]
+    mylog.info("Array units: %s" % ", ".join(units))
     return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
 
 def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
