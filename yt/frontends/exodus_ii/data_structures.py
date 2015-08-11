@@ -48,7 +48,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
 
 class ExodusIIDataset(Dataset):
-    _index_class = ExodusIIHierarchy
+    _index_class = ExodusIIUnstructuredIndex
     _field_info_class = ExodusIIFieldInfo
 
     def __init__(self,
@@ -106,6 +106,9 @@ class ExodusIIDataset(Dataset):
             self.parameters[key] = ds.variables[key]
 
     def _load_info_records(self):
+        """
+        Returns parsed version of the info_records
+        """
         try:
             return load_info_records(self.parameters['info_records'])
         except (KeyError, TypeError):
