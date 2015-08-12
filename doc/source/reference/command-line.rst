@@ -42,9 +42,9 @@ Command-line Functions
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The :code:`yt` command-line tool allows you to access some of yt's basic
-funcionality without opening a python interpreter.  The tools is a collection of
+functionality without opening a python interpreter.  The tools is a collection of
 subcommands.  These can quickly making plots of slices and projections through a
-dataset, updating yt's codebase, print basic statistics about a dataset, laucnh
+dataset, updating yt's codebase, print basic statistics about a dataset, launch
 an IPython notebook session, and more.  To get a quick list of what is
 available, just type:
 
