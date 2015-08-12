@@ -491,12 +491,13 @@ class RAMSESDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-
+        # loading the units from the info file
         boxlen=self.parameters['boxlen']
         length_unit = self.parameters['unit_l']
         density_unit = self.parameters['unit_d']
         time_unit = self.parameters['unit_t']
 
+        # calculating derived units (except velocity and temperature, done below)
         mass_unit = density_unit * length_unit**3     
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
@@ -515,6 +516,8 @@ class RAMSESDataset(Dataset):
         self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
         self.temperature_unit = (self.velocity_unit**2*mp* 
                                  mean_molecular_weight_factor/kb).in_units('K')
+
+        # Only the length unit get scales by a factor of boxlen
         self.length_unit = self.quan(length_unit * boxlen, "cm")
 
     def _parse_parameter_file(self):
