@@ -1352,9 +1352,10 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
         else:
             # Here we catch the first line of numbers
             try:
-                for word in words:
+                col_words = line.strip().split(delimiter)
+                for word in col_words:
                     float(word)
-                num_cols = len(words)
+                num_cols = len(col_words)
                 break
             except ValueError:
                 mylog.warning("Unrecognized character at beginning of line: \"%s\"." % line[0])
