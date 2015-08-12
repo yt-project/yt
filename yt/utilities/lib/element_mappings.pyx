@@ -154,7 +154,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
 
     This is a base class for handling element samplers that require
     a nonlinear solve to invert the mapping between coordinate systems.
-    To do this, we perform Newton-Raphson iteration using a specificed 
+    To do this, we perform Newton-Raphson iteration using a specified 
     system of equations with an analytic Jacobian matrix. This is
     not to be used directly, use one of the subclasses instead.
 
