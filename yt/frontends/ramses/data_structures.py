@@ -491,26 +491,17 @@ class RAMSESDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        #Please note that for all units given in the info file, the boxlen
-        #still needs to be folded in, as shown below!
 
         boxlen=self.parameters['boxlen']
         length_unit = self.parameters['unit_l']
         density_unit = self.parameters['unit_d']
-
-        # In the mass unit, the factors of boxlen cancel back out, so this 
-        #is equivalent to unit_d*unit_l**3
-
-        mass_unit = density_unit * length_unit**3
-
-        # Cosmological runs are done in lookback conformal time. 
-        # To convert to proper time, the time unit is calculated from 
-        # the expansion factor. This is not yet  done here!
-
         time_unit = self.parameters['unit_t']
+
+        mass_unit = density_unit * length_unit**3     
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit)**2
+
         # TODO:
         # Generalize the temperature field to account for ionization
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
@@ -520,11 +511,11 @@ class RAMSESDataset(Dataset):
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
         self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
         self.time_unit = self.quan(time_unit, "s")
-        self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
-        self.temperature_unit = (self.pressure_unit/self.density_unit*mp/kb)
- 
+        self.temperature_unit = (self.velocity_unit**2*mp* 
+                                 mean_molecular_weight_factor/kb).in_units('K')
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
 
     def _parse_parameter_file(self):
         # hardcoded for now
