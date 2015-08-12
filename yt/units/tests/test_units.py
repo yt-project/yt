@@ -18,11 +18,12 @@ from __future__ import print_function
 import nose
 import numpy as np
 from numpy.testing import \
-    assert_approx_equal, assert_array_almost_equal_nulp, \
-    assert_allclose, assert_raises
+    assert_array_almost_equal_nulp, \
+    assert_raises
 from nose.tools import assert_true
 from sympy import Symbol
-from yt.testing import fake_random_ds
+from yt.testing import \
+    fake_random_ds, assert_allclose_units
 
 # dimensions
 from yt.units.dimensions import \
@@ -154,10 +155,10 @@ def test_create_from_expr():
     yield assert_true, u3.expr == s3
     yield assert_true, u4.expr == s4
 
-    yield assert_allclose, u1.base_value, pc_cgs, 1e-12
-    yield assert_allclose, u2.base_value, yr_cgs, 1e-12
-    yield assert_allclose, u3.base_value, pc_cgs * yr_cgs, 1e-12
-    yield assert_allclose, u4.base_value, pc_cgs**2 / yr_cgs, 1e-12
+    yield assert_allclose_units, u1.base_value, pc_cgs, 1e-12
+    yield assert_allclose_units, u2.base_value, yr_cgs, 1e-12
+    yield assert_allclose_units, u3.base_value, pc_cgs * yr_cgs, 1e-12
+    yield assert_allclose_units, u4.base_value, pc_cgs**2 / yr_cgs, 1e-12
 
     yield assert_true, u1.dimensions == length
     yield assert_true, u2.dimensions == time
@@ -179,7 +180,7 @@ def test_create_with_duplicate_dimensions():
     yield assert_true, u1.base_value == 1
     yield assert_true, u1.dimensions == power
 
-    yield assert_allclose, u2.base_value, km_cgs / Mpc_cgs, 1e-12
+    yield assert_allclose_units, u2.base_value, km_cgs / Mpc_cgs, 1e-12
     yield assert_true, u2.dimensions == rate
 
 def test_create_new_symbol():
@@ -323,7 +324,7 @@ def test_multiplication():
     u3 = u1 * u2
 
     yield assert_true, u3.expr == msun_sym * pc_sym
-    yield assert_allclose, u3.base_value, msun_cgs * pc_cgs, 1e-12
+    yield assert_allclose_units, u3.base_value, msun_cgs * pc_cgs, 1e-12
     yield assert_true, u3.dimensions == mass * length
 
     # Pow and Mul operations
@@ -333,7 +334,7 @@ def test_multiplication():
     u6 = u4 * u5
 
     yield assert_true, u6.expr == pc_sym**2 * msun_sym * s_sym
-    yield assert_allclose, u6.base_value, pc_cgs**2 * msun_cgs, 1e-12
+    yield assert_allclose_units, u6.base_value, pc_cgs**2 * msun_cgs, 1e-12
     yield assert_true, u6.dimensions == length**2 * mass * time
 
 
@@ -357,7 +358,7 @@ def test_division():
     u3 = u1 / u2
 
     yield assert_true, u3.expr == pc_sym / (km_sym * s_sym)
-    yield assert_allclose, u3.base_value, pc_cgs / km_cgs, 1e-12
+    yield assert_allclose_units, u3.base_value, pc_cgs / km_cgs, 1e-12
     yield assert_true, u3.dimensions == 1 / time
 
 
@@ -376,12 +377,12 @@ def test_power():
     u2 = u1**2
 
     yield assert_true, u2.dimensions == u1_dims**2
-    yield assert_allclose, u2.base_value, (pc_cgs**2 * mK_cgs**4)**2, 1e-12
+    yield assert_allclose_units, u2.base_value, (pc_cgs**2 * mK_cgs**4)**2, 1e-12
 
     u3 = u1**(-1.0/3)
 
     yield assert_true, u3.dimensions == nsimplify(u1_dims**(-1.0/3))
-    yield assert_allclose, u3.base_value, (pc_cgs**2 * mK_cgs**4)**(-1.0/3), 1e-12
+    yield assert_allclose_units, u3.base_value, (pc_cgs**2 * mK_cgs**4)**(-1.0/3), 1e-12
 
 
 def test_equality():
@@ -413,7 +414,7 @@ def test_base_equivalent():
     yield assert_true, u2.expr == u3.expr
     yield assert_true, u2 == u3
 
-    yield assert_allclose, u1.base_value, Msun_cgs / Mpc_cgs**3, 1e-12
+    yield assert_allclose_units, u1.base_value, Msun_cgs / Mpc_cgs**3, 1e-12
     yield assert_true, u2.base_value == 1
     yield assert_true, u3.base_value == 1
 
@@ -423,7 +424,7 @@ def test_base_equivalent():
     yield assert_true, u2.dimensions == mass_density
     yield assert_true, u3.dimensions == mass_density
 
-    yield assert_allclose, get_conversion_factor(u1, u3)[0], \
+    yield assert_allclose_units, get_conversion_factor(u1, u3)[0], \
         Msun_cgs / Mpc_cgs**3, 1e-12
 
 def test_is_code_unit():

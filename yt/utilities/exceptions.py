@@ -195,7 +195,7 @@ class YTUnitsNotReducible(YTException):
           "the %s base system of units." % (self.unit, self.units_base)
         return err
 
-class YTEquivalentDimsError(Exception):
+class YTEquivalentDimsError(YTUnitOperationError):
     def __init__(self, old_units, new_units, base):
         self.old_units = old_units
         self.new_units = new_units
