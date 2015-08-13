@@ -71,9 +71,9 @@ def validate_plot(f):
             if not args[0]._data_valid:
                 args[0]._recreate_frb()
         if not args[0]._plot_valid:
+            # it is the responsibility of _setup_plots to call
+            # args[0].run_callbacks()
             args[0]._setup_plots()
-            if hasattr(args[0], 'run_callbacks'):
-                args[0].run_callbacks()
         rv = f(*args, **kwargs)
         return rv
     return newfunc

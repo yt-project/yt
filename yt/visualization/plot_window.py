@@ -977,7 +977,7 @@ class PWViewerMPL(PlotWindow):
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
         self._set_font_properties()
-
+        self.run_callbacks()
         self._plot_valid = True
 
     def setup_callbacks(self):
