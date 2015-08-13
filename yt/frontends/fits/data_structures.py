@@ -111,6 +111,8 @@ class FITSHierarchy(GridIndex):
                     field_units = field_units.replace(unit, known_units[unit])
                     n += 1
             if n != len(units): field_units = "dimensionless"
+            if field_units[0] == "/":
+                field_units = "1%s" % field_units
             return field_units
         except KeyError:
             return "dimensionless"

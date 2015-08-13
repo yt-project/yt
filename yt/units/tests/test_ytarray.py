@@ -35,7 +35,7 @@ from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
-    uunion1d
+    uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_ds, requires_module
@@ -1061,3 +1061,22 @@ def test_modified_unit_division():
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
     yield assert_true, ret.units.base_value == 1.0
+
+def test_load_and_save():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    a = YTArray(np.random.random(10), "kpc")
+    b = YTArray(np.random.random(10), "Msun")
+    c = YTArray(np.random.random(10), "km/s")
+
+    savetxt("arrays.dat", [a,b,c], delimiter=",")
+
+    d, e = loadtxt("arrays.dat", usecols=(1,2), delimiter=",")
+
+    yield assert_array_equal, b, d
+    yield assert_array_equal, c, e
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

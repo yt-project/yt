@@ -40,6 +40,7 @@ from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
 from yt.units.equivalencies import equivalence_registry
+from yt.utilities.logger import ytLogger as mylog
 
 NULL_UNIT = Unit()
 
@@ -1229,7 +1230,7 @@ def uconcatenate(arrs, axis=0):
 def ucross(arr1,arr2, registry=None):
     """Applies the cross product to two YT arrays.
 
-    This wrapper around numpy.cross preserves units.  
+    This wrapper around numpy.cross preserves units.
     See the documentation of numpy.cross for full
     details.
     """
@@ -1310,3 +1311,113 @@ def get_binary_op_return_class(cls1, cls2):
     else:
         raise RuntimeError("Undefined operation for a YTArray subclass. "
                            "Received operand types (%s) and (%s)" % (cls1, cls2))
+
+def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
+    r"""
+    Load YTArrays with unit information from a text file. Each row in the
+    text file must have the same number of values.
+
+    Parameters
+    ----------
+    fname : str
+        Filename to read. 
+    dtype : data-type, optional
+        Data-type of the resulting array; default: float.
+    delimiter : str, optional
+        The string used to separate values.  By default, this is any
+        whitespace.
+    usecols : sequence, optional
+        Which columns to read, with 0 being the first.  For example,
+        ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
+        The default, None, results in all columns being read.
+    comments : str, optional
+        The character used to indicate the start of a comment;
+        default: '#'.
+
+    Examples
+    --------
+    >>> temp, velx = yt.loadtxt("sphere.dat", usecols=(1,2), delimiter="\t")
+    """
+    f = open(fname, 'r')
+    next_one = False
+    units = []
+    num_cols = -1
+    for line in f.readlines():
+        words = line.strip().split()
+        if len(words) == 0:
+            continue
+        if line[0] == comments:
+            if next_one:
+                units = words[1:]
+            if len(words) == 2 and words[1] == "Units":
+                next_one = True
+        else:
+            # Here we catch the first line of numbers
+            try:
+                col_words = line.strip().split(delimiter)
+                for word in col_words:
+                    float(word)
+                num_cols = len(col_words)
+                break
+            except ValueError:
+                mylog.warning("Unrecognized character at beginning of line: \"%s\"." % line[0])
+    f.close()
+    if len(units) != num_cols:
+        mylog.warning("Malformed or incomplete units header. Arrays will be "
+                      "dimensionless!")
+        units = ["dimensionless"]*num_cols
+    arrays = np.loadtxt(fname, dtype=dtype, comments=comments,
+                        delimiter=delimiter, converters=None,
+                        unpack=True, usecols=usecols, ndmin=0)
+    if usecols is not None:
+        units = [units[col] for col in usecols]
+    mylog.info("Array units: %s" % ", ".join(units))
+    return tuple([YTArray(arr, unit) for arr, unit in zip(arrays, units)])
+
+def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
+            footer='', comments='#'):
+    r"""
+    Write YTArrays with unit information to a text file.
+    
+    Parameters
+    ----------
+    fname : str
+        The file to write the YTArrays to.
+    arrays : list of YTArrays or single YTArray
+        The array(s) to write to the file.
+    fmt : str or sequence of strs, optional
+        A single format (%10.5f), or a sequence of formats. 
+    delimiter : str, optional
+        String or character separating columns.
+    header : str, optional
+        String that will be written at the beginning of the file, before the
+        unit header.
+    footer : str, optional
+        String that will be written at the end of the file.
+    comments : str, optional
+        String that will be prepended to the ``header`` and ``footer`` strings,
+        to mark them as comments. Default: '# ', as expected by e.g.
+        ``yt.loadtxt``.
+
+    Examples
+    --------
+    >>> sp = ds.sphere("c", (100,"kpc"))
+    >>> a = sphere["density"]
+    >>> b = sphere["temperature"]
+    >>> c = sphere["velocity_x"]
+    >>> yt.savetxt("sphere.dat", [a,b,c], header='My sphere stuff', delimiter="\t")
+    """
+    if not isinstance(arrays, list):
+        arrays = [arrays]
+    units = []
+    for array in arrays:
+        if hasattr(array, "units"):
+            units.append(str(array.units))
+        else:
+            units.append("dimensionless")
+    if header != '':
+        header += '\n'
+    header += " Units\n " + '\t'.join(units)
+    np.savetxt(fname, np.transpose(arrays), header=header,
+               fmt=fmt, delimiter=delimiter, footer=footer,
+               newline='\n', comments=comments)
