@@ -196,15 +196,23 @@ def test_add_deposited_particle_field():
 
 def test_add_gradient_fields():
     gfields = base_ds.add_gradient_fields(("gas","density"))
+    gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
                   ('gas', 'density_gradient_y'),
                   ('gas', 'density_gradient_z'),
-                  ('gas', 'density_gradient_magnitude')]
+                  ('gas', 'density_gradient_magnitude'),
+                  ('index', 'ones_gradient_x'),
+                  ('index', 'ones_gradient_y'),
+                  ('index', 'ones_gradient_z'),
+                  ('index', 'ones_gradient_magnitude')]
     assert_equal(gfields, field_list)
     ad = base_ds.all_data()
     for field in field_list:
         ret = ad[field]
-        assert str(ret.units) == "g/cm**4"
+        if field[0] == 'gas':
+            assert str(ret.units) == "g/cm**4"
+        else:
+            assert str(ret.units) == "1/cm"
 
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are
