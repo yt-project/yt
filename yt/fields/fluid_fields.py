@@ -215,7 +215,11 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             return new_field
         return func
 
-    grad_units = "(%s) / cm" % field_units
+    if field_units != "":
+        grad_units = "(%s) / cm" % field_units
+    else:
+        grad_units = "1 / cm"
+
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
