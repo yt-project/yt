@@ -28,8 +28,7 @@ from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp, \
-    assert_array_almost_equal, \
-    assert_allclose
+    assert_array_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
@@ -38,7 +37,9 @@ from yt.units.yt_array import \
     uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_ds, requires_module
+from yt.testing import \
+    fake_random_ds, requires_module, \
+    assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
@@ -894,14 +895,14 @@ def test_equivalencies():
 
     E = mp.to_equivalent("keV","mass_energy")
     yield assert_equal, E, mp*clight*clight
-    yield assert_allclose, mp, E.to_equivalent("g", "mass_energy")
+    yield assert_allclose_units, mp, E.to_equivalent("g", "mass_energy")
 
     # Thermal
 
     T = YTQuantity(1.0e8,"K")
     E = T.to_equivalent("W*hr","thermal")
     yield assert_equal, E, (kboltz*T).in_units("W*hr")
-    yield assert_allclose, T, E.to_equivalent("K", "thermal")
+    yield assert_allclose_units, T, E.to_equivalent("K", "thermal")
 
     # Spectral
 
@@ -910,11 +911,11 @@ def test_equivalencies():
     yield assert_equal, nu, clight/l
     E = hcgs*nu
     l2 = E.to_equivalent("angstrom", "spectral")
-    yield assert_allclose, l, l2
+    yield assert_allclose_units, l, l2
     nu2 = clight/l2.in_units("cm")
-    yield assert_allclose, nu, nu2
+    yield assert_allclose_units, nu, nu2
     E2 = nu2.to_equivalent("keV", "spectral")
-    yield assert_allclose, E2, E.in_units("keV")
+    yield assert_allclose_units, E2, E.in_units("keV")
 
     # Sound-speed
 
@@ -922,13 +923,13 @@ def test_equivalencies():
     gg = 5./3.
     c_s = T.to_equivalent("km/s","sound_speed")
     yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
-    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed")
+    yield assert_allclose_units, T, c_s.to_equivalent("K","sound_speed")
 
     mu = 0.5
     gg = 4./3.
     c_s = T.to_equivalent("km/s","sound_speed", mu=mu, gamma=gg)
     yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
-    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed",
+    yield assert_allclose_units, T, c_s.to_equivalent("K","sound_speed",
                                                     mu=mu, gamma=gg)
 
     # Lorentz
@@ -936,21 +937,21 @@ def test_equivalencies():
     v = 0.8*clight
     g = v.to_equivalent("dimensionless","lorentz")
     g2 = YTQuantity(1./np.sqrt(1.-0.8*0.8), "dimensionless")
-    yield assert_allclose, g, g2
+    yield assert_allclose_units, g, g2
     v2 = g2.to_equivalent("mile/hr", "lorentz")
-    yield assert_allclose, v2, v.in_units("mile/hr")
+    yield assert_allclose_units, v2, v.in_units("mile/hr")
 
     # Schwarzschild
 
     R = mass_sun_cgs.to_equivalent("kpc","schwarzschild")
     yield assert_equal, R.in_cgs(), 2*G*mass_sun_cgs/(clight*clight)
-    yield assert_allclose, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
+    yield assert_allclose_units, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
 
     # Compton
 
     l = me.to_equivalent("angstrom","compton")
     yield assert_equal, l, hcgs/(me*clight)
-    yield assert_allclose, me, l.to_equivalent("g", "compton")
+    yield assert_allclose_units, me, l.to_equivalent("g", "compton")
 
     # Number density
 
@@ -958,18 +959,18 @@ def test_equivalencies():
 
     n = rho.to_equivalent("cm**-3","number_density")
     yield assert_equal, n, rho/(mh*0.6)
-    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density")
+    yield assert_allclose_units, rho, n.to_equivalent("g/cm**3","number_density")
 
     n = rho.to_equivalent("cm**-3","number_density", mu=0.75)
     yield assert_equal, n, rho/(mh*0.75)
-    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density", mu=0.75)
+    yield assert_allclose_units, rho, n.to_equivalent("g/cm**3","number_density", mu=0.75)
 
     # Effective temperature
 
     T = YTQuantity(1.0e4, "K")
     F = T.to_equivalent("erg/s/cm**2","effective_temperature")
     yield assert_equal, F, stefan_boltzmann_constant_cgs*T**4
-    yield assert_allclose, T, F.to_equivalent("K", "effective_temperature")
+    yield assert_allclose_units, T, F.to_equivalent("K", "effective_temperature")
 
 def test_electromagnetic():
     from yt.units.dimensions import charge_mks, pressure, current_cgs, \

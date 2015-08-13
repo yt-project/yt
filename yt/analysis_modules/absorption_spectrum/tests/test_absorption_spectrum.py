@@ -12,7 +12,7 @@ Unit test for the AbsorptionSpectrum analysis module
 
 import numpy as np
 from yt.testing import \
-    assert_allclose, requires_file, requires_module
+    assert_allclose_units, requires_file, requires_module
 from yt.analysis_modules.absorption_spectrum.absorption_line import \
     voigt_old, voigt_scipy
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
@@ -129,4 +129,4 @@ def test_absorption_spectrum_fits():
 def test_voigt_profiles():
     a = 1.7e-4
     x = np.linspace(5.0, -3.6, 60)
-    yield assert_allclose, voigt_old(a, x), voigt_scipy(a, x), 1e-8
+    yield assert_allclose_units, voigt_old(a, x), voigt_scipy(a, x), 1e-8
