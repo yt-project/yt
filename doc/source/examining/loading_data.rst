@@ -1270,7 +1270,8 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-If you wish to set the default units directly, you can do so by using the ``unit_base`` keyword in the load statement.
+If you wish to set the default units directly, you can do so by using the
+``unit_base`` keyword in the load statement.
 
  .. code-block:: python
 
@@ -1281,14 +1282,15 @@ If you wish to set the default units directly, you can do so by using the ``unit
 Loading Cosmological Simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you are not using a parameter file (i.e. non-Gasoline users), then you must use keyword ``cosmology_parameters``
-when loading your data set to indicate to yt that it is a cosmological data set. If you do not wish to set any
-non-default cosmological parameters, you may pass an empty dictionary.
+If you are not using a parameter file (i.e. non-Gasoline users), then you must
+use keyword ``cosmology_parameters`` when loading your data set to indicate to
+yt that it is a cosmological data set. In addition, you must supply the
+``cosmology_parameters`` dictionary with the key ``'cosmological'`` set to ``True``.
 
  .. code-block:: python
 
     import yt
-    ds = yt.load(filename, cosmology_parameters={})
+    ds = yt.load(filename, cosmology_parameters={'cosmological': True})
 
 
 
