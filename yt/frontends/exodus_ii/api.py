@@ -14,12 +14,12 @@ API for yt.frontends.exodus_ii
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      ExodusIIGrid, \
-      ExodusIIHierarchy, \
-      ExodusIIDataset
+    ExodusIIUnstructuredMesh, \
+    ExodusIIUnstructuredIndex, \
+    ExodusIIDataset
 
 from .fields import \
-      ExodusIIFieldInfo
+    ExodusIIFieldInfo
 
 from .io import \
-      IOHandlerExodusII
+    IOHandlerExodusII

@@ -13,35 +13,31 @@ Exodus II data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-import re
-import stat
-import os
-import time
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
 from yt.geometry.unstructured_mesh_handler import \
-     UnstructuredIndex
+    UnstructuredIndex
 from yt.data_objects.unstructured_mesh import \
-     UnstructuredMesh
+    UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.io_handler import \
     io_registry
 from .io import \
-    IOHandlerExodusII, mylog
+    IOHandlerExodusII, \
+    NetCDF4FileHandler
+from yt.utilities.logger import ytLogger as mylog
 from .fields import \
     ExodusIIFieldInfo
 from .util import \
     load_info_records, sanitize_string
+
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
     _index_offset = 1
 
     def __init__(self, *args, **kwargs):
         super(ExodusIIUnstructuredMesh, self).__init__(*args, **kwargs)
+
 
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'exodus_ii'):
@@ -60,6 +56,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
 
     def _detect_output_fields(self):
         pass
+
 
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
@@ -230,8 +227,7 @@ class ExodusIIDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # This accepts a filename or a set of arguments and returns True or
-        # False depending on if the file is of the type requested.
-        return False
-
-
+        filename = args[0]
+        fhandle = NetCDF4FileHandler(filename)
+        fmt = fhandle.dataset.file_format
+        return fmt.upper().startswith('NETCDF')

@@ -24,6 +24,7 @@ _frontends = [
     'chombo',
     'eagle',
     'enzo',
+    'exodus_ii',
     'fits',
     'flash',
     'gadget',
