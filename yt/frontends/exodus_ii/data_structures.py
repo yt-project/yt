@@ -81,16 +81,14 @@ class ExodusIIDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        pass
-    
+
     def _parse_parameter_file(self):
         self._load_variables()
         self.dimensionality             = self.parameters['coor_names'].shape[0]
@@ -111,6 +109,7 @@ class ExodusIIDataset(Dataset):
         self.omega_lambda               = 0
         self.omega_matter               = 0
         self.hubble_constant            = 0
+        self.refine_by                  = 0
 
     def _load_variables(self):
         """
@@ -182,7 +181,7 @@ class ExodusIIDataset(Dataset):
         else:
             return np.array([self.parameters["coord%s" % ax][:]
                              for ax in coord_axes]).transpose().copy()
-    
+
     def _load_connectivity(self):
         """
         Loads the connectivity data for the mesh
@@ -217,7 +216,7 @@ class ExodusIIDataset(Dataset):
     def _load_domain_edge(self, domain_idx):
         """
         Loads the boundaries for the domain edge
-        
+
         Parameters:
         - domain_idx: 0 corresponds to the left edge, 1 corresponds to the right edge
         """
@@ -227,7 +226,10 @@ class ExodusIIDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        filename = args[0]
-        fhandle = NetCDF4FileHandler(filename)
-        fmt = fhandle.dataset.file_format
-        return fmt.upper().startswith('NETCDF')
+        try:
+            filename = args[0]
+            fhandle = NetCDF4FileHandler(filename)
+            fmt = fhandle.dataset.file_format
+            return fmt.upper().startswith('NETCDF')
+        except:
+            pass
