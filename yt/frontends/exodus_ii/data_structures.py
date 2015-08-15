@@ -52,7 +52,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
                                      self.dataset.parameters['coordinates']))]
 
     def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.index_filename)
+        self.io = io_registry[self.dataset_type](self.ds)
 
     def _detect_output_fields(self):
         ftype = 'exodus_ii'
@@ -119,9 +119,9 @@ class ExodusIIDataset(Dataset):
         Loads each key-pair in the Exodus II input file
         as a parameter
         """
-        ds = IOHandlerExodusII(self.parameter_filename).ds
-        for key in ds.variables.keys():
-            self.parameters[key] = ds.variables[key]
+        handle = NetCDF4FileHandler(self.parameter_filename).dataset
+        for key in handle.variables.keys():
+            self.parameters[key] = handle.variables[key]
 
     def _read_glo_var(self):
         """
@@ -244,9 +244,10 @@ class ExodusIIDataset(Dataset):
         Parameters:
         - domain_idx: 0 corresponds to the left edge, 1 corresponds to the right edge
         """
-        return np.array([self.parameters['coordinates'][:,domain_idx].min(),
-                         self.parameters['coordinates'][:,domain_idx].max()],
-                        'float64')
+        if domain_idx == 0:
+            return self.parameters['coordinates'].min(axis=0)
+        if domain_idx == 1:
+            return self.parameters['coordinates'].max(axis=0)        
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
