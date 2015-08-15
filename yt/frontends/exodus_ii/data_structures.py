@@ -45,11 +45,11 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self._connectivity_length = self.meshes[0].connectivity_indices.shape[1]
 
     def _initialize_mesh(self):
+        coords = self.dataset.parameters['coordinates']
         self.meshes = [ExodusIIUnstructuredMesh(
-            mesh_id, self.index_filename, conn_ind, conn_coord, self)
-                       for mesh_id, (conn_ind, conn_coord) in
-                       enumerate(zip(self.dataset.parameters['connectivity'],
-                                     self.dataset.parameters['coordinates']))]
+            mesh_id, self.index_filename, conn_ind, coords, self)
+                       for mesh_id, conn_ind in
+                       enumerate(self.dataset.parameters['connectivity'])]
 
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.ds)
