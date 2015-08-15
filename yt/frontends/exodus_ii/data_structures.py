@@ -93,11 +93,12 @@ class ExodusIIDataset(Dataset):
 
     def _parse_parameter_file(self):
         self._load_variables()
+        self._read_glo_var()
         self.dimensionality             = self.parameters['coor_names'].shape[0]
         self.parameters['info_records'] = self._load_info_records()
         self.unique_identifier          = self._get_unique_identifier()
         self.current_time               = self._get_current_time()
-        self.parameters['num_elem']     = self.parameters['eb_status'].shape[0]
+        self.parameters['num_meshes']   = self.parameters['eb_status'].shape[0]
         self.parameters['var_names']    = self._get_var_names()
         self.parameters['nod_names']    = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
@@ -122,6 +123,16 @@ class ExodusIIDataset(Dataset):
         for key in ds.variables.keys():
             self.parameters[key] = ds.variables[key]
 
+    def _read_glo_var(self):
+        """
+        Adds each global variable to the dict of parameters
+
+        """
+        names = self._get_glo_names()
+        values = self.parameters['vals_glo_var'][:].transpose() 
+        for name, value in zip(names, values):
+            self.parameters[name] = value
+
     def _load_info_records(self):
         """
         Returns parsed version of the info_records.
@@ -143,6 +154,17 @@ class ExodusIIDataset(Dataset):
             return self.parameters['info_records']['Version Info']['Current Time']
         except (KeyError, TypeError):
             return 0.0
+
+    def _get_glo_names(self):
+        """
+        Returns the names of the global vars, if available
+        """
+        try:
+            return [sanitize_string(v.tostring()) for v in
+                    self.parameters["name_glo_var"]]
+        except (KeyError, TypeError):
+            mylog.warning("name_glo_var not found")
+            return []
 
     def _get_var_names(self):
         """
@@ -190,7 +212,7 @@ class ExodusIIDataset(Dataset):
         """
         mylog.info("Loading connectivity")
         connectivity = []
-        for i in range(self.parameters['num_elem']):
+        for i in range(self.parameters['num_meshes']):
             connectivity.append(self.parameters["connect%d" % (i+1)][:].astype("i8"))
         return connectivity
 
@@ -199,7 +221,7 @@ class ExodusIIDataset(Dataset):
         Loads the fluid data
         """
         data = []
-        for i in range(self.parameters['num_elem']):
+        for i in range(self.parameters['num_meshes']):
             ci = self.parameters['connectivity'][i]
             vals = {}
 
