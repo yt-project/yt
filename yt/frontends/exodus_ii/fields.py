@@ -33,8 +33,8 @@ class ExodusIIFieldInfo(FieldInfoContainer):
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
     )
 
-    def __init__(self, ds):
-        super(ExodusIIFieldInfo, self).__init__(ds)
+    def __init__(self, ds, field_list):
+        super(ExodusIIFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):

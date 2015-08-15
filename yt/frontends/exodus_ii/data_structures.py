@@ -55,7 +55,9 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self.io = io_registry[self.dataset_type](self.index_filename)
 
     def _detect_output_fields(self):
-        pass
+        ftype = 'exodus_ii'
+        fnames = self.dataset.parameters['nod_names']
+        self.field_list = [(ftype, fname) for fname in fnames]
 
 
 class ExodusIIDataset(Dataset):
