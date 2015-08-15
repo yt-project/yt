@@ -45,6 +45,11 @@ class UnstructuredMesh(YTSelectionContainer):
         self.mesh_id = mesh_id
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
+        if connectivity_indices.shape[1] != self._connectivity_length:
+            if self._connectivity_length == -1:
+                self._connectivity_length = connectivity_indices.shape[1]
+            else:
+                raise RuntimeError
         self.connectivity_coords = connectivity_coords
         self.ds = index.dataset
         self._index = index
@@ -55,7 +60,7 @@ class UnstructuredMesh(YTSelectionContainer):
         self._current_fluid_type = self.ds.default_fluid_type
 
     def _check_consistency(self):
-        if connectivity_indices.shape[1] != self._connectivity_length:
+        if self.connectivity_indices.shape[1] != self._connectivity_length:
             raise RuntimeError
 
         for gi in range(self.connectivity_indices.shape[0]):
@@ -91,8 +96,14 @@ class UnstructuredMesh(YTSelectionContainer):
     def _generate_container_field(self, field):
         raise NotImplementedError
 
-    def select_fcoords(self, dobj):
-        raise NotImplementedError
+    def select_fcoords(self, dobj = None):
+        # This computes centroids!
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: return np.empty((0,3), dtype='float64')
+        centers = fill_fcoords(self.connectivity_coords,
+                               self.connectivity_indices,
+                               self._index_offset)
+        return centers[mask, :]
 
     def select_fwidth(self, dobj):
         raise NotImplementedError
@@ -127,7 +138,7 @@ class UnstructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source.flat[mask]
+        dest[offset:offset+count] = source[mask,...]
         return count
 
     def count(self, selector):
@@ -143,6 +154,26 @@ class UnstructuredMesh(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
+
+    def _get_selector_mask(self, selector):
+        if hash(selector) == self._last_selector_id:
+            mask = self._last_mask
+        else:
+            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
+            self._last_selector_id = hash(selector)
+            if mask is None:
+                self._last_count = 0
+            else:
+                self._last_count = mask.sum()
+        return mask
+
+    def select_fcoords_vertex(self, dobj = None):
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None: 
+            return np.empty((0, self._connectivity_length, 3), dtype='float64')
+        vertices = self.connectivity_coords[self.connectivity_indices - 1]
+        return vertices[mask, :, :]
+
 
 class SemiStructuredMesh(UnstructuredMesh):
     _connectivity_length = 8
