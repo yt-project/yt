@@ -130,6 +130,8 @@ class ExodusIIDataset(Dataset):
 
         """
         names = self._get_glo_names()
+        if not names:
+            return
         values = self.parameters['vals_glo_var'][:].transpose()
         for name, value in zip(names, values):
             self.parameters[name] = value
