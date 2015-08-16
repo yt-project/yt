@@ -24,7 +24,6 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerExodusII(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "exodus_ii"
-    _node_types = ("diffused", "convected")
     _INDEX_OFFSET = 1
 
     def __init__(self, ds):
@@ -48,10 +47,11 @@ class IOHandlerExodusII(BaseIOHandler):
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
         chunks = list(chunks)  # chunks in this case correspond to mesh_id or slices in the ExodusII data
+        print len(chunks)
         chunk = chunks[0]
         mesh_id = chunk.objs[0].mesh_id
-        print mesh_id
-        ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] - 1
+        ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
+             - self._INDEX_OFFSET
         nodes_per_element = ci.shape[1]
         rv = {}
         for field in fields:
@@ -65,8 +65,11 @@ class IOHandlerExodusII(BaseIOHandler):
             ftype, fname = field
             field_ind = self.io_fields.index(fname)
             fdata = self.handler.variables['vals_nod_var%d' % (field_ind + 1)]
-            data = fdata[0][ci]
             for chunk in chunks:
+                mesh_id = chunk.objs[0].mesh_id
+                ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
+                     - self._INDEX_OFFSET
+                data = fdata[0][ci]
                 for g in chunk.objs:
                     ind += g.select(selector, data, rv[field], ind)  # caches
         return rv
