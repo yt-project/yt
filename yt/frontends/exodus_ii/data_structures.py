@@ -107,6 +107,7 @@ class ExodusIIDataset(Dataset):
         self.domain_left_edge           = self._load_domain_edge(0)
         self.domain_right_edge          = self._load_domain_edge(1)
         self.periodicity                = (False, False, False)
+        self.domain_dimensions          = np.ones(3, "int32")
         self.cosmological_simulation    = 0
         self.current_redshift           = 0
         self.omega_lambda               = 0

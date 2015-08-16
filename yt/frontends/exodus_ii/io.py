@@ -50,6 +50,7 @@ class IOHandlerExodusII(BaseIOHandler):
         chunks = list(chunks)  # chunks in this case correspond to mesh_id or slices in the ExodusII data
         chunk = chunks[0]
         mesh_id = chunk.objs[0].mesh_id
+        print mesh_id
         ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] - 1
         nodes_per_element = ci.shape[1]
         rv = {}
