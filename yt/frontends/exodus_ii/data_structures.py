@@ -129,7 +129,7 @@ class ExodusIIDataset(Dataset):
 
         """
         names = self._get_glo_names()
-        values = self.parameters['vals_glo_var'][:].transpose() 
+        values = self.parameters['vals_glo_var'][:].transpose()
         for name, value in zip(names, values):
             self.parameters[name] = value
 
@@ -151,7 +151,7 @@ class ExodusIIDataset(Dataset):
 
     def _get_current_time(self):
         try:
-            return self.parameters['info_records']['Version Info']['Current Time']
+            return self.parameters['time_whole'][0]
         except (KeyError, TypeError):
             return 0.0
 
