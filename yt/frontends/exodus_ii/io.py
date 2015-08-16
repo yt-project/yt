@@ -47,7 +47,6 @@ class IOHandlerExodusII(BaseIOHandler):
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
         chunks = list(chunks)  # chunks in this case correspond to mesh_id or slices in the ExodusII data
-        print len(chunks)
         chunk = chunks[0]
         mesh_id = chunk.objs[0].mesh_id
         ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
