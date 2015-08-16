@@ -240,23 +240,21 @@ class AbsorptionSpectrum(object):
                             valid_lines.size)
 
             # Sanitize units here
-            thermal_b.convert_to_units("cm / s")
             column_density.convert_to_units("cm ** -2")
             lbins = self.lambda_bins.d  # Angstroms
+            lambda_0 = line['wavelength'].d  # Angstroms
+            v_doppler = thermal_b.in_cgs().d  # cm / s
+            cdens = column_density.d
+            dlambda = delta_lambda.d  # Angstroms
 
             for i, lixel in enumerate(valid_lines):
                 my_bin_ratio = spectrum_bin_ratio
 
-                lambda_0 = line['wavelength'].d  # Angstroms?
-                v_doppler = thermal_b[lixel].d
-                cdens = column_density[lixel].d
-                dlambda = delta_lambda[lixel].d  # Angstroms
-
                 while True:
                     lambda_bins, line_tau = \
                         tau_profile(
-                            lambda_0, line['f_value'], line['gamma'], v_doppler,
-                            cdens, delta_lambda=dlambda,
+                            lambda_0, line['f_value'], line['gamma'], v_doppler[lixel],
+                            cdens[lixel], delta_lambda=dlambda[lixel],
                             lambda_bins=lbins[left_index[lixel]:right_index[lixel]])
 
                     # Widen wavelength window until optical depth reaches a max value at the ends.
@@ -273,14 +271,13 @@ class AbsorptionSpectrum(object):
 
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
                 if line['label_threshold'] is not None and \
-                        column_density[lixel] >= line['label_threshold']:
+                        cdens[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
                         peculiar_velocity = field_data['velocity_los'][lixel].in_units("km/s")
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (line['wavelength'] +
-                                                                   delta_lambda[lixel]),
+                                                    'wavelength': (lambda_0 + dlambda[lixel]),
                                                     'column_density': column_density[lixel],
                                                     'b_thermal': thermal_b[lixel],
                                                     'redshift': field_data['redshift'][lixel],
