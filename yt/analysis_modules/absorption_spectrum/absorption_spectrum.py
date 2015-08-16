@@ -50,7 +50,7 @@ class AbsorptionSpectrum(object):
         self.spectrum_line_list = None
         self.lambda_bins = YTArray(np.linspace(lambda_min, lambda_max, n_lambda),
                                    "angstrom")
-        self.bin_width = YTQuantity((lambda_max - lambda_min) / 
+        self.bin_width = YTQuantity((lambda_max - lambda_min) /
                                     float(n_lambda - 1), "angstrom")
         self.line_list = []
         self.continuum_list = []
@@ -62,7 +62,7 @@ class AbsorptionSpectrum(object):
 
         Parameters
         ----------
-        
+
         label : string
            label for the line.
         field_name : string
@@ -238,17 +238,26 @@ class AbsorptionSpectrum(object):
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)
+
+            # Sanitize units here
+            column_density.convert_to_units("cm ** -2")
+            lbins = self.lambda_bins.d  # Angstroms
+            lambda_0 = line['wavelength'].d  # Angstroms
+            v_doppler = thermal_b.in_cgs().d  # cm / s
+            cdens = column_density.d
+            dlambda = delta_lambda.d  # Angstroms
+            vlos = field_data['velocity_los'].in_units("km/s").d
+
             for i, lixel in enumerate(valid_lines):
                 my_bin_ratio = spectrum_bin_ratio
+
                 while True:
                     lambda_bins, line_tau = \
                         tau_profile(
-                            line['wavelength'], line['f_value'],
-                            line['gamma'], thermal_b[lixel].in_units("km/s"),
-                            column_density[lixel],
-                            delta_lambda=delta_lambda[lixel],
-                            lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
-                        
+                            lambda_0, line['f_value'], line['gamma'], v_doppler[lixel],
+                            cdens[lixel], delta_lambda=dlambda[lixel],
+                            lambda_bins=lbins[left_index[lixel]:right_index[lixel]])
+
                     # Widen wavelength window until optical depth reaches a max value at the ends.
                     if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
                       (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
@@ -260,16 +269,16 @@ class AbsorptionSpectrum(object):
                     right_index[lixel] = (center_bins[lixel] +
                                           my_bin_ratio *
                                           width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
+
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
                 if line['label_threshold'] is not None and \
-                        column_density[lixel] >= line['label_threshold']:
+                        cdens[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
-                        peculiar_velocity = field_data['velocity_los'][lixel].in_units("km/s")
+                        peculiar_velocity = vlos[lixel]
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (line['wavelength'] +
-                                                                   delta_lambda[lixel]),
+                                                    'wavelength': (lambda_0 + dlambda[lixel]),
                                                     'column_density': column_density[lixel],
                                                     'b_thermal': thermal_b[lixel],
                                                     'redshift': field_data['redshift'][lixel],
