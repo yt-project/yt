@@ -246,6 +246,7 @@ class AbsorptionSpectrum(object):
             v_doppler = thermal_b.in_cgs().d  # cm / s
             cdens = column_density.d
             dlambda = delta_lambda.d  # Angstroms
+            vlos = field_data['velocity_los'].in_units("km/s").d
 
             for i, lixel in enumerate(valid_lines):
                 my_bin_ratio = spectrum_bin_ratio
@@ -273,7 +274,7 @@ class AbsorptionSpectrum(object):
                 if line['label_threshold'] is not None and \
                         cdens[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
-                        peculiar_velocity = field_data['velocity_los'][lixel].in_units("km/s")
+                        peculiar_velocity = vlos[lixel]
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],
