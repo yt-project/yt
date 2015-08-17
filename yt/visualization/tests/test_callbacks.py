@@ -52,6 +52,7 @@ import contextlib
 #  X scale
 #    material_boundary
 #  X ray
+#  X 
 
 @contextlib.contextmanager
 def _cleanup_fname():
@@ -324,5 +325,27 @@ def test_grids_callback():
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
             draw_ids=True, periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
+        p.save(prefix)
+
+def test_line_integral_convolution_callback():
+    with _cleanup_fname() as prefix:
+        ds = fake_amr_ds(fields =
+            ("density", "velocity_x", "velocity_y", "velocity_z"))
+        for ax in 'xyz':
+            p = ProjectionPlot(ds, ax, "density")
+            p.annotate_line_integral_convolution("velocity_x", "velocity_y")
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
+            p.annotate_line_integral_convolution("velocity_x", "velocity_y")
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_line_integral_convolution("velocity_x", "velocity_y")
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_line_integral_convolution("velocity_x", "velocity_y", 
+                                             kernellen=100., lim=(0.4,0.7),
+                                             cmap='algae', const_alpha=True,
+                                             alpha=0.9)
         p.save(prefix)
 
