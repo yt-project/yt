@@ -16,8 +16,9 @@ Import the components of the volume rendering extension
 from yt.extern.six.moves import builtins
 import numpy as np
 
-from yt.funcs import *
-from yt.utilities.math_utils import *
+from yt.funcs import \
+    iterable, mylog, get_pbar, \
+    get_num_threads, ensure_numpy_array
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNotInsideNotebook
 from copy import deepcopy
@@ -25,14 +26,11 @@ from copy import deepcopy
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.lib.grid_traversal import \
-    arr_vec2pix_nest, arr_pix2vec_nest, \
-    arr_ang2pix_nest, arr_fisheye_vectors, \
+    arr_fisheye_vectors, \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
-    LightSourceRenderSampler, InterpolatedProjectionSampler, \
-    arr_vec2pix_nest, arr_pix2vec_nest, arr_ang2pix_nest, \
-    pixelize_healpix, arr_fisheye_vectors
+    LightSourceRenderSampler, InterpolatedProjectionSampler
 from yt.utilities.lib.misc_utilities import \
-    lines, rotate_vectors
+    lines
 
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
@@ -40,10 +38,9 @@ from yt.data_objects.api import ImageArray
 from yt.visualization.image_writer import write_bitmap, write_image, apply_colormap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, ProcessorPool, parallel_objects
+    ParallelAnalysisInterface, parallel_objects
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from .blenders import  enhance_rgba
-from numpy import pi
+from yt.visualization.volume_rendering.blenders import enhance_rgba
 
 def get_corners(le, re):
     return np.array([
@@ -895,7 +892,6 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
         dW = None
-        old_center = self.center.copy()
         if not isinstance(final, YTArray):
             final = self.ds.arr(final, input_units = "code_length")
         if exponential:
@@ -916,7 +912,7 @@ class Camera(ParallelAnalysisInterface):
         else:
             if final_width is not None:
                 if not iterable(final_width):
-                    width = [final_width, final_width, final_width] 
+                    final_width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
                     final_width = self.ds.arr(final_width, input_units="code_length")
                     # left/right, top/bottom, front/back
@@ -988,7 +984,6 @@ class Camera(ParallelAnalysisInterface):
         """
         rot_vector = self.orienter.unit_vectors[0]
         R = get_rotation_matrix(theta, rot_vector)
-        normal_vector = self.front_center-self.center
         self.switch_view(
                 normal_vector=np.dot(R, self.orienter.unit_vectors[2]),
                 north_vector=np.dot(R, self.orienter.unit_vectors[1]))
@@ -1012,7 +1007,6 @@ class Camera(ParallelAnalysisInterface):
         """
         rot_vector = self.orienter.unit_vectors[1]
         R = get_rotation_matrix(theta, rot_vector)
-        normal_vector = self.front_center-self.center
         self.switch_view(
                 normal_vector=np.dot(R, self.orienter.unit_vectors[2]))
  
@@ -1108,7 +1102,7 @@ class InteractiveCamera(Camera):
         for i, frame in enumerate(self.frames):
             fn = basename + '_%04i.png'%i
             if clip_ratio is not None:
-                write_bitmap(frame, fn, clip_ratio*image.std())
+                write_bitmap(frame, fn, clip_ratio*frame.std())
             else:
                 write_bitmap(frame, fn)
 
@@ -1279,9 +1273,10 @@ class PerspectiveCamera(Camera):
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
                 sight_length = self.width[2] / sight_angle_cos
             else:
-            # The corner is on the backwards, then put it outside of the image
-            # It can not be simply removed because it may connect to other corner
-            # within the image, which produces visible domian boundary line
+                # The corner is on the backwards, then put it outside of the
+                # image It can not be simply removed because it may connect to
+                # other corner within the image, which produces visible domian
+                # boundary line
                 sight_length = np.sqrt(self.width[0]**2+self.width[1]**2) / \
                                np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = self.center + sight_length * sight_vector[i]
@@ -1743,9 +1738,6 @@ class ProjectionCamera(Camera):
 
         if num_threads is None:
             num_threads=get_num_threads()
-
-        fields = [self.field]
-        resolution = self.resolution
 
         image = self.new_image()
 
