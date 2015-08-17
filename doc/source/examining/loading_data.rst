@@ -1061,9 +1061,9 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
    coords, connectivity, data = get_data("data/out.e-s010")
 
-This uses a publically available MOOSE dataset along with the get_data
-function to parse the coords, connectivty, and data. Then, these
-can be loaded as an in-memory dataset as follows:
+This uses a publically available `MOOSE <http://mooseframework.org/>` 
+dataset along with the get_data function to parse the coords, connectivity, 
+and data. Then, these can be loaded as an in-memory dataset as follows:
 
 .. code-block:: python
 

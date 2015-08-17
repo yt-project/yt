@@ -6,10 +6,10 @@ Unstructured Mesh Rendering
 Beginning with version 3.3, yt has the ability to volume render unstructured
 meshes from, for example, finite element calculations. In order to use this
 capability, a few additional dependencies are required beyond those you get
-when you run the install script. First, embree (a fast software ray-tracing
-library from Intel) must be installed, following the instructions here. 
-Second, the python bindings for embree (called ''pyembree'') must also 
-be installed. 
+when you run the install script. First, `embree <https://embree.github.io>`
+(a fast software ray-tracing library from Intel) must be installed, following 
+the instructions there. Second, the python bindings for embree (called 
+`pyembree <https://github.com/scopatz/pyembree>`) must also be installed. 
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
 much like any other dataset. In particular, a new type of 
