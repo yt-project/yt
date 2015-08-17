@@ -15,7 +15,7 @@ Export/Import of volume rendered images.
 import h5py
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import mylog
 
 def export_rgba(image, fn, h5=True, fits=False, ):
     """
