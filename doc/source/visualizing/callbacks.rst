@@ -466,7 +466,7 @@ Overplot Streamlines
 .. _annotate-line-integral-convolution:
 
 Overplot Line Integral Convolution
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_line_integral_convolution(self, field_x, field_y, \
                                                  texture=None, kernellen=50., \
