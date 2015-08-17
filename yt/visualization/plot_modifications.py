@@ -2127,25 +2127,23 @@ class LineIntegralConvolutionCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        bounds = [x0,x1,y0,y1]
         extent = [xx0,xx1,yy0,yy1]
 
         plot._axes.hold(True)
         nx = plot.image._A.shape[0]
         ny = plot.image._A.shape[1]
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_x],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_y],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
+        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_x,
+                                                 bounds,
+                                                 (nx,ny))
+        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_y,
+                                                 bounds,
+                                                 (nx,ny))
+
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
 
