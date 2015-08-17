@@ -2061,10 +2061,10 @@ class RayCallback(PlotCallback):
 
 class LineIntegralConvolutionCallback(PlotCallback):
     """
-    annotate_line_integral_convolution(field_x, field_y, texture=None, 
-                                       kernellen=50., lim=(0.5,0.6), 
-                                       cmap='binary', const_alpha=False, 
-                                       alpha=None):
+    annotate_line_integral_convolution(field_x, field_y, texture=None,
+                                       kernellen=50., lim=(0.5,0.6),
+                                       cmap='binary', alpha=0.8,
+                                       const_alpha=False):
 
     Add the line integral convolution to the plot for vector fields 
     visualization. Two component of vector fields needed to be provided
@@ -2084,20 +2084,21 @@ class LineIntegralConvolutionCallback(PlotCallback):
         The lens of kernel for convolution.
 
     lim : 2-element tuple, list, or array, optional
-        The value of line integral convolution will be clipped to the range 
-        of lim, which will enhance the visibility of the plot.
+        The value of line integral convolution will be clipped to the range
+        of lim, which applies upper and lower bounds to the values of line
+        integral convolution and enhance the visibility of plots. Each element
+        should be in the range of [0,1].
 
     cmap : float, optional
         The name of colormap for line integral convolution plot.
 
-    const_alpha : boolean, optional
-        If set to False (by default), spatially varying alpha based on the 
-        values of line integral convolution will be applied; otherwise a
-        constant value of alpha is used.
-
     alpha : float, optional
-        The alpha value for line integral convolution plot. Will be ignored
-        when const_alpha = False.
+        The alpha value for line integral convolution plot.
+
+    const_alpha : boolean, optional
+        If set to False (by default), alpha will be weighted spatially by
+        the values of line integral convolution; otherwise a constant value
+        of the given alpha is used.
 
     Example
     -------
@@ -2110,7 +2111,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
     """
     _type_name = "line_integral_convolution"
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,
-                 lim=(0.5,0.6), cmap='binary', const_alpha=False, alpha=None):
+                 lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -2118,8 +2119,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
         self.kernellen = kernellen
         self.lim = lim
         self.cmap = cmap
-        self.const_alpha = const_alpha
         self.alpha = alpha
+        self.const_alpha = const_alpha
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -2162,22 +2163,14 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
 
         if self.const_alpha:
-            if self.alpha == None:
-                self.alpha = 0.8
-                print("'const_alpha' is set to True but the value of alpha "
-                      "is not provided; will use alpha = %f as default" 
-                      % self.alpha)
             plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap, 
                               alpha=self.alpha)
         else:
-            if self.alpha != None:
-                print("The provided alpha value %f will be ignored when "
-                      "'const_alpha' is set to False" % self.alpha)
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                         to_rgba(lic_data_clip)
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1]-self.lim[0])
-            lic_data_rgba[...,3] = lic_data_clip_rescale
+            lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
             plot._axes.imshow(lic_data_rgba, extent=extent)
         plot._axes.hold(False)
 
