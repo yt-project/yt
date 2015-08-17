@@ -13,7 +13,9 @@ from __future__ import absolute_import
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import os, tempfile, shutil
+import tempfile
+import shutil
+
 from yt.testing import \
     fake_amr_ds
 import yt.units as u

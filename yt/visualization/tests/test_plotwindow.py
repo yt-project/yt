@@ -288,11 +288,6 @@ class TestSetWidth(unittest.TestCase):
         self._assert_05_075cm()
         assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
 
-    def test_tuple_of_tuples_neq(self):
-        self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
-        self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'm'))
-
 
 class TestPlotWindowSave(unittest.TestCase):
 
