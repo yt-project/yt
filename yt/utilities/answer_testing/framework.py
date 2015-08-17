@@ -403,8 +403,8 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
-            assert_allclose(new_result, old_result, 10.**(-self.decimals),
-                             err_msg=err_msg, verbose=True)
+            assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
+                                  err_msg=err_msg, verbose=True)
 
 class AllFieldValuesTest(AnswerTestingTest):
     _type_name = "AllFieldValues"
@@ -478,8 +478,8 @@ class ProjectionValuesTest(AnswerTestingTest):
             if self.decimals is None:
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
-                assert_allclose(nres, ores, 10.**-(self.decimals),
-                                err_msg=err_msg)
+                assert_allclose_units(nres, ores, 10.**-(self.decimals),
+                                      err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
@@ -727,7 +727,8 @@ class GenericArrayTest(AnswerTestingTest):
             if self.decimals is None:
                 assert_equal(new_result[k], old_result[k])
             else:
-                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+                assert_allclose_units(new_result[k], old_result[k],
+                                      10**(-self.decimals))
 
 class GenericImageTest(AnswerTestingTest):
     _type_name = "GenericImage"

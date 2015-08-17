@@ -446,7 +446,7 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
-                                np.float64_t right_edge[3], 
+                                np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
@@ -603,9 +603,12 @@ cdef class SelectorObject:
         return mask.view("bool")
 
     def __hash__(self):
+        # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
+        # http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
         cdef np.int64_t hash_val = 0
         for v in self._hash_vals() + self._base_hash():
-            hash_val ^= hash(v)
+            # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
+            hash_val = (hash_val * 16777619) ^ hash(v)
         return hash_val
 
     def _hash_vals(self):
@@ -1107,7 +1110,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
 
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),
-                ("norm_vec[1]", self.norm_vec[1]), 
+                ("norm_vec[1]", self.norm_vec[1]),
                 ("norm_vec[2]", self.norm_vec[2]),
                 ("d", self.d))
 

@@ -290,9 +290,9 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is dims.temperature and self.is_dimensionless:
+            if u.dimensions is temperature and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is dims.temperature and u.is_dimensionless:
+            elif self.dimensions is temperature and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "

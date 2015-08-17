@@ -338,7 +338,7 @@ class EnzoHierarchy(GridIndex):
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
         self.grid_dimensions.flat[:] = ei
-        self.grid_dimensions -= np.array(si, self.float_type)
+        self.grid_dimensions -= np.array(si, dtype='i4')
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE

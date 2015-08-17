@@ -16,7 +16,7 @@ from __future__ import absolute_import
 import numpy as np
 from yt.testing import \
     fake_random_ds, assert_equal, \
-    assert_allclose
+    assert_allclose_units
 
 def setup():
     """Test specific setup."""
@@ -35,5 +35,6 @@ def test_export_frb():
     yield assert_equal, frb_ds.domain_right_edge.v, np.array([0.75,0.75,1.0])
     yield assert_equal, frb_ds.domain_width.v, np.array([0.5,0.5,1.0])
     yield assert_equal, frb_ds.domain_dimensions, np.array([64,64,1], dtype="int64")
-    yield assert_allclose, frb["density"].sum(), dd_frb.quantities.total_quantity("density")
+    yield assert_allclose_units, frb["density"].sum(), \
+        dd_frb.quantities.total_quantity("density")
     yield assert_equal, frb_ds.index.num_grids, 8
