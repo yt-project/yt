@@ -2105,7 +2105,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
     >>> import yt
     >>> ds = yt.load('Enzo_64/DD0020/data0020')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_line_integral_convolution('velocity_x','velocity_y')
+    >>> s.annotate_line_integral_convolution('velocity_x', 'velocity_y',\
+                                             lim=(0.5,0.65))
     """
     _type_name = "line_integral_convolution"
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,

@@ -488,7 +488,7 @@ Overplot Line Integral Convolution
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   s.annotate_line_integral_convolution('velocity_x', 'velocity_y',lim=(0.5,0.65))
+   s.annotate_line_integral_convolution('velocity_x', 'velocity_y', lim=(0.5,0.65))
    s.save()
 
 .. _annotate-text:
