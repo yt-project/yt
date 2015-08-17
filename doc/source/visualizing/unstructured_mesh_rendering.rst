@@ -12,10 +12,15 @@ Second, the python bindings for embree (called ''pyembree'') must also
 be installed. 
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
-much like any other dataset. In particular, a new type of RenderSource object
-has been defined, called the MeshSource, that represents the unstructured mesh
-data that will be rendered. The user creates this object, and also defines a 
-camera that specifies your viewpoint into the scene. When render() is called,
+much like any other dataset. In particular, a new type of 
+:class:`~yt.visualization.volume_rendering.render_source.RenderSource` object
+has been defined, called the 
+:class:`~yt.visualization.volume_rendering.render_source.MeshSource`, that
+represents the unstructured mesh data that will be rendered. The user creates 
+this object, and also defines a
+:class:`~yt.visualization.volume_rendering.camera.Camera` 
+that specifies your viewpoint into the scene. When 
+:class:`~yt.visualization.volume_rendering.render_source.RenderSource` is called,
 a set of rays are cast at the source. Each time a ray strikes the source mesh,
 the data is sampled at the intersection point at the resulting value gets 
 saved into an image.
