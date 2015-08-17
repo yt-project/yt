@@ -52,7 +52,7 @@ import contextlib
 #  X scale
 #    material_boundary
 #  X ray
-#  X 
+#  X line_integral_convolution
 
 @contextlib.contextmanager
 def _cleanup_fname():
