@@ -2076,12 +2076,14 @@ class LineIntegralConvolutionCallback(PlotCallback):
     field_x, field_y : string
         The names of two components of vector field which will be visualized
 
-    texture : 2-d array, optional
+    texture : 2-d array with the same shape of image, optional
         Texture will be convolved when computing line integral convolution.
         A white noise background will be used as default.
 
     kernellen : float, optional
-        The lens of kernel for convolution.
+        The lens of kernel for convolution, which is the length over which the
+        convolution will be performed. For longer kernellen, longer streamline
+        structure will appear.
 
     lim : 2-element tuple, list, or array, optional
         The value of line integral convolution will be clipped to the range
@@ -2167,7 +2169,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                         to_rgba(lic_data_clip)
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
-                                    / (self.lim[1]-self.lim[0])
+                                    / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
             plot._axes.imshow(lic_data_rgba, extent=extent)
         plot._axes.hold(False)
