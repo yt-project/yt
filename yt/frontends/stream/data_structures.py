@@ -1634,16 +1634,13 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.
-    
+
     Parameters
     ----------
     data : dict or list of dicts
         This is a list of dicts of numpy arrays, where each element in the list
-        is a different mesh, and where the keys of dicts are the field names. 
-        Note that the data in the numpy arrays should define the cell-averaged
-        value for of the quantity in the mesh cells, although this will change
-        with subsequent generations of unstructured mesh support.  If a dict is
-        supplied, this will be assumed to be the only mesh.
+        is a different mesh, and where the keys of dicts are the field names.
+        If a dict is supplied, this will be assumed to be the only mesh.
     connectivity : list of array_like or array_like
         This is the connectivity array for the meshes; this should either be a
         list where each element in the list is a numpy array or a single numpy

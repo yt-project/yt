@@ -1026,6 +1026,60 @@ have assumed your data is stored in the three-dimensional array
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
 
+Unstructured Grid Data
+----------------------
+
+See :ref:`loading-numpy-array`,
+:func:`~yt.frontends.stream.data_structures.load_unstructured_mesh` for
+more detail.
+
+In addition to the above grid types, you can also load data stored on
+unstructured meshes. This type of mesh is used, for example, in many
+finite element calculations. Currently, hexahedral, tetrahedral, and
+wedge-shaped mesh element are supported.
+
+To load an unstructured mesh, you need to specify the following. First,
+you need to have a coordinates array, which should be an (L, 3) array
+that stores the (x, y, z) positions of all of the vertices in the mesh.
+Second, you need to specify a connectivity array, which describes how
+those vertices are connected into mesh elements. The connectivity array
+should be (N, M), where N is the number of elements and M is the
+connectivity length, i.e. the number of vertices per element. Finally,
+you must also specify a data dictionary, where the keys should be
+the names of the fields and the values should be numpy arrays that
+contain the field data. These arrays can either supply the cell-averaged
+data for each element, in which case they would be (N, 1), or they
+can have node-centered data, in which case they would also be (N, M).
+
+Here is an example of how to load an in-memory, unstructured mesh dataset:
+
+.. code-block:: python
+
+   import yt
+   import numpy
+   from yt.utilities.exodusII_reader import get_data
+
+   coords, connectivity, data = get_data("data/out.e-s010")
+
+This uses a publically available MOOSE dataset along with the get_data
+function to parse the coords, connectivty, and data. Then, these
+can be loaded as an in-memory dataset as follows:
+
+.. code-block:: python
+
+    mesh_id = 0
+    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
+
+Note that load_unstructured_mesh can take either a single or a list of meshes.
+Here, we have selected only the first mesh to load.
+
+.. rubric:: Caveats
+
+* Units will be incorrect unless the data has already been converted to cgs.
+* Integration is not implemented.
+* Some functions may behave oddly or not work at all.
+* Data must already reside in memory.
+
 Generic Particle Data
 ---------------------
 
