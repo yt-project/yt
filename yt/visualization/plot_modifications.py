@@ -2089,7 +2089,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         integral convolution and enhance the visibility of plots. Each element
         should be in the range of [0,1].
 
-    cmap : float, optional
+    cmap : string, optional
         The name of colormap for line integral convolution plot.
 
     alpha : float, optional
