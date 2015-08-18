@@ -1739,7 +1739,7 @@ class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
                    max_frac=0.16, min_frac=0.015, coord_system='axis',
-                   size_bar_args=None, draw_inset_box=False,
+                   text_args=None, size_bar_args=None, draw_inset_box=False,
                    inset_box_args=None)
 
     Annotates the scale of the plot at a specified location in the image
@@ -1749,8 +1749,11 @@ class ScaleCallback(PlotCallback):
     specified, an appropriate pair will be determined such that your scale bar
     is never smaller than min_frac or greater than max_frac of your plottable
     axis length.  Additional customization of the scale bar is possible by
-    adjusting the size_bar_args dictionary.  This accepts keyword arguments
-    for the AnchoredSizeBar class in matplotlib's axes_grid toolkit.
+    adjusting the text_args and size_bar_args dictionaries.  The text_args
+    dictionary accepts matplotlib's font_properties arguments to override
+    the default font_properties for the current plot.  The size_bar_args 
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in 
+    matplotlib's axes_grid toolkit.
 
     Parameters
     ----------
@@ -1797,6 +1800,12 @@ class ScaleCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
+    text_args : dictionary, optional
+        A dictionary of parameters to used to update the font_properties
+        for the text in this callback.  For any property not set, it will
+        use the defaults of the plot.  Thus one can modify the text size with:
+        text_args={'size':24}
+
     size_bar_args : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
@@ -1823,7 +1832,8 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
+                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 inset_box_args=None):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -1857,6 +1867,7 @@ class ScaleCallback(PlotCallback):
         else:
             self.inset_box_args = inset_box_args
         self.draw_inset_box = draw_inset_box
+        self.text_args = text_args
 
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
@@ -1909,6 +1920,12 @@ class ScaleCallback(PlotCallback):
         fontproperties = self.size_bar_args.pop(
             'fontproperties', plot.font_properties)
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
+        if self.text_args is not None:
+            # FontProperties instances use private attributes, so prepend 
+            # text_args with _
+            for key in self.text_args:
+                new_key = "_"+key
+                setattr(fontproperties, new_key, self.text_args[key])
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
