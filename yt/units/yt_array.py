@@ -424,7 +424,8 @@ class YTArray(np.ndarray):
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
-        self *= conversion_factor
+        values = self.d
+        values *= conversion_factor
 
         if offset:
             np.subtract(self, offset*self.uq, self)
@@ -1309,7 +1310,7 @@ def loadtxt(fname, dtype='float', delimiter='\t', usecols=None, comments='#'):
     Parameters
     ----------
     fname : str
-        Filename to read. 
+        Filename to read.
     dtype : data-type, optional
         Data-type of the resulting array; default: float.
     delimiter : str, optional
@@ -1367,7 +1368,7 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
             footer='', comments='#'):
     r"""
     Write YTArrays with unit information to a text file.
-    
+
     Parameters
     ----------
     fname : str
@@ -1375,7 +1376,7 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     arrays : list of YTArrays or single YTArray
         The array(s) to write to the file.
     fmt : str or sequence of strs, optional
-        A single format (%10.5f), or a sequence of formats. 
+        A single format (%10.5f), or a sequence of formats.
     delimiter : str, optional
         String or character separating columns.
     header : str, optional
