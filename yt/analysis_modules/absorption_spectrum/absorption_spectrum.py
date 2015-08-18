@@ -283,6 +283,8 @@ class AbsorptionSpectrum(object):
         """
         Write out list of spectral lines.
         """
+        if filename is None:
+            return
         mylog.info("Writing spectral line list: %s." % filename)
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
