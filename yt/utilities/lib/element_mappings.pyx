@@ -258,7 +258,13 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
 cdef inline void Q1Function3D(double* f,
                               double* x, 
                               double* vertices, 
-                              double* phys_x) nogil:    
+                              double* phys_x) nogil:
+'''
+
+This defines the function used by the Newton-Raphson solver for 
+linear, hex elements.
+
+'''
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
     
@@ -290,6 +296,12 @@ cdef inline void Q1Jacobian3D(double* r,
                               double* x, 
                               double* v, 
                               double* phys_x) nogil:
+'''
+
+This defines the Jacobian matrix used by the Newton-Raphson 
+solver with linear, hexahedral elements.
+
+'''
     
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
