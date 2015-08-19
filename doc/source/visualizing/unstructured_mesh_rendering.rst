@@ -134,7 +134,7 @@ Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 Finally, here is a script that creates frames of a movie. It calls the rotate()
 method 300 times, saving a new image to the disk each time.
 
-.. python-script::
+.. code-block:: python
    import yt
    import pylab as plt
    from yt.visualization.volume_rendering.render_source import MeshSource
