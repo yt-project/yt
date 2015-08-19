@@ -255,16 +255,10 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void Q1Function3D(double* f,
+cdef inline void Q1Function3D(double* fx,
                               double* x, 
                               double* vertices, 
                               double* phys_x) nogil:
-'''
-
-This defines the function used by the Newton-Raphson solver for 
-linear, hex elements.
-
-'''
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
     
@@ -276,33 +270,26 @@ linear, hex elements.
     tp = 1.0 + x[2]
     
     for i in range(3):
-        f[i] = vertices[0 + i]*rm*sm*tm \
-             + vertices[3 + i]*rp*sm*tm \
-             + vertices[6 + i]*rp*sp*tm \
-             + vertices[9 + i]*rm*sp*tm \
-             + vertices[12 + i]*rm*sm*tp \
-             + vertices[15 + i]*rp*sm*tp \
-             + vertices[18 + i]*rp*sp*tp \
-             + vertices[21 + i]*rm*sp*tp \
-             - 8.0*phys_x[i]
+        fx[i] = vertices[0 + i]*rm*sm*tm \
+              + vertices[3 + i]*rp*sm*tm \
+              + vertices[6 + i]*rp*sp*tm \
+              + vertices[9 + i]*rm*sp*tm \
+              + vertices[12 + i]*rm*sm*tp \
+              + vertices[15 + i]*rp*sm*tp \
+              + vertices[18 + i]*rp*sp*tp \
+              + vertices[21 + i]*rm*sp*tp \
+              - 8.0*phys_x[i]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void Q1Jacobian3D(double* r,
-                              double* s,
-                              double* t,
+cdef inline void Q1Jacobian3D(double* rcol,
+                              double* scol,
+                              double* tcol,
                               double* x, 
-                              double* v, 
-                              double* phys_x) nogil:
-'''
-
-This defines the Jacobian matrix used by the Newton-Raphson 
-solver with linear, hexahedral elements.
-
-'''
-    
+                              double* vertices, 
+                              double* phys_x) nogil:    
     cdef int i
     cdef double rm, rp, sm, sp, tm, tp
     
@@ -314,18 +301,18 @@ solver with linear, hexahedral elements.
     tp = 1.0 + x[2]
     
     for i in range(3):
-        r[i] = -sm*tm*v[0 + i]  + sm*tm*v[3 + i]  + \
-                sp*tm*v[6 + i]  - sp*tm*v[9 + i]  - \
-                sm*tp*v[12 + i] + sm*tp*v[15 + i] + \
-                sp*tp*v[18 + i] - sp*tp*v[21 + i]
-        s[i] = -rm*tm*v[0 + i]  - rp*tm*v[3 + i]  + \
-                rp*tm*v[6 + i]  + rm*tm*v[9 + i]  - \
-                rm*tp*v[12 + i] - rp*tp*v[15 + i] + \
-                rp*tp*v[18 + i] + rm*tp*v[21 + i]
-        t[i] = -rm*sm*v[0 + i]  - rp*sm*v[3 + i]  - \
-                rp*sp*v[6 + i]  - rm*sp*v[9 + i]  + \
-                rm*sm*v[12 + i] + rp*sm*v[15 + i] + \
-                rp*sp*v[18 + i] + rm*sp*v[21 + i]
+        rcol[i] = -sm*tm*vertices[0 + i]  + sm*tm*vertices[3 + i]  + \
+                   sp*tm*vertices[6 + i]  - sp*tm*vertices[9 + i]  - \
+                   sm*tp*vertices[12 + i] + sm*tp*vertices[15 + i] + \
+                   sp*tp*vertices[18 + i] - sp*tp*vertices[21 + i]
+        scol[i] = -rm*tm*vertices[0 + i]  - rp*tm*vertices[3 + i]  + \
+                   rp*tm*vertices[6 + i]  + rm*tm*vertices[9 + i]  - \
+                   rm*tp*vertices[12 + i] - rp*tp*vertices[15 + i] + \
+                   rp*tp*vertices[18 + i] + rm*tp*vertices[21 + i]
+        tcol[i] = -rm*sm*vertices[0 + i]  - rp*sm*vertices[3 + i]  - \
+                   rp*sp*vertices[6 + i]  - rm*sp*vertices[9 + i]  + \
+                   rm*sm*vertices[12 + i] + rp*sm*vertices[15 + i] + \
+                   rp*sp*vertices[18 + i] + rm*sp*vertices[21 + i]
 
 
 @cython.boundscheck(False)
