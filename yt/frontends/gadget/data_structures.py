@@ -247,7 +247,7 @@ class GadgetDataset(ParticleDataset):
                 mass_unit = (unit_base["UnitMass_in_g"], "g/h")
         else:
             # Sane default
-            mass_unit = (1.0, "1e10*Msun/h")
+            mass_unit = (1e10, "Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
         if self.cosmological_simulation:
