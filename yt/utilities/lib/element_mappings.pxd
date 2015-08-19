@@ -6,6 +6,11 @@ from libc.math cimport fabs, fmax
 
 cdef class ElementSampler:
 
+    # how close a point has to be to the element
+    # to get counted as "inside". This is in the
+    # mapped coordinates of the element.
+    cdef np.float64_t inclusion_tol
+
     cdef void map_real_to_unit(self,
                                double* mapped_x, 
                                double* vertices,

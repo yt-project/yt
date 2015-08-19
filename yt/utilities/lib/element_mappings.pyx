@@ -55,6 +55,9 @@ cdef class ElementSampler:
 
     '''
 
+    def __init__(self):
+        self.inclusion_tol = 1.0e-8
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -115,6 +118,8 @@ cdef class P1Sampler3D(ElementSampler):
         cdef double[3] col1
         cdef double[3] col2
     
+        # here, we express positions relative to the 4th element,
+        # which is selected by vertices[9]
         for i in range(3):
             bvec[i] = physical_x[i]       - vertices[9 + i]
             col0[i] = vertices[0 + i]     - vertices[9 + i]
@@ -142,8 +147,8 @@ cdef class P1Sampler3D(ElementSampler):
     cdef int check_inside(self, double* mapped_coord) nogil:
         cdef int i
         for i in range(4):
-            if (mapped_coord[i] < -1.0e-8 or
-                mapped_coord[i] - 1.0 > 1.0e-8):
+            if (mapped_coord[i] < -self.inclusion_tol or
+                mapped_coord[i] - 1.0 > self.inclusion_tol):
                 return 0
         return 1
 
@@ -161,6 +166,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
     '''
 
     def __init__(self):
+        super(NonlinearSolveSampler, self).__init__()
         self.tolerance = 1.0e-9
         self.max_iter = 10
 
@@ -239,9 +245,9 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
-        if (fabs(mapped_coord[0]) - 1.0 > 1.0e-8 or
-            fabs(mapped_coord[1]) - 1.0 > 1.0e-8 or 
-            fabs(mapped_coord[2]) - 1.0 > 1.0e-8):
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
+            fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
 
