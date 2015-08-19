@@ -108,6 +108,14 @@ class GadgetDataset(ParticleDataset):
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
         super(GadgetDataset, self).__init__(filename, dataset_type)
+        if self.cosmological_simulation:
+            self.time_unit.convert_to_units('s/h')
+            self.length_unit.convert_to_units('kpccm/h')
+            self.mass_unit.convert_to_units('g/h')
+        else:
+            self.time_unit.convert_to_units('s')
+            self.length_unit.convert_to_units('kpc')
+            self.mass_unit.convert_to_units('Msun')
 
     def _setup_binary_spec(self, spec, spec_dict):
         if isinstance(spec, str):
