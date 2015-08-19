@@ -27,6 +27,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from collections import OrderedDict
 
 def setup():
     """Test specific setup."""
@@ -77,8 +78,10 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_center": [(((0.4, 0.3), ), {})],
              "set_cmap": [(('density', 'RdBu'), {}),
                           (('density', 'kamae'), {})],
-             "set_font": [(({'family': 'sans-serif', 'style': 'italic',
-                             'weight': 'bold', 'size': 24}, ), {})],
+             "set_font": [((OrderedDict({'family': 'sans-serif',
+                                         'style': 'italic',
+                                         'weight': 'bold', 'size': 24}), ),
+                           {})],
              "set_log": [(('density', False), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
