@@ -713,6 +713,7 @@ class Dataset(object):
                               unit_registry=self.unit_registry))
             setattr(self, "critical_density",
                     self.cosmology.critical_density(self.current_redshift))
+            self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
     def get_unit_from_registry(self, unit_str):
         """
