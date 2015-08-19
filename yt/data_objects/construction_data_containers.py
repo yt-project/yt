@@ -912,9 +912,9 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     def _minimal_box(self, dds):
         LL = self.left_edge.d - self.ds.domain_left_edge.d
         # Nudge in case we're on the edge
-        LL += LL * np.finfo(np.float64).eps
+        LL += np.finfo(np.float64).eps
         LS = self.right_edge.d - self.ds.domain_left_edge.d
-        LS += LS * np.finfo(np.float64).eps
+        LS += np.finfo(np.float64).eps
         cell_start = LL / dds  # This is the cell we're inside
         cell_end = LS / dds
         if self.level == 0:
