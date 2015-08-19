@@ -1680,8 +1680,8 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     data = ensure_list(data)
     connectivity = ensure_list(connectivity)
     if bbox is None:
-        bbox = np.array([ [1.1*coordinates[:,i].min(),
-                           1.1*coordinates[:,i].max()]
+        bbox = np.array([[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
+                          coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
                           for i in range(3)], "float64")
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
