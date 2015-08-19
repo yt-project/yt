@@ -44,9 +44,45 @@ cdef class P1Sampler3D(ElementSampler):
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
+# This typedef defines a function pointer that defines the system
+# of equations that will be solved by the NonlinearSolveSamplers.
+# 
+# inputs:
+#     x        - pointer to the mapped coordinate
+#     vertices - pointer to the element vertices
+#     phys_x   - pointer to the physical coordinate
+#
+# outputs:
+#
+#     fx - the result of solving the system, should be close to 0
+#          once it is converged.
+#
+ctypedef void (*func_type)(double* fx, 
+                           double* x, 
+                           double* vertices, 
+                           double* phys_x) nogil
 
-ctypedef void (*func_type)(double*, double*, double*, double*) nogil
-ctypedef void (*jac_type)(double*, double*, double*, double*, double*, double*) nogil
+# This typedef defines a function pointer that defines the Jacobian
+# matrix used by the NonlinearSolveSamplers. Subclasses needed to 
+# define a Jacobian function in this form.
+# 
+# inputs:
+#     x        - pointer to the mapped coordinate
+#     vertices - pointer to the element vertices
+#     phys_x   - pointer to the physical coordinate
+#
+# outputs:
+#
+#     rcol     - the first column of the jacobian
+#     scol     - the second column of the jacobian
+#     tcol     - the third column of the jaocobian
+#
+ctypedef void (*jac_type)(double* rcol, 
+                          double* scol, 
+                          double* tcol, 
+                          double* x, 
+                          double* vertices, 
+                          double* phys_x) nogil
 
 cdef class NonlinearSolveSampler(ElementSampler):
 
