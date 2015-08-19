@@ -7,9 +7,41 @@ Beginning with version 3.3, yt has the ability to volume render unstructured
 meshes from, for example, finite element calculations. In order to use this
 capability, a few additional dependencies are required beyond those you get
 when you run the install script. First, `embree <https://embree.github.io>`
-(a fast software ray-tracing library from Intel) must be installed, following 
-the instructions there. Second, the python bindings for embree (called 
-`pyembree <https://github.com/scopatz/pyembree>`) must also be installed. 
+(a fast software ray-tracing library from Intel) must be installed, either
+by compiling from source or by using one of the pre-built binaries available
+at Embree's `downloads <https://embree.github.io/downloads.html>` page. Once
+Embree is installed, you must also create a symlink next to the library. For
+example, if the libraries were installed at /usr/local/lib/, you must do
+
+.. code-block:: bash
+
+    sudo ln -s /usr/local/lib/libembree.2.6.1.dylib /usr/local/lib/libembree.so
+
+Second, the python bindings for embree (called 
+`pyembree <https://github.com/scopatz/pyembree>`) must also be installed. To
+do so, first obtain a copy, by .e.g. cloning the repo:
+
+.. code-block:: bash
+
+    git clone https://github.com/scopatz/pyembree
+
+To install, navigate to the root directory and run the setup script:
+
+.. code-block:: bash
+
+    python setup.py develop
+
+If Embree was installed to some location that is not in your path by default,
+you will need to pass in CFLAGS and LDFLAGS to the setup.py script. For example,
+the Mac OS package installer puts the installation at /opt/local/ instead of 
+usr/local. To account for this, you would do:
+
+.. code-block:: bash
+
+    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
+
+You must also use these flags when building any part of yt that links against
+pyembree.
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
 much like any other dataset. In particular, a new type of 
