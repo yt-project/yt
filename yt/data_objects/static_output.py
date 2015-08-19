@@ -683,6 +683,7 @@ class Dataset(object):
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
         """
@@ -700,6 +701,7 @@ class Dataset(object):
                 self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
                                        (1 + self.current_redshift),
                                        length, "\\rm{%s}/(1+z)" % my_unit)
+            self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
 
