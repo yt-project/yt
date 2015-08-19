@@ -2167,7 +2167,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                               alpha=self.alpha)
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
-                        to_rgba(lic_data_clip)
+                            to_rgba(lic_data_clip)
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha

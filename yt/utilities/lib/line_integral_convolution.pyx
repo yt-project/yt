@@ -20,7 +20,9 @@ Utilities for line integral convolution annotation
 
 import numpy as np
 cimport numpy as np
+cimport cython
 
+@cython.cdivision(True)
 cdef void _advance_2d(double vx, double vy,
                      int* x, int* y,
                      double* fx, double* fy,
@@ -76,9 +78,7 @@ def line_integral_convolution_2d(
     kernellen = kernel.shape[0]
     result = np.zeros((w,h),dtype=np.double)
 
-    temp = np.copy(vectors[...,0])
-    vectors[...,0] = vectors[...,1]
-    vectors[...,1] = temp
+    vectors = vectors[...,::-1].copy()
 
     for i in range(w):
         for j in range(h):
