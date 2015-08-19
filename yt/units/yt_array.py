@@ -399,7 +399,8 @@ class YTArray(np.ndarray):
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
-        self *= conversion_factor
+        values = self.d
+        values *= conversion_factor
 
         if offset:
             np.subtract(self, offset*self.uq, self)

@@ -321,7 +321,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         _units_initialized = False
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          [], "io", local_only = True)): 
+                                          [], "io", local_only = True)):
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
                             chunk.ires.size, get_memory_usage()/1024.)
                 if _units_initialized is False:
@@ -910,22 +910,22 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         return ls
 
     def _minimal_box(self, dds):
-        LL = self.left_edge - self.ds.domain_left_edge
+        LL = self.left_edge.d - self.ds.domain_left_edge.d
         # Nudge in case we're on the edge
-        LL += LL.uq * np.finfo(np.float64).eps
-        LS = self.right_edge - self.ds.domain_left_edge
-        LS += LS.uq * np.finfo(np.float64).eps
+        LL += np.finfo(np.float64).eps
+        LS = self.right_edge.d - self.ds.domain_left_edge.d
+        LS += np.finfo(np.float64).eps
         cell_start = LL / dds  # This is the cell we're inside
         cell_end = LS / dds
         if self.level == 0:
             start_index = np.array(np.floor(cell_start), dtype="int64")
             end_index = np.array(np.ceil(cell_end), dtype="int64")
-            dims = np.rint((self.ActiveDimensions * self.dds) / dds).astype("int64")
+            dims = np.rint((self.ActiveDimensions * self.dds.d) / dds).astype("int64")
         else:
             # Give us one buffer
-            start_index = np.rint(cell_start.d).astype('int64') - 1
+            start_index = np.rint(cell_start).astype('int64') - 1
             # How many root cells do we occupy?
-            end_index = np.rint(cell_end.d).astype('int64')
+            end_index = np.rint(cell_end).astype('int64')
             dims = end_index - start_index + 1
         return start_index, end_index.astype("int64"), dims.astype("int32")
 
@@ -1211,9 +1211,9 @@ class YTSurfaceBase(YTSelectionContainer3D):
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
-        ...                      color_field='temperature', dist_fac = distf, 
-        ...                      plot_index = i, color_field_max = ma, 
+        ...     surf.export_obj("my_galaxy", transparency=trans[i],
+        ...                      color_field='temperature', dist_fac = distf,
+        ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
