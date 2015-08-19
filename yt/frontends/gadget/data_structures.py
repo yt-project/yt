@@ -218,12 +218,21 @@ class GadgetDataset(ParticleDataset):
         self.length_unit = self.quan(length_unit[0], length_unit[1])
 
         unit_base = self._unit_base or {}
+
+        if self.cosmological_simulation:
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            # for why we need to include a factor of square root of the
+            # scale factor
+            vel_units = "cm/s * sqrt(a)"
+        else:
+            vel_units = "cm/s"
+
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
-            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], "cm/s")
+            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], vel_units)
         else:
-            velocity_unit = (1e5, "cm/s")
+            velocity_unit = (1e5, vel_units)
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
 
