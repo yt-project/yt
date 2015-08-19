@@ -79,6 +79,10 @@ cdef void sample_hex(void* userPtr,
     if ray_id == -1:
         return
 
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are triangles. Here,
+    # we convert this to the element id by dividing by the
+    # number of triangles per element.
     elem_id = ray_id / data.tpe
 
     get_hit_position(position, userPtr, ray)
@@ -116,8 +120,13 @@ cdef void sample_tetra(void* userPtr,
         return
 
     get_hit_position(position, userPtr, ray)
-    
+
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are triangles. Here,
+    # we convert this to the element id by dividing by the
+    # number of triangles per element.    
     elem_id = ray_id / data.tpe
+
     for i in range(4):
         element_indices[i] = data.element_indices[elem_id*4+i]
         field_data[i] = data.field_data[elem_id*4+i]
