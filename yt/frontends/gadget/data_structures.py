@@ -250,7 +250,23 @@ class GadgetDataset(ParticleDataset):
             mass_unit = (1.0, "1e10*Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
-        self.time_unit = self.length_unit / self.velocity_unit
+        if self.cosmological_simulation:
+            # self.velocity_unit is the unit to rescale on-disk velocities, The
+            # actual internal velocity unit is really in comoving comoving units
+            # since the time unit is derived from the internal velocity unit, we
+            # infer the internal velocity unit here and name it vel_unit
+            #
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            if 'velocity' in unit_base:
+                vel_unit = unit_base['velocity']
+            elif "UnitVelocity_in_cm_per_s" in unit_base:
+                vel_unit = (unit_base['UnitVelocity_in_cm_per_s'], 'cmcm/s')
+            else:
+                vel_unit = (1, 'kmcm/s')
+            vel_unit = self.quan(*vel_unit)
+        else:
+            vel_unit = self.velocity_unit
+        self.time_unit = self.length_unit / vel_unit
 
     @staticmethod
     def _validate_header(filename):
