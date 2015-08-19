@@ -260,7 +260,7 @@ class GadgetDataset(ParticleDataset):
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
         if self.cosmological_simulation:
             # self.velocity_unit is the unit to rescale on-disk velocities, The
-            # actual internal velocity unit is really in comoving comoving units
+            # actual internal velocity unit is really in comoving units
             # since the time unit is derived from the internal velocity unit, we
             # infer the internal velocity unit here and name it vel_unit
             #
