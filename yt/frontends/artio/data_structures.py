@@ -133,7 +133,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         # Here we perform our particle deposition.
         if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
@@ -141,7 +142,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, self.ires.size)
-        op = cls(nvals) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(nvals, kernel_name)
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Root Mesh",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
