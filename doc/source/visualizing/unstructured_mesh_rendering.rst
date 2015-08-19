@@ -61,8 +61,6 @@ See below for examples. First, here is an example of rendering a hexahedral mesh
    cb.set_label(field_name[1])
    plt.savefig('hex_mesh_render.png')
 
-.. image:: _images/hex_mesh_render.png
-
 Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 
 .. python-script::
@@ -100,8 +98,6 @@ Next, here is an example of rendering a dataset with tetrahedral mesh elements.
    cb = plt.colorbar()
    cb.set_label(field_name[1])
    plt.savefig('tet_mesh_render.png')
-
-.. image:: _images/tet_mesh_render.png
 
 Finally, here is a script that creates frames of a movie. It calls the rotate()
 method 300 times, saving a new image to the disk each time.
