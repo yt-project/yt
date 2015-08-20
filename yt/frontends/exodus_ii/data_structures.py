@@ -42,6 +42,7 @@ class ExodusIIUnstructuredMesh(UnstructuredMesh):
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'exodus_ii'):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
+        # doesn't this mean we can't have different mesh types in a single index?
         self._connectivity_length = self.meshes[0].connectivity_indices.shape[1]
 
     def _initialize_mesh(self):
@@ -56,9 +57,11 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
 
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
-        self.field_list = [('elem', fname) for fname in elem_names]
         node_names = self.dataset.parameters['nod_names']
-        self.field_list += [('node', fname) for fname in node_names]
+        fnames = elem_names + node_names
+        self.field_list = []
+        for i in range(1, len(self.meshes)+1):
+            self.field_list += [('connect%d' % i, fname) for fname in fnames]
 
 
 class ExodusIIDataset(Dataset):
@@ -72,13 +75,13 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.fluid_types               += ('elem', 'node')
+        self.fluid_types               += ('connect1', 'connect2')
         self.parameter_filename         = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override = units_override)
         self.index_filename             = filename
         self.storage_filename           = storage_filename
-        self.step = step
+        self.step                       = step
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

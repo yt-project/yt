@@ -47,44 +47,35 @@ class IOHandlerExodusII(BaseIOHandler):
         # dict gets returned at the end and it should be flat, with selected
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
-        chunks = list(chunks)  # chunks in this case correspond to mesh_id or slices in the ExodusII data
-        chunk = chunks[0]
-        mesh_id = chunk.objs[0].mesh_id
-        ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
-             - self._INDEX_OFFSET
-        nodes_per_element = ci.shape[1]
+        chunks = list(chunks)
         rv = {}
         for field in fields:
             ftype, fname = field
+            ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
             if fname in self.node_fields:
+                nodes_per_element = ci.shape[1]
                 rv[field] = np.empty((size, nodes_per_element), dtype="float64")
             elif fname in self.elem_fields:
                 rv[field] = np.empty(size, dtype="float64")
-        ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
         for field in fields:
             ind = 0
             ftype, fname = field
+            mesh_id = int(ftype[-1])
+            chunk = chunks[mesh_id - 1]
+            ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
             if fname in self.node_fields:
                 field_ind = self.node_fields.index(fname)
                 fdata = self.handler.variables['vals_nod_var%d' % (field_ind + 1)]
-                for chunk in chunks:
-                    mesh_id = chunk.objs[0].mesh_id
-                    ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
-                         - self._INDEX_OFFSET
-                    data = fdata[self.ds.step][ci]
-                    for g in chunk.objs:
-                        ind += g.select(selector, data, rv[field], ind)  # caches
+                data = fdata[self.ds.step][ci]
+                for g in chunk.objs:
+                    ind += g.select(selector, data, rv[field], ind)  # caches
             if fname in self.elem_fields:
                 field_ind = self.elem_fields.index(fname)
-                for chunk in chunks:
-                    mesh_id = chunk.objs[0].mesh_id
-                    fdata = self.handler.variables['vals_elem_var%deb%d' %
-                                                   (field_ind + 1, mesh_id + 1)][:]
-                    data = fdata[self.ds.step, :]
-                    for g in chunk.objs:
-                        ind += g.select(selector, data, rv[field], ind)  # caches
+                fdata = self.handler.variables['vals_elem_var%deb%s' %
+                                               (field_ind + 1, mesh_id)][:]
+                data = fdata[self.ds.step, :]
+                for g in chunk.objs:
+                    ind += g.select(selector, data, rv[field], ind)  # caches
         return rv
 
     def _read_chunk_data(self, chunk, fields):
