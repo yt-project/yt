@@ -26,14 +26,15 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
-from yt.funcs import *
+from yt.funcs import \
+    mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import assert_same_wcs
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     communication_system, parallel_root_only, get_mpi_type, \
-     parallel_capable
+    communication_system, parallel_root_only, get_mpi_type, \
+    parallel_capable
 from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy

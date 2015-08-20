@@ -13,7 +13,6 @@ LightRay class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import copy
 import h5py
 import numpy as np
 

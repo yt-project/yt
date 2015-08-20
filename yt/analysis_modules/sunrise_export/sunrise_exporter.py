@@ -19,14 +19,17 @@ try:
 except ImportError: 
     pass
 
+import os
 import time
 import numpy as np
-from yt.funcs import *
+
 import yt.utilities.lib.api as amr_utils
+
+from yt import add_field
+from yt.funcs import get_pbar, mylog
 from yt.utilities.physical_constants import \
     kpc_per_cm, \
     sec_per_year
-from yt.mods import *
 
 def export_to_sunrise(ds, fn, star_particle_type, fc, fwidth, ncells_wide=None,
         debug=False,dd=None,**kwargs):
@@ -492,7 +495,7 @@ def prepare_star_particles(ds,star_type,pos=None,vel=None, age=None,
     idxst = dd["particle_type"] == star_type
 
     #make sure we select more than a single particle
-    assert na.sum(idxst)>0
+    assert np.sum(idxst)>0
     if pos is None:
         pos = np.array([dd["particle_position_%s" % ax]
                         for ax in 'xyz']).transpose()
@@ -543,7 +546,7 @@ def prepare_star_particles(ds,star_type,pos=None,vel=None, age=None,
     
     #make sure we have nonzero particle number
     assert pd_table.data.shape[0]>0
-    return pd_table,na.sum(idx)
+    return pd_table,np.sum(idx)
 
 
 def add_fields():
@@ -559,11 +562,7 @@ def add_fields():
         # SFR in a cell. This assumes stars were created by the Cen & Ostriker algorithm
         # Check Grid_AddToDiskProfile.C and star_maker7.src
         star_mass_ejection_fraction = data.ds.get_parameter("StarMassEjectionFraction",float)
-        star_maker_minimum_dynamical_time = 3e6 # years, which will get divided out
-        dtForSFR = star_maker_minimum_dynamical_time / data.ds["years"]
         xv1 = ((data.ds["InitialTime"] - data["creation_time"])
-                / data["dynamical_time"])
-        xv2 = ((data.ds["InitialTime"] + dtForSFR - data["creation_time"])
                 / data["dynamical_time"])
         denom = (1.0 - star_mass_ejection_fraction * (1.0 - (1.0 + xv1)*np.exp(-xv1)))
         minitial = data["ParticleMassMsun"] / denom
