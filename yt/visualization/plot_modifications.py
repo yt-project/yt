@@ -1923,14 +1923,14 @@ class ScaleCallback(PlotCallback):
             # FontProperties instances use private attributes, so prepend 
             # text_args with _
             for key in self.text_args:
-                new_key = "_"+key
+                setter_func = "set_"+key
                 try: 
-                    getattr(fontproperties, new_key)
-                    setattr(fontproperties, new_key, self.text_args[key])
+                    func = getattr(fontproperties, setter_func)
+                    func(self.text_args[key])
                 except AttributeError:
                     raise AttributeError("Cannot set text_args keyword " \
                     "to include '%s' because MPL's fontproperties object does " \
-                    "not contain attribute '%s'." % (key, key))
+                    "not contain function '%s'." % (key, setter_func))
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
