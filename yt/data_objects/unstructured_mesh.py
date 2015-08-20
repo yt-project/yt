@@ -105,13 +105,15 @@ class UnstructuredMesh(YTSelectionContainer):
     def select_tcoords(self, dobj):
         raise NotImplementedError
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         raise NotImplementedError
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(self.ActiveDimensions.prod(), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
@@ -200,4 +202,3 @@ class SemiStructuredMesh(UnstructuredMesh):
             else:
                 self._last_count = mask.sum()
         return mask
-

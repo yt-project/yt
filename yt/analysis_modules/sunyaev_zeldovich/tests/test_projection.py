@@ -11,12 +11,12 @@ Unit test the sunyaev_zeldovich analysis module.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.stream.api import load_uniform_grid
-from yt.funcs import get_pbar, mylog
+from yt.funcs import get_pbar
 from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
-     mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
-from yt.testing import *
+    mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
+from yt.testing import requires_module, assert_almost_equal
 from yt.utilities.answer_testing.framework import requires_ds, \
-     GenericArrayTest, data_dir_load, GenericImageTest
+    GenericArrayTest, data_dir_load, GenericImageTest
 try:
     from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
 except ImportError:

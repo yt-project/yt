@@ -10,11 +10,13 @@ Answer test the photon_simulator analysis module.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.analysis_modules.photon_simulator.api import \
+    TableApecModel, TableAbsorbModel, \
+    ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
-from yt.analysis_modules.photon_simulator.api import *
+from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import requires_ds, \
-     GenericArrayTest, data_dir_load
+    GenericArrayTest, data_dir_load
 import numpy as np
 
 def setup():

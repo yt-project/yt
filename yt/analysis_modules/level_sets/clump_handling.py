@@ -19,7 +19,7 @@ import uuid
 
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.funcs import mylog
+from yt.funcs import mylog, iterable
 from yt.extern.six import string_types
 
 from .clump_info_items import \

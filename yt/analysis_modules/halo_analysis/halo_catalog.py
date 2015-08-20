@@ -138,7 +138,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.actions = []
         # fields to be written to the halo catalog
         self.quantities = []
-        if not self.halos_ds is None:
+        if self.halos_ds is not None:
             self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):

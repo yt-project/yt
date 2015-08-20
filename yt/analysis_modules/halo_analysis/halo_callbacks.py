@@ -18,23 +18,22 @@ import numpy as np
 import os
 
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
-     periodic_distance
+    periodic_distance
 from yt.data_objects.profiles import \
-     create_profile
+    create_profile
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    YTArray
 from yt.utilities.exceptions import \
-     YTSphereTooSmall
+    YTSphereTooSmall
 from yt.funcs import \
-     ensure_list, is_root
-from yt.utilities.exceptions import YTUnitConversionError
+    ensure_list
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.operator_registry import \
-     OperatorRegistry
+    OperatorRegistry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.profile_plotter import \
-     PhasePlot
+    PhasePlot
 
 callback_registry = OperatorRegistry()
     

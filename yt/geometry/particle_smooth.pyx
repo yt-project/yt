@@ -74,7 +74,7 @@ cdef void cart_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
     opos[2] = ipos[2]
 
 cdef class ParticleSmoothOperation:
-    def __init__(self, nvals, nfields, max_neighbors):
+    def __init__(self, nvals, nfields, max_neighbors, kernel_name):
         # This is the set of cells, in grids, blocks or octs, we are handling.
         cdef int i
         self.nvals = nvals
@@ -83,6 +83,7 @@ cdef class ParticleSmoothOperation:
         self.neighbors = <NeighborList *> malloc(
             sizeof(NeighborList) * self.maxn)
         self.neighbor_reset()
+        self.sph_kernel = get_kernel_func(kernel_name)
 
     def initialize(self, *args):
         raise NotImplementedError
@@ -630,7 +631,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             # Usually this density has been computed
             dens = fields[2][pn]
             if dens == 0.0: continue
-            weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
+            weight = mass * self.sph_kernel(sqrt(r2) / hsml) / dens
             # Mass of the particle times the value
             for fi in range(self.nfields - 3):
                 val = fields[fi + 3][pn]
@@ -756,7 +757,7 @@ cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
         for pn in range(self.curn):
             mass = fields[0][self.neighbors[pn].pn]
             r2 = self.neighbors[pn].r2
-            lw = sph_kernel(sqrt(r2) / hsml)
+            lw = self.sph_kernel(sqrt(r2) / hsml)
             dens += mass * lw
         weight = (4.0/3.0) * 3.1415926 * hsml**3
         fields[1][offset] = dens/weight

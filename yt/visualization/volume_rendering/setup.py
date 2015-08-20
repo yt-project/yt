@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-import setuptools
-import os
-import sys
-import os.path
-
-#os.system("cython -a yt/extensions/volume_rendering/VolumeIntegrator.pyx")
 
 
 def configuration(parent_package='', top_path=None):

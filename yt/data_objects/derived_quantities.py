@@ -34,10 +34,13 @@ from yt.extern.six import add_metaclass
 derived_quantity_registry = {}
 
 def get_position_fields(field, data):
+    axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
     if field[0] in data.ds.particle_types:
-        position_fields = [(field[0], 'particle_position_%s' % d) for d in 'xyz']
+        position_fields = [(field[0], 'particle_position_%s' % d)
+                           for d in axis_names]
     else:
-        position_fields = ['x', 'y', 'z']
+        position_fields = axis_names
+
     return position_fields
 
 class RegisteredDerivedQuantity(type):
