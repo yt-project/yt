@@ -497,7 +497,7 @@ class RAMSESIndex(OctreeIndex):
 
         dx = self.get_smallest_dx()
         try:
-            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
+            print("z = %0.8f" % (self.current_redshift))
         except:
             pass
         print("t = %0.8e = %0.8e s = %0.8e years" % \
