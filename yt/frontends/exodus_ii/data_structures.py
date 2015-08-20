@@ -55,10 +55,10 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self.io = io_registry[self.dataset_type](self.ds)
 
     def _detect_output_fields(self):
-        ftype = 'exodus_ii'
-        fnames = self.dataset.parameters['nod_names']
-        self.field_list = [(ftype, fname) for fname in fnames]
-
+        elem_names = self.dataset.parameters['elem_names']
+        self.field_list = [('elem', fname) for fname in elem_names]
+        node_names = self.dataset.parameters['nod_names']
+        self.field_list += [('node', fname) for fname in node_names]
 
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
@@ -70,7 +70,7 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.fluid_types               += ('exodus_ii',)
+        self.fluid_types               += ('elem', 'node')
         self.parameter_filename         = filename
         Dataset.__init__(self, filename, dataset_type,
                          units_override = units_override)
@@ -99,7 +99,7 @@ class ExodusIIDataset(Dataset):
         self.unique_identifier          = self._get_unique_identifier()
         self.current_time               = self._get_current_time()
         self.parameters['num_meshes']   = self.parameters['eb_status'].shape[0]
-        self.parameters['var_names']    = self._get_var_names()
+        self.parameters['elem_names']   = self._get_elem_names()
         self.parameters['nod_names']    = self._get_nod_names()
         self.parameters['coordinates']  = self._load_coordinates()
         self.parameters['connectivity'] = self._load_connectivity()
@@ -169,7 +169,7 @@ class ExodusIIDataset(Dataset):
             mylog.warning("name_glo_var not found")
             return []
 
-    def _get_var_names(self):
+    def _get_elem_names(self):
         """
         Returns the names of the element vars, if available
         """
@@ -228,8 +228,8 @@ class ExodusIIDataset(Dataset):
             ci = self.parameters['connectivity'][i]
             vals = {}
 
-            for j, var_name in enumerate(self.parameters['var_names']):
-                vals['gas', var_name] = self.parameters["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
+            for j, elem_name in enumerate(self.parameters['elem_names']):
+                vals['gas', elem_name] = self.parameters["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
 
             for j, nod_name in enumerate(self.parameters['nod_names']):
                 # We want just for this set of nodes all the node variables

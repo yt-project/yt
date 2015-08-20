@@ -31,7 +31,8 @@ class IOHandlerExodusII(BaseIOHandler):
         exodus_ii_handler = NetCDF4FileHandler(self.filename)
         self.handler = exodus_ii_handler.dataset
         super(IOHandlerExodusII, self).__init__(ds)
-        self.io_fields = ds._get_nod_names()
+        self.node_fields = ds._get_nod_names()
+        self.elem_fields = ds._get_elem_names()
 
     def _read_particle_coords(self, chunks, ptf):
         pass
@@ -62,15 +63,25 @@ class IOHandlerExodusII(BaseIOHandler):
         for field in fields:
             ind = 0
             ftype, fname = field
-            field_ind = self.io_fields.index(fname)
-            fdata = self.handler.variables['vals_nod_var%d' % (field_ind + 1)]
-            for chunk in chunks:
-                mesh_id = chunk.objs[0].mesh_id
-                ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
-                     - self._INDEX_OFFSET
-                data = fdata[0][ci]
-                for g in chunk.objs:
-                    ind += g.select(selector, data, rv[field], ind)  # caches
+            if fname in self.node_fields:
+                field_ind = self.node_fields.index(fname)
+                fdata = self.handler.variables['vals_nod_var%d' % (field_ind + 1)]
+                for chunk in chunks:
+                    mesh_id = chunk.objs[0].mesh_id
+                    ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
+                         - self._INDEX_OFFSET
+                    data = fdata[0][ci]
+                    for g in chunk.objs:
+                        ind += g.select(selector, data, rv[field], ind)  # caches
+            if fname in self.elem_fields:
+                field_ind = self.elem_fields.index(fname)
+                for chunk in chunks:
+                    mesh_id = chunk.objs[0].mesh_id
+                    fdata = self.handler.variables['vals_elem_var%deb%d' %
+                                                   (field_ind + 1, mesh_id + 1)]
+                    data = fdata[0]
+                    for g in chunk.objs:
+                        ind += g.select(selector, data, rv[field], ind)  # caches
         return rv
 
     def _read_chunk_data(self, chunk, fields):

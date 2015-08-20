@@ -138,7 +138,7 @@ class UnstructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask,...]
+        dest[offset:offset+count] = source[mask, ...]
         return count
 
     def count(self, selector):
