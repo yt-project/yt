@@ -11,11 +11,12 @@ photon simulator.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import h5py
 import numpy as np
 import os
-from yt.funcs import *
-from yt.units.yt_array import YTQuantity
-import h5py
+
+from yt.funcs import mylog
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy, _scipy
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 

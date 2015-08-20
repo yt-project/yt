@@ -490,8 +490,8 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
-        phi = get_sph_phi(pos, center)
+        theta = get_sph_theta(pos, normal)
+        phi = get_sph_phi(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         sphr = get_sph_r_component(vel, theta, phi, normal)
@@ -533,8 +533,8 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, center)
-        phi = get_sph_phi(pos, center)
+        theta = get_sph_theta(pos, normal)
+        phi = get_sph_phi(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         spht = get_sph_theta_component(vel, theta, phi, normal)
@@ -568,7 +568,7 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        phi = get_sph_phi(pos, center)
+        phi = get_sph_phi(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         sphp = get_sph_phi_component(vel, phi, normal)
@@ -661,7 +661,7 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_cyl_theta(pos, center)
+        theta = get_cyl_theta(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         cylr = get_cyl_r_component(vel, theta, normal)
@@ -685,7 +685,7 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_cyl_theta(pos, center)
+        theta = get_cyl_theta(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         cylt = get_cyl_theta_component(vel, theta, normal)
@@ -766,8 +766,12 @@ def add_particle_average(registry, ptype, field_name,
 
 def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
-        nneighbors = None):
-    field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
+        nneighbors = None, kernel_name = 'cubic'):
+    if kernel_name == 'cubic':
+        field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
+    else:
+        field_name = ("deposit", "%s_%s_smoothed_%s" % (ptype, kernel_name,
+                      smoothed_field))
     field_units = registry[ptype, smoothed_field].units
     def _vol_weight(field, data):
         pos = data[ptype, coord_name]
@@ -789,7 +793,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
-                         create_octree=True)[0]
+                         create_octree=True,
+                         kernel_name=kernel_name)[0]
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         rv = data.apply_units(rv, field_units)
@@ -816,8 +821,12 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
-def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
-    field_name = (ptype, "smoothed_density")
+def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
+                       kernel_name = 'cubic'):
+    if kernel_name == 'cubic':
+        field_name = (ptype, "smoothed_density")
+    else:
+        field_name = (ptype, "%s_smoothed_density" % (kernel_name))
     field_units = registry[ptype, mass_name].units
     def _nth_neighbor(field, data):
         pos = data[ptype, coord_name]
@@ -827,7 +836,8 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
         densities = mass * 0.0
         data.particle_operation(pos, [mass, densities],
                          method="density",
-                         nneighbors = nneighbors)
+                         nneighbors = nneighbors,
+                         kernel_name = kernel_name)
         ones = pos.prod(axis=1) # Get us in code_length**3
         ones[:] = 1.0
         densities /= ones

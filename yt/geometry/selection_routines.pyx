@@ -109,6 +109,8 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
+        cdef np.float64_t [:] DLE
+        cdef np.float64_t [:] DRE
         self.min_level = getattr(dobj, "min_level", 0)
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0

@@ -2,7 +2,6 @@ import os
 import sys
 
 from yt.convenience import load
-from yt.testing import *
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_sim

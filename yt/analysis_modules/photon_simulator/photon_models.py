@@ -24,7 +24,8 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 
 from yt.extern.six import string_types
 import numpy as np
-from yt.funcs import *
+from yt.funcs import mylog, get_pbar
+from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import mp
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_objects

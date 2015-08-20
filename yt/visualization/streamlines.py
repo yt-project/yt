@@ -15,7 +15,8 @@ Import the components of the volume rendering extension
 
 import numpy as np
 from yt.data_objects.construction_data_containers import YTStreamlineBase
-from yt.funcs import *
+from yt.funcs import get_pbar
+from yt.units.yt_array import YTArray
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree

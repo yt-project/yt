@@ -18,7 +18,6 @@ import os
 import numpy as np
 import h5py
 import math
-import itertools
 
 from yt.config import ytcfg
 from yt.extern.six.moves import zip as izip

@@ -13,7 +13,7 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
@@ -27,6 +27,7 @@ from . import _MPL
 import numpy as np
 import weakref
 import re
+import types
 
 class FixedResolutionBuffer(object):
     r"""
@@ -160,7 +161,7 @@ class FixedResolutionBuffer(object):
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
         result = False
-        if p.search( fname ) != None:
+        if p.search( fname ) is not None:
             result = True
         return result
 
@@ -173,7 +174,7 @@ class FixedResolutionBuffer(object):
 
         p = re.compile("_p[0-9]+_")
         m = p.search( fname )
-        if m != None:
+        if m is not None:
             pstr = m.string[m.start()+1:m.end()-1]
             segments = fname.split("_")
             for i,s in enumerate(segments):
