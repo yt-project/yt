@@ -65,7 +65,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         index = data_source.ds.index
         if hasattr(index, 'meshes'):  # unstructured mesh dataset
             mesh = index.meshes[0]
-            offset = 1
+            offset = index.io._INDEX_OFFSET
             ad = data_source.ds.all_data()
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]
