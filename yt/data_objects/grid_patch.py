@@ -77,13 +77,12 @@ class AMRGridPatch(YTSelectionContainer):
         if self.start_index is not None:
             return self.start_index
         if self.Parent is None:
-            left = self.LeftEdge - self.ds.domain_left_edge
-            start_index = left / self.dds
-            return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
+            left = self.LeftEdge.d - self.ds.domain_left_edge.d
+            start_index = left / self.dds.d
+            return np.rint(start_index).astype('int64').ravel()
 
-        pdx = self.Parent.dds.ndarray_view()
-        di = np.rint( (self.LeftEdge.ndarray_view() -
-                       self.Parent.LeftEdge.ndarray_view()) / pdx)
+        pdx = self.Parent.dds.d
+        di = np.rint((self.LeftEdge.d - self.Parent.LeftEdge.d) / pdx)
         start_index = self.Parent.get_global_startindex() + di
         self.start_index = (start_index * self.ds.refine_by).astype('int64').ravel()
         return self.start_index
@@ -251,7 +250,7 @@ class AMRGridPatch(YTSelectionContainer):
         field_parameters.update(self.field_parameters)
         if smoothed:
             cube = self.ds.smoothed_covering_grid(
-                level, new_left_edge, 
+                level, new_left_edge,
                 field_parameters = field_parameters,
                 **kwargs)
         else:
