@@ -60,12 +60,14 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         node_names = self.dataset.parameters['nod_names']
         self.field_list += [('node', fname) for fname in node_names]
 
+
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
     _field_info_class = ExodusIIFieldInfo
 
     def __init__(self,
                  filename,
+                 step=0,
                  dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
@@ -76,6 +78,7 @@ class ExodusIIDataset(Dataset):
                          units_override = units_override)
         self.index_filename             = filename
         self.storage_filename           = storage_filename
+        self.step = step
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -114,6 +117,7 @@ class ExodusIIDataset(Dataset):
         self.omega_matter               = 0
         self.hubble_constant            = 0
         self.refine_by                  = 0
+        self.num_steps                  = len(self.parameters['time_whole'])
 
     def _load_variables(self):
         """

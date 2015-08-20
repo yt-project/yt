@@ -73,7 +73,7 @@ class IOHandlerExodusII(BaseIOHandler):
                     mesh_id = chunk.objs[0].mesh_id
                     ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
                          - self._INDEX_OFFSET
-                    data = fdata[-1][ci]
+                    data = fdata[self.ds.step][ci]
                     for g in chunk.objs:
                         ind += g.select(selector, data, rv[field], ind)  # caches
             if fname in self.elem_fields:
@@ -82,7 +82,7 @@ class IOHandlerExodusII(BaseIOHandler):
                     mesh_id = chunk.objs[0].mesh_id
                     fdata = self.handler.variables['vals_elem_var%deb%d' %
                                                    (field_ind + 1, mesh_id + 1)][:]
-                    data = fdata[-1, :]
+                    data = fdata[self.ds.step, :]
                     for g in chunk.objs:
                         ind += g.select(selector, data, rv[field], ind)  # caches
         return rv
