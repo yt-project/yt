@@ -24,6 +24,7 @@ from distutils.version import LooseVersion
 
 from matplotlib.patches import Circle
 from matplotlib.colors import colorConverter
+from matplotlib import cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 from yt.funcs import \
@@ -33,7 +34,11 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-    import periodic_ray
+     import periodic_ray
+from yt.utilities.lib.line_integral_convolution import \
+    line_integral_convolution_2d
+import warnings
+
 
 from . import _MPL
 
@@ -2047,5 +2052,122 @@ class RayCallback(PlotCallback):
                                    coord_system='data',
                                    plot_args=self.plot_args)
             lcb(plot)
+
+        return plot
+
+class LineIntegralConvolutionCallback(PlotCallback):
+    """
+    annotate_line_integral_convolution(field_x, field_y, texture=None,
+                                       kernellen=50., lim=(0.5,0.6),
+                                       cmap='binary', alpha=0.8,
+                                       const_alpha=False):
+
+    Add the line integral convolution to the plot for vector fields 
+    visualization. Two component of vector fields needed to be provided
+    (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
+
+    Parameters
+    ----------
+
+    field_x, field_y : string
+        The names of two components of vector field which will be visualized
+
+    texture : 2-d array with the same shape of image, optional
+        Texture will be convolved when computing line integral convolution.
+        A white noise background will be used as default.
+
+    kernellen : float, optional
+        The lens of kernel for convolution, which is the length over which the
+        convolution will be performed. For longer kernellen, longer streamline
+        structure will appear.
+
+    lim : 2-element tuple, list, or array, optional
+        The value of line integral convolution will be clipped to the range
+        of lim, which applies upper and lower bounds to the values of line
+        integral convolution and enhance the visibility of plots. Each element
+        should be in the range of [0,1].
+
+    cmap : string, optional
+        The name of colormap for line integral convolution plot.
+
+    alpha : float, optional
+        The alpha value for line integral convolution plot.
+
+    const_alpha : boolean, optional
+        If set to False (by default), alpha will be weighted spatially by
+        the values of line integral convolution; otherwise a constant value
+        of the given alpha is used.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_line_integral_convolution('velocity_x', 'velocity_y',\
+                                             lim=(0.5,0.65))
+    """
+    _type_name = "line_integral_convolution"
+    def __init__(self, field_x, field_y, texture=None, kernellen=50.,
+                 lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
+        PlotCallback.__init__(self)
+        self.field_x = field_x
+        self.field_y = field_y
+        self.texture = texture
+        self.kernellen = kernellen
+        self.lim = lim
+        self.cmap = cmap
+        self.alpha = alpha
+        self.const_alpha = const_alpha
+
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        bounds = [x0,x1,y0,y1]
+        extent = [xx0,xx1,yy0,yy1]
+
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[0]
+        ny = plot.image._A.shape[1]
+        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_x,
+                                                 bounds,
+                                                 (nx,ny))
+        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_y,
+                                                 bounds,
+                                                 (nx,ny))
+
+        vectors = np.concatenate((pixX[...,np.newaxis],
+                                  pixY[...,np.newaxis]),axis=2)
+
+        if self.texture == None:
+            self.texture = np.random.rand(nx,ny).astype(np.double)
+        elif self.texture.shape != (nx,ny):
+            raise SyntaxError("'texture' must have the same shape "
+                              "with that of output image (%d, %d)" % (nx,ny))
+
+        kernel = np.sin(np.arange(self.kernellen)*np.pi/self.kernellen)
+        kernel = kernel.astype(np.double)
+
+        lic_data = line_integral_convolution_2d(vectors,self.texture,kernel)
+        lic_data = np.flipud(lic_data / lic_data.max())
+        lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
+
+        if self.const_alpha:
+            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap, 
+                              alpha=self.alpha)
+        else:
+            lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
+                            to_rgba(lic_data_clip)
+            lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
+                                    / (self.lim[1] - self.lim[0])
+            lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
+            plot._axes.imshow(lic_data_rgba, extent=extent)
+        plot._axes.hold(False)
 
         return plot

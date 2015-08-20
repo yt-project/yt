@@ -141,7 +141,8 @@ class OctreeSubset(YTSelectionContainer):
             self._domain_ind = di
         return self._domain_ind
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name='cubic'):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         exclusively local input.
 
@@ -176,7 +177,8 @@ class OctreeSubset(YTSelectionContainer):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
-        op = cls(nvals) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(nvals, kernel_name)
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
@@ -192,7 +194,8 @@ class OctreeSubset(YTSelectionContainer):
         return np.asfortranarray(vals)
 
     def smooth(self, positions, fields = None, index_fields = None,
-               method = None, create_octree = False, nneighbors = 64):
+               method = None, create_octree = False, nneighbors = 64,
+               kernel_name = 'cubic'):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         non-local input.
 
@@ -258,7 +261,7 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         mdom_ind = self.domain_ind
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
-        op = cls(nvals, len(fields), nneighbors)
+        op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
@@ -280,7 +283,7 @@ class OctreeSubset(YTSelectionContainer):
         return vals
 
     def particle_operation(self, positions, fields = None,
-            method = None, nneighbors = 64):
+            method = None, nneighbors = 64, kernel_name = 'cubic'):
         r"""Operate on particles, in a particle-against-particle fashion.
 
         This uses the octree indexing system to call a "smoothing" operation
@@ -335,7 +338,7 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         mdom_ind = self.domain_ind
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
-        op = cls(nvals, len(fields), nneighbors)
+        op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])

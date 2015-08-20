@@ -463,6 +463,35 @@ Overplot Streamlines
    s.annotate_streamlines('velocity_x', 'velocity_y')
    s.save()
 
+.. _annotate-line-integral-convolution:
+
+Overplot Line Integral Convolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_line_integral_convolution(self, field_x, field_y, \
+                                                 texture=None, kernellen=50., \
+                                                 lim=(0.5,0.6), cmap='binary', \
+                                                 alpha=0.8, const_alpha=False)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.LineIntegralConvolutionCallback`.)
+
+   Add line integral convolution to any plot, using the ``field_x`` and ``field_y`` 
+   from the associated data. A white noise background will be used for ``texture`` 
+   as default. Adjust the bounds of ``lim`` in the range of ``[0, 1]`` which applies 
+   upper and lower bounds to the values of line integral convolution and enhance 
+   the visibility of plots. When ``const_alpha=False``, alpha will be weighted 
+   spatially by the values of line integral convolution; otherwise a constant value 
+   of the given alpha is used.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+   s.annotate_line_integral_convolution('velocity_x', 'velocity_y', lim=(0.5,0.65))
+   s.save()
+
 .. _annotate-text:
 
 Overplot Text
