@@ -729,7 +729,11 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
-        if self._plot_valid: return
+        if self._plot_valid:
+            return
+        if not self._data_valid:
+            self._recreate_frb()
+            self._data_valid = True
         self._colorbar_valid = True
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
@@ -971,7 +975,7 @@ class PWViewerMPL(PlotWindow):
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
         self._set_font_properties()
-
+        self.run_callbacks()
         self._plot_valid = True
 
     def setup_callbacks(self):
