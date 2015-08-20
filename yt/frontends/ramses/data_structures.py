@@ -479,6 +479,7 @@ class RAMSESIndex(OctreeIndex):
             self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
 
     def print_stats(self):
+        self._initialize_level_stats()
         """
         Prints out (stdout) relevant information about the simulation
         """

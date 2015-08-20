@@ -41,7 +41,7 @@ class OctreeIndex(Index):
     def _setup_geometry(self):
         mylog.debug("Initializing Octree Geometry Handler.")
         self._initialize_oct_handler()
-        self._initialize_level_stats()
+
 
     def get_smallest_dx(self):
         """
