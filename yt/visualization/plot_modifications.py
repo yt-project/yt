@@ -1918,14 +1918,20 @@ class ScaleCallback(PlotCallback):
 
         size_vertical = self.size_bar_args.pop('size_vertical', .005)
         fontproperties = self.size_bar_args.pop(
-            'fontproperties', plot.font_properties)
+            'fontproperties', plot.font_properties.copy())
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
         if self.text_args is not None:
             # FontProperties instances use private attributes, so prepend 
             # text_args with _
             for key in self.text_args:
                 new_key = "_"+key
-                setattr(fontproperties, new_key, self.text_args[key])
+                try: 
+                    getattr(fontproperties, new_key)
+                    setattr(fontproperties, new_key, self.text_args[key])
+                except AttributeError:
+                    raise AttributeError("Cannot set text_args keyword " \
+                    "to include '%s' because MPL's fontproperties object does " \
+                    "not contain attribute '%s'." % (key, key))
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
