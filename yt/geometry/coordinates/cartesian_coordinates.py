@@ -19,7 +19,9 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields, \
-    _get_vert_fields
+    _get_vert_fields, \
+    cartesian_to_cylindrical, \
+    cylindrical_to_cartesian
 import yt.visualization._MPL as _MPL
 
 
