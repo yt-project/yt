@@ -1866,6 +1866,8 @@ class ScaleCallback(PlotCallback):
         else:
             self.inset_box_args = inset_box_args
         self.draw_inset_box = draw_inset_box
+        if text_args is None:
+            text_args = {}
         self.text_args = text_args
 
     def __call__(self, plot):
@@ -1922,10 +1924,10 @@ class ScaleCallback(PlotCallback):
         if self.text_args is not None:
             # FontProperties instances use private attributes, so prepend 
             # text_args with _
-            for key in self.text_args:
+            for key, val in self.text_args.items():
                 setter_func = "set_"+key
                 try: 
-                    getattr(fontproperties, setter_func)(self.text_args[key])
+                    getattr(fontproperties, setter_func)(val)
                 except AttributeError:
                     raise AttributeError("Cannot set text_args keyword " \
                     "to include '%s' because MPL's fontproperties object does " \
