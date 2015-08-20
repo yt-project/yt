@@ -22,6 +22,8 @@ from .coordinate_handler import \
     _get_vert_fields, \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_element_mesh
 import yt.visualization._MPL as _MPL
 
 
@@ -60,7 +62,26 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        if dimension < 3:
+        index = data_source.ds.index
+        if hasattr(index, 'meshes'):  # unstructured mesh dataset
+            mesh = index.meshes[0]
+            offset = 1
+            ad = data_source.ds.all_data()
+            field_data = ad[field]
+            buff_size = size[0:dimension] + (1,) + size[dimension:]
+
+            c = np.float64(data_source.center[dimension].d)
+            bounds.insert(2*dimension, c)
+            bounds.insert(2*dimension, c)
+            bounds = np.reshape(bounds, (3, 2))
+
+            img = pixelize_element_mesh(mesh.connectivity_coords,
+                                        mesh.connectivity_indices,
+                                        buff_size, field_data, bounds,
+                                        index_offset=offset)
+
+            return np.squeeze(img)
+        elif dimension < 3:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
