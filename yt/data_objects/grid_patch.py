@@ -330,12 +330,14 @@ class AMRGridPatch(YTSelectionContainer):
     def particle_operation(self, *args, **kwargs):
         raise NotImplementedError
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(self.ActiveDimensions.prod(), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
