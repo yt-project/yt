@@ -42,7 +42,6 @@ class OctreeIndex(Index):
         mylog.debug("Initializing Octree Geometry Handler.")
         self._initialize_oct_handler()
 
-
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
@@ -52,7 +51,3 @@ class OctreeIndex(Index):
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
-
-
-
-
