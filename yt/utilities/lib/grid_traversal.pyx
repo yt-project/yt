@@ -19,7 +19,7 @@ cimport cython
 #cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, asin, cos, sin, sqrt
+    lrint, fabs, atan, atan2, asin, cos, sin, sqrt
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -29,15 +29,6 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 
 DEF Nch = 4
-
-ctypedef void sampler_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
 
 cdef class PartitionedGrid:
 
@@ -183,30 +174,12 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
-cdef struct ImageContainer:
-    np.float64_t *vp_pos
-    np.float64_t *vp_dir
-    np.float64_t *center
-    np.float64_t *image
-    np.float64_t pdx, pdy
-    np.float64_t bounds[4]
-    int nv[2]
-    int vp_strides[3]
-    int im_strides[3]
-    int vd_strides[3]
-    np.float64_t *x_vec
-    np.float64_t *y_vec
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
     void *supp_data
 
 cdef class ImageSampler:
-    cdef ImageContainer *image
-    cdef sampler_function *sampler
-    cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
-    cdef void *supp_data
-    cdef np.float64_t width[3]
     def __init__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,
@@ -219,6 +192,8 @@ cdef class ImageSampler:
                   *args, **kwargs):
         self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
         cdef ImageContainer *imagec = self.image
+        cdef np.ndarray[np.float64_t, ndim=2] zbuffer
+        zbuffer = kwargs.pop("zbuffer", None)
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
@@ -229,12 +204,16 @@ cdef class ImageSampler:
         self.aimage = image
         self.ax_vec = x_vec
         self.ay_vec = y_vec
+        self.azbuffer = zbuffer
         imagec.vp_pos = <np.float64_t *> vp_pos.data
         imagec.vp_dir = <np.float64_t *> vp_dir.data
         imagec.center = <np.float64_t *> center.data
         imagec.image = <np.float64_t *> image.data
         imagec.x_vec = <np.float64_t *> x_vec.data
         imagec.y_vec = <np.float64_t *> y_vec.data
+        imagec.zbuffer = NULL
+        if zbuffer is not None:
+            imagec.zbuffer = <np.float64_t *> zbuffer.data
         imagec.nv[0] = image.shape[0]
         imagec.nv[1] = image.shape[1]
         for i in range(4): imagec.bounds[i] = bounds[i]
@@ -314,6 +293,7 @@ cdef class ImageSampler:
         cdef np.float64_t *v_dir
         cdef np.float64_t rgba[6]
         cdef np.float64_t extrema[4]
+        cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
         if im.vd_strides[0] == -1:
@@ -353,28 +333,38 @@ cdef class ImageSampler:
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
                     for i in range(Nch): idata.rgba[i] = im.image[i + offset]
+                    if im.zbuffer != NULL:
+                        max_t = im.zbuffer[im.nv[0] * vi + vj]
+                    else:
+                        max_t = 1.0
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                                (<void *> idata))
+                                (<void *> idata), NULL, max_t)
                     for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(idata)
                 free(v_pos)
         else:
-            with nogil, parallel():
+            with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
-                # our rays
+                # our rays 
                 for j in prange(size, schedule="dynamic", chunksize=100):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
+                    if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
+                        continue
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
                     for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
-                    walk_volume(vc, v_pos, v_dir, self.sampler,
-                                (<void *> idata))
+                    if im.zbuffer != NULL:
+                        max_t = fclip(im.zbuffer[j], 0.0, 1.0)
+                    else:
+                        max_t = 1.0
+                    walk_volume(vc, v_pos, v_dir, self.sampler, 
+                                (<void *> idata), NULL, max_t)
                     for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
                 free(v_dir)
                 free(idata)
@@ -466,9 +456,9 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  n_samples = 10):
+                  n_samples = 10, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
@@ -677,9 +667,9 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
-                  star_list = None):
+                  star_list = None, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -749,9 +739,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
                   light_dir=[1.,1.,1.],
-                  light_rgba=[1.,1.,1.,1.]):
+                  light_rgba=[1.,1.,1.,1.],
+                  **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -806,7 +797,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0) nogil:
+                     np.float64_t max_t = 1.0) nogil:
     cdef int cur_ind[3]
     cdef int step[3]
     cdef int x, y, i, n, flat_ind, hit, direction
@@ -814,8 +805,9 @@ cdef int walk_volume(VolumeContainer *vc,
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tmax[3]
     cdef np.float64_t tdelta[3]
-    cdef np.float64_t dist, alpha, dt, exit_t
+    cdef np.float64_t dist, alpha, dt, exit_t, enter_t = -1.0
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
+    if max_t > 1.0: max_t = 1.0
     direction = -1
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
        vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
@@ -853,8 +845,8 @@ cdef int walk_volume(VolumeContainer *vc,
            0.0 <= tl and tl < intersect_t:
             direction = i
             intersect_t = tl
-    if enter_t >= 0.0: intersect_t = enter_t
-    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
+    if enter_t >= 0.0: intersect_t = enter_t 
+    if not ((0.0 <= intersect_t) and (intersect_t < max_t)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
@@ -898,12 +890,12 @@ cdef int walk_volume(VolumeContainer *vc,
                 i = 1
             else:
                 i = 2
-        exit_t = fmin(tmax[i], 1.0)
+        exit_t = fmin(tmax[i], max_t)
         sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
         cur_ind[i] += step[i]
         enter_t = tmax[i]
         tmax[i] += tdelta[i]
-        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= 1.0:
+        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= max_t:
             break
     if return_t != NULL: return_t[0] = exit_t
     return hit
@@ -1102,22 +1094,19 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
     cdef np.ndarray[np.float64_t, ndim=3] vp
     cdef int i, j, k
     cdef np.float64_t r, phi, theta, px, py
-    cdef np.float64_t pi = 3.1415926
-    cdef np.float64_t fov_rad = fov * pi / 180.0
+    cdef np.float64_t fov_rad = fov * np.pi / 180.0
     cdef int nx = resolution/nimx
     cdef int ny = resolution/nimy
     vp = np.zeros((nx,ny, 3), dtype="float64")
     for i in range(nx):
-        px = 2.0 * (nimi*nx + i) / (resolution) - 1.0
+        px = (2.0 * (nimi*nx + i)) / resolution - 1.0
         for j in range(ny):
-            py = 2.0 * (nimj*ny + j) / (resolution) - 1.0
+            py = (2.0 * (nimj*ny + j)) / resolution - 1.0
             r = (px*px + py*py)**0.5
-            if r == 0.0:
-                phi = 0.0
-            elif px < 0:
-                phi = pi - asin(py / r)
-            else:
-                phi = asin(py / r)
+            if r > 1.01:
+                vp[i,j,0] = vp[i,j,1] = vp[i,j,2] = 0.0
+                continue
+            phi = atan2(py, px)
             theta = r * fov_rad / 2.0
             theta += off_theta
             phi += off_phi

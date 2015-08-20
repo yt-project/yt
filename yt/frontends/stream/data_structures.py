@@ -50,7 +50,7 @@ from yt.fields.particle_fields import \
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredIndex
+    UnstructuredIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
@@ -69,8 +69,8 @@ from yt.utilities.definitions import \
 from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
-           SemiStructuredMesh, \
-           UnstructuredMesh
+    SemiStructuredMesh, \
+    UnstructuredMesh
 from yt.extern.six import string_types, iteritems
 from .fields import \
     StreamFieldInfo
@@ -1618,6 +1618,7 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
+
 def load_unstructured_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
                          mass_unit = None, time_unit = None,
@@ -1634,16 +1635,13 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.
-    
+
     Parameters
     ----------
     data : dict or list of dicts
         This is a list of dicts of numpy arrays, where each element in the list
-        is a different mesh, and where the keys of dicts are the field names. 
-        Note that the data in the numpy arrays should define the cell-averaged
-        value for of the quantity in the mesh cells, although this will change
-        with subsequent generations of unstructured mesh support.  If a dict is
-        supplied, this will be assumed to be the only mesh.
+        is a different mesh, and where the keys of dicts are the field names.
+        If a dict is supplied, this will be assumed to be the only mesh.
     connectivity : list of array_like or array_like
         This is the connectivity array for the meshes; this should either be a
         list where each element in the list is a numpy array or a single numpy
@@ -1683,8 +1681,8 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     data = ensure_list(data)
     connectivity = ensure_list(connectivity)
     if bbox is None:
-        bbox = np.array([ [coordinates[:,i].min(),
-                           coordinates[:,i].max()]
+        bbox = np.array([[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
+                          coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
                           for i in range(3)], "float64")
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
@@ -1693,7 +1691,7 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     field_units = {}
     particle_types = {}
     sfh = StreamDictFieldHandler()
-    
+
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates})
     for i, d in enumerate(data):
@@ -1752,4 +1750,3 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     sds = StreamUnstructuredMeshDataset(handler, geometry = geometry)
 
     return sds
-

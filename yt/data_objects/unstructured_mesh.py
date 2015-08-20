@@ -169,9 +169,9 @@ class UnstructuredMesh(YTSelectionContainer):
 
     def select_fcoords_vertex(self, dobj = None):
         mask = self._get_selector_mask(dobj.selector)
-        if mask is None: 
-            return np.empty((0, self._connectivity_length, 3), dtype='float64')
-        vertices = self.connectivity_coords[self.connectivity_indices - 1]
+        if mask is None: return np.empty((0,self._connectivity_length,3), dtype='float64')
+        vertices = self.connectivity_coords[
+                self.connectivity_indices - 1]
         return vertices[mask, :, :]
 
 
@@ -193,14 +193,6 @@ class SemiStructuredMesh(UnstructuredMesh):
         elif field == "dz":
             return self._current_chunk.fwidth[:,2]
 
-    def select_fcoords(self, dobj = None):
-        mask = self._get_selector_mask(dobj.selector)
-        if mask is None: return np.empty((0,3), dtype='float64')
-        centers = fill_fcoords(self.connectivity_coords,
-                               self.connectivity_indices,
-                               self._index_offset)
-        return centers[mask, :]
-
     def select_fwidth(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
@@ -220,16 +212,4 @@ class SemiStructuredMesh(UnstructuredMesh):
         if mask is None: return np.empty(0, dtype='float64')
         dt, t = dobj.selector.get_dt_mesh(self, mask.sum(), self._index_offset)
         return dt, t
-
-    def _get_selector_mask(self, selector):
-        if hash(selector) == self._last_selector_id:
-            mask = self._last_mask
-        else:
-            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
-            self._last_selector_id = hash(selector)
-            if mask is None:
-                self._last_count = 0
-            else:
-                self._last_count = mask.sum()
-        return mask
 

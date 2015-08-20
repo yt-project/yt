@@ -154,8 +154,11 @@ from yt.visualization.api import \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+    volume_render, ColorTransferFunction, TransferFunction, \
+    off_axis_projection
+import yt.visualization.volume_rendering.api as volume_rendering
+#    TransferFunctionHelper, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system
