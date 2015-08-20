@@ -75,6 +75,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
             bounds.insert(2*dimension, c)
             bounds = np.reshape(bounds, (3, 2))
 
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+
             img = pixelize_element_mesh(mesh.connectivity_coords,
                                         mesh.connectivity_indices,
                                         buff_size, field_data, bounds,

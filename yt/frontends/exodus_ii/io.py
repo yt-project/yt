@@ -56,7 +56,10 @@ class IOHandlerExodusII(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+            if fname in self.node_fields:
+                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+            elif fname in self.elem_fields:
+                rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ftype, fname in fields], ngrids)
@@ -70,7 +73,7 @@ class IOHandlerExodusII(BaseIOHandler):
                     mesh_id = chunk.objs[0].mesh_id
                     ci = self.handler.variables['connect%d' % (mesh_id + 1)][:] \
                          - self._INDEX_OFFSET
-                    data = fdata[0][ci]
+                    data = fdata[-1][ci]
                     for g in chunk.objs:
                         ind += g.select(selector, data, rv[field], ind)  # caches
             if fname in self.elem_fields:
@@ -78,8 +81,8 @@ class IOHandlerExodusII(BaseIOHandler):
                 for chunk in chunks:
                     mesh_id = chunk.objs[0].mesh_id
                     fdata = self.handler.variables['vals_elem_var%deb%d' %
-                                                   (field_ind + 1, mesh_id + 1)]
-                    data = fdata[0]
+                                                   (field_ind + 1, mesh_id + 1)][:]
+                    data = fdata[-1, :]
                     for g in chunk.objs:
                         ind += g.select(selector, data, rv[field], ind)  # caches
         return rv

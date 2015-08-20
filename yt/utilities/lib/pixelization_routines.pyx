@@ -452,6 +452,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
+    cdef int num_field_vals 
     cdef double* mapped_coord
     cdef ElementSampler sampler
 
@@ -466,7 +467,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         raise RuntimeError
 
     vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
-    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * nvertices)
+    
+    num_field_vals = field.shape[1]
+    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * num_field_vals)
 
     for i in range(3):
         pLE[i] = extents[i][0]
@@ -476,13 +479,18 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             idds[i] = 0.0
         else:
             idds[i] = 1.0 / dds[i]
+
     for ci in range(conn.shape[0]):
+
         # Fill the vertices
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
+
+        for n in range(num_field_vals):
+            field_vals[n] = field[ci, n]
+
         for n in range(nvertices):
             cj = conn[ci, n] - index_offset
-            field_vals[n] = field[ci, n]
             for i in range(3):
                 vertices[3*n + i] = coords[cj, i]
                 LE[i] = fmin(LE[i], vertices[3*n+i])
@@ -511,7 +519,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     if not sampler.check_inside(mapped_coord):
                         continue
                     # Else, we deposit!
-                    img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
-                                                                   field_vals)
-
+                    if (num_field_vals == 1):
+                        img[pi, pj, pk] = field_vals[0]
+                    else:
+                        img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
+                                                                       field_vals)
     return img
