@@ -12,7 +12,6 @@ Testsuite for ProfilePlot and PhasePlot
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import itertools
 import os
 import tempfile
 import shutil

@@ -11,15 +11,14 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import base64
+
 import numpy as np
-import types, os
-from yt.data_objects.construction_data_containers import YTOverlapProjBase
-from yt.data_objects.selection_data_containers import YTSliceBase
 from yt.visualization.fixed_resolution import \
-    FixedResolutionBuffer, ObliqueFixedResolutionBuffer
+    FixedResolutionBuffer
 from yt.data_objects.data_containers import \
     data_object_registry
-from yt.funcs import *
+from yt.funcs import iterable
 
 class VariableMeshPanner(object):
     _buffer = None
@@ -235,7 +234,7 @@ class MultipleWindowVariableMeshPanner(object):
         for w in self.windows: w.zoom(factor)
 
     def pan(self, deltas):
-        for w in self.windows: w.pan(factor)
+        for w in self.windows: w.pan(deltas)
 
     def pan_x(self, delta):
         for w in self.windows: w.pan_x(delta)
@@ -264,7 +263,9 @@ class ImageSaver(object):
         """
         self.tile_id = tile_id
 
-        import matplotlib;matplotlib.use("Agg");import pylab
+        import matplotlib
+        matplotlib.use("Agg")
+        import pylab
         self.pylab = pylab
         self.pylab.clf()
         fig = pylab.gcf()
@@ -299,6 +300,4 @@ class TransportAppender(object):
         to_plot = np.clip(to_plot, 0, 255)
         s = write_png_to_string(to_plot)
         response_body = "data:image/png;base64," + base64.encodestring(s)
-        tf.close()
         self.transport.append(response_body)
-

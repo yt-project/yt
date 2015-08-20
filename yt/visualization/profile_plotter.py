@@ -20,28 +20,24 @@ from yt.extern.six import string_types, iteritems
 import base64
 import os
 
-from functools import wraps
 import matplotlib
 import numpy as np
 from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
-from yt.units.yt_array import YTArray
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
-    create_profile, \
-    sanitize_field_tuple_keys
+    create_profile
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
-    iterable, \
     get_image_suffix, \
     get_ipython_api_version
 

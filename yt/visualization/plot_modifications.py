@@ -5,9 +5,6 @@ Callbacks to add additional functionality on to plots.
 
 
 """
-from __future__ import absolute_import
-from yt.extern.six import string_types
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -16,8 +13,12 @@ from yt.extern.six import string_types
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
+import warnings
+
+import matplotlib
 import numpy as np
-import h5py
 
 from distutils.version import LooseVersion
 
@@ -26,21 +27,18 @@ from matplotlib.colors import colorConverter
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, iterable
 from yt.extern.six import add_metaclass
-from ._mpl_imports import *
-from yt.utilities.physical_constants import \
-    sec_per_Gyr, sec_per_Myr, \
-    sec_per_kyr, sec_per_year, \
-    sec_per_day, sec_per_hr
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
      import periodic_ray
-from yt.utilities.lib.line_integral_convolution \
-     import line_integral_convolution_2d
+from yt.utilities.lib.line_integral_convolution import \
+    line_integral_convolution_2d
 import warnings
+
 
 from . import _MPL
 
@@ -116,13 +114,11 @@ class PlotCallback(object):
 
         x0 = np.array(np.tile(plot.xlim[0],ncoord))
         x1 = np.array(np.tile(plot.xlim[1],ncoord))
-        x2 = np.array([0, 1])
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
         y0 = np.array(np.tile(plot.ylim[0],ncoord))
         y1 = np.array(np.tile(plot.ylim[1],ncoord))
-        y2 = np.array([0, 1])
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
@@ -232,7 +228,7 @@ class PlotCallback(object):
         # For each label, set the font properties and color to the figure
         # defaults if not already set in the callback itself
         for label in labels:
-            if plot.font_color is not None and not 'color' in kwargs:
+            if plot.font_color is not None and 'color' not in kwargs:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
 
@@ -373,7 +369,7 @@ class QuiverCallback(PlotCallback):
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
-                           ).transpose()
+                             ).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
@@ -382,7 +378,7 @@ class QuiverCallback(PlotCallback):
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
-                           ).transpose()
+                             ).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:

@@ -48,8 +48,7 @@ from yt.extern.six.moves import \
 from yt.extern.six import string_types
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, validate_width_tuple, \
-    fix_unitary
+    fix_axis, fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -68,7 +67,6 @@ from yt.utilities.orientation import \
     Orientation
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
-    YTInvalidWidthError, \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
     YTPlotCallbackError
@@ -231,7 +229,7 @@ class PlotWindow(ImagePlotContainer):
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        if self.data_source.center is not None and oblique == False:
+        if self.data_source.center is not None and oblique is False:
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
