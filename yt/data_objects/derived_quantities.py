@@ -542,16 +542,19 @@ class MaxLocation(DerivedQuantity):
         return rv
 
     def process_chunk(self, data, field):
+        axis_names = data.ds.coordinates.axis_name
         field = data._determine_fields(field)[0]
         ma = array_like_field(data, -HUGE, field)
-        mx = array_like_field(data, -1, "x")
-        my = array_like_field(data, -1, "y")
-        mz = array_like_field(data, -1, "z")
+        mx = array_like_field(data, -1, axis_names[0])
+        my = array_like_field(data, -1, axis_names[1])
+        mz = array_like_field(data, -1, axis_names[2])
         maxi = -1
         if data[field].size > 0:
             maxi = np.argmax(data[field])
             ma = data[field][maxi]
-            mx, my, mz = [data[ax][maxi] for ax in 'xyz']
+            mx, my, mz = [data[ax][maxi] for ax in (axis_names[0],
+                                                    axis_names[1],
+                                                    axis_names[2])]
         return (ma, maxi, mx, my, mz)
 
     def reduce_intermediate(self, values):
