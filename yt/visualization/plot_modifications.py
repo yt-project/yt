@@ -1925,8 +1925,7 @@ class ScaleCallback(PlotCallback):
             for key in self.text_args:
                 setter_func = "set_"+key
                 try: 
-                    func = getattr(fontproperties, setter_func)
-                    func(self.text_args[key])
+                    getattr(fontproperties, setter_func)(self.text_args[key])
                 except AttributeError:
                     raise AttributeError("Cannot set text_args keyword " \
                     "to include '%s' because MPL's fontproperties object does " \
