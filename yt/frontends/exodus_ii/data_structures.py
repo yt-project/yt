@@ -75,8 +75,8 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.fluid_types               += ('connect1', 'connect2')
         self.parameter_filename         = filename
+        self.fluid_types += self._get_fluid_types()
         Dataset.__init__(self, filename, dataset_type,
                          units_override = units_override)
         self.index_filename             = filename
@@ -121,6 +121,19 @@ class ExodusIIDataset(Dataset):
         self.hubble_constant            = 0
         self.refine_by                  = 0
         self.num_steps                  = len(self.parameters['time_whole'])
+
+    def _get_fluid_types(self):
+        handle = NetCDF4FileHandler(self.parameter_filename).dataset
+        fluid_types = ()
+        i = 1
+        while True:
+            ftype = 'connect%d' % i
+            if ftype in handle.variables:
+                fluid_types += (ftype,)
+                i += 1
+            else:
+                break
+        return fluid_types
 
     def _load_variables(self):
         """
