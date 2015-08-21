@@ -24,6 +24,7 @@ from .coordinate_handler import \
     cylindrical_to_cartesian
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 import yt.visualization._MPL as _MPL
 
 
@@ -63,7 +64,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
         index = data_source.ds.index
-        if hasattr(index, 'meshes'):  # unstructured mesh dataset
+        if (hasattr(index, 'meshes') and
+           not isinstance(index.meshes[0], SemiStructuredMesh)):
             ftype, fname = field
             mesh_id = int(ftype[-1]) - 1
             mesh = index.meshes[mesh_id]
