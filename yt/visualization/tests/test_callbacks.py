@@ -15,11 +15,15 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 import tempfile
 import shutil
+from numpy.testing import \
+    assert_raises
 
 from yt.testing import \
     fake_amr_ds
 import yt.units as u
 from .test_plotwindow import assert_fname
+from yt.utilities.exceptions import \
+    YTPlotCallbackError
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot
 import contextlib
@@ -78,7 +82,7 @@ def test_timestamp_callback():
         yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
-        p.annotate_timestamp(corner='lower_right', redshift=True, 
+        p.annotate_timestamp(corner='lower_right', redshift=True,
                              draw_inset_box=True)
         p.save(prefix)
 
@@ -99,7 +103,13 @@ def test_scale_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_scale(corner='upper_right', coeff=10., unit='kpc')
-        p.save(prefix)
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_scale(text_args={"size": 24})
+        yield assert_fname, p.save(prefix)[0]
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_scale(text_args={"font": 24})
+        yield assert_raises, YTPlotCallbackError
 
 def test_line_callback():
     with _cleanup_fname() as prefix:
@@ -117,7 +127,7 @@ def test_line_callback():
         yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
-        p.annotate_line([0.1,0.1],[0.5,0.5], coord_system='axis', 
+        p.annotate_line([0.1,0.1],[0.5,0.5], coord_system='axis',
                         plot_args={'color':'red'})
         p.save(prefix)
 
@@ -345,7 +355,7 @@ def test_line_integral_convolution_callback():
             yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
-        p.annotate_line_integral_convolution("velocity_x", "velocity_y", 
+        p.annotate_line_integral_convolution("velocity_x", "velocity_y",
                                              kernellen=100., lim=(0.4,0.7),
                                              cmap='algae', alpha=0.9,
                                              const_alpha=True)
