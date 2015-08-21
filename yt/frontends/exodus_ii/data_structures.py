@@ -264,7 +264,7 @@ class ExodusIIDataset(Dataset):
         try:
             filename = args[0]
             fhandle = NetCDF4FileHandler(filename)
-            fmt = fhandle.dataset.file_format
-            return fmt.upper().startswith('NETCDF')
+            fhandle.dataset.variables['connect1']
+            return True
         except:
             pass
