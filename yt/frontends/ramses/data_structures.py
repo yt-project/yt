@@ -469,13 +469,14 @@ class RAMSESIndex(OctreeIndex):
         levels=sum([dom.level_count for dom in self.domains])
         desc = {'names': ['numcells','level'],
                 'formats':['Int64']*2}
-        max_level=self.dataset.max_level+1
+        max_level=self.dataset.min_level+self.dataset.max_level+2
         self.level_stats = blankRecordArray(desc, max_level)
         self.level_stats['level'] = [i for i in range(max_level)]
         self.level_stats['numcells'] = [0 for i in range(max_level)]
         for level in range(self.dataset.min_level+1):
             self.level_stats[level+1]['numcells']=2**(level*self.dataset.dimensionality)
         for level in range(self.max_level+1):
+            print(level)
             self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
 
     def print_stats(self):
@@ -486,7 +487,7 @@ class RAMSESIndex(OctreeIndex):
         header = "%3s\t%14s\t%14s" % ("level", "# cells","# cells^3")
         print(header)
         print("%s" % (len(header.expandtabs())*"-"))
-        for level in range(self.dataset.max_level+1):
+        for level in range(self.dataset.min_level+self.dataset.max_level+2):
             print("% 3i\t% 14i\t% 14i" % \
                   (level,
                    self.level_stats['numcells'][level],
@@ -497,7 +498,7 @@ class RAMSESIndex(OctreeIndex):
 
         dx = self.get_smallest_dx()
         try:
-            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
+            print("z = %0.8f" % (self.dataset.current_redshift))
         except:
             pass
         print("t = %0.8e = %0.8e s = %0.8e years" % \
