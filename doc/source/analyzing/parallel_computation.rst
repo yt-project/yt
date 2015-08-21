@@ -42,7 +42,18 @@ mpi4py website, but you may have luck by just running:
 
     $ pip install mpi4py
 
-Once that has been installed, you're all done!  You just need to launch your
+If you have an Anaconda installation of yt and there is no MPI library on the
+system you are using try:
+
+.. code-block:: bash
+
+    $ conda install mpi4py
+
+This will install `MPICH2 <https://www.mpich.org/>`_ and will interefere with
+other MPI libraries that are already installed. Therefore, it is preferable to
+use the ``pip`` installation method.
+
+Once mpi4py has been installed, you're all done!  You just need to launch your
 scripts with ``mpirun`` (or equivalent) and signal to yt that you want to
 run them in parallel by invoking the ``yt.enable_parallelism()`` function in
 your script.  In general, that's all it takes to get a speed benefit on a
