@@ -121,11 +121,11 @@ cdef inline kernel_func get_kernel_func(str kernel_name):
         return sph_kernel_quartic
     elif kernel_name == 'quintic':
         return sph_kernel_quintic
-    elif kernel_name == 'wenland2':
+    elif kernel_name == 'wendland2':
         return sph_kernel_wendland2
-    elif kernel_name == 'wenland4':
+    elif kernel_name == 'wendland4':
         return sph_kernel_wendland4
-    elif kernel_name == 'wenland6':
+    elif kernel_name == 'wendland6':
         return sph_kernel_wendland6
     else:
         raise NotImplementedError
