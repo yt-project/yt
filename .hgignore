@@ -38,6 +38,7 @@ yt/utilities/lib/geometry_utils.c
 yt/utilities/lib/image_utilities.c
 yt/utilities/lib/Interpolators.c
 yt/utilities/lib/kdtree.c
+yt/utilities/lib/line_integral_convolution.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/Octree.c
