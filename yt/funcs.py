@@ -14,6 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import errno
 from yt.extern.six import string_types
 import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
@@ -671,6 +672,57 @@ def fix_axis(axis, ds):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+def get_output_filename(name, keyword, suffix):
+    r"""Return an appropriate filename for output.
+
+    With a name provided by the user, this will decide how to 
+    appropriately name the output file by the following rules:
+    1. if name is None, the filename will be the keyword plus 
+       the suffix.
+    2. if name ends with "/", assume name is a directory and 
+       the file will be named name/(keyword+suffix).  If the
+       directory does not exist, first try to create it and
+       raise an exception if an error occurs.
+    3. if name does not end in the suffix, add the suffix.
+    
+    Parameters
+    ----------
+    name : str
+        A filename given by the user.
+    keyword : str
+        A default filename prefix if name is None.
+    suffix : str
+        Suffix that must appear at end of the filename.
+        This will be added if not present.
+
+    Examples
+    --------
+
+    >>> print get_output_filename(None, "Projection_x", ".png")
+    Projection_x.png
+    >>> print get_output_filename("my_file", "Projection_x", ".png")
+    my_file.png
+    >>> print get_output_filename("my_file/", "Projection_x", ".png")
+    my_file/Projection_x.png
+    
+    """
+    if name is None:
+        name = keyword
+    name = os.path.expanduser(name)
+    if name[-1] == os.sep and not os.path.isdir(name):
+        try:
+            os.mkdir(name)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+    if os.path.isdir(name):
+        name = os.path.join(name, keyword)
+    if not name.endswith(suffix):
+        name += suffix
+    return name
 
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""

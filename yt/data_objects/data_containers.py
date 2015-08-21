@@ -13,7 +13,9 @@ Various non-grid data containers.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import h5py
 import itertools
+import os
 import types
 import uuid
 from yt.extern.six import string_types
@@ -25,9 +27,12 @@ import weakref
 import shelve
 from contextlib import contextmanager
 
+from yt.funcs import get_output_filename
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.frontends.ytdata.utilities import \
+    to_yt_dataset
 from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
@@ -463,6 +468,90 @@ class YTDataContainer(object):
         df = pd.DataFrame(data)
         return df
 
+    def to_dataset(self, filename=None, fields=None):
+        r"""Export a data object to a reloadable yt dataset.
+
+        This function will take a data object and output a dataset 
+        containing either the fields presently existing or fields 
+        given in a list.  The resulting dataset can be reloaded as 
+        a yt dataset.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> dd = ds.all_data()
+        >>> fn1 = dd.to_dataset(["density", "temperature"])
+        >>> ds1 = yt.load(fn1)
+        >>> dd["velocity_magnitude"]
+        >>> fn2 = dd.to_dataset()
+        >>> ds2 = yt.load(fn2)
+        """
+
+        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        data_fields = data.keys()
+
+        need_grid_fields = False
+        need_particle_fields = False
+        ptypes = []
+        ftypes = {}
+        for field in data_fields:
+            if self.ds.field_info[field].particle_type:
+                if field[0] not in ptypes:
+                    ptypes.append(field[0])
+                ftypes[field] = field[0]
+                need_particle_fields = True
+            else:
+                ftypes[field] = "grid"
+                need_grid_fields = True
+
+        for ax in "xyz":
+            if need_particle_fields:
+                for ptype in ptypes:
+                    p_field = (ptype, "particle_position_%s" % ax)
+                    if p_field in self.ds.field_info and p_field not in data:
+                        data_fields.append(field)
+                        ftypes[p_field] = p_field[0]
+                        data[p_field] = self[p_field]
+            if need_grid_fields:
+                g_field = ("index", ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+                    
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self._con_args])
+        extra_attrs["data_type"] = "yt_data_container"
+        extra_attrs["container_type"] = self._type_name
+        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
+                      extra_attrs=extra_attrs)
+
+        return filename
+        
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
