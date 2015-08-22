@@ -72,13 +72,13 @@ class ExodusIIDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
 
-        self.parameter_filename         = filename
+        self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
-        self.step                       = step
+        self.step = step
         Dataset.__init__(self, filename, dataset_type,
-                         units_override = units_override)
-        self.index_filename             = filename
-        self.storage_filename           = storage_filename
+                         units_override=units_override)
+        self.index_filename = filename
+        self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -133,15 +133,6 @@ class ExodusIIDataset(Dataset):
             else:
                 break
         return fluid_types
-
-    def _load_variables(self):
-        """
-        Loads each key-pair in the Exodus II input file
-        as a parameter
-        """
-        handle = NetCDF4FileHandler(self.parameter_filename).dataset
-        for key in handle.variables.keys():
-            self.parameters[key] = handle.variables[key]
 
     def _read_glo_var(self):
         """
@@ -240,27 +231,6 @@ class ExodusIIDataset(Dataset):
         for i in range(self.parameters['num_meshes']):
             connectivity.append(self._vars["connect%d" % (i+1)][:].astype("i8"))
         return connectivity
-
-    # def _load_data(self):
-    #     """
-    #     Loads the fluid data
-    #     """
-    #     data = []
-    #     for i in range(self.parameters['num_meshes']):
-    #         ci = self.parameters['connectivity'][i]
-    #         vals = {}
-
-    #         for j, elem_name in enumerate(self.parameters['elem_names']):
-    #             vals['gas', elem_name] = self.parameters["vals_elem_var%seb%s" % (j+1, i+1)][:].astype("f8")[-1,:]
-
-    #         for j, nod_name in enumerate(self.parameters['nod_names']):
-    #             # We want just for this set of nodes all the node variables
-    #             # Use (ci - 1) to get these values
-    #             vals['gas', nod_name] = self.parameters["vals_nod_var%s" % (j+1)][:].astype("f8")[-1, ci - 1, ...]
-
-    #         data.append(vals)
-
-    #     return data
 
     def _load_domain_edge(self, domain_idx):
         """
