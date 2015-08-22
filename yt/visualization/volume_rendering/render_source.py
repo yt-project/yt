@@ -251,7 +251,14 @@ class VolumeSource(RenderSource):
 
 class MeshSource(RenderSource):
 
-    """docstring for MeshSource"""
+    """
+
+    MeshSource is a class for volume rendering unstructured mesh
+    data. This functionality requires the embree ray-tracing
+    engine and the associated pyembree python bindings to be
+    installed in order to function.
+
+    """
     _image = None
     data_source = None
 
