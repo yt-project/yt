@@ -542,6 +542,11 @@ class YTDataContainer(object):
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
+                g_field = ("index", "d" + ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
                     
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args])
