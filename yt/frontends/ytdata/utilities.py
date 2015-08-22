@@ -110,11 +110,14 @@ def to_yt_dataset(ds, filename, data, field_types=None,
             field_type = field_types[field]
         if field_type not in fh:
             fh.create_group(field_type)
-        
         # for now, let's avoid writing "code" units
-        if hasattr(field, "units"):
+        if hasattr(data[field], "units"):
             data[field].convert_to_cgs()
-        dataset = _yt_array_hdf5(fh[field_type], field, data[field])
+        if isinstance(field, tuple):
+            field_name = field[1]
+        else:
+            field_name = field
+        dataset = _yt_array_hdf5(fh[field_type], field_name, data[field])
     fh.close()
 
 def _hdf5_yt_array(fh, field, ds=None):
