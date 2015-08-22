@@ -298,12 +298,14 @@ class MeshSource(RenderSource):
             raise RuntimeError("Mesh not initialized")
 
     def build_mesh(self):
-
+        ftype, fname = self.field
+        print ftype, fname
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.io._INDEX_OFFSET
         field_data = self.data_source[self.field]
-        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
-
-        # convert the indices to zero-based indexing
-        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
 
         self.mesh = mesh_construction.ElementMesh(self.scene,
                                                   vertices,
