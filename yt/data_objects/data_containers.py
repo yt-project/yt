@@ -522,7 +522,7 @@ class YTDataContainer(object):
             if self.ds.field_info[field].particle_type:
                 if field[0] not in ptypes:
                     ptypes.append(field[0])
-                ftypes[field] = field[0]
+                ftypes[field] = "%s_particles" % field[0]
                 need_particle_fields = True
             else:
                 ftypes[field] = "grid"
@@ -534,7 +534,7 @@ class YTDataContainer(object):
                     p_field = (ptype, "particle_position_%s" % ax)
                     if p_field in self.ds.field_info and p_field not in data:
                         data_fields.append(field)
-                        ftypes[p_field] = p_field[0]
+                        ftypes[p_field] = "%s_particles" % p_field[0]
                         data[p_field] = self[p_field]
             if need_grid_fields:
                 g_field = ("index", ax)
@@ -547,7 +547,7 @@ class YTDataContainer(object):
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
-                    
+
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args])
         extra_attrs["data_type"] = "yt_data_container"
