@@ -13,6 +13,7 @@ Test Surface Mesh Rendering
 
 import yt
 import numpy as np
+from yt.testing import fake_tetrahedral_ds
 from yt.testing import requires_module
 from yt.visualization.volume_rendering.render_source import MeshSource
 from yt.visualization.volume_rendering.camera import Camera
@@ -22,9 +23,7 @@ from yt.frontends.stream.sample_data.unstructured_mesh import \
 
 @requires_module("pyembree")
 def test_surface_mesh_render():
-    data ={}
-    data[('connect1', 'test')] = np.ones_like(_connectivity)
-    ds = yt.load_unstructured_mesh(_connectivity, _coordinates, node_data=data)
+    ds = fake_tetrahedral_ds()
     ms = MeshSource(ds, ('connect1', 'test'))
     cam = Camera(ds)
     im = ms.render(cam)

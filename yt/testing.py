@@ -259,6 +259,17 @@ def fake_particle_ds(
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
+
+def fake_tetrahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.unstructured_mesh import \
+        _connectivity, _coordinates
+    data = {}
+    data[('connect1', 'test')] = np.ones_like(_connectivity)
+    ds = load_unstructured_mesh(_connectivity, _coordinates, node_data=data)
+    return ds
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
