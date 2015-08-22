@@ -259,7 +259,6 @@ class IOHandlerStreamOctree(BaseIOHandler):
 
 class IOHandlerStreamUnstructured(BaseIOHandler):
     _dataset_type = "stream_unstructured"
-    _node_types = ("diffused", "convected", "u", "temp")
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -273,7 +272,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             nodes_per_element = self.fields[mesh_id][field].shape[1]
-            if fname in self._node_types:
+            if field in self.ds._node_fields:
                 rv[field] = np.empty((size, nodes_per_element), dtype="float64")
             else:
                 rv[field] = np.empty(size, dtype="float64")

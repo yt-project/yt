@@ -23,9 +23,9 @@ from yt.frontends.stream.sample_data.unstructured_mesh import \
 @requires_module("pyembree")
 def test_surface_mesh_render():
     data ={}
-    data[('gas', 'diffused')] = np.ones_like(_connectivity)
-    ds = yt.load_unstructured_mesh(data, _connectivity, _coordinates)
-    ms = MeshSource(ds, ('gas', 'diffused'))
+    data[('connect1', 'test')] = np.ones_like(_connectivity)
+    ds = yt.load_unstructured_mesh(_connectivity, _coordinates, node_data=data)
+    ms = MeshSource(ds, ('connect1', 'test'))
     cam = Camera(ds)
     im = ms.render(cam)
     return im
