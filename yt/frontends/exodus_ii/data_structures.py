@@ -41,8 +41,6 @@ class ExodusIIUnstructuredMesh(UnstructuredMesh):
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'exodus_ii'):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
-        # doesn't this mean we can't have different mesh types in a single index?
-        self._connectivity_length = self.meshes[0].connectivity_indices.shape[1]
 
     def _initialize_mesh(self):
         coords = self.ds._read_coordinates()
