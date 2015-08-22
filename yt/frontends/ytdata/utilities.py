@@ -96,6 +96,7 @@ def to_yt_dataset(ds, filename, data, field_types=None,
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
         fh.attrs[attr] = my_val
+
     for attr in extra_attrs:
         my_val = extra_attrs[attr]
         if hasattr(my_val, "units"):
@@ -103,6 +104,7 @@ def to_yt_dataset(ds, filename, data, field_types=None,
         fh.attrs[attr] = my_val
     if "data_type" not in extra_attrs:
         fh.attrs["data_type"] = "yt_array_data"
+
     for field in data:
         if field_types is None:
             field_type = "data"
@@ -118,6 +120,13 @@ def to_yt_dataset(ds, filename, data, field_types=None,
         else:
             field_name = field
         dataset = _yt_array_hdf5(fh[field_type], field_name, data[field])
+        if "num_elements" in fh[field_type].attrs:
+            if fh[field_type].attrs["num_elements"] != data[field].size:
+                mylog.warn(
+                    "Datasets in %s group have different sizes." % fh[field_type] +
+                    "  This will probably not work right.")
+        else:
+            fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
 
 def _hdf5_yt_array(fh, field, ds=None):
