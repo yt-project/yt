@@ -265,7 +265,8 @@ def fake_tetrahedral_ds():
     from yt.frontends.stream.sample_data.unstructured_mesh import \
         _connectivity, _coordinates
     data = {}
-    data[('connect1', 'test')] = np.ones_like(_connectivity)
+    dist = np.sum(_coordinates**2, 1)
+    data[('connect1', 'test')] = dist[_connectivity]
     ds = load_unstructured_mesh(_connectivity, _coordinates, node_data=data)
     return ds
 
