@@ -69,7 +69,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ftype, fname = field
             mesh_id = int(ftype[-1]) - 1
             mesh = index.meshes[mesh_id]
-            offset = index.io._INDEX_OFFSET
+            offset = mesh._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]

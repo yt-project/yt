@@ -299,10 +299,9 @@ class MeshSource(RenderSource):
 
     def build_mesh(self):
         ftype, fname = self.field
-        print ftype, fname
         mesh_id = int(ftype[-1]) - 1
         index = self.data_source.ds.index
-        offset = index.io._INDEX_OFFSET
+        offset = index.meshes[mesh_id]._index_offset
         field_data = self.data_source[self.field]
         vertices = index.meshes[mesh_id].connectivity_coords
         indices = index.meshes[mesh_id].connectivity_indices - offset

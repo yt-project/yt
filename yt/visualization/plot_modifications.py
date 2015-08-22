@@ -1511,6 +1511,39 @@ class TitleCallback(PlotCallback):
         label = plot._axes.title
         self._set_font_properties(plot, [label])
 
+
+class MeshLinesCallback(PlotCallback):
+    """
+
+    """
+    _type_name = "mesh_lines"
+
+    def __init__(self, mesh, plot_args=None):
+        super(MeshLinesCallback, self).__init__()
+        self.plot_args = {} if plot_args is None else plot_args
+        self.mesh = mesh
+
+    def __call__(self, plot):
+        coords = self.mesh.connectivity_coords
+        conn = self.mesh.connectivity_indices
+        try:
+            assert(conn.shape[1] == 4)
+        except AssertionError:
+            raise YTException("annotate_mesh_lines only implemented for" +
+                              " tetrahedral meshes.")
+
+        points = coords[conn - self.mesh._index_offset]
+        tri1 = points[:, [0, 1, 2], :]
+        tri2 = points[:, [1, 2, 3], :]
+        tri3 = points[:, [0, 2, 3], :]
+        tri4 = points[:, [0, 1, 3], :]
+
+        triangles = np.concatenate((tri1, tri2, tri3, tri4), 0)
+        tfc = TriangleFacetsCallback(triangles, self.plot_args)
+
+        return tfc(plot)
+
+
 class TriangleFacetsCallback(PlotCallback):
     """
     annotate_triangle_facets(triangle_vertices, plot_args=None )
@@ -1524,6 +1557,7 @@ class TriangleFacetsCallback(PlotCallback):
     of the geometry represented by the triangles.
     """
     _type_name = "triangle_facets"
+
     def __init__(self, triangle_vertices, plot_args=None):
         super(TriangleFacetsCallback, self).__init__()
         self.plot_args = {} if plot_args is None else plot_args

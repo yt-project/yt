@@ -23,7 +23,6 @@ from yt.data_objects.static_output import \
 from yt.utilities.io_handler import \
     io_registry
 from .io import \
-    IOHandlerExodusII, \
     NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog
 from .fields import \
