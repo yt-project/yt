@@ -1514,6 +1514,13 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
+    annotate_mesh_lines(mesh, plot_args=None )
+
+    Adds the outline of the mesh lines to the plot.
+
+    Uses the connectivity and coordinate information from the input
+    mesh to add the outline of the element boundaries to the plot.
+    Currently only implemented for tetrahedral coordinates.
 
     """
     _type_name = "mesh_lines"
@@ -1534,9 +1541,9 @@ class MeshLinesCallback(PlotCallback):
 
         points = coords[conn - self.mesh._index_offset]
         tri1 = points[:, [0, 1, 2], :]
-        tri2 = points[:, [1, 2, 3], :]
+        tri2 = points[:, [0, 1, 3], :]
         tri3 = points[:, [0, 2, 3], :]
-        tri4 = points[:, [0, 1, 3], :]
+        tri4 = points[:, [1, 2, 3], :]
 
         triangles = np.concatenate((tri1, tri2, tri3, tri4), 0)
         tfc = TriangleFacetsCallback(triangles, self.plot_args)
