@@ -33,4 +33,17 @@ class YTDataFieldInfo(FieldInfoContainer):
         ("x", (p_units, ["particle_position_x"], None)),
         ("y", (p_units, ["particle_position_y"], None)),
         ("z", (p_units, ["particle_position_z"], None)),
+        ("velocity_x", (v_units, ["particle_velocity_x"], None)),
+        ("velocity_y", (v_units, ["particle_velocity_y"], None)),
+        ("velocity_z", (v_units, ["particle_velocity_z"], None)),
+    )
+
+    # these are extra fields to be created for the "all" particle type
+    extra_union_fields = (
+        (p_units, "particle_position_x"),
+        (p_units, "particle_position_y"),
+        (p_units, "particle_position_z"),
+        (v_units, "particle_velocity_x"),
+        (v_units, "particle_velocity_y"),
+        (v_units, "particle_velocity_z"),
     )
