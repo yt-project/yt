@@ -1581,12 +1581,14 @@ class TriangleFacetsCallback(PlotCallback):
         else:
             vertices = self.vertices
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, vertices)[:,:,(xax, yax)]
+        # l_cy is shape (nlines, 2, 2)
         # reformat for conversion to plot coordinates
         l_cy = np.rollaxis(l_cy,0,3)
         # convert all line starting points
         l_cy[0] = self.convert_to_plot(plot,l_cy[0])
-        l_cy[1] = self.convert_to_plot(plot,l_cy[1])
         # convert all line ending points
+        l_cy[1] = self.convert_to_plot(plot,l_cy[1])
+        # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy,2,0)
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)

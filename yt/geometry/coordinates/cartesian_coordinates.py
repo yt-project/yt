@@ -87,7 +87,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                         buff_size, field_data, bounds,
                                         index_offset=offset)
 
-            return np.squeeze(img)
+            # re-order the array and squeeze out the dummy dim
+            ax = data_source.axis
+            xax = self.x_axis[ax]
+            yax = self.y_axis[ax]
+            return np.squeeze(np.transpose(img, (yax, xax, ax)))
+
         elif dimension < 3:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
