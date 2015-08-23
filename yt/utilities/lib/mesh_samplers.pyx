@@ -136,3 +136,27 @@ cdef void sample_tetra(void* userPtr,
 
     val = P1Sampler.sample_at_real_point(vertices, field_data, position)
     ray.time = val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void sample_element(void* userPtr,
+                         rtcr.RTCRay& ray) nogil:
+    cdef int ray_id, elem_id, i
+    cdef double val
+    cdef MeshDataContainer* data
+
+    data = <MeshDataContainer*> userPtr
+    ray_id = ray.primID
+    if ray_id == -1:
+        return
+
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are triangles. Here,
+    # we convert this to the element id by dividing by the
+    # number of triangles per element.
+    elem_id = ray_id / data.tpe
+
+    val = data.field_data[elem_id]
+    ray.time = val
