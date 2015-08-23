@@ -22,9 +22,9 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from mesh_samplers cimport \
-    sample_hex, \
-    sample_tetra
+from mesh_samplers cimport sample_hex
+from mesh_samplers cimport sample_tetra
+from mesh_samplers cimport sample_element
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -80,7 +80,9 @@ cdef class ElementMesh:
     cdef unsigned int mesh
     cdef double* field_data
     cdef rtcg.RTCFilterFunc filter_func
-    cdef int tpe, vpe
+    # triangles per element, vertices per element, and field points per 
+    # element, repsectively:
+    cdef int tpe, vpe, fpe
     cdef int[MAX_NUM_TRI][3] tri_array
     cdef int* element_indices
     cdef MeshDataContainer datac
@@ -150,11 +152,13 @@ cdef class ElementMesh:
                               np.ndarray data_in):
 
         cdef int ne = data_in.shape[0]
-        cdef double* field_data = <double *> malloc(ne * self.vpe * sizeof(double))
+        self.fpe = data_in.shape[1]
+
+        cdef double* field_data = <double *> malloc(ne * self.fpe * sizeof(double))
 
         for i in range(ne):
-            for j in range(self.vpe):
-                field_data[i*self.vpe+j] = data_in[i][j]
+            for j in range(self.fpe):
+                field_data[i*self.fpe+j] = data_in[i][j]
 
         self.field_data = field_data
 
@@ -171,10 +175,12 @@ cdef class ElementMesh:
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene):
 
-        if self.vpe == 8:
-            self.filter_func = <rtcg.RTCFilterFunc> sample_hex
-        elif self.vpe == 4:
+        if self.fpe == 1:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_element
+        elif self.fpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
+        elif self.fpe == 8:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError

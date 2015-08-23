@@ -309,14 +309,19 @@ class MeshSource(RenderSource):
         mesh_id = int(ftype[-1]) - 1
         index = self.data_source.ds.index
         offset = index.meshes[mesh_id]._index_offset
-        field_data = self.data_source[self.field]
+        field_data = self.data_source[self.field].d  # strip units
+
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
+
         vertices = index.meshes[mesh_id].connectivity_coords
         indices = index.meshes[mesh_id].connectivity_indices - offset
 
         self.mesh = mesh_construction.ElementMesh(self.scene,
                                                   vertices,
                                                   indices,
-                                                  field_data.d)
+                                                  field_data)
 
     def render(self, camera):
 
