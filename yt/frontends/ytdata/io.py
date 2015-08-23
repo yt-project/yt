@@ -82,41 +82,49 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         all_count = self._count_particles(data_file)
-        pcount = all_count["grid"]
+        pcount = sum(all_count.values())
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
         with h5py.File(data_file.filename, "r") as f:
-            if not f["grid"].keys(): return None
-            pos = np.empty((pcount, 3), dtype="float64")
-            pos = data_file.ds.arr(pos, "code_length")
-            dx = np.finfo(f["grid"]['x'].dtype).eps
-            dx = 2.0*self.ds.quan(dx, "code_length")
-            pos[:,0] = f["grid"]["x"].value
-            pos[:,1] = f["grid"]["y"].value
-            pos[:,2] = f["grid"]["z"].value
-            # These are 32 bit numbers, so we give a little lee-way.
-            # Otherwise, for big sets of particles, we often will bump into the
-            # domain edges.  This helps alleviate that.
-            np.clip(pos, self.ds.domain_left_edge + dx,
-                         self.ds.domain_right_edge - dx, pos)
-            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.ds.domain_right_edge):
-                raise YTDomainOverflow(pos.min(axis=0),
-                                       pos.max(axis=0),
-                                       self.ds.domain_left_edge,
-                                       self.ds.domain_right_edge)
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind:ind+pos.shape[0]] = compute_morton(
-                pos[:,0], pos[:,1], pos[:,2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge)
+            for ptype in all_count:
+                if not ptype in f or all_count[ptype] == 0: continue
+                pos = np.empty((all_count[ptype], 3), dtype="float64")
+                pos = data_file.ds.arr(pos, "code_length")
+                if ptype == "grid":
+                    pos_name = ""
+                    dx = f["grid"]["dx"].value.min()
+                else:
+                    pos_name = "particle_position_"
+                    dx = 2. * np.finfo(f[ptype][pos_name + "x"].dtype).eps
+                dx = self.ds.quan(dx, "code_length")
+                pos[:,0] = f[ptype][pos_name + "x"].value
+                pos[:,1] = f[ptype][pos_name + "y"].value
+                pos[:,2] = f[ptype][pos_name + "z"].value
+                # These are 32 bit numbers, so we give a little lee-way.
+                # Otherwise, for big sets of particles, we often will bump into the
+                # domain edges.  This helps alleviate that.
+                np.clip(pos, self.ds.domain_left_edge + dx,
+                             self.ds.domain_right_edge - dx, pos)
+                if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
+                   np.any(pos.max(axis=0) > self.ds.domain_right_edge):
+                    raise YTDomainOverflow(pos.min(axis=0),
+                                           pos.max(axis=0),
+                                           self.ds.domain_left_edge,
+                                           self.ds.domain_right_edge)
+                regions.add_data_file(pos, data_file.file_id)
+                morton[ind:ind+pos.shape[0]] = compute_morton(
+                    pos[:,0], pos[:,1], pos[:,2],
+                    data_file.ds.domain_left_edge,
+                    data_file.ds.domain_right_edge)
+                ind += pos.shape[0]
         return morton
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            return {"grid": f["grid"].attrs["num_elements"]}
+            return dict([(group, f[group].attrs["num_elements"])
+                         for group in f])
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
