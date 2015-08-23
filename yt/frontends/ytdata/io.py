@@ -40,20 +40,22 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
         # This will read chunks and yield the results.
         chunks = list(chunks)
         data_files = set([])
-        # Only support halo reading for now.
-        assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "grid")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            all_count = self._count_particles(data_file)
-            pcount = all_count["grid"]
             with h5py.File(data_file.filename, "r") as f:
-                x = f["grid"]['x'].value.astype("float64")
-                y = f["grid"]['y'].value.astype("float64")
-                z = f["grid"]['z'].value.astype("float64")
-                yield "grid", (x, y, z)
+                for ptype, field_list in sorted(ptf.items()):
+                    pcount = data_file.total_particles[ptype]
+                    if pcount == 0: continue
+                    if ptype == "grid":
+                        pos_name = ""
+                    else:
+                        pos_name = "particle_position_"
+                    x = f[ptype][pos_name + "x"].value.astype("float64")
+                    y = f[ptype][pos_name + "y"].value.astype("float64")
+                    z = f[ptype][pos_name + "z"].value.astype("float64")
+                    yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
