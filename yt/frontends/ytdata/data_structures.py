@@ -56,11 +56,13 @@ class YTDataDataset(Dataset):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(YTDataDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override)
+                                            units_override=units_override)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:
             hvals = dict((key, f.attrs[key]) for key in f.attrs.keys())
+            self.particle_types_raw = tuple(f.keys())
+        self.particle_types = self.particle_types_raw
         self.dimensionality = 3
         self.refine_by = 2
         self.unique_identifier = \
@@ -68,14 +70,11 @@ class YTDataDataset(Dataset):
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = self.parameter_filename
         self.file_count = 1
-
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
                      "domain_left_edge", "domain_right_edge"]:
             setattr(self, attr, hvals[attr])
         self.periodicity = (True, True, True)
-        self.particle_types = ("grid")
-        self.particle_types_raw = ("grid")
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
