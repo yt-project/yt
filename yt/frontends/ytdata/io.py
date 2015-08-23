@@ -127,8 +127,12 @@ class IOHandlerYTDataHDF5(BaseIOHandler):
                          for group in f])
 
     def _identify_fields(self, data_file):
+        fields = []
+        units = {}
         with h5py.File(data_file.filename, "r") as f:
-            fields = [("grid", str(field)) for field in f["grid"]]
-            units = dict([(("grid", str(field)), 
-                           f["grid"][field].attrs["units"]) for field in f["grid"]])
+            for ptype in f:
+                fields.extend([(ptype, str(field)) for field in f[ptype]])
+                units.update(dict([((ptype, str(field)), 
+                                    f[ptype][field].attrs["units"])
+                                   for field in f[ptype]]))
         return fields, units
