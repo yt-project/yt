@@ -22,17 +22,24 @@ from yt.visualization.volume_rendering.camera import Camera
 
 @requires_module("pyembree")
 def test_surface_mesh_render():
-    ds = fake_tetrahedral_ds()
-    ms = MeshSource(ds, ('connect1', 'test'))
-    cam = Camera(ds)
-    im1 = ms.render(cam)
 
+    images = []
+
+    ds = fake_tetrahedral_ds()
+    for field in ds.field_list:
+        ms = MeshSource(ds, field)
+        cam = Camera(ds)
+        im = ms.render(cam)
+        images.append(im)
+        
     ds = fake_hexahedral_ds()
-    ms = MeshSource(ds, ('connect1', 'test'))
-    cam = Camera(ds)
-    im2 = ms.render(cam)
+    for field in ds.field_list:
+        ms = MeshSource(ds, field)
+        cam = Camera(ds)
+        im = ms.render(cam)
+        images.append(im)
     
-    return im1, im2
+    return images
 
 if __name__ == "__main__":
-    im1, im2 = test_surface_mesh_render()
+    images = test_surface_mesh_render()
