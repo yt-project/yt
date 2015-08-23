@@ -17,7 +17,7 @@ from yt.testing import fake_tetrahedral_ds
 from yt.testing import requires_module
 from yt.visualization.volume_rendering.render_source import MeshSource
 from yt.visualization.volume_rendering.camera import Camera
-from yt.frontends.stream.sample_data.unstructured_mesh import \
+from yt.frontends.stream.sample_data.tetrahedral_mesh import \
     _connectivity, \
     _coordinates
 

@@ -262,7 +262,7 @@ def fake_particle_ds(
 
 def fake_tetrahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
-    from yt.frontends.stream.sample_data.unstructured_mesh import \
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
         _connectivity, _coordinates
 
     # the distance from the origin
