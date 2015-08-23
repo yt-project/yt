@@ -17,6 +17,7 @@ import shutil
 import numpy as np
 import yt
 from yt.testing import fake_tetrahedral_ds
+from yt.testing import fake_hexahedral_ds
 
 
 def setup():
@@ -32,12 +33,23 @@ def test_mesh_slices():
     os.chdir(tmpdir)
 
     np.random.seed(0451)
+
+    # tetrahedral ds
     ds = fake_tetrahedral_ds()
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             sl = yt.SlicePlot(ds, idir, field)
             sl.annotate_mesh_lines(ds.index.meshes[0])
+            sl.save()
+
+    # hexahedral ds
+    ds = fake_hexahedral_ds()
+
+    for field in ds.field_list:
+        for idir in [0, 1, 2]:
+            sl = yt.SlicePlot(ds, idir, field)
+#            sl.annotate_mesh_lines(ds.index.meshes[0])
             sl.save()
 
     os.chdir(curdir)
