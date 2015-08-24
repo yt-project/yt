@@ -24,7 +24,7 @@ import time
 import os
 
 from .fields import \
-    YTDataFieldInfo
+    YTDataContainerFieldInfo
 
 from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
@@ -45,17 +45,17 @@ class YTDataHDF5File(ParticleFile):
 
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
     
-class YTDataDataset(Dataset):
+class YTDataContainerDataset(Dataset):
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
-    _field_info_class = YTDataFieldInfo
+    _field_info_class = YTDataContainerFieldInfo
     _suffix = ".h5"
 
-    def __init__(self, filename, dataset_type="ytdata_hdf5",
+    def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
                  n_ref = 16, over_refine_factor = 1, units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(YTDataDataset, self).__init__(filename, dataset_type,
+        super(YTDataContainerDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override)
 
     def _parse_parameter_file(self):

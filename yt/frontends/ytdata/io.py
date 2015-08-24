@@ -30,8 +30,8 @@ from yt.utilities.lib.geometry_utils import \
 from yt.geometry.oct_container import \
     _ORDER_MAX
 
-class IOHandlerYTDataHDF5(BaseIOHandler):
-    _dataset_type = "ytdata_hdf5"
+class IOHandlerYTDataContainerHDF5(BaseIOHandler):
+    _dataset_type = "ytdatacontainer_hdf5"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError

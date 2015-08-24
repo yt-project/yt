@@ -25,7 +25,7 @@ p_units = "cm"
 v_units = "cm / s"
 r_units = "cm"
 
-class YTDataFieldInfo(FieldInfoContainer):
+class YTDataContainerFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )
 
