@@ -98,6 +98,26 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             if f: f.close()
         return rv
 
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        for chunk in chunks:
+            f = None
+            for g in chunk.objs:
+                if g.filename is None: continue
+                if f is None:
+                    f = h5py.File(g.filename, "r")
+                if g.NumberOfParticles == 0:
+                    continue
+                for ptype, field_list in sorted(ptf.items()):
+                    pn = "particle_position_%s"
+                    x, y, z = (np.asarray(f[ptype][pn % ax].value, dtype="=f8")
+                               for ax in 'xyz')
+                    for field in field_list:
+                        if np.asarray(f[ptype][field]).ndim > 1:
+                            self._array_fields[field] = f[ptype][field].shape
+                    yield ptype, (x, y, z)
+            if f: f.close()
+
 class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     _dataset_type = "ytdatacontainer_hdf5"
 
