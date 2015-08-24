@@ -1,5 +1,5 @@
 """
-Geographic fields
+Definitions for geographic coordinate systems
 
 
 
@@ -19,7 +19,6 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
@@ -197,7 +196,27 @@ class GeographicCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
+            alt = self.axis_id['altitude']
+            lon = self.axis_id['longitude']
+            lat = self.axis_id['latitude']
+            r = coord[:,alt] + self.ds.surface_height
+            theta = coord[:,lon] * np.pi/180
+            phi = coord[:,lat] * np.pi/180
+            nc = np.zeros_like(coord)
+            # r, theta, phi
+            nc[:,lat] = np.cos(phi) * np.sin(theta)*r
+            nc[:,lon] = np.sin(phi) * np.sin(theta)*r
+            nc[:,alt] = np.cos(theta) * r
+        else:
+            a, b, c = coord
+            theta = b * np.pi/180
+            phi = a * np.pi/180
+            r = self.ds.surface_height + c
+            nc = (np.cos(phi) * np.sin(theta)*r,
+                  np.sin(phi) * np.sin(theta)*r,
+                  np.cos(theta) * r)
+        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -274,27 +293,3 @@ class GeographicCoordinateHandler(CoordinateHandler):
                               0.0 * display_center[2]]
             display_center[self.axis_id['latitude']] = c
         return center, display_center
-
-    def convert_to_cartesian(self, coord):
-        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
-            alt = self.axis_id['altitude']
-            lon = self.axis_id['longitude']
-            lat = self.axis_id['latitude']
-            r = coord[:,alt] + self.ds.surface_height
-            theta = coord[:,lon] * np.pi/180
-            phi = coord[:,lat] * np.pi/180
-            nc = np.zeros_like(coord)
-            # r, theta, phi
-            nc[:,lat] = np.cos(phi) * np.sin(theta)*r
-            nc[:,lon] = np.sin(phi) * np.sin(theta)*r
-            nc[:,alt] = np.cos(theta) * r
-        else:
-            a, b, c = coord
-            theta = b * np.pi/180
-            phi = a * np.pi/180
-            r = self.ds.surface_height + c
-            nc = (np.cos(phi) * np.sin(theta)*r,
-                  np.sin(phi) * np.sin(theta)*r,
-                  np.cos(theta) * r)
-        return nc
-
