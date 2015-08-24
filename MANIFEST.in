@@ -1,5 +1,8 @@
 include distribute_setup.py README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt
-recursive-include yt/visualization/mapserver/html *.html *.png *.ico *.js *.gif *.css
+include yt/visualization/mapserver/html/map_index.html
+include yt/visualization/mapserver/html/leaflet/*.css
+include yt/visualization/mapserver/html/leaflet/*.js
+include yt/visualization/mapserver/html/leaflet/images/*.png
 recursive-include yt *.py *.pyx *.pxd *.h README* *.txt LICENSE* *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.inc *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
