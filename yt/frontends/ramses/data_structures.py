@@ -483,7 +483,7 @@ class RAMSESIndex(OctreeIndex):
         # This function prints information based on the fluid on the grids,
         # and therefore does not work for DM only runs. 
         if not self.fluid_field_list:
-            print("This functions is not implements for DM only runs")
+            print("This function is not implemented for DM only runs")
             return
 
         self._initialize_level_stats()
