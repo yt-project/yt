@@ -16,29 +16,22 @@ from __future__ import print_function
 
 import h5py
 import numpy as np
-import string, re, gc, time
-from yt.extern.six.moves import cPickle
-from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain
+from collections import defaultdict
 
-from yt.funcs import *
-from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
-from yt.fields.field_info_container import NullFunc
+from yt.funcs import \
+    ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
+from yt.units.yt_array import YTArray
 from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.physical_constants import sec_per_year
-from yt.utilities.io_handler import io_registry
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
     GridTree, MatchPointsToGrids
 
-from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
     """The index class for patch and block AMR datasets. """
@@ -201,7 +194,6 @@ class GridIndex(Index):
              self.ds.current_time.in_units("s"),
              self.ds.current_time.in_units("yr")))
         print("\nSmallest Cell:")
-        u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
             print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
 
