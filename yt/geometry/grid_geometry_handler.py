@@ -314,9 +314,9 @@ class GridIndex(Index):
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         if sort in ("+level", "level"):
-            giter = sorted(gobjs, key = g.Level)
+            giter = sorted(gobjs, key=lambda g: g.Level)
         elif sort == "-level":
-            giter = sorted(gobjs, key = -g.Level)
+            giter = sorted(gobjs, key=lambda g: -g.Level)
         elif sort is None:
             giter = gobjs
         if preload_fields is None: preload_fields = []
