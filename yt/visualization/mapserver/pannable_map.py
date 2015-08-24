@@ -14,8 +14,6 @@ A simple leaflet-based pannable map server
 #-----------------------------------------------------------------------------
 import os
 import numpy as np
-import zipfile
-import sys
 
 from functools import wraps
 
