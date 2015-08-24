@@ -130,7 +130,18 @@ class YTGridDataset(Dataset):
         with h5py.File(self.parameter_filename, "r") as f:
             for attr, value in f.attrs.items():
                 setattr(self, attr, value)
-            
+
+        # correct domain dimensions for the covering grid dimension
+        self.base_domain_left_edge = self.domain_left_edge
+        self.base_domain_right_edge = self.domain_right_edge
+        self.base_domain_dimensions = self.domain_dimensions
+        dx = (self.domain_right_edge - self.domain_left_edge) / \
+          (self.domain_dimensions * self.refine_by**self.level)
+        self.domain_left_edge = self.left_edge
+        self.domain_right_edge = self.domain_left_edge + \
+          self.ActiveDimensions * dx
+        self.domain_dimensions = self.ActiveDimensions
+
     def __repr__(self):
         return "ytGrid: %s" % self.parameter_filename
 
