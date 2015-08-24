@@ -17,8 +17,9 @@ Cartesian fields
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
-    _unknown_coord, \
-    _get_coord_fields
+    _get_coord_fields, \
+    cartesian_to_cylindrical, \
+    cylindrical_to_cartesian
 import yt.visualization._MPL as _MPL
 
 class CartesianCoordinateHandler(CoordinateHandler):
