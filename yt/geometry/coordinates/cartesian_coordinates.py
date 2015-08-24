@@ -1,5 +1,5 @@
 """
-Cartesian fields
+Definitions for cartesian coordinate systems
 
 
 

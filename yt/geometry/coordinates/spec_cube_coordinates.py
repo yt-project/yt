@@ -1,5 +1,5 @@
 """
-Cartesian fields
+Definitions for spectral cube coordinate systems
 
 
 

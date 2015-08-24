@@ -1,5 +1,5 @@
 """
-Polar fields
+Definitions for polar coordinate systems
 
 
 
