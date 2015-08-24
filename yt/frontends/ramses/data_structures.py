@@ -109,7 +109,7 @@ class RAMSESDomainFile(object):
                     print("You are running with the wrong number of fields.")
                     print("If you specified these in the load command, check the array length.")
                     print("In this file there are %s hydro fields." % skipped)
-                    #print "The last set of field sizes was: %s" % skipped
+                    #print"The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
@@ -476,10 +476,16 @@ class RAMSESIndex(OctreeIndex):
         for level in range(self.dataset.min_level+1):
             self.level_stats[level+1]['numcells']=2**(level*self.dataset.dimensionality)
         for level in range(self.max_level+1):
-            print(level)
             self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
 
     def print_stats(self):
+        
+        # This function prints information based on the fluid on the grids,
+        # and therefore does not work for DM only runs. 
+        if not self.fluid_field_list:
+            print("This functions is not implements for DM only runs")
+            return
+
         self._initialize_level_stats()
         """
         Prints out (stdout) relevant information about the simulation
