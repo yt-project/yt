@@ -15,13 +15,13 @@ Data structures for YTData frontend.
 #-----------------------------------------------------------------------------
 
 import h5py
+from numbers import \
+    Number as numeric_type
 import numpy as np
-import stat
-import weakref
-import struct
-import glob
-import time
 import os
+import stat
+import time
+import weakref
 
 from .fields import \
     YTDataContainerFieldInfo, \
@@ -32,6 +32,9 @@ from yt.data_objects.grid_patch import \
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
+from yt.extern.six import \
+    iteritems, \
+    string_types
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -108,6 +111,9 @@ class YTGrid(AMRGridPatch):
 class YTGridHierarchy(GridIndex):
     grid = YTGrid
 
+    def _count_grids(self):
+        self.num_grids = 1
+
 class YTGridDataset(Dataset):
     _index_class = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
@@ -118,12 +124,33 @@ class YTGridDataset(Dataset):
         Dataset.__init__(self, filename, self._dataset_type)
 
     def _parse_parameter_file(self):
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.unique_identifier = time.time()
         with h5py.File(self.parameter_filename, "r") as f:
             for attr, value in f.attrs.items():
                 setattr(self, attr, value)
-
+            
     def __repr__(self):
         return "ytGrid: %s" % self.parameter_filename
+
+    def _set_code_unit_attributes(self):
+        attrs = ('length_unit', 'mass_unit', 'time_unit',
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        base_units = np.ones(len(attrs))
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if isinstance(unit, string_types):
+                uq = self.quan(1.0, unit)
+            elif isinstance(unit, numeric_type):
+                uq = self.quan(unit, cgs_unit)
+            elif isinstance(unit, YTQuantity):
+                uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+            setattr(self, attr, uq)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
