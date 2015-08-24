@@ -118,6 +118,27 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                     yield ptype, (x, y, z)
             if f: f.close()
 
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        for chunk in chunks: # These should be organized by grid filename
+            f = None
+            for g in chunk.objs:
+                if g.filename is None: continue
+                if f is None:
+                    f = h5py.File(g.filename, "r")
+                if g.NumberOfParticles == 0:
+                    continue
+                for ptype, field_list in sorted(ptf.items()):
+                    pn = "particle_position_%s"
+                    x, y, z = (np.asarray(f[ptype][pn % ax].value, dtype="=f8")
+                               for ax in 'xyz')
+                    mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None: continue
+                    for field in field_list:
+                        data = np.asarray(f[ptype][field].value, "=f8")
+                        yield (ptype, field), data[mask]
+            if f: f.close()
+
 class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     _dataset_type = "ytdatacontainer_hdf5"
 
