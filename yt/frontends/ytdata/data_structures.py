@@ -146,14 +146,13 @@ class YTGridHierarchy(GridIndex):
         self.grid_procs = np.zeros(self.num_grids)
         self.grid_particle_count[:] = sum(self.ds.num_particles.values())
         self.grids = []
-        # We enumerate, so it's 0-indexed id and 1-indexed pid
         for id in range(self.num_grids):
             self.grids.append(self.grid(id, self))
             self.grids[id].Level = self.grid_levels[id, 0]
         self.max_level = self.grid_levels.max()
         temp_grids = np.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(self.grids):
-            grid.filename = None
+            grid.filename = self.ds.parameter_filename
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i]
             temp_grids[i] = grid
@@ -166,16 +165,22 @@ class YTGridHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         self.field_list = []
+        self.ds.field_units = self.ds.field_units or {}
         with h5py.File(self.ds.parameter_filename, "r") as f:
             for group in f:
-                self.field_list.extend([(str(group), str(field))
-                                        for field in f[group]])
+                for field in f[group]:
+                    field_name = (str(group), str(field))
+                    self.field_list.append(field_name)
+                    self.ds.field_units[field_name] = \
+                      f[group][field].attrs["units"]
 
 class YTGridDataset(Dataset):
     _index_class = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = 'ytgridhdf5'
     geometry = "cartesian"
+    default_fluid_type = "grid"
+    fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename):
         Dataset.__init__(self, filename, self._dataset_type)
@@ -190,6 +195,8 @@ class YTGridDataset(Dataset):
             self.num_particles = \
               dict([(group, f[group].attrs["num_elements"])
                     for group in f if group != "grid"])
+        self.particle_types_raw = tuple(self.num_particles.keys())
+        self.particle_types = self.particle_types_raw
 
         # correct domain dimensions for the covering grid dimension
         self.base_domain_left_edge = self.domain_left_edge
