@@ -15,13 +15,17 @@ API for ytData frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-    YTDataContainerDataset
+    YTDataContainerDataset, \
+    YTGridDataset, \
+    YTGridHierarchy, \
+    YTGrid
 
 from .io import \
     IOHandlerYTDataContainerHDF5
 
 from .fields import \
-    YTDataContainerFieldInfo
+    YTDataContainerFieldInfo, \
+    YTGridFieldInfo
 
 from .utilities import \
     to_yt_dataset

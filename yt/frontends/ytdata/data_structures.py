@@ -24,19 +24,24 @@ import time
 import os
 
 from .fields import \
-    YTDataContainerFieldInfo
+    YTDataContainerFieldInfo, \
+    YTGridFieldInfo
 
-from yt.utilities.cosmology import Cosmology
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+from yt.data_objects.grid_patch import \
+    AMRGridPatch
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
+from yt.geometry.grid_geometry_handler import \
+    GridIndex
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
+from yt.utilities.cosmology import Cosmology
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-    
+
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
@@ -44,7 +49,7 @@ class YTDataHDF5File(ParticleFile):
                                for field in f.attrs.keys())
 
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
-    
+
 class YTDataContainerDataset(Dataset):
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
@@ -94,5 +99,37 @@ class YTDataContainerDataset(Dataset):
               f.attrs["data_type"] in ["light_ray",
                                        "yt_array_data",
                                        "yt_data_container"]:
+                return True
+        return False
+
+class YTGrid(AMRGridPatch):
+    pass
+
+class YTGridHierarchy(GridIndex):
+    grid = YTGrid
+
+class YTGridDataset(Dataset):
+    _index_class = YTGridHierarchy
+    _field_info_class = YTGridFieldInfo
+    _dataset_type = 'ytgridhdf5'
+    geometry = "cartesian"
+
+    def __init__(self, filename):
+        Dataset.__init__(self, filename, self._dataset_type)
+
+    def _parse_parameter_file(self):
+        with h5py.File(self.parameter_filename, "r") as f:
+            for attr, value in f.attrs.items():
+                setattr(self, attr, value)
+
+    def __repr__(self):
+        return "ytGrid: %s" % self.parameter_filename
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            if "data_type" in f.attrs and \
+              f.attrs["data_type"] in ["yt_grid_data"]:
                 return True
         return False

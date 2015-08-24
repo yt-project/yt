@@ -47,3 +47,10 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
         (v_units, "particle_velocity_y"),
         (v_units, "particle_velocity_z"),
     )
+
+class YTGridFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+    )
+
+    known_particle_fields = (
+    )
