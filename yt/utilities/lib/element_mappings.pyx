@@ -186,7 +186,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
         cdef double[3] x
         cdef int iterations = 0
         cdef double err
-   
+
         # initial guess
         for i in range(3):
             x[i] = 0.0
@@ -206,8 +206,13 @@ cdef class NonlinearSolveSampler(ElementSampler):
             err = maxnorm(f)
             iterations += 1
 
-        for i in range(3):
-            mapped_x[i] = x[i]
+        if (err > self.tolerance):
+            # we did not converge, set bogus value
+            for i in range(3):
+                mapped_x[i] = -99.0
+        else:
+            for i in range(3):
+                mapped_x[i] = x[i]
 
 
 cdef class Q1Sampler3D(NonlinearSolveSampler):
