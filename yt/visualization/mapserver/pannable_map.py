@@ -17,6 +17,8 @@ import numpy as np
 import zipfile
 import sys
 
+from functools import wraps
+
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.utilities.lib.misc_utilities import get_color_bounds
@@ -24,7 +26,6 @@ from yt.utilities.png_writer import write_png_to_string
 
 import yt.extern.bottle as bottle
 
-from yt.funcs import *
 local_dir = os.path.dirname(__file__)
 
 def exc_writeout(f):
@@ -34,34 +35,25 @@ def exc_writeout(f):
         try:
             rv = f(*args, **kwargs)
             return rv
-        except Exception as e:
+        except Exception:
             traceback.print_exc(None, open("temp.exc", "w"))
             raise
     return func
 
 class PannableMapServer(object):
     _widget_name = "pannable_map"
-    reasonjs_file = None
     def __init__(self, data, field, route_prefix = ""):
         self.data = data
         self.ds = data.ds
         self.field = field
-        
+
         bottle.route("%s/map/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/" % route_prefix)(self.index)
         bottle.route("%s/index.html" % route_prefix)(self.index)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
-        if route_prefix == "":
-            # We assume this means we're running standalone
-            from .utils import get_reasonjs_path
-            try:
-                reasonjs_path = get_reasonjs_path()
-            except IOError:
-                sys.exit(1)
-            self.reasonjs_file = zipfile.ZipFile(reasonjs_path, 'r')
-            bottle.route("/reason-js/:path#.+#", "GET")(self.static)
+        bottle.route(":path#.+#", "GET")(self.static)
 
     def map(self, L, x, y):
         dd = 1.0 / (2.0**(int(L)))
@@ -96,17 +88,11 @@ class PannableMapServer(object):
                     root=os.path.join(local_dir, "html"))
 
     def static(self, path):
-        if self.reasonjs_file is None: raise RuntimeError
-        pp = os.path.join("reason-js", path)
-        try:
-            f = self.reasonjs_file.open(pp)
-        except KeyError:
-            bottle.response.status = 404
-            return
         if path[-4:].lower() in (".png", ".gif", ".jpg"):
             bottle.response.headers['Content-Type'] = "image/%s" % (path[-3:].lower())
         elif path[-4:].lower() == ".css":
             bottle.response.headers['Content-Type'] = "text/css"
         elif path[-3:].lower() == ".js":
             bottle.response.headers['Content-Type'] = "text/javascript"
-        return f.read()
+        full_path = os.path.join(os.path.join(local_dir, 'html'), path)
+        return open(full_path, 'r').read()
