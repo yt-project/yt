@@ -367,9 +367,6 @@ def get_pbar(title, maxval):
        "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__withinreason"):
-        from yt.gui.reason.extdirect_repl import ExtProgressBar
-        return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
     widgets = [ title,
