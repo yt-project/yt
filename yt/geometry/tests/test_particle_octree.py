@@ -1,18 +1,39 @@
-from yt.testing import *
+"""
+Tests for particle octree
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+
 import numpy as np
+import time
+
+from yt.frontends.stream.data_structures import load_particles
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, \
     ParticleRegions
 from yt.geometry.oct_container import _ORDER_MAX
-from yt.utilities.lib.geometry_utils import get_morton_indices
-from yt.frontends.stream.api import load_particles
 from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
+from yt.testing import \
+    assert_equal, \
+    requires_file
 from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray
+from yt.utilities.lib.geometry_utils import get_morton_indices
+
 import yt.units.dimensions as dimensions
 import yt.data_objects.api
-import time, os
 
 NPART = 32**3
 DLE = np.array([0.0, 0.0, 0.0])
@@ -77,7 +98,6 @@ def test_save_load_octree():
 def test_particle_octree_counts():
     np.random.seed(int(0x4d3d3d3))
     # Eight times as many!
-    pos = []
     data = {}
     bbox = []
     for i, ax in enumerate('xyz'):
@@ -98,7 +118,6 @@ def test_particle_octree_counts():
 
 def test_particle_overrefine():
     np.random.seed(int(0x4d3d3d3))
-    pos = []
     data = {}
     bbox = []
     for i, ax in enumerate('xyz'):
