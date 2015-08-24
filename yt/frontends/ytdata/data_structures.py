@@ -39,6 +39,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.utilities.logger import \
+    ytLogger as mylog
 from yt.utilities.cosmology import Cosmology
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
@@ -106,13 +108,68 @@ class YTDataContainerDataset(Dataset):
         return False
 
 class YTGrid(AMRGridPatch):
-    pass
+    _id_offset = 0
+    def __init__(self, id, index):
+        AMRGridPatch.__init__(self, id, filename=None, index=index)
+        self._children_ids = []
+        self._parent_id = -1
+        self.Level = 0
+        self.LeftEdge = self.index.ds.domain_left_edge
+        self.RightEdge = self.index.ds.domain_right_edge
+
+    @property
+    def Parent(self):
+        return None
+
+    @property
+    def Children(self):
+        return []
 
 class YTGridHierarchy(GridIndex):
     grid = YTGrid
 
+    def __init__(self, ds, dataset_type = None):
+        self.dataset_type = dataset_type
+        self.float_type = 'float64'
+        self.dataset = weakref.proxy(ds) # for _obtain_enzo
+        self.directory = os.getcwd()
+        GridIndex.__init__(self, ds, dataset_type)
+
     def _count_grids(self):
         self.num_grids = 1
+
+    def _parse_index(self):
+        self.grid_dimensions[:] = self.ds.domain_dimensions
+        self.grid_left_edge[:] = self.ds.domain_left_edge
+        self.grid_right_edge[:] = self.ds.domain_right_edge
+        self.grid_levels[:] = np.zeros(self.num_grids)
+        self.grid_procs = np.zeros(self.num_grids)
+        self.grid_particle_count[:] = sum(self.ds.num_particles.values())
+        self.grids = []
+        # We enumerate, so it's 0-indexed id and 1-indexed pid
+        for id in range(self.num_grids):
+            self.grids.append(self.grid(id, self))
+            self.grids[id].Level = self.grid_levels[id, 0]
+        self.max_level = self.grid_levels.max()
+        temp_grids = np.empty(self.num_grids, dtype='object')
+        for i, grid in enumerate(self.grids):
+            grid.filename = None
+            grid._prepare_grid()
+            grid.proc_num = self.grid_procs[i]
+            temp_grids[i] = grid
+        self.grids = temp_grids
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._setup_dx()
+        self.max_level = self.grid_levels.max()
+
+    def _detect_output_fields(self):
+        self.field_list = []
+        with h5py.File(self.ds.parameter_filename, "r") as f:
+            for group in f:
+                self.field_list.extend([(str(group), str(field))
+                                        for field in f[group]])
 
 class YTGridDataset(Dataset):
     _index_class = YTGridHierarchy
@@ -130,6 +187,9 @@ class YTGridDataset(Dataset):
         with h5py.File(self.parameter_filename, "r") as f:
             for attr, value in f.attrs.items():
                 setattr(self, attr, value)
+            self.num_particles = \
+              dict([(group, f[group].attrs["num_elements"])
+                    for group in f if group != "grid"])
 
         # correct domain dimensions for the covering grid dimension
         self.base_domain_left_edge = self.domain_left_edge

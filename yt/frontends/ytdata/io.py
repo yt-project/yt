@@ -30,6 +30,11 @@ from yt.utilities.lib.geometry_utils import \
 from yt.geometry.oct_container import \
     _ORDER_MAX
 
+class IOHandlerYTGridHDF5(BaseIOHandler):
+    _dataset_type = "ytgridhdf5"
+    _base = slice(None)
+    _field_type = "float64"
+
 class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     _dataset_type = "ytdatacontainer_hdf5"
 
