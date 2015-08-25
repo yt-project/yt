@@ -394,11 +394,12 @@ cdef class ParticleSmoothOperation:
     cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
                              np.int64_t **nind, int *nsize,
                              np.int64_t nneighbors, np.int64_t domain_id,
-                             Oct **oct = NULL):
+                             Oct **oct = NULL, int extra_layer = 0):
         cdef OctInfo oi
         cdef Oct *ooct
-        cdef Oct **neighbors
-        cdef int j
+        cdef Oct **neighbors, **first_layer
+        cdef int j, total_neighbors = 0, initial_layer = 0
+        cdef int layer_ind = 0
         cdef np.int64_t moff = octree.get_domain_offset(domain_id)
         ooct = octree.get(pos, &oi)
         if oct != NULL and ooct == oct[0]:
@@ -407,24 +408,53 @@ cdef class ParticleSmoothOperation:
         if nind[0] == NULL:
             nsize[0] = 27
             nind[0] = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize[0])
-        neighbors = octree.neighbors(&oi, &nneighbors, ooct, self.periodicity)
-        # Now we have all our neighbors.  And, we should be set for what
-        # else we need to do.
-        if nneighbors > nsize[0]:
-            nind[0] = <np.int64_t *> realloc(
-                nind[0], sizeof(np.int64_t)*nneighbors)
-            nsize[0] = nneighbors
+        # This is our "seed" set of neighbors.  If we are asked to, we will
+        # create a master list of neighbors that is much bigger and includes
+        # everything.
+        layer_ind = 0
+        first_layer = NULL
+        while 1:
+            neighbors = octree.neighbors(&oi, &nneighbors, ooct, self.periodicity)
+            # Now we have all our neighbors.  And, we should be set for what
+            # else we need to do.
+            if total_neighbors + nneighbors > nsize[0]:
+                nind[0] = <np.int64_t *> realloc(
+                    nind[0], sizeof(np.int64_t)*(nneighbors + total_neighbors))
+                nsize[0] = nneighbors + total_neighbors
+            for j in range(nneighbors):
+                # Particle octree neighbor indices
+                nind[0][j + total_neighbors] = neighbors[j].domain_ind - moff
+            total_neighbors += nneighbors
+            if extra_layer == 0:
+                # Not adding on any additional layers here.
+                free(neighbors)
+                neighbors = NULL
+                break
+            if initial_layer == 0:
+                initial_layer = nneighbors
+                first_layer = neighbors
+            else:
+                # Allocated internally; we free this in the loops if we aren't
+                # tracking it
+                free(neighbors)
+                neighbors = NULL
+            ooct = first_layer[layer_ind]
+            layer_ind += 1
+            if layer_ind == initial_layer:
+                neighbors
+                break
+            
 
-        for j in range(nneighbors):
+        for j in range(total_neighbors):
             # Particle octree neighbor indices
-            nind[0][j] = neighbors[j].domain_ind - moff
             for n in range(j):
                 if nind[0][j] == nind[0][n]:
                     nind[0][j] = -1
                 break
         # This is allocated by the neighbors function, so we deallocate it.
-        free(neighbors)
-        return nneighbors
+        if first_layer != NULL:
+            free(first_layer)
+        return total_neighbors
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -572,7 +602,7 @@ cdef class ParticleSmoothOperation:
         cdef np.float64_t opos[3]
         self.pos_setup(cpos, opos)
         nneighbors = self.neighbor_search(opos, octree,
-                        nind, nsize, nneighbors, domain_id, &oct)
+                        nind, nsize, nneighbors, domain_id, &oct, 1)
         self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos, opos)
         self.process(offset, i, j, k, dim, opos, fields, index_fields)
 
