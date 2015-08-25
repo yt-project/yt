@@ -194,7 +194,7 @@ class YTGridDataset(Dataset):
                 setattr(self, attr, value)
             self.num_particles = \
               dict([(group, f[group].attrs["num_elements"])
-                    for group in f if group != "grid"])
+                    for group in f if group != self.default_fluid_type])
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
 
@@ -211,6 +211,15 @@ class YTGridDataset(Dataset):
 
     def __repr__(self):
         return "ytGrid: %s" % self.parameter_filename
+
+    def create_field_info(self):
+        self.field_info = self._field_info_class(self, self.field_list)
+        for ftype, field in self.field_list:
+            if ftype == self.default_fluid_type:
+                self.field_info.alias(
+                    ("gas", field),
+                    (self.default_fluid_type, field))
+        super(YTGridDataset, self).create_field_info()
 
     def _set_code_unit_attributes(self):
         attrs = ('length_unit', 'mass_unit', 'time_unit',
