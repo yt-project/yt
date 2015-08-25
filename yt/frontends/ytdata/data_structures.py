@@ -216,6 +216,12 @@ class YTGridDataset(Dataset):
         self.domain_right_edge = self.domain_left_edge + \
           self.ActiveDimensions * dx
         self.domain_dimensions = self.ActiveDimensions
+        self.periodicity = \
+          np.abs(self.domain_left_edge -
+                 self.base_domain_left_edge) < 0.5 * dx
+        self.periodicity &= \
+        np.abs(self.domain_right_edge -
+               self.base_domain_right_edge) < 0.5 * dx
 
     def __repr__(self):
         return "ytGrid: %s" % self.parameter_filename
