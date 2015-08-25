@@ -38,7 +38,8 @@ class TipsyFieldInfo(SPHFieldInfo):
         'FeMassFrac':("FeMassFrac", ("dimensionless", ["Fe_fraction"], None)),
         'c':("c", ("code_velocity", [""], None)),
         'acc':("acc", ("code_velocity / code_time", [""], None)),
-        'accg':("accg", ("code_velocity / code_time", [""], None))}
+        'accg':("accg", ("code_velocity / code_time", [""], None)),
+        'smoothlength':('smoothlength', ("code_length", ["smoothing_length"], None))}
 
     def __init__(self, ds, field_list, slice_info = None):
         for field in field_list:
