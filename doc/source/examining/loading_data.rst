@@ -1059,7 +1059,7 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
    import numpy
    from yt.utilities.exodusII_reader import get_data
 
-   coords, connectivity, data = get_data("data/out.e-s010")
+   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
 
 This uses a publically available `MOOSE <http://mooseframework.org/>` 
 dataset along with the get_data function to parse the coords, connectivity, 
