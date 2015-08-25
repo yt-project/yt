@@ -515,7 +515,7 @@ class LightRay(CosmologySplice):
             output.attrs["domain_right_edge"] = self.simulation.domain_right_edge.in_cgs()
             output.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
         output.attrs["current_time"] = self.cosmology.t_from_z(self.near_redshift).in_cgs()
-        output.attrs["data_type"] = "light_ray"
+        output.attrs["data_type"] = "yt_light_ray"
         group = output.create_group("grid")
         group.attrs["num_elements"] = data['x'].size
         for field in data.keys():

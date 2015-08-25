@@ -47,6 +47,10 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
+_grid_data_containers = ["abritrary_grid",
+                         "covering_grid",
+                         "smoothed_covering_grid"]
+
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
@@ -100,10 +104,14 @@ class YTDataContainerDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            if "data_type" in f.attrs and \
-              f.attrs["data_type"] in ["light_ray",
-                                       "yt_array_data",
-                                       "yt_data_container"]:
+            data_type = f.attrs.get("data_type", None)
+            if data_type is None:
+                return False
+            if data_type in ["yt_light_ray", "yt_array_data"]:
+                return True
+            if data_type == "yt_data_container" and \
+              f.attrs.get("container_type", None) not in \
+              _grid_data_containers:
                 return True
         return False
 
@@ -243,7 +251,9 @@ class YTGridDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            if "data_type" in f.attrs and \
-              f.attrs["data_type"] in ["yt_grid_data"]:
+            data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_data_container" and \
+              f.attrs.get("container_type", None) in \
+              _grid_data_containers:
                 return True
         return False
