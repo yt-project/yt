@@ -476,6 +476,7 @@ for details on how to do this):
 .. code:: python
 
    import yt
+   import numpy as np
    from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
    from yt.utilities.cosmology import Cosmology
    from yt.analysis_modules.photon_simulator.api import *
@@ -548,7 +549,7 @@ example:
                                0.01, 20.0, 20000)
    abs_model = TableAbsorbModel("tbabs_table.h5", 0.1)
 
-   thermal_model = ThermalPhotonModel(apec_model)
+   thermal_model = ThermalPhotonModel(apec_model, photons_per_chunk=40000000)
    photons = PhotonList.from_scratch(sphere, redshift, A,
                                      exp_time, thermal_model, center="c")
 
