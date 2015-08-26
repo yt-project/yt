@@ -137,7 +137,7 @@ class ThermalPhotonModel(PhotonModel):
 
             idxs = np.argsort(kT)
 
-            kT_bins = np.linspace(kT_min, max(my_kT_max, kT_max), num=n_kT+1)
+            kT_bins = np.linspace(kT_min, max(my_kT_max.v, kT_max), num=n_kT+1)
             dkT = kT_bins[1]-kT_bins[0]
             kT_idxs = np.digitize(kT[idxs], kT_bins)
             kT_idxs = np.minimum(np.maximum(1, kT_idxs), n_kT) - 1
