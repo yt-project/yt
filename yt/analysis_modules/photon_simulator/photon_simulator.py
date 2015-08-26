@@ -26,8 +26,7 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
-from yt.funcs import \
-    mylog, get_pbar, iterable, ensure_list
+from yt.funcs import mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
@@ -880,21 +879,24 @@ class EventList(object) :
         f = h5py.File(h5file, "r")
 
         parameters["ExposureTime"] = YTQuantity(f["/exp_time"].value, "s")
-        parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
+        if isinstance(f["/area"].value, (string_types, bytes)):
+            parameters["Area"] = f["/area"].value.decode("utf8")
+        else:
+            parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
         parameters["Redshift"] = f["/redshift"].value
         parameters["AngularDiameterDistance"] = YTQuantity(f["/d_a"].value, "Mpc")
         if "rmf" in f:
-            parameters["RMF"] = f["/rmf"].value
+            parameters["RMF"] = f["/rmf"].value.decode("utf8")
         if "arf" in f:
-            parameters["ARF"] = f["/arf"].value
+            parameters["ARF"] = f["/arf"].value.decode("utf8")
         if "channel_type" in f:
-            parameters["ChannelType"] = f["/channel_type"].value
+            parameters["ChannelType"] = f["/channel_type"].value.decode("utf8")
         if "mission" in f:
-            parameters["Mission"] = f["/mission"].value
+            parameters["Mission"] = f["/mission"].value.decode("utf8")
         if "telescope" in f:
-            parameters["Telescope"] = f["/telescope"].value
+            parameters["Telescope"] = f["/telescope"].value.decode("utf8")
         if "instrument" in f:
-            parameters["Instrument"] = f["/instrument"].value
+            parameters["Instrument"] = f["/instrument"].value.decode("utf8")
 
         events["xpix"] = f["/xpix"][:]
         events["ypix"] = f["/ypix"][:]
@@ -924,7 +926,10 @@ class EventList(object) :
         parameters = {}
 
         parameters["ExposureTime"] = YTQuantity(tblhdu.header["EXPOSURE"], "s")
-        parameters["Area"] = YTQuantity(tblhdu.header["AREA"], "cm**2")
+        if isinstance(tblhdu.header["AREA"], (string_types, bytes)):
+            parameters["Area"] = tblhdu.header["AREA"]
+        else:
+            parameters["Area"] = YTQuantity(tblhdu.header["AREA"], "cm**2")
         parameters["Redshift"] = tblhdu.header["REDSHIFT"]
         parameters["AngularDiameterDistance"] = YTQuantity(tblhdu.header["D_A"], "Mpc")
         if "RMF" in tblhdu.header:
