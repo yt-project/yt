@@ -79,8 +79,23 @@ class CartesianCoordinateHandler(CoordinateHandler):
             bounds.insert(2*dimension, c)
             bounds = np.reshape(bounds, (3, 2))
 
+            # if this is an element field, promote to 2D here
             if len(field_data.shape) == 1:
                 field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27 or field_data.shape[1] == 20:
+                # hexahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+            elif field_data.shape[1] == 10:
+                # tetrahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:,0:4]
+                indices = indices[:, 0:4]
 
             img = pixelize_element_mesh(mesh.connectivity_coords,
                                         mesh.connectivity_indices,

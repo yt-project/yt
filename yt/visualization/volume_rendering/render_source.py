@@ -311,12 +311,26 @@ class MeshSource(RenderSource):
         offset = index.meshes[mesh_id]._index_offset
         field_data = self.data_source[self.field].d  # strip units
 
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
+
         # if this is an element field, promote to 2D here
         if len(field_data.shape) == 1:
             field_data = np.expand_dims(field_data, 1)
-
-        vertices = index.meshes[mesh_id].connectivity_coords
-        indices = index.meshes[mesh_id].connectivity_indices - offset
+        # if this is a higher-order element, we demote to 1st order
+        # here, for now.
+        elif field_data.shape[1] == 27 or field_data.shape[1] == 20:
+            # hexahedral
+            mylog.warning("High order elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+        elif field_data.shape[1] == 10:
+            # tetrahedral
+            mylog.warning("High order elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:,0:4]
+            indices = indices[:, 0:4]
 
         self.mesh = mesh_construction.ElementMesh(self.scene,
                                                   vertices,
