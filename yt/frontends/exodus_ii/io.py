@@ -52,11 +52,12 @@ class IOHandlerExodusII(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
+            num_elem = ci.shape[0]
             if fname in self.node_fields:
                 nodes_per_element = ci.shape[1]
-                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+                rv[field] = np.empty((num_elem, nodes_per_element), dtype="float64")
             elif fname in self.elem_fields:
-                rv[field] = np.empty(size, dtype="float64")
+                rv[field] = np.empty(num_elem, dtype="float64")
         for field in fields:
             ind = 0
             ftype, fname = field
