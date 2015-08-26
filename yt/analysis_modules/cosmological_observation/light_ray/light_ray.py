@@ -172,9 +172,15 @@ class LightRay(CosmologySplice):
             if not ((end_position is None) ^ (trajectory is None)):
                 raise RuntimeError("LightRay Error: must specify either end_position " + \
                                    "or trajectory, but not both.")
-            self.light_ray_solution[0]['start'] = np.array(start_position)
+            if isinstance(start_position, np.ndarray):
+                self.light_ray_solution[0]['start'] = start_position
+            else:
+                self.light_ray_solution[0]['start'] = np.array(start_position)
             if end_position is not None:
-                self.light_ray_solution[0]['end'] = np.array(end_position)
+                if isinstance(end_position, np.ndarray):
+                    self.light_ray_solution[0]['end'] = end_position
+                else:
+                    self.light_ray_solution[0]['end'] = np.array(end_position)
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
@@ -401,10 +407,15 @@ class LightRay(CosmologySplice):
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
             elif self.near_redshift == self.far_redshift:
+                if isinstance(my_segment["traversal_box_fraction"], YTArray):
+                    segment_length = \
+                      my_segment["traversal_box_fraction"].in_units("Mpccm / h")
+                else:
+                    segment_length = my_segment["traversal_box_fraction"] * \
+                      ds.domain_width[0].in_units("Mpccm / h")
                 next_redshift = my_segment["redshift"] - \
                   self._deltaz_forward(my_segment["redshift"],
-                                       ds.domain_width[0].in_units("Mpccm / h") *
-                                       my_segment["traversal_box_fraction"])
+                                       segment_length)
             elif my_segment.get("next", None) is None:
                 next_redshift = self.near_redshift
             else:
