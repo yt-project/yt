@@ -12,6 +12,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("athena")
     config.add_subpackage("boxlib")
     config.add_subpackage("chombo")
+    config.add_subpackage("exodus_ii")
     config.add_subpackage("eagle")
     config.add_subpackage("enzo")
     config.add_subpackage("fits")
