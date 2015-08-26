@@ -556,7 +556,8 @@ example:
 
    events = photons.project_photons([0.0,0.0,1.0], 
                                     responses=["sim_arf.fits","sim_rmf.fits"], 
-                                    absorb_model=abs_model)
+                                    absorb_model=abs_model,
+                                    north_vector=[0.0,1.0,0.0])
 
    events.write_fits_image("img.fits", clobber=True)
 
