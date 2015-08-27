@@ -44,6 +44,7 @@ from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.fields.particle_fields import \
     standard_particle_fields
+from yt.arraytypes import blankRecordArray
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -108,7 +109,7 @@ class RAMSESDomainFile(object):
                     print("You are running with the wrong number of fields.")
                     print("If you specified these in the load command, check the array length.")
                     print("In this file there are %s hydro fields." % skipped)
-                    #print "The last set of field sizes was: %s" % skipped
+                    #print"The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
@@ -463,6 +464,59 @@ class RAMSESIndex(OctreeIndex):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
+
+    def _initialize_level_stats(self):
+        levels=sum([dom.level_count for dom in self.domains])
+        desc = {'names': ['numcells','level'],
+                'formats':['Int64']*2}
+        max_level=self.dataset.min_level+self.dataset.max_level+2
+        self.level_stats = blankRecordArray(desc, max_level)
+        self.level_stats['level'] = [i for i in range(max_level)]
+        self.level_stats['numcells'] = [0 for i in range(max_level)]
+        for level in range(self.dataset.min_level+1):
+            self.level_stats[level+1]['numcells']=2**(level*self.dataset.dimensionality)
+        for level in range(self.max_level+1):
+            self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
+
+    def print_stats(self):
+        
+        # This function prints information based on the fluid on the grids,
+        # and therefore does not work for DM only runs. 
+        if not self.fluid_field_list:
+            print("This function is not implemented for DM only runs")
+            return
+
+        self._initialize_level_stats()
+        """
+        Prints out (stdout) relevant information about the simulation
+        """
+        header = "%3s\t%14s\t%14s" % ("level", "# cells","# cells^3")
+        print(header)
+        print("%s" % (len(header.expandtabs())*"-"))
+        for level in range(self.dataset.min_level+self.dataset.max_level+2):
+            print("% 3i\t% 14i\t% 14i" % \
+                  (level,
+                   self.level_stats['numcells'][level],
+                   np.ceil(self.level_stats['numcells'][level]**(1./3))))
+        print("-" * 46)
+        print("   \t% 14i" % (self.level_stats['numcells'].sum()))
+        print("\n")
+
+        dx = self.get_smallest_dx()
+        try:
+            print("z = %0.8f" % (self.dataset.current_redshift))
+        except:
+            pass
+        print("t = %0.8e = %0.8e s = %0.8e years" % \
+            (self.ds.current_time.in_units("code_time"),
+             self.ds.current_time.in_units("s"),
+             self.ds.current_time.in_units("yr")))
+        print("\nSmallest Cell:")
+        u=[]
+        for item in ("Mpc", "pc", "AU", "cm"):
+            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+
+
 
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
