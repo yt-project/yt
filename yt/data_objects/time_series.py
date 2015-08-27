@@ -255,12 +255,21 @@ class DatasetSeries(object):
             else: njobs = self.parallel
         for output in parallel_objects(self._pre_outputs, njobs=njobs,
                                        storage=storage, dynamic=dynamic):
+            if storage is not None:
+                sto, output = output
+
             if isinstance(output, string_types):
                 ds = load(output, **self.kwargs)
                 self._setup_function(ds)
-                yield ds
             else:
-                yield output
+                ds = output
+
+            if storage is not None:
+                next_ret = (sto, ds)
+            else:
+                next_ret = ds
+
+            yield next_ret
 
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
