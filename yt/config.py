@@ -30,7 +30,6 @@ ytcfg_defaults = dict(
     loglevel = '20',
     inline = 'False',
     numthreads = '-1',
-    __withinreason = 'False',
     __withintesting = 'False',
     __parallel = 'False',
     __global_parallel_rank = '0',

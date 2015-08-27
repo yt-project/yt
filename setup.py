@@ -22,31 +22,19 @@ from distutils import version
 from distutils.core import Command
 from distutils.spawn import find_executable
 
-REASON_FILES = []
-REASON_DIRS = [
+MAPSERVER_FILES = []
+MAPSERVER_DIRS = [
     "",
-    "resources",
-    "resources/ux",
-    "resources/images",
-    "resources/css",
-    "resources/css/images",
-    "app",
-    "app/store",
-    "app/store/widgets",
-    "app/view",
-    "app/view/widgets",
-    "app/model",
-    "app/controller",
-    "app/controller/widgets",
-    "app/templates",
+    "leaflet",
+    "leaflet/images"
 ]
 
-for subdir in REASON_DIRS:
-    dir_name = os.path.join("yt", "gui", "reason", "html", subdir)
+for subdir in MAPSERVER_DIRS:
+    dir_name = os.path.join("yt", "visualization", "mapserver", "html", subdir)
     files = []
     for ext in ["js", "html", "css", "png", "ico", "gif"]:
         files += glob.glob("%s/*.%s" % (dir_name, ext))
-    REASON_FILES.append((dir_name, files))
+    MAPSERVER_FILES.append((dir_name, files))
 
 # Verify that we have Cython installed
 REQ_CYTHON = '0.22'
@@ -218,7 +206,7 @@ def setup_package():
         license="BSD",
         configuration=configuration,
         zip_safe=False,
-        data_files=REASON_FILES,
+        data_files=MAPSERVER_FILES,
         cmdclass={'build_py': my_build_py, 'build_src': my_build_src},
     )
     return
