@@ -156,7 +156,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, str):
+            if isinstance(o, string_types):
                 ds = load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -170,7 +170,7 @@ class DatasetSeries(object):
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, str):
+        if isinstance(o, string_types):
             o = load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -329,13 +329,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, str):
+        if isinstance(filenames, string_types):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, str):
+            if not isinstance(fn, string_types):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))
