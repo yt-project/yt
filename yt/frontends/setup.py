@@ -48,5 +48,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("ramses/tests")
     config.add_subpackage("rockstar/tests")
     config.add_subpackage("stream/tests")
+    config.add_subpackage("stream/sample_data")
     config.add_subpackage("tipsy/tests")
     return config
