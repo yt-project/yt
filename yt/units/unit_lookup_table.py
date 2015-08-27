@@ -30,7 +30,6 @@ import numpy as np
 default_unit_symbol_lut = {
     # base
     "g":  (1.0, dimensions.mass),
-    #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
