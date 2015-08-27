@@ -19,18 +19,11 @@ from yt.extern.six.moves import cPickle
 import weakref
 import h5py
 import numpy as np
-import abc
-import copy
 
-from yt.funcs import *
 from yt.config import ytcfg
+from yt.funcs import iterable
 from yt.units.yt_array import \
-    uconcatenate
-from yt.fields.field_info_container import \
-    NullFunc
-from yt.fields.particle_fields import \
-    particle_deposition_functions, \
-    particle_scalar_functions
+    YTArray, uconcatenate
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -183,7 +176,7 @@ class Index(ParallelAnalysisInterface):
         Return the dataset with a given *name* located at *node* in the
         datafile.
         """
-        if self._data_file == None:
+        if self._data_file is None:
             return None
         if node[0] != "/": node = "/%s" % node
 

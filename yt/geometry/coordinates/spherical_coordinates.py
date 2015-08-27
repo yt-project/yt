@@ -1,5 +1,5 @@
 """
-Spherical fields
+Definitions for spherical coordinate systems
 
 
 
@@ -19,7 +19,6 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
