@@ -84,6 +84,9 @@ def test_dimensionless():
     yield assert_true, u2.base_value == 1
     yield assert_true, u2.dimensions == 1
 
+    yield assert_equal, u1.latex_repr, ''
+    yield assert_equal, u2.latex_repr, ''
+
 #
 # Start init tests
 #

@@ -106,9 +106,12 @@ def get_latex_representation(expr, registry):
     symbol_table = {}
     for ex in expr.free_symbols:
         symbol_table[ex] = registry.lut[str(ex)][3]
-    return latex(expr, symbol_names=symbol_table,
-                 mul_symbol="dot", fold_frac_powers=True,
-                 fold_short_frac=True)
+    latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
+                       fold_frac_powers=True, fold_short_frac=True)
+    if latex_repr == '1':
+        return ''
+    else:
+        return latex_repr
 
 unit_text_transform = (auto_positive_symbol, rationalize, auto_number)
 
@@ -430,7 +433,7 @@ class Unit(Expr):
         return get_conversion_factor(self, other_units)
 
     def latex_representation(self):
-        return get_latex_representation(self, self.registry)
+        return self.latex_repr
 
 #
 # Unit manipulation functions
