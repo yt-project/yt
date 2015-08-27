@@ -607,7 +607,7 @@ cdef class SelectorObject:
     def __hash__(self):
         # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
         # http://www.eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
-        cdef np.int64_t hash_val = 0
+        cdef np.int64_t hash_val = 2166136261
         for v in self._hash_vals() + self._base_hash():
             # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
             hash_val = (hash_val * 16777619) ^ hash(v)
