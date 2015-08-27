@@ -2,12 +2,33 @@ import numpy as np
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
-
+from yt.utilities.on_demand_imports import NotAModule
+try:
+    from yt.utilities.lib import mesh_traversal
+except ImportError:
+    mesh_traversal = NotAModule("pyembree")
 
 def data_source_or_all(data_source):
     if isinstance(data_source, Dataset):
         data_source = data_source.all_data()
     return data_source
+
+
+def new_mesh_sampler(camera, render_source):
+    params = camera._get_sampler_params(render_source)
+    args = (
+        params['vp_pos'],
+        params['vp_dir'],
+        params['center'],
+        params['bounds'],
+        params['image'],
+        params['x_vec'],
+        params['y_vec'],
+        params['width'],
+    )
+
+    sampler = mesh_traversal.MeshSampler(*args)
+    return sampler
 
 
 def new_volume_render_sampler(camera, render_source):

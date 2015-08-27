@@ -473,7 +473,6 @@ class Camera(Orientation):
         -----
 
         You will need to call snapshot() again to get a new image.
-
         """
         self.set_width(self.width / factor)
 

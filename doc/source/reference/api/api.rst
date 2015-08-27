@@ -397,6 +397,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
 Derived Datatypes
 -----------------
@@ -632,6 +633,7 @@ Additional sources can be added to a scene:
    ~yt.visualization.volume_rendering.api.BoxSource
    ~yt.visualization.volume_rendering.api.GridSource
    ~yt.visualization.volume_rendering.api.CoordinateVectorSource
+   ~yt.visualization.volume_rendering.render_source.MeshSource
 
 Streamlining
 ^^^^^^^^^^^^

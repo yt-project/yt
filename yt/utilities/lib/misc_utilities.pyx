@@ -372,9 +372,10 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
                                 talpha = image[x0, yi0, 3]
                                 image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
                                 for i in range(3):
-                                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
                                     if image[x0, yi0, 3] == 0.0:
                                         image[x0, yi0, i] = 0.0
+                                    else:
+                                        image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
                             else:
                                 for i in range(4):
                                     image[x0, yi0, i] = alpha[i]

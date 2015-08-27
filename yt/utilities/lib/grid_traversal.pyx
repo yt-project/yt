@@ -30,15 +30,6 @@ from cython.parallel import prange, parallel, threadid
 
 DEF Nch = 4
 
-ctypedef void sampler_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
-
 cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
@@ -183,32 +174,12 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
-cdef struct ImageContainer:
-    np.float64_t *vp_pos
-    np.float64_t *vp_dir
-    np.float64_t *center
-    np.float64_t *image
-    np.float64_t *zbuffer
-    np.float64_t pdx, pdy
-    np.float64_t bounds[4]
-    int nv[2]
-    int vp_strides[3]
-    int im_strides[3]
-    int vd_strides[3]
-    np.float64_t *x_vec
-    np.float64_t *y_vec
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
     void *supp_data
 
 cdef class ImageSampler:
-    cdef ImageContainer *image
-    cdef sampler_function *sampler
-    cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
-    cdef public object azbuffer
-    cdef void *supp_data
-    cdef np.float64_t width[3]
     def __init__(self,
                   np.ndarray vp_pos,
                   np.ndarray vp_dir,

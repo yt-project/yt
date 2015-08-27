@@ -20,12 +20,21 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler
+    get_corners, new_projection_sampler, new_mesh_sampler
 from yt.visualization.image_writer import apply_colormap
-
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
+
+from yt.utilities.on_demand_imports import NotAModule
+try:
+    from yt.utilities.lib import mesh_traversal
+except ImportError:
+    mesh_traversal = NotAModule("pyembree")
+try:
+    from yt.utilities.lib import mesh_construction
+except ImportError:
+    mesh_construction = NotAModule("pyembree")
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -237,6 +246,92 @@ class VolumeSource(RenderSource):
     def __repr__(self):
         disp = "<Volume Source>:%s " % str(self.data_source)
         disp += "transfer_function:%s" % str(self.transfer_function)
+        return disp
+
+
+class MeshSource(RenderSource):
+
+    """
+
+    MeshSource is a class for volume rendering unstructured mesh
+    data. This functionality requires the embree ray-tracing
+    engine and the associated pyembree python bindings to be
+    installed in order to function.
+
+    """
+
+    _image = None
+    data_source = None
+
+    def __init__(self, data_source, field):
+        r"""Initialize a new unstructured source for rendering.
+
+        A :class:`MeshSource` provides the framework to volume render
+        unstructured mesh data.
+
+        Parameters
+        ----------
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
+        fields : string
+            The name of the field to be rendered.
+
+        Examples
+        --------
+        >>> source = MeshSource(ds, ('all', 'convected'))
+
+        """
+        super(MeshSource, self).__init__()
+        self.data_source = data_source_or_all(data_source)
+        field = self.data_source._determine_fields(field)[0]
+        self.field = field
+        self.mesh = None
+        self.current_image = None
+
+        # Error checking
+        assert(self.field is not None)
+        assert(self.data_source is not None)
+
+        self.scene = mesh_traversal.YTEmbreeScene()
+
+        self.build_mesh()
+
+    def _validate(self):
+        """Make sure that all dependencies have been met"""
+        if self.data_source is None:
+            raise RuntimeError("Data source not initialized")
+
+        if self.mesh is None:
+            raise RuntimeError("Mesh not initialized")
+
+    def build_mesh(self):
+
+        field_data = self.data_source[self.field]
+        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+
+        # convert the indices to zero-based indexing
+        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
+
+        self.mesh = mesh_construction.ElementMesh(self.scene,
+                                                  vertices,
+                                                  indices,
+                                                  field_data.d)
+
+    def render(self, camera, zbuffer=None):
+
+        self.sampler = new_mesh_sampler(camera, self)
+
+        mylog.debug("Casting rays")
+        self.sampler(self.scene)
+        mylog.debug("Done casting rays")
+
+        self.current_image = self.sampler.aimage
+
+        return self.current_image
+
+    def __repr__(self):
+        disp = "<Mesh Source>:%s " % str(self.data_source)
         return disp
 
 
@@ -481,7 +576,7 @@ class GridSource(LineSource):
         vertices = np.empty([corners.shape[2]*2*12, 3])
         for i in range(3):
             vertices[:, i] = corners[order, i, ...].ravel(order='F')
-        vertices = vertices.reshape((12, 2, 3))
+        vertices = vertices.reshape((corners.shape[2]*12, 2, 3))
 
         super(GridSource, self).__init__(vertices, colors, color_stride=24)
 

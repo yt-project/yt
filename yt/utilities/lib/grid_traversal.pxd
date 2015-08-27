@@ -19,6 +19,46 @@ cimport numpy as np
 cimport cython
 cimport kdtree_utils
 
+cdef struct ImageContainer:
+    np.float64_t *vp_pos
+    np.float64_t *vp_dir
+    np.float64_t *center
+    np.float64_t *image
+    np.float64_t *zbuffer
+    np.float64_t pdx, pdy
+    np.float64_t bounds[4]
+    int nv[2]
+    int vp_strides[3]
+    int im_strides[3]
+    int vd_strides[3]
+    np.float64_t *x_vec
+    np.float64_t *y_vec
+
+ctypedef void sampler_function(
+                VolumeContainer *vc,
+                np.float64_t v_pos[3],
+                np.float64_t v_dir[3],
+                np.float64_t enter_t,
+                np.float64_t exit_t,
+                int index[3],
+                void *data) nogil
+
+
+cdef class ImageSampler:
+    cdef ImageContainer *image
+    cdef sampler_function *sampler
+    cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
+    cdef public object azbuffer
+    cdef void *supp_data
+    cdef np.float64_t width[3]
+
+    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv)
+
+    cdef void calculate_extent(self, np.float64_t extrema[4],
+                               VolumeContainer *vc) nogil
+
+    cdef void setup(self, PartitionedGrid pg)
+
 cdef struct VolumeContainer:
     int n_fields
     np.float64_t **data
