@@ -26,8 +26,7 @@ from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks
 from yt.units.unit_lookup_table import \
-    latex_symbol_lut, unit_prefixes, \
-    prefixable_units, cgs_base_units, \
+    unit_prefixes, prefixable_units, cgs_base_units, \
     mks_base_units, latex_prefixes, yt_base_units
 from yt.units.unit_registry import UnitRegistry
 from yt.utilities.exceptions import YTUnitsNotReducible
@@ -103,6 +102,14 @@ def auto_positive_symbol(tokens, local_dict, global_dict):
 
     return result
 
+def get_latex_representation(expr, registry):
+    symbol_table = {}
+    for ex in expr.free_symbols:
+        symbol_table[ex] = registry.lut[str(ex)][3]
+    return latex(expr, symbol_names=symbol_table,
+                 mul_symbol="dot", fold_frac_powers=True,
+                 fold_short_frac=True)
+
 unit_text_transform = (auto_positive_symbol, rationalize, auto_number)
 
 class Unit(Expr):
@@ -119,10 +126,10 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "base_value", "base_offset", "dimensions",
-                 "registry"]
+                 "registry", "latex_repr"]
 
     def __new__(cls, unit_expr=sympy_one, base_value=None, base_offset=0.0,
-                dimensions=None, registry=None, **assumptions):
+                dimensions=None, registry=None, latex_repr=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
         of atomic units (like g / cm**3).
@@ -133,15 +140,20 @@ class Unit(Expr):
             The symbolic unit expression.
         base_value : float
             The unit's value in yt's base units.
+        base_offset : float
+            The offset necessary to normalize temperature units to a common
+            zero point.
         dimensions : sympy.core.expr.Expr
             A sympy expression representing the dimensionality of this unit.
             It must contain only mass, length, time, temperature and angle
             symbols.
-        base_offset : float
-            The offset necessary to normalize temperature units to a common
-            zero point.
         registry : UnitRegistry object
             The unit registry we use to interpret unit symbols.
+        latex_repr : string
+            A string to render the unit as LaTeX
+
+        Additional keyword arguments are passed as assumptions to the Sympy Expr
+        initializer
 
         """
         # Simplest case. If user passes a Unit object, just use the expr.
@@ -199,13 +211,19 @@ class Unit(Expr):
             # check that dimensions is valid
             if dimensions is not None:
                 validate_dimensions(dimensions)
+            if latex_repr is None:
+                latex_repr = r"\rm{" + str(unit_expr) + "}"
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
             base_value = unit_data[0]
             dimensions = unit_data[1]
-            if len(unit_data) == 3:
+            if len(unit_data) > 2:
                 base_offset = unit_data[2]
+                latex_repr = unit_data[3]
+            else:
+                base_offset = 0.0
+                latex_repr = get_latex_representation(unit_expr, registry)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -216,9 +234,10 @@ class Unit(Expr):
         obj.base_value = base_value
         obj.base_offset = base_offset
         obj.dimensions = dimensions
+        obj.latex_repr = latex_repr
         obj.registry = registry
 
-        if unit_key:
+        if unit_key is not None:
             registry.unit_objs[unit_key] = obj
 
         # Return `obj` so __init__ can handle it.
@@ -411,12 +430,8 @@ class Unit(Expr):
         return get_conversion_factor(self, other_units)
 
     def latex_representation(self):
-        symbol_table = {}
-        for ex in self.expr.free_symbols:
-            symbol_table[ex] = latex_symbol_lut[str(ex)]
-        return latex(self.expr, symbol_names=symbol_table,
-                     mul_symbol="dot", fold_frac_powers=True,
-                     fold_short_frac=True)
+        return get_latex_representation(self, self.registry)
+
 #
 # Unit manipulation functions
 #
@@ -526,27 +541,42 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
         # the first character could be a prefix, check the rest of the symbol
         symbol_wo_prefix = symbol_str[1:]
 
-        if symbol_wo_prefix in unit_symbol_lut and symbol_wo_prefix in prefixable_units:
+        unit_is_si_prefixable = (symbol_wo_prefix in unit_symbol_lut and
+                                 symbol_wo_prefix in prefixable_units)
+
+        if unit_is_si_prefixable is True:
             # lookup successful, it's a symbol with a prefix
             unit_data = unit_symbol_lut[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]
 
-            if symbol_str not in latex_symbol_lut:
-                if possible_prefix in latex_prefixes:
-                    sstr = symbol_str.replace(possible_prefix,
-                                              '{'+latex_prefixes[possible_prefix]+'}')
+            if possible_prefix in latex_prefixes:
+                latex_repr = symbol_str.replace(
+                    possible_prefix, '{'+latex_prefixes[possible_prefix]+'}')
+            else:
+                # Need to add some special handling for comoving units
+                # this is fine for now, but it wouldn't work for a general
+                # unit that has an arbitrary LaTeX representation
+                if symbol_wo_prefix != 'cm' and symbol_wo_prefix.endswith('cm'):
+                    sub_symbol_wo_prefix = symbol_wo_prefix[:-2]
+                    sub_symbol_str = symbol_str[:-2]
                 else:
-                    sstr = symbol_str
-                latex_symbol_lut[symbol_str] = \
-                    latex_symbol_lut[symbol_wo_prefix].replace(
-                                   '{'+symbol_wo_prefix+'}', '{'+sstr+'}')
+                    sub_symbol_wo_prefix = symbol_wo_prefix
+                    sub_symbol_str = symbol_str
+                latex_repr = unit_data[3].replace(
+                    '{' + sub_symbol_wo_prefix + '}', '{' + sub_symbol_str + '}')
 
-            # don't forget to account for the prefix value!
-            return (unit_data[0] * prefix_value, unit_data[1])
+            # Leave offset and dimensions the same, but adjust scale factor and
+            # LaTeX representation
+            ret = (unit_data[0] * prefix_value, unit_data[1], unit_data[2],
+                   latex_repr)
+
+            unit_symbol_lut[symbol_str] = ret
+
+            return ret
 
     # no dice
-    raise UnitParseError("Could not find unit symbol '%s' in the provided " \
-                         "symbols." % symbol_str)
+    raise UnitParseError("Could not find unit symbol '%s' in the table of" \
+                         "known symbols." % symbol_str)
 
 def validate_dimensions(dimensions):
     if isinstance(dimensions, Mul):
