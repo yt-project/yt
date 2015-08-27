@@ -259,6 +259,7 @@ class MeshSource(RenderSource):
     installed in order to function.
 
     """
+
     _image = None
     data_source = None
 

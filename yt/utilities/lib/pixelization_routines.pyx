@@ -439,8 +439,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
-    # Second is more intensive.  It will converting the element vertices to the
-    # mapped coordinate system, and checking whether the result is in-bounds or not
+    # Second is more intensive.  It will convert the element vertices to the
+    # mapped coordinate system, and checking whether the result in in-bounds or not
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
     cdef np.float64_t pLE[3], pRE[3]

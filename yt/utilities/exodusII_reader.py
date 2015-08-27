@@ -2,6 +2,8 @@ import string
 from itertools import takewhile
 from netCDF4 import Dataset
 import numpy as np
+from yt.config import ytcfg
+import os
 
 
 def sanitize_string(s):
@@ -10,7 +12,10 @@ def sanitize_string(s):
 
 
 def get_data(fn):
-    f = Dataset(fn)
+    try:
+        f = Dataset(fn)
+    except RuntimeError:
+        f = Dataset(os.path.join(ytcfg.get("yt", "test_data_dir"), fn))
     fvars = f.variables
     # Is this correct?
     etypes = fvars["eb_status"][:]

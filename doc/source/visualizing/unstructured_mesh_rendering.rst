@@ -38,7 +38,7 @@ usr/local. To account for this, you would do:
 
 .. code-block:: bash
 
-    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
+    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
 
 You must also use these flags when building any part of yt that links against
 pyembree.
@@ -60,6 +60,7 @@ saved into an image.
 See below for examples. First, here is an example of rendering a hexahedral mesh.
 
 .. python-script::
+
    import yt
    import pylab as plt
    from yt.visualization.volume_rendering.render_source import MeshSource
@@ -67,7 +68,7 @@ See below for examples. First, here is an example of rendering a hexahedral mesh
    from yt.utilities.exodusII_reader import get_data
 
    # load the data
-   coords, connectivity, data = get_data("data/out.e-s010")
+   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
    mesh_id = 0
    field_name = ('gas', 'diffused')
    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
@@ -96,6 +97,7 @@ See below for examples. First, here is an example of rendering a hexahedral mesh
 Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 
 .. python-script::
+
    import yt
    import pylab as plt
    from yt.visualization.volume_rendering.render_source import MeshSource
@@ -103,7 +105,7 @@ Next, here is an example of rendering a dataset with tetrahedral mesh elements.
    from yt.utilities.exodusII_reader import get_data
 
    # load the data
-   filename = "../moose/test/tests/mesh/high_order_elems/gold/high_order_elems_tet4_refine_out.e"
+   filename = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
    coords, connectivity, data = get_data(filename)
    mesh_id = 0
    field_name = ('gas', 'u')
@@ -135,6 +137,7 @@ Finally, here is a script that creates frames of a movie. It calls the rotate()
 method 300 times, saving a new image to the disk each time.
 
 .. code-block:: python
+
    import yt
    import pylab as plt
    from yt.visualization.volume_rendering.render_source import MeshSource
@@ -142,7 +145,7 @@ method 300 times, saving a new image to the disk each time.
    from yt.utilities.exodusII_reader import get_data
 
    # load dataset
-   coords, connectivity, data = get_data("data/out.e-s010")
+   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
    mesh_id = 0
    field_name = ('gas', 'diffused')
    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
