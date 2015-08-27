@@ -318,7 +318,7 @@ class MeshSource(RenderSource):
                                                   indices,
                                                   field_data.d)
 
-    def render(self, camera):
+    def render(self, camera, zbuffer=None):
 
         self.sampler = new_mesh_sampler(camera, self)
 
