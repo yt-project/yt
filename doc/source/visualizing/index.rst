@@ -15,7 +15,6 @@ interactively.
    callbacks
    manual_plotting
    volume_rendering
-   hardware_volume_rendering
    sketchfab
    mapserver
    streamlines
