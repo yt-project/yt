@@ -253,8 +253,14 @@ class DatasetSeries(object):
         else:
             if self.parallel == True: njobs = -1
             else: njobs = self.parallel
-        return parallel_objects(self, njobs=njobs, storage=storage,
-                                dynamic=dynamic)
+        for output in parallel_objects(self._pre_outputs, njobs=njobs,
+                                       storage=storage, dynamic=dynamic):
+            if isinstance(output, string_types):
+                ds = load(output, **self.kwargs)
+                self._setup_function(ds)
+                yield ds
+            else:
+                yield output
 
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
