@@ -248,11 +248,14 @@ class DatasetSeries(object):
 
         """
         dynamic = False
-        if self.parallel == False:
+        if self.parallel is False:
             njobs = 1
         else:
-            if self.parallel == True: njobs = -1
-            else: njobs = self.parallel
+            if self.parallel is True:
+                njobs = -1
+            else:
+                njobs = self.parallel
+
         for output in parallel_objects(self._pre_outputs, njobs=njobs,
                                        storage=storage, dynamic=dynamic):
             if storage is not None:
