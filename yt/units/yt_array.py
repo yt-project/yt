@@ -479,6 +479,14 @@ class YTArray(np.ndarray):
 
         return new_array
 
+    def to(self, units):
+        """
+        An alias for YTArray.in_units().
+
+        See the docstrings of that function for details.
+        """
+        return self.in_units(units)
+
     def in_base(self):
         """
         Creates a copy of this array with the data in the equivalent base units,
