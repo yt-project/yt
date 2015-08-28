@@ -17,9 +17,10 @@ import numpy as np
 
 field = ("gas", "density")
 
+
 def test_perspective_lens():
-    #ds = fake_random_ds(32, fields = field)
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     sc = Scene()
     cam = Camera(ds, lens_type='perspective')
     cam.position = ds.arr(np.array([1.0, 1.0, 1.0]), 'code_length')
@@ -30,9 +31,10 @@ def test_perspective_lens():
     sc.add_source(vol)
     sc.render('test_perspective_%s.png' % field[1], clip_ratio=6.0)
 
+
 def test_stereoperspective_lens():
-    #ds = fake_random_ds(32, fields = field)
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     sc = Scene()
     cam = Camera(ds, lens_type='stereo-perspective')
     cam.resolution = [1024, 512]
@@ -43,6 +45,7 @@ def test_stereoperspective_lens():
     sc.camera = cam
     sc.add_source(vol)
     sc.render('test_stereoperspective_%s.png' % field[1], clip_ratio=6.0)
+
 
 def test_fisheye_lens():
     ds = fake_random_ds(32, fields = field)
@@ -62,6 +65,7 @@ def test_fisheye_lens():
     sc.add_source(vol)
     sc.render('test_fisheye_%s.png' % field[1], clip_ratio=6.0)
 
+
 def test_plane_lens():
     ds = fake_random_ds(32, fields = field)
     #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -78,9 +82,10 @@ def test_plane_lens():
     sc.add_source(vol)
     sc.render('test_plane_%s.png' % field[1], clip_ratio=6.0)
 
+
 def test_spherical_lens():
-    #ds = fake_random_ds(32, fields = field)
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     sc = Scene()
     cam = Camera(ds, lens_type='spherical')
     cam.resolution = [512, 256]
@@ -92,9 +97,10 @@ def test_spherical_lens():
     sc.add_source(vol)
     sc.render('test_spherical_%s.png' % field[1], clip_ratio=6.0)
 
+
 def test_stereospherical_lens():
-    #ds = fake_random_ds(32, fields = field)
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds = fake_random_ds(32, fields = field)
+    #ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     w = (ds.domain_width).in_units('code_length')
     w = ds.arr(w, 'code_length')
     sc = Scene()
