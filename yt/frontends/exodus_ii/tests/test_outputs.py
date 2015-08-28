@@ -19,6 +19,11 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.exodus_ii.api import ExodusIIDataset
 
+_fields = ("temperature", "density", "velocity_magnitude",
+           "velocity_divergence")
+
+print "Is this thing on"
+
 out00 = "ExodusII/out.e"
 @requires_ds(out00)
 def test_printout():
