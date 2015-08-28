@@ -39,7 +39,9 @@ from yt.utilities.exceptions import \
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
-from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
+from yt.units.unit_lookup_table import \
+    unit_prefixes, prefixable_units, \
+    default_unit_symbol_lut
 from yt.units.equivalencies import equivalence_registry
 from yt.utilities.logger import ytLogger as mylog
 
@@ -1129,6 +1131,12 @@ class YTArray(np.ndarray):
         """
         super(YTArray, self).__setstate__(state[1:])
         unit, lut = state[0]
+        # need to fix up the lut if the pickle was saved prior to PR #1728
+        # when the pickle format changed
+        if len(lut['m']) == 2:
+            lut.update(default_unit_symbol_lut)
+            for k in [k for k, v in lut.items() if len(v) == 2]:
+                lut[k] = v + (0.0, r'\rm{' + k.replace('_', '\ ') + '}')
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 
