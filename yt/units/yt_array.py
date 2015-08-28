@@ -19,14 +19,15 @@ import numpy as np
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
-    floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
+    floor_divide, negative, power, remainder, mod, absolute, rint, \
     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
     reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
+    bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift, \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
-    logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
-    isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
-    floor, ceil, trunc, fmax, fmin, fabs
+    logical_or, logical_xor, logical_not, maximum, minimum, fmax, fmin, \
+    isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
+    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
@@ -94,6 +95,14 @@ def arctan2_unit(unit1, unit2):
 def comparison_unit(unit1, unit2):
     return None
 
+def invert_units(unit):
+    raise TypeError(
+        "Bit-twiddling operators are not defined for YTArray instances")
+
+def bitop_units(unit1, unit2):
+    raise TypeError(
+        "Bit-twiddling operators are not defined for YTArray instances")
+
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
         return input_object
@@ -150,15 +159,16 @@ unary_operators = (
     negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
-    rad2deg, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
+    rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
     signbit, floor, ceil, trunc, modf, frexp, fabs
 )
 
 binary_operators = (
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, power,
-    remainder, mod, arctan2, hypot, greater, greater_equal, less, less_equal,
+    remainder, mod, arctan2, hypot, bitwise_and, bitwise_or, bitwise_xor,
+    left_shift, right_shift, greater, greater_equal, less, less_equal,
     not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
-    fmax, fmin, copysign, nextafter, fmod,
+    fmax, fmin, copysign, nextafter, ldexp, fmod,
 )
 
 class YTArray(np.ndarray):
@@ -272,6 +282,12 @@ class YTArray(np.ndarray):
         hypot: preserve_units,
         deg2rad: return_without_unit,
         rad2deg: return_without_unit,
+        bitwise_and: bitop_units,
+        bitwise_or: bitop_units,
+        bitwise_xor: bitop_units,
+        invert: invert_units,
+        left_shift: bitop_units,
+        right_shift: bitop_units,
         greater: comparison_unit,
         greater_equal: comparison_unit,
         less: comparison_unit,
@@ -295,6 +311,7 @@ class YTArray(np.ndarray):
         copysign: passthrough_unit,
         nextafter: preserve_units,
         modf: passthrough_unit,
+        ldexp: bitop_units,
         frexp: return_without_unit,
         floor: passthrough_unit,
         ceil: passthrough_unit,
