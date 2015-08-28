@@ -449,4 +449,4 @@ def test_temperature_offsets():
     u2 = Unit('degF')
 
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
-    assert_raises(InvalidUnitOperation, operator.div, u1, u2)
+    assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)

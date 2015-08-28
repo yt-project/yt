@@ -1,5 +1,5 @@
 """
-Cylindrical fields
+Definitions for cylindrical coordinate systems
 
 
 

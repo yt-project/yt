@@ -597,23 +597,27 @@ Add the Current Time and/or Redshift
 
 Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, max_frac=0.2, \
-                             min_frac=0.018, text_args=None, \
-                             inset_box_args=None)
+                             unit=None, pos=None, max_frac=0.16, \
+                             min_frac=0.015, coord_system='axis', \
+                             text_args=None, size_bar_args=None, \
+                             draw_inset_box=False, inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
-    the pos argument.  Coeff and units (e.g. 1 Mpc) refer to the distance scale
-    you desire to show on the plot.  If no coeff and units are specified,
-    an appropriate pair will be determined such that your scale bar is never
-    smaller than min_frac or greater than max_frac of your plottable axis
-    length.  For additional text and plot arguments for the text and line,
-    include them as dictionaries to pass to text_args and plot_args.
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
+    distance scale you desire to show on the plot.  If no coeff and units are
+    specified, an appropriate pair will be determined such that your scale bar
+    is never smaller than min_frac or greater than max_frac of your plottable
+    axis length.  Additional customization of the scale bar is possible by
+    adjusting the text_args and size_bar_args dictionaries.  The text_args
+    dictionary accepts matplotlib's font_properties arguments to override
+    the default font_properties for the current plot.  The size_bar_args
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in
+    matplotlib's axes_grid toolkit.
 
 .. python-script::
 

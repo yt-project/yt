@@ -692,10 +692,12 @@ class YTMapserverCmd(YTCommand):
             p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
         else:
             p = SlicePlot(ds, args.axis, args.field)
-        from yt.gui.reason.pannable_map import PannableMapServer
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
         mapper = PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
         bottle.debug(True)
+        bottle_dir = os.path.dirname(bottle.__file__)
+        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -706,6 +708,7 @@ class YTMapserverCmd(YTCommand):
             bottle.run(server='rocket', host=args.host, port=port)
         else:
             bottle.run(server='rocket')
+        sys.path.remove(bottle_dir)
 
 
 class YTPastebinCmd(YTCommand):
