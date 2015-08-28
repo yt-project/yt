@@ -247,9 +247,10 @@ class ExodusIIDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
+            from netCDF4 import Dataset
             filename = args[0]
-            fhandle = NetCDF4FileHandler(filename)
-            fhandle.dataset.variables['connect1']
+            with Dataset(filename) as f:
+                f.variables['connect1']
             return True
         except:
             pass
