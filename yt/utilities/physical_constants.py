@@ -1,23 +1,4 @@
-from yt.utilities.physical_ratios import \
-    mass_electron_grams, amu_grams, \
-    speed_of_light_cm_per_s, \
-    boltzmann_constant_erg_per_K, \
-    mass_sun_grams, \
-    mass_mercury_grams, \
-    mass_venus_grams, \
-    mass_earth_grams, \
-    mass_mars_grams, \
-    mass_jupiter_grams, \
-    mass_saturn_grams, \
-    mass_uranus_grams, \
-    mass_neptune_grams, \
-    planck_mass_grams, \
-    planck_length_cm, \
-    planck_time_s, \
-    planck_energy_erg, \
-    planck_charge_esu, \
-    planck_temperature_K
-
+from yt.utilities.physical_ratios import *
 from yt.units.yt_array import YTQuantity
 from math import pi
 
