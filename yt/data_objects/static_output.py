@@ -366,7 +366,9 @@ class Dataset(object):
         self.field_dependencies = {}
         self.derived_field_list = []
         self.filtered_particle_types = []
-        self.field_info = self._field_info_class(self, self.field_list)
+        if not hasattr(self, "field_info"):
+            self.field_info = \
+              self._field_info_class(self, self.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
