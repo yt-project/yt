@@ -127,7 +127,7 @@ def find_merge_commit_in_prs(needle, prs):
         if pr['merge_commit'] is not None:
             if pr['merge_commit']['hash'] == needle[1][:12]:
                 return pr
-    raise RuntimeError
+    return None
 
 
 def create_commits_to_prs_mapping(linege, prs):
@@ -142,7 +142,10 @@ def create_commits_to_prs_mapping(linege, prs):
         cset_hash = commit[1]
         message = commit[5]
         if message.startswith('Merged in') and '(pull request #' in message:
-            commits_to_prs[cset_hash] = find_merge_commit_in_prs(commit, my_prs)
+            pr = find_merge_commit_in_prs(commit, my_prs)
+            if pr is None:
+                continue
+            commits_to_prs[cset_hash] = pr
             # Since we know this PR won't have another commit associated with it,
             # remove from global list to reduce number of network accesses
             my_prs.remove(commits_to_prs[cset_hash])
@@ -181,13 +184,45 @@ def get_last_descendant(repo_path, commit):
 
 def get_no_pr_commits(repo_path, inv_map):
     """"get a list of commits that aren't in any pull request"""
-    no_pr_commits = inv_map[None]
-    del inv_map[None]
+    try:
+        no_pr_commits = inv_map[None]
+        del inv_map[None]
+    except KeyError:
+        no_pr_commits = []
     with hglib.open(repo_path) as client:
         # remove merge commits since they can't be grafted
         no_pr_commits = [com for com in no_pr_commits if
                          len(client.log('%s and merge()' % com)) == 0]
     return no_pr_commits
+
+
+def screen_already_backported(repo_path, inv_map, no_pr_commits):
+    with hglib.open(repo_path) as client:
+        most_recent_tag_name = client.log("reverse(tag())")[0][2]
+        lineage = client.log(
+            "descendants(%s) and branch(stable)" % most_recent_tag_name)
+        for commit in no_pr_commits:
+            lineage.remove(commit)
+        prs_to_screen = []
+        for pr in inv_map:
+            for commit in lineage:
+                if commit[5].startswith('Backporting PR #%s' % pr[0]):
+                    prs_to_screen.append(pr)
+        for pr in prs_to_screen:
+            del inv_map[pr]
+        return inv_map, no_pr_commits
+
+def commit_already_on_stable(repo_path, commit):
+    with hglib.open(repo_path) as client:
+        commit_info = client.log(commit)[0]
+        most_recent_tag_name = client.log("reverse(tag())")[0][2]
+        lineage = client.log(
+            "descendants(%s) and branch(stable)" % most_recent_tag_name)
+        # if there is a stable commit with the same commit message,
+        # it's been grafted
+        if any([commit_info[5] == c[5] for c in lineage]):
+            return True
+        return False
 
 
 def backport_no_pr_commits(repo_path, no_pr_commits):
@@ -205,7 +240,6 @@ def backport_no_pr_commits(repo_path, no_pr_commits):
         raw_input('Press any key to continue')
         print ""
 
-
 def backport_pr_commits(repo_path, inv_map, last_stable, prs):
     """backports pull requests to the stable branch.
 
@@ -215,8 +249,6 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
     pr_list = inv_map.keys()
     pr_list = sorted(pr_list, key=lambda x: x[2])
     for pr_desc in pr_list:
-        print "PR #%s\nTitle: %s\nCreated on: %s\nLink: %s\n%s" % pr_desc
-        print "To backport, issue the following command(s):\n"
         pr = [pr for pr in prs if pr['id'] == pr_desc[0]][0]
         data = requests.get(pr['links']['commits']['href']).json()
         commits = data['values']
@@ -234,7 +266,11 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
                 (revset, message, dest)
             message += "hg update stable\n"
         else:
+            if commit_already_on_stable(repo_path, commits[0]) is True:
+                continue
             message = "hg graft %s\n" % commits[0]
+        print "PR #%s\nTitle: %s\nCreated on: %s\nLink: %s\n%s" % pr_desc
+        print "To backport, issue the following command(s):\n"
         print message
         raw_input('Press any key to continue')
 
@@ -255,6 +291,8 @@ if __name__ == "__main__":
         commits_to_prs = create_commits_to_prs_mapping(lineage, prs)
         inv_map = invert_commits_to_prs_mapping(commits_to_prs)
         no_pr_commits = get_no_pr_commits(repo_path, inv_map)
+        inv_map, no_pr_commits = \
+            screen_already_backported(repo_path, inv_map, no_pr_commits)
         print "In another terminal window, navigate to the following path:"
         print "%s" % repo_path
         raw_input("Press any key to continue")
