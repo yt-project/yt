@@ -18,6 +18,8 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load
 from yt.frontends.exodus_ii.api import ExodusIIDataset
+from yt.config import ytcfg
+from yt.convenience import load
 
 _fields = ("temperature", "density", "velocity_magnitude",
            "velocity_divergence")
