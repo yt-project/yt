@@ -189,8 +189,8 @@ class TipsyDataset(ParticleDataset):
 
         # If the cosmology parameters dictionary got set when data is
         # loaded, we can assume it's a cosmological data set
-        if self.comoving or self._cosmology_parameters is not None and \
-                self._cosmology_parameters.get('cosmological', None) is True:
+        if self.comoving or (self._cosmology_parameters is not None and
+                self._cosmology_parameters.get('cosmological', False)):
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
