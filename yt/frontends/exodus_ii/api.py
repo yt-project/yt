@@ -23,3 +23,5 @@ from .fields import \
 
 from .io import \
     IOHandlerExodusII
+
+from . import tests
