@@ -215,7 +215,7 @@ class Unit(Expr):
             if dimensions is not None:
                 validate_dimensions(dimensions)
             if latex_repr is None:
-                latex_repr = r"\rm{" + str(unit_expr) + "}"
+                latex_repr = r"\rm{" + str(unit_expr).replace('_', '\ ') + "}"
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
