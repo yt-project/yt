@@ -1135,7 +1135,7 @@ class YTArray(np.ndarray):
         # when the pickle format changed
         if len(lut['m']) == 2:
             lut.update(default_unit_symbol_lut)
-            for k in [k for k, v in lut.items() if len(v) == 2]:
+            for k, v in [(k, v) for k, v in lut.items() if len(v) == 2]:
                 lut[k] = v + (0.0, r'\rm{' + k.replace('_', '\ ') + '}')
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
