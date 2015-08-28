@@ -42,3 +42,8 @@ def test_out002():
     yield assert_equal, ds.dimensionality, 3
     yield assert_equal, ds.current_time, 0.0
 
+gold = "ExodusII/gold.e"
+@requires_ds(gold)
+def test_gold():
+    ds = data_dir_load(gold)
+    yield assert_equal, str(ds), "gold.e"
