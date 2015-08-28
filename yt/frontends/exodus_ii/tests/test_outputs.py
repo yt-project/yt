@@ -31,6 +31,8 @@ def test_out():
     yield assert_equal, ds.dimensionality, 3
     yield assert_equal, ds.unique_identifier, 'Wed Apr 15 07:52:29 2015'
     yield assert_equal, ds.current_time, 0.0
+    yield assert_array_equal, ds.parameters['nod_names'], ['convected', 'diffused']
+    yield assert_equal, ds.parameters['num_meshes'], 2
     
 out_s002 = "ExodusII/out.e-s002"
 @requires_ds(out_s002)
@@ -39,6 +41,4 @@ def test_out002():
     yield assert_equal, str(ds), "out.e-s002"
     yield assert_equal, ds.dimensionality, 3
     yield assert_equal, ds.current_time, 0.0
-    
-
 
