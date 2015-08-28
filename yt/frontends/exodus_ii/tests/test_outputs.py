@@ -21,16 +21,24 @@ from yt.frontends.exodus_ii.api import ExodusIIDataset
 from yt.config import ytcfg
 from yt.convenience import load
 
-_fields = ("temperature", "density", "velocity_magnitude",
-           "velocity_divergence")
+_fields = ("convected", "diffused")
 
-print "Is this thing on"
-
-out00 = "ExodusII/out.e"
-@requires_ds(out00)
-def test_printout():
-    print "Is it me you're looking for?"
-    ds = data_dir_load(out00)
+out = "ExodusII/out.e"
+@requires_ds(out)
+def test_out():
+    ds = data_dir_load(out)
     yield assert_equal, str(ds), "out.e"
+    yield assert_equal, ds.dimensionality, 3
+    yield assert_equal, ds.unique_identifier, 'Wed Apr 15 07:52:29 2015'
+    yield assert_equal, ds.current_time, 0.0
+    
+out_s002 = "ExodusII/out.e-s002"
+@requires_ds(out_s002)
+def test_out002():
+    ds = data_dir_load(out_s002)
+    yield assert_equal, str(ds), "out.e-s002"
+    yield assert_equal, ds.dimensionality, 3
+    yield assert_equal, ds.current_time, 0.0
+    
 
 
