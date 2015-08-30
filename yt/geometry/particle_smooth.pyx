@@ -641,6 +641,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
         cdef np.float64_t weight, r2, val, hsml, dens, mass, coeff, max_r
+        cdef np.float64_t max_hsml, ihsml, ihsml3
         coeff = 0.0
         cdef np.int64_t pn
         # We get back our mass
@@ -657,10 +658,13 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             if hsml < 0:
                 hsml = max_r
             if hsml == 0: continue
+            ihsml = 1.0/hsml
+            ihsml3 = ihsml*ihsml*ihsml
             # Usually this density has been computed
             dens = fields[2][pn]
             if dens == 0.0: continue
-            weight = mass * sph_kernel(sqrt(r2) / hsml) / dens
+            weight = mass * self.sph_kernel(sqrt(r2) * ihsml) / dens 
+            weight *= ihsml3
             # Mass of the particle times the value
             for fi in range(self.nfields - 3):
                 val = fields[fi + 3][pn]
