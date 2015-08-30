@@ -101,6 +101,8 @@ def to_yt_dataset(ds, filename, data, field_types=None,
         my_val = extra_attrs[attr]
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
+        if my_val is None:
+            my_val = "None"
         fh.attrs[attr] = my_val
     if "data_type" not in extra_attrs:
         fh.attrs["data_type"] = "yt_array_data"
