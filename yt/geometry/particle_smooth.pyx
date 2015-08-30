@@ -447,10 +447,10 @@ cdef class ParticleSmoothOperation:
 
         for j in range(total_neighbors):
             # Particle octree neighbor indices
+            if nind[0][j] == -1: continue
             for n in range(j):
                 if nind[0][j] == nind[0][n]:
                     nind[0][j] = -1
-                break
         # This is allocated by the neighbors function, so we deallocate it.
         if first_layer != NULL:
             free(first_layer)
@@ -564,7 +564,7 @@ cdef class ParticleSmoothOperation:
                 for k in range(dim[2]):
                     self.pos_setup(cpos, opos)
                     nneighbors = self.neighbor_search(opos, octree,
-                                    nind, nsize, nneighbors, domain_id, &oct)
+                                    nind, nsize, nneighbors, domain_id, &oct, 1)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
                         pinds, ppos, opos)
                     # Now we have all our neighbors in our neighbor list.
