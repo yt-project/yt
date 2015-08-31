@@ -240,6 +240,7 @@ def backport_no_pr_commits(repo_path, no_pr_commits):
         raw_input('Press any key to continue')
         print ""
 
+
 def backport_pr_commits(repo_path, inv_map, last_stable, prs):
     """backports pull requests to the stable branch.
 
@@ -249,6 +250,8 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
     pr_list = inv_map.keys()
     pr_list = sorted(pr_list, key=lambda x: x[2])
     for pr_desc in pr_list:
+        merge_warn = False
+        merge_commits = []
         pr = [pr for pr in prs if pr['id'] == pr_desc[0]][0]
         data = requests.get(pr['links']['commits']['href']).json()
         commits = data['values']
@@ -256,15 +259,31 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
             data = requests.get(data['next']).json()
             commits.extend(data['values'])
         commits = [com['hash'][:12] for com in commits]
+        with hglib.open(repo_path) as client:
+            for com in commits:
+                if client.log('merge() and %s' % com) != []:
+                    merge_warn = True
+                    merge_commits.append(com)
         if len(commits) > 1:
-            revset = commits[-1] + '::' + commits[0]
+            revset = " | ".join(commits)
+            revset = '"%s"' % revset
             message = "Backporting PR #%s %s" % \
                 (pr['id'], pr['links']['html']['href'])
             dest = get_last_descendant(repo_path, last_stable)
             message = \
                 "hg rebase -r %s --keep --collapse -m \"%s\" -d %s\n" % \
                 (revset, message, dest)
-            message += "hg update stable\n"
+            message += "hg update stable\n\n"
+            if merge_warn is True:
+                if len(merge_commits) > 1:
+                    merge_commits = ", ".join(merge_commits)
+                else:
+                    merge_commits = merge_commits[0]
+                message += \
+                    "WARNING, PULL REQUEST CONTAINS MERGE COMMITS, CONSIDER\n" \
+                    "BACKPORTING BY HAND TO AVOID BACKPORTING UNWANTED CHANGES\n"
+                message += \
+                    "Merge commits are %s\n\n" % merge_commits
         else:
             if commit_already_on_stable(repo_path, commits[0]) is True:
                 continue
