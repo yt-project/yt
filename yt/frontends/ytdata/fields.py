@@ -48,6 +48,15 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
         (v_units, "particle_velocity_z"),
     )
 
+class YTProjectionFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+    )
+
+    known_particle_fields = (
+        ("px", (p_units, ["particle_position_x"], None)),
+        ("py", (p_units, ["particle_position_y"], None)),
+    )
+
 class YTGridFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )

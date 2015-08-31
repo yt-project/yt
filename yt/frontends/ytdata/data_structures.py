@@ -25,6 +25,7 @@ import weakref
 
 from .fields import \
     YTDataContainerFieldInfo, \
+    YTProjectionFieldInfo, \
     YTGridFieldInfo
 
 from yt.data_objects.grid_patch import \
@@ -77,7 +78,6 @@ class YTDataContainerDataset(Dataset):
             hvals = dict((key, f.attrs[key]) for key in f.attrs.keys())
             self.particle_types_raw = tuple(f.keys())
         self.particle_types = self.particle_types_raw
-        self.dimensionality = 3
         self.refine_by = 2
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -86,7 +86,7 @@ class YTDataContainerDataset(Dataset):
         self.file_count = 1
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
-                     "domain_left_edge", "domain_right_edge"]:
+                     "dimensionality", "domain_left_edge", "domain_right_edge"]:
             setattr(self, attr, hvals[attr])
         self.periodicity = (True, True, True)
 
@@ -112,6 +112,23 @@ class YTDataContainerDataset(Dataset):
             if data_type == "yt_data_container" and \
               f.attrs.get("container_type", None) not in \
               _grid_data_containers:
+                return True
+        return False
+
+class YTProjectionDataset(YTDataContainerDataset):
+    _field_info_class = YTProjectionFieldInfo
+
+    def __init__(self, *args, **kwargs):
+        super(YTProjectionDataset, self).__init__(
+            *args, dataset_type="ytprojection_hdf5", **kwargs)
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_data_container" and \
+              f.attrs.get("container_type", None) == "proj":
                 return True
         return False
 
