@@ -122,6 +122,16 @@ class YTProjectionDataset(YTDataContainerDataset):
         super(YTProjectionDataset, self).__init__(
             *args, dataset_type="ytprojection_hdf5", **kwargs)
 
+    def _parse_parameter_file(self):
+        super(YTProjectionDataset, self)._parse_parameter_file()
+        self.axis = self.parameters["axis"]
+        self.weight_field = self.parameters["weight_field"]
+        if isinstance(self.weight_field, str) and \
+          self.weight_field == "None":
+            self.weight_field = None
+        elif isinstance(self.weight_field, np.ndarray):
+            self.weight_field = tuple(self.weight_field)
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False

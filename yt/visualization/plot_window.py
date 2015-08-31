@@ -46,6 +46,8 @@ from yt.data_objects.image_array import \
 from yt.extern.six.moves import \
     StringIO
 from yt.extern.six import string_types
+from yt.frontends.ytdata.data_structures import \
+    YTProjectionDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, fix_unitary
@@ -1426,9 +1428,18 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, display_center) = \
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
-        proj = ds.proj(fields, axis, weight_field=weight_field,
-                       center=center, data_source=data_source,
-                       field_parameters = field_parameters, method = method)
+
+        if isinstance(ds, YTProjectionDataset):
+            proj = ds.all_data()
+            proj.axis = axis
+            if proj.axis != ds.axis:
+                raise RuntimeError("Original projection axis is %s." %
+                                   "xyz"[ds.parameters["axis"]])
+            proj.weight_field = proj._determine_fields(weight_field)[0]
+        else:
+            proj = ds.proj(fields, axis, weight_field=weight_field,
+                           center=center, data_source=data_source,
+                           field_parameters = field_parameters, method = method)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
