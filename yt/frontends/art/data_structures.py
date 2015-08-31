@@ -192,7 +192,6 @@ class ARTDataset(Dataset):
         Given the AMR base filename, attempt to find the
         particle header, star files, etc.
         """
-        import pdb; pdb.set_trace()
         base_prefix, base_suffix = filename_pattern['amr']
         numericstr = file_amr.rsplit('_',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
