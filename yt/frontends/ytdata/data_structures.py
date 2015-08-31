@@ -139,7 +139,7 @@ class YTGridHierarchy(GridIndex):
     def __init__(self, ds, dataset_type = None):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
-        self.dataset = weakref.proxy(ds) # for _obtain_enzo
+        self.dataset = weakref.proxy(ds)
         self.directory = os.getcwd()
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -194,7 +194,6 @@ class YTGridDataset(Dataset):
         Dataset.__init__(self, filename, self._dataset_type)
 
     def _parse_parameter_file(self):
-        self.dimensionality = 3
         self.refine_by = 2
         self.unique_identifier = time.time()
         with h5py.File(self.parameter_filename, "r") as f:

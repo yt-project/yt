@@ -514,29 +514,35 @@ class YTDataContainer(object):
             data.update(self.field_data)
         data_fields = data.keys()
 
-        need_grid_fields = False
-        need_particle_fields = False
+        need_grid_positions = False
+        need_particle_positions = False
         ptypes = []
         ftypes = {}
         for field in data_fields:
-            if self.ds.field_info[field].particle_type:
+            if field in self._container_fields:
+                ftypes[field] = "grid"
+                need_grid_positions = True
+            elif self.ds.field_info[field].particle_type:
                 if field[0] not in ptypes:
                     ptypes.append(field[0])
                 ftypes[field] = "%s_particles" % field[0]
-                need_particle_fields = True
+                need_particle_positions = True
             else:
                 ftypes[field] = "grid"
-                need_grid_fields = True
+                need_grid_positions = True
+        if self._type_name == "proj":
+            need_grid_positions = False
 
-        for ax in "xyz":
-            if need_particle_fields:
+        if need_particle_positions:
+            for ax in "xyz":
                 for ptype in ptypes:
                     p_field = (ptype, "particle_position_%s" % ax)
                     if p_field in self.ds.field_info and p_field not in data:
                         data_fields.append(field)
                         ftypes[p_field] = "%s_particles" % p_field[0]
                         data[p_field] = self[p_field]
-            if need_grid_fields:
+        if need_grid_positions:
+            for ax in "xyz":
                 g_field = ("index", ax)
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
@@ -552,6 +558,7 @@ class YTDataContainer(object):
                             for arg in self._con_args])
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
+        extra_attrs["dimensionality"] = self._dimensionality
         to_yt_dataset(self.ds, filename, data, field_types=ftypes,
                       extra_attrs=extra_attrs)
 
