@@ -338,7 +338,8 @@ class MeshSource(RenderSource):
                                                   indices,
                                                   field_data)
 
-    def render(self, camera, zbuffer=None):
+    def render(self, camera, zbuffer=None, 
+               cmap='algae', color_bounds=None):
 
         self.sampler = new_mesh_sampler(camera, self)
 
@@ -346,7 +347,12 @@ class MeshSource(RenderSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.sampler.aimage
+        self.current_image = apply_colormap(self.sampler.aimage,
+                                            color_bounds=color_bounds,
+                                            cmap_name=cmap)
+        alpha = self.current_image[:, :, 3]
+        alpha[self.sampler.image_used == -1] = 0.0
+        self.current_image[:, :, 3] = alpha
 
         return self.current_image
 

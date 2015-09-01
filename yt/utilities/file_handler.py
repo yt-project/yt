@@ -80,4 +80,3 @@ class NetCDF4FileHandler(object):
         from netCDF4 import Dataset
         ds = Dataset(filename)
         self.dataset = ds
-

@@ -24,6 +24,7 @@ cimport pyembree.rtcore_scene as rtcs
 from grid_traversal cimport ImageSampler, \
     ImageContainer
 from cython.parallel import prange, parallel, threadid
+from yt.visualization.image_writer import apply_colormap
 
 rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
@@ -42,6 +43,8 @@ cdef class YTEmbreeScene:
         rtcs.rtcDeleteScene(self.scene_i)
 
 cdef class MeshSampler(ImageSampler):
+
+    cdef public object image_used
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -70,9 +73,11 @@ cdef class MeshSampler(ImageSampler):
         for i in range(3):
             width[i] = self.width[i]
         cdef np.ndarray[np.float64_t, ndim=1] data
+        cdef np.ndarray[np.int64_t, ndim=1] used
         nx = im.nv[0]
         ny = im.nv[1]
         size = nx * ny
+        used = np.empty(size, dtype="int64")
         data = np.empty(size, dtype="float64")
         cdef rtcr.RTCRay ray
         if im.vd_strides[0] == -1:
@@ -99,7 +104,9 @@ cdef class MeshSampler(ImageSampler):
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
+                used[j] = ray.primID
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
+            self.image_used = used.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
         else:
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -123,5 +130,6 @@ cdef class MeshSampler(ImageSampler):
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
+            self.image_used = used.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
             free(v_dir)
