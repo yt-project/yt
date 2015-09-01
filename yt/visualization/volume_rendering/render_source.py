@@ -535,7 +535,7 @@ class BoxSource(LineSource):
 
 
 class GridSource(LineSource):
-    def __init__(self, data_source, alpha=0.3, cmap='alage',
+    def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
         r"""A render source for drawing grids in a scene.
 
