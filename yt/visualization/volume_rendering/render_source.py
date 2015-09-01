@@ -347,13 +347,37 @@ class MeshSource(RenderSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.current_image = apply_colormap(self.sampler.aimage,
+        self.data = self.sampler.aimage
+        self.current_image = self.apply_colormap(cmap=cmap, color_bounds=color_bounds)
+
+        return self.current_image
+
+    def apply_colormap(self, cmap='algae', color_bounds=None):
+        self.current_image = apply_colormap(self.data,
                                             color_bounds=color_bounds,
                                             cmap_name=cmap)
+        '''
+
+        Applies a colormap to the current image without re-rendering. 
+
+        Parameters
+        ----------
+        cmap_name : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        color_bounds : tuple of floats, optional
+            The min and max to scale between.  Outlying values will be clipped.
+
+        Returns
+        -------
+        current_image : A new image with the specified color scale applied to
+            the underlying data.
+
+
+        '''
         alpha = self.current_image[:, :, 3]
         alpha[self.sampler.image_used == -1] = 0.0
-        self.current_image[:, :, 3] = alpha
-
+        self.current_image[:, :, 3] = alpha        
         return self.current_image
 
     def __repr__(self):
