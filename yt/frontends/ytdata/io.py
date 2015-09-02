@@ -239,8 +239,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                                    for field in f[ptype]]))
         return fields, units
 
-class IOHandlerYTProjectionHDF5(IOHandlerYTDataContainerHDF5):
-    _dataset_type = "ytprojection_hdf5"
+class IOHandlerSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
+    _dataset_type = "ytspatialplot_hdf5"
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
@@ -298,7 +298,7 @@ class IOHandlerYTProjectionHDF5(IOHandlerYTDataContainerHDF5):
                 if ptype == "grid":
                     dx = f["grid"]["pdx"].value.min()
                 else:
-                    dx = 2. * np.finfo(f[ptype]["particle_position_x"].dtype).eps
+                    raise NotImplementedError
                 dx = self.ds.quan(dx, "code_length")
                 pos[:,0] = _get_position_array(ptype, f, "px")
                 pos[:,1] = _get_position_array(ptype, f, "py")

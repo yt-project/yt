@@ -25,7 +25,6 @@ import weakref
 
 from .fields import \
     YTDataContainerFieldInfo, \
-    YTProjectionFieldInfo, \
     YTGridFieldInfo
 
 from yt.data_objects.grid_patch import \
@@ -116,11 +115,11 @@ class YTDataContainerDataset(Dataset):
         return False
 
 class YTProjectionDataset(YTDataContainerDataset):
-    _field_info_class = YTProjectionFieldInfo
+    _field_info_class = YTGridFieldInfo
 
     def __init__(self, *args, **kwargs):
         super(YTProjectionDataset, self).__init__(
-            *args, dataset_type="ytprojection_hdf5", **kwargs)
+            *args, dataset_type="ytspatialplot_hdf5", **kwargs)
 
     def _parse_parameter_file(self):
         super(YTProjectionDataset, self)._parse_parameter_file()
@@ -139,6 +138,27 @@ class YTProjectionDataset(YTDataContainerDataset):
             data_type = f.attrs.get("data_type", None)
             if data_type == "yt_data_container" and \
               f.attrs.get("container_type", None) == "proj":
+                return True
+        return False
+
+class YTSliceDataset(YTDataContainerDataset):
+    _field_info_class = YTGridFieldInfo
+
+    def __init__(self, *args, **kwargs):
+        super(YTSliceDataset, self).__init__(
+            *args, dataset_type="ytspatialplot_hdf5", **kwargs)
+
+    def _parse_parameter_file(self):
+        super(YTSliceDataset, self)._parse_parameter_file()
+        self.axis = self.parameters["axis"]
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_data_container" and \
+              f.attrs.get("container_type", None) == "slice":
                 return True
         return False
 
