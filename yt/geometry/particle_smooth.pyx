@@ -641,12 +641,13 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
         cdef np.float64_t weight, r2, val, hsml, dens, mass, coeff, max_r
-        cdef np.float64_t max_hsml, ihsml, ihsml3
+        cdef np.float64_t max_hsml, ihsml, ihsml3, kern
         coeff = 0.0
         cdef np.int64_t pn
         # We get back our mass
         # rho_i = sum(j = 1 .. n) m_j * W_ij
         max_r = sqrt(self.neighbors[self.curn-1].r2)
+        max_hsml = index_fields[0][gind(i,j,k,dim) + offset]
         for n in range(self.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
@@ -655,21 +656,25 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             # Smoothing kernel weight function
             mass = fields[0][pn]
             hsml = fields[1][pn]
+            dens = fields[2][pn]
             if hsml < 0:
                 hsml = max_r
             if hsml == 0: continue
             ihsml = 1.0/hsml
+            hsml = fmax(max_hsml/2.0, hsml)
             ihsml3 = ihsml*ihsml*ihsml
             # Usually this density has been computed
-            dens = fields[2][pn]
             if dens == 0.0: continue
-            weight = mass * self.sph_kernel(sqrt(r2) * ihsml) / dens 
-            weight *= ihsml3
+            weight = (mass / dens) * ihsml3
+            kern = self.sph_kernel(sqrt(r2) * ihsml)
+            weight *= kern
             # Mass of the particle times the value
             for fi in range(self.nfields - 3):
                 val = fields[fi + 3][pn]
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
             self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] += weight
+            # When looking for non-normalized values, uncomment:
+            #self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] = 1.0
         return
 
 volume_weighted_smooth = VolumeWeightedSmooth
