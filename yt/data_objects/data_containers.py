@@ -512,6 +512,10 @@ class YTDataContainer(object):
                 data[f] = self[f]
         else:
             data.update(self.field_data)
+        # get the extra fields needed to reconstruct the container
+        for f in [f for f in self._container_fields \
+                  if f not in data]:
+            data[f] = self[f]
         data_fields = data.keys()
 
         need_grid_positions = False
@@ -530,7 +534,8 @@ class YTDataContainer(object):
             else:
                 ftypes[field] = "grid"
                 need_grid_positions = True
-        if self._type_name == "proj":
+        # projections and slices use px and py, so don't need positions
+        if self._type_name in ["proj", "slice"]:
             need_grid_positions = False
 
         if need_particle_positions:
