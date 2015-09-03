@@ -1284,11 +1284,6 @@ Loading Cosmological Simulations
 
 If you are not using a parameter file (i.e. non-Gasoline users), then you must
 use keyword ``cosmology_parameters`` when loading your data set to indicate to
-yt that it is a cosmological data set. In addition, you must supply the
-``cosmology_parameters`` dictionary with the key ``'cosmological'`` set to ``True``.
-
-If you are not using a parameter file (i.e. non-Gasoline users), then you must
-use keyword ``cosmology_parameters`` when loading your data set to indicate to
 yt that it is a cosmological data set. If you do not wish to set any
 non-default cosmological parameters, you may pass an empty dictionary.
 
