@@ -83,30 +83,17 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         # either floats, ints, or doubles.  We're going to use a try-catch cascade to
         # determine the format.
         try:#ASCII
-            auxdata = np.genfromtxt(filename, skip_header=1)
+            auxdata = np.genfromtxt(filename, skip_header=0)
+            if auxdata[0] != np.sum(data_file.total_particles.values()):
+                raise IndexError
+            auxdata = auxdata[1:]
+        except IndexError:#binary/xdr
+            #l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
+            auxin = np.fromfile(filename, dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux', data_file.ds.endian+'d', np.sum(data_file.total_particles.values()))]))
+            auxdata = auxin['aux'].flatten()
             if auxdata.size != np.sum(data_file.total_particles.values()):
-                print("Error reading auxiliary tipsy file")
-                raise RuntimeError 
-        except ValueError:#binary/xdr
-            f = open(filename, 'rb')
-            l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
-            if l != np.sum(data_file.total_particles.values()):
-                print("Error reading auxiliary tipsy file")
-                raise RuntimeError
-            dtype = 'd'
-            if field in ('iord', 'igasorder', 'grp'):#These fields are integers
-                dtype = 'i'
-            try:# If we try loading doubles by default, we can catch an exception and try floats next
-                auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
-            except struct.error:
-                f.seek(4)
-                dtype = 'f'
-                try:
-                    auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
-                except struct.error: # None of the binary attempts to read succeeded
-                    print("Error reading auxiliary tipsy file")
-                    raise RuntimeError
-
+                auxin = np.fromfile(filename, dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux', data_file.ds.endian+'f', np.sum(data_file.total_particles.values()))]))
+                auxdata = auxin['aux'].flatten()
         # Use the mask to slice out the appropriate particle type data
         if mask.size == data_file.total_particles['Gas']:
             return auxdata[:data_file.total_particles['Gas']]
