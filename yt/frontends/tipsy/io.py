@@ -82,24 +82,27 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         # files are in.  They can be either ascii or binary, and the binary files can be
         # either floats, ints, or doubles.  We're going to use a try-catch cascade to
         # determine the format.
-        try:#ASCII
-            auxdata = np.genfromtxt(filename, skip_header=0)
-            if auxdata[0] != np.sum(data_file.total_particles.values()):
-                raise IndexError
-            auxdata = auxdata[1:]
-        except IndexError:#binary/xdr
+        filesize = os.stat(filename).st_size
+        if np.fromfile(filename, dtype=np.dtype(data_file.ds.endian+'i4'), 
+                count=1) != np.sum(data_file.total_particles.values()):
+            with open(filename) as f:
+                if int(f.readline()) != np.sum(data_file.total_particles.values()):
+                    raise RuntimeError
+            auxdata = np.genfromtxt(filename, skip_header=1)
+        elif (filesize-4)/8 == np.sum(data_file.total_particles.values()):
             auxin = np.fromfile(filename,
                     dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
                     data_file.ds.endian+'d',
                     np.sum(data_file.total_particles.values()))]))
-
             auxdata = auxin['aux'].flatten()
-            if auxdata.size != np.sum(data_file.total_particles.values()):
-                auxin = np.fromfile(filename,
-                        dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
-                        data_file.ds.endian+'f',
-                        np.sum(data_file.total_particles.values()))]))
-                auxdata = auxin['aux'].flatten()
+        elif (filesize-4)/4 == np.sum(data_file.total_particles.values()):
+            auxin = np.fromfile(filename,
+                    dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
+                    data_file.ds.endian+'f',
+                    np.sum(data_file.total_particles.values()))]))
+            auxdata = auxin['aux'].flatten()
+        else:
+            raise RuntimeError
         # Use the mask to slice out the appropriate particle type data
         if mask.size == data_file.total_particles['Gas']:
             return auxdata[:data_file.total_particles['Gas']]
