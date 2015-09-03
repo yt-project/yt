@@ -535,7 +535,7 @@ class YTDataContainer(object):
                 ftypes[field] = "grid"
                 need_grid_positions = True
         # projections and slices use px and py, so don't need positions
-        if self._type_name in ["proj", "slice"]:
+        if self._type_name in ["cutting", "proj", "slice"]:
             need_grid_positions = False
 
         if need_particle_positions:

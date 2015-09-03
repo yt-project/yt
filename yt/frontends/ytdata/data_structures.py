@@ -114,22 +114,22 @@ class YTDataContainerDataset(Dataset):
                 return True
         return False
 
-class YTProjectionDataset(YTDataContainerDataset):
+class YTSpatialPlotDataset(YTDataContainerDataset):
     _field_info_class = YTGridFieldInfo
 
     def __init__(self, *args, **kwargs):
-        super(YTProjectionDataset, self).__init__(
+        super(YTSpatialPlotDataset, self).__init__(
             *args, dataset_type="ytspatialplot_hdf5", **kwargs)
 
     def _parse_parameter_file(self):
-        super(YTProjectionDataset, self)._parse_parameter_file()
-        self.axis = self.parameters["axis"]
-        self.weight_field = self.parameters["weight_field"]
-        if isinstance(self.weight_field, str) and \
-          self.weight_field == "None":
-            self.weight_field = None
-        elif isinstance(self.weight_field, np.ndarray):
-            self.weight_field = tuple(self.weight_field)
+        super(YTSpatialPlotDataset, self)._parse_parameter_file()
+        if self.parameters["container_type"] == "proj":
+            if isinstance(self.parameters["weight_field"], str) and \
+              self.parameters["weight_field"] == "None":
+                self.parameters["weight_field"] = None
+            elif isinstance(self.parameters["weight_field"], np.ndarray):
+                self.parameters["weight_field"] = \
+                  tuple(self.parameters["weight_field"])
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -137,28 +137,8 @@ class YTProjectionDataset(YTDataContainerDataset):
         with h5py.File(args[0], "r") as f:
             data_type = f.attrs.get("data_type", None)
             if data_type == "yt_data_container" and \
-              f.attrs.get("container_type", None) == "proj":
-                return True
-        return False
-
-class YTSliceDataset(YTDataContainerDataset):
-    _field_info_class = YTGridFieldInfo
-
-    def __init__(self, *args, **kwargs):
-        super(YTSliceDataset, self).__init__(
-            *args, dataset_type="ytspatialplot_hdf5", **kwargs)
-
-    def _parse_parameter_file(self):
-        super(YTSliceDataset, self)._parse_parameter_file()
-        self.axis = self.parameters["axis"]
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"): return False
-        with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
-            if data_type == "yt_data_container" and \
-              f.attrs.get("container_type", None) == "slice":
+              f.attrs.get("container_type", None) in \
+              ["cutting", "proj", "slice"]:
                 return True
         return False
 
