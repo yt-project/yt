@@ -1269,9 +1269,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
-            slc.axis = slc.ds.parameters["axis"]
-            if slc.axis != axis:
-                raise RuntimeError("Original slice axis is %s." % slc.axis)
+            slc.axis = axis
+            if slc.axis != ds.parameters["axis"]:
+                raise RuntimeError("Original slice axis is %s." %
+                                   ds.parameters["axis"])
         else:
             slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
                            center=center, data_source=data_source)
@@ -1439,7 +1440,7 @@ class ProjectionPlot(PWViewerMPL):
         if isinstance(ds, YTSpatialPlotDataset):
             proj = ds.all_data()
             proj.axis = axis
-            if proj.axis != ds.axis:
+            if proj.axis != ds.parameters["axis"]:
                 raise RuntimeError("Original projection axis is %s." %
                                    ds.parameters["axis"])
             proj.weight_field = proj._determine_fields(weight_field)[0]
@@ -1531,10 +1532,15 @@ class OffAxisSlicePlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
             field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector=north_vector,
-                             field_parameters=field_parameters,
-                             data_source=data_source)
-        cutting.get_data(fields)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            cutting = ds.all_data()
+            cutting.axis = 4
+        else:
+            cutting = ds.cutting(normal, center, north_vector=north_vector,
+                                 field_parameters=field_parameters,
+                                 data_source=data_source)
+            cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
