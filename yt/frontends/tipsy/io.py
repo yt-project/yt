@@ -88,11 +88,17 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 raise IndexError
             auxdata = auxdata[1:]
         except IndexError:#binary/xdr
-            #l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
-            auxin = np.fromfile(filename, dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux', data_file.ds.endian+'d', np.sum(data_file.total_particles.values()))]))
+            auxin = np.fromfile(filename,
+                    dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
+                    data_file.ds.endian+'d',
+                    np.sum(data_file.total_particles.values()))]))
+
             auxdata = auxin['aux'].flatten()
             if auxdata.size != np.sum(data_file.total_particles.values()):
-                auxin = np.fromfile(filename, dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux', data_file.ds.endian+'f', np.sum(data_file.total_particles.values()))]))
+                auxin = np.fromfile(filename,
+                        dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
+                        data_file.ds.endian+'f',
+                        np.sum(data_file.total_particles.values()))]))
                 auxdata = auxin['aux'].flatten()
         # Use the mask to slice out the appropriate particle type data
         if mask.size == data_file.total_particles['Gas']:
