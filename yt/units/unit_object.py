@@ -578,7 +578,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             return ret
 
     # no dice
-    raise UnitParseError("Could not find unit symbol '%s' in the table of" \
+    raise UnitParseError("Could not find unit symbol '%s' in the table of "
                          "known symbols." % symbol_str)
 
 def validate_dimensions(dimensions):
