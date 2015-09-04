@@ -1,3 +1,4 @@
+# cython: profile=True
 """
 Particle smoothing in cells
 
@@ -522,14 +523,26 @@ cdef class ParticleSmoothOperation:
                             np.int64_t *pcounts,
                             np.int64_t *pinds,
                             np.float64_t *ppos,
-                            np.float64_t cpos[3]
+                            np.float64_t cpos[3],
+                            np.float64_t *dds,
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
         cdef int ni, i, j
         cdef np.int64_t offset, pn, pc
-        cdef np.float64_t pos[3]
+        cdef np.float64_t pos[3], lpos[3], rpos[3], r2_trunc, lr2, rr2
         self.neighbor_reset()
+        # terminate early if left and right edge r2 for this oct
+        # is bigger than final r2
+        if dds != NULL and self.curn == self.maxn:
+            for j in range(3):
+                lpos[j] = cpos[j] - dds[j]
+                rpos[j] = cpos[j] + dds[j]
+            r2_trunc = self.neighbors[self.curn - 1].r2
+            lr2 = r2dist(ppos, lpos, self.DW, self.periodicity, r2_trunc)
+            rr2 = r2dist(ppos, rpos, self.DW, self.periodicity, r2_trunc)
+            if lr2 == -1 and rr2 == -1:
+                return
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
             offset = doffs[nind[ni]]
@@ -566,7 +579,7 @@ cdef class ParticleSmoothOperation:
                     nneighbors = self.neighbor_search(opos, octree,
                                     nind, nsize, nneighbors, domain_id, &oct, 1)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
-                        pinds, ppos, opos)
+                                       pinds, ppos, opos, dds)
                     # Now we have all our neighbors in our neighbor list.
                     if self.curn <-1*self.maxn:
                         ntot = nntot = 0
@@ -603,7 +616,8 @@ cdef class ParticleSmoothOperation:
         self.pos_setup(cpos, opos)
         nneighbors = self.neighbor_search(opos, octree,
                         nind, nsize, nneighbors, domain_id, &oct, 1)
-        self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos, opos)
+        self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos,
+                           opos, NULL)
         self.process(offset, i, j, k, dim, opos, fields, index_fields)
 
 cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
