@@ -238,10 +238,10 @@ class VolumeSource(RenderSource):
         return self.current_image
 
     def finalize_image(self, camera, image, call_from_VR=False):
-        # If the call is from VR, the image is flipped to get RHS
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
+        # If the call is from VR, the image is flipped to get RHS
         if call_from_VR: image = np.fliplr(image)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
