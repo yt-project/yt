@@ -675,7 +675,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
             self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] += weight
             # When looking for non-normalized values, uncomment:
-            #self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] = 1.0
+            self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] = 1.0
         return
 
 volume_weighted_smooth = VolumeWeightedSmooth
