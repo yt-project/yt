@@ -32,6 +32,20 @@ cdef struct NeighborList:
     np.int64_t pn       # Particle number
     np.float64_t r2     # radius**2
 
+cdef np.int64_t corner_permutations[8][3]
+
+corner_permutations = \
+    [[0, 0, 0],
+     [0, 0, 1],
+     [0, 1, 0],
+     [0, 1, 1],
+     [0, 1, 1],
+     [1, 0, 0],
+     [1, 0, 1],
+     [1, 1, 0],
+     [1, 1, 1]]
+
+
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
     cdef public object nvals
