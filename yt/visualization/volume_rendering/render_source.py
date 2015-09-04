@@ -229,16 +229,20 @@ class VolumeSource(RenderSource):
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.finalize_image(camera, self.sampler.aimage)
+        self.current_image = self.finalize_image(camera,
+                                                 self.sampler.aimage,
+                                                 call_from_VR=True)
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
                                    np.inf*np.ones(self.current_image.shape[:2]))
         return self.current_image
 
-    def finalize_image(self, camera, image):
+    def finalize_image(self, camera, image, call_from_VR=False):
+        # If the call is from VR, the image is flipped to get RHS
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
+        if call_from_VR: image = np.fliplr(image)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
         return image
