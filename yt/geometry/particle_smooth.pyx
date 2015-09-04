@@ -155,6 +155,8 @@ cdef class ParticleSmoothOperation:
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         cdef np.ndarray[np.float64_t, ndim=4] iarr
         cdef np.ndarray[np.float64_t, ndim=2] cart_positions
+        cdef np.ndarray[np.float64_t, ndim=2] oct_left_edges, oct_dds
+        cdef OctInfo oinfo
         if geometry == "cartesian":
             self.pos_setup = cart_coord_setup
             cart_positions = positions
@@ -178,6 +180,8 @@ cdef class ParticleSmoothOperation:
         numpart = positions.shape[0]
         # pcount is the number of particles per oct.
         pcount = np.zeros_like(pdom_ind)
+        oct_left_edges = np.zeros((positions.shape[0], 3), dtype='float64')
+        oct_dds = np.zeros_like(oct_left_edges)
         # doff is the offset to a given oct in the sorted particles.
         doff = np.zeros_like(pdom_ind) - 1
         doff_m = np.zeros((mdom_ind.shape[0], 2), dtype="int64")
@@ -215,7 +219,12 @@ cdef class ParticleSmoothOperation:
             offset = oct.domain_ind - moff_p
             pcount[offset] += 1
             pdoms[i] = offset # We store the *actual* offset.
-            oct = mesh_octree.get(pos)
+            oct = mesh_octree.get(pos, &oinfo)
+            # store oct positions and dds to avoid searching for neighbors
+            # in octs that we know are too far away
+            for j in range(3):
+                oct_left_edges[i, j] = oinfo.left_edge[j]
+                oct_dds[i, j] = oinfo.dds[j]
             offset = oct.domain_ind - moff_m
         # Now we have oct assignments.  Let's sort them.
         # Note that what we will be providing to our processing functions will
@@ -255,10 +264,11 @@ cdef class ParticleSmoothOperation:
             visited[oct.domain_ind - moff_m] = 1
             if offset < 0: continue
             nproc += 1
-            self.neighbor_process(dims, moi.left_edge, moi.dds,
-                         cart_pos, field_pointers, doffs, &nind,
-                         pinds, pcounts, offset, index_field_pointers,
-                         particle_octree, domain_id, &nsize)
+            self.neighbor_process(
+                dims, moi.left_edge, moi.dds, cart_pos, field_pointers, doffs,
+                &nind, pinds, pcounts, offset, index_field_pointers,
+                particle_octree, domain_id, &nsize, &oct_left_edges[0, 0],
+                &oct_dds[0, 0])
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
@@ -524,7 +534,8 @@ cdef class ParticleSmoothOperation:
                             np.int64_t *pinds,
                             np.float64_t *ppos,
                             np.float64_t cpos[3],
-                            np.float64_t *dds,
+                            np.float64_t *oct_left_edges,
+                            np.float64_t *oct_dds,
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
@@ -532,19 +543,20 @@ cdef class ParticleSmoothOperation:
         cdef np.int64_t offset, pn, pc
         cdef np.float64_t pos[3], lpos[3], rpos[3], r2_trunc, lr2, rr2
         self.neighbor_reset()
-        # terminate early if left and right edge r2 for this oct
-        # is bigger than final r2
-        if dds != NULL and self.curn == self.maxn:
-            for j in range(3):
-                lpos[j] = cpos[j] - dds[j]
-                rpos[j] = cpos[j] + dds[j]
-            r2_trunc = self.neighbors[self.curn - 1].r2
-            lr2 = r2dist(ppos, lpos, self.DW, self.periodicity, r2_trunc)
-            rr2 = r2dist(ppos, rpos, self.DW, self.periodicity, r2_trunc)
-            if lr2 == -1 and rr2 == -1:
-                return
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
+            # terminate early if left and right edge r2 for this oct
+            # is bigger than final r2
+            if oct_left_edges != NULL and self.curn == self.maxn:
+                for j in range(3):
+                    lpos[j] = oct_left_edges[3*nind[ni] + j]
+                    rpos[j] = lpos[j] + oct_dds[3*nind[ni] + j]
+                r2_trunc = self.neighbors[self.curn - 1].r2
+                lr2 = r2dist(ppos, lpos, self.DW, self.periodicity, r2_trunc)
+                rr2 = r2dist(ppos, rpos, self.DW, self.periodicity, r2_trunc)
+                if lr2 == -1 and rr2 == -1:
+                    continue
+
             offset = doffs[nind[ni]]
             pc = pcounts[nind[ni]]
             for i in range(pc):
@@ -561,7 +573,8 @@ cdef class ParticleSmoothOperation:
                                np.int64_t offset,
                                np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
-                               int *nsize):
+                               int *nsize, np.float64_t *oct_left_edges,
+                               np.float64_t *oct_dds):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
@@ -579,7 +592,7 @@ cdef class ParticleSmoothOperation:
                     nneighbors = self.neighbor_search(opos, octree,
                                     nind, nsize, nneighbors, domain_id, &oct, 1)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
-                                       pinds, ppos, opos, dds)
+                                       pinds, ppos, opos, oct_left_edges, oct_dds)
                     # Now we have all our neighbors in our neighbor list.
                     if self.curn <-1*self.maxn:
                         ntot = nntot = 0
@@ -617,7 +630,7 @@ cdef class ParticleSmoothOperation:
         nneighbors = self.neighbor_search(opos, octree,
                         nind, nsize, nneighbors, domain_id, &oct, 1)
         self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos,
-                           opos, NULL)
+                           opos, NULL, NULL)
         self.process(offset, i, j, k, dim, opos, fields, index_fields)
 
 cdef class VolumeWeightedSmooth(ParticleSmoothOperation):

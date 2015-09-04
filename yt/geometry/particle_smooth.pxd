@@ -55,7 +55,8 @@ cdef class ParticleSmoothOperation:
                                np.int64_t *pinds, np.int64_t *pcounts,
                                np.int64_t offset, np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
-                               int *nsize)
+                               int *nsize, np.float64_t *oct_left_edges,
+                               np.float64_t *oct_dds)
     cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
                              np.int64_t **nind, int *nsize, 
                              np.int64_t nneighbors, np.int64_t domain_id, 
@@ -80,7 +81,8 @@ cdef class ParticleSmoothOperation:
                             np.int64_t *pinds,
                             np.float64_t *ppos,
                             np.float64_t cpos[3],
-                            np.float64_t *dds)
+                            np.float64_t* oct_left_edges,
+                            np.float64_t* oct_dds)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields)
