@@ -798,7 +798,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         # This should be used when seeking a non-normalized value:
-        #rv /= hsml.uq**3 / hsml.uq.in_cgs().uq**3
+        rv /= hsml.uq**3 / hsml.uq.in_cgs().uq**3
         rv = data.apply_units(rv, field_units)
         return rv
     registry.add_field(field_name, function = _vol_weight,
