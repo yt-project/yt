@@ -839,15 +839,17 @@ def test_pint():
     yt_arr = YTArray(np.arange(10), "km/hr")
     yt_arr2 = YTArray.from_pint(p_arr)
 
-    p_quan = 10.*ureg.megayear**0.5/(ureg.kpc**3)
-    yt_quan = YTQuantity(10., "sqrt(Myr)/kpc**3")
+    p_quan = 10.*ureg.g**0.5/(ureg.mm**3)
+    yt_quan = YTQuantity(10., "sqrt(g)/mm**3")
     yt_quan2 = YTQuantity.from_pint(p_quan)
 
     yield assert_array_equal, p_arr, yt_arr.to_pint()
+    assert p_quan.units == yt_quan.to_pint().units
     yield assert_array_equal, yt_arr.in_cgs(), YTArray.from_pint(p_arr).in_cgs()
     yield assert_array_equal, yt_arr.in_cgs(), yt_arr2.in_cgs()
 
-    yield assert_equal, p_quan, yt_quan.to_pint()
+    yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
+    assert p_quan.units == yt_quan.to_pint().units
     yield assert_equal, yt_quan.in_cgs(), YTQuantity.from_pint(p_quan).in_cgs()
     yield assert_equal, yt_quan.in_cgs(), yt_quan2.in_cgs()
 

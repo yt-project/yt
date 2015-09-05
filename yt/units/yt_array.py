@@ -697,7 +697,16 @@ class YTArray(np.ndarray):
         from pint import UnitRegistry
         if unit_registry is None:
             unit_registry = UnitRegistry()
-        return unit_registry.Quantity(self.value, str(self.units))
+        powers_dict = self.units.expr.as_powers_dict()
+        units = []
+        for unit, pow in powers_dict.items():
+            # we have to do this because Pint doesn't recognize
+            # "yr" as "year" 
+            if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
+                unit = str(unit).replace("yr","year")
+            units.append("%s**(%s)" % (unit, Rational(pow)))
+        units = "*".join(units)
+        return unit_registry.Quantity(self.value, units)
 
     #
     # End unit conversion methods
