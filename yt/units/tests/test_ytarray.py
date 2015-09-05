@@ -829,6 +829,31 @@ def test_astropy():
     yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
+@requires_module("pint")
+def test_pint():
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    
+    p_arr = np.arange(10)*ureg.km/ureg.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_pint(p_arr)
+
+    p_quan = 10.*ureg.megayear**0.5/(ureg.kpc**3)
+    yt_quan = YTQuantity(10., "sqrt(Myr)/kpc**3")
+    yt_quan2 = YTQuantity.from_pint(p_quan)
+
+    yield assert_array_equal, p_arr, yt_arr.to_pint()
+    yield assert_array_equal, yt_arr.in_cgs(), YTArray.from_pint(p_arr).in_cgs()
+    yield assert_array_equal, yt_arr.in_cgs(), yt_arr2.in_cgs()
+
+    yield assert_equal, p_quan, yt_quan.to_pint()
+    yield assert_equal, yt_quan.in_cgs(), YTQuantity.from_pint(p_quan).in_cgs()
+    yield assert_equal, yt_quan.in_cgs(), yt_quan2.in_cgs()
+
+    yield assert_array_equal, yt_arr.in_cgs(), YTArray.from_astropy(yt_arr.to_astropy()).in_cgs()
+    yield assert_equal, yt_quan.in_cgs(), YTQuantity.from_astropy(yt_quan.to_astropy()).in_cgs()
+
 def test_subclass():
 
     class YTASubclass(YTArray):
