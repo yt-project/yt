@@ -623,12 +623,12 @@ class YTArray(np.ndarray):
         Convert a Pint "Quantity" to a YTArray or YTQuantity.
 
         Unfortunately, currently there is no straightforward way to convert
-        from pint Quantities to something in yt in the exact same units. 
-        Therefore, most quantities will be returned in some combination of 
-        pint's default base units of [meter,second,gram,radian,ampere,kelvin].
-        From there, the units can be converted in yt to whatever units one 
-        desires. In the case where the unit is simply degrees Celsius or 
-        Fahrenheit, the units will be passed over directly. 
+        from Pint Quantities to a YTArray in the same units. Therefore, most
+        quantities will be returned in some equivalent combination of Pint's
+        default base units of [meter,second,gram,radian,ampere,kelvin,mole]. 
+        From there, the units can be converted in yt to whatever equivalent 
+        units one desires. In the case where the unit is simply degrees 
+        Celsius or Fahrenheit, the units will be passed over directly. 
 
         Parameters
         ----------
@@ -637,6 +637,15 @@ class YTArray(np.ndarray):
         unit_registry : Pint UnitRegistry, optional
             The Pint UnitRegistry to use in the conversion. If one is not
             supplied, the default one will be used.
+            
+        Examples
+        --------
+        >>> from pint import UnitRegistry
+        >>> import numpy as np
+        >>> ureg = UnitRegistry()
+        >>> a = np.random.random(10)
+        >>> b = ureg.Quantity(a, "erg/cm**3")
+        >>> c = yt.YTArray.from_pint(b, unit_registry=ureg)
         """
         from pint import UnitRegistry
         if unit_registry is None:
@@ -650,7 +659,8 @@ class YTArray(np.ndarray):
                           "second":"s",
                           "radian":"rad",
                           "gram":"g",
-                          "kelvin":"K"}
+                          "kelvin":"K",
+                          "mole":"mol"}
             base_units = unit_registry.get_base_units(arr.units)
             factor = base_units[0]
             base_units = base_units[1]
@@ -678,6 +688,11 @@ class YTArray(np.ndarray):
         unit_registry : Pint UnitRegistry, optional
             The Pint UnitRegistry to use in the conversion. If one is not
             supplied, the default one will be used.
+            
+        Examples
+        --------
+        >>> a = YTQuantity(4.0, "cm**2/s")
+        >>> b = a.to_pint()
         """
         from pint import UnitRegistry
         if unit_registry is None:
