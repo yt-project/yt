@@ -180,6 +180,10 @@ class Camera(ParallelAnalysisInterface):
             width = self.ds.arr(width, input_units="code_length")
         if not isinstance(center, YTArray):
             center = self.ds.arr(center, input_units="code_length")
+        # Ensure that width and center are in the same units
+        # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
+        width.convert_to_units("code_length")
+        center.convert_to_units("code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
