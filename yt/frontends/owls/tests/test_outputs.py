@@ -14,22 +14,32 @@ OWLS frontend tests using the snapshot_033 dataset
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
-    small_patch_amr, \
-    big_patch_amr, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
 from yt.frontends.owls.api import OWLSDataset
 
-_fields = (("deposit", "all_density"), ("deposit", "all_count"),
-           ("deposit", "PartType0_density"),
-           ("deposit", "PartType4_density"))
-
 os33 = "snapshot_033/snap_033.0.hdf5"
+
+_fields = (
+    ("gas", "density")
+    ("gas", "temperature"),
+    ('gas', 'He_p0_number_density'),
+    ('gas', 'N_p1_number_density'),
+    ('gas', 'velocity_magnitude'),
+    ("deposit", "all_density"),
+    ("deposit", "all_count"),
+    ("deposit", "all_cic")
+    ("deposit", "PartType0_density"),
+    ("deposit", "PartType4_density"))
+
+
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
     ds = data_dir_load(os33)
