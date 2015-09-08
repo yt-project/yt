@@ -98,7 +98,7 @@ default_unit_symbol_lut = {
     "degree": (np.pi/180., dimensions.angle), # degrees
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
-    "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
+    "mas": (np.pi/648000000., dimensions.angle), # milliarcseconds
     "hourangle": (np.pi/12., dimensions.angle), # hour angle
     "steradian": (1.0, dimensions.solid_angle),
 
@@ -112,20 +112,6 @@ default_unit_symbol_lut = {
     "me": (mass_electron_grams, dimensions.mass),
     "mol": (1.0/amu_grams, dimensions.dimensionless),
 
-    # for AstroPy compatibility
-    "solMass": (mass_sun_grams, dimensions.mass),
-    "solRad": (cm_per_rsun, dimensions.length),
-    "solLum": (luminosity_sun_ergs_per_sec, dimensions.power),
-    "dyn": (1.0, dimensions.force),
-    "sr": (1.0, dimensions.solid_angle),
-    "rad": (1.0, dimensions.solid_angle),
-    "deg": (np.pi/180., dimensions.angle),
-    "Fr":  (1.0, dimensions.charge_cgs),
-    "G": (1.0, dimensions.magnetic_field_cgs),
-    "d": (1.0, dimensions.time),
-    "Angstrom": (cm_per_ang, dimensions.length),
-    "statC": (1.0, dimensions.charge_cgs),
-    
     # Planck units
     "m_pl": (planck_mass_grams, dimensions.mass),
     "l_pl": (planck_length_cm, dimensions.length),
@@ -134,6 +120,49 @@ default_unit_symbol_lut = {
     "q_pl": (planck_charge_esu, dimensions.charge_cgs),
     "E_pl": (planck_energy_erg, dimensions.energy),
 
+}
+
+unit_aliases = {
+    "meter":"m",
+    "second":"s",
+    "gram":"g",
+    "rad":"radian",
+    "deg":"degree",
+    "joule":"J",
+    "franklin":"esu",
+    "statC":"esu",
+    "dyn":"dyne",
+    "sr":"steradian",
+    "parsec":"pc",
+    "mole":"mol",
+    "d":"day",
+    "rankine":"R",
+    "solMass":"Msun",
+    "solRad":"Rsun",
+    "solLum":"Lsun",
+    "G":"gauss",
+    "watt":"W",
+    "pascal":"Pa",
+    "tesla":"T",
+    "kelvin":"K",
+    "year":"yr",
+    "minute":"min",
+    "Fr":"esu",
+    "Angstrom":"angstrom",
+    "hour":"hr",
+    "light_year":"ly",
+    "volt":"V",
+    "ampere":"A",
+    "astronomical_unit":"au",
+    "foot":"ft",
+    "atomic_mass_unit":"amu",
+    "esu_per_second":"statA",
+    "coulomb":"C",
+    "newton":"N",
+    "hertz":"Hz",
+    "speed_of_light":"c",
+    "jansky":"Jy",
+    "electron_mass":"me",
 }
 
 # Add LaTeX representations for units with trivial representations.
@@ -179,6 +208,27 @@ unit_prefixes = {
     'a': 1e-18,  # atto
     'z': 1e-21,  # zepto
     'y': 1e-24,  # yocto
+}
+
+prefix_aliases = {
+    'yotta':'Y',
+    'zetta':'Z',
+    'exa':'E',
+    'peta':'P',
+    'tera':'T',
+    'giga':'G',
+    'mega':'M',
+    'kilo':'k',
+    'deci':'d',
+    'centi':'c',
+    'milli':'m',
+    'micro':'u',
+    'nano':'n',
+    'pico':'p',
+    'femto':'f',
+    'atto':'a',
+    'zepto':'z',
+    'yocto':'y',
 }
 
 latex_prefixes = {
