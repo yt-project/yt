@@ -537,9 +537,9 @@ cdef class ParticleSmoothOperation:
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
-        cdef int ni, i, j, out_of_range
+        cdef int ni, i, j, k, out_of_range
         cdef np.int64_t offset, pn, pc, bad_corner[8]
-        cdef np.float64_t pos[3], corner_pos[3], r2_trunc, lr2, rr2
+        cdef np.float64_t pos[3], corner_pos[3], r2_trunc, r2
         self.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
