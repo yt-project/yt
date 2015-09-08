@@ -19,9 +19,9 @@ from yt.utilities.physical_ratios import \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
     cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams, \
-    boltzmann_constant_erg_per_K, kelvin_per_rankine, \
+    mass_hydrogen_grams, kelvin_per_rankine, planck_time_s, \
     speed_of_light_cm_per_s, planck_length_cm, planck_charge_esu, \
-    planck_energy_erg, planck_mass_grams, planck_temperature_K, planck_time_s
+    planck_energy_erg, planck_mass_grams, planck_temperature_K
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -33,13 +33,13 @@ default_unit_symbol_lut = {
     #"cm": (1.0, length, r"\rm{cm}"),  # duplicate with meter below...
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
-    "radian": (1.0, dimensions.angle),
+    "rad": (1.0, dimensions.angle),
 
     # other cgs
     "dyne": (1.0, dimensions.force),
     "erg":  (1.0, dimensions.energy),
     "esu":  (1.0, dimensions.charge_cgs),
-    "gauss": (1.0, dimensions.magnetic_field_cgs),
+    "G": (1.0, dimensions.magnetic_field_cgs),
     "degC": (1.0, dimensions.temperature, -273.15),
     "statA": (1.0, dimensions.current_cgs),
     "statV": (1.0, dimensions.electric_potential_cgs),
@@ -95,12 +95,12 @@ default_unit_symbol_lut = {
     "pc": (cm_per_pc, dimensions.length),
 
     # angles
-    "degree": (np.pi/180., dimensions.angle), # degrees
+    "deg": (np.pi/180., dimensions.angle), # degrees
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
     "mas": (np.pi/648000000., dimensions.angle), # milliarcseconds
     "hourangle": (np.pi/12., dimensions.angle), # hour angle
-    "steradian": (1.0, dimensions.solid_angle),
+    "sr": (1.0, dimensions.solid_angle),
 
     # misc
     "eV": (erg_per_eV, dimensions.energy),
@@ -110,6 +110,7 @@ default_unit_symbol_lut = {
     "counts": (1.0, dimensions.dimensionless),
     "photons": (1.0, dimensions.dimensionless),
     "me": (mass_electron_grams, dimensions.mass),
+    "mp": (mass_hydrogen_grams, dimensions.mass),
     "mol": (1.0/amu_grams, dimensions.dimensionless),
 
     # Planck units
@@ -126,13 +127,13 @@ unit_aliases = {
     "meter":"m",
     "second":"s",
     "gram":"g",
-    "rad":"radian",
-    "deg":"degree",
+    "radian":"rad",
+    "degree":"deg",
     "joule":"J",
     "franklin":"esu",
     "statC":"esu",
     "dyn":"dyne",
-    "sr":"steradian",
+    "steradian":"sr",
     "parsec":"pc",
     "mole":"mol",
     "d":"day",
@@ -140,7 +141,7 @@ unit_aliases = {
     "solMass":"Msun",
     "solRad":"Rsun",
     "solLum":"Lsun",
-    "G":"gauss",
+    "gauss":"G",
     "watt":"W",
     "pascal":"Pa",
     "tesla":"T",
@@ -163,6 +164,9 @@ unit_aliases = {
     "speed_of_light":"c",
     "jansky":"Jy",
     "electron_mass":"me",
+    "proton_mass":"mp",
+    "arcsecond":"arcsec",
+    "arcminute":"arcmin",
 }
 
 # Add LaTeX representations for units with trivial representations.
@@ -264,6 +268,7 @@ prefixable_units = (
     "statV",
     "ohm",
     "statohm",
+    "arcsec",
 )
 
 yt_base_units = {
@@ -271,7 +276,7 @@ yt_base_units = {
     dimensions.length:'cm',
     dimensions.time:'s',
     dimensions.temperature:'K',
-    dimensions.angle:'radian',
+    dimensions.angle:'rad',
     dimensions.current_mks:'A',
 }
 
@@ -283,6 +288,6 @@ mks_base_units = {
     dimensions.length:'m',
     dimensions.time:'s',
     dimensions.temperature:'K',
-    dimensions.angle:'radian',
+    dimensions.angle:'rad',
     dimensions.current_mks:'A',
 }
