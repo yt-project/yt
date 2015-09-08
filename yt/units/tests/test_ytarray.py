@@ -845,16 +845,16 @@ def test_pint():
 
     yield assert_array_equal, p_arr, yt_arr.to_pint()
     assert p_quan.units == yt_quan.to_pint().units
-    yield assert_array_equal, yt_arr.in_cgs(), YTArray.from_pint(p_arr).in_cgs()
-    yield assert_array_equal, yt_arr.in_cgs(), yt_arr2.in_cgs()
+    yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
     assert p_quan.units == yt_quan.to_pint().units
-    yield assert_equal, yt_quan.in_cgs(), YTQuantity.from_pint(p_quan).in_cgs()
-    yield assert_equal, yt_quan.in_cgs(), yt_quan2.in_cgs()
+    yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
+    yield assert_equal, yt_quan, yt_quan2
 
-    yield assert_array_equal, yt_arr.in_cgs(), YTArray.from_astropy(yt_arr.to_astropy()).in_cgs()
-    yield assert_equal, yt_quan.in_cgs(), YTQuantity.from_astropy(yt_quan.to_astropy()).in_cgs()
+    yield assert_array_equal, yt_arr, YTArray.from_pint(yt_arr.to_pint())
+    yield assert_equal, yt_quan, YTQuantity.from_pint(yt_quan.to_pint())
 
 def test_subclass():
 
