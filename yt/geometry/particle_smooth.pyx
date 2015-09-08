@@ -558,6 +558,8 @@ cdef class ParticleSmoothOperation:
                                 r2_trunc)
                     if r2 != -1:
                         out_of_range += 1
+                    else:
+                        break
             if out_of_range == 8:
                 continue
             offset = doffs[nind[ni]]
