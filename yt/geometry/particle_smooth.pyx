@@ -179,7 +179,7 @@ cdef class ParticleSmoothOperation:
         numpart = positions.shape[0]
         # pcount is the number of particles per oct.
         pcount = np.zeros_like(pdom_ind)
-        oct_left_edges = np.zeros((positions.shape[0], 3), dtype='float64')
+        oct_left_edges = np.zeros((pdom_ind.shape[0], 3), dtype='float64')
         oct_dds = np.zeros_like(oct_left_edges)
         # doff is the offset to a given oct in the sorted particles.
         doff = np.zeros_like(pdom_ind) - 1
@@ -206,10 +206,11 @@ cdef class ParticleSmoothOperation:
         for i in range(3):
             self.DW[i] = (mesh_octree.DRE[i] - mesh_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
+        cdef np.float64_t factor = (1 << (particle_octree.oref))
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = particle_octree.get(pos)
+            oct = particle_octree.get(pos, &oinfo)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
@@ -218,13 +219,11 @@ cdef class ParticleSmoothOperation:
             offset = oct.domain_ind - moff_p
             pcount[offset] += 1
             pdoms[i] = offset # We store the *actual* offset.
-            oct = mesh_octree.get(pos, &oinfo)
             # store oct positions and dds to avoid searching for neighbors
             # in octs that we know are too far away
             for j in range(3):
-                oct_left_edges[i, j] = oinfo.left_edge[j]
-                oct_dds[i, j] = oinfo.dds[j]
-            offset = oct.domain_ind - moff_m
+                oct_left_edges[offset, j] = oinfo.left_edge[j]
+                oct_dds[offset, j] = oinfo.dds[j] * factor
         # Now we have oct assignments.  Let's sort them.
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
@@ -538,9 +537,9 @@ cdef class ParticleSmoothOperation:
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
-        cdef int ni, i, j, k, out_of_range
-        cdef np.int64_t offset, pn, pc, bad_corner[8]
-        cdef np.float64_t pos[3], corner_pos[3], r2_trunc, r2
+        cdef int ni, i, j, k
+        cdef np.int64_t offset, pn, pc
+        cdef np.float64_t pos[3], cp, r2_trunc, r2, ex[2], DR[2], dist
         self.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
@@ -548,20 +547,35 @@ cdef class ParticleSmoothOperation:
             # most distant currently known neighbor
             if oct_left_edges != NULL and self.curn == self.maxn:
                 r2_trunc = self.neighbors[self.curn - 1].r2
-                out_of_range = 0
-                for j in range(8):
-                    for k in range(3):
-                        corner_pos[k] = oct_left_edges[3*nind[ni] + k]
-                        corner_pos[k] += \
-                            corner_permutations[j][k] * oct_dds[3*nind[ni] + k]
-                    r2 = r2dist(ppos, corner_pos, self.DW, self.periodicity,
-                                r2_trunc)
-                    if r2 != -1:
-                        out_of_range += 1
-                    else:
-                        break
-            if out_of_range == 8:
-                continue
+                # iterate over each dimension in the outer loop so we can
+                # consolidate temporary storage
+                # What this next bit does is figure out which component is the
+                # closest, of each possible permutation.
+                # k here is the dimension
+                r2 = 0.0
+                for k in range(3):
+                    # We start at left edge, then do halfway, then right edge.
+                    ex[0] = oct_left_edges[3*nind[ni] + k]
+                    ex[1] = ex[0] + oct_dds[3*nind[ni] + k]
+                    # There are three possibilities; we are between, left-of,
+                    # or right-of the extrema.  Thanks to
+                    # http://stackoverflow.com/questions/5254838/calculating-distance-between-a-point-and-a-rectangular-box-nearest-point
+                    # for some help.  This has been modified to account for
+                    # periodicity.
+                    dist = 0.0
+                    DR[0] = (ex[0] - cpos[k])
+                    DR[1] = (cpos[k] - ex[1])
+                    for j in range(2):
+                        if not self.periodicity[k]:
+                            pass
+                        elif (DR[j] > self.DW[k]/2.0):
+                            DR[j] -= self.DW[k]
+                        elif (DR[j] < -self.DW[k]/2.0):
+                            DR[j] += self.DW[k]
+                        dist = fmax(dist, DR[j])
+                    r2 += dist*dist
+                if r2 > r2_trunc:
+                    continue
             offset = doffs[nind[ni]]
             pc = pcounts[nind[ni]]
             for i in range(pc):
