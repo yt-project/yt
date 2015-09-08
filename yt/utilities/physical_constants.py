@@ -4,7 +4,7 @@ from math import pi
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
 amu_cgs           = YTQuantity(amu_grams, 'g')
-mass_hydrogen_cgs = 1.007947*amu_cgs
+mass_hydrogen_cgs = YTQuantity(mass_hydrogen_grams, 'g')
 
 # Velocities
 speed_of_light_cgs = YTQuantity(speed_of_light_cm_per_s, 'cm/s')
