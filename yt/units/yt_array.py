@@ -618,26 +618,15 @@ class YTArray(np.ndarray):
         return self.value*_astropy.units.Unit(str(self.units), **kwargs)
 
     @classmethod
-    def from_pint(cls, arr, unit_registry=None):
+    def from_pint(cls, arr):
         """
         Convert a Pint "Quantity" to a YTArray or YTQuantity.
-
-        Unfortunately, currently there is no straightforward way to convert
-        from Pint Quantities to a YTArray in the same units. Therefore, most
-        quantities will be returned in some equivalent combination of Pint's
-        default base units of [meter,second,gram,radian,ampere,kelvin,mole]. 
-        From there, the units can be converted in yt to whatever equivalent 
-        units one desires. In the case where the unit is simply degrees 
-        Celsius or Fahrenheit, the units will be passed over directly. 
 
         Parameters
         ----------
         arr : Pint Quantity
             The Quantity to convert from.
-        unit_registry : Pint UnitRegistry, optional
-            The Pint UnitRegistry to use in the conversion. If one is not
-            supplied, the default one will be used.
-            
+
         Examples
         --------
         >>> from pint import UnitRegistry
@@ -645,37 +634,16 @@ class YTArray(np.ndarray):
         >>> ureg = UnitRegistry()
         >>> a = np.random.random(10)
         >>> b = ureg.Quantity(a, "erg/cm**3")
-        >>> c = yt.YTArray.from_pint(b, unit_registry=ureg)
+        >>> c = yt.YTArray.from_pint(b)
         """
-        from pint import UnitRegistry
-        if unit_registry is None:
-            unit_registry = UnitRegistry()
-        if str(arr.units) in ["degC","degF"]:
-            factor = 1.0
-            p_units = str(arr.units)
-        else:
-            pint_to_yt = {"meter":"m",
-                          "ampere":"A",
-                          "second":"s",
-                          "radian":"rad",
-                          "gram":"g",
-                          "kelvin":"K",
-                          "mole":"mol"}
-            base_units = unit_registry.get_base_units(arr.units)
-            factor = base_units[0]
-            base_units = base_units[1]
-            p_units = []
-            for base, power in base_units.items():
-                unit_str = pint_to_yt.get(base, None)
-                if unit_str is None:
-                    raise RuntimeError("Cannot parse base unit \"%s\" in Pint "
-                                       "Quantity with units of %s!" % (base, arr.units))
-                p_units.append("%s**(%s)" % (unit_str, Rational(power)))
-            p_units = "*".join(p_units)
+        p_units = []
+        for base, power in arr.units.items():
+            p_units.append("%s**(%s)" % (base, Rational(power)))
+        p_units = "*".join(p_units)
         if isinstance(arr.magnitude, np.ndarray):
-            return factor*YTArray(arr.magnitude, p_units)
+            return YTArray(arr.magnitude, p_units)
         else:
-            return factor*YTQuantity(arr.magnitude, p_units)
+            return YTQuantity(arr.magnitude, p_units)
 
     def to_pint(self, unit_registry=None):
         """
