@@ -543,8 +543,8 @@ cdef class ParticleSmoothOperation:
         self.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
-            # terminate early if left and right edge r2 for this oct
-            # is bigger than final r2
+            # terminate early if all 8 corners of oct are farther away than
+            # most distant currently known neighbor
             if oct_left_edges != NULL and self.curn == self.maxn:
                 r2_trunc = self.neighbors[self.curn - 1].r2
                 out_of_range = 0
