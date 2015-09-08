@@ -539,7 +539,7 @@ cdef class ParticleSmoothOperation:
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
-        cdef int ni, i, j
+        cdef int ni, i, j, out_of_range
         cdef np.int64_t offset, pn, pc, bad_corner[8]
         cdef np.float64_t pos[3], corner_pos[3], r2_trunc, lr2, rr2
         self.neighbor_reset()
@@ -549,6 +549,7 @@ cdef class ParticleSmoothOperation:
             # is bigger than final r2
             if oct_left_edges != NULL and self.curn == self.maxn:
                 r2_trunc = self.neighbors[self.curn - 1].r2
+                out_of_range = 0
                 for j in range(8):
                     for k in range(3):
                         corner_pos[k] = oct_left_edges[3*nind[ni] + k]
@@ -557,10 +558,9 @@ cdef class ParticleSmoothOperation:
                     r2 = r2dist(ppos, corner_pos, self.DW, self.periodicity,
                                 r2_trunc)
                     if r2 != -1:
-                        break
-                if r2 == -1:
-                    continue
-
+                        out_of_range += 1
+            if out_of_range == 8:
+                continue
             offset = doffs[nind[ni]]
             pc = pcounts[nind[ni]]
             for i in range(pc):
