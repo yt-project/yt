@@ -609,7 +609,7 @@ cdef class ParticleSmoothOperation:
                 for k in range(dim[2]):
                     self.pos_setup(cpos, opos)
                     nneighbors = self.neighbor_search(opos, octree,
-                                    nind, nsize, nneighbors, domain_id, &oct, 1)
+                                    nind, nsize, nneighbors, domain_id, &oct, 0)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
                                        pinds, ppos, opos, oct_left_edges, oct_dds)
                     # Now we have all our neighbors in our neighbor list.
@@ -647,7 +647,7 @@ cdef class ParticleSmoothOperation:
         cdef np.float64_t opos[3]
         self.pos_setup(cpos, opos)
         nneighbors = self.neighbor_search(opos, octree,
-                        nind, nsize, nneighbors, domain_id, &oct, 1)
+                        nind, nsize, nneighbors, domain_id, &oct, 0)
         self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos,
                            opos, NULL, NULL)
         self.process(offset, i, j, k, dim, opos, fields, index_fields)
