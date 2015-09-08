@@ -1,4 +1,3 @@
-# cython: profile=True
 """
 Particle smoothing in cells
 
