@@ -103,6 +103,7 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _tds_attrs = ()
     _tds_fields = ()
     _field_cache = None
     _index = None
