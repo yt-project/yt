@@ -347,6 +347,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['pz','pdz']
     _type_name = "cutting"
     _con_args = ('normal', 'center')
+    _tds_attrs = ("_inv_mat",)
+    _tds_fields = ("x", "y", "z", "dx")
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, normal, center, north_vector=None,
                  ds=None, field_parameters=None, data_source=None):

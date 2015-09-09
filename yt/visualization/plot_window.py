@@ -1536,6 +1536,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         if isinstance(ds, YTSpatialPlotDataset):
             cutting = ds.all_data()
             cutting.axis = 4
+            cutting._inv_mat = ds.parameters["_inv_mat"]
         else:
             cutting = ds.cutting(normal, center, north_vector=north_vector,
                                  field_parameters=field_parameters,

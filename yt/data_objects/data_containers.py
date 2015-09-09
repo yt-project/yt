@@ -103,6 +103,7 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _tds_fields = ()
     _field_cache = None
     _index = None
 
@@ -513,7 +514,8 @@ class YTDataContainer(object):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        for f in [f for f in self._container_fields \
+        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
         data_fields = data.keys()
@@ -560,7 +562,7 @@ class YTDataContainer(object):
                     data[g_field] = self[g_field]
 
         extra_attrs = dict([(arg, getattr(self, arg, None))
-                            for arg in self._con_args])
+                            for arg in self._con_args + self._tds_attrs])
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
