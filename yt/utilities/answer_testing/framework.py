@@ -817,6 +817,32 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, axis, field, weight_field,
                         dobj_name)
 
+
+def sph_answer_test(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
+    if ds_kwargs is None:
+        ds_kwargs = {}
+    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
+    assert_equal(str(ds), ds_str_repr)
+    dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
+    dd = ds.all_data()
+    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
+    tot = sum(dd[ptype, "particle_position"].shape[0]
+              for ptype in ds.particle_types if ptype != "all")
+    assert_equal(tot, ds_nparticles)
+    for dobj_name in dso:
+        for field in fields:
+            for axis in [0, 1, 2]:
+                for weight_field in [None, "density"]:
+                    yield PixelizedProjectionValuesTest(
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
+
+
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
     #  ( obj_name, ( args ) )
