@@ -15,14 +15,11 @@ OWLS frontend tests using the snapshot_033 dataset
 #-----------------------------------------------------------------------------
 
 from yt.testing import \
-    assert_equal, \
     requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
-    PixelizedProjectionValuesTest, \
-    FieldValuesTest, \
-    create_obj
+    sph_answer_test
 from yt.frontends.owls.api import OWLSDataset
 
 os33 = "snapshot_033/snap_033.0.hdf5"
@@ -42,27 +39,7 @@ _fields = (
 
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
-    ds = data_dir_load(os33)
-    yield assert_equal, str(ds), "snap_033"
-    dso = [ None, ("sphere", ("c", (0.1, 'unitary')))]
-    dd = ds.all_data()
-    yield assert_equal, dd["particle_position"].shape[0], 2*(128*128*128)
-    yield assert_equal, dd["particle_position"].shape[1], 3
-    tot = sum(dd[ptype,"particle_position"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
-    yield assert_equal, tot, (2*128*128*128)
-    for dobj_name in dso:
-        for field in _fields:
-            for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
-                    yield PixelizedProjectionValuesTest(
-                        os33, axis, field, weight_field,
-                        dobj_name)
-            yield FieldValuesTest(os33, field, dobj_name)
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        yield assert_equal, s1, s2
+    yield sph_answer_test(os33, 'snap_033', 2*128**3, _fields)
 
 
 @requires_file(os33)
