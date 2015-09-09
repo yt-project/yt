@@ -388,12 +388,13 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        field = obj._determine_fields(self.field)[0]
         if self.particle_type:
-            weight_field = "particle_ones"
+            weight_field = (field[0], "particle_ones")
         else:
-            weight_field = "ones"
+            weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight=weight_field)
+            field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
@@ -818,30 +819,38 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer_test(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
+def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
+    if not can_run_ds(ds_fn):
+        return
     if ds_kwargs is None:
         ds_kwargs = {}
     ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
-    assert_equal(str(ds), ds_str_repr)
+    yield assert_equal, str(ds), ds_str_repr
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
+    yield assert_equal, dd["particle_position"].shape, (ds_nparticles, 3)
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
-    assert_equal(tot, ds_nparticles)
+    yield assert_equal, tot, ds_nparticles
     for dobj_name in dso:
-        for field in fields:
-            for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
-                    yield PixelizedProjectionValuesTest(
-                        ds_fn, axis, field, weight_field,
-                        dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
-
+        yield assert_equal, s1, s2
+        for field in fields:
+            if field[0] in ds.particle_types:
+                particle_type = True
+            else:
+                particle_type = False
+            for axis in [0, 1, 2]:
+                for weight_field in [None, ('gas', 'density')]:
+                    if particle_type is False:
+                        yield PixelizedProjectionValuesTest(
+                            ds_fn, axis, field, weight_field,
+                            dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name,
+                                  particle_type=particle_type)
+    return
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

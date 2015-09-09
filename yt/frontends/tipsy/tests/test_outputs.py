@@ -18,7 +18,7 @@ from yt.testing import assert_equal, requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
-    sph_answer_test, \
+    sph_answer, \
     create_obj, \
     FieldValuesTest, \
     PixelizedProjectionValuesTest
@@ -103,7 +103,8 @@ tg_fields = (
 tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 @requires_ds(tipsy_gal)
 def test_tipsy_galaxy():
-    yield sph_answer_test(tipsy_gal, 'galaxy.00300', 315372, tg_fields)
+    for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
+        yield test
         
 @requires_file(gasoline_dmonly)
 @requires_file(pkdgrav)

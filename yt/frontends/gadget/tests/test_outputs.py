@@ -18,7 +18,7 @@ from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
-    sph_answer_test
+    sph_answer
 from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
@@ -51,11 +51,12 @@ def test_GadgetDataset():
 
 @requires_ds(isothermal_h5)
 def test_iso_collapse():
-    yield sph_answer_test(isothermal_h5, 'snap_505', 2**17,
-                          iso_fields, ds_kwargs=iso_kwargs)
-
+    for test in sph_answer(isothermal_h5, 'snap_505', 2**17,
+                           iso_fields, ds_kwargs=iso_kwargs):
+        yield test
 
 @requires_ds(gdg, big_data=True)
-def test_snapshot_200():
-    yield sph_answer_test(gdg, 'snap_505', 11907080, gdg_fields,
-                          ds_kwargs=gdg_kwargs)
+def test_gadget_disk_galaxy():
+    for test in sph_answer(gdg, 'snap_505', 11907080, gdg_fields,
+                           ds_kwargs=gdg_kwargs):
+        yield test

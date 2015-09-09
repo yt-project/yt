@@ -19,27 +19,28 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
-    sph_answer_test
+    sph_answer
 from yt.frontends.owls.api import OWLSDataset
 
 os33 = "snapshot_033/snap_033.0.hdf5"
 
 _fields = (
-    ("gas", "density")
+    ("gas", "density"),
     ("gas", "temperature"),
     ('gas', 'He_p0_number_density'),
     ('gas', 'N_p1_number_density'),
     ('gas', 'velocity_magnitude'),
     ("deposit", "all_density"),
     ("deposit", "all_count"),
-    ("deposit", "all_cic")
+    ("deposit", "all_cic"),
     ("deposit", "PartType0_density"),
     ("deposit", "PartType4_density"))
 
 
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
-    yield sph_answer_test(os33, 'snap_033', 2*128**3, _fields)
+    for test in sph_answer(os33, 'snap_033', 2*128**3, _fields):
+        yield test
 
 
 @requires_file(os33)
