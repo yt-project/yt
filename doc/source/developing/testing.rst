@@ -126,7 +126,8 @@ is to drop into a debugger when nose detect an error or when a test fails. This
 can be accomplished by passing ``--pdb`` and ``--pdb-failures`` to the
 ``nosetests`` executable. These options will drop into the pdb debugger whenever
 an error is raised or a failure happens, respectively. Inside the debugger you
-can interactively print out variables and go up and down the call stack to determine the context for your failure or error.
+can interactively print out variables and go up and down the call stack to
+determine the context for your failure or error.
 
 In addition, one can debug more crudely using print-style debugging. To do this,
 you can add print statements to the code as normal. However, the test runner
@@ -152,7 +153,8 @@ to the ``nosetests`` executable.
 
 All of the above ``nosetests`` options can be combined. So, for example to run
 the ``TestSetWidth`` tests with verbose output, letting the output of print
-statements come out on the terminal prompt, and enabling pdb debugging on errors or test failures, one would do:
+statements come out on the terminal prompt, and enabling pdb debugging on errors
+or test failures, one would do:
 
 .. code-block:: bash
 
