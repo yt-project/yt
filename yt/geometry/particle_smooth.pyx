@@ -653,6 +653,12 @@ cdef class ParticleSmoothOperation:
         self.process(offset, i, j, k, dim, opos, fields, index_fields)
 
 cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
+    # This smoothing function evaluates the field, *without* normalization, at
+    # every point in the *mesh*.  Applying a normalization results in
+    # non-conservation of mass when smoothing density; to avoid this, we do not
+    # apply this normalization factor.  The SPLASH paper
+    # (http://arxiv.org/abs/0709.0832v1) discusses this in detail; what we are
+    # applying here is equation 6, with variable smoothing lengths (eq 13).
     cdef np.float64_t **fp
     cdef public object vals
     def initialize(self):
@@ -664,18 +670,17 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             raise RuntimeError
         cdef np.ndarray tarr
         self.fp = <np.float64_t **> malloc(
-            sizeof(np.float64_t *) * (self.nfields - 2))
+            sizeof(np.float64_t *) * (self.nfields - 3))
         self.vals = []
-        for i in range(self.nfields - 2):
+        # We usually only allocate one field; if we are doing multiple field,
+        # single-pass smoothing, then we might have more.
+        for i in range(self.nfields - 3):
             tarr = np.zeros(self.nvals, dtype="float64", order="F")
             self.vals.append(tarr)
             self.fp[i] = <np.float64_t *> tarr.data
 
     def finalize(self):
         free(self.fp)
-        vv = self.vals.pop(-1)
-        for v in self.vals:
-            v /= vv
         return self.vals
 
     @cython.cdivision(True)
@@ -719,9 +724,6 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
             for fi in range(self.nfields - 3):
                 val = fields[fi + 3][pn]
                 self.fp[fi][gind(i,j,k,dim) + offset] += val * weight
-            self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] += weight
-            # When looking for non-normalized values, uncomment:
-            self.fp[self.nfields - 3][gind(i,j,k,dim) + offset] = 1.0
         return
 
 volume_weighted_smooth = VolumeWeightedSmooth
