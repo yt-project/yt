@@ -111,7 +111,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
 .. code-block:: python
 
-    @yt.particle_filter(requires=["particle_type], filtered_type='all')
+    @yt.particle_filter(requires=["particle_type"], filtered_type='all')
     def stars(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
