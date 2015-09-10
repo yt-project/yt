@@ -644,6 +644,65 @@ class YTArray(np.ndarray):
                               "an AstroPy quantity.")
         return self.value*_astropy.units.Unit(str(self.units), **kwargs)
 
+    @classmethod
+    def from_pint(cls, arr):
+        """
+        Convert a Pint "Quantity" to a YTArray or YTQuantity.
+
+        Parameters
+        ----------
+        arr : Pint Quantity
+            The Quantity to convert from.
+
+        Examples
+        --------
+        >>> from pint import UnitRegistry
+        >>> import numpy as np
+        >>> ureg = UnitRegistry()
+        >>> a = np.random.random(10)
+        >>> b = ureg.Quantity(a, "erg/cm**3")
+        >>> c = yt.YTArray.from_pint(b)
+        """
+        p_units = []
+        for base, power in arr.units.items():
+            p_units.append("%s**(%s)" % (base, Rational(power)))
+        p_units = "*".join(p_units)
+        if isinstance(arr.magnitude, np.ndarray):
+            return YTArray(arr.magnitude, p_units)
+        else:
+            return YTQuantity(arr.magnitude, p_units)
+
+    def to_pint(self, unit_registry=None):
+        """
+        Convert a YTArray or YTQuantity to a Pint Quantity.
+
+        Parameters
+        ----------
+        arr : YTArray or YTQuantity
+            The unitful quantity to convert from.
+        unit_registry : Pint UnitRegistry, optional
+            The Pint UnitRegistry to use in the conversion. If one is not
+            supplied, the default one will be used.
+            
+        Examples
+        --------
+        >>> a = YTQuantity(4.0, "cm**2/s")
+        >>> b = a.to_pint()
+        """
+        from pint import UnitRegistry
+        if unit_registry is None:
+            unit_registry = UnitRegistry()
+        powers_dict = self.units.expr.as_powers_dict()
+        units = []
+        for unit, pow in powers_dict.items():
+            # we have to do this because Pint doesn't recognize
+            # "yr" as "year" 
+            if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
+                unit = str(unit).replace("yr","year")
+            units.append("%s**(%s)" % (unit, Rational(pow)))
+        units = "*".join(units)
+        return unit_registry.Quantity(self.value, units)
+
     #
     # End unit conversion methods
     #
