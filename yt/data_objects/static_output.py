@@ -711,7 +711,7 @@ class Dataset(object):
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
                               unit_registry=self.unit_registry)
-            self = critical_density \ 
+            self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
