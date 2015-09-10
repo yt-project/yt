@@ -15,16 +15,16 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import nose
 import numpy as np
 from numpy.testing import \
     assert_array_almost_equal_nulp, \
-    assert_raises
+    assert_raises, assert_equal
 from nose.tools import assert_true
 import operator
 from sympy import Symbol
 from yt.testing import \
-    fake_random_ds, assert_allclose_units
+    fake_random_ds, assert_allclose_units, \
+    assert_almost_equal
 
 # dimensions
 from yt.units.dimensions import \
@@ -83,6 +83,9 @@ def test_dimensionless():
     yield assert_true, u2.expr == 1
     yield assert_true, u2.base_value == 1
     yield assert_true, u2.dimensions == 1
+
+    yield assert_equal, u1.latex_repr, ''
+    yield assert_equal, u2.latex_repr, ''
 
 #
 # Start init tests
@@ -450,3 +453,14 @@ def test_temperature_offsets():
 
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
     assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)
+
+def test_comoving_labels():
+    ds = fake_random_ds(64, nprocs=1)
+
+    # create a fake comoving unit
+    ds.unit_registry.add('pccm', ds.unit_registry.lut['pc'][0]/(1+2), length,
+                         "\\rm{pc}/(1+z)")
+
+    test_unit = Unit('Mpccm', registry=ds.unit_registry)
+    assert_almost_equal(test_unit.base_value, cm_per_mpc/3)
+    assert_equal(test_unit.latex_repr, r'\rm{Mpc}/(1+z)')
