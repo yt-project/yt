@@ -32,13 +32,13 @@ default_unit_symbol_lut = {
     "g":  (1.0, dimensions.mass, 0.0, r"\rm{g}"),
     "s":  (1.0, dimensions.time, 0.0, r"\rm{s}"),
     "K":  (1.0, dimensions.temperature, 0.0, r"\rm{K}"),
-    "rad": (1.0, dimensions.angle, 0.0, r"\rm{radian}"),
+    "radian": (1.0, dimensions.angle, 0.0, r"\rm{radian}"),
 
     # other cgs
-    "dyn": (1.0, dimensions.force, 0.0, r"\rm{dyn}"),
+    "dyne": (1.0, dimensions.force, 0.0, r"\rm{dyn}"),
     "erg":  (1.0, dimensions.energy, 0.0, r"\rm{erg}"),
     "esu":  (1.0, dimensions.charge_cgs, 0.0, r"\rm{esu}"),
-    "G": (1.0, dimensions.magnetic_field_cgs, 0.0, r"\rm{G}"),
+    "gauss": (1.0, dimensions.magnetic_field_cgs, 0.0, r"\rm{G}"),
     "degC": (1.0, dimensions.temperature, -273.15, r"^\circ\rm{C}"),
     "statA": (1.0, dimensions.current_cgs, 0.0, r"\rm{statA}"),
     "statV": (1.0, dimensions.electric_potential_cgs, 0.0, r"\rm{statV}"),
@@ -95,15 +95,15 @@ default_unit_symbol_lut = {
     "pc": (cm_per_pc, dimensions.length, 0.0, r"\rm{pc}"),
 
     # angles
-    "deg": (np.pi/180., dimensions.angle, 0.0, r"\rm{deg}"),  # degrees
+    "degree": (np.pi/180., dimensions.angle, 0.0, r"\rm{deg}"),  # degrees
     "arcmin": (np.pi/10800., dimensions.angle, 0.0,
                r"\rm{arcmin}"),  # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle, 0.0,
                r"\rm{arcsec}"),  # arcseconds
     "mas": (np.pi/648000000., dimensions.angle, 0.0,
             r"\rm{mas}"),  # milliarcseconds
-    "HA": (np.pi/12., dimensions.angle, 0.0, r"\rm{HA}"),  # hour angle
-    "sr": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
+    "hourangle": (np.pi/12., dimensions.angle, 0.0, r"\rm{HA}"),  # hour angle
+    "steradian": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
 
     # misc
     "eV": (erg_per_eV, dimensions.energy, 0.0, r"\rm{eV}"),
@@ -116,6 +116,20 @@ default_unit_symbol_lut = {
     "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
     "mol": (1.0/amu_grams, dimensions.dimensionless, r"\rm{mol}"),
 
+    # for AstroPy compatibility
+    "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
+    "solRad": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
+    "solLum": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
+    "dyn": (1.0, dimensions.force, 0.0, r"\rm{dyn}"),
+    "sr": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
+    "rad": (1.0, dimensions.solid_angle, 0.0, r"\rm{rad}"),
+    "deg": (np.pi/180., dimensions.angle, 0.0, r"\rm{deg}"),
+    "Fr":  (1.0, dimensions.charge_cgs, 0.0, r"\rm{Fr}"),
+    "G": (1.0, dimensions.magnetic_field_cgs, 0.0, r"\rm{G}"),
+    "d": (1.0, dimensions.time, 0.0, r"\rm{d}"),
+    "Angstrom": (cm_per_ang, dimensions.length, 0.0, r"\AA"),
+    "statC": (1.0, dimensions.charge_cgs, 0.0, r"\rm{statC}"),
+
     # Planck units
     "m_pl": (planck_mass_grams, dimensions.mass, 0.0, r"m_{\rm{P}}"),
     "l_pl": (planck_length_cm, dimensions.length, 0.0, r"\ell_\rm{P}"),
@@ -124,55 +138,6 @@ default_unit_symbol_lut = {
     "q_pl": (planck_charge_esu, dimensions.charge_cgs, 0.0, r"q_{\rm{P}}"),
     "E_pl": (planck_energy_erg, dimensions.energy, 0.0, r"E_{\rm{P}}"),
 
-}
-
-unit_aliases = {
-    # full name aliases
-    "meter": "m",
-    "second": "s",
-    "gram": "g",
-    "radian": "rad",
-    "degree": "deg",
-    "joule": "J",
-    "franklin": "esu",
-    "dyne": "dyn",
-    "steradian": "sr",
-    "parsec": "pc",
-    "mole": "mol",
-    "rankine": "R",
-    "gauss": "G",
-    "watt": "W",
-    "pascal": "Pa",
-    "tesla": "T",
-    "kelvin": "K",
-    "year": "yr",
-    "minute": "min",
-    "hour": "hr",
-    "volt": "V",
-    "ampere": "A",
-    "foot": "ft",
-    "coulomb": "C",
-    "newton": "N",
-    "hertz": "Hz",
-    "jansky": "Jy",
-    "arcsecond": "arcsec",
-    "arcminute": "arcmin",
-    "hourangle": "HA",
-    # other aliases
-    "statC": "esu",
-    "solMass": "Msun",
-    "solRad": "Rsun",
-    "solLum": "Lsun",
-    "d": "day",
-    "speed_of_light": "c",
-    "esu_per_second": "statA",
-    "atomic_mass_unit": "amu",
-    "astronomical_unit": "au",
-    "Fr": "esu",
-    "Angstrom": "angstrom",
-    "light_year": "ly",
-    "electron_mass": "me",
-    "proton_mass": "mp",
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
@@ -197,27 +162,6 @@ unit_prefixes = {
     'y': 1e-24,  # yocto
 }
 
-prefix_aliases = {
-    'yotta':'Y',
-    'zetta':'Z',
-    'exa':'E',
-    'peta':'P',
-    'tera':'T',
-    'giga':'G',
-    'mega':'M',
-    'kilo':'k',
-    'deci':'d',
-    'centi':'c',
-    'milli':'m',
-    'micro':'u',
-    'nano':'n',
-    'pico':'p',
-    'femto':'f',
-    'atto':'a',
-    'zepto':'z',
-    'yocto':'y',
-}
-
 latex_prefixes = {
     "u": r"\mu",
     }
@@ -232,12 +176,13 @@ prefixable_units = (
     "s",
     "yr",
     "K",
-    "dyn",
+    "dyne",
     "erg",
     "esu",
     "J",
     "Hz",
     "W",
+    "gauss",
     "G",
     "Jy",
     "N",
@@ -258,7 +203,7 @@ yt_base_units = {
     dimensions.length: 'cm',
     dimensions.time: 's',
     dimensions.temperature: 'K',
-    dimensions.angle: 'rad',
+    dimensions.angle: 'radian',
     dimensions.current_mks: 'A',
 }
 
@@ -270,6 +215,6 @@ mks_base_units = {
     dimensions.length: 'm',
     dimensions.time: 's',
     dimensions.temperature: 'K',
-    dimensions.angle: 'rad',
+    dimensions.angle: 'radian',
     dimensions.current_mks: 'A',
 }

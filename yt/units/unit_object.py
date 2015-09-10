@@ -27,8 +27,7 @@ from yt.units.dimensions import \
     dimensionless, current_mks
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, yt_base_units, \
-    unit_aliases, prefix_aliases
+    mks_base_units, latex_prefixes, yt_base_units
 from yt.units.unit_registry import UnitRegistry
 from yt.utilities.exceptions import YTUnitsNotReducible
 
@@ -539,25 +538,11 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
         # lookup successful, return the tuple directly
         return unit_symbol_lut[symbol_str]
 
-    if symbol_str in unit_aliases:
-        # this is an alias for another unit, return its associated tuple
-        return unit_symbol_lut[unit_aliases[symbol_str]]
-
     # could still be a known symbol with a prefix
-    possible_prefix = None
-    for prefix in prefix_aliases:
-        if symbol_str.startswith(prefix):
-            possible_prefix = prefix_aliases[prefix]
-            symbol_start = len(prefix)
-            break
-    if possible_prefix is None:
-        possible_prefix = symbol_str[0]
-        symbol_start = 1
+    possible_prefix = symbol_str[0]
     if possible_prefix in unit_prefixes:
         # the first character could be a prefix, check the rest of the symbol
-        symbol_wo_prefix = symbol_str[symbol_start:]
-        if symbol_wo_prefix in unit_aliases:
-            symbol_wo_prefix = unit_aliases[symbol_wo_prefix]
+        symbol_wo_prefix = symbol_str[1:]
 
         unit_is_si_prefixable = (symbol_wo_prefix in unit_symbol_lut and
                                  symbol_wo_prefix in prefixable_units)

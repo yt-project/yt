@@ -44,6 +44,7 @@ from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.units.equivalencies import equivalence_registry
 from yt.utilities.logger import ytLogger as mylog
+from .misc import convert_pint_units
 
 NULL_UNIT = Unit()
 
@@ -665,7 +666,8 @@ class YTArray(np.ndarray):
         """
         p_units = []
         for base, power in arr.units.items():
-            p_units.append("%s**(%s)" % (base, Rational(power)))
+            bs = convert_pint_units(base)
+            p_units.append("%s**(%s)" % (bs, Rational(power)))
         p_units = "*".join(p_units)
         if isinstance(arr.magnitude, np.ndarray):
             return YTArray(arr.magnitude, p_units)
