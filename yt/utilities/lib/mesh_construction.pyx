@@ -248,7 +248,6 @@ cdef class Order2ElementMesh:
             raise NotImplementedError
 
         self._build_from_indices(scene, vertices, indices)
-        self._set_sampler_type(scene)
 
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
@@ -273,7 +272,7 @@ cdef class Order2ElementMesh:
                 patches[i*6 + j].geomID = mesh
                 for k in range(8):  # for each vertex
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        patches[i*6 + j].v[k][idim] = vertices_in[ne][faces[j]][k][idim]
+                        patches[i*6 + j].v[k][idim] = vertices_in[indices_in[i]][faces[j]][k][idim]
                 self._set_bounding_sphere(patches[i*6 + j])
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &patches)
@@ -281,8 +280,8 @@ cdef class Order2ElementMesh:
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
         rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
-        rtcgu.rtcSetOccludedFunction (scene.scene_i, self.mesh, 
-                                      <rtcgu.RTCOccludedFunc> patchOccludedFunc);
+        rtcgu.rtcSetOccludedFunction(scene.scene_i, self.mesh, 
+                                     <rtcgu.RTCOccludedFunc> patchOccludedFunc);
         self.patches = patches
         self.mesh = mesh
 
