@@ -120,16 +120,20 @@ functionality.
 Debugging failing tests
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-When writing new tests, often one exposes bugs or simply write a test
-incorrectly, causing a test failure. The easiest way to debug issues like this
-is to drop into a debugger when nose detect an error or when a test fails. This
-can be accomplished by passing ``--pdb`` and ``--pdb-failures`` to the
-``nosetests`` executable. These options will drop into the pdb debugger whenever
-an error is raised or a failure happens, respectively. Inside the debugger you
-can interactively print out variables and go up and down the call stack to
-determine the context for your failure or error.
+When writing new tests, often one exposes bugs or writes a test incorrectly,
+causing an exception to be raised or a failed test. To help debug issues like
+this, ``nose`` can drop into a debugger whenever a test fails or raises an
+exception. This can be accomplished by passing ``--pdb`` and ``--pdb-failures``
+to the ``nosetests`` executable. These options will drop into the pdb debugger
+whenever an error is raised or a failure happens, respectively. Inside the
+debugger you can interactively print out variables and go up and down the call
+stack to determine the context for your failure or error.
 
-In addition, one can debug more crudely using print-style debugging. To do this,
+.. code-block:: bash
+
+    nosetests --pdb --pdb-failures
+
+In addition, one can debug more crudely using print statements. To do this,
 you can add print statements to the code as normal. However, the test runner
 will capture all print output by default. To ensure that output gets printed
 to your terminal while the tests are running, pass ``-s`` to the ``nosetests``
@@ -142,9 +146,9 @@ following example:
 
 .. code-block:: bash
 
-   $ nosetests yt.visualization.tests.test_plotwindow:TestSetWidth
+    $ nosetests yt.visualization.tests.test_plotwindow:TestSetWidth
 
-This nosetests invocation will onyl run the tests defined by the
+This nosetests invocation will only run the tests defined by the
 ``TestSetWidth`` class.
 
 Finally, to determine which test is failing while the tests are running, it helps
@@ -158,7 +162,7 @@ or test failures, one would do:
 
 .. code-block:: bash
 
-   $ nosetests --pdb --pdb-failures -v -s yt.visualization.tests.test_plotwindow:TestSetWidth
+    $ nosetests --pdb --pdb-failures -v -s yt.visualization.tests.test_plotwindow:TestSetWidth
 
 .. _answer_testing:
 
@@ -285,14 +289,15 @@ config file:
    [yt]
    test_data_dir = /Users/tomservo/src/yt-data
 
-More data will be added over time.  To run the answer tests, must first generate
-a set of test answers locally on a "known good" revision, then update to the
-revision you want to test, and run the tests again using the locally stored
-answers using the ``nosetests`` executable.
+More data will be added over time.  To run the answer tests, you must first
+generate a set of test answers locally on a "known good" revision, then update
+to the revision you want to test, and run the tests again using the locally
+stored answers.
 
 Let's focus on running the answer tests for a single frontend. It's possible to
 run the answer tests for **all** the frontends, but due to the large number of
-test datasets we currently use this is not normally done.
+test datasets we currently use this is not normally done except on the yt
+project's contiguous integration server.
 
 .. code-block:: bash
 
@@ -300,11 +305,11 @@ test datasets we currently use this is not normally done.
    $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store frontends.tipsy
 
 This command will create a set of local answers from the tipsy frontend tests
-and store them in ``$HOME/Documents/test`` (this does not have to be, but can be
-the same directory as your ``test_data_dir`` configuration variable). To run the
-tipsy frontend's answer tests using a different yt changeset, update to that
-changeset, recompile if necessary, and run the tests using the following
-command:
+and store them in ``$HOME/Documents/test`` (this can but does not have to be the
+same directory as the ``test_data_dir`` configuration variable defined in your
+``.yt/config`` file). To run the tipsy frontend's answer tests using a different
+yt changeset, update to that changeset, recompile if necessary, and run the
+tests using the following command:
 
 .. code-block:: bash
 
@@ -388,19 +393,19 @@ considered canonical.  Do these things:
   directory.
 
 * Create a new routine that operates similarly to the routines you can see
-  in Enzo's outputs.
+  in Enzo's output tests.
 
   * This routine should test a number of different fields and data objects.
 
   * The test routine itself should be decorated with
-    ``@requires_ds(file_name)``  This decorate can accept the argument
-    ``big_data`` for if this data is too big to run all the time.
+    ``@requires_ds(path_to_test_dataset)``. This decorator can accept the
+    argument ``big_data=True`` if the test is expensive.
 
   * There are ``small_patch_amr`` and ``big_patch_amr`` routines that you can
-    yield from to execute a bunch of standard tests.  This is where you should
-    start, and then yield additional tests that stress the outputs in whatever
-    ways are necessary to ensure functionality. In addition we have created
-    ``sph_answer`` which is more suited for particle SPH datasets.
+    yield from to execute a bunch of standard tests. In addition we have created
+    ``sph_answer`` which is more suited for particle SPH datasets. This is where
+    you should start, and then yield additional tests that stress the outputs in
+    whatever ways are necessary to ensure functionality.
 
   * **All tests should be yielded!**
 
