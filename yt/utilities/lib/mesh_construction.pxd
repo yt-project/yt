@@ -12,7 +12,7 @@ ctypedef struct MeshDataContainer:
     int vpe                # the number of vertices per element
 
 ctypedef struct Patch:
-    Vec3f v[8]
-    Vec3f center
-    double radius
+    float[8][3] v
+    float[3] center
+    float radius
     unsigned int geomID

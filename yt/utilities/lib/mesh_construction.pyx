@@ -29,7 +29,12 @@ from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
     Vec3f
+from mesh_intersection cimport \
+    patchIntersectFunc, \
+    patchOccludedFunc, \
+    patchBoundsFunc
 from libc.stdlib cimport malloc, free
+from libc.math cimport fmax, sqrt
 import numpy as np
 
 cdef extern from "mesh_construction.h":
@@ -227,13 +232,9 @@ cdef class Order2ElementMesh:
 
     cdef Patch* patches
     cdef unsigned int mesh
-    cdef double* field_data
-    cdef rtcg.RTCFilterFunc filter_func
     # patches per element, vertices per element, and field points per 
     # element, respectively:
     cdef int ppe, vpe, fpe
-    cdef int* element_indices
-    cdef MeshDataContainer datac
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
@@ -252,7 +253,7 @@ cdef class Order2ElementMesh:
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
                                   np.ndarray indices_in):
-        cdef int i, j, ind
+        cdef int i, j, ind, idim
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int np = 6*ne;
@@ -267,17 +268,45 @@ cdef class Order2ElementMesh:
                  [0, 1, 2, 3, 11, 8, 9, 10]]
 
         cdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
-        for i in range(ne):
-            for j in range(6):
+        for i in range(ne):  # for each element
+            for j in range(6):  # for each face
                 patches[i*6 + j].geomID = mesh
-                for k in range(8):
-                    patches[i*6 + j].v[k].x = vertices_in[ne][faces[j]][k].x
-                    patches[i*6 + j].v[k].y = vertices_in[ne][faces[j]][k].y
-                    patches[i*6 + j].v[k].z = vertices_in[ne][faces[j]][k].z
+                for k in range(8):  # for each vertex
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        patches[i*6 + j].v[k][idim] = vertices_in[ne][faces[j]][k][idim]
+                self._set_bounding_sphere(patches[i*6 + j])
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &patches)
+        rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
+                                   <rtcgu.RTCBoundsFunc> patchBoundsFunc)
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
+                                      <rtcgu.RTCIntersectFunc> patchIntersectFunc)
+        rtcgu.rtcSetOccludedFunction (scene.scene_i, self.mesh, 
+                                      <rtcgu.RTCOccludedFunc> patchOccludedFunc);
         self.patches = patches
         self.mesh = mesh
+
+    cdef void _set_bounding_sphere(self, Patch patch):
+
+        # set the center to be the centroid of the patch vertices
+        cdef int i, j
+        for j in range(8):
+            for i in range(3):
+                patch.center[i] += patch.v[j][i]
+        for i in range(3):
+            patch.center[i] /= 8.0
+
+        # set the radius to be slightly larger than the distance between
+        # the center and the farthest vertex
+        cdef float r = 0.0
+        cdef float d
+        for j in range(8):
+            d = 0.0
+            for i in range(3):
+                d += (patch.v[j][i] - patch.center[i])**2
+            d = sqrt(d)
+            r = fmax(r, d)
+        patch.radius = 1.05*r
 
     def __dealloc__(self):
         free(self.patches)

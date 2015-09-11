@@ -184,6 +184,11 @@ def configuration(parent_package='',top_path=None):
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
                              depends=["yt/utilities/lib/mesh_samplers.pxd"])
+        config.add_extension("mesh_intersection",
+                             ["yt/utilities/lib/mesh_intersection.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", "embree"], language="c++",
+                             depends=["yt/utilities/lib/mesh_intersection.pxd"])
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
