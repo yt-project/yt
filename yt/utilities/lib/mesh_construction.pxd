@@ -10,3 +10,9 @@ ctypedef struct MeshDataContainer:
     int* element_indices   # which vertices belong to which *element*
     int tpe                # the number of triangles per element
     int vpe                # the number of vertices per element
+
+ctypedef struct Patch:
+    Vec3f v[8]
+    Vec3f center
+    double radius
+    unsigned int geomID

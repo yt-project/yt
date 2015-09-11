@@ -81,7 +81,7 @@ cdef class ElementMesh:
     cdef double* field_data
     cdef rtcg.RTCFilterFunc filter_func
     # triangles per element, vertices per element, and field points per 
-    # element, repsectively:
+    # element, respectively:
     cdef int tpe, vpe, fpe
     cdef int[MAX_NUM_TRI][3] tri_array
     cdef int* element_indices
@@ -166,7 +166,6 @@ cdef class ElementMesh:
         datac.vertices = self.vertices
         datac.indices = self.indices
         datac.field_data = self.field_data
-        datac.element_indices = self.element_indices
         datac.tpe = self.tpe
         datac.vpe = self.vpe
         self.datac = datac
@@ -194,3 +193,92 @@ cdef class ElementMesh:
         free(self.element_indices)
         free(self.vertices)
         free(self.indices)
+
+
+cdef class Order2ElementMesh:
+    r'''
+
+    Currently, we handle non-triangular mesh types by converting them 
+    to triangular meshes. This class performs this transformation.
+    Currently, this is implemented for 20-point hexahedral meshes only.
+
+    Parameters
+    ----------
+
+    scene : EmbreeScene
+        This is the scene to which the constructed polygons will be
+        added.
+    vertices : a np.ndarray of floats. 
+        This specifies the x, y, and z coordinates of the vertices in 
+        the mesh. This should either have the shape 
+        (num_vertices, 3). For example, vertices[2][1] should give the 
+        y-coordinate of the 3rd vertex in the mesh.
+    indices : a np.ndarray of ints
+        This should either have the shape (num_elements, 4) or 
+        (num_elements, 8) for tetrahedral and hexahedral meshes, 
+        respectively. For tetrahedral meshes, each element will 
+        be represented by four triangles in the scene. For hex meshes,
+        each element will be represented by 12 triangles, 2 for each 
+        face. For hex meshes, we assume that the node ordering is as
+        defined here: 
+        http://homepages.cae.wisc.edu/~tautges/papers/cnmev3.pdf
+            
+    '''
+
+    cdef Patch* patches
+    cdef unsigned int mesh
+    cdef double* field_data
+    cdef rtcg.RTCFilterFunc filter_func
+    # patches per element, vertices per element, and field points per 
+    # element, respectively:
+    cdef int ppe, vpe, fpe
+    cdef int* element_indices
+    cdef MeshDataContainer datac
+
+    def __init__(self, YTEmbreeScene scene,
+                 np.ndarray vertices, 
+                 np.ndarray indices,
+                 np.ndarray data):
+
+        # only 20-point hexes are supported right now.
+        if indices.shape[1] == 20:
+            self.vpe = 20
+        else:
+            raise NotImplementedError
+
+        self._build_from_indices(scene, vertices, indices)
+        self._set_sampler_type(scene)
+
+    cdef void _build_from_indices(self, YTEmbreeScene scene,
+                                  np.ndarray vertices_in,
+                                  np.ndarray indices_in):
+        cdef int i, j, ind
+        cdef int nv = vertices_in.shape[0]
+        cdef int ne = indices_in.shape[0]
+        cdef int np = 6*ne;
+
+        cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, np)
+        
+        faces = [[0, 1, 5, 4, 12, 8, 13, 16],
+                 [1, 2, 6, 5, 13, 9, 14, 17],
+                 [3, 2, 6, 7, 15, 10, 14, 18],
+                 [0, 3, 7, 4, 12, 11, 15, 19],
+                 [4, 5, 6, 7, 19, 16, 17, 18],
+                 [0, 1, 2, 3, 11, 8, 9, 10]]
+
+        cdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
+        for i in range(ne):
+            for j in range(6):
+                patches[i*6 + j].geomID = mesh
+                for k in range(8):
+                    patches[i*6 + j].v[k].x = vertices_in[ne][faces[j]][k].x
+                    patches[i*6 + j].v[k].y = vertices_in[ne][faces[j]][k].y
+                    patches[i*6 + j].v[k].z = vertices_in[ne][faces[j]][k].z
+
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, &patches)
+        self.patches = patches
+        self.mesh = mesh
+
+    def __dealloc__(self):
+        free(self.patches)
+
