@@ -78,7 +78,8 @@ def to_yt_dataset(ds, filename, data, field_types=None,
     mylog.info("Saving field data to yt dataset: %s." % filename)
 
     if extra_attrs is None: extra_attrs = {}
-    base_attrs  = ["domain_left_edge", "domain_right_edge",
+    base_attrs  = ["dimensionality",
+                   "domain_left_edge", "domain_right_edge",
                    "current_redshift", "current_time",
                    "domain_dimensions", "periodicity",
                    "cosmological_simulation", "omega_lambda",
