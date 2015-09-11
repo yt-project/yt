@@ -47,7 +47,7 @@ cdef extern from "mesh_construction.h":
     int TETRA_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
-
+    int hex20_faces[6][8]
 
 cdef class ElementMesh:
     r'''
@@ -259,20 +259,14 @@ cdef class Order2ElementMesh:
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, np)
         
-        faces = [[0, 1, 5, 4, 12, 8, 13, 16],
-                 [1, 2, 6, 5, 13, 9, 14, 17],
-                 [3, 2, 6, 7, 15, 10, 14, 18],
-                 [0, 3, 7, 4, 12, 11, 15, 19],
-                 [4, 5, 6, 7, 19, 16, 17, 18],
-                 [0, 1, 2, 3, 11, 8, 9, 10]]
-
-        cdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
+        ocdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
         for i in range(ne):  # for each element
             for j in range(6):  # for each face
                 patches[i*6 + j].geomID = mesh
                 for k in range(8):  # for each vertex
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        patches[i*6 + j].v[k][idim] = vertices_in[indices_in[i]][faces[j]][k][idim]
+                        patches[i*6 + j].v[k][idim] = \
+                             vertices_in[indices_in[i]][hex20_faces[j][k]][idim]
                 self._set_bounding_sphere(patches[i*6 + j])
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &patches)
