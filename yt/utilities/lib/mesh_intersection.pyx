@@ -140,7 +140,7 @@ cdef void patchBoundsFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item):
 
     cdef Patch patch = patches[item]
 
@@ -155,6 +155,8 @@ cdef void patchIntersectFunc(Patch* patches,
     cdef float D = B*B - 4.0*A*C
     if (D < 0.0):
         return
+
+    print 'here'
 
     # otherwise, iterate to the get the true hit position
     # first we compute the the two planes that define the ray.
