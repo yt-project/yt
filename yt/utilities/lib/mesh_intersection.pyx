@@ -56,7 +56,7 @@ cdef void patchSurfaceDerivU(const Patch& patch,
               ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
               ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
               0.5*(v*v - 1.0)*patch.v[4][i] + u*(v - 1.0)*patch.v[5][i] - \
-              0.5*(v*v - 1.0)*patch.v[6][i] - u*(v + 1.0)*patch.v[7][i];
+              0.5*(v*v - 1.0)*patch.v[6][i] - u*(v + 1.0)*patch.v[7][i]
 
 
 @cython.boundscheck(False)
@@ -73,7 +73,7 @@ cdef void patchSurfaceDerivV(const Patch& patch,
                 ( 0.25*(u + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
                 ( 0.25*(u - 1.0)*(u - v + 1) - 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
                 0.5*(u*u - 1.0)*patch.v[5][i] + v*(u - 1.0)*patch.v[4][i] - \
-                0.5*(u*u - 1.0)*patch.v[7][i] - v*(u + 1.0)*patch.v[6][i];
+                0.5*(u*u - 1.0)*patch.v[7][i] - v*(u + 1.0)*patch.v[6][i]
 
 
 @cython.boundscheck(False)
@@ -105,34 +105,33 @@ cdef void cross(const float* a,
 @cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item, 
-                          rtcg.RTCBounds* bounds_o) nogil:
-
-    cdef int i
+                          rtcg.RTCBounds* bounds_o):
 
     cdef Patch patch = patches[item]
     
-    cdef float lo_x = 1.0e300;
-    cdef float lo_y = 1.0e300;
-    cdef float lo_z = 1.0e300;
+    cdef float lo_x = 1.0e300
+    cdef float lo_y = 1.0e300
+    cdef float lo_z = 1.0e300
 
-    cdef float hi_x = -1.0e300;
-    cdef float hi_y = -1.0e300;
-    cdef float hi_z = -1.0e300;
+    cdef float hi_x = -1.0e300
+    cdef float hi_y = -1.0e300
+    cdef float hi_z = -1.0e300
 
+    cdef int i
     for i in range(8):
-        lo_x = fmin(lo_x, patch.v[i][0]);
-        lo_y = fmin(lo_y, patch.v[i][1]);
-        lo_z = fmin(lo_z, patch.v[i][2]);
-        hi_x = fmax(hi_x, patch.v[i][0]);
-        hi_y = fmax(hi_y, patch.v[i][1]);
-        hi_z = fmax(hi_z, patch.v[i][2]);
+        lo_x = fmin(lo_x, patch.v[i][0])
+        lo_y = fmin(lo_y, patch.v[i][1])
+        lo_z = fmin(lo_z, patch.v[i][2])
+        hi_x = fmax(hi_x, patch.v[i][0])
+        hi_y = fmax(hi_y, patch.v[i][1])
+        hi_z = fmax(hi_z, patch.v[i][2])
 
-    bounds_o.lower_x = lo_x;
-    bounds_o.lower_y = lo_y;
-    bounds_o.lower_z = lo_z;
-    bounds_o.upper_x = hi_x;
-    bounds_o.upper_y = hi_y;
-    bounds_o.upper_z = hi_z;
+    bounds_o.lower_x = lo_x
+    bounds_o.lower_y = lo_y
+    bounds_o.lower_z = lo_z
+    bounds_o.upper_x = hi_x
+    bounds_o.upper_y = hi_y
+    bounds_o.upper_z = hi_z
 
 
 @cython.boundscheck(False)
@@ -155,8 +154,6 @@ cdef void patchIntersectFunc(Patch* patches,
     cdef float D = B*B - 4.0*A*C
     if (D < 0.0):
         return
-
-    print 'here'
 
     # otherwise, iterate to the get the true hit position
     # first we compute the the two planes that define the ray.

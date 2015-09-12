@@ -14,4 +14,4 @@ cdef void patchOccludedFunc(Patch* patches,
 
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item, 
-                          rtcg.RTCBounds* bounds_o) nogil
+                          rtcg.RTCBounds* bounds_o)
