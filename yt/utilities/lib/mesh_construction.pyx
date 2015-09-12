@@ -260,15 +260,16 @@ cdef class Order2ElementMesh:
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, np)
         
         cdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
+        cdef Patch patch
         for i in range(ne):  # for each element
             for j in range(6):  # for each face
-                patches[i*6 + j].geomID = mesh
+                patch = patches[i*6+j]
+                patch.geomID = mesh
                 for k in range(8):  # for each vertex
+                    ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        patches[i*6 + j].v[k][idim] = \
-                             vertices_in[indices_in[i]][hex20_faces[j][k]][idim]
-                self._set_bounding_sphere(patches[i*6 + j])
-
+                        patch.v[k][idim] = vertices_in[indices_in[i]][ind][idim]
+                self._set_bounding_sphere(patch)
         self.patches = patches
         self.mesh = mesh
 
@@ -280,7 +281,7 @@ cdef class Order2ElementMesh:
         rtcgu.rtcSetOccludedFunction(scene.scene_i, self.mesh, 
                                      <rtcgu.RTCOccludedFunc> patchOccludedFunc);
 
-    cdef void _set_bounding_sphere(self, Patch patch):
+    cdef void _set_bounding_sphere(self, Patch& patch):
 
         # set the center to be the centroid of the patch vertices
         cdef int i, j
