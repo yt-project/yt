@@ -108,6 +108,7 @@ cdef void patchBoundsFunc(Patch* patches,
                           rtcg.RTCBounds* bounds_o) nogil:
 
     cdef int i
+
     cdef Patch patch = patches[item]
     
     cdef float lo_x = 1.0e300;
