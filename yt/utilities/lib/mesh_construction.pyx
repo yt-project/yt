@@ -1,3 +1,5 @@
+# cython: profile=True
+
 """
 This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
@@ -15,7 +17,7 @@ representation.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-cimport numpy as np
+import numpy as np
 cimport cython
 cimport pyembree.rtcore as rtc 
 from mesh_traversal cimport YTEmbreeScene
@@ -34,8 +36,7 @@ from mesh_intersection cimport \
     patchBoundsFunc
 from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
-import numpy as np
-
+cimport numpy as np
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -253,20 +254,21 @@ cdef class QuadraticElementMesh:
         cdef int i, j, ind, idim
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
-        cdef int np = 6*ne;
+        cdef int npatch = 6*ne;
 
-        cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, np)
-        
-        cdef Patch* patches = <Patch*> malloc(np * sizeof(Patch));
+        cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
+        cdef np.ndarray[np.float64_t, ndim=2] element_vertices
+        cdef Patch* patches = <Patch*> malloc(npatch * sizeof(Patch));
         cdef Patch* patch
         for i in range(ne):  # for each element
+            element_vertices = vertices_in[indices_in[i]]
             for j in range(6):  # for each face
                 patch = &(patches[i*6+j])
                 patch.geomID = mesh
                 for k in range(8):  # for each vertex
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        patch.v[k][idim] = vertices_in[indices_in[i]][ind][idim]
+                        patch.v[k][idim] = element_vertices[ind][idim]
                 self._set_bounding_sphere(patch)
 
         self.patches = patches

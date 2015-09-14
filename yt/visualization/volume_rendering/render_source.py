@@ -320,7 +320,7 @@ class MeshSource(RenderSource):
             field_data = np.expand_dims(field_data, 1)
 
         # Here, we decide whether to render based on high-order or 
-        # low-order geometry. Right now, high order geometry is only
+        # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
             self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
