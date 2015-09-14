@@ -10,7 +10,7 @@ amu_cgs = YTQuantity(amu_grams, 'g')
 amu = amu_cgs
 Na = 1 / amu_cgs
 
-mass_hydrogen_cgs = 1.007947*amu_cgs
+mass_hydrogen_cgs = YTQuantity(mass_hydrogen_grams, 'g')
 mass_hydrogen = mass_hydrogen_cgs
 mp = mass_hydrogen_cgs
 mh = mp

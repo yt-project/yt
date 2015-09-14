@@ -21,7 +21,7 @@ from yt.utilities.physical_ratios import \
     cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams, \
     kelvin_per_rankine, speed_of_light_cm_per_s, planck_length_cm, \
     planck_charge_esu, planck_energy_erg, planck_mass_grams, \
-    planck_temperature_K, planck_time_s
+    planck_temperature_K, planck_time_s, mass_hydrogen_grams
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -101,7 +101,7 @@ default_unit_symbol_lut = {
     "arcsec": (np.pi/648000., dimensions.angle, 0.0,
                r"\rm{arcsec}"),  # arcseconds
     "mas": (np.pi/648000000., dimensions.angle, 0.0,
-            r"\rm{mas}"),  # millarcseconds
+            r"\rm{mas}"),  # milliarcseconds
     "hourangle": (np.pi/12., dimensions.angle, 0.0, r"\rm{HA}"),  # hour angle
     "steradian": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
 
@@ -113,6 +113,8 @@ default_unit_symbol_lut = {
     "counts": (1.0, dimensions.dimensionless, 0.0, r"\rm{counts}"),
     "photons": (1.0, dimensions.dimensionless, 0.0, r"\rm{photons}"),
     "me": (mass_electron_grams, dimensions.mass, 0.0, r"m_e"),
+    "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
+    "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
