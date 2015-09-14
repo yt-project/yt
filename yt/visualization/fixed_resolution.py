@@ -13,7 +13,11 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import mylog
+from yt.frontends.ytdata.utilities import \
+    to_yt_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
@@ -378,6 +382,71 @@ class FixedResolutionBuffer(object):
                                  periodicity=(False,False,False),
                                  geometry=self.ds.geometry,
                                  nprocs=nprocs)
+
+    def to_dataset(self, filename=None, fields=None):
+        r"""Export a fixed resolution buffer to a reloadable yt dataset.
+
+        This function will take a fixed resolution buffer and output a 
+        dataset containing either the fields presently existing or fields 
+        given in a list.  The resulting dataset can be reloaded as 
+        a yt dataset.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> frb = proj.to_frb(1.0, (800, 800))
+        >>> fn = frb.to_dataset(fields=["density"])
+        >>> ds2 = yt.load(fn)
+        """
+
+        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self.data_source._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.data)
+
+        data["dx"] = np.ones(self.buff_size) * \
+          (self.bounds[1] - self.bounds[0]) / self.buff_size[0]
+        data["dy"] = np.ones(self.buff_size) * \
+          (self.bounds[3] - self.bounds[2]) / self.buff_size[1]
+        x, y = np.mgrid[0.5:self.buff_size[0]:1.,
+                        0.5:self.buff_size[1]:1.]
+        data["x"] = x * data["dx"][0][0]
+        data["y"] = y * data["dy"][0][0]
+
+        ftypes = dict([(field, "grid") for field in data])
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self.data_source._con_args +
+                            self.data_source._tds_attrs])
+        extra_attrs["data_type"] = "yt_frb"
+        extra_attrs["container_type"] = self.data_source._type_name
+        extra_attrs["dimensionality"] = self.data_source._dimensionality
+        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
+                      extra_attrs=extra_attrs)
+
+        return filename
 
     @property
     def limits(self):
