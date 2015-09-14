@@ -1,5 +1,5 @@
 """
-This file contains the ElementMesh, which represents the target that the 
+This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
 the interface between the internal representation of the mesh and the pyembree
 representation.
@@ -36,6 +36,7 @@ from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
 import numpy as np
 
+
 cdef extern from "mesh_construction.h":
     enum:
         MAX_NUM_TRI
@@ -48,9 +49,11 @@ cdef extern from "mesh_construction.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
 
-cdef class ElementMesh:
+
+cdef class LinearElementMesh:
     r'''
 
+    This creates a 1st-order mesh to be ray-traced with embree.
     Currently, we handle non-triangular mesh types by converting them 
     to triangular meshes. This class performs this transformation.
     Currently, this is implemented for hexahedral and tetrahedral
@@ -199,18 +202,18 @@ cdef class ElementMesh:
         free(self.indices)
 
 
-cdef class Order2ElementMesh:
+cdef class QuadraticElementMesh:
     r'''
 
-    Currently, we handle non-triangular mesh types by converting them 
-    to triangular meshes. This class performs this transformation.
+    This creates a mesh of quadratic patches corresponding to the faces
+    of 2nd-order Lagrange elements for direct rendering via embree.
     Currently, this is implemented for 20-point hexahedral meshes only.
 
     Parameters
     ----------
 
     scene : EmbreeScene
-        This is the scene to which the constructed polygons will be
+        This is the scene to which the constructed patches will be
         added.
     vertices : a np.ndarray of floats. 
         This specifies the x, y, and z coordinates of the vertices in 
@@ -218,13 +221,9 @@ cdef class Order2ElementMesh:
         (num_vertices, 3). For example, vertices[2][1] should give the 
         y-coordinate of the 3rd vertex in the mesh.
     indices : a np.ndarray of ints
-        This should either have the shape (num_elements, 4) or 
-        (num_elements, 8) for tetrahedral and hexahedral meshes, 
-        respectively. For tetrahedral meshes, each element will 
-        be represented by four triangles in the scene. For hex meshes,
-        each element will be represented by 12 triangles, 2 for each 
-        face. For hex meshes, we assume that the node ordering is as
-        defined here: 
+        This should have the shape (num_elements, 20). Each hex will be
+        represented in the scene by 6 bi-quadratic patches. We assume that 
+        the node ordering is as defined here: 
         http://homepages.cae.wisc.edu/~tautges/papers/cnmev3.pdf
             
     '''
