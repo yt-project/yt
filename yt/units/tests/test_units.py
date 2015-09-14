@@ -225,7 +225,7 @@ def test_create_fail_on_unknown_symbol():
 
     """
     try:
-        u1 = Unit(Symbol("jigawatts"))
+        Unit(Symbol("jigawatts"))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -237,7 +237,7 @@ def test_create_fail_on_bad_symbol_type():
 
     """
     try:
-        u1 = Unit([1])  # something other than Expr and str
+        Unit([1])  # something other than Expr and str
     except UnitParseError:
         yield assert_true, True
     else:
@@ -249,7 +249,7 @@ def test_create_fail_on_bad_dimensions_type():
 
     """
     try:
-        u1 = Unit("a", base_value=1, dimensions="(mass)")
+        Unit("a", base_value=1, dimensions="(mass)")
     except UnitParseError:
         yield assert_true, True
     else:
@@ -264,7 +264,7 @@ def test_create_fail_on_dimensions_content():
     a = Symbol("a")
 
     try:
-        u1 = Unit("a", base_value=1, dimensions=a)
+        Unit("a", base_value=1, dimensions=a)
     except UnitParseError:
         pass
     else:
@@ -277,7 +277,7 @@ def test_create_fail_on_base_value_type():
 
     """
     try:
-        u1 = Unit("a", base_value="a", dimensions=(mass/time))
+        Unit("a", base_value="a", dimensions=(mass/time))
     except UnitParseError:
         yield assert_true, True
     else:
