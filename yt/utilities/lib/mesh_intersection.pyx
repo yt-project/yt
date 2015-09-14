@@ -105,7 +105,7 @@ cdef void cross(const float* a,
 @cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item, 
-                          rtcg.RTCBounds* bounds_o):
+                          rtcg.RTCBounds* bounds_o) nogil:
 
     cdef Patch patch = patches[item]
     
@@ -139,7 +139,7 @@ cdef void patchBoundsFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,
-                             size_t item):
+                             size_t item) nogil:
 
     cdef Patch patch = patches[item]
 
@@ -227,12 +227,3 @@ cdef void patchIntersectFunc(Patch* patches,
         cross(Su, Sv, ray.Ng)
 
     return
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void patchOccludedFunc(Patch* patches, 
-                            rtcr.RTCRay& ray, 
-                            size_t item) nogil:
-    pass

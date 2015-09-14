@@ -31,7 +31,6 @@ from pyembree.rtcore cimport \
     Vec3f
 from mesh_intersection cimport \
     patchIntersectFunc, \
-    patchOccludedFunc, \
     patchBoundsFunc
 from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
@@ -279,8 +278,6 @@ cdef class Order2ElementMesh:
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
         rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
-        rtcgu.rtcSetOccludedFunction(scene.scene_i, self.mesh, 
-                                     <rtcgu.RTCOccludedFunc> patchOccludedFunc)
 
     cdef void _set_bounding_sphere(self, Patch* patch):
 
