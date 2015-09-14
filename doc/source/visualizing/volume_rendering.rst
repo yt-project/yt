@@ -314,7 +314,7 @@ changed at run time or at the time when a camera is initialized by specifying
 the `lens_type` argument with a string.
 
 At the present time, there are a few cameras that can be used:
-`plane-parallel`, `perspective`, `fisheye`, and `spherical`.
+`plane-parallel`, `(stereo)perspective`, `fisheye`, and `(stereo)spherical`.
 
  * Plane parallel: This lens type is the standard type used for orthographic
    projections.  All rays emerge parallel to each other, arranged along a
@@ -331,6 +331,9 @@ At the present time, there are a few cameras that can be used:
    (for more information see `the YouTube help
    <https://support.google.com/youtube/answer/6178631?hl=en>`, but it's a
    simple matter of running a script on an encoded movie file.)
+
+For more information on the usage of different lenses and their features, see the
+cookbook example :ref:`cookbook-various_lens`.
 
 Volume Rendering Method
 -----------------------
