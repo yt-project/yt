@@ -114,7 +114,7 @@ default_unit_symbol_lut = {
     "photons": (1.0, dimensions.dimensionless, 0.0, r"\rm{photons}"),
     "me": (mass_electron_grams, dimensions.mass, 0.0, r"m_e"),
     "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
-    "mol": (1.0/amu_grams, dimensions.dimensionless, r"\rm{mol}"),
+    "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
