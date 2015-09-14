@@ -615,10 +615,17 @@ class YTArray(np.ndarray):
         return np.array(self)
 
     @classmethod
-    def from_astropy(cls, arr):
+    def from_astropy(cls, arr, unit_registry=None):
         """
-        Creates a new YTArray with the same unit information from an
-        AstroPy quantity *arr*.
+        Convert an AstroPy "Quantity" to a YTArray or YTQuantity.
+
+        Parameters
+        ----------
+        arr : AstroPy Quantity
+            The Quantity to convert from.
+        unit_registry : yt UnitRegistry, optional
+            A yt unit registry to use in the conversion. If one is not
+            supplied, the default one will be used.
         """
         # Converting from AstroPy Quantity
         u = arr.unit
@@ -631,9 +638,9 @@ class YTArray(np.ndarray):
             ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
         ap_units = "*".join(ap_units)
         if isinstance(arr.value, np.ndarray):
-            return YTArray(arr.value, ap_units)
+            return YTArray(arr.value, ap_units, registry=unit_registry)
         else:
-            return YTQuantity(arr.value, ap_units)
+            return YTQuantity(arr.value, ap_units, registry=unit_registry)
 
 
     def to_astropy(self, **kwargs):
@@ -646,7 +653,7 @@ class YTArray(np.ndarray):
         return self.value*_astropy.units.Unit(str(self.units), **kwargs)
 
     @classmethod
-    def from_pint(cls, arr):
+    def from_pint(cls, arr, unit_registry=None):
         """
         Convert a Pint "Quantity" to a YTArray or YTQuantity.
 
@@ -654,6 +661,9 @@ class YTArray(np.ndarray):
         ----------
         arr : Pint Quantity
             The Quantity to convert from.
+        unit_registry : yt UnitRegistry, optional
+            A yt unit registry to use in the conversion. If one is not
+            supplied, the default one will be used.
 
         Examples
         --------
@@ -670,9 +680,9 @@ class YTArray(np.ndarray):
             p_units.append("%s**(%s)" % (bs, Rational(power)))
         p_units = "*".join(p_units)
         if isinstance(arr.magnitude, np.ndarray):
-            return YTArray(arr.magnitude, p_units)
+            return YTArray(arr.magnitude, p_units, registry=unit_registry)
         else:
-            return YTQuantity(arr.magnitude, p_units)
+            return YTQuantity(arr.magnitude, p_units, registry=unit_registry)
 
     def to_pint(self, unit_registry=None):
         """
@@ -684,7 +694,8 @@ class YTArray(np.ndarray):
             The unitful quantity to convert from.
         unit_registry : Pint UnitRegistry, optional
             The Pint UnitRegistry to use in the conversion. If one is not
-            supplied, the default one will be used.
+            supplied, the default one will be used. NOTE: This is not
+            the same as a yt UnitRegistry object.
             
         Examples
         --------
