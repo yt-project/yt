@@ -44,7 +44,7 @@ from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.units.equivalencies import equivalence_registry
 from yt.utilities.logger import ytLogger as mylog
-from .misc import convert_pint_units
+from .pint_conversions import convert_pint_units
 
 NULL_UNIT = Unit()
 

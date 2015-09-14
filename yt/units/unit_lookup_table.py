@@ -195,7 +195,6 @@ prefixable_units = (
     "statV",
     "ohm",
     "statohm",
-    "arcsec",
 )
 
 yt_base_units = {

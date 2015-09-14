@@ -1,6 +1,5 @@
 """
-Miscellaneous units-related stuff
-
+Stuff for pint conversions
 
 """
 #-----------------------------------------------------------------------------
