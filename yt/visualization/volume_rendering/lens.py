@@ -280,7 +280,7 @@ class StereoPerspectiveLens(Lens):
         # self.front_center += self.expand_factor*dl
         # self.back_center -= dl
 
-        if self.disparity == None:
+        if self.disparity is None:
             self.disparity = camera.width[0] / 2.e3
 
         if render_source.zbuffer is not None:
@@ -646,7 +646,7 @@ class StereoSphericalLens(Lens):
         self.set_viewpoint(camera)
 
     def _get_sampler_params(self, camera, render_source):
-        if self.disparity == None:
+        if self.disparity is None:
             self.disparity = camera.width[0] / 1000.
 
         single_resolution_x = np.floor(camera.resolution[0])/2
