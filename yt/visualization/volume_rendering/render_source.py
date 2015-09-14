@@ -241,8 +241,8 @@ class VolumeSource(RenderSource):
         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
-        # If the call is from VR, the image is flipped to get RHS
-        if call_from_VR: image = np.fliplr(image)
+        # If the call is from VR, the image is rotated by 180 to get correct up dir
+        if call_from_VR: image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
         return image
