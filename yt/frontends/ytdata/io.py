@@ -89,7 +89,10 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                         continue
                     self._misses += 1
                     ftype, fname = field
+                    # make input data 3D if less than 3D
                     data = f[ftype][fname].value.astype(self._field_dtype)
+                    for dim in range(len(data.shape), 3):
+                        data = np.expand_dims(data, dim)
                     if self._cache_on:
                         self._cached_fields.setdefault(g.id, {})
                         self._cached_fields[g.id][field] = data

@@ -427,19 +427,16 @@ class FixedResolutionBuffer(object):
         else:
             data.update(self.data)
 
-        data["dx"] = np.ones(self.buff_size) * \
-          (self.bounds[1] - self.bounds[0]) / self.buff_size[0]
-        data["dy"] = np.ones(self.buff_size) * \
-          (self.bounds[3] - self.bounds[2]) / self.buff_size[1]
-        x, y = np.mgrid[0.5:self.buff_size[0]:1.,
-                        0.5:self.buff_size[1]:1.]
-        data["x"] = x * data["dx"][0][0]
-        data["y"] = y * data["dy"][0][0]
-
         ftypes = dict([(field, "grid") for field in data])
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self.data_source._con_args +
                             self.data_source._tds_attrs])
+        extra_attrs["left_edge"] = self.ds.arr([self.bounds[0],
+                                                self.bounds[2]])
+        extra_attrs["right_edge"] = self.ds.arr([self.bounds[1],
+                                                 self.bounds[3]])
+        extra_attrs["ActiveDimensions"] = self.buff_size
+        extra_attrs["level"] = 0
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
         extra_attrs["dimensionality"] = self.data_source._dimensionality

@@ -236,18 +236,26 @@ class YTGridDataset(Dataset):
         self.base_domain_left_edge = self.domain_left_edge
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
-        dx = (self.domain_right_edge - self.domain_left_edge) / \
-          (self.domain_dimensions * self.refine_by**self.level)
-        self.domain_left_edge = self.left_edge
-        self.domain_right_edge = self.domain_left_edge + \
-          self.ActiveDimensions * dx
-        self.domain_dimensions = self.ActiveDimensions
-        self.periodicity = \
-          np.abs(self.domain_left_edge -
-                 self.base_domain_left_edge) < 0.5 * dx
-        self.periodicity &= \
-        np.abs(self.domain_right_edge -
-               self.base_domain_right_edge) < 0.5 * dx
+        if self.container_type in _grid_data_containers:
+            dx = (self.domain_right_edge - self.domain_left_edge) / \
+              (self.domain_dimensions * self.refine_by**self.level)
+            self.domain_left_edge = self.left_edge
+            self.domain_right_edge = self.domain_left_edge + \
+              self.ActiveDimensions * dx
+            self.domain_dimensions = self.ActiveDimensions
+            self.periodicity = \
+              np.abs(self.domain_left_edge -
+                     self.base_domain_left_edge) < 0.5 * dx
+            self.periodicity &= \
+            np.abs(self.domain_right_edge -
+                   self.base_domain_right_edge) < 0.5 * dx
+        elif self.data_type == "yt_frb":
+            self.domain_left_edge = \
+              np.concatenate([self.left_edge, [0.]])
+            self.domain_right_edge = \
+              np.concatenate([self.right_edge, [1.]])
+            self.domain_dimensions = \
+              np.concatenate([self.ActiveDimensions, [1]])
 
     def __repr__(self):
         return "ytGrid: %s" % self.parameter_filename
@@ -284,6 +292,8 @@ class YTGridDataset(Dataset):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
             data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_frb":
+                return True
             if data_type == "yt_data_container" and \
               f.attrs.get("container_type", None) in \
               _grid_data_containers:
