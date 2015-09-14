@@ -3,7 +3,6 @@ Miscellaneous units-related stuff
 
 
 """
-from __future__ import print_function
 #-----------------------------------------------------------------------------
 # Copyright (c) 2015, yt Development Team.
 #
