@@ -17,7 +17,10 @@ ART frontend tests using D9p a=0.500
 from yt.testing import \
     requires_file, \
     assert_equal, \
-    units_override_check
+    units_override_check, \
+    assert_almost_equal
+from yt.units.yt_array import \
+    YTQuantity
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     big_patch_amr, \
@@ -58,8 +61,8 @@ def test_d9p():
         ad[('specie2', 'particle_type')].size + \
         ad[('specie3', 'particle_type')].size, AnaNDM
 
-    AnaBoxSize = yt.units.yt_array.YTQuantity(7.1442196564,'Mpc')
-    AnaVolume = yt.units.yt_array.YTQuantity(364.640074656,'Mpc**3')
+    AnaBoxSize = YTQuantity(7.1442196564,'Mpc')
+    AnaVolume = YTQuantity(364.640074656,'Mpc**3')
     Volume = 1
     for i in ds.domain_width.in_units('Mpc'):
         yield assert_almost_equal, i, AnaBoxSize
@@ -69,23 +72,23 @@ def test_d9p():
     AnaNCells = 4087490
     yield assert_equal, len(ad[('index','cell_volume')]), AnaNCells
 
-    AnaTotDMMass = yt.units.yt_array.YTQuantity(1.01191786811e+14,'Msun')
+    AnaTotDMMass = YTQuantity(1.01191786811e+14,'Msun')
     yield assert_almost_equal, ad[('darkmatter','particle_mass')].sum()\
         .in_units('Msun'), AnaTotDMMass
 
-    AnaTotStarMass = yt.units.yt_array.YTQuantity(1776251.,'Msun')
+    AnaTotStarMass = YTQuantity(1776251.,'Msun')
     yield assert_almost_equal, ad[('stars','particle_mass')].sum()\
         .in_units('Msun'), AnaTotStarMass
 
-    AnaTotStarMassInitial = yt.units.yt_array.YTQuantity(2422854.,'Msun')
+    AnaTotStarMassInitial = YTQuantity(2422854.,'Msun')
     yield assert_almost_equal, ad[('stars','particle_mass_initial')].sum()\
-        .in_units('Msun'), AnaTotStarMass
+        .in_units('Msun'), AnaTotStarMassInitial
 
-    AnaTotGasMass = yt.units.yt_array.YTQuantity(1.781994e+13,'Msun')
+    AnaTotGasMass = YTQuantity(1.781994e+13,'Msun')
     yield assert_almost_equal, ad[('gas','cell_mass')].sum()\
         .in_units('Msun'), AnaTotGasMass
 
-    AnaTotTemp = yt.units.yt_array.YTQuantity(1.5019e11, 'K') #just leaves
+    AnaTotTemp = YTQuantity(1.5019e11, 'K') #just leaves
     yield assert_equal, ad[('gas','temperature')].sum(), AnaTotTemp
 
 
