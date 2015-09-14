@@ -691,8 +691,7 @@ class Dataset(object):
 
         """
         from yt.units.dimensions import length
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
@@ -705,16 +704,15 @@ class Dataset(object):
 
         self.set_code_units()
 
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
-            setattr(self, "cosmology",
+            self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
-                              unit_registry=self.unit_registry))
-            setattr(self, "critical_density",
-                    self.cosmology.critical_density(self.current_redshift))
+                              unit_registry=self.unit_registry)
+            self.critical_density = \
+                    self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
     def get_unit_from_registry(self, unit_str):
