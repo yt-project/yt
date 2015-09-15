@@ -454,7 +454,7 @@ def test_temperature_offsets():
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
     assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)
 
-def test_comoving_labels():
+def test_comoving_and_code_unit_labels():
     ds = fake_random_ds(64, nprocs=1)
 
     # create a fake comoving unit
@@ -464,3 +464,10 @@ def test_comoving_labels():
     test_unit = Unit('Mpccm', registry=ds.unit_registry)
     assert_almost_equal(test_unit.base_value, cm_per_mpc/3)
     assert_equal(test_unit.latex_repr, r'\rm{Mpc}/(1+z)')
+
+    test_unit = Unit('code_mass', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr, '\\rm{code\\ mass}')
+
+    test_unit = Unit('code_mass/code_length**3', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr,
+                 '\\frac{\\rm{code\\ mass}}{\\rm{code\\ length}^{3}}')
