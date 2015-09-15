@@ -144,13 +144,24 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
 
 class YTGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, index):
-        AMRGridPatch.__init__(self, id, filename=None, index=index)
+    def __init__(self, id, index, filename=None):
+        AMRGridPatch.__init__(self, id, filename=filename, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = 0
         self.LeftEdge = self.index.ds.domain_left_edge
         self.RightEdge = self.index.ds.domain_right_edge
+
+    def __getitem__(self, key):
+        tr = super(YTGrid, self).__getitem__(key)
+        try:
+            fields = self._determine_fields(key)
+        except YTFieldTypeNotFound:
+            return tr
+        finfo = self.ds._get_field_info(*fields[0])
+        if not finfo.particle_type:
+            return tr.reshape(self.ActiveDimensions[:self.ds.dimensionality])
+        return tr
 
     @property
     def Parent(self):
@@ -219,6 +230,9 @@ class YTGridDataset(Dataset):
 
     def __init__(self, filename):
         Dataset.__init__(self, filename, self._dataset_type)
+
+        if self.data_type == "yt_frb":
+            self.frb = self.index.grids[0]
 
     def _parse_parameter_file(self):
         self.refine_by = 2
