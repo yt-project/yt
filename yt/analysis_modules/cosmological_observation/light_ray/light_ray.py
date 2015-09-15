@@ -172,15 +172,9 @@ class LightRay(CosmologySplice):
             if not ((end_position is None) ^ (trajectory is None)):
                 raise RuntimeError("LightRay Error: must specify either end_position " + \
                                    "or trajectory, but not both.")
-            if isinstance(start_position, np.ndarray):
-                self.light_ray_solution[0]['start'] = start_position
-            else:
-                self.light_ray_solution[0]['start'] = np.array(start_position)
+            self.light_ray_solution[0]['start'] = np.asarray(start_position)
             if end_position is not None:
-                if isinstance(end_position, np.ndarray):
-                    self.light_ray_solution[0]['end'] = end_position
-                else:
-                    self.light_ray_solution[0]['end'] = np.array(end_position)
+                self.light_ray_solution[0]['end'] = np.asarray(end_position)
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
@@ -513,7 +507,7 @@ class LightRay(CosmologySplice):
         fh = h5py.File(filename, "w")
         for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
             fh.attrs[attr] = getattr(self.cosmology, attr)
-        if self.simulation_type == None:
+        if self.simulation_type is None:
             ds = load(self.parameter_filename, **self.load_kwargs)
             fh.attrs["current_redshift"] = ds.current_redshift
             fh.attrs["domain_left_edge"] = ds.domain_left_edge.in_cgs()
