@@ -89,7 +89,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                         continue
                     self._misses += 1
                     ftype, fname = field
-                    # make input data 3D if less than 3D
+                    # add extra dimensions to make data 3D
                     data = f[ftype][fname].value.astype(self._field_dtype)
                     for dim in range(len(data.shape), 3):
                         data = np.expand_dims(data, dim)
