@@ -40,13 +40,14 @@ cdef inline int gind(int i, int j, int k, int dims[3]):
 
 cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
     cdef np.float64_t kernel
+    cdef np.float64_t C = 2.5464790894703255
     if x <= 0.5:
         kernel = 1.-6.*x*x*(1.-x)
     elif x>0.5 and x<=1.0:
         kernel = 2.*(1.-x)*(1.-x)*(1.-x)
     else:
         kernel = 0.
-    return kernel
+    return kernel * C
 
 ########################################################
 # Alternative SPH kernels for use with the Grid method #
