@@ -804,8 +804,10 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                 yield FieldValuesTest(
                         ds_fn, field, dobj_name)
 
-def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
-    if not can_run_ds(ds_fn): return
+def big_patch_amr(ds_fn, fields, weight_fields, input_center="max",
+                  input_weight="density"):
+    if not can_run_ds(ds_fn):
+        return
     dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
@@ -837,17 +839,16 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
-        for field in fields:
+        for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
             else:
                 particle_type = False
             for axis in [0, 1, 2]:
-                for weight_field in [None, ('gas', 'density')]:
-                    if particle_type is False:
-                        yield PixelizedProjectionValuesTest(
-                            ds_fn, axis, field, weight_field,
-                            dobj_name)
+                if particle_type is False:
+                    yield PixelizedProjectionValuesTest(
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
             yield FieldValuesTest(ds_fn, field, dobj_name,
                                   particle_type=particle_type)
     return
