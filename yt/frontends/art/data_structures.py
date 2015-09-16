@@ -180,8 +180,6 @@ class ARTDataset(Dataset):
         self.max_level = limit_level
         self.force_max_level = force_max_level
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')
-        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -250,6 +248,8 @@ class ARTDataset(Dataset):
         """
         Get the various simulation parameters & constants.
         """
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         self.dimensionality = 3
         self.refine_by = 2
         self.periodicity = (True, True, True)
@@ -420,8 +420,6 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')
-        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -488,6 +486,8 @@ class DarkMatterARTDataset(ARTDataset):
         """
         Get the various simulation parameters & constants.
         """
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         self.dimensionality = 3
         self.refine_by = 2
         self.periodicity = (True, True, True)

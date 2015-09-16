@@ -29,9 +29,9 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.art.api import ARTDataset
 
 _fields = (
-    "density",
-    "temperature",
-    "particle_mass",
+    ("gas", "density"),
+    ("gas", "temperature"),
+    ("all", "particle_mass"),
     ("all", "particle_position_x")
 )
 
@@ -41,15 +41,16 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 def test_d9p():
     ds = data_dir_load(d9p)
     ds.index
-    assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
+    yield assert_equal, str(ds), "10MpcBox_HartGal_csf_a0.500.d"
     dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
     for field in _fields:
         for axis in [0, 1, 2]:
             for dobj_name in dso:
                 for weight_field in [None, "density"]:
-                    yield PixelizedProjectionValuesTest(
-                        d9p, axis, field, weight_field,
-                        dobj_name)
+                    if field[0] not in ds.particle_types:
+                        yield PixelizedProjectionValuesTest(
+                            d9p, axis, field, weight_field,
+                            dobj_name)
             yield FieldValuesTest(d9p, field, dobj_name)
 
     ad = ds.all_data()
@@ -57,12 +58,12 @@ def test_d9p():
     AnaNStars = 6255
     yield assert_equal, ad[('stars', 'particle_type')].size, AnaNStars
     yield assert_equal, ad[('specie4', 'particle_type')].size, AnaNStars
-    AnaNDM = 2833405
+    AnaNDM = 2833404
     yield assert_equal, ad[('darkmatter', 'particle_type')].size, AnaNDM
-    yield assert_equal, ad[('specie0', 'particle_type')].size + \
-        ad[('specie1', 'particle_type')].size + \
-        ad[('specie2', 'particle_type')].size + \
-        ad[('specie3', 'particle_type')].size, AnaNDM
+    yield assert_equal, (ad[('specie0', 'particle_type')].size +
+                         ad[('specie1', 'particle_type')].size +
+                         ad[('specie2', 'particle_type')].size +
+                         ad[('specie3', 'particle_type')].size), AnaNDM
 
     AnaBoxSize = YTQuantity(7.1442196564, 'Mpc')
     AnaVolume = YTQuantity(364.640074656, 'Mpc**3')
@@ -75,25 +76,26 @@ def test_d9p():
     AnaNCells = 4087490
     yield assert_equal, len(ad[('index', 'cell_volume')]), AnaNCells
 
-    AnaTotDMMass = YTQuantity(1.01191786811e+14, 'Msun')
+    AnaTotDMMass = YTQuantity(1.01191786808255e+14, 'Msun')
     yield (assert_almost_equal,
            ad[('darkmatter', 'particle_mass')].sum().in_units('Msun'),
            AnaTotDMMass)
 
-    AnaTotStarMass = YTQuantity(1776251., 'Msun')
+    AnaTotStarMass = YTQuantity(1776701.3990607238, 'Msun')
     yield (assert_almost_equal,
-           ad[('stars', 'particle_mass')].sum().in_units('Msun'), AnaTotStarMass)
+           ad[('stars', 'particle_mass')].sum().in_units('Msun'),
+           AnaTotStarMass)
 
-    AnaTotStarMassInitial = YTQuantity(2422854., 'Msun')
+    AnaTotStarMassInitial = YTQuantity(2423468.2801332865, 'Msun')
     yield (assert_almost_equal,
            ad[('stars', 'particle_mass_initial')].sum().in_units('Msun'),
            AnaTotStarMassInitial)
 
-    AnaTotGasMass = YTQuantity(1.781994e+13, 'Msun')
+    AnaTotGasMass = YTQuantity(1.7826982029216785e+13, 'Msun')
     yield (assert_almost_equal, ad[('gas', 'cell_mass')].sum().in_units('Msun'),
            AnaTotGasMass)
 
-    AnaTotTemp = YTQuantity(1.5019e11, 'K')  # just leaves
+    AnaTotTemp = YTQuantity(150219844793.39072, 'K')  # just leaves
     yield assert_equal, ad[('gas', 'temperature')].sum(), AnaTotTemp
 
 
