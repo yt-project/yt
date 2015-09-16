@@ -696,7 +696,7 @@ class ARTDomainSubset(OctreeSubset):
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.
-        for level in range(1, self.ds.max_level + 1):
+        for level in range(1, self.ds.index.max_level + 1):
             no = self.domain.level_count[level]
             noct_range = [0, no]
             source = _read_child_level(
