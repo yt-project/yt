@@ -75,28 +75,29 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         This method will automatically detect the format of the file.
         """
         filename = data_file.filename+'.'+field
+        tot_parts = np.sum(data_file.total_particles.values())
         # We need to do some fairly ugly detection to see what format the auxiliary
         # files are in.  They can be either ascii or binary, and the binary files can be
         # either floats, ints, or doubles.  We're going to use a try-catch cascade to
         # determine the format.
         filesize = os.stat(filename).st_size
         if np.fromfile(filename, dtype=np.dtype(data_file.ds.endian+'i4'),
-                count=1) != np.sum(data_file.total_particles.values()):
+                count=1) != tot_parts:
             with open(filename) as f:
-                if int(f.readline()) != np.sum(data_file.total_particles.values()):
+                if int(f.readline()) != tot_parts:
                     raise RuntimeError
             auxdata = np.genfromtxt(filename, skip_header=1)
-        elif (filesize-4)/8 == np.sum(data_file.total_particles.values()):
+        elif (filesize-4)/8 == tot_parts:
             auxin = np.fromfile(filename,
                     dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
                     data_file.ds.endian+'d',
-                    np.sum(data_file.total_particles.values()))]))
+                    tot_parts)]))
             auxdata = auxin['aux'].flatten()
-        elif (filesize-4)/4 == np.sum(data_file.total_particles.values()):
+        elif (filesize-4)/4 == tot_parts:
             auxin = np.fromfile(filename,
                     dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
                     data_file.ds.endian+'f',
-                    np.sum(data_file.total_particles.values()))]))
+                    tot_parts)]))
             auxdata = auxin['aux'].flatten()
         else:
             raise RuntimeError
