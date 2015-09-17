@@ -58,6 +58,10 @@ def test_d9p():
     AnaNStars = 6255
     yield assert_equal, ad[('stars', 'particle_type')].size, AnaNStars
     yield assert_equal, ad[('specie4', 'particle_type')].size, AnaNStars
+
+    # The *real* asnwer is 2833405, but yt misses one particle since it lives
+    # on a domain boundary. See issue 814. When that is fixed, this test
+    # will need to be updated
     AnaNDM = 2833404
     yield assert_equal, ad[('darkmatter', 'particle_type')].size, AnaNDM
     yield assert_equal, (ad[('specie0', 'particle_type')].size +
