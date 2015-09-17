@@ -17,6 +17,7 @@ from __future__ import print_function
 
 import glob
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 import os
 
 from yt.utilities.io_handler import \
@@ -32,7 +33,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
     _dataset_type = "tipsy"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
-    _pdtypes = None # dtypes, to be filled in later
+    _pdtypes = None  # dtypes, to be filled in later
+    _aux_pdtypes = None  # auxiliary files' dtypes
 
     _ptypes = ( "Gas",
                 "DarkMatter",
@@ -69,26 +71,6 @@ class IOHandlerTipsyBinary(BaseIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_aux_fields(self, field, mask, data_file):
-        """
-        Read in auxiliary files from gasoline/pkdgrav.
-        This method will automatically detect the format of the file.
-        """
-        filename = data_file.filename + '.' + field
-        if isinstance(self._aux_pdtypes[field], np.dtype):
-            auxin = np.fromfile(filename, dtype=self._aux_pdtypes[field])
-            auxdata = auxin['aux'].flatten()
-        else:
-            auxdata = np.genfromtxt(filename, skip_header=1)
-
-        # Use the mask to slice out the appropriate particle type data
-        if mask.size == data_file.total_particles['Gas']:
-            return auxdata[:data_file.total_particles['Gas']]
-        elif mask.size == data_file.total_particles['DarkMatter']:
-            return auxdata[data_file.total_particles['Gas']:-data_file.total_particles['DarkMatter']]
-        else:
-            return auxdata[-data_file.total_particles['Stars']:]
-
     def _fill_fields(self, fields, vals, mask, data_file):
         if mask is None:
             size = 0
@@ -97,9 +79,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         rv = {}
         for field in fields:
             mylog.debug("Allocating %s values for %s", size, field)
-            if field in self._aux_fields: #Read each of the auxiliary fields
-                rv[field] = self._read_aux_fields(field, mask, data_file)
-            elif field in self._vector_fields:
+            if field in self._vector_fields:
                 rv[field] = np.empty((size, 3), dtype="float64")
                 if size == 0: continue
                 rv[field][:,0] = vals[field]['x'][mask]
@@ -138,6 +118,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     del p
                     yield ptype, d
 
+
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         data_files = set([])
@@ -148,13 +129,43 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
+
+            # TODO refactor this loop
+            # we need to open all aux files for chunking to work
+            aux_fh = {}
+            aux_fields_offsets = {}
+            for afield in self._aux_fields:
+                aux_fh[afield] = open(data_file.filename + '.' + afield, 'rb')
+                pos = 4     # TODO fixme
+                aux_fields_offsets[afield] = {}
+                for ptype in self._ptypes:
+                    aux_fields_offsets[afield][ptype] = pos
+                    if data_file.total_particles[ptype] == 0:
+                        continue
+                    size = np.dtype(self._aux_pdtypes[afield]).itemsize
+                    pos += data_file.total_particles[ptype] * size
+
             for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
                 f.seek(poff[ptype], os.SEEK_SET)
+                afields = list(set(field_list).intersection(self._aux_fields))
+                for afield in afields:
+                    aux_fh[afield].seek(aux_fields_offsets[afield][ptype], os.SEEK_SET)
+
                 total = 0
                 while total < tp[ptype]:
-                    p = np.fromfile(f, self._pdtypes[ptype],
-                        count=min(self._chunksize, tp[ptype] - total))
+                    count = min(self._chunksize, tp[ptype] - total)
+                    p = np.fromfile(f, self._pdtypes[ptype], count=count)
                     total += p.size
+                    auxdata = []
+                    for afield in afields:
+                        if isinstance(self._aux_pdtypes[afield], type):
+                            auxdata.append(
+                                np.fromfile(aux_fh[afield], self._aux_pdtypes[afield],
+                                            count=count)
+                            )
+                        else:
+                            auxdata.append(np.genfromtxt(fh, skip_header=1, count=count))
+                    p = append_fields(p, afields, auxdata)
                     mask = selector.select_points(
                         p["Coordinates"]['x'].astype("float64"),
                         p["Coordinates"]['y'].astype("float64"),
@@ -164,6 +175,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     for field in field_list:
                         yield (ptype, field), tf.pop(field)
             f.close()
+            for fh in list(aux_fh.values()):
+                fh.close()
 
     def _update_domain(self, data_file):
         '''
@@ -298,18 +311,16 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             # the binary files can be either floats, ints, or doubles.  We're
             # going to use a try-catch cascade to determine the format.
             filesize = os.stat(filename).st_size
-            if np.fromfile(filename, dtype=np.dtype(endian + 'i4'),
+            if np.fromfile(filename, np.dtype(endian + 'i4'),
                            count=1) != tot_parts:
                 with open(filename) as f:
                     if int(f.readline()) != tot_parts:
                         raise RuntimeError
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
-                self._aux_pdtypes[afield] = np.dtype(
-                    [('l', endian + 'i4'), ('aux', endian + 'd', tot_parts)])
+                self._aux_pdtypes[afield] = np.float64
             elif (filesize - 4) / 4 == tot_parts:
-                self._aux_pdtypes[afield] = np.dtype(
-                    [('l', endian + 'i4'), ('aux', endian + 'f', tot_parts)])
+                self._aux_pdtypes[afield] = np.float32
             else:
                 raise RuntimeError
 
