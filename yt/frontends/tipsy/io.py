@@ -74,33 +74,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         Read in auxiliary files from gasoline/pkdgrav.
         This method will automatically detect the format of the file.
         """
-        filename = data_file.filename+'.'+field
-        tot_parts = np.sum(data_file.total_particles.values())
-        # We need to do some fairly ugly detection to see what format the auxiliary
-        # files are in.  They can be either ascii or binary, and the binary files can be
-        # either floats, ints, or doubles.  We're going to use a try-catch cascade to
-        # determine the format.
-        filesize = os.stat(filename).st_size
-        if np.fromfile(filename, dtype=np.dtype(data_file.ds.endian+'i4'),
-                count=1) != tot_parts:
-            with open(filename) as f:
-                if int(f.readline()) != tot_parts:
-                    raise RuntimeError
-            auxdata = np.genfromtxt(filename, skip_header=1)
-        elif (filesize-4)/8 == tot_parts:
-            auxin = np.fromfile(filename,
-                    dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
-                    data_file.ds.endian+'d',
-                    tot_parts)]))
-            auxdata = auxin['aux'].flatten()
-        elif (filesize-4)/4 == tot_parts:
-            auxin = np.fromfile(filename,
-                    dtype=np.dtype([('l',data_file.ds.endian+'i4'), ('aux',
-                    data_file.ds.endian+'f',
-                    tot_parts)]))
+        filename = data_file.filename + '.' + field
+        if isinstance(self._aux_pdtypes[field], np.dtype):
+            auxin = np.fromfile(filename, dtype=self._aux_pdtypes[field])
             auxdata = auxin['aux'].flatten()
         else:
-            raise RuntimeError
+            auxdata = np.genfromtxt(filename, skip_header=1)
+
         # Use the mask to slice out the appropriate particle type data
         if mask.size == data_file.total_particles['Gas']:
             return auxdata[:data_file.total_particles['Gas']]
@@ -295,26 +275,49 @@ class IOHandlerTipsyBinary(BaseIOHandler):
     def _create_dtypes(self, data_file):
         # We can just look at the particle counts.
         self._header_offset = data_file.ds._header_offset
-        self._pdtypes = {}
-        field_list = []
-        tp = data_file.total_particles
-        aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
-        self._aux_fields = [f[1+len(data_file.filename):] for f in aux_filenames]
         self._pdtypes = self._compute_dtypes(data_file.ds._field_dtypes,
                                              data_file.ds.endian)
+        self._field_list = []
         for ptype, field in self._fields:
-            if tp[ptype] == 0:
+            if data_file.total_particles[ptype] == 0:
                 # We do not want out _pdtypes to have empty particles.
                 self._pdtypes.pop(ptype, None)
                 continue
-            field_list.append((ptype, field))
-        if any(["Gas"==f[0] for f in field_list]): #Add the auxiliary fields to each ptype we have
-            field_list += [("Gas",a) for a in self._aux_fields]
-        if any(["DarkMatter"==f[0] for f in field_list]):
-            field_list += [("DarkMatter",a) for a in self._aux_fields]
-        if any(["Stars"==f[0] for f in field_list]):
-            field_list += [("Stars",a) for a in self._aux_fields]
-        self._field_list = field_list
+            self._field_list.append((ptype, field))
+
+        # Find out which auxiliaries we have and what is their format
+        tot_parts = np.sum(data_file.total_particles.values())
+        endian = data_file.ds.endian
+        self._aux_pdtypes = {}
+        self._aux_fields = [f.rsplit('.')[-1]
+                            for f in glob.glob(data_file.filename + '.*')]
+        for afield in self._aux_fields:
+            filename = data_file.filename + '.' + afield
+            # We need to do some fairly ugly detection to see what format the
+            # auxiliary files are in.  They can be either ascii or binary, and
+            # the binary files can be either floats, ints, or doubles.  We're
+            # going to use a try-catch cascade to determine the format.
+            filesize = os.stat(filename).st_size
+            if np.fromfile(filename, dtype=np.dtype(endian + 'i4'),
+                           count=1) != tot_parts:
+                with open(filename) as f:
+                    if int(f.readline()) != tot_parts:
+                        raise RuntimeError
+                self._aux_pdtypes[afield] = "ascii"
+            elif (filesize - 4) / 8 == tot_parts:
+                self._aux_pdtypes[afield] = np.dtype(
+                    [('l', endian + 'i4'), ('aux', endian + 'd', tot_parts)])
+            elif (filesize - 4) / 4 == tot_parts:
+                self._aux_pdtypes[afield] = np.dtype(
+                    [('l', endian + 'i4'), ('aux', endian + 'f', tot_parts)])
+            else:
+                raise RuntimeError
+
+        # Add the auxiliary fields to each ptype we have
+        for ptype in ["Gas", "DarkMatter", "Stars"]:
+            if any([ptype == field[0] for field in self._field_list]):
+                self._field_list += \
+                    [(ptype, afield) for afield in self._aux_fields]
         return self._field_list
 
     def _identify_fields(self, data_file):
