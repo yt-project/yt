@@ -19,15 +19,13 @@ import glob
 import numpy as np
 import os
 
-from yt.geometry.oct_container import \
-    _ORDER_MAX
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.logger import ytLogger as \
     mylog
-    
+
 CHUNKSIZE = 10000000
 
 class IOHandlerTipsyBinary(BaseIOHandler):
@@ -77,13 +75,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         This method will automatically detect the format of the file.
         """
         filename = data_file.filename+'.'+field
-        dtype = None
         # We need to do some fairly ugly detection to see what format the auxiliary
         # files are in.  They can be either ascii or binary, and the binary files can be
         # either floats, ints, or doubles.  We're going to use a try-catch cascade to
         # determine the format.
         filesize = os.stat(filename).st_size
-        if np.fromfile(filename, dtype=np.dtype(data_file.ds.endian+'i4'), 
+        if np.fromfile(filename, dtype=np.dtype(data_file.ds.endian+'i4'),
                 count=1) != np.sum(data_file.total_particles.values()):
             with open(filename) as f:
                 if int(f.readline()) != np.sum(data_file.total_particles.values()):
@@ -209,12 +206,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0: continue
-                start, stop = ind, ind + count
+                stop = ind + count
                 while ind < stop:
                     c = min(CHUNKSIZE, stop - ind)
                     pp = np.fromfile(f, dtype = self._pdtypes[ptype],
                                      count = c)
-                    eps = np.finfo(pp["Coordinates"]["x"].dtype).eps
                     np.minimum(mi, [pp["Coordinates"]["x"].min(),
                                     pp["Coordinates"]["y"].min(),
                                     pp["Coordinates"]["z"].min()], mi)
@@ -238,7 +234,6 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                           dtype="uint64")
         ind = 0
         DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
-        dx = (DRE - DLE) / (2**_ORDER_MAX)
         self.domain_left_edge = DLE.in_units("code_length").ndarray_view()
         self.domain_right_edge = DRE.in_units("code_length").ndarray_view()
         with open(data_file.filename, "rb") as f:
@@ -247,7 +242,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0: continue
-                start, stop = ind, ind + count
+                stop = ind + count
                 while ind < stop:
                     c = min(CHUNKSIZE, stop - ind)
                     pp = np.fromfile(f, dtype = self._pdtypes[ptype],
@@ -262,7 +257,6 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         mas[axi] = ma
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
-                        eps = np.finfo(pp["Coordinates"][ax].dtype).eps
                         pos[:,i] = pp["Coordinates"][ax]
                     regions.add_data_file(pos, data_file.file_id,
                                           data_file.ds.filter_bbox)
@@ -301,7 +295,6 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         # We can just look at the particle counts.
         self._header_offset = data_file.ds._header_offset
         self._pdtypes = {}
-        pds = {}
         field_list = []
         tp = data_file.total_particles
         aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
