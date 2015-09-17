@@ -127,23 +127,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             poff = data_file.field_offsets
+            aux_fields_offsets = \
+                self._calculate_particle_offsets_aux(data_file)
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
 
-            # TODO refactor this loop
             # we need to open all aux files for chunking to work
             aux_fh = {}
-            aux_fields_offsets = {}
             for afield in self._aux_fields:
                 aux_fh[afield] = open(data_file.filename + '.' + afield, 'rb')
-                pos = 4     # TODO fixme
-                aux_fields_offsets[afield] = {}
-                for ptype in self._ptypes:
-                    aux_fields_offsets[afield][ptype] = pos
-                    if data_file.total_particles[ptype] == 0:
-                        continue
-                    size = np.dtype(self._aux_pdtypes[afield]).itemsize
-                    pos += data_file.total_particles[ptype] * size
 
             for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
                 f.seek(poff[ptype], os.SEEK_SET)
@@ -164,7 +156,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                             count=count)
                             )
                         else:
-                            auxdata.append(np.genfromtxt(fh, skip_header=1, count=count))
+                            auxdata.append(
+                                np.genfromtxt(aux_fh[afield], skip_header=1,
+                                              count=count)
+                            )
                     p = append_fields(p, afields, auxdata)
                     mask = selector.select_points(
                         p["Coordinates"]['x'].astype("float64"),
@@ -174,6 +169,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     tf = self._fill_fields(field_list, p, mask, data_file)
                     for field in field_list:
                         yield (ptype, field), tf.pop(field)
+
+            # close all file handles
             f.close()
             for fh in list(aux_fh.values()):
                 fh.close()
@@ -343,3 +340,20 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             size = self._pdtypes[ptype].itemsize
             pos += data_file.total_particles[ptype] * size
         return field_offsets
+
+    def _calculate_particle_offsets_aux(self, data_file):
+        aux_fields_offsets = {}
+        for afield in self._aux_fields:
+            if isinstance(self._aux_pdtypes[afield], type):
+                pos = 4  # i4
+                aux_fields_offsets[afield] = {}
+                for ptype in self._ptypes:
+                    aux_fields_offsets[afield][ptype] = pos
+                    if data_file.total_particles[ptype] == 0:
+                        continue
+                    size = np.dtype(self._aux_pdtypes[afield]).itemsize
+                    pos += data_file.total_particles[ptype] * size
+            else:
+                # handle gentext case
+                raise RuntimeError
+        return aux_fields_offsets
