@@ -84,7 +84,6 @@ class TipsyDataset(ParticleDataset):
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
-                tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
                 self.parameters['nstar']))
