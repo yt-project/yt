@@ -17,7 +17,6 @@ from __future__ import print_function
 
 import h5py
 import numpy as np
-import types
 
 from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
