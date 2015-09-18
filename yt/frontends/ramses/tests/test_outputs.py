@@ -14,7 +14,10 @@ RAMSES frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
