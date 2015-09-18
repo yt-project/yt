@@ -20,7 +20,6 @@ import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +29,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 

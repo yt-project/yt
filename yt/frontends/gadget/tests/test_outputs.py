@@ -14,9 +14,9 @@ Gadget frontend tests using the IsothermalCollapse dataset
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    requires_file
 from yt.utilities.answer_testing.framework import \
-    requires_ds, \
     data_dir_load
 from yt.frontends.gadget.api import GadgetHDF5Dataset
 
