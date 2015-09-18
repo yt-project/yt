@@ -20,9 +20,10 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
-    PixelizedProjectionValuesTest, \
+    sph_answer, \
+    create_obj, \
     FieldValuesTest, \
-    create_obj
+    PixelizedProjectionValuesTest
 from yt.frontends.tipsy.api import TipsyDataset
 
 _fields = (("deposit", "all_density"),
@@ -62,9 +63,9 @@ def test_pkdgrav():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
 
-gasoline = "agora_1e11.00400/agora_1e11.00400"
-@requires_ds(gasoline, big_data = True, file_check = True)
-def test_gasoline():
+gasoline_dmonly = "agora_1e11.00400/agora_1e11.00400"
+@requires_ds(gasoline_dmonly, big_data = True, file_check = True)
+def test_gasoline_dmonly():
     cosmology_parameters = dict(current_redshift = 0.0,
                                 omega_lambda = 0.728,
                                 omega_matter = 0.272,
@@ -72,7 +73,7 @@ def test_gasoline():
     kwargs = dict(cosmology_parameters = cosmology_parameters,
                   unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                   n_ref = 64)
-    ds = data_dir_load(gasoline, TipsyDataset, (), kwargs)
+    ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     yield assert_equal, str(ds), "agora_1e11.00400"
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
     dd = ds.all_data()
@@ -93,7 +94,22 @@ def test_gasoline():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
 
+tg_fields = (
+    ('gas', 'density'),
+    ('gas', 'temperature'),
+    ('gas', 'velocity_magnitude'),
+    ('gas', 'Fe_fraction'),
+    ('Stars', 'Metals'),
+)
 
+tipsy_gal = 'TipsyGalaxy/galaxy.00300'
+@requires_ds(tipsy_gal)
+def test_tipsy_galaxy():
+    for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
+        yield test
+        
+@requires_file(gasoline_dmonly)
 @requires_file(pkdgrav)
 def test_TipsyDataset():
     assert isinstance(data_dir_load(pkdgrav), TipsyDataset)
+    assert isinstance(data_dir_load(gasoline_dmonly), TipsyDataset)
