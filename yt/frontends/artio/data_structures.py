@@ -13,26 +13,27 @@ ARTIO-specific data structures
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
 import numpy as np
+import os
 import stat
 import weakref
-from yt.extern.six.moves import cStringIO
 
-from .definitions import ARTIOconstants
-from ._artio_caller import \
-    artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
-    ARTIORootMeshContainer, ARTIOSFCRangeHandler
-from . import _artio_caller
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
-from .fields import \
+from collections import defaultdict
+
+from yt.frontends.artio._artio_caller import \
+    artio_is_valid, \
+    artio_fileset, \
+    ARTIOSFCRangeHandler
+from yt.frontends.artio import _artio_caller
+from yt.frontends.artio.fields import \
     ARTIOFieldInfo
-from yt.fields.particle_fields import \
-    standard_particle_fields
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog
 from yt.geometry.geometry_handler import \
-    Index, YTDataChunk
+    Index, \
+    YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
     Dataset
@@ -40,9 +41,8 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.data_containers import \
     YTFieldData
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
+from yt.utilities.exceptions import \
+    YTParticleDepositionNotImplemented
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
@@ -178,7 +178,7 @@ class ARTIOIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return  1.0/(2**self.max_level)
+        return 1.0/(2**self.max_level)
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -345,7 +345,6 @@ class ARTIODataset(Dataset):
         # hard-coded -- not provided by headers
         self.dimensionality = 3
         self.refine_by = 2
-        print(self.parameters)
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1.  # default unit is 1...
 
