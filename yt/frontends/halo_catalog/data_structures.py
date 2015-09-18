@@ -17,25 +17,17 @@ Data structures for HaloCatalog frontend.
 import h5py
 import numpy as np
 import stat
-import weakref
-import struct
 import glob
-import time
 import os
 
 from .fields import \
     HaloCatalogFieldInfo
 
-from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
-import yt.utilities.fortran_utils as fpu
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
     
 class HaloCatalogHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
