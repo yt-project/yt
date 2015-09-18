@@ -29,6 +29,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
+from yt.utilities.physical_constants import speed_of_light_cgs
 
 class LightRay(CosmologySplice):
     """
@@ -365,7 +366,7 @@ class LightRay(CosmologySplice):
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         if get_los_velocity:
             all_fields.extend(['velocity_x', 'velocity_y',
-                               'velocity_z', 'velocity_los'])
+                               'velocity_z', 'velocity_los', 'redshift_eff'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
@@ -456,6 +457,20 @@ class LightRay(CosmologySplice):
                                                 my_segment['end']).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
+
+            # When velocity_los is present, add redshift_eff field combining 
+            # redshift (cosmological) and redshift (velocity_los):
+            # 1 + redshift_vel = sqrt((1+v/c) / (1-v/c))
+            # But velocity is in proper frame, so it needs to be multiplied
+            # by scale factor (1+z) to be put in comoving frame
+            if get_los_velocity:
+
+                velocity_los_cm = (1 + sub_data['redshift']) * \
+                                  sub_data['velocity_los']
+                redshift_eff = ((1 + velocity_los_cm / speed_of_light_cgs) /
+                                (1 - velocity_los_cm / speed_of_light_cgs))**(0.5) - 1
+                sub_data['redshift_eff'] = redshift_eff + sub_data['redshift']
+                del velocity_los_cm, redshift_eff
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
