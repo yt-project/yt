@@ -211,6 +211,20 @@ class DerivedField(object):
         data_label += r"$"
         return data_label
 
+    def __repr__(self):
+        s = "Derived Field "
+        if isinstance(self.name, tuple):
+            s += "(%s, %s): " % self.name
+        else:
+            s += "%s: " % (self.name)
+        s += "(units: %s" % self.units
+        if self.display_name is not None:
+            s += ", display_name: '%s'" % (self.display_name)
+        if self.particle_type:
+            s += ", particle field"
+        s += ")"
+        return s
+
 class FieldValidator(object):
     pass
 
