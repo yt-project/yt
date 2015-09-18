@@ -67,7 +67,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             rv[field] = np.empty(fsize, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
+                    size, [fn for ft, fn in fields], ngrids)
         ind = 0
         for chunk in chunks:
             fid = None

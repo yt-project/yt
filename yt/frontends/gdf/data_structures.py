@@ -14,7 +14,6 @@ Data structures for GDF.
 #-----------------------------------------------------------------------------
 
 import h5py
-import types
 import numpy as np
 import weakref
 import os
