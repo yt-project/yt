@@ -32,7 +32,7 @@ CHUNKSIZE = 10000000
 def _get_h5_handle(fn):
     try:
         f = h5py.File(fn, "r")
-    except IOError as e:
+    except IOError:
         print("ERROR OPENING %s" % (fn))
         if os.path.exists(fn):
             print("FILENAME EXISTS")

@@ -16,7 +16,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import h5py
-import types
 
 import yt.units
 from yt.frontends.gadget.data_structures import \
