@@ -48,12 +48,12 @@ def check_color_conservation(ds):
     dd = ds.all_data()
     dens_enzo = dd["Density"].copy()
     for f in sorted(ds.field_list):
-        if not (f[1].endswith("_Density") or 
-                f[1].startswith("Dark_Matter_") or
-                f[1].startswith("Electron_") or
-                f[1].startswith("SFR_") or 
-                f[1].startswith("Forming_Stellar_") or
-                f[1].startswith("Star_Particle_")):
+        ff = f[1]
+        if not ff.endswith("_Density"):
+            continue
+        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
+                         "Dark_Matter", "Star_Particle_"]
+        if any([ff.startswith(ss) for ss in start_strings]):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd["Density"])
