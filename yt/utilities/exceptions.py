@@ -510,3 +510,12 @@ class YTPixelizeError(YTException):
 
     def __str__(self):
         return self.message
+
+class YTDimensionalityError(YTException):
+    def __init__(self, wrong, right):
+        self.wrong = wrong
+        self.right = right
+
+    def __str__(self):
+        return 'Dimensionality specified was %s but we need %s' % (
+            self.wrong, self.right)
