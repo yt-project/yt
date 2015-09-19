@@ -16,8 +16,10 @@ Profile classes, to deal with generating and obtaining profiles
 import h5py
 import numpy as np
 
+from yt.frontends.ytdata.utilities import \
+    to_yt_dataset
+from yt.funcs import get_output_filename
 from yt.funcs import *
-
 from yt.units.yt_array import uconcatenate, array_like_field
 from yt.units.unit_object import Unit
 from yt.data_objects.data_containers import YTFieldData
@@ -948,6 +950,64 @@ class ProfileND(ParallelAnalysisInterface):
             return np.logspace(np.log10(mi), np.log10(ma), n+1)
         else:
             return np.linspace(mi, ma, n+1)
+
+    def to_dataset(self, filename=None):
+        r"""Export a data object to a reloadable yt dataset.
+
+        This function will take a profile and output a dataset
+        containing either the fields presently existing or fields
+        given in a list.  The resulting dataset can be reloaded as
+        a yt dataset.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset plus
+            "profile".
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> dd = ds.all_data()
+        >>> fn1 = dd.to_dataset(["density", "temperature"])
+        >>> ds1 = yt.load(fn1)
+        >>> dd["velocity_magnitude"]
+        >>> fn2 = dd.to_dataset()
+        >>> ds2 = yt.load(fn2)
+        """
+
+        keyword = "%s_profile" % str(self.ds)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        args = ("field", "log")
+        extra_attrs = {"data_type": "yt_profile"}
+        data = {}
+        data.update(self.field_data)
+        data["weight"] = self.weight
+        data["used"] = self.used
+
+        dimensionality = 0
+        for ax in "xyz":
+            if hasattr(self, ax):
+                dimensionality += 1
+                data[ax] = getattr(self, ax)
+                data["%s_bins" % ax] = getattr(self, "%s_bins" % ax)
+                for arg in args:
+                    key = "%s_%s" % (ax, arg)
+                    extra_attrs[key] = getattr(self, key)
+
+        extra_attrs["dimensionality"] = dimensionality
+        ftypes = dict([(field, "data") for field in data])
+        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
+                      extra_attrs=extra_attrs)
+
+        return filename
 
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
