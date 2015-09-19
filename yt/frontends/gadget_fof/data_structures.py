@@ -21,7 +21,7 @@ import stat
 import glob
 import os
 
-from yt.frontends.gadget_fif.fields import \
+from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo
 
 from yt.utilities.cosmology import \

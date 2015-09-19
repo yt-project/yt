@@ -22,7 +22,7 @@ import string
 import time
 import re
 
-from collection import defaultdict
+from collections import defaultdict
 from yt.extern.six.moves import zip as izip
 
 from yt.funcs import \
