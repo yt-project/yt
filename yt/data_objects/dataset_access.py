@@ -57,7 +57,8 @@ class DatasetAccess(object):
             
     def _spec_to_value(self, input_tuple):
         if not isinstance(input_tuple, tuple):
-            return input_tuple
+            # We now assume that it's in code_length
+            return self.ds.quan(input_tuple, 'code_length')
         v, u = input_tuple
         value = self.ds.quan(v, u)
         return value

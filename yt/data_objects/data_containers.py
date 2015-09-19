@@ -488,7 +488,7 @@ class YTDataContainer(object):
     # Numpy-like Operations
     def mean(self, field, axis=None, weight='ones'):
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=None)
+            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
         elif axis is None:
             if weight is None:
                 r = self.quantities.total_quantity(field)

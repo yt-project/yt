@@ -16,6 +16,11 @@ def test_region_from_d():
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
     yield assert_equal, reg1["density"], reg2["density"]
 
+    # Now, string units in some -- 1.0 == cm
+    reg1 = ds.d[(0.1, 'cm'):(0.5, 'cm'), :, 0.25:0.35]
+    reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
+    yield assert_equal, reg1["density"], reg2["density"]
+
     # And, lots of : usage!
     reg1 = ds.d[:, :, :]
     reg2 = ds.all_data()
