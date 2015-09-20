@@ -910,7 +910,7 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -924,6 +924,10 @@ class Dataset(object):
            appropriately infer the correct particle type.
         method : one of 'count', 'sum', or 'cic'
            The particle deposition method to use.
+        kernel_name : string, default 'cubic'
+           This is the name of the smoothing kernel to use. Current supported
+           kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+           `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -947,15 +951,17 @@ class Dataset(object):
             if method != 'count':
                 pden = data[ptype, "particle_mass"]
                 top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method)
-                bottom = data.deposit(pos, [pden], method=method)
+                                   method=method, kernel_name=kernel_name)
+                bottom = data.deposit(pos, [pden], method=method,
+                                      kernel_name=kernel_name)
                 top[bottom == 0] = 0.0
                 bnz = bottom.nonzero()
                 top[bnz] /= bottom[bnz]
                 d = data.ds.arr(top, input_units=units)
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method))
+                                             method=method,
+                                             kernel_name=kernel_name))
             return d
         name_map = {"cic": "cic", "sum": "nn", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"
