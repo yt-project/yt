@@ -485,6 +485,22 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
 
+    # Numpy-like Operations
+    def mean(self, field, axis=None, weight='ones'):
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, weight_field=None)
+        elif axis is None:
+            if weight is None:
+                r = self.quantities.total_quantity(field)
+            else:
+                r = self.quantities.weighted_average_quantity(field, weight)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def sum(self, field, axis=None):
+        return self.mean(field, axis=axis, weight=None)
+
     @property
     def _hash(self):
         s = "%s" % self
