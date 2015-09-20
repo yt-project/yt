@@ -328,7 +328,7 @@ class MeshSource(RenderSource):
                                                                indices,
                                                                field_data)
         else:
-            # if this is another type of higher-order element, we demote 
+            # if this is another type of higher-order element, we demote
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
@@ -340,13 +340,13 @@ class MeshSource(RenderSource):
                 # tetrahedral
                 mylog.warning("High order elements not yet supported, " +
                               "dropping to 1st order.")
-                field_data = field_data[:,0:4]
+                field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
-            
-                self.mesh = mesh_construction.LinearElementMesh(self.scene,
-                                                                vertices,
-                                                                indices,
-                                                                field_data)
+
+            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+                                                            vertices,
+                                                            indices,
+                                                            field_data)
 
     def render(self, camera, zbuffer=None, 
                cmap='algae', color_bounds=None):
