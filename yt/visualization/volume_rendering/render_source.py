@@ -348,7 +348,7 @@ class MeshSource(RenderSource):
                                                             indices,
                                                             field_data)
 
-    def render(self, camera, zbuffer=None, 
+    def render(self, camera, zbuffer=None,
                cmap='algae', color_bounds=None):
 
         self.sampler = new_mesh_sampler(camera, self)
@@ -358,8 +358,8 @@ class MeshSource(RenderSource):
         mylog.debug("Done casting rays")
 
         self.data = self.sampler.aimage
-        self.current_image = self.apply_colormap(cmap=cmap, color_bounds=color_bounds)
-
+        self.current_image = self.apply_colormap(cmap=cmap,
+                                                 color_bounds=color_bounds)
         return self.current_image
 
     def apply_colormap(self, cmap='algae', color_bounds=None):
@@ -368,7 +368,7 @@ class MeshSource(RenderSource):
                                             cmap_name=cmap)
         '''
 
-        Applies a colormap to the current image without re-rendering. 
+        Applies a colormap to the current image without re-rendering.
 
         Parameters
         ----------

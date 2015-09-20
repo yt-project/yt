@@ -174,6 +174,7 @@ cdef class LinearElementMesh:
         datac.vertices = self.vertices
         datac.indices = self.indices
         datac.field_data = self.field_data
+        datac.element_indices = self.element_indices
         datac.tpe = self.tpe
         datac.vpe = self.vpe
         self.datac = datac
