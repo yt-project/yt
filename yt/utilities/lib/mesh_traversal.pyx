@@ -45,6 +45,7 @@ cdef class YTEmbreeScene:
 cdef class MeshSampler(ImageSampler):
 
     cdef public object image_used
+    cdef public object mesh_lines
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -78,6 +79,7 @@ cdef class MeshSampler(ImageSampler):
         ny = im.nv[1]
         size = nx * ny
         used = np.empty(size, dtype="int64")
+        mesh = np.empty(size, dtype="int64")
         data = np.empty(size, dtype="float64")
         cdef rtcr.RTCRay ray
         if im.vd_strides[0] == -1:
@@ -105,8 +107,10 @@ cdef class MeshSampler(ImageSampler):
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
                 used[j] = ray.primID
+                mesh[j] = ray.instID
             self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
             self.image_used = used.reshape(self.image.nv[0], self.image.nv[1])
+            self.mesh_lines = mesh.reshape(self.image.nv[0], self.image.nv[1])
             free(v_pos)
         else:
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))

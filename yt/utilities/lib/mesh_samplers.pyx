@@ -96,8 +96,25 @@ cdef void sample_hex(void* userPtr,
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    val = Q1Sampler.sample_at_real_point(vertices, field_data, position)
+    # we use ray.time to pass the value of the field
+    cdef double mapped_coord[3]
+    Q1Sampler.map_real_to_unit(mapped_coord, vertices, position)
+    val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
+
+    # we use ray.instID to pass back whether the ray is near the
+    # element boundary or not (used to annotate mesh lines)
+    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+        ray.instID = 1
+    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+        ray.instID = 1
+    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
+          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+        ray.instID = 1
+    else:
+        ray.instID = -1
 
 
 @cython.boundscheck(False)
@@ -134,8 +151,28 @@ cdef void sample_tetra(void* userPtr,
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
-    val = P1Sampler.sample_at_real_point(vertices, field_data, position)
+    # we use ray.time to pass the value of the field
+    cdef double mapped_coord[4]
+    P1Sampler.map_real_to_unit(mapped_coord, vertices, position)
+    val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
+
+    cdef double u, v, w
+    cdef double thresh = 2.0e-2
+    u = ray.u
+    v = ray.v
+    w = 1.0 - u - v
+    # we use ray.instID to pass back whether the ray is near the
+    # element boundary or not (used to annotate mesh lines)
+    if ((u < thresh) or 
+        (v < thresh) or 
+        (w < thresh) or
+        (fabs(u - 1) < thresh) or 
+        (fabs(v - 1) < thresh) or 
+        (fabs(w - 1) < thresh)):
+        ray.instID = 1
+    else:
+        ray.instID = -1
 
 
 @cython.boundscheck(False)
