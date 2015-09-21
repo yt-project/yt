@@ -35,6 +35,7 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.utilities.lib.pixelization_routines import draw_mesh_lines
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
      import periodic_ray
 import warnings
@@ -1520,7 +1521,6 @@ class MeshLinesCallback(PlotCallback):
 
     Uses the connectivity and coordinate information from the input
     mesh to add the outline of the element boundaries to the plot.
-    Currently only implemented for tetrahedral coordinates.
 
     """
     _type_name = "mesh_lines"
@@ -1532,23 +1532,57 @@ class MeshLinesCallback(PlotCallback):
 
     def __call__(self, plot):
         coords = self.mesh.connectivity_coords
-        conn = self.mesh.connectivity_indices
-        try:
-            assert(conn.shape[1] == 4)
-        except AssertionError:
-            raise YTException("annotate_mesh_lines only implemented for" +
-                              " tetrahedral meshes.")
+        indices = self.mesh.connectivity_indices
 
-        points = coords[conn - self.mesh._index_offset]
-        tri1 = points[:, [0, 1, 2], :]
-        tri2 = points[:, [0, 1, 3], :]
-        tri3 = points[:, [0, 2, 3], :]
-        tri4 = points[:, [1, 2, 3], :]
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
 
-        triangles = np.concatenate((tri1, tri2, tri3, tri4), 0)
-        tfc = TriangleFacetsCallback(triangles, self.plot_args)
+        offset = self.mesh._index_offset
+        ax = plot.data.axis
+        xax = plot.data.ds.coordinates.x_axis[ax]
+        yax = plot.data.ds.coordinates.y_axis[ax]
 
-        return tfc(plot)
+        size = plot.image._A.shape
+        c = plot.data.center[ax]
+        buff_size = size[0:ax] + (1,) + size[ax:]
+
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        c = plot.data.center[ax]
+        bounds = [x0, x1, y0, y1]
+        bounds.insert(2*ax, c)
+        bounds.insert(2*ax, c)
+        bounds = np.reshape(bounds, (3, 2))
+
+        img = draw_mesh_lines(coords, indices, buff_size, bounds, offset)
+        img = np.squeeze(np.transpose(img, (yax, xax, ax)))
+        image = np.zeros((800, 800, 4), dtype=np.uint8)
+
+        image[:, :, 0][img > 0.0] = 0
+        image[:, :, 1][img > 0.0] = 0
+        image[:, :, 2][img > 0.0] = 0
+        image[:, :, 3][img > 0.0] = 255
+
+        plot._axes.imshow(image, zorder=1,
+                          extent=[xx0, xx1, yy0, yy1],
+                          origin='lower')
+
+        # try:
+        #     assert(conn.shape[1] == 4)
+        # except AssertionError:
+        #     raise YTException("annotate_mesh_lines only implemented for" +
+        #                       " tetrahedral meshes.")
+
+        # points = coords[conn - self.mesh._index_offset]
+        # tri1 = points[:, [0, 1, 2], :]
+        # tri2 = points[:, [0, 1, 3], :]
+        # tri3 = points[:, [0, 2, 3], :]
+        # tri4 = points[:, [1, 2, 3], :]
+
+        # triangles = np.concatenate((tri1, tri2, tri3, tri4), 0)
+        # tfc = TriangleFacetsCallback(triangles, self.plot_args)
+
+        # return tfc(plot)
 
 
 class TriangleFacetsCallback(PlotCallback):
