@@ -347,7 +347,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 raise RuntimeError
 
         # Add the auxiliary fields to each ptype we have
-        for ptype in ["Gas", "DarkMatter", "Stars"]:
+        for ptype in self._ptypes:
             if any([ptype == field[0] for field in self._field_list]):
                 self._field_list += \
                     [(ptype, afield) for afield in self._aux_fields]
