@@ -604,11 +604,6 @@ def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
                     sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
                     if not sampler.check_inside(mapped_coord):
                         continue
-                    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1):
+                    if sampler.check_near_edge(mapped_coord):
                         img[pi, pj, pk] = 1.0
-                    if (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
-                        img[pi, pj, pk] = 1.0
-                    if (fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-                        img[pi, pj, pk] = 1.0
-                    
     return img

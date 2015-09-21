@@ -29,6 +29,8 @@ cdef class ElementSampler:
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
+    cdef int check_near_edge(self, double* mapped_coord) nogil
+
 
 cdef class P1Sampler3D(ElementSampler):
 
@@ -43,6 +45,9 @@ cdef class P1Sampler3D(ElementSampler):
                                      double* vals) nogil
 
     cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self, double* mapped_coord) nogil
+
 
 # This typedef defines a function pointer that defines the system
 # of equations that will be solved by the NonlinearSolveSamplers.
@@ -111,3 +116,5 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
                                      double* vals) nogil
 
     cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self, double* mapped_coord) nogil

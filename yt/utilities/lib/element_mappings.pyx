@@ -84,6 +84,12 @@ cdef class ElementSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int check_near_edge(self, double* mapped_coord) nogil:
+        pass
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef double sample_at_real_point(self,
                                      double* vertices,
                                      double* field_values,
@@ -151,6 +157,17 @@ cdef class P1Sampler3D(ElementSampler):
                 mapped_coord[i] - 1.0 > self.inclusion_tol):
                 return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, double* mapped_coord) nogil:
+        cdef int i
+        for i in range(3):
+            if (fabs(mapped_coord[i]) < 1.0e-2 or
+                fabs(mapped_coord[i] - 1.0) < 1.0e-2):
+                return 1
+        return 0
 
 
 cdef class NonlinearSolveSampler(ElementSampler):
@@ -255,6 +272,20 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, double* mapped_coord) nogil:
+        if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1):
+            return 1
+        if (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+            return 1
+        if (fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+            return 1
+        else:
+            return 0
 
 
 @cython.boundscheck(False)
