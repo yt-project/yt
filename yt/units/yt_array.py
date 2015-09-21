@@ -40,7 +40,6 @@ from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 from yt.units.unit_lookup_table import \
-    unit_prefixes, prefixable_units, \
     default_unit_symbol_lut
 from yt.units.equivalencies import equivalence_registry
 from yt.utilities.logger import ytLogger as mylog
@@ -630,12 +629,12 @@ class YTArray(np.ndarray):
         # Converting from AstroPy Quantity
         u = arr.unit
         ap_units = []
-        for base, power in zip(u.bases, u.powers):
+        for base, exponent in zip(u.bases, u.powers):
             unit_str = base.to_string()
             # we have to do this because AstroPy is silly and defines
             # hour as "h"
             if unit_str == "h": unit_str = "hr"
-            ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
+            ap_units.append("%s**(%s)" % (unit_str, Rational(exponent)))
         ap_units = "*".join(ap_units)
         if isinstance(arr.value, np.ndarray):
             return YTArray(arr.value, ap_units, registry=unit_registry)
@@ -675,9 +674,9 @@ class YTArray(np.ndarray):
         >>> c = yt.YTArray.from_pint(b)
         """
         p_units = []
-        for base, power in arr.units.items():
+        for base, exponent in arr.units.items():
             bs = convert_pint_units(base)
-            p_units.append("%s**(%s)" % (bs, Rational(power)))
+            p_units.append("%s**(%s)" % (bs, Rational(exponent)))
         p_units = "*".join(p_units)
         if isinstance(arr.magnitude, np.ndarray):
             return YTArray(arr.magnitude, p_units, registry=unit_registry)
