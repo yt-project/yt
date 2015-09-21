@@ -212,6 +212,15 @@ See :ref:`slice-plots` and :ref:`callbacks` for more information.
 
 .. yt_cookbook:: zoomin_frames.py
 
+.. _cookbook-various_lens:
+
+Various Lens Types for Volume Rendering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example illustrates the usage and feature of different lenses for volume rendering.
+
+.. yt_cookbook:: various_lens.py
+
 .. _cookbook-opaque_rendering:
 
 Opaque Volume Rendering
