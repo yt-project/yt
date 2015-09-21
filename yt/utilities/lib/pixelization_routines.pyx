@@ -549,6 +549,22 @@ def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *vertices
     cdef int nvertices = conn.shape[1]
     cdef double* mapped_coord
+    cdef int ax, xax, yax
+
+    for i in range(3):
+        if buff_size[i] == 1:
+            ax = i
+
+    if ax == 0:
+        xax = 1
+        yax = 2
+    if ax == 1:
+        xax = 1
+        yax = 2
+    if ax == 2:
+        xax = 0
+        yax = 1
+
     cdef ElementSampler sampler
 
     # Allocate storage for the mapped coordinate
@@ -605,7 +621,8 @@ def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
                     sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
                     if not sampler.check_inside(mapped_coord):
                         continue
-                    for i in range(3):
-                        if sampler.check_near_edge(mapped_coord, thresh, i):
-                            img[pi, pj, pk] = 1.0
+                    if sampler.check_near_edge(mapped_coord, thresh, xax):
+                        img[pi, pj, pk] = 1.0
+                    elif sampler.check_near_edge(mapped_coord, thresh, yax):
+                        img[pi, pj, pk] = 1.0
     return img
