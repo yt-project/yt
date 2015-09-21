@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
+from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
@@ -524,4 +524,91 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     else:
                         img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
                                                                        field_vals)
+    return img
+
+
+def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
+                    np.ndarray[np.int64_t, ndim=2] conn,
+                    buff_size, extents, int index_offset = 0):
+    cdef np.ndarray[np.float64_t, ndim=3] img
+    img = np.zeros(buff_size, dtype="float64")
+    # Two steps:
+    #  1. Is image point within the mesh bounding box?
+    #  2. Is image point within the mesh element?
+    # Second is more intensive.  It will convert the element vertices to the
+    # mapped coordinate system, and checking whether the result in in-bounds or not
+    # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
+    # always be 1.
+    cdef np.float64_t pLE[3], pRE[3]
+    cdef np.float64_t LE[3], RE[3]
+    cdef int use
+    cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
+    cdef np.int64_t pstart[3], pend[3]
+    cdef np.float64_t ppoint[3], idds[3], dds[3]
+    cdef np.float64_t *vertices
+    cdef int nvertices = conn.shape[1]
+    cdef double* mapped_coord
+    cdef ElementSampler sampler
+
+    # Allocate storage for the mapped coordinate
+    if nvertices == 4:
+        mapped_coord = <double*> alloca(sizeof(double) * 4)
+        sampler = P1Sampler3D()
+    elif nvertices == 8:
+        mapped_coord = <double*> alloca(sizeof(double) * 3)
+        sampler = Q1Sampler3D()
+    else:
+        raise RuntimeError
+
+    vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
+    
+    for i in range(3):
+        pLE[i] = extents[i][0]
+        pRE[i] = extents[i][1]
+        dds[i] = (pRE[i] - pLE[i])/buff_size[i]
+        if dds[i] == 0.0:
+            idds[i] = 0.0
+        else:
+            idds[i] = 1.0 / dds[i]
+
+    for ci in range(conn.shape[0]):
+
+        # Fill the vertices
+        LE[0] = LE[1] = LE[2] = 1e60
+        RE[0] = RE[1] = RE[2] = -1e60
+
+        for n in range(nvertices):
+            cj = conn[ci, n] - index_offset
+            for i in range(3):
+                vertices[3*n + i] = coords[cj, i]
+                LE[i] = fmin(LE[i], vertices[3*n+i])
+                RE[i] = fmax(RE[i], vertices[3*n+i])
+        use = 1
+        for i in range(3):
+            if RE[i] < pLE[i] or LE[i] >= pRE[i]:
+                use = 0
+                break
+            pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
+            pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+        if use == 0:
+            continue
+        # Now our bounding box intersects, so we get the extents of our pixel
+        # region which overlaps with the bounding box, and we'll check each
+        # pixel in there.
+        for pi in range(pstart[0], pend[0] + 1):
+            ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
+            for pj in range(pstart[1], pend[1] + 1):
+                ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
+                for pk in range(pstart[2], pend[2] + 1):
+                    ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
+                    sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
+                    if not sampler.check_inside(mapped_coord):
+                        continue
+                    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1):
+                        img[pi, pj, pk] = 1.0
+                    if (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+                        img[pi, pj, pk] = 1.0
+                    if (fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+                        img[pi, pj, pk] = 1.0
+                    
     return img

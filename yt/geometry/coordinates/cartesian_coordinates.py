@@ -69,6 +69,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ftype, fname = field
             mesh_id = int(ftype[-1]) - 1
             mesh = index.meshes[mesh_id]
+            coords = mesh.connectivity_coords
+            indices = mesh.connectivity_indices
             offset = mesh._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
@@ -97,8 +99,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = field_data[:,0:4]
                 indices = indices[:, 0:4]
 
-            img = pixelize_element_mesh(mesh.connectivity_coords,
-                                        mesh.connectivity_indices,
+            img = pixelize_element_mesh(coords,
+                                        indices,
                                         buff_size, field_data, bounds,
                                         index_offset=offset)
 
