@@ -136,6 +136,8 @@ class AMRGridPatch(YTSelectionContainer):
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
+            if not hasattr(self.Parent, 'dds'):
+                self.Parent._setup_dx()
             self.dds = self.Parent.dds.ndarray_view() / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id,:], \
