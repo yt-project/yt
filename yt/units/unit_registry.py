@@ -63,7 +63,7 @@ class UnitRegistry:
 
         if tex_repr is None:
             # make educated guess that will look nice in most cases
-            tex_repr = r"\rm{" + symbol + "}"
+            tex_repr = r"\rm{" + symbol.replace('_', '\ ') + "}"
 
         # Add to lut
         self.lut.update({symbol: (base_value, dimensions, offset, tex_repr)})
