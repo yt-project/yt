@@ -155,7 +155,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     total += p.size
                     auxdata = []
                     for afield in afields:
-                        if isinstance(self._aux_pdtypes[afield], type):
+                        if isinstance(self._aux_pdtypes[afield], np.dtype):
                             auxdata.append(
                                 np.fromfile(aux_fh[afield],
                                             self._aux_pdtypes[afield],
@@ -327,9 +327,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         raise RuntimeError
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
-                self._aux_pdtypes[afield] = np.float64
+                self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'd')])
             elif (filesize - 4) / 4 == tot_parts:
-                self._aux_pdtypes[afield] = np.float32
+                self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'f')])
             else:
                 raise RuntimeError
 
@@ -357,7 +357,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
     def _calculate_particle_offsets_aux(self, data_file):
         aux_fields_offsets = {}
         for afield in self._aux_fields:
-            if isinstance(self._aux_pdtypes[afield], type):
+            if isinstance(self._aux_pdtypes[afield], np.dtype):
                 pos = 4  # i4
                 aux_fields_offsets[afield] = {}
                 for ptype in self._ptypes:
