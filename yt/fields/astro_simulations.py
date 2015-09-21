@@ -13,7 +13,6 @@ Fields we expect to find in astrophysical simulations.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from .domain_context import DomainContext
 
 # Here's how this all works:

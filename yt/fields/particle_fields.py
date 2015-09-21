@@ -16,8 +16,6 @@ These are common particle fields.
 
 import numpy as np
 
-from yt.funcs import *
-from yt.units.yt_array import YTArray
 from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
@@ -125,7 +123,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_density(field, data):
         pos = data[ptype, coord_name].convert_to_units("code_length")
         mass = data[ptype, mass_name].convert_to_units("code_mass")
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        d = data.deposit(pos, [mass], method = "sum")
         d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
         return d
@@ -790,13 +788,19 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         kwargs = {}
         if nneighbors:
             kwargs['nneighbors'] = nneighbors
+        # This is for applying cutoffs, similar to in the SPLASH paper.
+        smooth_cutoff = data["index","cell_volume"]**(1./3)
+        smooth_cutoff.convert_to_units("code_length")
         # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
                          method="volume_weighted",
                          create_octree=True,
+                         index_fields=[smooth_cutoff],
                          kernel_name=kernel_name)[0]
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
+        # This should be used when seeking a non-normalized value:
+        rv /= hsml.uq**3 / hsml.uq.in_cgs().uq**3
         rv = data.apply_units(rv, field_units)
         return rv
     registry.add_field(field_name, function = _vol_weight,
@@ -827,7 +831,7 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
         field_name = (ptype, "smoothed_density")
     else:
         field_name = (ptype, "%s_smoothed_density" % (kernel_name))
-    field_units = registry[ptype, mass_name].units
+
     def _nth_neighbor(field, data):
         pos = data[ptype, coord_name]
         pos.convert_to_units("code_length")

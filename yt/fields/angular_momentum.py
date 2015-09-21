@@ -15,12 +15,7 @@ native.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
 import numpy as np
-import inspect
-import copy
-
-from yt.units.yt_array import YTArray
 
 from .derived_field import \
     ValidateParameter
@@ -29,8 +24,8 @@ from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
-     create_magnitude_field
-    
+    create_magnitude_field
+
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec, obtain_rv_vec
 
@@ -78,7 +73,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
 
     create_magnitude_field(registry, "specific_angular_momentum",
                            "cm**2 / s", ftype=ftype)
-    
+
     def _angular_momentum_x(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_x"]
@@ -105,4 +100,3 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
 
     create_magnitude_field(registry, "angular_momentum",
                            "g * cm**2 / s", ftype=ftype)
-                           

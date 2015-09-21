@@ -420,7 +420,7 @@ class FITSDataset(Dataset):
         Generates the conversion to various physical _units based on the parameter file
         """
         default_length_units = [u for u,v in default_unit_symbol_lut.items()
-                                if str(v[-1]) == "(length)"]
+                                if str(v[1]) == "(length)"]
         more_length_units = []
         for unit in default_length_units:
             if unit in prefixable_units:

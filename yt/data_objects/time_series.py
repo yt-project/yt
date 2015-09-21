@@ -156,7 +156,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, str):
+            if isinstance(o, string_types):
                 ds = load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -170,7 +170,7 @@ class DatasetSeries(object):
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, str):
+        if isinstance(o, string_types):
             o = load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -248,13 +248,31 @@ class DatasetSeries(object):
 
         """
         dynamic = False
-        if self.parallel == False:
+        if self.parallel is False:
             njobs = 1
         else:
-            if self.parallel == True: njobs = -1
-            else: njobs = self.parallel
-        return parallel_objects(self, njobs=njobs, storage=storage,
-                                dynamic=dynamic)
+            if self.parallel is True:
+                njobs = -1
+            else:
+                njobs = self.parallel
+
+        for output in parallel_objects(self._pre_outputs, njobs=njobs,
+                                       storage=storage, dynamic=dynamic):
+            if storage is not None:
+                sto, output = output
+
+            if isinstance(output, string_types):
+                ds = load(output, **self.kwargs)
+                self._setup_function(ds)
+            else:
+                ds = output
+
+            if storage is not None:
+                next_ret = (sto, ds)
+            else:
+                next_ret = ds
+
+            yield next_ret
 
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
@@ -323,13 +341,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, str):
+        if isinstance(filenames, string_types):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, str):
+            if not isinstance(fn, string_types):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))

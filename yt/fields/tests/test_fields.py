@@ -1,13 +1,20 @@
-from yt.testing import *
 import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    assert_array_almost_equal_nulp, \
+    assert_array_equal, \
+    assert_raises
 from yt.utilities.cosmology import \
-     Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    Cosmology
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    YTArray, YTQuantity
+from yt.utilities.exceptions import \
+    YTFieldUnitError, \
+    YTFieldUnitParseError
 
 def setup():
     global base_ds
@@ -88,19 +95,6 @@ def _strip_ftype(field):
         return field
     return field[1]
 
-def _expand_field(field):
-    if isinstance(field, tuple):
-        return field
-    if field in KnownStreamFields:
-        fi = KnownStreamFields[field]
-        if fi.particle_type:
-            return ("all", field)
-        else:
-            return ("gas", field)
-    # Otherwise, we just guess.
-    if "particle" in field:
-        return ("all", field)
-    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None

@@ -15,16 +15,16 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import nose
 import numpy as np
 from numpy.testing import \
     assert_array_almost_equal_nulp, \
-    assert_raises
+    assert_raises, assert_equal
 from nose.tools import assert_true
 import operator
 from sympy import Symbol
 from yt.testing import \
-    fake_random_ds, assert_allclose_units
+    fake_random_ds, assert_allclose_units, \
+    assert_almost_equal
 
 # dimensions
 from yt.units.dimensions import \
@@ -83,6 +83,9 @@ def test_dimensionless():
     yield assert_true, u2.expr == 1
     yield assert_true, u2.base_value == 1
     yield assert_true, u2.dimensions == 1
+
+    yield assert_equal, u1.latex_repr, ''
+    yield assert_equal, u2.latex_repr, ''
 
 #
 # Start init tests
@@ -222,7 +225,7 @@ def test_create_fail_on_unknown_symbol():
 
     """
     try:
-        u1 = Unit(Symbol("jigawatts"))
+        Unit(Symbol("jigawatts"))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -234,7 +237,7 @@ def test_create_fail_on_bad_symbol_type():
 
     """
     try:
-        u1 = Unit([1])  # something other than Expr and str
+        Unit([1])  # something other than Expr and str
     except UnitParseError:
         yield assert_true, True
     else:
@@ -246,7 +249,7 @@ def test_create_fail_on_bad_dimensions_type():
 
     """
     try:
-        u1 = Unit("a", base_value=1, dimensions="(mass)")
+        Unit("a", base_value=1, dimensions="(mass)")
     except UnitParseError:
         yield assert_true, True
     else:
@@ -261,7 +264,7 @@ def test_create_fail_on_dimensions_content():
     a = Symbol("a")
 
     try:
-        u1 = Unit("a", base_value=1, dimensions=a)
+        Unit("a", base_value=1, dimensions=a)
     except UnitParseError:
         pass
     else:
@@ -274,7 +277,7 @@ def test_create_fail_on_base_value_type():
 
     """
     try:
-        u1 = Unit("a", base_value="a", dimensions=(mass/time))
+        Unit("a", base_value="a", dimensions=(mass/time))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -450,3 +453,21 @@ def test_temperature_offsets():
 
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
     assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)
+
+def test_comoving_and_code_unit_labels():
+    ds = fake_random_ds(64, nprocs=1)
+
+    # create a fake comoving unit
+    ds.unit_registry.add('pccm', ds.unit_registry.lut['pc'][0]/(1+2), length,
+                         "\\rm{pc}/(1+z)")
+
+    test_unit = Unit('Mpccm', registry=ds.unit_registry)
+    assert_almost_equal(test_unit.base_value, cm_per_mpc/3)
+    assert_equal(test_unit.latex_repr, r'\rm{Mpc}/(1+z)')
+
+    test_unit = Unit('code_mass', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr, '\\rm{code\\ mass}')
+
+    test_unit = Unit('code_mass/code_length**3', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr,
+                 '\\frac{\\rm{code\\ mass}}{\\rm{code\\ length}^{3}}')

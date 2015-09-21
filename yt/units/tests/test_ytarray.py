@@ -679,6 +679,8 @@ def unary_ufunc_comparison(ufunc, a):
 
         assert_array_equal(ret1, npret1)
         assert_array_equal(ret2, npret2)
+    elif ufunc is np.invert:
+        assert_raises(TypeError, ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)
@@ -697,6 +699,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         elif a.units != b.units:
             assert_raises(YTUnitOperationError, ufunc, a, b)
             return
+    if ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor,
+                 np.left_shift, np.right_shift, np.ldexp):
+        assert_raises(TypeError, ufunc, a, b)
+        return
 
     ret = ufunc(a, b, out=out)
 
@@ -732,8 +738,10 @@ def test_ufuncs():
             a = YTArray([.3, .4, .5], 'cm')
             b = YTArray([.1, .2, .3], 'dimensionless')
             c = np.array(b)
+            d = YTArray([1., 2., 3.], 'g')
             yield binary_ufunc_comparison, ufunc, a, b
             yield binary_ufunc_comparison, ufunc, a, c
+            assert_raises(YTUnitOperationError, ufunc, a, d)
             continue
 
         a = YTArray([.3, .4, .5], 'cm')
@@ -828,6 +836,33 @@ def test_astropy():
 
     yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
+
+@requires_module("pint")
+def test_pint():
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    
+    p_arr = np.arange(10)*ureg.km/ureg.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_pint(p_arr)
+
+    p_quan = 10.*ureg.g**0.5/(ureg.mm**3)
+    yt_quan = YTQuantity(10., "sqrt(g)/mm**3")
+    yt_quan2 = YTQuantity.from_pint(p_quan)
+
+    yield assert_array_equal, p_arr, yt_arr.to_pint()
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
+
+    yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
+    yield assert_equal, yt_quan, yt_quan2
+
+    yield assert_array_equal, yt_arr, YTArray.from_pint(yt_arr.to_pint())
+    yield assert_equal, yt_quan, YTQuantity.from_pint(yt_quan.to_pint())
 
 def test_subclass():
 
