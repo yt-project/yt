@@ -166,7 +166,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                 np.genfromtxt(aux_fh[afield], skip_header=1,
                                               count=count)
                             )
-                    p = append_fields(p, afields, auxdata)
+                    if afields:
+                        p = append_fields(p, afields, auxdata)
                     mask = selector.select_points(
                         p["Coordinates"]['x'].astype("float64"),
                         p["Coordinates"]['y'].astype("float64"),
