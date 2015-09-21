@@ -1515,12 +1515,24 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    annotate_mesh_lines(mesh, plot_args=None )
+    annotate_mesh_lines(mesh, thresh=0.01)
 
     Adds the outline of the mesh lines to the plot.
 
     Uses the connectivity and coordinate information from the input
     mesh to add the outline of the element boundaries to the plot.
+    This is done by marking the pixels where the mapped coordinate
+    is within some threshold distance of one of the element boundaries.
+    If the mesh lines are too thick or too thin, try varying thresh.
+
+    Parameters
+    ----------
+    mesh : UnstructuredIndex
+        The mesh you want to add to the image
+
+    thresh : float
+        The threshold distance, in mapped coordinates, within which the
+        pixels will be marked as part of the element boundary.
 
     """
     _type_name = "mesh_lines"
@@ -1554,12 +1566,15 @@ class MeshLinesCallback(PlotCallback):
         bounds.insert(2*ax, c)
         bounds = np.reshape(bounds, (3, 2))
 
+        # draw the mesh lines by marking where the mapped
+        # coordinate is close to the domain edge
         img = draw_mesh_lines(coords, indices,
                               buff_size, bounds,
                               self.thresh, offset)
         img = np.squeeze(np.transpose(img, (yax, xax, ax)))
-        image = np.zeros((800, 800, 4), dtype=np.uint8)
 
+        # convert to RGBA 
+        image = np.zeros((800, 800, 4), dtype=np.uint8)
         image[:, :, 0][img > 0.0] = 0
         image[:, :, 1][img > 0.0] = 0
         image[:, :, 2][img > 0.0] = 0
@@ -1567,24 +1582,8 @@ class MeshLinesCallback(PlotCallback):
 
         plot._axes.imshow(image, zorder=1,
                           extent=[xx0, xx1, yy0, yy1],
-                          origin='lower')
-
-        # try:
-        #     assert(conn.shape[1] == 4)
-        # except AssertionError:
-        #     raise YTException("annotate_mesh_lines only implemented for" +
-        #                       " tetrahedral meshes.")
-
-        # points = coords[conn - self.mesh._index_offset]
-        # tri1 = points[:, [0, 1, 2], :]
-        # tri2 = points[:, [0, 1, 3], :]
-        # tri3 = points[:, [0, 2, 3], :]
-        # tri4 = points[:, [1, 2, 3], :]
-
-        # triangles = np.concatenate((tri1, tri2, tri3, tri4), 0)
-        # tfc = TriangleFacetsCallback(triangles, self.plot_args)
-
-        # return tfc(plot)
+                          origin='lower',
+                          interpolation='nearest')
 
 
 class TriangleFacetsCallback(PlotCallback):
