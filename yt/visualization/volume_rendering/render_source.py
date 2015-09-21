@@ -362,6 +362,35 @@ class MeshSource(RenderSource):
                                                  color_bounds=color_bounds)
         return self.current_image
 
+    def annotate_mesh_lines(self, color=None, alpha=255):
+        r"""
+
+        Modifies this MeshSource by drawing the mesh lines.
+        This modifies the current image by drawing the element
+        boundaries and returns the modified image.
+
+        Parameters
+        ----------
+        colors: array of ints, shape (4), optional
+            The RGBA value to use to draw the mesh lines.
+            Default is black.
+        alpha : float, optional
+            The opacity of the mesh lines. Default is 255 (solid).
+
+        """
+
+        if color is None:
+            color = np.array([0, 0, 0, alpha])
+
+        locs = [self.sampler.mesh_lines == 1]
+
+        self.current_image[:, :, 0][locs] = color[0]
+        self.current_image[:, :, 1][locs] = color[1]
+        self.current_image[:, :, 2][locs] = color[2]
+        self.current_image[:, :, 3][locs] = color[3]
+
+        return self.current_image
+
     def apply_colormap(self, cmap='algae', color_bounds=None):
         self.current_image = apply_colormap(self.data,
                                             color_bounds=color_bounds,
