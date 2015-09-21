@@ -163,8 +163,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                             )
                         else:
                             aux_fh[afield].seek(0, os.SEEK_SET)
-                            sh = aux_fields_offsets[afield][ptype][0]
-                            sf = aux_fields_offsets[afield][ptype][1]
+                            sh = aux_fields_offsets[afield][ptype][0] + total
+                            sf = aux_fields_offsets[afield][ptype][1] + \
+                                tp[ptype] - count
                             if tp[ptype] > 0:
                                 aux = np.genfromtxt(
                                     aux_fh[afield], skip_header=sh,
@@ -172,8 +173,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                 )
                                 if aux.ndim < 1:
                                     aux = np.array([aux])
-                                auxdata.append(aux[total:total + count])
-                                del aux
+                                auxdata.append(aux)
 
                     total += p.size
                     if afields:
