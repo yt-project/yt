@@ -20,10 +20,6 @@ def test_mean_and_sum():
 
         yield assert_equal, q, q1
 
-        q2 = ad.mean('density', weight=None)
-
-        yield assert_equal, q, q2
-
         # Weighted Averages
         w = ad.mean("density")
 
@@ -41,6 +37,11 @@ def test_mean_and_sum():
         p = ad.sum('density', axis=0)
 
         p1 = ds.proj('density', 0, data_source=ad)
+
+        yield assert_equal, p['density'], p1['density']
+
+        # Check by axis-name
+        p = ad.sum('density', axis='x')
 
         yield assert_equal, p['density'], p1['density']
 
