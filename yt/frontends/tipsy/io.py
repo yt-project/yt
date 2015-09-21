@@ -339,7 +339,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             elif (filesize - 4) / 8 == tot_parts:
                 self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'd')])
             elif (filesize - 4) / 4 == tot_parts:
-                self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'f')])
+                if afield.startswith("i"):
+                    self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'i')])
+                else:
+                    self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'f')])
             else:
                 raise RuntimeError
 
