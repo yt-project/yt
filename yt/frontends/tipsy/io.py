@@ -146,13 +146,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 afields = list(set(field_list).intersection(self._aux_fields))
                 for afield in afields:
                     aux_fh[afield].seek(
-                        aux_fields_offsets[afield][ptype], os.SEEK_SET)
+                        aux_fields_offsets[afield][ptype][0], os.SEEK_SET)
 
                 total = 0
                 while total < tp[ptype]:
                     count = min(self._chunksize, tp[ptype] - total)
                     p = np.fromfile(f, self._pdtypes[ptype], count=count)
-                    total += p.size
+
                     auxdata = []
                     for afield in afields:
                         if isinstance(self._aux_pdtypes[afield], np.dtype):
@@ -162,10 +162,20 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                                             count=count)
                             )
                         else:
-                            auxdata.append(
-                                np.genfromtxt(aux_fh[afield], skip_header=1,
-                                              count=count)
-                            )
+                            aux_fh[afield].seek(0, os.SEEK_SET)
+                            sh = aux_fields_offsets[afield][ptype][0]
+                            sf = aux_fields_offsets[afield][ptype][1]
+                            if tp[ptype] > 0:
+                                aux = np.genfromtxt(
+                                    aux_fh[afield], skip_header=sh,
+                                    skip_footer=sf
+                                )
+                                if aux.ndim < 1:
+                                    aux = np.array([aux])
+                                auxdata.append(aux[total:total + count])
+                                del aux
+
+                    total += p.size
                     if afields:
                         p = append_fields(p, afields, auxdata)
                     mask = selector.select_points(
@@ -356,17 +366,21 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _calculate_particle_offsets_aux(self, data_file):
         aux_fields_offsets = {}
+        tp = data_file.total_particles
         for afield in self._aux_fields:
+            aux_fields_offsets[afield] = {}
             if isinstance(self._aux_pdtypes[afield], np.dtype):
                 pos = 4  # i4
-                aux_fields_offsets[afield] = {}
                 for ptype in self._ptypes:
-                    aux_fields_offsets[afield][ptype] = pos
+                    aux_fields_offsets[afield][ptype] = (pos, 0)
                     if data_file.total_particles[ptype] == 0:
                         continue
                     size = np.dtype(self._aux_pdtypes[afield]).itemsize
                     pos += data_file.total_particles[ptype] * size
             else:
-                # handle gentext case
-                raise RuntimeError
+                aux_fields_offsets[afield].update(
+                    {'DarkMatter': (1, tp["Gas"] + tp["Stars"]),
+                     'Gas': (1 + tp["DarkMatter"], tp["Stars"]),
+                     'Stars': (1 + tp["DarkMatter"] + tp["Gas"], 0)}
+                )
         return aux_fields_offsets
