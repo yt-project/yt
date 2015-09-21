@@ -922,8 +922,11 @@ class Dataset(object):
            The field name tuple of the particle field the deposited field will
            be created from.  This must be a field name tuple so yt can
            appropriately infer the correct particle type.
-        method : one of 'count', 'sum', or 'cic'
-           The particle deposition method to use.
+        method : string
+           This is the "method name" which will be looked up in the
+           `particle_deposit` namespace as `methodname_deposit`.  Current
+           methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
+           `weighted_mean`, `mesh_id`, and `nearest`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. Current supported
            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
