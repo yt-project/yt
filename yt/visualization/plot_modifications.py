@@ -1525,9 +1525,9 @@ class MeshLinesCallback(PlotCallback):
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, mesh, plot_args=None):
+    def __init__(self, mesh, thresh=0.1):
         super(MeshLinesCallback, self).__init__()
-        self.plot_args = {} if plot_args is None else plot_args
+        self.thresh = thresh
         self.mesh = mesh
 
     def __call__(self, plot):
@@ -1554,7 +1554,9 @@ class MeshLinesCallback(PlotCallback):
         bounds.insert(2*ax, c)
         bounds = np.reshape(bounds, (3, 2))
 
-        img = draw_mesh_lines(coords, indices, buff_size, bounds, offset)
+        img = draw_mesh_lines(coords, indices,
+                              buff_size, bounds,
+                              self.thresh, offset)
         img = np.squeeze(np.transpose(img, (yax, xax, ax)))
         image = np.zeros((800, 800, 4), dtype=np.uint8)
 

@@ -529,7 +529,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
 def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
                     np.ndarray[np.int64_t, ndim=2] conn,
-                    buff_size, extents, int index_offset = 0):
+                    buff_size, extents, double thresh,
+                    int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     # Two steps:
@@ -604,6 +605,7 @@ def draw_mesh_lines(np.ndarray[np.float64_t, ndim=2] coords,
                     sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
                     if not sampler.check_inside(mapped_coord):
                         continue
-                    if sampler.check_near_edge(mapped_coord):
-                        img[pi, pj, pk] = 1.0
+                    for i in range(3):
+                        if sampler.check_near_edge(mapped_coord, thresh, i):
+                            img[pi, pj, pk] = 1.0
     return img

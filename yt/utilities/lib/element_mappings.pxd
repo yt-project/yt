@@ -29,7 +29,10 @@ cdef class ElementSampler:
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
-    cdef int check_near_edge(self, double* mapped_coord) nogil
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
 
 
 cdef class P1Sampler3D(ElementSampler):
@@ -46,7 +49,10 @@ cdef class P1Sampler3D(ElementSampler):
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
-    cdef int check_near_edge(self, double* mapped_coord) nogil
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
 
 
 # This typedef defines a function pointer that defines the system
@@ -117,4 +123,7 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
-    cdef int check_near_edge(self, double* mapped_coord) nogil
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
