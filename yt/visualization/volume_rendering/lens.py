@@ -263,6 +263,7 @@ class StereoPerspectiveLens(Lens):
     def __init__(self):
         super(StereoPerspectiveLens, self).__init__()
         self.expand_factor = 1.5
+        self.disparity = None
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -279,7 +280,8 @@ class StereoPerspectiveLens(Lens):
         # self.front_center += self.expand_factor*dl
         # self.back_center -= dl
 
-        self.disparity = camera.width[0] / 2.e3
+        if self.disparity is None:
+            self.disparity = camera.width[0] / 2.e3
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -635,7 +637,7 @@ class StereoSphericalLens(Lens):
         super(StereoSphericalLens, self).__init__()
         self.radius = 1.0
         self.center = None
-        self.disparity = 0.
+        self.disparity = None
         self.rotation_matrix = np.eye(3)
 
     def setup_box_properties(self, camera):
@@ -644,7 +646,8 @@ class StereoSphericalLens(Lens):
         self.set_viewpoint(camera)
 
     def _get_sampler_params(self, camera, render_source):
-        self.disparity = camera.width[0] / 1000.
+        if self.disparity is None:
+            self.disparity = camera.width[0] / 1000.
 
         single_resolution_x = np.floor(camera.resolution[0])/2
         px = np.linspace(-np.pi, np.pi, single_resolution_x, endpoint=True)[:,None]
