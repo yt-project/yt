@@ -19,14 +19,10 @@ MPL_VERSION = LooseVersion(matplotlib.__version__)
 MPL_API_2_VERSION = LooseVersion("1.5.0")
 
 if MPL_VERSION < MPL_API_2_VERSION:
-    MPL_API_VERSION = 1
-else:
-    MPL_API_VERSION = 2
-
-def call_png_write_png(buffer, width, height, filename, dpi):
-    if MPL_API_VERSION == 1:
+    def call_png_write_png(buffer, width, height, filename, dpi):
         _png.write_png(buffer, width, height, filename, dpi)
-    else:
+else:
+    def call_png_write_png(buffer, width, height, filename, dpi):
         _png.write_png(buffer, filename, dpi)
 
 def write_png(buffer, filename, dpi=100):
