@@ -14,21 +14,17 @@ Cosmology related fields.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from .derived_field import \
-     ValidateParameter
+    ValidateParameter
 from .field_exceptions import \
-     NeedsConfiguration, \
-     NeedsParameter
+    NeedsConfiguration, \
+    NeedsParameter
 from .field_plugin_registry import \
-     register_field_plugin
+    register_field_plugin
 
-from yt.utilities.cosmology import \
-     Cosmology
 from yt.utilities.physical_constants import \
-     speed_of_light_cgs
-    
+    speed_of_light_cgs
+
 @register_field_plugin
 def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     # slice_info would be the left, the right, and the factor.
@@ -49,7 +45,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
           data[ftype, "dark_matter_density"]
 
     registry.add_field((ftype, "matter_density"),
-                       function=_matter_density, 
+                       function=_matter_density,
                        units="g/cm**3")
 
     def _matter_mass(field, data):
@@ -67,7 +63,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         co = data.ds.cosmology
         return data[ftype, "matter_density"] / \
           co.critical_density(data.ds.current_redshift)
-    
+
     registry.add_field((ftype, "overdensity"),
                        function=_overdensity,
                        units="")
@@ -116,7 +112,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
                        function=_virial_radius_fraction,
                        validators=[ValidateParameter("virial_radius")],
                        units="")
-    
+
     # Weak lensing convergence.
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
     # This needs to be checked for accuracy.
@@ -127,7 +123,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         co = data.ds.cosmology
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
-        
+
         # observer to lens
         dl = co.angular_diameter_distance(observer_redshift, data.ds.current_redshift)
         # observer to source
@@ -135,11 +131,11 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         # lens to source
         dls = co.angular_diameter_distance(data.ds.current_redshift, source_redshift)
 
-        # removed the factor of 1 / a to account for the fact that we are projecting 
+        # removed the factor of 1 / a to account for the fact that we are projecting
         # with a proper distance.
         return (1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
           data[ftype, "matter_overdensity"]).in_units("1/cm")
-       
+
     registry.add_field((ftype, "weak_lensing_convergence"),
                        function=_weak_lensing_convergence,
                        units="1/cm",

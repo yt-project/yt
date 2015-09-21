@@ -178,7 +178,8 @@ class ARTIOIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return  1.0/(2**self.max_level)
+        return (self.dataset.domain_width /
+                (self.dataset.domain_dimensions * 2**(self.max_level))).min()
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
