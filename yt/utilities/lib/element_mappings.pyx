@@ -255,20 +255,21 @@ cdef class P1Sampler3D(ElementSampler):
         return 0
 
 
-cdef class NonlinearSolveSampler(ElementSampler):
+cdef class NonlinearSolveSampler3D(ElementSampler):
 
     '''
 
     This is a base class for handling element samplers that require
     a nonlinear solve to invert the mapping between coordinate systems.
     To do this, we perform Newton-Raphson iteration using a specified 
-    system of equations with an analytic Jacobian matrix. This is
-    not to be used directly, use one of the subclasses instead.
+    system of equations with an analytic Jacobian matrix. This solver
+    is hard-coded for 3D for reasons of efficiency. This is not to be
+    used directly, use one of the subclasses instead.
 
     '''
 
     def __init__(self):
-        super(NonlinearSolveSampler, self).__init__()
+        super(NonlinearSolveSampler3D, self).__init__()
         self.tolerance = 1.0e-9
         self.max_iter = 10
 
@@ -317,7 +318,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
                 mapped_x[i] = x[i]
 
 
-cdef class Q1Sampler3D(NonlinearSolveSampler):
+cdef class Q1Sampler3D(NonlinearSolveSampler3D):
 
     ''' 
 
@@ -435,6 +436,163 @@ cdef inline void Q1Jacobian3D(double* rcol,
                    rp*sp*vertices[18 + i] + rm*sp*vertices[21 + i]
 
 
+cdef class NonlinearSolveSampler2D(ElementSampler):
+
+    '''
+
+    This is a base class for handling element samplers that require
+    a nonlinear solve to invert the mapping between coordinate systems.
+    To do this, we perform Newton-Raphson iteration using a specified 
+    system of equations with an analytic Jacobian matrix. This solver
+    is hard-coded for 2D for reasons of efficiency. This is not to be
+    used directly, use one of the subclasses instead.
+
+    '''
+
+    def __init__(self):
+        super(NonlinearSolveSampler2D, self).__init__()
+        self.tolerance = 1.0e-9
+        self.max_iter = 10
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void map_real_to_unit(self,
+                               double* mapped_x,
+                               double* vertices,
+                               double* physical_x) nogil:
+        cdef int i
+        cdef double d, val
+        cdef double[2] f
+        cdef double[2] x
+        cdef double[4] A
+        cdef int iterations = 0
+        cdef double err
+
+        # initial guess
+        for i in range(2):
+            x[i] = 0.0
+    
+        # initial error norm
+        self.func(f, x, vertices, physical_x)
+        err = maxnorm(f)  
+   
+        # begin Newton iteration
+        while (err > self.tolerance and iterations < self.max_iter):
+            self.jac(A, x, vertices, physical_x)
+            d = (A[0]*A[3] - A[1]*A[2])
+            
+            x[0] -= ( A[3]*f[0] - A[1]*f[1]) / d
+            x[1] -= (-A[2]*f[0] + A[0]*f[1]) / d
+
+            self.func(f, x, vertices, physical_x)        
+            err = maxnorm(f)
+            iterations += 1
+
+        if (err > self.tolerance):
+            # we did not converge, set bogus value
+            for i in range(2):
+                mapped_x[i] = -99.0
+        else:
+            for i in range(2):
+                mapped_x[i] = x[i]
+
+
+cdef class Q1Sampler2D(NonlinearSolveSampler2D):
+
+    ''' 
+
+    This implements sampling inside a 2D, linear, quadrilateral mesh element.
+
+    '''
+
+    def __init__(self):
+        super(Q1Sampler2D, self).__init__()
+        self.dim = 2
+        self.func = Q1Function2D
+        self.jac = Q1Jacobian2D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
+        cdef double F, rm, rp, sm, sp
+    
+        rm = 1.0 - coord[0]
+        rp = 1.0 + coord[0]
+        sm = 1.0 - coord[1]
+        sp = 1.0 + coord[1]
+    
+        F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rp*sp + vals[3]*rm*sp
+        return 0.25*F
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, 
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil:
+        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
+            return 1
+        else:
+            return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void Q1Jacobian2D(double* A,
+                              double* x,
+                              double* vertices,
+                              double* phys_x) nogil:
+    cdef int i
+    cdef double rm, rp, sm, sp, tm, tp
+
+    rm = 1.0 - x[0]
+    rp = 1.0 + x[0]
+    sm = 1.0 - x[1]
+    sp = 1.0 + x[1]
+    
+    A[0] = -sm*vertices[0] + sm*vertices[2] - sp*vertices[4] + sp*vertices[6]
+    A[1] = -rm*vertices[0] - rp*vertices[2] + rm*vertices[4] + rp*vertices[6]
+    A[2] = -sm*vertices[1] + sm*vertices[3] - sp*vertices[5] + sp*vertices[7]
+    A[3] = -rm*vertices[1] - rp*vertices[3] + rm*vertices[5] + rp*vertices[7]
+                
+                
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void Q1Function2D(double* fx,
+                              double* x,
+                              double* vertices,
+                              double* phys_x) nogil:
+    cdef int i
+    cdef double rm, rp, sm, sp
+
+    rm = 1.0 - x[0]
+    rp = 1.0 + x[0]
+    sm = 1.0 - x[1]
+    sp = 1.0 + x[1]
+
+    for i in range(2):
+        fx[i] = vertices[0 + i]*rm*sm \
+              + vertices[2 + i]*rp*sm \
+              + vertices[4 + i]*rm*sp \
+              + vertices[6 + i]*rp*sp \
+              - 4.0*phys_x[i]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -469,6 +627,7 @@ def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
 
     return val
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -479,6 +638,24 @@ def test_tri_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
     cdef double val
 
     sampler = P1Sampler2D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
+
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_quad_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                      np.ndarray[np.float64_t, ndim=1] field_values,
+                      np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    sampler = Q1Sampler2D()
 
     val = sampler.sample_at_real_point(<double*> vertices.data,
                                        <double*> field_values.data,

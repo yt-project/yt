@@ -52,6 +52,17 @@ def test_P1Sampler3D():
     check_all_vertices(test_tetra_sampler, vertices, field_values)
 
 
+def test_Q1Sampler2D():
+    vertices = np.array([[0.1,  0.2],
+                         [0.6,  0.3],
+                         [0.2,  0.7],
+                         [0.7,  0.9]])
+
+    field_values = np.array([1.,  2.,  3.,  4.])
+
+    check_all_vertices(test_hex_sampler, vertices, field_values)
+
+
 def test_Q1Sampler3D():
     vertices = np.array([[2.00657905, 0.6888599,  1.4375],
                          [1.8658198,  1.00973171, 1.4375],
