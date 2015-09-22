@@ -455,6 +455,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
+    def plot(self, fields=None):
+        pw = self._get_pw(fields, self.ds.domain_center, self.ds.domain_width,
+                    'native', 'Projection')
+        pw.show()
+        return pw
+
 class YTCoveringGridBase(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
     resolution.  Left edge should align with a cell boundary, but

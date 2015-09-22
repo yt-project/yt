@@ -485,6 +485,27 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
 
+    def argmax(self, field, axis=None):
+        raise NotImplementedError
+
+    def argmin(self, field, axis=None):
+        raise NotImplementedError
+
+    def max(self, field, axis=None):
+        raise NotImplementedError
+
+    def min(self, field, axis=None):
+        raise NotImplementedError
+
+    def std(self, field, weight=None):
+        raise NotImplementedError
+
+    def ptp(self, field):
+        raise NotImplementedError
+
+    def hist(self, field, weight = None, bins = None):
+        raise NotImplementedError
+
     # Numpy-like Operations
     def mean(self, field, axis=None, weight='ones'):
         if axis in self.ds.coordinates.axis_name:
@@ -499,7 +520,23 @@ class YTDataContainer(object):
         return r
 
     def sum(self, field, axis=None):
-        return self.mean(field, axis=axis, weight=None)
+        # Because we're using ``sum`` to specifically mean a sum or a
+        # projection with the method="sum", we do not utilize the ``mean``
+        # function.
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, method="sum")
+        elif axis is None:
+            r = self.quantities.total_quantity(field)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def integrate(self, field, axis=None):
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
 
     @property
     def _hash(self):

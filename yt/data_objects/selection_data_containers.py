@@ -295,6 +295,12 @@ class YTSliceBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Slice')
         return pw
 
+    def plot(self, fields=None):
+        pw = self._get_pw(fields, self.ds.domain_center, self.ds.domain_width,
+                    'native', 'Slice')
+        pw.show()
+        return pw
+
 class YTCuttingPlaneBase(YTSelectionContainer2D):
     """
     This is a data object corresponding to an oblique slice through the
