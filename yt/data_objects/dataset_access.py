@@ -53,6 +53,8 @@ class DatasetAccess(object):
         if not all(isinstance(v, slice) for v in item):
             return self._create_slice(item)
         else:
+            if all(s.start is s.stop is s.step is None for s in item):
+                return self.all_data
             return self._create_region(item)
             
     def _spec_to_value(self, input_tuple):
