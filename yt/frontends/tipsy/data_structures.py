@@ -72,7 +72,7 @@ class TipsyDataset(ParticleDataset):
                  bounding_box=None,
                  units_override=None):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
-        # specify a bounding box which effectively gives a domain_left_edge 
+        # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
@@ -180,7 +180,7 @@ class TipsyDataset(ParticleDataset):
             else:
                 self.domain_left_edge = None
                 self.domain_right_edge = None
-        else: 
+        else:
             bbox = np.array(self.bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
@@ -227,7 +227,6 @@ class TipsyDataset(ParticleDataset):
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
             self.mass_unit = self.quan(mu, 'Msun')
             density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
-
             # If self.comoving is set, we know this is a gasoline data set,
             # and we do the conversion on the hubble constant.
             if self.comoving:
@@ -270,7 +269,7 @@ class TipsyDataset(ParticleDataset):
         '''
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
-        Valid is a boolean that is true if the file is a tipsy file, and endianswap is 
+        Valid is a boolean that is true if the file is a tipsy file, and endianswap is
         the endianness character '>' or '<'.
         '''
         try:
