@@ -4,6 +4,7 @@ import shutil
 import tempfile
 
 from datetime import datetime
+from distutils.version import LooseVersion
 from time import strptime, mktime
 
 MERGED_PR_ENDPOINT = ("http://bitbucket.org/api/2.0/repositories/yt_analysis/"
@@ -18,46 +19,60 @@ def clone_new_repo(source=None):
     dest_repo_path = path+'/yt-backport'
     if source is None:
         source = YT_REPO
-    hglib.clone(source=source, dest=dest_repo_path, updaterev='yt')
+    hglib.clone(source=source, dest=dest_repo_path)
+    with hglib.open(dest_repo_path) as client:
+        # Changesets that are on the yt branch but aren't topological ancestors
+        # of whichever changeset the experimental bookmark is pointing at
+        client.update('heads(branch(yt) - ::bookmark(experimental))')
     return dest_repo_path
 
 
-def get_first_commit_after_release(repo_path):
+def get_first_commit_after_last_major_release(repo_path):
     """Returns the SHA1 hash of the first commit to the yt branch that wasn't
     included in the last tagged release.
     """
     with hglib.open(repo_path) as client:
-        most_recent_tag = client.log("reverse(tag())")[0]
-        tag_name = most_recent_tag[2]
+        tags = client.log("reverse(tag())")
+        tags = sorted([LooseVersion(t[2]) for t in tags])
+        for t in tags[::-1]:
+            if t.version[0:2] != ['yt', '-']:
+                continue
+            if len(t.version) == 4 or t.version[4] == 0:
+                last_major_tag = t
+                break
         last_before_release = client.log(
-            "last(ancestors(%s) and branch(yt))" % tag_name)
+            "last(ancestors(%s) and branch(yt))" % str(last_major_tag))
         first_after_release = client.log(
             "first(descendants(%s) and branch(yt) and not %s)"
             % (last_before_release[0][1], last_before_release[0][1]))
-    return first_after_release[0]
+    return str(first_after_release[0][1][:12])
 
 
-def get_branch_tip(repo_path, branch):
+def get_branch_tip(repo_path, branch, exclude=None):
     """Returns the SHA1 hash of the most recent commit on the given branch"""
+    revset = "head() and branch(%s)" % branch
+    if exclude is not None:
+        revset += "and not %s" % exclude
     with hglib.open(repo_path) as client:
-        change = client.identify(rev=branch, id=True)
-        change.strip('\n')
+        change = client.log(revset)[0][1][:12]
     return change
 
 
 def get_lineage_between_release_and_tip(repo_path, first, last):
     """Returns the lineage of changesets that were at one point the public tip"""
-    fhash = first[1]
     with hglib.open(repo_path) as client:
-        return client.log("%s::%s and p1(%s::%s) + %s"
-                          % (fhash, last, fhash, last, last))
+        lineage = client.log("'%s'::'%s' and p1('%s'::'%s') + '%s'"
+                             % (first, last, first, last, last))
+        return lineage
 
 
-def get_pull_requests_since_last_release(first):
+def get_pull_requests_since_last_release(repo_path):
     """Returns a list of pull requests made since the last tagged release"""
     r = requests.get(MERGED_PR_ENDPOINT)
     done = False
     merged_prs = []
+    with hglib.open(repo_path) as client:
+        last_tag = client.log("reverse(tag())")[0]
     while not done:
         if r.status_code != 200:
             raise RuntimeError
@@ -75,11 +90,10 @@ def get_pull_requests_since_last_release(first):
                     break
             if merge_date is None:
                 break
-            if merge_date < first[6]:
+            if merge_date < last_tag[6]:
+                done = True
                 break
             merged_prs.append(pr)
-        if merge_date is not None and merge_date < first[6]:
-            done = True
         r = requests.get(data['next'])
     return merged_prs
 
@@ -89,6 +103,10 @@ def cache_commit_data(prs):
     commit_data = {}
     for pr in prs:
         data = requests.get(pr['links']['commits']['href']).json()
+        if data.keys() == [u'error']:
+            # this happens when commits have been stripped, e.g.
+            # https://bitbucket.org/yt_analysis/yt/pull-requests/1641
+            continue
         done = False
         commits = []
         while not done:
@@ -119,9 +137,8 @@ def find_commit_in_prs(needle, commit_data, prs):
 def find_merge_commit_in_prs(needle, prs):
     """Find the merge commit `needle` in the list of `prs`
 
-    If found, returns the pr the merge commit comes from. If not found, raises a
-    RuntimeError, since all merge commits are supposed to be associated with a
-    PR.
+    If found, returns the pr the merge commit comes from. If not found, return
+    None
     """
     for pr in prs[::-1]:
         if pr['merge_commit'] is not None:
@@ -152,8 +169,6 @@ def create_commits_to_prs_mapping(linege, prs):
         else:
             pr = find_commit_in_prs(commit, commit_data, my_prs)
             commits_to_prs[cset_hash] = pr
-        if commits_to_prs[cset_hash] is None:
-            continue
     return commits_to_prs
 
 
@@ -181,28 +196,13 @@ def get_last_descendant(repo_path, commit):
         com = client.log('last(%s::)' % commit)
     return com[0][1][:12]
 
-
-def get_no_pr_commits(repo_path, inv_map):
-    """"get a list of commits that aren't in any pull request"""
-    try:
-        no_pr_commits = inv_map[None]
-        del inv_map[None]
-    except KeyError:
-        no_pr_commits = []
+def screen_already_backported(repo_path, inv_map):
     with hglib.open(repo_path) as client:
-        # remove merge commits since they can't be grafted
-        no_pr_commits = [com for com in no_pr_commits if
-                         len(client.log('%s and merge()' % com)) == 0]
-    return no_pr_commits
-
-
-def screen_already_backported(repo_path, inv_map, no_pr_commits):
-    with hglib.open(repo_path) as client:
-        most_recent_tag_name = client.log("reverse(tag())")[0][2]
+        tags = client.log("reverse(tag())")
+        major_tags = [t for t in tags if t[2].endswith('.0')]
+        most_recent_major_tag_name = major_tags[0][2]
         lineage = client.log(
-            "descendants(%s) and branch(stable)" % most_recent_tag_name)
-        for commit in no_pr_commits:
-            lineage.remove(commit)
+            "descendants(%s) and branch(stable)" % most_recent_major_tag_name)
         prs_to_screen = []
         for pr in inv_map:
             for commit in lineage:
@@ -210,7 +210,7 @@ def screen_already_backported(repo_path, inv_map, no_pr_commits):
                     prs_to_screen.append(pr)
         for pr in prs_to_screen:
             del inv_map[pr]
-        return inv_map, no_pr_commits
+        return inv_map
 
 def commit_already_on_stable(repo_path, commit):
     with hglib.open(repo_path) as client:
@@ -223,23 +223,6 @@ def commit_already_on_stable(repo_path, commit):
         if any([commit_info[5] == c[5] for c in lineage]):
             return True
         return False
-
-
-def backport_no_pr_commits(repo_path, no_pr_commits):
-    """backports commits that aren't in a pull request"""
-    for commit in no_pr_commits:
-        with hglib.open(repo_path) as client:
-            client.update('stable')
-            commit_info = client.log(commit)[0]
-            commit_info = (commit_info[1][:12], commit_info[4], commit_info[5])
-            print "Commit %s by %s\n%s" % commit_info
-        print ""
-        print "To backport issue the following command:"
-        print ""
-        print "hg graft %s\n" % commit_info[0]
-        raw_input('Press any key to continue')
-        print ""
-
 
 def backport_pr_commits(repo_path, inv_map, last_stable, prs):
     """backports pull requests to the stable branch.
@@ -301,21 +284,24 @@ if __name__ == "__main__":
     print ""
     repo_path = clone_new_repo()
     try:
-        first_dev = get_first_commit_after_release(repo_path)
-        last_dev = get_branch_tip(repo_path, 'yt')
+        last_major_release = get_first_commit_after_last_major_release(repo_path)
+        last_dev = get_branch_tip(repo_path, 'yt', 'experimental')
         last_stable = get_branch_tip(repo_path, 'stable')
         lineage = get_lineage_between_release_and_tip(
-            repo_path, first_dev, last_dev)
-        prs = get_pull_requests_since_last_release(first_dev)
+            repo_path, last_major_release, last_dev)
+        prs = get_pull_requests_since_last_release(repo_path)
         commits_to_prs = create_commits_to_prs_mapping(lineage, prs)
         inv_map = invert_commits_to_prs_mapping(commits_to_prs)
-        no_pr_commits = get_no_pr_commits(repo_path, inv_map)
-        inv_map, no_pr_commits = \
-            screen_already_backported(repo_path, inv_map, no_pr_commits)
+        # for now, ignore commits that aren't part of a pull request since
+        # the last bugfix release. These are mostly commits in pull requests
+        # from before the last bugfix release but might include commits that
+        # were pushed directly to the repo.
+        del inv_map[None]
+
+        inv_map = screen_already_backported(repo_path, inv_map)
         print "In another terminal window, navigate to the following path:"
         print "%s" % repo_path
         raw_input("Press any key to continue")
-        backport_no_pr_commits(repo_path, no_pr_commits)
         backport_pr_commits(repo_path, inv_map, last_stable, prs)
         raw_input(
             "Now you need to push your backported changes. The temporary\n"
