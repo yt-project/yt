@@ -35,6 +35,26 @@ cdef class ElementSampler:
                              int direction) nogil
 
 
+cdef class P1Sampler2D(ElementSampler):
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x, 
+                               double* vertices,
+                               double* physical_x) nogil
+
+
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil
+
+    cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
+
 cdef class P1Sampler3D(ElementSampler):
 
     cdef void map_real_to_unit(self,

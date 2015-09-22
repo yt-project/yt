@@ -105,6 +105,86 @@ cdef class ElementSampler:
         return val
 
 
+cdef class P1Sampler2D(ElementSampler):
+    '''
+
+    This implements sampling inside a linear, triangular mesh element.
+    This mapping is linear and can be inverted easily.
+
+    '''
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void map_real_to_unit(self, double* mapped_x, 
+                               double* vertices, double* physical_x) nogil:
+    
+        cdef int i
+        cdef double d
+        cdef double[3] bvec
+        cdef double[3] col0
+        cdef double[3] col1
+        cdef double[3] col2
+    
+        col0[0] = vertices[0]
+        col0[1] = vertices[1]
+        col0[2] = 1.0
+    
+        col1[0] = vertices[2]
+        col1[1] = vertices[3]
+        col1[2] = 1.0
+    
+        col2[0] = vertices[4]
+        col2[1] = vertices[5]
+        col2[2] = 1.0
+    
+        det = determinant_3x3(col0, col1, col2)
+    
+        mapped_x[0] = ((vertices[3] - vertices[5])*physical_x[0] + \
+                       (vertices[4] - vertices[2])*physical_x[1] + \
+                       (vertices[2]*vertices[5] - vertices[4]*vertices[3])) / det
+    
+        mapped_x[1] = ((vertices[5] - vertices[1])*physical_x[0] + \
+                       (vertices[0] - vertices[4])*physical_x[1] + \
+                       (vertices[4]*vertices[1] - vertices[0]*vertices[5])) / det
+    
+        mapped_x[2] = 1.0 - mapped_x[1] - mapped_x[0]
+    
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self,
+                                     double* coord, 
+                                     double* vals) nogil:
+        return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        cdef int i
+        for i in range(3):
+            if (mapped_coord[i] < -self.inclusion_tol or
+                mapped_coord[i] - 1.0 > self.inclusion_tol):
+                return 0
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, 
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil:
+
+        if (fabs(mapped_coord[direction]) < tolerance or
+            fabs(mapped_coord[direction] - 1.0) < tolerance):
+            return 1
+        return 0
+
+
 cdef class P1Sampler3D(ElementSampler):
     '''
 
@@ -201,7 +281,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
                                double* physical_x) nogil:
         cdef int i
         cdef double d, val
-        cdef double[3] f
+        cdef double[3] f 
         cdef double[3] r
         cdef double[3] s
         cdef double[3] t
@@ -380,9 +460,25 @@ def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
                        np.ndarray[np.float64_t, ndim=1] physical_x):
 
     cdef double val
-    cdef double[4] mapped_coord
 
     sampler = P1Sampler3D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
+
+    return val
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_tri_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                     np.ndarray[np.float64_t, ndim=1] field_values,
+                     np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    sampler = P1Sampler2D()
 
     val = sampler.sample_at_real_point(<double*> vertices.data,
                                        <double*> field_values.data,

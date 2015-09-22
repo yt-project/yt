@@ -169,7 +169,7 @@ class UnstructuredMesh(YTSelectionContainer):
 
     def select_fcoords_vertex(self, dobj = None):
         mask = self._get_selector_mask(dobj.selector)
-        if mask is None: return np.empty((0,self._connectivity_length,3), dtype='float64')
+        if mask is None: return np.empty((0, self._connectivity_length, 3), dtype='float64')
         vertices = self.connectivity_coords[
                 self.connectivity_indices - 1]
         return vertices[mask, :, :]
