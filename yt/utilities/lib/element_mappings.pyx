@@ -523,7 +523,7 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
         sm = 1.0 - coord[1]
         sp = 1.0 + coord[1]
     
-        F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rp*sp + vals[3]*rm*sp
+        F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rm*sp + vals[3]*rp*sp
         return 0.25*F
 
     @cython.boundscheck(False)

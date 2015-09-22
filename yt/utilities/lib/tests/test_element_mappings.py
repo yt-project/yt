@@ -20,7 +20,8 @@ from yt.testing import assert_almost_equal
 from yt.utilities.lib.element_mappings import \
     test_tetra_sampler, \
     test_hex_sampler, \
-    test_tri_sampler
+    test_tri_sampler, \
+    test_quad_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -60,7 +61,7 @@ def test_Q1Sampler2D():
 
     field_values = np.array([1.,  2.,  3.,  4.])
 
-    check_all_vertices(test_hex_sampler, vertices, field_values)
+    check_all_vertices(test_quad_sampler, vertices, field_values)
 
 
 def test_Q1Sampler3D():
