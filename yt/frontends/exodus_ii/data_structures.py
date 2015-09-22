@@ -108,6 +108,12 @@ class ExodusIIDataset(Dataset):
         self.parameters['nod_names'] = self._get_nod_names()
         self.domain_left_edge = self._load_domain_edge(0)
         self.domain_right_edge = self._load_domain_edge(1)
+
+        # set up psuedo-3D for lodim datasets here
+        if self.dimensionality == 2:
+            self.domain_left_edge = np.append(self.domain_left_edge, 0.0)
+            self.domain_right_edge = np.append(self.domain_right_edge, 1.0)
+
         self.periodicity = (False, False, False)
 
         # These attributes don't really make sense for unstructured
