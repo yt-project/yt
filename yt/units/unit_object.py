@@ -18,7 +18,7 @@ from sympy import \
     Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
 from sympy.core.numbers import One
-from sympy import sympify, latex, symbols
+from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
@@ -32,7 +32,6 @@ from yt.units.unit_registry import UnitRegistry
 from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
-import string
 import token
 
 class UnitParseError(Exception):
