@@ -22,7 +22,9 @@ from yt.utilities.exceptions import YTPixelizeError
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
-    Q1Sampler3D
+    Q1Sampler3D, \
+    P1Sampler2D
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -452,26 +454,33 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
+    cdef int ndim = coords.shape[1]
     cdef int num_field_vals 
     cdef double* mapped_coord
     cdef ElementSampler sampler
 
+    if ndim == 2:
+        assert(buff_size[2] == 1)
+
     # Allocate storage for the mapped coordinate
-    if nvertices == 4:
+    if ndim == 3 and nvertices == 4:
         mapped_coord = <double*> alloca(sizeof(double) * 4)
         sampler = P1Sampler3D()
-    elif nvertices == 8:
+    elif ndim == 3 and nvertices == 8:
         mapped_coord = <double*> alloca(sizeof(double) * 3)
         sampler = Q1Sampler3D()
+    elif ndim == 2 and nvertices == 3:
+        mapped_coord = <double*> alloca(sizeof(double) * 3)
+        sampler = P1Sampler2D()
     else:
         raise RuntimeError
 
-    vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
+    vertices = <np.float64_t *> alloca(ndim * sizeof(np.float64_t) * nvertices)
     
     num_field_vals = field.shape[1]
     field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * num_field_vals)
 
-    for i in range(3):
+    for i in range(ndim):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
         dds[i] = (pRE[i] - pLE[i])/buff_size[i]
@@ -491,19 +500,25 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
         for n in range(nvertices):
             cj = conn[ci, n] - index_offset
-            for i in range(3):
-                vertices[3*n + i] = coords[cj, i]
-                LE[i] = fmin(LE[i], vertices[3*n+i])
-                RE[i] = fmax(RE[i], vertices[3*n+i])
+            for i in range(ndim):
+                vertices[ndim*n + i] = coords[cj, i]
+                LE[i] = fmin(LE[i], vertices[ndim*n+i])
+                RE[i] = fmax(RE[i], vertices[ndim*n+i])
         use = 1
-        for i in range(3):
+        for i in range(ndim):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
                 use = 0
                 break
             pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
             pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+
+        if ndim == 2:
+            pstart[2] = 0
+            pend[2] = 0
+
         if use == 0:
             continue
+
         # Now our bounding box intersects, so we get the extents of our pixel
         # region which overlaps with the bounding box, and we'll check each
         # pixel in there.
