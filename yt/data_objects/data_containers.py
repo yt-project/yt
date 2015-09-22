@@ -485,6 +485,7 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
 
+    # Numpy-like Operations
     def argmax(self, field, axis=None):
         raise NotImplementedError
 
@@ -506,7 +507,6 @@ class YTDataContainer(object):
     def hist(self, field, weight = None, bins = None):
         raise NotImplementedError
 
-    # Numpy-like Operations
     def mean(self, field, axis=None, weight='ones'):
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
@@ -524,7 +524,8 @@ class YTDataContainer(object):
         # projection with the method="sum", we do not utilize the ``mean``
         # function.
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, method="sum")
+            with self._field_parameter_state({'axis':axis}):
+                r = self.ds.proj(field, axis, data_source=self, method="sum")
         elif axis is None:
             r = self.quantities.total_quantity(field)
         else:

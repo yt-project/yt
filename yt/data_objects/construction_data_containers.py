@@ -456,8 +456,21 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         return pw
 
     def plot(self, fields=None):
-        pw = self._get_pw(fields, self.ds.domain_center, self.ds.domain_width,
-                    'native', 'Projection')
+        if hasattr(self.data_source, "left_edge") and \
+            hasattr(self.data_source, "right_edge"):
+            left_edge = self.data_source.left_edge
+            right_edge = self.data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Projection')
         pw.show()
         return pw
 
