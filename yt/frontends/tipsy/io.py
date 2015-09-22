@@ -382,8 +382,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     pos += data_file.total_particles[ptype] * size
             else:
                 aux_fields_offsets[afield].update(
-                    {'DarkMatter': (1, tp["Gas"] + tp["Stars"]),
-                     'Gas': (1 + tp["DarkMatter"], tp["Stars"]),
+                    {'Gas': (1, tp["DarkMatter"] + tp["Stars"]),
+                     'DarkMatter': (1 + tp["Gas"], tp["Stars"]),
                      'Stars': (1 + tp["DarkMatter"] + tp["Gas"], 0)}
                 )
         return aux_fields_offsets
