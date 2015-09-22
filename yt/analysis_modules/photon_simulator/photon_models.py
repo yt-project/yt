@@ -200,14 +200,18 @@ class ThermalPhotonModel(PhotonModel):
                 for cn, Z in zip(number_of_photons[ibegin:iend], metalZ[ibegin:iend]):
                     if cn == 0: continue
                     if self.method == "invert_cdf":
-                        cumspec = cumspec_c + Z*cumspec_m
-                        cumspec /= cumspec[-1]
+                        cumspec = cumspec_c
+                        cumspec += Z * cumspec_m
+                        norm_factor = 1.0 / cumspec[-1]
+                        cumspec *= norm_factor
                         randvec = np.random.uniform(size=cn)
                         randvec.sort()
                         cell_e = np.interp(randvec, cumspec, ebins)
                     elif self.method == "accept_reject":
-                        tot_spec = cspec.d+Z*mspec.d
-                        tot_spec /= tot_spec.sum()
+                        tot_spec = cspec.d
+                        tot_spec += Z * mspec.d
+                        norm_factor = 1.0 / tot_spec.sum()
+                        tot_spec *= norm_factor
                         eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
                     energies[ei:ei+cn] = cell_e
