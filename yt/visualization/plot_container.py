@@ -52,6 +52,7 @@ def invalidate_figure(f):
             args[0].plots[field].figure = None
             args[0].plots[field].axes = None
             args[0].plots[field].cax = None
+        args[0]._setup_plots()
         return rv
     return newfunc
 
