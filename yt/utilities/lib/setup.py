@@ -113,7 +113,8 @@ def configuration(parent_package='',top_path=None):
                include_dirs=["yt/utilities/lib/"],
                language="c++",
                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
-                                   "yt/utilities/lib/pixelization_constants.h"])
+                                         "yt/utilities/lib/pixelization_constants.h",
+                                         "yt/utilities/lib/element_mappings.pxd"])
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -173,7 +174,7 @@ def configuration(parent_package='',top_path=None):
                              ["yt/utilities/lib/mesh_construction.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
-                             depends=[])
+                             depends=["yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("mesh_traversal",
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
@@ -183,7 +184,8 @@ def configuration(parent_package='',top_path=None):
                              ["yt/utilities/lib/mesh_samplers.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
-                             depends=["yt/utilities/lib/mesh_samplers.pxd"])
+                             depends=["yt/utilities/lib/mesh_samplers.pxd",
+                                      "yt/utilities/lib/element_mappings.pxd"])
         config.add_extension("mesh_intersection",
                              ["yt/utilities/lib/mesh_intersection.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
