@@ -14,7 +14,11 @@ Tipsy tests using the AGORA dataset
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import assert_equal, requires_file
+from collections import OrderedDict
+
+from yt.testing import \
+    assert_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -92,12 +96,15 @@ def test_gasoline_dmonly():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
 
-tg_fields = (
-    ('gas', 'density'),
-    ('gas', 'temperature'),
-    ('gas', 'velocity_magnitude'),
-    ('gas', 'Fe_fraction'),
-    ('Stars', 'Metals'),
+tg_fields = OrderedDict(
+    [
+        (('gas', 'density'), None),
+        (('gas', 'temperature'), None),
+        (('gas', 'temperature'), ('gas', 'density')),
+        (('gas', 'velocity_magnitude'), None),
+        (('gas', 'Fe_fraction'), None),
+        (('Stars', 'Metals'), None),
+    ]
 )
 
 tipsy_gal = 'TipsyGalaxy/galaxy.00300'
@@ -105,7 +112,7 @@ tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 def test_tipsy_galaxy():
     for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
         yield test
-        
+
 @requires_file(gasoline_dmonly)
 @requires_file(pkdgrav)
 def test_TipsyDataset():
