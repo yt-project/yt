@@ -523,7 +523,7 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
         sm = 1.0 - coord[1]
         sp = 1.0 + coord[1]
     
-        F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rm*sp + vals[3]*rp*sp
+        F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rp*sp + vals[3]*rm*sp
         return 0.25*F
 
     @cython.boundscheck(False)
@@ -563,12 +563,12 @@ cdef inline void Q1Jacobian2D(double* A,
     rp = 1.0 + x[0]
     sm = 1.0 - x[1]
     sp = 1.0 + x[1]
+
+    A[0] = -sm*vertices[0] + sm*vertices[2] + sp*vertices[4] - sp*vertices[6]
+    A[1] = -rm*vertices[0] - rp*vertices[2] + rp*vertices[4] + rm*vertices[6]
+    A[2] = -sm*vertices[1] + sm*vertices[3] + sp*vertices[5] - sp*vertices[7]
+    A[3] = -rm*vertices[1] - rp*vertices[3] + rp*vertices[5] + rm*vertices[7]
     
-    A[0] = -sm*vertices[0] + sm*vertices[2] - sp*vertices[4] + sp*vertices[6]
-    A[1] = -rm*vertices[0] - rp*vertices[2] + rm*vertices[4] + rp*vertices[6]
-    A[2] = -sm*vertices[1] + sm*vertices[3] - sp*vertices[5] + sp*vertices[7]
-    A[3] = -rm*vertices[1] - rp*vertices[3] + rm*vertices[5] + rp*vertices[7]
-                
                 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -588,8 +588,8 @@ cdef inline void Q1Function2D(double* fx,
     for i in range(2):
         fx[i] = vertices[0 + i]*rm*sm \
               + vertices[2 + i]*rp*sm \
-              + vertices[4 + i]*rm*sp \
-              + vertices[6 + i]*rp*sp \
+              + vertices[4 + i]*rp*sp \
+              + vertices[6 + i]*rm*sp \
               - 4.0*phys_x[i]
 
 

@@ -54,10 +54,11 @@ def test_P1Sampler3D():
 
 
 def test_Q1Sampler2D():
-    vertices = np.array([[0.1,  0.2],
-                         [0.6,  0.3],
-                         [0.2,  0.7],
-                         [0.7,  0.9]])
+
+    vertices = np.array([[0.1, 0.2],
+                         [0.6, 0.3],
+                         [0.7, 0.9],
+                         [0.2, 0.7]])
 
     field_values = np.array([1.,  2.,  3.,  4.])
 

@@ -23,7 +23,8 @@ from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
     Q1Sampler3D, \
-    P1Sampler2D
+    P1Sampler2D, \
+    Q1Sampler2D
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -472,6 +473,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     elif ndim == 2 and nvertices == 3:
         mapped_coord = <double*> alloca(sizeof(double) * 3)
         sampler = P1Sampler2D()
+    elif ndim == 2 and nvertices == 4:
+        mapped_coord = <double*> alloca(sizeof(double) * 2)
+        sampler = Q1Sampler2D()
     else:
         raise RuntimeError
 
