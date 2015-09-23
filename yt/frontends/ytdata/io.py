@@ -30,6 +30,37 @@ from yt.utilities.io_handler import \
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 
+class IOHandlerYTProfileHDF5(BaseIOHandler):
+    _dataset_type = "ytprofilehdf5"
+    _base = slice(None)
+    _field_dtype = "float64"
+
+    def _read_fluid_selection(self, g, selector, fields):
+        rv = {}
+        if selector.__class__.__name__ == "GridSelector":
+            if g.id in self._cached_fields:
+                gf = self._cached_fields[g.id]
+                rv.update(gf)
+            if len(rv) == len(fields): return rv
+            f = h5py.File(u(g.filename), "r")
+            gds = f["data"]
+            for field in fields:
+                if field in rv:
+                    self._hits += 1
+                    continue
+                self._misses += 1
+                ftype, fname = field
+                rv[(ftype, fname)] = gds[fname].value
+            if self._cache_on:
+                for gid in rv:
+                    self._cached_fields.setdefault(gid, {})
+                    self._cached_fields[gid].update(rv[gid])
+            f.close()
+            return rv
+        else:
+            raise RuntimeError(
+                "Geometric selection not supported for non-spatial datasets.")
+
 class IOHandlerYTGridHDF5(BaseIOHandler):
     _dataset_type = "ytgridhdf5"
     _base = slice(None)
@@ -48,7 +79,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 rv.update(gf)
             if len(rv) == len(fields): return rv
             f = h5py.File(u(g.filename), "r")
-            gds = f["grid"]
+            gds = f[self.ds.default_fluid_type]
             for field in fields:
                 if field in rv:
                     self._hits += 1

@@ -14,6 +14,8 @@ Data structures for YTData frontend.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from collections import \
+    defaultdict
 import h5py
 from numbers import \
     Number as numeric_type
@@ -41,7 +43,10 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.logger import \
     ytLogger as mylog
-from yt.utilities.cosmology import Cosmology
+from yt.utilities.cosmology import \
+    Cosmology
+from yt.utilities.exceptions import \
+    YTFieldTypeNotFound
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
     YTArray, \
@@ -144,8 +149,8 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
 
 class YTGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, index, filename=None):
-        AMRGridPatch.__init__(self, id, filename=filename, index=index)
+    def __init__(self, gid, index, filename=None):
+        AMRGridPatch.__init__(self, gid, filename=filename, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = 0
@@ -153,7 +158,7 @@ class YTGrid(AMRGridPatch):
         self.RightEdge = self.index.ds.domain_right_edge
 
     def __getitem__(self, key):
-        tr = super(YTGrid, self).__getitem__(key)
+        tr = super(AMRGridPatch, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -192,9 +197,9 @@ class YTGridHierarchy(GridIndex):
         self.grid_procs = np.zeros(self.num_grids)
         self.grid_particle_count[:] = sum(self.ds.num_particles.values())
         self.grids = []
-        for id in range(self.num_grids):
-            self.grids.append(self.grid(id, self))
-            self.grids[id].Level = self.grid_levels[id, 0]
+        for gid in range(self.num_grids):
+            self.grids.append(self.grid(gid, self))
+            self.grids[gid].Level = self.grid_levels[gid, 0]
         self.max_level = self.grid_levels.max()
         temp_grids = np.empty(self.num_grids, dtype='object')
         for i, grid in enumerate(self.grids):
@@ -311,5 +316,227 @@ class YTGridDataset(Dataset):
             if data_type == "yt_data_container" and \
               f.attrs.get("container_type", None) in \
               _grid_data_containers:
+                return True
+        return False
+
+class YTNonSpatialGrid(AMRGridPatch):
+    _id_offset = 0
+    def __init__(self, gid, index, filename=None):
+        AMRGridPatch.__init__(self, gid, filename=filename, index=index)
+        self._children_ids = []
+        self._parent_id = -1
+        self.Level = 0
+        self.LeftEdge = self.index.ds.domain_left_edge
+        self.RightEdge = self.index.ds.domain_right_edge
+
+    def __getitem__(self, key):
+        tr = super(AMRGridPatch, self).__getitem__(key)
+        try:
+            fields = self._determine_fields(key)
+        except YTFieldTypeNotFound:
+            return tr
+        finfo = self.ds._get_field_info(*fields[0])
+        return tr
+
+    def get_data(self, fields=None):
+        if fields is None: return
+        nfields = []
+        apply_fields = defaultdict(list)
+        for field in self._determine_fields(fields):
+            if field[0] in self.ds.filtered_particle_types:
+                f = self.ds.known_filters[field[0]]
+                apply_fields[field[0]].append(
+                    (f.filtered_type, field[1]))
+            else:
+                nfields.append(field)
+        for filter_type in apply_fields:
+            f = self.ds.known_filters[filter_type]
+            with f.apply(self):
+                self.get_data(apply_fields[filter_type])
+        fields = nfields
+        if len(fields) == 0: return
+        # Now we collect all our fields
+        # Here is where we need to perform a validation step, so that if we
+        # have a field requested that we actually *can't* yet get, we put it
+        # off until the end.  This prevents double-reading fields that will
+        # need to be used in spatial fields later on.
+        fields_to_get = []
+        # This will be pre-populated with spatial fields
+        fields_to_generate = []
+        for field in self._determine_fields(fields):
+            if field in self.field_data: continue
+            finfo = self.ds._get_field_info(*field)
+            try:
+                finfo.check_available(self)
+            except NeedsGridType:
+                fields_to_generate.append(field)
+                continue
+            fields_to_get.append(field)
+        if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
+            return
+        elif self._locked == True:
+            raise GenerationInProgress(fields)
+        # Track which ones we want in the end
+        ofields = set(list(self.field_data.keys())
+                    + fields_to_get
+                    + fields_to_generate)
+        # At this point, we want to figure out *all* our dependencies.
+        fields_to_get = self._identify_dependencies(fields_to_get,
+            self._spatial)
+        # We now split up into readers for the types of fields
+        fluids, particles = [], []
+        finfos = {}
+        for ftype, fname in fields_to_get:
+            finfo = self.ds._get_field_info(ftype, fname)
+            finfos[ftype, fname] = finfo
+            if finfo.particle_type:
+                particles.append((ftype, fname))
+            elif (ftype, fname) not in fluids:
+                fluids.append((ftype, fname))
+        # The _read method will figure out which fields it needs to get from
+        # disk, and return a dict of those fields along with the fields that
+        # need to be generated.
+        read_fluids, gen_fluids = self.index._read_fluid_fields(
+                                        fluids, self, self._current_chunk)
+        for f, v in read_fluids.items():
+            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f].convert_to_units(finfos[f].output_units)
+
+        read_particles, gen_particles = self.index._read_particle_fields(
+                                        particles, self, self._current_chunk)
+        for f, v in read_particles.items():
+            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f].convert_to_units(finfos[f].output_units)
+
+        fields_to_generate += gen_fluids + gen_particles
+        self._generate_fields(fields_to_generate)
+        for field in list(self.field_data.keys()):
+            if field not in ofields:
+                self.field_data.pop(field)
+
+class YTNonSpatialHierarchy(GridIndex):
+    grid = YTNonSpatialGrid
+
+    def __init__(self, ds, dataset_type = None):
+        self.dataset_type = dataset_type
+        self.float_type = 'float64'
+        self.dataset = weakref.proxy(ds)
+        self.directory = os.getcwd()
+        GridIndex.__init__(self, ds, dataset_type)
+
+    def _count_grids(self):
+        self.num_grids = 1
+
+    def _parse_index(self):
+        self.grid_dimensions[:] = self.ds.domain_dimensions
+        self.grid_left_edge[:] = self.ds.domain_left_edge
+        self.grid_right_edge[:] = self.ds.domain_right_edge
+        self.grid_levels[:] = np.zeros(self.num_grids)
+        self.grid_procs = np.zeros(self.num_grids)
+        self.grid_particle_count[:] = sum(self.ds.num_particles.values())
+        self.grids = []
+        for gid in range(self.num_grids):
+            self.grids.append(self.grid(gid, self))
+            self.grids[gid].Level = self.grid_levels[gid, 0]
+        self.max_level = self.grid_levels.max()
+        temp_grids = np.empty(self.num_grids, dtype='object')
+        for i, grid in enumerate(self.grids):
+            grid.filename = self.ds.parameter_filename
+            grid._prepare_grid()
+            grid.proc_num = self.grid_procs[i]
+            temp_grids[i] = grid
+        self.grids = temp_grids
+
+    def _populate_grid_objects(self):
+        self.max_level = self.grid_levels.max()
+
+    def _detect_output_fields(self):
+        self.field_list = []
+        self.ds.field_units = self.ds.field_units or {}
+        with h5py.File(self.ds.parameter_filename, "r") as f:
+            for group in f:
+                for field in f[group]:
+                    field_name = (str(group), str(field))
+                    self.field_list.append(field_name)
+                    self.ds.field_units[field_name] = \
+                      f[group][field].attrs["units"]
+
+    def _read_fluid_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        selector = dobj.selector
+        fields_to_return = self.io._read_fluid_selection(
+            dobj,
+            selector,
+            fields_to_read)
+        return fields_to_return, fields_to_generate
+
+class YTProfileDataset(YTGridDataset):
+    _index_class = YTNonSpatialHierarchy
+    _field_info_class = YTGridFieldInfo
+    _dataset_type = 'ytprofilehdf5'
+    geometry = "cartesian"
+    default_fluid_type = "data"
+    fluid_types = ("data")
+
+    def __init__(self, filename):
+        super(YTProfileDataset, self).__init__(filename)
+
+        self.data = YTNonSpatialGrid(0, self.index, self.parameter_filename)
+
+    def _parse_parameter_file(self):
+        self.refine_by = 2
+        self.unique_identifier = time.time()
+        with h5py.File(self.parameter_filename, "r") as f:
+            for attr, value in f.attrs.items():
+                setattr(self, attr, value)
+            self.num_particles = \
+              dict([(group, f[group].attrs["num_elements"])
+                    for group in f if group != self.default_fluid_type])
+        self.particle_types_raw = tuple(self.num_particles.keys())
+        self.particle_types = self.particle_types_raw
+
+        self.base_domain_left_edge = self.domain_left_edge
+        self.base_domain_right_edge = self.domain_right_edge
+        self.base_domain_dimensions = self.domain_dimensions
+
+    def __repr__(self):
+        return "ytProfile: %s" % self.parameter_filename
+
+    def create_field_info(self):
+        self.field_info = self._field_info_class(self, self.field_list)
+        for ftype, field in self.field_list:
+            if ftype == self.default_fluid_type:
+                self.field_info.alias(
+                    ("gas", field),
+                    (self.default_fluid_type, field))
+        super(YTGridDataset, self).create_field_info()
+
+    def _set_code_unit_attributes(self):
+        attrs = ('length_unit', 'mass_unit', 'time_unit',
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        base_units = np.ones(len(attrs))
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if isinstance(unit, string_types):
+                uq = self.quan(1.0, unit)
+            elif isinstance(unit, numeric_type):
+                uq = self.quan(unit, cgs_unit)
+            elif isinstance(unit, YTQuantity):
+                uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+            setattr(self, attr, uq)
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_profile":
                 return True
         return False
