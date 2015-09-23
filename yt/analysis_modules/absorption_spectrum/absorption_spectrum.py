@@ -131,7 +131,9 @@ class AbsorptionSpectrum(object):
         field_data = {}
         if use_peculiar_velocity:
             input_fields.append('velocity_los')
+            input_fields.append('redshift_eff')
             field_units["velocity_los"] = "cm/s"
+            field_units["redshift_eff"] = ""
         for feature in self.line_list + self.continuum_list:
             if not feature['field_name'] in input_fields:
                 input_fields.append(feature['field_name'])
@@ -170,11 +172,11 @@ class AbsorptionSpectrum(object):
 
         for continuum in self.continuum_list:
             column_density = field_data[continuum['field_name']] * field_data['dl']
-            delta_lambda = continuum['wavelength'] * field_data['redshift']
+            # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
-                # include factor of (1 + z) because our velocity is in proper frame.
-                delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['velocity_los'] / speed_of_light_cgs
+                delta_lambda = continuum['wavelength'] * field_data['redshift_eff']
+            else:
+                delta_lambda = continuum['wavelength'] * field_data['redshift']
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
@@ -207,11 +209,11 @@ class AbsorptionSpectrum(object):
 
         for line in self.line_list:
             column_density = field_data[line['field_name']] * field_data['dl']
-            delta_lambda = line['wavelength'] * field_data['redshift']
+            # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
-                # include factor of (1 + z) because our velocity is in proper frame.
-                delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['velocity_los'] / speed_of_light_cgs
+                delta_lambda = line['wavelength'] * field_data['redshift_eff']
+            else:
+                delta_lambda = line['wavelength'] * field_data['redshift']
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
                                   field_data['temperature']) /
                                   line['atomic_mass'])
