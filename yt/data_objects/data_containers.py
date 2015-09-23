@@ -492,11 +492,49 @@ class YTDataContainer(object):
     def argmin(self, field, axis=None):
         raise NotImplementedError
 
+    def _compute_extrema(self, field):
+        if self._extrema_cache is None:
+            self._extrema_cache = {}
+        if field not in self._extrema_cache:
+            # Note we still need to call extrema for each field, as of right
+            # now
+            mi, ma = self.quantities.extrema(field)
+            self._extrema_cache[field] = (mi, ma)
+        return self._extrema_cache[field]
+
+    _extrema_cache = None
     def max(self, field, axis=None):
-        raise NotImplementedError
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in fields:
+                rv += (self._compute_extrema(f)[1],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+        elif axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, method="mip")
+            return r
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
 
     def min(self, field, axis=None):
-        raise NotImplementedError
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in ensure_list(fields):
+                rv += (self._compute_extrema(f)[0],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+            return rv
+        elif axis in self.ds.coordinates.axis_name:
+            raise NotImplementedError("Minimum intensity projection not"
+                                      " implemented.")
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
 
     def std(self, field, weight=None):
         raise NotImplementedError

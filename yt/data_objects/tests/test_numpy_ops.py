@@ -1,4 +1,4 @@
-from yt.testing import fake_random_ds, assert_equal
+from yt.testing import fake_random_ds, fake_amr_ds, assert_equal
 import numpy as np
 
 
@@ -7,10 +7,12 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-def test_mean_and_sum():
-    for nprocs in [1]:
-        ds = fake_random_ds(16, nprocs=nprocs,
-                            fields=("density",))
+def test_mean_sum_integrate():
+    for nprocs in [-1, 1, 2, 16]:
+        if nprocs == -1:
+            ds = fake_amr_ds(fields=("density",))
+        else:
+            ds = fake_random_ds(32, nprocs=nprocs, fields=("density",))
         ad = ds.all_data()
 
         # Sums
@@ -36,7 +38,7 @@ def test_mean_and_sum():
         # Projections
         p = ad.sum('density', axis=0)
 
-        p1 = ds.proj('density', 0, data_source=ad)
+        p1 = ds.proj('density', 0, data_source=ad, method="sum")
 
         yield assert_equal, p['density'], p1['density']
 
@@ -45,6 +47,50 @@ def test_mean_and_sum():
 
         yield assert_equal, p['density'], p1['density']
 
+        # Now we check proper projections
+        p = ad.integrate("density", axis=0)
+        p1 = ds.proj("density", 0, data_source=ad)
+
+        yield assert_equal, p['density'], p1['density']
+
+        # Check by axis-name
+        p = ad.integrate('density', axis='x')
+
+        yield assert_equal, p['density'], p1['density']
+
+def test_min_max():
+    for nprocs in [-1, 1, 2, 16]:
+        if nprocs == -1:
+            ds = fake_amr_ds(fields=("density","temperature"))
+        else:
+            ds = fake_random_ds(32, nprocs=nprocs,
+                fields=("density","temperature"))
+
+        ad = ds.all_data()
+
+        q = ad.min("density").v
+        yield assert_equal, q, ad["density"].min()
+
+        q = ad.max("density").v
+        yield assert_equal, q, ad["density"].max()
+
+        p = ad.max("density", axis=1)
+        p1 = ds.proj("density", 1, data_source=ad, method="mip")
+        yield assert_equal, p["density"], p1["density"]
+
+        p = ad.max("density", axis="y")
+        p1 = ds.proj("density", 1, data_source=ad, method="mip")
+        yield assert_equal, p["density"], p1["density"]
+
+        # Test that we can get multiple in a single pass
+
+        qrho, qtemp = ad.max(["density", "temperature"])
+        yield assert_equal, qrho, ad["density"].max()
+        yield assert_equal, qtemp, ad["temperature"].max()
+
+        qrho, qtemp = ad.min(["density", "temperature"])
+        yield assert_equal, qrho, ad["density"].min()
+        yield assert_equal, qtemp, ad["temperature"].min()
 
 if __name__ == "__main__":
     for args in test_mean_and_sum():
