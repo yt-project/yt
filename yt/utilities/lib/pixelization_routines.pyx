@@ -443,7 +443,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
     # Second is more intensive.  It will convert the element vertices to the
-    # mapped coordinate system, and checking whether the result in in-bounds or not
+    # mapped coordinate system, and check whether the result in in-bounds or not
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
     cdef np.float64_t pLE[3], pRE[3]
@@ -456,34 +456,30 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
     cdef int ndim = coords.shape[1]
-    cdef int num_field_vals 
+    cdef int num_field_vals = field.shape[1]
     cdef double* mapped_coord
+    cdef int num_mapped_coords
     cdef ElementSampler sampler
 
-    if ndim == 2:
-        assert(buff_size[2] == 1)
-
-    # Allocate storage for the mapped coordinate
+    # Pick the right sampler and allocate storage for the mapped coordinate
     if ndim == 3 and nvertices == 4:
-        mapped_coord = <double*> alloca(sizeof(double) * 4)
         sampler = P1Sampler3D()
     elif ndim == 3 and nvertices == 8:
-        mapped_coord = <double*> alloca(sizeof(double) * 3)
         sampler = Q1Sampler3D()
     elif ndim == 2 and nvertices == 3:
-        mapped_coord = <double*> alloca(sizeof(double) * 3)
         sampler = P1Sampler2D()
     elif ndim == 2 and nvertices == 4:
-        mapped_coord = <double*> alloca(sizeof(double) * 2)
         sampler = Q1Sampler2D()
     else:
         raise RuntimeError
 
+    # allocate temporary storage
+    num_mapped_coords = sampler.num_mapped_coords
+    mapped_coord = <double*> alloca(sizeof(double) * num_mapped_coords)
     vertices = <np.float64_t *> alloca(ndim * sizeof(np.float64_t) * nvertices)
-    
-    num_field_vals = field.shape[1]
     field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * num_field_vals)
 
+    # fill the image bounds and pixel size informaton here
     for i in range(ndim):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -508,6 +504,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                 vertices[ndim*n + i] = coords[cj, i]
                 LE[i] = fmin(LE[i], vertices[ndim*n+i])
                 RE[i] = fmax(RE[i], vertices[ndim*n+i])
+
         use = 1
         for i in range(ndim):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
@@ -516,16 +513,19 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
             pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
 
-        if ndim == 2:
-            pstart[2] = 0
-            pend[2] = 0
-
         if use == 0:
             continue
 
         # Now our bounding box intersects, so we get the extents of our pixel
         # region which overlaps with the bounding box, and we'll check each
         # pixel in there.
+
+        # if we are in 2D land, the 1 cell thick dimension had better be 'z'
+        if ndim == 2:
+            assert(buff_size[2] == 1)
+            pstart[2] = 0
+            pend[2] = 0
+
         for pi in range(pstart[0], pend[0] + 1):
             ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
             for pj in range(pstart[1], pend[1] + 1):

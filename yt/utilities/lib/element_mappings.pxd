@@ -10,6 +10,7 @@ cdef class ElementSampler:
     # to get counted as "inside". This is in the
     # mapped coordinates of the element.
     cdef np.float64_t inclusion_tol
+    cdef int num_mapped_coords
 
     cdef void map_real_to_unit(self,
                                double* mapped_x, 

@@ -113,6 +113,10 @@ cdef class P1Sampler2D(ElementSampler):
 
     '''
 
+    def __init__(self):
+        super(P1Sampler2D, self).__init__()
+        self.num_mapped_coords = 3
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -193,6 +197,10 @@ cdef class P1Sampler3D(ElementSampler):
 
     '''
 
+
+    def __init__(self):
+        super(P1Sampler3D, self).__init__()
+        self.num_mapped_coords = 4
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -328,6 +336,7 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
 
     def __init__(self):
         super(Q1Sampler3D, self).__init__()
+        self.num_mapped_coords = 3
         self.dim = 3
         self.func = Q1Function3D
         self.jac = Q1Jacobian3D
@@ -508,6 +517,7 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
 
     def __init__(self):
         super(Q1Sampler2D, self).__init__()
+        self.num_mapped_coords = 2
         self.dim = 2
         self.func = Q1Function2D
         self.jac = Q1Jacobian2D
