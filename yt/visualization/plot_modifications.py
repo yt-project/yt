@@ -35,7 +35,7 @@ from yt.utilities.physical_constants import \
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.utilities.lib.pixelization_routines import draw_mesh_lines
+from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
      import periodic_ray
 import warnings
@@ -1567,10 +1567,15 @@ class MeshLinesCallback(PlotCallback):
         bounds = np.reshape(bounds, (3, 2))
 
         # draw the mesh lines by marking where the mapped
-        # coordinate is close to the domain edge
-        img = draw_mesh_lines(coords, indices,
-                              buff_size, bounds,
-                              self.thresh, offset)
+        # coordinate is close to the domain edge. We do this by
+        # calling the pixelizer with a dummy field and passing in
+        # a non-negative thresh.
+        dummy_field = np.zeros(indices.shape, dtype=np.float64)
+        img = pixelize_element_mesh(coords, indices,
+                                    buff_size,
+                                    dummy_field,
+                                    bounds,
+                                    offset, self.thresh)
         img = np.squeeze(np.transpose(img, (yax, xax, ax)))
 
         # convert to RGBA 
