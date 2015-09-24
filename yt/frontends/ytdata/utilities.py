@@ -96,12 +96,14 @@ def to_yt_dataset(ds, filename, data, field_types=None,
             continue
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
+            fh.attrs["%s_units" % attr] = str(my_val.units)
         fh.attrs[attr] = my_val
 
     for attr in extra_attrs:
         my_val = extra_attrs[attr]
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
+            fh.attrs["%s_units" % attr] = str(my_val.units)
         if my_val is None:
             my_val = "None"
         fh.attrs[attr] = my_val
