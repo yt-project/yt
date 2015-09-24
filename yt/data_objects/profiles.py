@@ -1000,7 +1000,10 @@ class ProfileND(ParallelAnalysisInterface):
                 dimensionality += 1
                 data[ax] = getattr(self, ax)
                 bin_data.append(data[ax])
-                data["%s_bins" % ax] = getattr(self, "%s_bins" % ax)
+                bin_field_name = "%s_bins" % ax
+                data[bin_field_name] = getattr(self, bin_field_name)
+                extra_attrs["%s_range" % ax] = self.ds.arr([data[bin_field_name][0],
+                                                            data[bin_field_name][-1]])
                 for arg in args:
                     key = "%s_%s" % (ax, arg)
                     extra_attrs[key] = getattr(self, key)
