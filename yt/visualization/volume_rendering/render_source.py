@@ -368,6 +368,8 @@ class MeshSource(OpaqueSource):
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap(cmap=cmap,
                                                  color_bounds=color_bounds)
+        self.zbuffer = ZBuffer(self.current_image, self.sampler.zbuffer)
+
         return self.current_image
 
     def annotate_mesh_lines(self, color=None, alpha=255):
