@@ -37,6 +37,8 @@ def check_for_openmp():
 
         # Clean up
         file.close()
+    except OSError:
+        return False
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
