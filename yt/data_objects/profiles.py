@@ -986,21 +986,28 @@ class ProfileND(ParallelAnalysisInterface):
         filename = get_output_filename(filename, keyword, ".h5")
 
         args = ("field", "log")
-        extra_attrs = {"data_type": "yt_profile"}
+        extra_attrs = {"data_type": "yt_profile",
+                       "profile_dimensions": self.size}
         data = {}
         data.update(self.field_data)
         data["weight"] = self.weight
-        data["used"] = self.used
+        data["used"] = self.used.astype("float64")
 
         dimensionality = 0
+        bin_data = []
         for ax in "xyz":
             if hasattr(self, ax):
                 dimensionality += 1
                 data[ax] = getattr(self, ax)
+                bin_data.append(data[ax])
                 data["%s_bins" % ax] = getattr(self, "%s_bins" % ax)
                 for arg in args:
                     key = "%s_%s" % (ax, arg)
                     extra_attrs[key] = getattr(self, key)
+
+        bin_fields = np.meshgrid(*bin_data)
+        for i, ax in enumerate("xyz"[:dimensionality]):
+            data[getattr(self, "%s_field" % ax)] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
         ftypes = dict([(field, "data") for field in data])
