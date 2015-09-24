@@ -47,9 +47,9 @@ from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
 from yt.units.yt_array import \
-    YTArray, \
     YTQuantity
 
 _grid_data_containers = ["abritrary_grid",
@@ -319,15 +319,18 @@ class YTGridDataset(Dataset):
                 return True
         return False
 
-class YTNonSpatialGrid(AMRGridPatch):
+class YTNonspatialGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, gid, index, filename=None):
-        AMRGridPatch.__init__(self, gid, filename=filename, index=index)
+        super(YTNonspatialGrid, self).__init__(gid, filename=filename, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = 0
         self.LeftEdge = self.index.ds.domain_left_edge
         self.RightEdge = self.index.ds.domain_right_edge
+
+    def __repr__(self):
+        return "YTNonspatialGrid"
 
     def __getitem__(self, key):
         tr = super(AMRGridPatch, self).__getitem__(key)
@@ -414,8 +417,16 @@ class YTNonSpatialGrid(AMRGridPatch):
             if field not in ofields:
                 self.field_data.pop(field)
 
-class YTNonSpatialHierarchy(GridIndex):
-    grid = YTNonSpatialGrid
+    @property
+    def Parent(self):
+        return None
+
+    @property
+    def Children(self):
+        return []
+
+class YTNonspatialHierarchy(GridIndex):
+    grid = YTNonspatialGrid
 
     def __init__(self, ds, dataset_type = None):
         self.dataset_type = dataset_type
@@ -448,6 +459,11 @@ class YTNonSpatialHierarchy(GridIndex):
         self.grids = temp_grids
 
     def _populate_grid_objects(self):
+        for g in self.grids:
+            g._setup_dx()
+            # this is non-spatial, so remove the code_length units
+            g.dds = self.ds.arr(g.dds.d, "")
+            g.ActiveDimensions = self.ds.domain_dimensions
         self.max_level = self.grid_levels.max()
 
     def _detect_output_fields(self):
@@ -474,17 +490,16 @@ class YTNonSpatialHierarchy(GridIndex):
         return fields_to_return, fields_to_generate
 
 class YTProfileDataset(YTGridDataset):
-    _index_class = YTNonSpatialHierarchy
+    _index_class = YTNonspatialHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = 'ytprofilehdf5'
     geometry = "cartesian"
     default_fluid_type = "data"
-    fluid_types = ("data")
+    fluid_types = ("data", "gas")
 
     def __init__(self, filename):
         super(YTProfileDataset, self).__init__(filename)
-
-        self.data = YTNonSpatialGrid(0, self.index, self.parameter_filename)
+        self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
         self.refine_by = 2
@@ -498,39 +513,50 @@ class YTProfileDataset(YTGridDataset):
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
 
+    def _set_derived_attrs(self):
         self.base_domain_left_edge = self.domain_left_edge
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
+
+        self.domain_dimensions = np.ones(3, dtype="int")
+        self.domain_dimensions[:self.dimensionality] = self.profile_dimensions
+        self.domain_left_edge = np.zeros(3)
+        self.domain_right_edge = np.ones(3)
+        for i, ax in enumerate("xyz"[:self.dimensionality]):
+            range_name = "%s_range" % ax
+            my_edge = getattr(self, range_name)
+            if getattr(self, "%s_log" % ax, False):
+                my_edge = np.log10(my_edge)
+            self.domain_left_edge[i] = my_edge[0]
+            self.domain_right_edge[i] = my_edge[1]
+            setattr(self, range_name,
+                    self.arr(getattr(self, range_name),
+                             getattr(self, range_name+"_units")))
+        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - self.domain_left_edge
+
+    def _setup_classes(self):
+        # We don't allow geometric selection for non-spatial datasets
+        pass
+
+    @parallel_root_only
+    def print_key_parameters(self):
+        mylog.info("YTProfileDataset")
+        for a in ["dimensionality", "profile_dimensions"] + \
+          ["%s_%s" % (ax, attr)
+           for ax in "xyz"[:self.dimensionality]
+           for attr in ["range", "log"]]:
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)
+        super(YTProfileDataset, self).print_key_parameters()
+        mylog.warn("Geometric data selection not available for this dataset type.")
 
     def __repr__(self):
         return "ytProfile: %s" % self.parameter_filename
 
     def create_field_info(self):
         self.field_info = self._field_info_class(self, self.field_list)
-        for ftype, field in self.field_list:
-            if ftype == self.default_fluid_type:
-                self.field_info.alias(
-                    ("gas", field),
-                    (self.default_fluid_type, field))
-        super(YTGridDataset, self).create_field_info()
-
-    def _set_code_unit_attributes(self):
-        attrs = ('length_unit', 'mass_unit', 'time_unit',
-                 'velocity_unit', 'magnetic_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
-        base_units = np.ones(len(attrs))
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
-                uq = self.quan(1.0, unit)
-            elif isinstance(unit, numeric_type):
-                uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
-                uq = unit
-            elif isinstance(unit, tuple):
-                uq = self.quan(unit[0], unit[1])
-            else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
-            setattr(self, attr, uq)
+        super(YTProfileDataset, self).create_field_info()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
