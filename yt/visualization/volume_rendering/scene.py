@@ -20,7 +20,7 @@ from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource
 from .zbuffer_array import ZBuffer
-
+import yt.utilities.png_writer as pw
 
 class Scene(object):
 
@@ -165,7 +165,7 @@ class Scene(object):
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self._iter_opaque_sources():
-            source.render(camera, zbuffer=opaque)
+            im = source.render(camera, zbuffer=opaque)
 
         for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
