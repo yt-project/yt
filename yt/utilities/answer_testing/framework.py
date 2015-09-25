@@ -850,7 +850,6 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
                         dobj_name)
             yield FieldValuesTest(ds_fn, field, dobj_name,
                                   particle_type=particle_type)
-    return
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
