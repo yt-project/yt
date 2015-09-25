@@ -32,6 +32,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.physical_constants import \
     G, \
     cm_per_kpc
+from yt import YTQuantity
 
 from .fields import \
     TipsyFieldInfo
@@ -71,7 +72,7 @@ class TipsyDataset(ParticleDataset):
                  bounding_box=None,
                  units_override=None):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
-        # specify a bounding box which effectively gives a domain_left_edge 
+        # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
@@ -167,9 +168,9 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
-        comoving = self.parameters.get('bComove', False)
         self.periodicity = (periodic, periodic, periodic)
-        if comoving and period is None:
+        self.comoving = self.parameters.get('bComove', False)
+        if self.comoving and period is None:
             period = 1.0
         if self.bounding_box is None:
             if periodic and period is not None:
@@ -179,14 +180,16 @@ class TipsyDataset(ParticleDataset):
             else:
                 self.domain_left_edge = None
                 self.domain_right_edge = None
-        else: 
+        else:
             bbox = np.array(self.bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
 
-        if comoving:
+        # If the cosmology parameters dictionary got set when data is
+        # loaded, we can assume it's a cosmological data set
+        if self.comoving or self._cosmology_parameters is not None:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
@@ -224,8 +227,15 @@ class TipsyDataset(ParticleDataset):
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
             self.mass_unit = self.quan(mu, 'Msun')
             density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
-            # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
-            self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)  
+
+            # If self.comoving is set, we know this is a gasoline data set,
+            # and we do the conversion on the hubble constant.
+            if self.comoving:
+                # Gasoline's hubble constant, dHubble0, is stored units of
+                # proper code time.
+                self.hubble_constant *= np.sqrt(G.in_units(
+                    'kpc**3*Msun**-1*s**-2') * density_unit).value / (
+                    3.2407793e-18)
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
@@ -237,12 +247,30 @@ class TipsyDataset(ParticleDataset):
             density_unit = self.mass_unit / self.length_unit**3
         self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
+        # If unit base is defined by the user, override all relevant units
+        if self._unit_base is not None:
+            length = self._unit_base.get('length', self.length_unit)
+            length = self.quan(*length) if isinstance(length, tuple) else self.quan(length)
+            self.length_unit = length
+
+            mass = self._unit_base.get('mass', self.mass_unit)
+            mass = self.quan(*mass) if isinstance(mass, tuple) else self.quan(mass)
+            self.mass_unit = mass
+
+            density_unit = self.mass_unit / self.length_unit**3
+            self.time_unit = 1.0 / np.sqrt(G * density_unit)
+
+            time = self._unit_base.get('time', self.time_unit)
+            time = self.quan(*time) if isinstance(time, tuple) else self.quan(time)
+            self.time_unit = time
+
+
     @staticmethod
     def _validate_header(filename):
         '''
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
-        Valid is a boolean that is true if the file is a tipsy file, and endianswap is 
+        Valid is a boolean that is true if the file is a tipsy file, and endianswap is
         the endianness character '>' or '<'.
         '''
         try:

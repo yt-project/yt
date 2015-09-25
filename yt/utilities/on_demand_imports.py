@@ -154,4 +154,15 @@ class scipy_imports:
             self._signal = signal
         return self._signal
 
+    _spatial = None
+    @property
+    def spatial(self):
+        if self._spatial is None:
+            try:
+                import scipy.spatial as spatial
+            except ImportError:
+                spatial = NotAModule(self._name)
+            self._spatial = spatial
+        return self._spatial
+
 _scipy = scipy_imports()

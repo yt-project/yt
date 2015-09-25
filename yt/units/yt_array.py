@@ -19,14 +19,15 @@ import numpy as np
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
-    floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
+    floor_divide, negative, power, remainder, mod, absolute, rint, \
     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
     reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
+    bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift, \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
-    logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
-    isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
-    floor, ceil, trunc, fmax, fmin, fabs
+    logical_or, logical_xor, logical_not, maximum, minimum, fmax, fmin, \
+    isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
+    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
@@ -38,9 +39,11 @@ from yt.utilities.exceptions import \
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
-from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
+from yt.units.unit_lookup_table import \
+    default_unit_symbol_lut
 from yt.units.equivalencies import equivalence_registry
 from yt.utilities.logger import ytLogger as mylog
+from .pint_conversions import convert_pint_units
 
 NULL_UNIT = Unit()
 
@@ -93,6 +96,14 @@ def arctan2_unit(unit1, unit2):
 
 def comparison_unit(unit1, unit2):
     return None
+
+def invert_units(unit):
+    raise TypeError(
+        "Bit-twiddling operators are not defined for YTArray instances")
+
+def bitop_units(unit1, unit2):
+    raise TypeError(
+        "Bit-twiddling operators are not defined for YTArray instances")
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
@@ -150,15 +161,16 @@ unary_operators = (
     negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
-    rad2deg, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
+    rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
     signbit, floor, ceil, trunc, modf, frexp, fabs
 )
 
 binary_operators = (
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, power,
-    remainder, mod, arctan2, hypot, greater, greater_equal, less, less_equal,
+    remainder, mod, arctan2, hypot, bitwise_and, bitwise_or, bitwise_xor,
+    left_shift, right_shift, greater, greater_equal, less, less_equal,
     not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
-    fmax, fmin, copysign, nextafter, fmod,
+    fmax, fmin, copysign, nextafter, ldexp, fmod,
 )
 
 class YTArray(np.ndarray):
@@ -272,6 +284,12 @@ class YTArray(np.ndarray):
         hypot: preserve_units,
         deg2rad: return_without_unit,
         rad2deg: return_without_unit,
+        bitwise_and: bitop_units,
+        bitwise_or: bitop_units,
+        bitwise_xor: bitop_units,
+        invert: invert_units,
+        left_shift: bitop_units,
+        right_shift: bitop_units,
         greater: comparison_unit,
         greater_equal: comparison_unit,
         less: comparison_unit,
@@ -295,6 +313,7 @@ class YTArray(np.ndarray):
         copysign: passthrough_unit,
         nextafter: preserve_units,
         modf: passthrough_unit,
+        ldexp: bitop_units,
         frexp: return_without_unit,
         floor: passthrough_unit,
         ceil: passthrough_unit,
@@ -479,6 +498,14 @@ class YTArray(np.ndarray):
 
         return new_array
 
+    def to(self, units):
+        """
+        An alias for YTArray.in_units().
+
+        See the docstrings of that function for details.
+        """
+        return self.in_units(units)
+
     def in_base(self):
         """
         Creates a copy of this array with the data in the equivalent base units,
@@ -587,25 +614,32 @@ class YTArray(np.ndarray):
         return np.array(self)
 
     @classmethod
-    def from_astropy(cls, arr):
+    def from_astropy(cls, arr, unit_registry=None):
         """
-        Creates a new YTArray with the same unit information from an
-        AstroPy quantity *arr*.
+        Convert an AstroPy "Quantity" to a YTArray or YTQuantity.
+
+        Parameters
+        ----------
+        arr : AstroPy Quantity
+            The Quantity to convert from.
+        unit_registry : yt UnitRegistry, optional
+            A yt unit registry to use in the conversion. If one is not
+            supplied, the default one will be used.
         """
         # Converting from AstroPy Quantity
         u = arr.unit
         ap_units = []
-        for base, power in zip(u.bases, u.powers):
+        for base, exponent in zip(u.bases, u.powers):
             unit_str = base.to_string()
             # we have to do this because AstroPy is silly and defines
             # hour as "h"
             if unit_str == "h": unit_str = "hr"
-            ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
+            ap_units.append("%s**(%s)" % (unit_str, Rational(exponent)))
         ap_units = "*".join(ap_units)
         if isinstance(arr.value, np.ndarray):
-            return YTArray(arr.value, ap_units)
+            return YTArray(arr.value, ap_units, registry=unit_registry)
         else:
-            return YTQuantity(arr.value, ap_units)
+            return YTQuantity(arr.value, ap_units, registry=unit_registry)
 
 
     def to_astropy(self, **kwargs):
@@ -616,6 +650,70 @@ class YTArray(np.ndarray):
             raise ImportError("You don't have AstroPy installed, so you can't convert to " +
                               "an AstroPy quantity.")
         return self.value*_astropy.units.Unit(str(self.units), **kwargs)
+
+    @classmethod
+    def from_pint(cls, arr, unit_registry=None):
+        """
+        Convert a Pint "Quantity" to a YTArray or YTQuantity.
+
+        Parameters
+        ----------
+        arr : Pint Quantity
+            The Quantity to convert from.
+        unit_registry : yt UnitRegistry, optional
+            A yt unit registry to use in the conversion. If one is not
+            supplied, the default one will be used.
+
+        Examples
+        --------
+        >>> from pint import UnitRegistry
+        >>> import numpy as np
+        >>> ureg = UnitRegistry()
+        >>> a = np.random.random(10)
+        >>> b = ureg.Quantity(a, "erg/cm**3")
+        >>> c = yt.YTArray.from_pint(b)
+        """
+        p_units = []
+        for base, exponent in arr.units.items():
+            bs = convert_pint_units(base)
+            p_units.append("%s**(%s)" % (bs, Rational(exponent)))
+        p_units = "*".join(p_units)
+        if isinstance(arr.magnitude, np.ndarray):
+            return YTArray(arr.magnitude, p_units, registry=unit_registry)
+        else:
+            return YTQuantity(arr.magnitude, p_units, registry=unit_registry)
+
+    def to_pint(self, unit_registry=None):
+        """
+        Convert a YTArray or YTQuantity to a Pint Quantity.
+
+        Parameters
+        ----------
+        arr : YTArray or YTQuantity
+            The unitful quantity to convert from.
+        unit_registry : Pint UnitRegistry, optional
+            The Pint UnitRegistry to use in the conversion. If one is not
+            supplied, the default one will be used. NOTE: This is not
+            the same as a yt UnitRegistry object.
+            
+        Examples
+        --------
+        >>> a = YTQuantity(4.0, "cm**2/s")
+        >>> b = a.to_pint()
+        """
+        from pint import UnitRegistry
+        if unit_registry is None:
+            unit_registry = UnitRegistry()
+        powers_dict = self.units.expr.as_powers_dict()
+        units = []
+        for unit, pow in powers_dict.items():
+            # we have to do this because Pint doesn't recognize
+            # "yr" as "year" 
+            if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
+                unit = str(unit).replace("yr","year")
+            units.append("%s**(%s)" % (unit, Rational(pow)))
+        units = "*".join(units)
+        return unit_registry.Quantity(self.value, units)
 
     #
     # End unit conversion methods
@@ -1104,6 +1202,12 @@ class YTArray(np.ndarray):
         """
         super(YTArray, self).__setstate__(state[1:])
         unit, lut = state[0]
+        # need to fix up the lut if the pickle was saved prior to PR #1728
+        # when the pickle format changed
+        if len(lut['m']) == 2:
+            lut.update(default_unit_symbol_lut)
+            for k, v in [(k, v) for k, v in lut.items() if len(v) == 2]:
+                lut[k] = v + (0.0, r'\rm{' + k.replace('_', '\ ') + '}')
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 

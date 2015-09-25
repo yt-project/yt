@@ -16,10 +16,7 @@ Complex fluid fields.
 import numpy as np
 
 from yt.fields.derived_field import \
-    ValidateGridType, \
-    ValidateParameter, \
-    ValidateSpatial, \
-    NeedsParameter
+    ValidateSpatial
 
 from .field_plugin_registry import \
     register_field_plugin
@@ -28,8 +25,8 @@ from yt.funcs import \
     just_one
 
 from .vector_operations import \
-     create_magnitude_field, \
-     create_squared_field
+    create_magnitude_field, \
+    create_squared_field
 
 @register_field_plugin
 def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):

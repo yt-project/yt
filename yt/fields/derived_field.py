@@ -16,10 +16,7 @@ import inspect
 
 from yt.funcs import \
     ensure_list
-from yt.units.yt_array import \
-    YTArray
 from .field_exceptions import \
-    ValidationException, \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \
@@ -30,15 +27,9 @@ from .field_detector import \
     FieldDetector
 from yt.units.unit_object import \
     Unit
+from yt.utilities.exceptions import \
+    YTFieldNotFound
 
-def derived_field(**kwargs):
-    def inner_decorator(function):
-        if 'name' not in kwargs:
-            kwargs['name'] = function.__name__
-        kwargs['function'] = function
-        add_field(**kwargs)
-        return function
-    return inner_decorator
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
@@ -48,7 +39,7 @@ def TranslationFunc(field_name):
 
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
- 
+
 class DerivedField(object):
     """
     This is the base class used to describe a cell-by-cell derived field.
@@ -178,7 +169,7 @@ class DerivedField(object):
 
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """
-        ii = self.check_available(data)
+        self.check_available(data)
         original_fields = data.keys() # Copy
         if self._function is NullFunc:
             raise RuntimeError(

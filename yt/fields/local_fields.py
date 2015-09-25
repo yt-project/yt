@@ -13,8 +13,6 @@ This is a container for storing local fields defined on each load of yt.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.utilities.logger import \
     ytLogger as mylog
 
