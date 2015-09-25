@@ -972,7 +972,7 @@ class Dataset(object):
         return ("deposit", field_name)
 
     def add_smoothed_particle_field(self, smooth_field,
-            method="volume_weighted", nneighbors=None, kernel_name='cubic'):
+            method="volume_weighted", nneighbors=None, kernel_name="cubic"):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
