@@ -15,7 +15,6 @@ Exodus II frontend tests
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_ds, \
     data_dir_load
 from yt.frontends.exodus_ii.api import ExodusIIDataset
 from yt.config import ytcfg
@@ -24,7 +23,7 @@ from yt.convenience import load
 _fields = ("convected", "diffused")
 
 out = "ExodusII/out.e"
-@requires_ds(out)
+@requires_file(out)
 def test_out():
     ds = data_dir_load(out)
     yield assert_equal, str(ds), "out.e"
@@ -35,7 +34,7 @@ def test_out():
     yield assert_equal, ds.parameters['num_meshes'], 2
     
 out_s002 = "ExodusII/out.e-s002"
-@requires_ds(out_s002)
+@requires_file(out_s002)
 def test_out002():
     ds = data_dir_load(out_s002)
     yield assert_equal, str(ds), "out.e-s002"
@@ -43,7 +42,7 @@ def test_out002():
     yield assert_equal, ds.current_time, 0.0
 
 gold = "ExodusII/gold.e"
-@requires_ds(gold)
+@requires_file(gold)
 def test_gold():
     ds = data_dir_load(gold)
     yield assert_equal, str(ds), "gold.e"
