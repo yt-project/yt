@@ -327,6 +327,61 @@ mentioned.
 
 .. _loading-fits-data:
 
+Exodus II Data
+--------------
+
+Exodus II is a file format for Finite Element datasets that is used by the MOOSE
+framework for file IO. Support for this format (and for unstructured mesh data in 
+general) is a new feature in yt, so while we aim to fully support it, we also expect 
+there to be some buggy features at present. 
+
+To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
+file:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+
+Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
+picard iterations, non-linear solve iterations, etc...), you can also specify a step
+argument when you load an Exodus II data that defines the index at which to look when
+you read data from the file.
+
+You can access the connectivity information directly by doing:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   print ds.index.meshes[0].connectivity_coords
+   print ds.index.meshes[0].connectivity_indices
+   print ds.index.meshes[1].connectivity_coords
+   print ds.index.meshes[1].connectivity_indices
+
+This particular dataset has two meshes in it, both of which are made of 8-node hexes.
+yt uses a field name convention to access these different meshes in plots and data
+objects. To see all the fields found in a particlular dataset, you can do:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   print ds.field_list
+
+This will give you a list of field names like ('connect1', 'diffused') and 
+('connect2', 'convected'). Here, fields labelled with 'connect1' correspond to the
+first mesh, and those with 'connect2' to the second, and so on. To grab the value
+of the 'convected' variable at all the nodes in the first mesh, for example, you
+would do:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   ad = ds.all_data()  # geometric selection, this just grabs everything
+   print ad['connect1', 'convected']
+
 FITS Data
 ---------
 
