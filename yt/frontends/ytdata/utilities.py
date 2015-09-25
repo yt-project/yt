@@ -125,12 +125,7 @@ def save_as_ytdata(ds, filename, data, field_types=None,
         else:
             field_name = field
         dataset = _yt_array_hdf5(fh[field_type], field_name, data[field])
-        if "num_elements" in fh[field_type].attrs:
-            if fh[field_type].attrs["num_elements"] != data[field].size:
-                mylog.warn(
-                    "Datasets in %s group have different sizes." % fh[field_type] +
-                    "  This will probably not work right.")
-        else:
+        if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
 
