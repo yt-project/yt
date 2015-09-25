@@ -28,8 +28,8 @@ from yt.utilities.io_handler import \
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 
-class IOHandlerYTProfileHDF5(BaseIOHandler):
-    _dataset_type = "ytprofilehdf5"
+class IOHandlerYTNonspatialhdf5(BaseIOHandler):
+    _dataset_type = "ytnonspatialhdf5"
     _base = slice(None)
     _field_dtype = "float64"
 

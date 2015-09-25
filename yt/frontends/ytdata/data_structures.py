@@ -111,7 +111,7 @@ class YTDataContainerDataset(Dataset):
             data_type = f.attrs.get("data_type", None)
             if data_type is None:
                 return False
-            if data_type in ["yt_light_ray", "yt_array_data"]:
+            if data_type in ["yt_light_ray"]:
                 return True
             if data_type == "yt_data_container" and \
               f.attrs.get("container_type", None) not in \
@@ -273,9 +273,6 @@ class YTGridDataset(Dataset):
               np.concatenate([self.right_edge, [1.]])
             self.domain_dimensions = \
               np.concatenate([self.ActiveDimensions, [1]])
-
-    def __repr__(self):
-        return "ytGrid: %s" % self.parameter_filename
 
     def create_field_info(self):
         self.field_info = self._field_info_class(self, self.field_list)
@@ -487,10 +484,10 @@ class YTNonspatialHierarchy(GridIndex):
             fields_to_read)
         return fields_to_return, fields_to_generate
 
-class YTProfileDataset(YTGridDataset):
+class YTNonspatialDataset(YTGridDataset):
     _index_class = YTNonspatialHierarchy
     _field_info_class = YTGridFieldInfo
-    _dataset_type = 'ytprofilehdf5'
+    _dataset_type = 'ytnonspatialhdf5'
     geometry = "cartesian"
     default_fluid_type = "data"
     fluid_types = ("data", "gas")
@@ -507,6 +504,23 @@ class YTProfileDataset(YTGridDataset):
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
 
+    def _set_derived_attrs(self):
+        pass
+
+    def _setup_classes(self):
+        # We don't allow geometric selection for non-spatial datasets
+        pass
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = f.attrs.get("data_type", None)
+            if data_type == "yt_array_data":
+                return True
+        return False
+
+class YTProfileDataset(YTNonspatialDataset):
     def _set_derived_attrs(self):
         self.base_domain_left_edge = self.domain_left_edge
         self.base_domain_right_edge = self.domain_right_edge
@@ -529,10 +543,6 @@ class YTProfileDataset(YTGridDataset):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
         self.domain_width = self.domain_right_edge - self.domain_left_edge
 
-    def _setup_classes(self):
-        # We don't allow geometric selection for non-spatial datasets
-        pass
-
     @parallel_root_only
     def print_key_parameters(self):
         mylog.info("YTProfileDataset")
@@ -544,13 +554,6 @@ class YTProfileDataset(YTGridDataset):
             mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()
         mylog.warn("Geometric data selection not available for this dataset type.")
-
-    def __repr__(self):
-        return "ytProfile: %s" % self.parameter_filename
-
-    def create_field_info(self):
-        self.field_info = self._field_info_class(self, self.field_list)
-        super(YTProfileDataset, self).create_field_info()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
