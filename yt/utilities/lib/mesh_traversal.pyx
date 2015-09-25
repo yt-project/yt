@@ -111,10 +111,10 @@ cdef class MeshSampler(ImageSampler):
                 used[j] = ray.primID
                 mesh[j] = ray.instID
                 zbuffer[j] = ray.tfar
-            self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
-            self.image_used = used.reshape(self.image.nv[0], self.image.nv[1])
-            self.mesh_lines = mesh.reshape(self.image.nv[0], self.image.nv[1])
-            self.zbuffer = zbuffer.reshape(self.image.nv[0], self.image.nv[1])
+            self.aimage = data
+            self.image_used = used
+            self.mesh_lines = mesh
+            self.zbuffer = zbuffer
             free(v_pos)
         else:
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -137,7 +137,12 @@ cdef class MeshSampler(ImageSampler):
                 ray.time = 0
                 rtcs.rtcIntersect(scene.scene_i, ray)
                 data[j] = ray.time
-            self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
-            self.image_used = used.reshape(self.image.nv[0], self.image.nv[1])
+                used[j] = ray.primID
+                mesh[j] = ray.instID
+                zbuffer[j] = ray.tfar
+            self.aimage = data
+            self.image_used = used
+            self.mesh_lines = mesh
+            self.zbuffer = zbuffer
             free(v_pos)
             free(v_dir)

@@ -363,12 +363,16 @@ class MeshSource(OpaqueSource):
     def render(self, camera, zbuffer=None,
                cmap='algae', color_bounds=None):
 
+        shape = (camera.resolution[0], camera.resolution[1], 4)
         if zbuffer is None:
-            empty = camera.lens.new_image(camera)
+            empty = np.empty(shape, dtype='float64')
             z = np.empty(empty.shape[:2], dtype='float64')
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
+        elif zbuffer.rgba.shape != shape:
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
+                              zbuffer.z.reshape(shape[:2]))
 
         self.sampler = new_mesh_sampler(camera, self)
 
@@ -376,15 +380,27 @@ class MeshSource(OpaqueSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
+        self.finalize_image(camera, self.sampler.aimage)
+
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap(cmap=cmap,
                                                  color_bounds=color_bounds)
+
         zbuffer += ZBuffer(self.current_image.astype('float64'),
                            self.sampler.zbuffer)
 
         self.zbuffer = zbuffer
         self.current_image = self.zbuffer.rgba.astype('uint8')
         return self.current_image
+
+    def finalize_image(self, camera, image):
+        sam = self.sampler
+        Nx = camera.resolution[0]
+        Ny = camera.resolution[1]
+        sam.aimage = sam.aimage.reshape(Nx, Ny)
+        sam.image_used = sam.image_used.reshape(Nx, Ny)
+        sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
+        sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
 
     def annotate_mesh_lines(self, color=None, alpha=255):
         r"""
