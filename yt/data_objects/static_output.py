@@ -1012,7 +1012,8 @@ class Dataset(object):
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
         if (ptype, smoothing_length_name) not in self.derived_field_list:
-            raise ValueError("%s not in derived_field_list")
+            raise ValueError("%s not in derived_field_list" %
+                             ((ptype, smoothing_length_name),))
         density_name = "density"
         registry = self.field_info
 
