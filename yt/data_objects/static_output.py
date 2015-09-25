@@ -971,11 +971,11 @@ class Dataset(object):
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(self, smooth_field,
-            method="volume_weighted", nneighbors=None, kernel_name="cubic"):
-        """Add a new deposited particle field
+    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
+                                    nneighbors=64, kernel_name="cubic"):
+        """Add a new smoothed particle field
 
-        Creates a new deposited field based on the particle *deposit_field*.
+        Creates a new smoothed field based on the particle *smooth_field*.
 
         Parameters
         ----------
@@ -985,9 +985,9 @@ class Dataset(object):
            be created from.  This must be a field name tuple so yt can
            appropriately infer the correct particle type.
         method : string, default 'volume_weighted'
-           The particle smoothing method to use. Could only be
-           'volume_weighted' for now.
-        nneighbors : int, default None
+           The particle smoothing method to use. Can only be 'volume_weighted'
+           for now.
+        nneighbors : int, default 64
             The number of neighbors to examine during the process.
         kernel_name : string, default 'cubic'
             This is the name of the smoothing kernel to use. Current supported
@@ -1003,13 +1003,16 @@ class Dataset(object):
         if isinstance(smooth_field, tuple):
             ptype, smooth_field = smooth_field[0], smooth_field[1]
         else:
-            raise RuntimeError
+            raise RuntimeError("smooth_field must be a tuple, received %s" %
+                               smooth_field)
         if method != "volume_weighted":
-            raise NotImplementedError
+            raise NotImplementedError("method must be 'volume_weighted'")
 
         coord_name = "particle_position"
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
+        if (ptype, smoothing_length_name) not in self.derived_field_list:
+            raise ValueError("%s not in derived_field_list")
         density_name = "density"
         registry = self.field_info
 
