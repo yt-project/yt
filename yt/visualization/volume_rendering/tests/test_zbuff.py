@@ -10,14 +10,14 @@ Test for Composite VR.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource, LineSource, BoxSource
-from yt.utilities.lib.misc_utilities import lines
-from yt.data_objects.api import ImageArray
+from yt.visualization.volume_rendering.api import \
+    Scene, Camera, ZBuffer, \
+    VolumeSource, OpaqueSource
+from yt.testing import assert_almost_equal
 import numpy as np
 np.random.seed(0)
+
 
 def test_composite_vr():
     ds = fake_random_ds(64)
@@ -53,5 +53,55 @@ def test_composite_vr():
     im.write_png("composite.png")
     return im
 
+
+def test_nonrectangular_add():
+    rgba1 = np.ones((64, 1, 4))
+    z1 = np.expand_dims(np.arange(64.), 1)
+
+    rgba2 = np.zeros((64, 1, 4))
+    z2 = np.expand_dims(np.arange(63., -1., -1.), 1)
+
+    exact_rgba = np.concatenate((np.ones(32), np.zeros(32)))
+    exact_rgba = np.expand_dims(exact_rgba, 1)
+    exact_rgba = np.dstack((exact_rgba, exact_rgba, exact_rgba, exact_rgba))
+
+    exact_z = np.concatenate((np.arange(32.), np.arange(31.,-1.,-1.)))
+    exact_z = np.expand_dims(exact_z, 1)
+
+    buff1 = ZBuffer(rgba1, z1)
+    buff2 = ZBuffer(rgba2, z2)
+
+    buff = buff1 + buff2
+
+    assert_almost_equal(buff.rgba, exact_rgba)
+    assert_almost_equal(buff.z, exact_z)
+
+
+def test_rectangular_add():
+    rgba1 = np.ones((8, 8, 4))
+    z1 = np.arange(64.)
+    z1 = z1.reshape((8, 8))
+    buff1 = ZBuffer(rgba1, z1)
+
+    rgba2 = np.zeros((8, 8, 4))
+    z2 = np.arange(63., -1., -1.)
+    z2 = z2.reshape((8, 8))
+    buff2 = ZBuffer(rgba2, z2)
+
+    buff = buff1 + buff2
+
+    exact_rgba = np.empty((8, 8, 4), dtype=np.float64)
+    exact_rgba[0:4,0:8,:] = 1.0
+    exact_rgba[4:8,0:8,:] = 0.0
+
+    exact_z = np.concatenate((np.arange(32.), np.arange(31., -1., -1.)))
+    exact_z = np.expand_dims(exact_z, 1)
+    exact_z = exact_z.reshape(8, 8)
+
+    assert_almost_equal(buff.rgba, exact_rgba)
+    assert_almost_equal(buff.z, exact_z)
+
 if __name__ == "__main__":
     im = test_composite_vr()
+    test_nonrectangular_add()
+    test_rectangular_add()
