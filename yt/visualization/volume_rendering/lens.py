@@ -222,12 +222,11 @@ class PerspectiveLens(Lens):
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
             res = camera.resolution
-        sight_vector = pos - camera.position
+        sight_vector = pos - camera.position.d
         pos1 = sight_vector
         for i in range(0, sight_vector.shape[0]):
             sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
             sight_vector[i] = sight_vector[i] / sight_vector_norm
-        sight_vector = sight_vector.d
         sight_center = camera.position + camera.width[2] * camera.unit_vectors[2]
 
         for i in range(0, sight_vector.shape[0]):
@@ -242,12 +241,14 @@ class PerspectiveLens(Lens):
                                np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera.position + sight_length * sight_vector[i]
 
-        dx = np.dot(pos1 - sight_center, camera.unit_vectors[0])
-        dy = np.dot(pos1 - sight_center, camera.unit_vectors[1])
-        dz = np.dot(pos1 - sight_center, camera.unit_vectors[2])
+        dx = np.dot(pos1 - sight_center.d, camera.unit_vectors[0])
+        dy = np.dot(pos1 - sight_center.d, camera.unit_vectors[1])
+        dz = np.dot(pos1 - sight_center.d, camera.unit_vectors[2])
         # Transpose into image coords.
-        px = (res[0] * 0.5 + res[0] / camera.width[0] * dx).astype('int')
-        py = (res[1] * 0.5 + res[1] / camera.width[1] * dy).astype('int')
+        px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
+        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
+        px = (px * 0.25).astype('int')
+        py = (py * 0.25).astype('int')
         return px, py, dz
 
     def __repr__(self):
@@ -363,6 +364,9 @@ class StereoPerspectiveLens(Lens):
         if res is None:
             res = camera.resolution
 
+        if self.disparity is None:
+            self.disparity = camera.width[0] / 2.e3
+
         px_left, py_left, dz_left = self._get_px_py_dz(camera, pos, res, -self.disparity)
         px_right, py_right, dz_right = self._get_px_py_dz(camera, pos, res, self.disparity)
 
@@ -380,20 +384,19 @@ class StereoPerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        angle_disparity = - np.arctan2(disparity, camera.width[2])
+        angle_disparity = - np.arctan2(disparity.d, camera.width[2].d)
         R = get_rotation_matrix(angle_disparity, north_vec)
 
         east_vec_rot = np.dot(R, east_vec)
         normal_vec_rot = np.dot(R, normal_vec)
 
         camera_position_shift = camera.position + east_vec * disparity
-        sight_vector = pos - camera_position_shift
+        sight_vector = pos - camera_position_shift.d
         pos1 = sight_vector
 
         for i in range(0, sight_vector.shape[0]):
             sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
             sight_vector[i] = sight_vector[i] / sight_vector_norm
-        sight_vector = sight_vector.d
         sight_center = camera_position_shift + camera.width[2] * normal_vec_rot
 
         for i in range(0, sight_vector.shape[0]):
@@ -408,12 +411,12 @@ class StereoPerspectiveLens(Lens):
                                np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera_position_shift + sight_length * sight_vector[i]
 
-        dx = np.dot(pos1 - sight_center, east_vec_rot)
-        dy = np.dot(pos1 - sight_center, north_vec)
-        dz = np.dot(pos1 - sight_center, normal_vec_rot)
+        dx = np.dot(pos1 - sight_center.d, east_vec_rot)
+        dy = np.dot(pos1 - sight_center.d, north_vec)
+        dz = np.dot(pos1 - sight_center.d, normal_vec_rot)
         # Transpose into image coords.
-        px = (res0_h * 0.5 + res0_h / camera.width[0] * dx).astype('int')
-        py = (res[1] * 0.5 + res[1] / camera.width[1] * dy).astype('int')
+        px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
+        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
 
         return px, py, dz
 
