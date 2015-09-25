@@ -163,6 +163,32 @@ that we want to look at the last one.
    im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 1.0))
    pw.write_png(im, 'tetra_render.png')
 
+Another example, this time plotting the temperature field from a 20-node hex 
+MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   from yt.visualization.volume_rendering.render_source import MeshSource
+   from yt.visualization.volume_rendering.camera import Camera
+   import yt.utilities.png_writer as pw
+
+   ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)  # we load the last time frame
+
+   ms = MeshSource(ds, ('connect2', 'temp'))
+
+   # set up the camera
+   cam = Camera(ds)
+   camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
+   north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+   cam.width = ds.arr([0.04, 0.04, 0.04], 'code_length')
+   cam.resolution = (800, 800)
+   cam.set_position(camera_position, north_vector)
+
+   im = ms.render(cam, cmap='hot', color_bounds=(500.0, 1700.0))
+   im = ms.annotate_mesh_lines()
+   pw.write_png(im, 'hex20_render.png')
+
 As with other volume renderings in yt, you can swap out different lenses. Here is 
 an example that uses a "perpective" lens, for which the rays diverge from the 
 camera position according to some opening angle:
