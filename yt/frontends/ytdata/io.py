@@ -18,11 +18,9 @@ import h5py
 import numpy as np
 
 from yt.extern.six import \
-    u, b, iteritems
+    u
 from yt.funcs import \
     mylog
-from yt.geometry.oct_container import \
-    _ORDER_MAX
 from yt.utilities.exceptions import \
     YTDomainOverflow
 from yt.utilities.io_handler import \
