@@ -14,11 +14,12 @@ when you run the install script. First, `embree <https://embree.github.io>`
 by compiling from source or by using one of the pre-built binaries available
 at Embree's `downloads <https://embree.github.io/downloads.html>` page. Once
 Embree is installed, you must also create a symlink next to the library. For
-example, if the libraries were installed at /usr/local/lib/, you must do
+example, if the libraries were installed at /opt/local/lib/ (the location
+that the OS X .pkg installer puts them), you must do
 
 .. code-block:: bash
 
-    sudo ln -s /usr/local/lib/libembree.2.6.1.dylib /usr/local/lib/libembree.so
+    sudo ln -s /opt/local/lib/libembree.2.6.1.dylib /opt/local/lib/libembree.so
 
 Second, the python bindings for embree (called 
 `pyembree <https://github.com/scopatz/pyembree>`) must also be installed. To
@@ -28,12 +29,7 @@ do so, first obtain a copy, by .e.g. cloning the repo:
 
     git clone https://github.com/scopatz/pyembree
 
-To install, navigate to the root directory and run the setup script:
-
-.. code-block:: bash
-
-    python setup.py develop
-
+To install, navigate to the root directory and run the setup script.
 If Embree was installed to some location that is not in your path by default,
 you will need to pass in CFLAGS and LDFLAGS to the setup.py script. For example,
 the Mac OS package installer puts the installation at /opt/local/ instead of 
@@ -41,10 +37,14 @@ usr/local. To account for this, you would do:
 
 .. code-block:: bash
 
-    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
+    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-You must also use these flags when building any part of yt that links against
-pyembree.
+You must also use these flags when building any part of yt from source. For example,
+to run "setup.py develop" from the yt-hg directory, you would do:
+
+.. code-block:: bash
+
+    CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
 much like any other dataset. In particular, a new type of 
@@ -58,12 +58,12 @@ that specifies your viewpoint into the scene. When
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` is called,
 a set of rays are cast at the source. Each time a ray strikes the source mesh,
 the data is sampled at the intersection point at the resulting value gets 
-saved into an image.
+saved into an image. See below for examples.
 
 Examples
 ^^^^^^^^
 
-See below for examples. First, here is an example of rendering a hexahedral mesh.
+First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 
 .. python-script::
 
@@ -137,32 +137,6 @@ using the mesh labelled by "connect2":
    im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
    pw.write_png(im, 'hex_mesh_render.png')
 
-You can also overplot the mesh boundaries:
-
-.. python-script::
-
-   import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
-   import yt.utilities.png_writer as pw
-
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
-
-   ms = MeshSource(ds, ('connect1', 'diffused'))
-
-   # setup the camera
-   cam = Camera(ds)
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
-
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
-   cam.resolution = (800, 800)
-
-   ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-   im = ms.annotate_mesh_lines()
-   pw.write_png(im, 'hex_render_with_mesh.png')
-
 Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 Note that in this dataset, there are multiple "steps" per file, so we specify
 that we want to look at the last one.
@@ -216,9 +190,9 @@ camera position according to some opening angle:
    im = ms.annotate_mesh_lines()
    pw.write_png(im, 'hex_mesh_render_perspective.png')
 
-You can also create scenes that have multiple meshes The ray-tracing infrastructure
+You can also create scenes that have multiple meshes. The ray-tracing infrastructure
 will keep track of the depth information for each source separately, and composite
-the final image accordingly. In the next example, we should how to render a scene 
+the final image accordingly. In the next example, we show how to render a scene 
 with two meshes on it:
 
 .. code-block:: python
@@ -230,8 +204,6 @@ with two meshes on it:
     import yt.utilities.png_writer as pw
 
     ds = yt.load("~/FEMRender/data/out.e-s010")
-
-    ms = MeshSource(ds, ('connect1', 'diffused'))
 
     # this time we create an empty scene and add sources to it one-by-one
     sc = Scene()
@@ -260,7 +232,7 @@ with two meshes on it:
 Making Movies
 ^^^^^^^^^^^^^
 
-Here are a couple of examples scripts that show how to create image frames that 
+Here are a couple of example scripts that show how to create image frames that 
 can later be stiched together into a movie. In the first example, we look at a 
 single dataset at a fixed time, but we move the camera around to get a different
 vantage point. We call the rotate() method 300 times, saving a new image to the 
@@ -311,7 +283,7 @@ file with a fixed camera position:
 
     for step in range(NUM_STEPS):
 
-        ds = yt.load("../FEMrender/data/mps_out.e", step=step)
+        ds = yt.load("MOOSE_sample_data/mps_out.e", step=step)
 
 	time = ds._get_current_time()
 
