@@ -1035,8 +1035,8 @@ more detail.
 
 In addition to the above grid types, you can also load data stored on
 unstructured meshes. This type of mesh is used, for example, in many
-finite element calculations. Currently, hexahedral, tetrahedral, and
-wedge-shaped mesh element are supported.
+finite element calculations. Currently, hexahedral and tetrahedral
+mesh elements are supported.
 
 To load an unstructured mesh, you need to specify the following. First,
 you need to have a coordinates array, which should be an (L, 3) array
