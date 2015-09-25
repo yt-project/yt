@@ -247,8 +247,6 @@ class PerspectiveLens(Lens):
         # Transpose into image coords.
         px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
-        px = (px * 0.25).astype('int')
-        py = (py * 0.25).astype('int')
         return px, py, dz
 
     def __repr__(self):
