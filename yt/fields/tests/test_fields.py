@@ -1,5 +1,7 @@
 import numpy as np
 
+from yt import \
+    load
 from yt.testing import \
     fake_random_ds, \
     assert_equal, \
@@ -191,7 +193,7 @@ def test_add_deposited_particle_field():
 
 @requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
 def test_add_smoothed_particle_field():
-    ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
     fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
     assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
     ad = ds.all_data()
