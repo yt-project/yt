@@ -27,6 +27,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from collections import OrderedDict
 
 def setup():
     """Test specific setup."""
@@ -66,6 +67,9 @@ TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
+FPROPS = {'family': 'sans-serif', 'style': 'italic',
+          'weight': 'bold', 'size': 24}
+
 ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "pan_rel": [(((0.1, 0.1), ), {})],
              "set_axes_unit": [(("kpc", ), {}),
@@ -77,8 +81,8 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_center": [(((0.4, 0.3), ), {})],
              "set_cmap": [(('density', 'RdBu'), {}),
                           (('density', 'kamae'), {})],
-             "set_font": [(({'family': 'sans-serif', 'style': 'italic',
-                             'weight': 'bold', 'size': 24}, ), {})],
+             "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])), ),
+                           {})],
              "set_log": [(('density', False), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
