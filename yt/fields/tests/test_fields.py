@@ -183,7 +183,7 @@ def test_all_fields():
 
 def test_add_deposited_particle_field():
     fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'count')
-    assert_equal(fn, ('deposit', 'io_smoothed_ones'))
+    assert_equal(fn, ('deposit', 'io_count_ones'))
     ad = base_ds.all_data()
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
