@@ -359,6 +359,13 @@ class MeshSource(OpaqueSource):
     def render(self, camera, zbuffer=None,
                cmap='algae', color_bounds=None):
 
+        if zbuffer is None:
+            empty = camera.lens.new_image(camera)
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
@@ -368,8 +375,11 @@ class MeshSource(OpaqueSource):
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap(cmap=cmap,
                                                  color_bounds=color_bounds)
-        self.zbuffer = ZBuffer(self.current_image, self.sampler.zbuffer)
+        zbuffer += ZBuffer(self.current_image.astype('float64'),
+                           self.sampler.zbuffer)
 
+        self.zbuffer = zbuffer
+        self.current_image = self.zbuffer.rgba.astype('uint8')
         return self.current_image
 
     def annotate_mesh_lines(self, color=None, alpha=255):
