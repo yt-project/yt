@@ -32,7 +32,7 @@ from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.frontends.ytdata.utilities import \
-    to_yt_dataset
+    save_as_ytdata
 from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
@@ -470,7 +470,7 @@ class YTDataContainer(object):
         df = pd.DataFrame(data)
         return df
 
-    def to_dataset(self, filename=None, fields=None):
+    def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
 
         This function will take a data object and output a dataset 
@@ -498,10 +498,10 @@ class YTDataContainer(object):
         --------
 
         >>> dd = ds.all_data()
-        >>> fn1 = dd.to_dataset(["density", "temperature"])
+        >>> fn1 = dd.save_as_dataset(["density", "temperature"])
         >>> ds1 = yt.load(fn1)
         >>> dd["velocity_magnitude"]
-        >>> fn2 = dd.to_dataset()
+        >>> fn2 = dd.save_as_dataset()
         >>> ds2 = yt.load(fn2)
         """
 
@@ -567,8 +567,8 @@ class YTDataContainer(object):
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
-        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
-                      extra_attrs=extra_attrs)
+        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
+                       extra_attrs=extra_attrs)
 
         return filename
         

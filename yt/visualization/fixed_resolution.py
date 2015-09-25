@@ -14,7 +14,7 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.ytdata.utilities import \
-    to_yt_dataset
+    save_as_ytdata
 from yt.funcs import \
     get_output_filename, \
     mylog
@@ -383,7 +383,7 @@ class FixedResolutionBuffer(object):
                                  geometry=self.ds.geometry,
                                  nprocs=nprocs)
 
-    def to_dataset(self, filename=None, fields=None):
+    def save_as_dataset(self, filename=None, fields=None):
         r"""Export a fixed resolution buffer to a reloadable yt dataset.
 
         This function will take a fixed resolution buffer and output a 
@@ -413,7 +413,7 @@ class FixedResolutionBuffer(object):
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> proj = ds.proj("density", "x", weight_field="density")
         >>> frb = proj.to_frb(1.0, (800, 800))
-        >>> fn = frb.to_dataset(fields=["density"])
+        >>> fn = frb.save_as_dataset(fields=["density"])
         >>> ds2 = yt.load(fn)
         """
 
@@ -440,8 +440,8 @@ class FixedResolutionBuffer(object):
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
         extra_attrs["dimensionality"] = self.data_source._dimensionality
-        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
-                      extra_attrs=extra_attrs)
+        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
+                       extra_attrs=extra_attrs)
 
         return filename
 

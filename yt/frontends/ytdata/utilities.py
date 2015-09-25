@@ -22,8 +22,8 @@ from yt.funcs import \
 from yt.units.yt_array import \
     YTArray
 
-def to_yt_dataset(ds, filename, data, field_types=None,
-                  extra_attrs=None):
+def save_as_ytdata(ds, filename, data, field_types=None,
+                   extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
 
     This function can be used to create a yt loadable dataset from a 
@@ -52,7 +52,7 @@ def to_yt_dataset(ds, filename, data, field_types=None,
     --------
 
     >>> import yt
-    >>> from yt.frontends.ytdata.api import to_yt_dataset
+    >>> from yt.frontends.ytdata.api import save_as_ytdata
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> sphere = ds.sphere([0.5]*3, (10, "Mpc")
     >>> sphere_density = sphere["density"]
@@ -61,17 +61,17 @@ def to_yt_dataset(ds, filename, data, field_types=None,
     >>> data = {}
     >>> data["sphere_density"] = sphere_density
     >>> data["region_density"] = region_density
-    >>> to_yt_dataset(ds, "density_data.h5", data)
+    >>> save_as_ytdata(ds, "density_data.h5", data)
 
     >>> import yt
-    >>> from yt.frontends.ytdata.api import to_yt_dataset
+    >>> from yt.frontends.ytdata.api import save_as_ytdata
     >>> from yt.units.yt_array import YTArray, YTQuantity
     >>> data = {"density": YTArray(np.random.random(10), "g/cm**3"),
     ...         "temperature": YTArray(np.random.random(10), "K")}
     >>> ds_data = {"domain_left_edge": YTArray(np.zeros(3), "cm"),
     ...            "domain_right_edge": YTArray(np.ones(3), "cm"),
     ...            "current_time": YTQuantity(10, "Myr")}
-    >>> to_yt_dataset(ds_data, "random_data.h5", data)
+    >>> save_as_ytdata(ds_data, "random_data.h5", data)
     
     """
 

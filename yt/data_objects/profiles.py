@@ -17,7 +17,7 @@ import h5py
 import numpy as np
 
 from yt.frontends.ytdata.utilities import \
-    to_yt_dataset
+    save_as_ytdata
 from yt.funcs import get_output_filename
 from yt.funcs import *
 from yt.units.yt_array import uconcatenate, array_like_field
@@ -951,7 +951,7 @@ class ProfileND(ParallelAnalysisInterface):
         else:
             return np.linspace(mi, ma, n+1)
 
-    def to_dataset(self, filename=None):
+    def save_as_dataset(self, filename=None):
         r"""Export a data object to a reloadable yt dataset.
 
         This function will take a profile and output a dataset
@@ -975,10 +975,10 @@ class ProfileND(ParallelAnalysisInterface):
         --------
 
         >>> dd = ds.all_data()
-        >>> fn1 = dd.to_dataset(["density", "temperature"])
+        >>> fn1 = dd.save_as_dataset(["density", "temperature"])
         >>> ds1 = yt.load(fn1)
         >>> dd["velocity_magnitude"]
-        >>> fn2 = dd.to_dataset()
+        >>> fn2 = dd.save_as_dataset()
         >>> ds2 = yt.load(fn2)
         """
 
@@ -1014,8 +1014,8 @@ class ProfileND(ParallelAnalysisInterface):
 
         extra_attrs["dimensionality"] = dimensionality
         ftypes = dict([(field, "data") for field in data])
-        to_yt_dataset(self.ds, filename, data, field_types=ftypes,
-                      extra_attrs=extra_attrs)
+        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
+                       extra_attrs=extra_attrs)
 
         return filename
 
