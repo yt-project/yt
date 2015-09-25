@@ -235,9 +235,7 @@ class YTGridDataset(Dataset):
 
     def __init__(self, filename):
         Dataset.__init__(self, filename, self._dataset_type)
-
-        if self.data_type == "yt_frb":
-            self.frb = self.index.grids[0]
+        self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
         self.refine_by = 2
@@ -496,10 +494,6 @@ class YTProfileDataset(YTGridDataset):
     geometry = "cartesian"
     default_fluid_type = "data"
     fluid_types = ("data", "gas")
-
-    def __init__(self, filename):
-        super(YTProfileDataset, self).__init__(filename)
-        self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
         self.refine_by = 2
