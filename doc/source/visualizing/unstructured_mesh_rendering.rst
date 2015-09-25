@@ -216,6 +216,46 @@ camera position according to some opening angle:
    im = ms.annotate_mesh_lines()
    pw.write_png(im, 'hex_mesh_render_perspective.png')
 
+You can also create scenes that have multiple meshes The ray-tracing infrastructure
+will keep track of the depth information for each source separately, and composite
+the final image accordingly. In the next example, we should how to render a scene 
+with two meshes on it:
+
+.. code-block:: python
+
+    import yt
+    from yt.visualization.volume_rendering.render_source import MeshSource
+    from yt.visualization.volume_rendering.camera import Camera
+    from yt.visualization.volume_rendering.scene import Scene
+    import yt.utilities.png_writer as pw
+
+    ds = yt.load("~/FEMRender/data/out.e-s010")
+
+    ms = MeshSource(ds, ('connect1', 'diffused'))
+
+    # this time we create an empty scene and add sources to it one-by-one
+    sc = Scene()
+
+    cam = Camera(ds)
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
+                     ds.arr([0.0, 1.0, 0.0], 'dimensionless'))
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
+    cam.resolution = (800, 800)
+
+    sc.camera = cam
+
+    # create two distinct MeshSources from 'connect1' and 'connect2'
+    ms1 = MeshSource(ds, ('connect1', 'diffused'))
+    ms2 = MeshSource(ds, ('connect2', 'diffused'))
+
+    sc.add_source(ms1)
+    sc.add_source(ms2)
+
+    im = sc.render()
+
+    pw.write_png(im, 'composite_render.png')
+
 
 Making Movies
 ^^^^^^^^^^^^^
