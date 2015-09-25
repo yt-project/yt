@@ -60,12 +60,18 @@ def test_GadgetDataset():
 def test_iso_collapse():
     for test in sph_answer(isothermal_h5, 'snap_505', 2**17,
                            iso_fields, ds_kwargs=iso_kwargs):
-        test_iso_collapse.__name__ = test.description
+        if isinstance(test, tuple):
+            test_iso_collapse.__name__ = test[0].description
+        else:
+            test_iso_collapse.__name__ = test.description
         yield test
 
 @requires_ds(gdg, big_data=True)
 def test_gadget_disk_galaxy():
     for test in sph_answer(gdg, 'snapshot_200', 11907080, gdg_fields,
                            ds_kwargs=gdg_kwargs):
-        test_gadget_disk_galaxy.__name__ = test.description
+        if isinstance(test, tuple):
+            test_gadget_disk_galaxy.__name__ = test[0].description
+        else:
+            test_gadget_disk_galaxy.__name__ = test.description
         yield test
