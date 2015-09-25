@@ -5,7 +5,8 @@ from yt.testing import \
     assert_equal, \
     assert_array_almost_equal_nulp, \
     assert_array_equal, \
-    assert_raises
+    assert_raises, \
+    requires_file
 from yt.utilities.cosmology import \
     Cosmology
 from yt.frontends.stream.fields import \
@@ -188,10 +189,12 @@ def test_add_deposited_particle_field():
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
+@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
 def test_add_smoothed_particle_field():
-    fn = base_ds.add_smoothed_particle_field(('io', 'particle_ones'))
-    assert_equal(fn, ('deposit', 'io_smoothed_particle_ones'))
-    ad = base_ds.all_data()
+    ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
+    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
+    ad = ds.all_data()
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
