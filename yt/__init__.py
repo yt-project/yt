@@ -138,6 +138,9 @@ from yt.frontends.stream.api import \
     load_particles, load_hexahedral_mesh, load_octree, \
     hexahedral_connectivity
 
+from yt.frontends.ytdata.api import \
+    save_as_ytdata
+
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
