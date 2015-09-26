@@ -16,9 +16,14 @@ API for ytData frontend
 
 from .data_structures import \
     YTDataContainerDataset, \
+    YTSpatialPlotDataset, \
     YTGridDataset, \
     YTGridHierarchy, \
-    YTGrid
+    YTGrid, \
+    YTNonspatialDataset, \
+    YTNonspatialHierarchy, \
+    YTNonspatialGrid, \
+    YTProfileDataset
 
 from .io import \
     IOHandlerYTDataContainerHDF5
