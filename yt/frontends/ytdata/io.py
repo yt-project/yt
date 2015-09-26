@@ -256,9 +256,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
-            return dict([(group, f[group].attrs["num_elements"])
-                         for group in f])
+        return self.ds.num_particles
 
     def _identify_fields(self, data_file):
         fields = []
