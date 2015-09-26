@@ -17,7 +17,7 @@ import h5py
 import numpy as np
 
 from yt.frontends.ytdata.utilities import \
-    save_as_ytdata
+    save_as_dataset
 from yt.funcs import get_output_filename
 from yt.funcs import *
 from yt.units.yt_array import uconcatenate, array_like_field
@@ -1014,8 +1014,8 @@ class ProfileND(ParallelAnalysisInterface):
 
         extra_attrs["dimensionality"] = dimensionality
         ftypes = dict([(field, "data") for field in data])
-        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
-                       extra_attrs=extra_attrs)
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
 
         return filename
 

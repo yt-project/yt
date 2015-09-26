@@ -14,7 +14,7 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.ytdata.utilities import \
-    save_as_ytdata
+    save_as_dataset
 from yt.funcs import \
     get_output_filename, \
     mylog
@@ -440,8 +440,8 @@ class FixedResolutionBuffer(object):
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
         extra_attrs["dimensionality"] = self.data_source._dimensionality
-        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
-                       extra_attrs=extra_attrs)
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
 
         return filename
 

@@ -139,7 +139,7 @@ from yt.frontends.stream.api import \
     hexahedral_connectivity
 
 from yt.frontends.ytdata.api import \
-    save_as_ytdata
+    save_as_dataset
 
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset

@@ -32,7 +32,7 @@ from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.frontends.ytdata.utilities import \
-    save_as_ytdata
+    save_as_dataset
 from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
@@ -567,8 +567,8 @@ class YTDataContainer(object):
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
-        save_as_ytdata(self.ds, filename, data, field_types=ftypes,
-                       extra_attrs=extra_attrs)
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
 
         return filename
         
