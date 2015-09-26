@@ -1,7 +1,7 @@
 """
-Generalized Enzo output objects, both static and time-series.
+Dataset and related data structures.
 
-Presumably at some point EnzoRun will be absorbed into here.
+
 
 
 """
