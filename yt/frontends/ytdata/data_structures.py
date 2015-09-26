@@ -194,15 +194,13 @@ class YTGrid(AMRGridPatch):
     def Children(self):
         return []
 
-class YTGridHierarchy(GridIndex):
-    grid = YTGrid
-
+class YTDataHierarchy(GridIndex):
     def __init__(self, ds, dataset_type = None):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.dataset = weakref.proxy(ds)
         self.directory = os.getcwd()
-        GridIndex.__init__(self, ds, dataset_type)
+        super(YTDataHierarchy, self).__init__(ds, dataset_type)
 
     def _count_grids(self):
         self.num_grids = 1
@@ -227,11 +225,6 @@ class YTGridHierarchy(GridIndex):
             temp_grids[i] = grid
         self.grids = temp_grids
 
-    def _populate_grid_objects(self):
-        for g in self.grids:
-            g._setup_dx()
-        self.max_level = self.grid_levels.max()
-
     def _detect_output_fields(self):
         self.field_list = []
         self.ds.field_units = self.ds.field_units or {}
@@ -242,6 +235,14 @@ class YTGridHierarchy(GridIndex):
                     self.field_list.append(field_name)
                     self.ds.field_units[field_name] = \
                       f[group][field].attrs["units"]
+
+class YTGridHierarchy(YTDataHierarchy):
+    grid = YTGrid
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._setup_dx()
+        self.max_level = self.grid_levels.max()
 
 class YTGridDataset(YTDataset):
     _index_class = YTGridHierarchy
@@ -415,38 +416,8 @@ class YTNonspatialGrid(AMRGridPatch):
     def Children(self):
         return []
 
-class YTNonspatialHierarchy(GridIndex):
+class YTNonspatialHierarchy(YTDataHierarchy):
     grid = YTNonspatialGrid
-
-    def __init__(self, ds, dataset_type = None):
-        self.dataset_type = dataset_type
-        self.float_type = 'float64'
-        self.dataset = weakref.proxy(ds)
-        self.directory = os.getcwd()
-        GridIndex.__init__(self, ds, dataset_type)
-
-    def _count_grids(self):
-        self.num_grids = 1
-
-    def _parse_index(self):
-        self.grid_dimensions[:] = self.ds.domain_dimensions
-        self.grid_left_edge[:] = self.ds.domain_left_edge
-        self.grid_right_edge[:] = self.ds.domain_right_edge
-        self.grid_levels[:] = np.zeros(self.num_grids)
-        self.grid_procs = np.zeros(self.num_grids)
-        self.grid_particle_count[:] = sum(self.ds.num_particles.values())
-        self.grids = []
-        for gid in range(self.num_grids):
-            self.grids.append(self.grid(gid, self))
-            self.grids[gid].Level = self.grid_levels[gid, 0]
-        self.max_level = self.grid_levels.max()
-        temp_grids = np.empty(self.num_grids, dtype='object')
-        for i, grid in enumerate(self.grids):
-            grid.filename = self.ds.parameter_filename
-            grid._prepare_grid()
-            grid.proc_num = self.grid_procs[i]
-            temp_grids[i] = grid
-        self.grids = temp_grids
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -455,17 +426,6 @@ class YTNonspatialHierarchy(GridIndex):
             g.dds = self.ds.arr(g.dds.d, "")
             g.ActiveDimensions = self.ds.domain_dimensions
         self.max_level = self.grid_levels.max()
-
-    def _detect_output_fields(self):
-        self.field_list = []
-        self.ds.field_units = self.ds.field_units or {}
-        with h5py.File(self.ds.parameter_filename, "r") as f:
-            for group in f:
-                for field in f[group]:
-                    field_name = (str(group), str(field))
-                    self.field_list.append(field_name)
-                    self.ds.field_units[field_name] = \
-                      f[group][field].attrs["units"]
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
