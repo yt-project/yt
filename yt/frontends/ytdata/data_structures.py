@@ -41,6 +41,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.units.yt_array import \
+    YTQuantity
 from yt.utilities.logger import \
     ytLogger as mylog
 from yt.utilities.cosmology import \
@@ -49,12 +51,45 @@ from yt.utilities.exceptions import \
     YTFieldTypeNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.units.yt_array import \
-    YTQuantity
 
 _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
+
+class YTDataset(Dataset):
+    def _parse_parameter_file(self):
+        self.refine_by = 2
+        with h5py.File(self.parameter_filename, "r") as f:
+            self.parameters.update(
+                dict((key, f.attrs[key]) for key in f.attrs.keys()))
+            self.num_particles = \
+              dict([(group, f[group].attrs["num_elements"])
+                    for group in f if group != self.default_fluid_type])
+        for attr in ["cosmological_simulation", "current_time", "current_redshift",
+                     "hubble_constant", "omega_matter", "omega_lambda",
+                     "dimensionality", "domain_dimensions", "periodicity",
+                     "domain_left_edge", "domain_right_edge"]:
+            setattr(self, attr, self.parameters.get(attr))
+        self.unique_identifier = \
+          int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+    def _set_code_unit_attributes(self):
+        attrs = ('length_unit', 'mass_unit', 'time_unit',
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        base_units = np.ones(len(attrs))
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if isinstance(unit, string_types):
+                uq = self.quan(1.0, unit)
+            elif isinstance(unit, numeric_type):
+                uq = self.quan(unit, cgs_unit)
+            elif isinstance(unit, YTQuantity):
+                uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+            setattr(self, attr, uq)
 
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -64,7 +99,7 @@ class YTDataHDF5File(ParticleFile):
 
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
 
-class YTDataContainerDataset(Dataset):
+class YTDataContainerDataset(YTDataset):
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
     _field_info_class = YTDataContainerFieldInfo
@@ -75,34 +110,16 @@ class YTDataContainerDataset(Dataset):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
-                                            units_override=units_override)
+            units_override=units_override)
 
     def _parse_parameter_file(self):
-        with h5py.File(self.parameter_filename, "r") as f:
-            hvals = dict((key, f.attrs[key]) for key in f.attrs.keys())
-            self.particle_types_raw = tuple(f.keys())
+        super(YTDataContainerDataset, self)._parse_parameter_file()
+        self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
-        self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        for attr in ["cosmological_simulation", "current_time", "current_redshift",
-                     "hubble_constant", "omega_matter", "omega_lambda",
-                     "dimensionality", "domain_left_edge", "domain_right_edge"]:
-            setattr(self, attr, hvals[attr])
-        self.periodicity = (True, True, True)
-
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
-        self.parameters.update(hvals)
-
-    def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.velocity_unit = self.quan(1.0, "cm / s")
-        self.time_unit = self.quan(1.0, "s")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -225,7 +242,7 @@ class YTGridHierarchy(GridIndex):
                     self.ds.field_units[field_name] = \
                       f[group][field].attrs["units"]
 
-class YTGridDataset(Dataset):
+class YTGridDataset(YTDataset):
     _index_class = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = 'ytgridhdf5'
@@ -234,18 +251,12 @@ class YTGridDataset(Dataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename):
-        Dataset.__init__(self, filename, self._dataset_type)
+        super(YTGridDataset, self).__init__(filename, self._dataset_type)
         self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
-        self.refine_by = 2
-        self.unique_identifier = time.time()
-        with h5py.File(self.parameter_filename, "r") as f:
-            for attr, value in f.attrs.items():
-                setattr(self, attr, value)
-            self.num_particles = \
-              dict([(group, f[group].attrs["num_elements"])
-                    for group in f if group != self.default_fluid_type])
+        super(YTGridDataset, self)._parse_parameter_file()
+        self.num_particles.pop(self.default_fluid_type, None)
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
 
@@ -282,24 +293,6 @@ class YTGridDataset(Dataset):
                     ("gas", field),
                     (self.default_fluid_type, field))
         super(YTGridDataset, self).create_field_info()
-
-    def _set_code_unit_attributes(self):
-        attrs = ('length_unit', 'mass_unit', 'time_unit',
-                 'velocity_unit', 'magnetic_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
-        base_units = np.ones(len(attrs))
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
-                uq = self.quan(1.0, unit)
-            elif isinstance(unit, numeric_type):
-                uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
-                uq = unit
-            elif isinstance(unit, tuple):
-                uq = self.quan(unit[0], unit[1])
-            else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
-            setattr(self, attr, uq)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -493,14 +486,8 @@ class YTNonspatialDataset(YTGridDataset):
     fluid_types = ("data", "gas")
 
     def _parse_parameter_file(self):
-        self.refine_by = 2
-        self.unique_identifier = time.time()
-        with h5py.File(self.parameter_filename, "r") as f:
-            for attr, value in f.attrs.items():
-                setattr(self, attr, value)
-            self.num_particles = \
-              dict([(group, f[group].attrs["num_elements"])
-                    for group in f if group != self.default_fluid_type])
+        super(YTGridDataset, self)._parse_parameter_file()
+        self.num_particles.pop(self.default_fluid_type, None)
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
 
@@ -521,27 +508,39 @@ class YTNonspatialDataset(YTGridDataset):
         return False
 
 class YTProfileDataset(YTNonspatialDataset):
-    def _set_derived_attrs(self):
+    def _parse_parameter_file(self):
+        super(YTGridDataset, self)._parse_parameter_file()
+        for a in ["profile_dimensions"] + \
+          ["%s_%s" % (ax, attr)
+           for ax in "xyz"[:self.dimensionality]
+           for attr in ["log"]]:
+            setattr(self, a, self.parameters[a])
+
         self.base_domain_left_edge = self.domain_left_edge
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
 
         self.domain_dimensions = np.ones(3, dtype="int")
-        self.domain_dimensions[:self.dimensionality] = self.profile_dimensions
+        self.domain_dimensions[:self.dimensionality] = \
+          self.profile_dimensions
         self.domain_left_edge = np.zeros(3)
         self.domain_right_edge = np.ones(3)
         for i, ax in enumerate("xyz"[:self.dimensionality]):
             range_name = "%s_range" % ax
-            my_edge = getattr(self, range_name)
+            my_range = self.parameters[range_name]
             if getattr(self, "%s_log" % ax, False):
-                my_edge = np.log10(my_edge)
-            self.domain_left_edge[i] = my_edge[0]
-            self.domain_right_edge[i] = my_edge[1]
+                my_range = np.log10(my_range)
+            self.domain_left_edge[i] = my_range[0]
+            self.domain_right_edge[i] = my_range[1]
             setattr(self, range_name,
-                    self.arr(getattr(self, range_name),
-                             getattr(self, range_name+"_units")))
-        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
-        self.domain_width = self.domain_right_edge - self.domain_left_edge
+                    self.arr(self.parameters[range_name],
+                             self.parameters[range_name+"_units"]))
+
+    def _set_derived_attrs(self):
+        self.domain_center = 0.5 * (self.domain_right_edge +
+                                    self.domain_left_edge)
+        self.domain_width = self.domain_right_edge - \
+          self.domain_left_edge
 
     @parallel_root_only
     def print_key_parameters(self):
