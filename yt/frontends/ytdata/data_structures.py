@@ -68,7 +68,8 @@ class YTDataset(Dataset):
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
                      "dimensionality", "domain_dimensions", "periodicity",
-                     "domain_left_edge", "domain_right_edge"]:
+                     "domain_left_edge", "domain_right_edge",
+                     "container_type", "data_type"]:
             setattr(self, attr, self.parameters.get(attr))
         self.unique_identifier = \
           int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -266,11 +267,12 @@ class YTGridDataset(YTDataset):
         self.base_domain_dimensions = self.domain_dimensions
         if self.container_type in _grid_data_containers:
             dx = (self.domain_right_edge - self.domain_left_edge) / \
-              (self.domain_dimensions * self.refine_by**self.level)
-            self.domain_left_edge = self.left_edge
+              (self.domain_dimensions *
+               self.refine_by**self.parameters["level"])
+            self.domain_left_edge = self.parameters["left_edge"]
             self.domain_right_edge = self.domain_left_edge + \
-              self.ActiveDimensions * dx
-            self.domain_dimensions = self.ActiveDimensions
+              self.parameters["ActiveDimensions"] * dx
+            self.domain_dimensions = self.parameters["ActiveDimensions"]
             self.periodicity = \
               np.abs(self.domain_left_edge -
                      self.base_domain_left_edge) < 0.5 * dx
@@ -279,11 +281,11 @@ class YTGridDataset(YTDataset):
                    self.base_domain_right_edge) < 0.5 * dx
         elif self.data_type == "yt_frb":
             self.domain_left_edge = \
-              np.concatenate([self.left_edge, [0.]])
+              np.concatenate([self.parameters["left_edge"], [0.]])
             self.domain_right_edge = \
-              np.concatenate([self.right_edge, [1.]])
+              np.concatenate([self.parameters["right_edge"], [1.]])
             self.domain_dimensions = \
-              np.concatenate([self.ActiveDimensions, [1]])
+              np.concatenate([self.parameters["ActiveDimensions"], [1]])
 
     def create_field_info(self):
         self.field_info = self._field_info_class(self, self.field_list)
