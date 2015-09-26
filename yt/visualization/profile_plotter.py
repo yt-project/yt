@@ -712,17 +712,18 @@ class PhasePlot(ImagePlotContainer):
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
-                 accumulation=False, fractional=False,
+                 accumulation=False, fractional=False, profile=None,
                  fontsize=18, figure_size=8.0):
 
-        profile = create_profile(
-            data_source,
-            [x_field, y_field],
-            ensure_list(z_fields),
-            n_bins=[x_bins, y_bins],
-            weight_field=weight_field,
-            accumulation=accumulation,
-            fractional=fractional)
+        if profile is None:
+            profile = create_profile(
+                data_source,
+                [x_field, y_field],
+                ensure_list(z_fields),
+                n_bins=[x_bins, y_bins],
+                weight_field=weight_field,
+                accumulation=accumulation,
+                fractional=fractional)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
