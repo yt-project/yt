@@ -2,7 +2,7 @@ import yt
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import communication_system
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import time
 import numpy as np
 

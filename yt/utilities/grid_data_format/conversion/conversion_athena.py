@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 import weakref
 import numpy as np
-import h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5
 from .conversion_abc import *
 from glob import glob
 from collections import \

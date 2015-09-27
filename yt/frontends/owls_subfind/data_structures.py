@@ -15,7 +15,7 @@ Data structures for OWLSSubfind frontend.
 #-----------------------------------------------------------------------------
 
 from collections import defaultdict
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import weakref
