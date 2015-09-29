@@ -11,8 +11,6 @@ Test Surface Mesh Rendering
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt
-import numpy as np
 from yt.testing import fake_tetrahedral_ds
 from yt.testing import fake_hexahedral_ds
 from yt.testing import requires_module
@@ -31,14 +29,14 @@ def test_surface_mesh_render():
         cam = Camera(ds)
         im = ms.render(cam)
         images.append(im)
-        
+
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
         ms = MeshSource(ds, field)
         cam = Camera(ds)
         im = ms.render(cam)
         images.append(im)
-    
+
     return images
 
 if __name__ == "__main__":
