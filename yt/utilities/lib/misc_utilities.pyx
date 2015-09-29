@@ -707,7 +707,7 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
         for i in range(3):
             ds_period[i] = period[i]
     else:
-        ds_period[0] = ds_period[1] = ds_period[2]
+        ds_period[0] = ds_period[1] = ds_period[2] = 0.0
     box_left_edge = _ensure_code(box_left_edge)
     box_right_edge = _ensure_code(box_right_edge)
     _ensure_code(fcoords)
@@ -726,9 +726,8 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
         for p in range(fcoords.shape[0]):
             for i in range(3):
                diter[i][1] = 999
-               diterv[i][0] = 0.0
                odsp[i] = fwidth[p,i]*0.5
-               osp[i] = fcoords[p,i]+0.5*odsp[i]
+               osp[i] = fcoords[p,i] # already centered
                overlap[i] = 1.0
             dsp = data[p]
             if check_period == 1:
@@ -764,26 +763,26 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
                             # bonus row and bonus column here.
                             ud[i] = <np.int64_t> fmin(((sp[i]+odsp[i]-LE[i])*box_idds[i] + 1), dims[i])
                         for i in range(ld[0], ud[0]):
-                            lfd[0] = box_dds[0] * i + LE[0]
-                            ufd[0] = box_dds[0] * (i + 1) + LE[0]
                             if antialias == 1:
+                                lfd[0] = box_dds[0] * i + LE[0]
+                                ufd[0] = box_dds[0] * (i + 1) + LE[0]
                                 overlap[0] = ((fmin(ufd[0], sp[0]+odsp[0])
                                            - fmax(lfd[0], (sp[0]-odsp[0])))*box_idds[0])
                             if overlap[0] < 0.0: continue
                             for j in range(ld[1], ud[1]):
-                                lfd[1] = box_dds[1] * j + LE[1]
-                                ufd[1] = box_dds[1] * (j + 1) + LE[1]
                                 if antialias == 1:
+                                    lfd[1] = box_dds[1] * j + LE[1]
+                                    ufd[1] = box_dds[1] * (j + 1) + LE[1]
                                     overlap[1] = ((fmin(ufd[1], sp[1]+odsp[1])
                                                - fmax(lfd[1], (sp[1]-odsp[1])))*box_idds[1])
                                 if overlap[1] < 0.0: continue
-                            for k in range(ld[2], ud[2]):
-                                lfd[2] = box_dds[2] * k + LE[2]
-                                ufd[2] = box_dds[2] * (k + 1) + LE[2]
-                                if antialias == 1:
-                                    overlap[2] = ((fmin(ufd[2], sp[2]+odsp[2])
-                                               - fmax(lfd[2], (sp[2]-odsp[2])))*box_idds[2])
-                                    if overlap[2] < 0.0: continue
-                                    dest[i,j,k] += dsp * (overlap[0]*overlap[1]*overlap[2])
-                                else:
-                                    dest[i,j,k] = dsp
+                                for k in range(ld[2], ud[2]):
+                                    if antialias == 1:
+                                        lfd[2] = box_dds[2] * k + LE[2]
+                                        ufd[2] = box_dds[2] * (k + 1) + LE[2]
+                                        overlap[2] = ((fmin(ufd[2], sp[2]+odsp[2])
+                                                   - fmax(lfd[2], (sp[2]-odsp[2])))*box_idds[2])
+                                        if overlap[2] < 0.0: continue
+                                        dest[i,j,k] += dsp * (overlap[0]*overlap[1]*overlap[2])
+                                    else:
+                                        dest[i,j,k] = dsp
