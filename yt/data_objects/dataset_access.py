@@ -90,8 +90,6 @@ class DatasetAccess(object):
             r = self.ds.domain_right_edge[ax]
         else:
             r = self._spec_to_value(val.stop)
-        if val.step is not None:
-            raise NotImplementedError("Step not implemented.")
         if r < l:
             raise RuntimeError
         return l, r
@@ -99,9 +97,13 @@ class DatasetAccess(object):
     def _create_region(self, bounds_tuple):
         left_edge = []
         right_edge = []
+        dims = []
         for ax, b in enumerate(bounds_tuple):
             l, r = self._slice_to_edges(ax, b)
             left_edge.append(l)
             right_edge.append(r)
+            dims.append(getattr(b.step, "imag", None))
         center = [ (l + r)/2.0 for l, r in zip(left_edge, right_edge)]
+        if all(d is not None for d in dims):
+            return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)
