@@ -22,7 +22,7 @@ Major enhancements
 * Late-stage beta support for Python 3 - unit tests and answer tests pass for 
   all the major frontends under python 3.4, and yt should now be mostly if not 
   fully usable.  Because many of the yt developers are still on Python 2 at 
-  this point, this should be considered a “late stage beta” as there may be 
+  this point, this should be considered a "late stage beta" as there may be 
   remaining issues yet to be identified or worked out.
 * Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn 
   how to load halo catalogs as regular yt datasets.
