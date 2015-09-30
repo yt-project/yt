@@ -23,7 +23,8 @@ import numpy as np
 from yt.visualization.volume_rendering.old_camera import \
     PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
     FisheyeCamera
-from yt.visualization.volume_rendering.api import ColorTransferFunction, ProjectionTransferFunction
+from yt.visualization.volume_rendering.api import ColorTransferFunction, \
+    ProjectionTransferFunction
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 

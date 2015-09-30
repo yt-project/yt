@@ -13,16 +13,15 @@ Exodus II frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import assert_equal, \
+    assert_array_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load
-from yt.frontends.exodus_ii.api import ExodusIIDataset
-from yt.config import ytcfg
-from yt.convenience import load
-
-_fields = ("convected", "diffused")
 
 out = "ExodusII/out.e"
+
+
 @requires_file(out)
 def test_out():
     ds = data_dir_load(out)
@@ -32,8 +31,9 @@ def test_out():
     yield assert_equal, ds.current_time, 0.0
     yield assert_array_equal, ds.parameters['nod_names'], ['convected', 'diffused']
     yield assert_equal, ds.parameters['num_meshes'], 2
-    
+
 out_s002 = "ExodusII/out.e-s002"
+
 @requires_file(out_s002)
 def test_out002():
     ds = data_dir_load(out_s002)
@@ -42,6 +42,8 @@ def test_out002():
     yield assert_equal, ds.current_time, 0.0
 
 gold = "ExodusII/gold.e"
+
+
 @requires_file(gold)
 def test_gold():
     ds = data_dir_load(gold)
