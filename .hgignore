@@ -58,6 +58,7 @@ yt/utilities/lib/element_mappings.c
 yt/utilities/lib/mesh_construction.cpp
 yt/utilities/lib/mesh_samplers.cpp
 yt/utilities/lib/mesh_traversal.cpp
+yt/utilities/lib/mesh_intersection.cpp
 syntax: glob
 *.pyc
 .*.swp
