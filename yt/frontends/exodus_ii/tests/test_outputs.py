@@ -34,12 +34,13 @@ def test_out():
 
 out_s002 = "ExodusII/out.e-s002"
 
+
 @requires_file(out_s002)
 def test_out002():
     ds = data_dir_load(out_s002)
     yield assert_equal, str(ds), "out.e-s002"
     yield assert_equal, ds.dimensionality, 3
-    yield assert_equal, ds.current_time, 0.0
+    yield assert_equal, ds.current_time, 2.0
 
 gold = "ExodusII/gold.e"
 

@@ -164,7 +164,7 @@ class ExodusIIDataset(Dataset):
 
     def _get_unique_identifier(self):
         try:
-            return self._vars['info_records']['Version Info']['Executable Timestamp']
+            return self.parameters['info_records']['Version Info']['Executable Timestamp']
         except (KeyError, TypeError, IndexError):
             return self.parameter_filename.__hash__()
 
