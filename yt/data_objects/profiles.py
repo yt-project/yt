@@ -1029,6 +1029,31 @@ class ProfileND(ParallelAnalysisInterface):
 
         return filename
 
+class ProfileNDFromDataset(ProfileND):
+    """
+    An ND profile object loaded from a ytdata dataset.
+    """
+    def __init__(self, ds):
+        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
+        self.fractional = ds.parameters["fractional"]
+        exclude_fields = ["used", "weight"]
+        for ax in "xyz"[:ds.dimensionality]:
+            setattr(self, ax, ds.data[ax])
+            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
+            setattr(self, "%s_field" % ax,
+                    tuple(ds.parameters["%s_field" % ax]))
+            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
+            exclude_fields.extend([ax, "%s_bins" % ax,
+                                   ds.parameters["%s_field" % ax][1]])
+        self.weight = ds.data["weight"]
+        self.used = ds.data["used"].d.astype(bool)
+        profile_fields = [f for f in ds.field_list
+                          if f[1] not in exclude_fields]
+        for field in profile_fields:
+            self.field_map[field[1]] = field
+            self.field_data[field] = ds.data[field]
+            self.field_units[field] = ds.data[field].units
+
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
 
@@ -1090,6 +1115,14 @@ class Profile1D(ProfileND):
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
+
+class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
+    """
+    A 1D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 class Profile2D(ProfileND):
     """An object that represents a 2D profile.
@@ -1188,42 +1221,9 @@ class Profile2D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
 
-class ProfileNDFromDataset(ProfileND):
-    """
-    An ND profile object loaded from a ytdata dataset.
-    """
-    def __init__(self, ds):
-        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
-        self.fractional = ds.parameters["fractional"]
-        exclude_fields = ["used", "weight"]
-        for ax in "xyz"[:ds.dimensionality]:
-            setattr(self, ax, ds.data[ax])
-            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            setattr(self, "%s_field" % ax,
-                    tuple(ds.parameters["%s_field" % ax]))
-            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
-            exclude_fields.extend([ax, "%s_bins" % ax,
-                                   ds.parameters["%s_field" % ax][1]])
-        self.weight = ds.data["weight"]
-        self.used = ds.data["used"].d.astype(bool)
-        profile_fields = [f for f in ds.field_list
-                          if f[1] not in exclude_fields]
-        for field in profile_fields:
-            self.field_map[field[1]] = field
-            self.field_data[field] = ds.data[field]
-            self.field_units[field] = ds.data[field].units
-
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """
     A 2D profile object loaded from a ytdata dataset.
-    """
-
-    def __init(self, ds):
-        ProfileNDFromDataset.__init__(self, ds)
-
-class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
-    """
-    A 1D profile object loaded from a ytdata dataset.
     """
 
     def __init(self, ds):
@@ -1474,6 +1474,13 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
+class Profile3DFromDataset(ProfileNDFromDataset, Profile3D):
+    """
+    A 2D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 def sanitize_field_tuple_keys(input_dict, data_source):
     if input_dict is not None:

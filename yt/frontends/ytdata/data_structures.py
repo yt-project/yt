@@ -33,7 +33,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.profiles import \
     Profile1DFromDataset, \
-    Profile2DFromDataset
+    Profile2DFromDataset, \
+    Profile3DFromDataset
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
@@ -60,6 +61,7 @@ _grid_data_containers = ["abritrary_grid",
                          "smoothed_covering_grid"]
 
 class YTDataset(Dataset):
+    """Base dataset class for all ytdata datasets."""
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
@@ -104,6 +106,7 @@ class YTDataHDF5File(ParticleFile):
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
 
 class YTDataContainerDataset(YTDataset):
+    """Dataset for saved geometric data containers."""
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
     _field_info_class = YTDataContainerFieldInfo
@@ -141,6 +144,7 @@ class YTDataContainerDataset(YTDataset):
         return False
 
 class YTSpatialPlotDataset(YTDataContainerDataset):
+    """Dataset for saved slices and projections."""
     _field_info_class = YTGridFieldInfo
 
     def __init__(self, *args, **kwargs):
@@ -248,6 +252,7 @@ class YTGridHierarchy(YTDataHierarchy):
         self.max_level = self.grid_levels.max()
 
 class YTGridDataset(YTDataset):
+    """Dataset for saved covering grids, arbitrary grids, and FRBs."""
     _index_class = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = 'ytgridhdf5'
@@ -443,6 +448,7 @@ class YTNonspatialHierarchy(YTDataHierarchy):
         return fields_to_return, fields_to_generate
 
 class YTNonspatialDataset(YTGridDataset):
+    """Dataset for general array data."""
     _index_class = YTNonspatialHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = 'ytnonspatialhdf5'
@@ -473,6 +479,7 @@ class YTNonspatialDataset(YTGridDataset):
         return False
 
 class YTProfileDataset(YTNonspatialDataset):
+    """Dataset for saved profile objects."""
     def __init__(self, filename):
         super(YTProfileDataset, self).__init__(filename)
 
@@ -482,6 +489,8 @@ class YTProfileDataset(YTNonspatialDataset):
             return Profile1DFromDataset(self)
         if self.dimensionality == 2:
             return Profile2DFromDataset(self)
+        if self.dimensionality == 3:
+            return Profile3DFromDataset(self)
         return None
 
     def _parse_parameter_file(self):
