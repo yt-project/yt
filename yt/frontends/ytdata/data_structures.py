@@ -31,6 +31,9 @@ from .fields import \
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.data_objects.profiles import \
+    Profile1DFromDataset, \
+    Profile2DFromDataset
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
@@ -470,8 +473,27 @@ class YTNonspatialDataset(YTGridDataset):
         return False
 
 class YTProfileDataset(YTNonspatialDataset):
+    def __init__(self, filename):
+        super(YTProfileDataset, self).__init__(filename)
+
+    @property
+    def profile(self):
+        if self.dimensionality == 1:
+            return Profile1DFromDataset(self)
+        if self.dimensionality == 2:
+            return Profile2DFromDataset(self)
+        return None
+
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
+
+        if isinstance(self.parameters["weight_field"], str) and \
+          self.parameters["weight_field"] == "None":
+            self.parameters["weight_field"] = None
+        elif isinstance(self.parameters["weight_field"], np.ndarray):
+            self.parameters["weight_field"] = \
+              tuple(self.parameters["weight_field"])
+
         for a in ["profile_dimensions"] + \
           ["%s_%s" % (ax, attr)
            for ax in "xyz"[:self.dimensionality]
@@ -498,6 +520,16 @@ class YTProfileDataset(YTNonspatialDataset):
                     self.arr(self.parameters[range_name],
                              self.parameters[range_name+"_units"]))
 
+            bin_field = "%s_field" % ax
+            if isinstance(self.parameters[bin_field], str) and \
+              self.parameters[bin_field] == "None":
+                self.parameters[bin_field] = None
+            elif isinstance(self.parameters[bin_field], np.ndarray):
+                self.parameters[bin_field] = \
+                  tuple(self.parameters[bin_field])
+            setattr(self, bin_field, self.parameters[bin_field])
+
+
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge +
                                     self.domain_left_edge)
@@ -510,7 +542,7 @@ class YTProfileDataset(YTNonspatialDataset):
         for a in ["dimensionality", "profile_dimensions"] + \
           ["%s_%s" % (ax, attr)
            for ax in "xyz"[:self.dimensionality]
-           for attr in ["range", "log"]]:
+           for attr in ["field", "range", "log"]]:
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()

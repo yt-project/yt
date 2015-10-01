@@ -982,12 +982,14 @@ class ProfileND(ParallelAnalysisInterface):
         >>> ds2 = yt.load(fn2)
         """
 
-        keyword = "%s_profile" % str(self.ds)
+        keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
         filename = get_output_filename(filename, keyword, ".h5")
 
         args = ("field", "log")
         extra_attrs = {"data_type": "yt_profile",
-                       "profile_dimensions": self.size}
+                       "profile_dimensions": self.size,
+                       "weight_field": self.weight_field,
+                       "fractional": self.fractional}
         data = {}
         data.update(self.field_data)
         data["weight"] = self.weight
@@ -1178,6 +1180,46 @@ class Profile2D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
 
+class ProfileNDFromDataset(ProfileND):
+    """
+    An ND profile object loaded from a ytdata dataset.
+    """
+    def __init__(self, ds):
+        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
+        self.fractional = ds.parameters["fractional"]
+        exclude_fields = ["used", "weight"]
+        for ax in "xyz"[:ds.dimensionality]:
+            setattr(self, ax, ds.data[ax])
+            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
+            setattr(self, "%s_field" % ax,
+                    tuple(ds.parameters["%s_field" % ax]))
+            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
+            exclude_fields.extend([ax, "%s_bins" % ax,
+                                   ds.parameters["%s_field" % ax][1]])
+        self.weight = ds.data["weight"]
+        self.used = ds.data["used"].d.astype(bool)
+        profile_fields = [f for f in ds.field_list
+                          if f[1] not in exclude_fields]
+        for field in profile_fields:
+            self.field_map[field[1]] = field
+            self.field_data[field] = ds.data[field]
+            self.field_units[field] = ds.data[field].units
+
+class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
+    """
+    A 2D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
+
+class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
+    """
+    A 1D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 class ParticleProfile(Profile2D):
     """An object that represents a *deposited* 2D profile. This is like a
