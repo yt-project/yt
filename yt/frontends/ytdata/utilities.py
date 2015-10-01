@@ -40,7 +40,12 @@ def save_as_dataset(ds, filename, data, field_types=None,
         The name of the file to be written.
     data : dict
         A dictionary of field arrays to be saved.
-    extra_attrs: dict
+    field_types: dict, optional
+        A dictionary denoting the group name to which each field is to
+        be saved.  When the resulting dataset is reloaded, this will be
+        the field type for this field.  If not given, "data" will be
+        used.
+    extra_attrs: dict, optional
         A dictionary of additional attributes to be saved.
 
     Returns
@@ -52,7 +57,6 @@ def save_as_dataset(ds, filename, data, field_types=None,
     --------
 
     >>> import yt
-    >>> from yt.frontends.ytdata.api import save_as_dataset
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> sphere = ds.sphere([0.5]*3, (10, "Mpc")
     >>> sphere_density = sphere["density"]
@@ -61,18 +65,20 @@ def save_as_dataset(ds, filename, data, field_types=None,
     >>> data = {}
     >>> data["sphere_density"] = sphere_density
     >>> data["region_density"] = region_density
-    >>> save_as_dataset(ds, "density_data.h5", data)
+    >>> yt.save_as_dataset(ds, "density_data.h5", data)
+    >>> new_ds = yt.load("density_data.h5")
+    >>> print new_ds.data["region_density"]
+    >>> print new_ds.data["sphere_density"]
 
-    >>> import yt
-    >>> from yt.frontends.ytdata.api import save_as_dataset
-    >>> from yt.units.yt_array import YTArray, YTQuantity
-    >>> data = {"density": YTArray(np.random.random(10), "g/cm**3"),
-    ...         "temperature": YTArray(np.random.random(10), "K")}
-    >>> ds_data = {"domain_left_edge": YTArray(np.zeros(3), "cm"),
-    ...            "domain_right_edge": YTArray(np.ones(3), "cm"),
-    ...            "current_time": YTQuantity(10, "Myr")}
-    >>> save_as_dataset(ds_data, "random_data.h5", data)
-    
+    >>> data = {"density": yt.YTArray(np.random.random(10), "g/cm**3"),
+    ...         "temperature": yt.YTArray(np.random.random(10), "K")}
+    >>> ds_data = {"domain_left_edge": yt.YTArray(np.zeros(3), "cm"),
+    ...            "domain_right_edge": yt.YTArray(np.ones(3), "cm"),
+    ...            "current_time": yt.YTQuantity(10, "Myr")}
+    >>> yt.save_as_dataset(ds_data, "random_data.h5", data)
+    >>> new_ds = yt.load("random_data.h5")
+    >>> print new_ds.data["temperature"]
+
     """
 
     mylog.info("Saving field data to yt dataset: %s." % filename)

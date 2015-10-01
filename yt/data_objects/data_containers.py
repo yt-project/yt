@@ -480,11 +480,11 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        filename : str
+        filename : str, optional
             The name of the file to be written.  If None, the name 
             will be a combination of the original dataset and the type 
             of data container.
-        fields : list of strings or tuples, default None
+        fields : list of strings or tuples, optional
             If this is supplied, it is the list of fields to be exported into
             the data frame.  If not supplied, whatever fields presently exist
             will be used.
@@ -497,12 +497,14 @@ class YTDataContainer(object):
         Examples
         --------
 
-        >>> dd = ds.all_data()
-        >>> fn1 = dd.save_as_dataset(["density", "temperature"])
-        >>> ds1 = yt.load(fn1)
-        >>> dd["velocity_magnitude"]
-        >>> fn2 = dd.save_as_dataset()
-        >>> ds2 = yt.load(fn2)
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
+        >>> fn = sp.save_as_dataset(["density", "temperature"])
+        >>> sphere_ds = yt.load(fn)
+        >>> ad = sphere_ds.all_data()
+        >>> print ad["temperature"]
+
         """
 
         keyword = "%s_%s" % (str(self.ds), self._type_name)

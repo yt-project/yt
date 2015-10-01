@@ -393,11 +393,11 @@ class FixedResolutionBuffer(object):
 
         Parameters
         ----------
-        filename : str
+        filename : str, optional
             The name of the file to be written.  If None, the name 
             will be a combination of the original dataset and the type 
             of data container.
-        fields : list of strings or tuples, default None
+        fields : list of strings or tuples, optional
             If this is supplied, it is the list of fields to be exported into
             the data frame.  If not supplied, whatever fields presently exist
             will be used.
@@ -410,11 +410,14 @@ class FixedResolutionBuffer(object):
         Examples
         --------
 
+        >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> proj = ds.proj("density", "x", weight_field="density")
         >>> frb = proj.to_frb(1.0, (800, 800))
         >>> fn = frb.save_as_dataset(fields=["density"])
         >>> ds2 = yt.load(fn)
+        >>> print ds2.data["density"]
+
         """
 
         keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)

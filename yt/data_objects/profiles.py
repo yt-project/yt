@@ -952,7 +952,7 @@ class ProfileND(ParallelAnalysisInterface):
             return np.linspace(mi, ma, n+1)
 
     def save_as_dataset(self, filename=None):
-        r"""Export a data object to a reloadable yt dataset.
+        r"""Export a profile to a reloadable yt dataset.
 
         This function will take a profile and output a dataset
         containing either the fields presently existing or fields
@@ -961,10 +961,10 @@ class ProfileND(ParallelAnalysisInterface):
 
         Parameters
         ----------
-        filename : str
+        filename : str, optional
             The name of the file to be written.  If None, the name
             will be a combination of the original dataset plus
-            "profile".
+            the type of object, e.g., Profile1D.
 
         Returns
         -------
@@ -974,12 +974,20 @@ class ProfileND(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> dd = ds.all_data()
-        >>> fn1 = dd.save_as_dataset(["density", "temperature"])
-        >>> ds1 = yt.load(fn1)
-        >>> dd["velocity_magnitude"]
-        >>> fn2 = dd.save_as_dataset()
-        >>> ds2 = yt.load(fn2)
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> ad = ds.all_data()
+        >>> profile = yt.create_profile(ad, ["density", "temperature"],
+        ...                            "cell_mass", weight_field=None,
+        ...                             n_bins=(128, 128))
+        >>> fn = profile.save_as_dataset()
+        >>> prof_ds = yt.load(fn)
+        >>> print prof_ds.data["cell_mass"]
+        >>> print prof_ds.data["x"]
+        >>> print prof_ds.data["density"]
+        >>> p = yt.PhasePlot(prof_ds.data, "density", "temperature",
+        ...                  "cell_mass", weight_field=None)
+
         """
 
         keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
