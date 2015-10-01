@@ -32,6 +32,8 @@ from .plot_container import \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
+from yt.frontends.ytdata.data_structures import \
+    YTProfileDataset
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
@@ -204,13 +206,16 @@ class ProfilePlot(object):
         else:
             logs = {x_field:x_log}
 
-        profiles = [create_profile(data_source, [x_field],
-                                   n_bins=[n_bins],
-                                   fields=ensure_list(y_fields),
-                                   weight_field=weight_field,
-                                   accumulation=accumulation,
-                                   fractional=fractional,
-                                   logs=logs)]
+        if isinstance(data_source.ds, YTProfileDataset):
+            profiles = [data_source.ds.profile]
+        else:
+            profiles = [create_profile(data_source, [x_field],
+                                       n_bins=[n_bins],
+                                       fields=ensure_list(y_fields),
+                                       weight_field=weight_field,
+                                       accumulation=accumulation,
+                                       fractional=fractional,
+                                       logs=logs)]
 
         if plot_spec is None:
             plot_spec = [dict() for p in profiles]
@@ -716,14 +721,17 @@ class PhasePlot(ImagePlotContainer):
                  fontsize=18, figure_size=8.0):
 
         if profile is None:
-            profile = create_profile(
-                data_source,
-                [x_field, y_field],
-                ensure_list(z_fields),
-                n_bins=[x_bins, y_bins],
-                weight_field=weight_field,
-                accumulation=accumulation,
-                fractional=fractional)
+            if isinstance(data_source.ds, YTProfileDataset):
+                profile = data_source.ds.profile
+            else:
+                profile = create_profile(
+                    data_source,
+                    [x_field, y_field],
+                    ensure_list(z_fields),
+                    n_bins=[x_bins, y_bins],
+                    weight_field=weight_field,
+                    accumulation=accumulation,
+                    fractional=fractional)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
