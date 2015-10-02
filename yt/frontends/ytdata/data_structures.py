@@ -463,11 +463,36 @@ class YTNonspatialDataset(YTGridDataset):
         self.particle_types = self.particle_types_raw
 
     def _set_derived_attrs(self):
-        pass
+        # set some defaults just to make things go
+        default_attrs = {
+            "dimensionality": 3,
+            "domain_dimensions": np.ones(3, dtype="int"),
+            "domain_left_edge": np.zeros(3),
+            "domain_right_edge": np.ones(3),
+            "periodicity": np.ones(3, dtype="bool")
+        }
+        for att, val in default_attrs.items():
+            if getattr(self, att, None) is None:
+                setattr(self, att, val)
 
     def _setup_classes(self):
         # We don't allow geometric selection for non-spatial datasets
         pass
+
+    @parallel_root_only
+    def print_key_parameters(self):
+        mylog.info("YTArrayDataset")
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                  "domain_right_edge", "cosmological_simulation"]:
+            v = getattr(self, a)
+            if v is not None: mylog.info("Parameters: %-25s = %s", a, v)
+        if hasattr(self, "cosmological_simulation") and \
+           getattr(self, "cosmological_simulation"):
+            for a in ["current_redshift", "omega_lambda", "omega_matter",
+                      "hubble_constant"]:
+                v = getattr(self, a)
+                if v is not None: mylog.info("Parameters: %-25s = %s", a, v)
+        mylog.warn("Geometric data selection not available for this dataset type.")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -537,7 +562,6 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = \
                   tuple(self.parameters[bin_field])
             setattr(self, bin_field, self.parameters[bin_field])
-
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge +
