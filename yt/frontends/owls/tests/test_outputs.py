@@ -46,10 +46,7 @@ _fields = OrderedDict(
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
     for test in sph_answer(os33, 'snap_033', 2*128**3, _fields):
-        if isinstance(test, tuple):
-            test_snapshot_033.__name__ = test[0].description
-        else:
-            test_snapshot_033.__name__ = test.description
+        test_snapshot_033.__name__ = test.description
         yield test
 
 
