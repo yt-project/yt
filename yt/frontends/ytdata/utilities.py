@@ -98,7 +98,6 @@ def save_as_dataset(ds, filename, data, field_types=None,
         else:
             my_val = getattr(ds, attr, None)
         if my_val is None:
-            mylog.warn("Skipping %s attribute, this may be just fine." % attr)
             continue
         if hasattr(my_val, "units"):
             my_val = my_val.in_cgs()
