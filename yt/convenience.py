@@ -50,6 +50,7 @@ def load(*args ,**kwargs):
                     valid_file.append(False)
         else:
             valid_file.append(False)
+    types_to_check = output_type_registry
     if not any(valid_file):
         try:
             from yt.data_objects.time_series import DatasetSeries
@@ -62,13 +63,14 @@ def load(*args ,**kwargs):
         if len(args) > 0 and isinstance(args[0], (list, dict)):
             # This fixes issues where it is assumed the first argument is a
             # file
-            args = ["nonexistent"] + args
+            types_to_check = dict((n, v) for n, v in
+                    output_type_registry.items() if n.startswith("stream_"))
             # Better way to do this is to override the output_type_registry
         else:
             mylog.error("None of the arguments provided to load() is a valid file")
             mylog.error("Please check that you have used a correct path")
             raise YTOutputNotIdentified(args, kwargs)
-    for n, c in output_type_registry.items():
+    for n, c in types_to_check.items():
         print n
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
