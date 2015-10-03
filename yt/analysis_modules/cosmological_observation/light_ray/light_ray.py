@@ -537,12 +537,14 @@ class LightRay(CosmologySplice):
             fh.attrs["domain_right_edge"] = ds.domain_right_edge.in_cgs()
             fh.attrs["cosmological_simulation"] = ds.cosmological_simulation
             fh.attrs["dimensionality"] = ds.dimensionality
+            fh.attrs["periodicity"] = ds.periodicity
         else:
             fh.attrs["current_redshift"] = self.near_redshift
             fh.attrs["domain_left_edge"] = self.simulation.domain_left_edge.in_cgs()
             fh.attrs["domain_right_edge"] = self.simulation.domain_right_edge.in_cgs()
             fh.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
             fh.attrs["dimensionality"] = self.simulation.dimensionality
+            fh.attrs["periodicity"] = (True, True, True)
         fh.attrs["current_time"] = self.cosmology.t_from_z(fh.attrs["current_redshift"]).in_cgs()
         fh.attrs["data_type"] = "yt_light_ray"
         group = fh.create_group("grid")
