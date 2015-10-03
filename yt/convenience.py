@@ -55,12 +55,21 @@ def load(*args ,**kwargs):
             from yt.data_objects.time_series import DatasetSeries
             ts = DatasetSeries.from_filenames(*args, **kwargs)
             return ts
-        except YTOutputNotIdentified:
+        except (TypeError, YTOutputNotIdentified):
             pass
-        mylog.error("None of the arguments provided to load() is a valid file")
-        mylog.error("Please check that you have used a correct path")
-        raise YTOutputNotIdentified(args, kwargs)
+        # We check if either the first argument is a dict or list, in which
+        # case we try identifying candidates.
+        if len(args) > 0 and isinstance(args[0], (list, dict)):
+            # This fixes issues where it is assumed the first argument is a
+            # file
+            args = ["nonexistent"] + args
+            # Better way to do this is to override the output_type_registry
+        else:
+            mylog.error("None of the arguments provided to load() is a valid file")
+            mylog.error("Please check that you have used a correct path")
+            raise YTOutputNotIdentified(args, kwargs)
     for n, c in output_type_registry.items():
+        print n
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
 
