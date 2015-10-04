@@ -49,4 +49,5 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("rockstar/tests")
     config.add_subpackage("stream/tests")
     config.add_subpackage("tipsy/tests")
+    config.add_subpackage("ytdata/tests")
     return config
