@@ -33,7 +33,8 @@ class YTDataFieldTest(AnswerTestingTest):
     _type_name = "YTDataTest"
     _attrs = ("field_name", )
 
-    def __init__(self, ds_fn, field, decimals = 10):
+    def __init__(self, ds_fn, field, decimals = 10,
+                 geometric=True):
         super(YTDataFieldTest, self).__init__(ds_fn)
         self.field = field
         if isinstance(field, tuple):
@@ -41,9 +42,13 @@ class YTDataFieldTest(AnswerTestingTest):
         else:
             self.field_name = field
         self.decimals = decimals
+        self.geometric = geometric
 
     def run(self):
-        obj = self.ds.data
+        if self.geometric:
+            obj = self.ds.all_data()
+        else:
+            obj = self.ds.data
         num_e = obj[field].size
         avg = obj[field].mean()
         return np.array([num_e, avg])
