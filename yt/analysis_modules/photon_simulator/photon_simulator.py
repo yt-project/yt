@@ -687,11 +687,13 @@ class PhotonList(object):
 
         num_events = len(events["xpix"])
 
-        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % num_events)
+        if comm.rank == 0: 
+            mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events, mat_key)
-            for k, v in info.items(): parameters[k] = v
+            for k, v in info.items(): 
+                parameters[k] = v
 
         if exp_time_new is None:
             parameters["ExposureTime"] = self.parameters["FiducialExposureTime"]
@@ -738,8 +740,6 @@ class PhotonList(object):
         eidxs = np.argsort(events["eobs"])
 
         phEE = events["eobs"][eidxs].d
-        phXX = events["xpix"][eidxs]
-        phYY = events["ypix"][eidxs]
 
         detectedChannels = []
 
@@ -775,18 +775,18 @@ class PhotonList(object):
                 for q in range(fcurr,last):
                     if phEE[q] >= low and phEE[q] < high:
                         channelInd = np.random.choice(len(weights), p=weights)
-                        fcurr +=1
+                        fcurr += 1
                         detectedChannels.append(trueChannel[channelInd])
                     if phEE[q] >= high:
                         break
             pbar.update(fcurr)
-            k+=1
+            k += 1
         pbar.finish()
 
         dchannel = np.array(detectedChannels)
 
-        events["xpix"] = phXX
-        events["ypix"] = phYY
+        events["xpix"] = events["xpix"][eidxs]
+        events["ypix"] = events["ypix"][eidxs]
         events["eobs"] = YTArray(phEE, "keV")
         events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
 
