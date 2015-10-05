@@ -84,6 +84,18 @@ class astropy_imports:
             self._conv = conv
         return self._conv
 
+    _time = None
+    @property
+    def time(self):
+        if self._time is None:
+            try:
+                import astropy.time as time
+                self.log
+            except ImportError:
+                time = NotAModule(self._name)
+            self._time = time
+        return self._time
+
 _astropy = astropy_imports()
 
 class scipy_imports:
