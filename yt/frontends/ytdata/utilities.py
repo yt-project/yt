@@ -17,10 +17,10 @@ Utility functions for ytdata frontend.
 import h5py
 import numpy as np
 
-from yt.funcs import \
-    mylog
 from yt.units.yt_array import \
     YTArray
+from yt.utilities.logger import \
+    ytLogger as mylog
 
 def save_as_dataset(ds, filename, data, field_types=None,
                     extra_attrs=None):

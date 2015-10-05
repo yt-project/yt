@@ -13,19 +13,20 @@ LightRay class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
 
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
     CosmologySplice
 from yt.convenience import \
     load
-from yt.funcs import \
-    mylog
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
     Cosmology
+from yt.utilities.logger import \
+    ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
@@ -133,7 +134,6 @@ class LightRay(CosmologySplice):
         if simulation_type is None:
             self.simulation_type = simulation_type
             ds = load(parameter_filename, **self.load_kwargs)
-            self.cosmological_simulation = ds.cosmological_simulation
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
                 self.cosmology = Cosmology(
@@ -149,7 +149,6 @@ class LightRay(CosmologySplice):
         # Make a light ray from a simulation time-series.
         else:
             # Get list of datasets for light ray solution.
-            self.cosmological_simulation = 1
             CosmologySplice.__init__(self, parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
@@ -528,41 +527,24 @@ class LightRay(CosmologySplice):
 
         Write light ray data to hdf5 file.
         """
-        mylog.info("Saving light ray data to %s." % filename)
-        fh = h5py.File(filename, "w")
         if self.simulation_type is None:
             ds = load(self.parameter_filename, **self.load_kwargs)
-            fh.attrs["current_redshift"] = ds.current_redshift
-            fh.attrs["domain_left_edge"] = ds.domain_left_edge.in_cgs()
-            fh.attrs["domain_right_edge"] = ds.domain_right_edge.in_cgs()
-            fh.attrs["cosmological_simulation"] = ds.cosmological_simulation
-            fh.attrs["dimensionality"] = ds.dimensionality
-            fh.attrs["periodicity"] = ds.periodicity
         else:
-            fh.attrs["current_redshift"] = self.near_redshift
-            fh.attrs["domain_left_edge"] = self.simulation.domain_left_edge.in_cgs()
-            fh.attrs["domain_right_edge"] = self.simulation.domain_right_edge.in_cgs()
-            fh.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
-            fh.attrs["dimensionality"] = self.simulation.dimensionality
-            fh.attrs["periodicity"] = (True, True, True)
-        if self.cosmological_simulation:
+            ds = {}
+            ds["dimensionality"] = self.simulation.dimensionality
+            ds["domain_left_edge"] = self.simulation.domain_left_edge
+            ds["domain_right_edge"] = self.simulation.domain_right_edge
+            ds["cosmological_simulation"] = self.simulation.cosmological_simulation
+            ds["periodicity"] = (True, True, True)
+            ds["current_redshift"] = self.near_redshift
             for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
-                fh.attrs[attr] = getattr(self.cosmology, attr)
-                fh.attrs["current_time"] = \
-                  self.cosmology.t_from_z(fh.attrs["current_redshift"]).in_cgs()
-        else:
-            fh.attrs["current_time"] = ds.current_time
-        fh.attrs["data_type"] = "yt_light_ray"
-        group = fh.create_group("grid")
-        group.attrs["num_elements"] = data['x'].size
-        for field in data.keys():
-            if isinstance(field, tuple):
-                fieldname = field[1]
-            else:
-                fieldname = field
-            group.create_dataset(fieldname, data=data[field])
-            group[fieldname].attrs["units"] = str(data[field].units)
-        fh.close()
+                ds[attr] = getattr(self.cosmology, attr)
+            ds["current_time"] = \
+              self.cosmology.t_from_z(fh.attrs["current_redshift"])
+        extra_attrs = {"data_type": "yt_light_ray"}
+        field_types = dict([(field, "grid") for field in data.keys()])
+        save_as_dataset(ds, filename, data, field_types=field_types,
+                        extra_attrs=extra_attrs)
 
     @parallel_root_only
     def _write_light_ray_solution(self, filename, extra_info=None):
