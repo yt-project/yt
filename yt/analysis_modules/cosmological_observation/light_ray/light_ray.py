@@ -133,6 +133,7 @@ class LightRay(CosmologySplice):
         if simulation_type is None:
             self.simulation_type = simulation_type
             ds = load(parameter_filename, **self.load_kwargs)
+            self.cosmological_simulation = ds.cosmological_simulation
             if ds.cosmological_simulation:
                 redshift = ds.current_redshift
                 self.cosmology = Cosmology(
@@ -148,6 +149,7 @@ class LightRay(CosmologySplice):
         # Make a light ray from a simulation time-series.
         else:
             # Get list of datasets for light ray solution.
+            self.cosmological_simulation = 1
             CosmologySplice.__init__(self, parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
@@ -528,8 +530,6 @@ class LightRay(CosmologySplice):
         """
         mylog.info("Saving light ray data to %s." % filename)
         fh = h5py.File(filename, "w")
-        for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
-            fh.attrs[attr] = getattr(self.cosmology, attr)
         if self.simulation_type is None:
             ds = load(self.parameter_filename, **self.load_kwargs)
             fh.attrs["current_redshift"] = ds.current_redshift
@@ -545,7 +545,13 @@ class LightRay(CosmologySplice):
             fh.attrs["cosmological_simulation"] = self.simulation.cosmological_simulation
             fh.attrs["dimensionality"] = self.simulation.dimensionality
             fh.attrs["periodicity"] = (True, True, True)
-        fh.attrs["current_time"] = self.cosmology.t_from_z(fh.attrs["current_redshift"]).in_cgs()
+        if self.cosmological_simulation:
+            for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
+                fh.attrs[attr] = getattr(self.cosmology, attr)
+                fh.attrs["current_time"] = \
+                  self.cosmology.t_from_z(fh.attrs["current_redshift"]).in_cgs()
+        else:
+            fh.attrs["current_time"] = ds.current_time
         fh.attrs["data_type"] = "yt_light_ray"
         group = fh.create_group("grid")
         group.attrs["num_elements"] = data['x'].size
