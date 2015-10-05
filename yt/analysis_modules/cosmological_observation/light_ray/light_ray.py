@@ -13,7 +13,7 @@ LightRay class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
