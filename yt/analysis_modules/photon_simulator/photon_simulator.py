@@ -980,17 +980,25 @@ class EventList(object) :
         Set *clobber* to True if you need to overwrite a previous file.
         """
         pyfits = _astropy.pyfits
+        Time = _astropy.time.Time
+        TimeDelta = _astropy.time.TimeDelta
+
+        exp_time = float(self.parameters["ExposureTime"])
+
+        t_begin = Time.now()
+        dt = TimeDelta(exp_time, format='sec')
+        t_end = t_begin + dt
 
         cols = []
 
-        col1 = pyfits.Column(name='ENERGY', format='E', unit='eV',
-                             array=self["eobs"].in_units("eV").d)
-        col2 = pyfits.Column(name='X', format='D', unit='pixel',
-                             array=self["xpix"])
-        col3 = pyfits.Column(name='Y', format='D', unit='pixel',
-                             array=self["ypix"])
+        col_e = pyfits.Column(name='ENERGY', format='E', unit='eV',
+                              array=self["eobs"].in_units("eV").d)
+        col_x = pyfits.Column(name='X', format='D', unit='pixel',
+                              array=self["xpix"])
+        col_y = pyfits.Column(name='Y', format='D', unit='pixel',
+                              array=self["ypix"])
 
-        cols = [col1, col2, col3]
+        cols = [col_e, col_x, col_y]
 
         if "ChannelType" in self.parameters:
              chantype = self.parameters["ChannelType"]
@@ -998,10 +1006,20 @@ class EventList(object) :
                   cunit = "adu"
              elif chantype == "PI":
                   cunit = "Chan"
-             col4 = pyfits.Column(name=chantype.upper(), format='1J',
-                                  unit=cunit, array=self.events[chantype])
-             cols.append(col4)
+             col_ch = pyfits.Column(name=chantype.upper(), format='1J',
+                                    unit=cunit, array=self.events[chantype])
+             cols.append(col_ch)
 
+             mylog.info("Generating times for events assuming uniform time "
+                        "distribution. In future versions this will be made "
+                        "more general.")
+
+             time = np.random.uniform(size=self.num_events, low=0.0,
+                                      high=float(self.parameters["ExposureTime"]))
+             col_t = pyfits.Column(name="TIME", format='1D', unit='s', 
+                                   array=time)
+             cols.append(col_t)
+        
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.BinTableHDU.from_columns(coldefs)
         tbhdu.update_ext_name("EVENTS")
@@ -1022,7 +1040,9 @@ class EventList(object) :
         tbhdu.header["TLMIN3"] = 0.5
         tbhdu.header["TLMAX2"] = 2.*self.parameters["pix_center"][0]-0.5
         tbhdu.header["TLMAX3"] = 2.*self.parameters["pix_center"][1]-0.5
-        tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
+        tbhdu.header["EXPOSURE"] = exp_time
+        tbhdu.header["TSTART"] = 0.0
+        tbhdu.header["TSTOP"] = exp_time
         if isinstance(self.parameters["Area"], string_types):
             tbhdu.header["AREA"] = self.parameters["Area"]
         else:
@@ -1032,8 +1052,18 @@ class EventList(object) :
         tbhdu.header["HDUVERS"] = "1.1.0"
         tbhdu.header["RADECSYS"] = "FK5"
         tbhdu.header["EQUINOX"] = 2000.0
+        tbhdu.header["HDUCLASS"] = "OGIP"
+        tbhdu.header["HDUCLAS1"] = "EVENTS"
+        tbhdu.header["HDUCLAS2"] = "ACCEPTED"
+        tbhdu.header["DATE"] = t_begin.tt.isot
+        tbhdu.header["DATE-OBS"] = t_begin.tt.isot
+        tbhdu.header["DATE-END"] = t_end.tt.isot
         if "RMF" in self.parameters:
             tbhdu.header["RESPFILE"] = self.parameters["RMF"]
+            f = pyfits.open(self.parameters["RMF"])
+            nchan = int(f["EBOUNDS"].header["DETCHANS"])
+            tbhdu.header["PHA_BINS"] = nchan
+            f.close()
         if "ARF" in self.parameters:
             tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
         if "ChannelType" in self.parameters:
@@ -1045,7 +1075,30 @@ class EventList(object) :
         if "Instrument" in self.parameters:
             tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
 
-        tbhdu.writeto(fitsfile, clobber=clobber)
+        hdulist = [pyfits.PrimaryHDU(), tbhdu]
+
+        if "ChannelType" in self.parameters:
+            start = pyfits.Column(name='START', format='1D', unit='s',
+                                  array=np.array([0.0]))
+            stop = pyfits.Column(name='STOP', format='1D', unit='s',
+                                 array=np.array([exp_time]))
+
+            tbhdu_gti = pyfits.BinTableHDU.from_columns([start,stop])
+            tbhdu_gti.update_ext_name("STDGTI")
+            tbhdu_gti.header["TSTART"] = 0.0
+            tbhdu_gti.header["TSTOP"] = exp_time
+            tbhdu_gti.header["HDUCLASS"] = "OGIP"
+            tbhdu_gti.header["HDUCLAS1"] = "GTI"
+            tbhdu_gti.header["HDUCLAS2"] = "STANDARD"
+            tbhdu_gti.header["RADECSYS"] = "FK5"
+            tbhdu_gti.header["EQUINOX"] = 2000.0
+            tbhdu_gti.header["DATE"] = t_begin.tt.isot
+            tbhdu_gti.header["DATE-OBS"] = t_begin.tt.isot
+            tbhdu_gti.header["DATE-END"] = t_end.tt.isot
+
+            hdulist.append(tbhdu_gti)
+
+        pyfits.HDUList(hdulist).writeto(fitsfile, clobber=clobber)
 
     @parallel_root_only
     def write_simput_file(self, prefix, clobber=False, emin=None, emax=None):
@@ -1301,7 +1354,7 @@ class EventList(object) :
 
         coldefs = pyfits.ColDefs([col1, col2, col3, col4])
 
-        tbhdu = pyfits.new_table(coldefs)
+        tbhdu = pyfits.BinTableHDU.from_columns(coldefs)
         tbhdu.update_ext_name("SPECTRUM")
 
         tbhdu.header["DETCHANS"] = spec.shape[0]
