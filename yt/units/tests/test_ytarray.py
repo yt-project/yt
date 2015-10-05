@@ -467,6 +467,13 @@ def test_unit_conversions():
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
+    dimless = YTQuantity(1.0, "")
+    yield assert_equal, dimless.in_cgs(), dimless
+    yield assert_equal, dimless.in_cgs(), 1.0
+    yield assert_equal, dimless.in_mks(), dimless
+    yield assert_equal, dimless.in_mks(), 1.0
+    yield assert_equal, str(dimless.in_cgs().units), "dimensionless"
+
 def test_temperature_conversions():
     """
     Test conversions between various supported temperatue scales.
