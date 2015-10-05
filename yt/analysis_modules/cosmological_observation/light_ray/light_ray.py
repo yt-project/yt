@@ -476,8 +476,8 @@ class LightRay(CosmologySplice):
                                   sub_data['velocity_los']
                 redshift_dopp = ((1 + velocity_los_cm / speed_of_light_cgs) /
                                 (1 - velocity_los_cm / speed_of_light_cgs))**(0.5) - 1
-                sub_data['redshift_eff'] = (1 + redshift_dopp) * \
-                                           (1 + sub_data['redshift'])
+                sub_data['redshift_eff'] = ((1 + redshift_dopp) * \
+                                           (1 + sub_data['redshift'])) - 1
                 del velocity_los_cm, redshift_dopp
 
             # Remove empty lixels.
