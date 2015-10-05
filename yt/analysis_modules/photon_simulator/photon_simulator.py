@@ -722,7 +722,6 @@ class PhotonList(object):
         """
         Convolve the events with a RMF file.
         """
-        mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
 
         hdulist = _astropy.pyfits.open(respfile)
