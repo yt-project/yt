@@ -836,11 +836,11 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     filename = None
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        ds = kwargs['ds']
+        self._base_dx = ((ds.domain_right_edge - ds.domain_left_edge) /
+                         ds.domain_dimensions.astype("float64"))
         self.global_endindex = None
         YTCoveringGridBase.__init__(self, *args, **kwargs)
-        self._base_dx = (
-              (self.ds.domain_right_edge - self.ds.domain_left_edge) /
-               self.ds.domain_dimensions.astype("float64"))
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
