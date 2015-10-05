@@ -1264,13 +1264,19 @@ class EventList(object) :
         if bin_type == "channel" and "ChannelType" in self.parameters:
             spectype = self.parameters["ChannelType"]
             f = pyfits.open(self.parameters["RMF"])
-            nchan = int(f[1].header["DETCHANS"])
-            try:
-                cmin = int(f[1].header["TLMIN4"])
-            except KeyError:
+            nchan = int(f["EBOUNDS"].header["DETCHANS"])
+            num = 0
+            for i in range(1,len(f["EBOUNDS"].columns)+1):
+                if f["EBOUNDS"].header["TTYPE%d" % i] == "CHANNEL":
+                    num = i
+                    break
+            if num > 0:
+                tlmin = "TLMIN%d" % num
+                cmin = int(f["EBOUNDS"].header[tlmin])
+            else:
                 mylog.warning("Cannot determine minimum allowed value for channel. " +
                               "Setting to 0, which may be wrong.")
-                cmin = int(0)
+                cmin = 0
             f.close()
             minlength = nchan
             if cmin == 1: minlength += 1
