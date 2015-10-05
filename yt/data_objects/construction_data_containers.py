@@ -836,11 +836,11 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     filename = None
     @wraps(YTCoveringGridBase.__init__)
     def __init__(self, *args, **kwargs):
+        self.global_endindex = None
+        YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._base_dx = (
               (self.ds.domain_right_edge - self.ds.domain_left_edge) /
                self.ds.domain_dimensions.astype("float64"))
-        self.global_endindex = None
-        YTCoveringGridBase.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
@@ -1006,14 +1006,13 @@ class YTSurfaceBase(YTSelectionContainer3D):
                          ("index", "y"),
                          ("index", "z"))
     vertices = None
-    def __init__(self, data_source, surface_field, field_value):
+    def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurfaceBase, self).__init__(center = center, ds =
-                    data_source.ds )
+        super(YTSurfaceBase, self).__init__(center = center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
