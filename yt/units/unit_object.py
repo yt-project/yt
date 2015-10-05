@@ -394,6 +394,8 @@ class Unit(Expr):
         # Use sympy to factor the dimensions into base CGS unit symbols.
         units = []
         my_dims = self.dimensions.expand()
+        if my_dims is dimensionless:
+            return ""
         for factor in my_dims.as_ordered_factors():
             dim = list(factor.free_symbols)[0]
             unit_string = base_units[dim]
