@@ -536,6 +536,19 @@ class PhotonList(object):
         D_A0 = self.parameters["FiducialAngularDiameterDistance"]
         scale_factor = 1.0
 
+        # If we use an RMF, figure out where the response matrix actually is.
+        if "RMF" in parameters:
+            rmf = _astropy.pyfits.open(parameters["RMF"])
+            if "MATRIX" in rmf:
+                mat_key = "MATRIX"
+            elif "SPECRESP MATRIX" in rmf:
+                mat_key = "SPECRESP MATRIX"
+            else:
+                raise RuntimeError("Cannot find the response matrix in the RMF %s!!" % parameters["RMF"])
+            rmf.close()
+        else:
+            mat_key = None
+
         if (exp_time_new is None and area_new is None and
             redshift_new is None and dist_new is None):
             my_n_obs = n_ph_tot
@@ -552,11 +565,10 @@ class PhotonList(object):
                 if comm.rank == 0:
                     mylog.info("Using energy-dependent effective area: %s" % (parameters["ARF"]))
                 f = _astropy.pyfits.open(area_new)
-                elo = f["SPECRESP"].data.field("ENERG_LO")
-                ehi = f["SPECRESP"].data.field("ENERG_HI")
+                earf = 0.5*(f["SPECRESP"].data.field("ENERG_LO")+f["SPECRESP"].data.field("ENERG_HI"))
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
                 if "RMF" in parameters:
-                    weights = self._normalize_arf(parameters["RMF"])
+                    weights = self._normalize_arf(parameters["RMF"], mat_key)
                     eff_area *= weights
                 else:
                     mylog.warning("You specified an ARF but not an RMF. This is ok if the "+
@@ -679,7 +691,7 @@ class PhotonList(object):
         if comm.rank == 0: mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
-            events, info = self._convolve_with_rmf(parameters["RMF"], events)
+            events, info = self._convolve_with_rmf(parameters["RMF"], events, mat_key)
             for k, v in info.items(): parameters[k] = v
 
         if exp_time_new is None:
@@ -700,12 +712,12 @@ class PhotonList(object):
 
     def _normalize_arf(self, respfile):
         rmf = _astropy.pyfits.open(respfile)
-        table = rmf["MATRIX"]
+        table = rmf[mat_key]
         weights = np.array([w.sum() for w in table.data["MATRIX"]])
         rmf.close()
         return weights
 
-    def _convolve_with_rmf(self, respfile, events):
+    def _convolve_with_rmf(self, respfile, events, mat_key):
         """
         Convolve the events with a RMF file.
         """
@@ -714,7 +726,7 @@ class PhotonList(object):
 
         hdulist = _astropy.pyfits.open(respfile)
 
-        tblhdu = hdulist["MATRIX"]
+        tblhdu = hdulist[mat_key]
         n_de = len(tblhdu.data["ENERG_LO"])
         mylog.info("Number of energy bins in RMF: %d" % (n_de))
         mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
@@ -735,13 +747,13 @@ class PhotonList(object):
         # run through all photon energies and find which bin they go in
         k = 0
         fcurr = 0
-        last = len(phEE)-1
+        last = len(phEE)
 
-        pbar = get_pbar("Scattering energies with RMF:", n_de)
+        pbar = get_pbar("Scattering energies with RMF:", last)
 
         for low,high in zip(tblhdu.data["ENERG_LO"],tblhdu.data["ENERG_HI"]):
             # weight function for probabilities from RMF
-            weights = np.nan_to_num(tblhdu.data[k]["MATRIX"][:])
+            weights = np.nan_to_num(np.float64(tblhdu.data[k]["MATRIX"][:]))
             weights /= weights.sum()
             # build channel number list associated to array value,
             # there are groups of channels in rmfs with nonzero probabilities
@@ -768,7 +780,7 @@ class PhotonList(object):
                         detectedChannels.append(trueChannel[channelInd])
                     if phEE[q] >= high:
                         break
-            pbar.update(k)
+            pbar.update(fcurr)
             k+=1
         pbar.finish()
 
@@ -800,9 +812,6 @@ class EventList(object) :
         self.wcs.wcs.cdelt = [-parameters["dtheta"].value, parameters["dtheta"].value]
         self.wcs.wcs.ctype = ["RA---TAN","DEC--TAN"]
         self.wcs.wcs.cunit = ["deg"]*2
-        x,y = self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"], 1)
-        self.events["xsky"] = YTArray(x, "degree")
-        self.events["ysky"] = YTArray(y, "degree")
 
     def keys(self):
         return self.events.keys()
@@ -817,10 +826,18 @@ class EventList(object) :
         return self.events.values()
 
     def __getitem__(self,key):
+        if key not in self.events:
+            if key == "xsky" or key == "ysky":
+                x,y = self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"], 1)
+                self.events["xsky"] = YTArray(x, "degree")
+                self.events["ysky"] = YTArray(y, "degree")
         return self.events[key]
 
     def __repr__(self):
         return self.events.__repr__()
+
+    def __contains__(self, key):
+        return key in self.events
 
     def __add__(self, other):
         assert_same_wcs(self.wcs, other.wcs)
@@ -860,11 +877,11 @@ class EventList(object) :
             reg = pyregion.parse(region)
         r = reg.as_imagecoord(header=self.wcs.to_header())
         f = r.get_filter()
-        idxs = f.inside_x_y(self.events["xpix"], self.events["ypix"])
+        idxs = f.inside_x_y(self["xpix"], self["ypix"])
         if idxs.sum() == 0:
             raise RuntimeError("No events are inside this region!")
         new_events = {}
-        for k, v in self.events.items():
+        for k, v in self.items():
             new_events[k] = v[idxs]
         return EventList(new_events, self.parameters)
 
@@ -968,20 +985,20 @@ class EventList(object) :
         cols = []
 
         col1 = pyfits.Column(name='ENERGY', format='E', unit='eV',
-                             array=self.events["eobs"].in_units("eV").d)
+                             array=self["eobs"].in_units("eV").d)
         col2 = pyfits.Column(name='X', format='D', unit='pixel',
-                             array=self.events["xpix"])
+                             array=self["xpix"])
         col3 = pyfits.Column(name='Y', format='D', unit='pixel',
-                             array=self.events["ypix"])
+                             array=self["ypix"])
 
         cols = [col1, col2, col3]
 
         if "ChannelType" in self.parameters:
              chantype = self.parameters["ChannelType"]
              if chantype == "PHA":
-                  cunit="adu"
+                  cunit = "adu"
              elif chantype == "PI":
-                  cunit="Chan"
+                  cunit = "Chan"
              col4 = pyfits.Column(name=chantype.upper(), format='1J',
                                   unit=cunit, array=self.events[chantype])
              cols.append(col4)
@@ -1055,21 +1072,17 @@ class EventList(object) :
              raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with responses.")
 
         if emin is None:
-            emin = self.events["eobs"].min().value
+            emin = self["eobs"].min().value
         if emax is None:
-            emax = self.events["eobs"].max().value
+            emax = self["eobs"].max().value
 
-        idxs = np.logical_and(self.events["eobs"].d >= emin,
-                              self.events["eobs"].d <= emax)
-        flux = np.sum(self.events["eobs"][idxs].in_units("erg")) / \
+        idxs = np.logical_and(self["eobs"].d >= emin, self["eobs"].d <= emax)
+        flux = np.sum(self["eobs"][idxs].in_units("erg")) / \
                self.parameters["ExposureTime"]/self.parameters["Area"]
 
-        col1 = pyfits.Column(name='ENERGY', format='E',
-                             array=self["eobs"].d)
-        col2 = pyfits.Column(name='DEC', format='D',
-                             array=self["ysky"].d)
-        col3 = pyfits.Column(name='RA', format='D',
-                             array=self["xsky"].d)
+        col1 = pyfits.Column(name='ENERGY', format='E', array=self["eobs"].d)
+        col2 = pyfits.Column(name='DEC', format='D', array=self["ysky"].d)
+        col3 = pyfits.Column(name='RA', format='D', array=self["xsky"].d)
 
         coldefs = pyfits.ColDefs([col1, col2, col3])
 
@@ -1147,15 +1160,15 @@ class EventList(object) :
         if "Instrument" in self.parameters:
             f.create_dataset("/instrument", data=self.parameters["Instrument"])
 
-        f.create_dataset("/xpix", data=self.events["xpix"])
-        f.create_dataset("/ypix", data=self.events["ypix"])
-        f.create_dataset("/xsky", data=self.events["xsky"].d)
-        f.create_dataset("/ysky", data=self.events["ysky"].d)
-        f.create_dataset("/eobs", data=self.events["eobs"].d)
-        if "PI" in self.events:
-            f.create_dataset("/pi", data=self.events["PI"])
-        if "PHA" in self.events:
-            f.create_dataset("/pha", data=self.events["PHA"])                  
+        f.create_dataset("/xpix", data=self["xpix"])
+        f.create_dataset("/ypix", data=self["ypix"])
+        f.create_dataset("/xsky", data=self["xsky"].d)
+        f.create_dataset("/ysky", data=self["ysky"].d)
+        f.create_dataset("/eobs", data=self["eobs"].d)
+        if "PI" in self:
+            f.create_dataset("/pi", data=self["PI"])
+        if "PHA" in self:
+            f.create_dataset("/pha", data=self["PHA"])                  
         f.create_dataset("/sky_center", data=self.parameters["sky_center"].d)
         f.create_dataset("/pix_center", data=self.parameters["pix_center"])
         f.create_dataset("/dtheta", data=float(self.parameters["dtheta"]))
@@ -1181,13 +1194,13 @@ class EventList(object) :
             The maximum energy of the photons to put in the image, in keV.
         """
         if emin is None:
-            mask_emin = np.ones((self.num_events), dtype='bool')
+            mask_emin = np.ones(self.num_events, dtype='bool')
         else:
-            mask_emin = self.events["eobs"].d > emin
+            mask_emin = self["eobs"].d > emin
         if emax is None:
-            mask_emax = np.ones((self.num_events), dtype='bool')
+            mask_emax = np.ones(self.num_events, dtype='bool')
         else:
-            mask_emax = self.events["eobs"].d < emax
+            mask_emax = self["eobs"].d < emax
 
         mask = np.logical_and(mask_emin, mask_emax)
 
@@ -1197,8 +1210,8 @@ class EventList(object) :
         xbins = np.linspace(0.5, float(nx)+0.5, nx+1, endpoint=True)
         ybins = np.linspace(0.5, float(ny)+0.5, ny+1, endpoint=True)
 
-        H, xedges, yedges = np.histogram2d(self.events["xpix"][mask],
-                                           self.events["ypix"][mask],
+        H, xedges, yedges = np.histogram2d(self["xpix"][mask],
+                                           self["ypix"][mask],
                                            bins=[xbins,ybins])
 
         hdu = _astropy.pyfits.PrimaryHDU(H.T)
@@ -1262,11 +1275,11 @@ class EventList(object) :
             f.close()
             minlength = nchan
             if cmin == 1: minlength += 1
-            spec = np.bincount(self.events[spectype],minlength=minlength)
+            spec = np.bincount(self[spectype],minlength=minlength)
             if cmin == 1: spec = spec[1:]
             bins = (np.arange(nchan)+cmin).astype("int32")
         else:
-            espec = self.events["eobs"].d
+            espec = self["eobs"].d
             erange = (emin, emax)
             spec, ee = np.histogram(espec, bins=nchan, range=erange)
             if bin_type == "energy":
