@@ -664,7 +664,6 @@ class PhotonList(object):
             detected = np.ones(eobs.shape, dtype='bool')
         else:
             mylog.info("Applying energy-dependent effective area.")
-            earf = 0.5*(elo+ehi)
             earea = np.interp(eobs, earf, eff_area, left=0.0, right=0.0)
             randvec = eff_area.max()*np.random.random(eobs.shape)
             detected = randvec < earea
@@ -710,7 +709,7 @@ class PhotonList(object):
 
         return EventList(events, parameters)
 
-    def _normalize_arf(self, respfile):
+    def _normalize_arf(self, respfile, mat_key):
         rmf = _astropy.pyfits.open(respfile)
         table = rmf[mat_key]
         weights = np.array([w.sum() for w in table.data["MATRIX"]])
