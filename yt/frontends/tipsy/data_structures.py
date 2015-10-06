@@ -234,8 +234,13 @@ class TipsyDataset(ParticleDataset):
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
             self.mass_unit = self.quan(mu, 'Msun')
             density_unit = self.mass_unit/(self.length_unit/self.scale_factor)**3
-
-            cosmo = Cosmology(self.hubble_constant,
+            if 'dHubble0' in self.parameters:
+                # Gasoline's internal hubble constant, dHubble0, is stored in
+                # units of proper code time
+                self.hubble_constant *= np.sqrt(G * density_unit)
+                # Finally, we convert the hubble constant from Hz to 100 km/s/Mpc
+                self.hubble_constant /= self.quan(100, 'km/s/Mpc')
+            self.cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
         else:
