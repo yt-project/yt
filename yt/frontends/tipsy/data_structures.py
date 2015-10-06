@@ -240,7 +240,7 @@ class TipsyDataset(ParticleDataset):
                 self.hubble_constant *= np.sqrt(G * density_unit)
                 # Finally, we convert the hubble constant from Hz to 100 km/s/Mpc
                 self.hubble_constant /= self.quan(100, 'km/s/Mpc')
-            self.cosmo = Cosmology(self.hubble_constant,
+            cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
         else:
