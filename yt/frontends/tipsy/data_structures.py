@@ -169,12 +169,14 @@ class TipsyDataset(ParticleDataset):
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
         self.periodicity = (periodic, periodic, periodic)
-        self.comoving = self.parameters.get('bComove', False)
+        self.comoving = self.parameters.get(
+            'bComove', self._cosmology_parameters is not None)
         if self.comoving and period is None:
             period = 1.0
         if self.bounding_box is None:
             if periodic and period is not None:
-                # If we are periodic, that sets our domain width to either 1 or dPeriod.
+                # If we are periodic, that sets our domain width to
+                # either 1 or dPeriod.
                 self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
                 self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
             else:
@@ -189,14 +191,19 @@ class TipsyDataset(ParticleDataset):
 
         # If the cosmology parameters dictionary got set when data is
         # loaded, we can assume it's a cosmological data set
-        if self.comoving or self._cosmology_parameters is not None:
+        if self.comoving is True:
             cosm = self._cosmology_parameters or {}
-            self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
+            # In comoving simulations, time stores the scale factor a
+            self.scale_factor = hvals["time"]
             self.cosmological_simulation = 1
-            dcosm = dict(current_redshift=(1.0/self.scale_factor)-1.0,
-                         omega_lambda=self.parameters.get('dLambda', cosm.get('omega_lambda',0.0)),
-                         omega_matter=self.parameters.get('dOmega0', cosm.get('omega_matter',0.0)),
-                         hubble_constant=self.parameters.get('dHubble0', cosm.get('hubble_constant',1.0)))
+            dcosm = dict(
+                current_redshift=(1.0/self.scale_factor)-1.0,
+                omega_lambda=self.parameters.get(
+                    'dLambda', cosm.get('omega_lambda',0.0)),
+                omega_matter=self.parameters.get(
+                    'dOmega0', cosm.get('omega_matter',0.0)),
+                hubble_constant=self.parameters.get(
+                    'dHubble0', cosm.get('hubble_constant',1.0)))
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)
@@ -226,16 +233,8 @@ class TipsyDataset(ParticleDataset):
             # In cosmological runs, lengths are stored as length*scale_factor
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
             self.mass_unit = self.quan(mu, 'Msun')
-            density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
+            density_unit = self.mass_unit/(self.length_unit/self.scale_factor)**3
 
-            # If self.comoving is set, we know this is a gasoline data set,
-            # and we do the conversion on the hubble constant.
-            if self.comoving:
-                # Gasoline's hubble constant, dHubble0, is stored units of
-                # proper code time.
-                self.hubble_constant *= np.sqrt(G.in_units(
-                    'kpc**3*Msun**-1*s**-2') * density_unit).value / (
-                    3.2407793e-18)
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
