@@ -457,69 +457,9 @@ Storing and Loading Objects
 ---------------------------
 
 Often, when operating interactively or via the scripting interface, it is
-convenient to save an object or multiple objects out to disk and then restart
-the calculation later.  For example, this is useful after clump finding 
-(:ref:`clump_finding`), which can be very time consuming.  
-Typically, the save and load operations are used on 3D data objects.  yt
-has a separate set of serialization operations for 2D objects such as
-projections.
-
-yt will save out objects to disk under the presupposition that the
-construction of the objects is the difficult part, rather than the generation
-of the data -- this means that you can save out an object as a description of
-how to recreate it in space, but not the actual data arrays affiliated with
-that object.  The information that is saved includes the dataset off of
-which the object "hangs."  It is this piece of information that is the most
-difficult; the object, when reloaded, must be able to reconstruct a dataset
-from whatever limited information it has in the save file.
-
-You can save objects to an output file using the function 
-:func:`~yt.data_objects.index.save_object`: 
-
-.. code-block:: python
-
-   import yt
-   ds = yt.load("my_data")
-   sp = ds.sphere([0.5, 0.5, 0.5], (10.0, 'kpc'))
-   sp.save_object("sphere_name", "save_file.cpkl")
-
-This will store the object as ``sphere_name`` in the file
-``save_file.cpkl``, which will be created or accessed using the standard
-python module :mod:`shelve`.  
-
-To re-load an object saved this way, you can use the shelve module directly:
-
-.. code-block:: python
-
-   import yt
-   import shelve
-   ds = yt.load("my_data") 
-   saved_fn = shelve.open("save_file.cpkl")
-   ds, sp = saved_fn["sphere_name"]
-
-Additionally, we can store multiple objects in a single shelve file, so we 
-have to call the sphere by name.
-
-For certain data objects such as projections, serialization can be performed
-automatically if ``serialize`` option is set to ``True`` in :ref:`the
-configuration file <configuration-file>` or set directly in the script:
-
-.. code-block:: python
-
-   from yt.config import ytcfg; ytcfg["yt", "serialize"] = "True"
-
-.. note:: Use serialization with caution. Enabling serialization means that
-   once a projection of a dataset has been created (and stored in the .yt file
-   in the same directory), any subsequent changes to that dataset will be
-   ignored when attempting to create the same projection. So if you take a
-   density projection of your dataset in the 'x' direction, then somehow tweak
-   that dataset significantly, and take the density projection again, yt will
-   default to finding the original projection and 
-   :ref:`not your new one <faq-old-data>`.
-
-.. note:: It's also possible to use the standard :mod:`cPickle` module for
-          loading and storing objects -- so in theory you could even save a
-          list of objects!
-
-This method works for clumps, as well, and the entire clump index will be
-stored and restored upon load.
+convenient to save an object to disk and then restart the calculation later or
+transfer the data from a container to another filesystem.  This can be
+particularly useful when working with extremely large datasets.  Field data
+can be saved to disk in a format that allows for it to be reloaded just like
+a regular dataset.  For information on how to do this, see
+:ref:`saving-data-containers`.
