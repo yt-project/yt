@@ -32,7 +32,6 @@ from yt.utilities.cosmology import \
 from yt.utilities.physical_constants import \
     G, \
     cm_per_kpc
-from yt import YTQuantity
 
 from .fields import \
     TipsyFieldInfo

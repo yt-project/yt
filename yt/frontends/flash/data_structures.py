@@ -151,8 +151,6 @@ class FLASHHierarchy(GridIndex):
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
 
     def _populate_grid_objects(self):
-        # We only handle 3D data, so offset is 7 (nfaces+1)
-
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
         first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)

@@ -24,8 +24,6 @@ import os
 from .fields import \
     OWLSSubfindFieldInfo
 
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
@@ -126,7 +124,7 @@ class OWLSSubfindDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"] * sec_conversion["Gyr"], "s")
+        self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor

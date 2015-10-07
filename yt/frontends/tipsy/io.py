@@ -19,7 +19,6 @@ import glob
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 import os
-import struct
 
 from yt.utilities.io_handler import \
     BaseIOHandler
