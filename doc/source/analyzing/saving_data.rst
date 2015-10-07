@@ -124,10 +124,62 @@ Spatial plots, such as projections, slices, and off-axis slices
 Once reloaded, they can be handed to their associated plotting
 functions to make images.
 
-.. code-block::
+.. code-block:: python
 
    proj_ds = yt.load("DD0046_proj.h5")
    p = yt.ProjectionPlot(proj_ds, "x", "density",
                          weight_field="density")
    p.save()
 
+Profiles
+--------
+
+Profiles created with :func:`~yt.data_objects.profiles.create_profile`,
+:class:`~yt.visualization.profile_plotter.ProfilePlot`, and
+:class:`~yt.visualization.profile_plotter.PhasePlot` can be saved with
+the :func:`~yt.data_objects.profiles.save_as_dataset` function, which
+works just as above.  Profile datasets are a type of non-spatial grid
+datasets.  Geometric selection is not possible, but data can be
+accessed through the ``.data`` attribute.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+
+   profile_2d = yt.create_profile(ad, ["density", "temperature"],
+                                  "cell_mass", weight_field=None,
+                                  n_bins=(128, 128))
+   profile_2d.save_as_dataset()
+
+   prof_2d_ds = yt.load("DD0046_Profile2D.h5")
+   print prof_2d_ds.data["cell_mass"]
+
+The x, y (if at least 2D), and z (if 3D) bin fields can be accessed as 1D
+arrays with "x", "y", and "z".
+
+.. code-block:: python
+
+   print prof_2d_ds.data.data["x"]
+
+The bin fields can also be returned with the same shape as the profile
+data by accessing them with their original names.  This allows for
+boolean masking of profile data using the bin fields.
+
+.. code-block:: python
+
+   # density is the x bin field
+   print prof_2d_ds.data.data["density"]
+
+For 1, 2, and 3D profile datasets, a fake profile object will be
+constructed by accessing the ".profile" attribute.  This is used
+primarily in the case of 1 and 2D profiles to create figures using
+:class:`~yt.visualization.profile_plotter.ProfilePlot` and
+:class:`~yt.visualization.profile_plotter.PhasePlot`.
+
+.. code-block:: python
+
+   p = yt.PhasePlot(prof_2d_ds.data, "density", "temperature",
+                    "cell_mass", weight_field=None)
+   p.save()
