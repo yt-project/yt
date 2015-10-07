@@ -67,6 +67,7 @@ class astropy_imports:
         if self._units is None:
             try:
                 from astropy import units
+                self.log
             except ImportError:
                 units = NotAModule(self._name)
             self._units = units
