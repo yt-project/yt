@@ -597,7 +597,12 @@ class PhotonList(object):
                          (D_A*D_A*(1.+zobs)**3)
             fak = Aratio*Tratio*Dratio
             if fak > 1:
-                raise ValueError("Spectrum scaling factor = %g, cannot be greater than unity." % fak)
+                raise ValueError("This combination of requested parameters results in "
+                                 "%g%% more photons collected than are " % (100.*(fak-1.)) +
+                                 "available in the sample. Please reduce the collecting "
+                                 "area, exposure time, or increase the distance/redshift "
+                                 "of the object. Alternatively, generate a larger sample "
+                                 "of photons.")
             my_n_obs = np.uint64(n_ph_tot*fak)
 
         n_obs_all = comm.mpi_allreduce(my_n_obs)
