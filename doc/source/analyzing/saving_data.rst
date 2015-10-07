@@ -21,6 +21,8 @@ the following:
 In the case of projections, slices, and profiles, reloaded data can be
 used to remake plots using the methods decribed in :ref:`how-to-make-plots`.
 
+.. _saving-data-containers:
+
 Geometric Data Containers
 -------------------------
 
@@ -71,6 +73,8 @@ Note that because field data queried from geometric containers is
 returned as unordered 1D arrays, data container datasets are treated,
 effectively, as particle data.  Thus, 3D indexing of grid data from
 these datasets is not possible.
+
+.. _saving-grid-data-containers:
 
 Grid Data Containers
 --------------------
