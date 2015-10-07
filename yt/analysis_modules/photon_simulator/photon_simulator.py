@@ -544,7 +544,9 @@ class PhotonList(object):
             elif "SPECRESP MATRIX" in rmf:
                 mat_key = "SPECRESP MATRIX"
             else:
-                raise RuntimeError("Cannot find the response matrix in the RMF %s!!" % parameters["RMF"])
+                raise RuntimeError("Cannot find the response matrix in the RMF "
+                                   "file %s! " % parameters["RMF"]+"It should "
+                                   "be named \"MATRIX\" or \"SPECRESP MATRIX\".")
             rmf.close()
         else:
             mat_key = None
