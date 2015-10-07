@@ -694,12 +694,12 @@ class PhotonList(object):
 
         num_events = len(events["xpix"])
 
-        if comm.rank == 0: 
+        if comm.rank == 0:
             mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events, mat_key)
-            for k, v in info.items(): 
+            for k, v in info.items():
                 parameters[k] = v
 
         if exp_time_new is None:
@@ -807,7 +807,6 @@ class PhotonList(object):
 class EventList(object) :
 
     def __init__(self, events, parameters):
-
         self.events = events
         self.parameters = parameters
         self.num_events = events["xpix"].shape[0]
