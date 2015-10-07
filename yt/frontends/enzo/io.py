@@ -21,7 +21,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.extern.six import u, b, iteritems
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 import numpy as np
 

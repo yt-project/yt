@@ -13,7 +13,7 @@ LightRay class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
@@ -29,6 +29,7 @@ from yt.utilities.cosmology import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
+from yt.utilities.physical_constants import speed_of_light_cgs
 
 class LightRay(CosmologySplice):
     """
@@ -365,7 +366,7 @@ class LightRay(CosmologySplice):
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         if get_los_velocity:
             all_fields.extend(['velocity_x', 'velocity_y',
-                               'velocity_z', 'velocity_los'])
+                               'velocity_z', 'velocity_los', 'redshift_eff'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
@@ -456,6 +457,28 @@ class LightRay(CosmologySplice):
                                                 my_segment['end']).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
+
+            # When velocity_los is present, add effective redshift 
+            # (redshift_eff) field by combining cosmological redshift and 
+            # doppler redshift.
+            
+            # first convert los velocities to comoving frame (ie mult. by (1+z)), 
+            # then calculate doppler redshift:
+            # 1 + redshift_dopp = sqrt((1+v/c) / (1-v/c))
+
+            # then to add cosmological redshift and doppler redshift, follow
+            # eqn 3.75 in Peacock's Cosmological Physics:
+            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler)
+            # Alternatively, see eqn 5.49 in Peebles for a similar result.
+            if get_los_velocity:
+
+                velocity_los_cm = (1 + sub_data['redshift']) * \
+                                  sub_data['velocity_los']
+                redshift_dopp = ((1 + velocity_los_cm / speed_of_light_cgs) /
+                                (1 - velocity_los_cm / speed_of_light_cgs))**(0.5) - 1
+                sub_data['redshift_eff'] = ((1 + redshift_dopp) * \
+                                           (1 + sub_data['redshift'])) - 1
+                del velocity_los_cm, redshift_dopp
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()

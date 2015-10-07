@@ -805,7 +805,8 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
-    if not can_run_ds(ds_fn): return
+    if not can_run_ds(ds_fn):
+        return
     dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
@@ -825,32 +826,33 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
     if ds_kwargs is None:
         ds_kwargs = {}
     ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
-    yield assert_equal, str(ds), ds_str_repr
+    yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
+                        str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    yield assert_equal, dd["particle_position"].shape, (ds_nparticles, 3)
+    yield AssertWrapper("%s_all_data_part_shape" % str(ds), assert_equal,
+                        dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
-    yield assert_equal, tot, ds_nparticles
+    yield AssertWrapper("%s_all_data_part_total" % str(ds), assert_equal,
+                        tot, ds_nparticles)
     for dobj_name in dso:
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        yield assert_equal, s1, s2
-        for field in fields:
+        yield AssertWrapper("%s_mask_test" % str(ds), assert_equal, s1, s2)
+        for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
             else:
                 particle_type = False
             for axis in [0, 1, 2]:
-                for weight_field in [None, ('gas', 'density')]:
-                    if particle_type is False:
-                        yield PixelizedProjectionValuesTest(
-                            ds_fn, axis, field, weight_field,
-                            dobj_name)
+                if particle_type is False:
+                    yield PixelizedProjectionValuesTest(
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
             yield FieldValuesTest(ds_fn, field, dobj_name,
                                   particle_type=particle_type)
-    return
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

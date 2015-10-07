@@ -806,6 +806,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
     registry.add_field(field_name, function = _vol_weight,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
+    registry.find_dependencies((field_name,))
     return [field_name]
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
