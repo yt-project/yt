@@ -66,3 +66,45 @@ dictionary, normally associated with all datasets.
    # particle data
    print ad["all", "particle_mass"]
    print ad["all", "particle_position_x"]
+
+Note that because field data queried from geometric containers is
+returned as unordered 1D arrays, data container datasets are treated,
+effectively, as particle data.  Thus, 3D indexing of grid data from
+these datasets is not possible.
+
+Grid Data Containers
+--------------------
+
+Data containers that return field data as multidimensional arrays
+can be saved so as to preserve this type of access.  This includes
+covering grids, arbitrary grids, and fixed resolution buffers.
+Saving data from these containers works just as with geometric data
+containers.  Field data can be accessed through geometric data
+containers.
+
+.. code-block:: python
+
+   cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
+   fn = cg.save_as_dataset(fields=["density", "particle_mass"])
+
+   cg_ds = yt.load(fn)
+   ad = cg_ds.all_data()
+   print ad["grid", "density"]
+
+Multidimensional indexing of field data is also available through
+the ``data`` attribute.
+
+.. code-block:: python
+
+   print cg_ds.data["grid", "density"]
+
+Fixed resolution buffers work just the same.
+
+.. code-block:: python
+
+   my_proj = ds.proj("density", "x", weight_field="density")
+   frb = my_proj.to_frb(1.0, (800, 800))
+   fn = frb.save_as_dataset(fields=["density"])
+   frb_ds = yt.load(fn)
+   print frb_ds.data["density"]
+
