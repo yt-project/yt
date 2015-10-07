@@ -131,6 +131,8 @@ functions to make images.
                          weight_field="density")
    p.save()
 
+.. _saving-profile-data:
+
 Profiles
 --------
 
@@ -183,3 +185,41 @@ primarily in the case of 1 and 2D profiles to create figures using
    p = yt.PhasePlot(prof_2d_ds.data, "density", "temperature",
                     "cell_mass", weight_field=None)
    p.save()
+
+.. _saving-array-data:
+
+Generic Array Data
+------------------
+
+Generic arrays can be saved and reloaded as non-spatial data using
+the :func:`~yt.frontends.ytdata.utilities.save_as_dataset` function,
+also available as ``yt.save_as_dataset``.  As with profiles, geometric
+selection is not possible, but the data can be accessed through the
+``.data`` attribute.
+
+.. code-block:: python
+
+   region = ds.box([0.25]*3, [0.75]*3)
+   sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
+   my_data = {}
+   my_data["region_density"] = region["density"]
+   my_data["sphere_density"] = sphere["density"]
+   yt.save_as_dataset(ds, "test_data.h5", my_data)
+
+   array_ds = yt.load("test_data.h5")
+   print array_ds.data["region_density"]
+   print array_ds.data["sphere_density"]
+
+Array data can be saved with or without a dataset loaded.  If no
+dataset has been loaded, as fake dataset can be provided as a
+dictionary.
+
+.. code-block:: python
+
+   my_data = {"density": yt.YTArray(np.random.random(10), "g/cm**3"),
+              "temperature": yt.YTArray(np.random.random(10), "K")}
+   fake_ds = {"current_time": yt.YTQuantity(10, "Myr")}
+   yt.save_as_dataset(fake_ds, "random_data.h5", my_data)
+
+   new_ds = yt.load("random_data.h5")
+   print new_ds.data["density"]
