@@ -92,6 +92,11 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     fh = h5py.File(filename, "w")
     if ds is None: ds = {}
+
+    if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):
+        for attr, val in ds.parameters.items():
+            _yt_array_hdf5_attr(fh, attr, val)
+
     for attr in base_attrs:
         if isinstance(ds, dict):
             my_val = ds.get(attr, None)
@@ -187,7 +192,7 @@ def _yt_array_hdf5(fh, field, data):
     dataset.attrs["units"] = units
     return dataset
 
-def _yt_array_hdf5_attr(fh, att, val):
+def _yt_array_hdf5_attr(fh, attr, val):
     r"""Save a YTArray or YTQuantity as an hdf5 attribute.
 
     Save an hdf5 attribute.  If it has units, save an
@@ -198,7 +203,7 @@ def _yt_array_hdf5_attr(fh, att, val):
     fh : an open hdf5 file, group, or dataset
         The hdf5 file, group, or dataset to which the
         attribute will be written.
-    att : str
+    attr : str
         The name of the attribute to be saved.
     val : anything
         The value to be saved.
@@ -208,5 +213,5 @@ def _yt_array_hdf5_attr(fh, att, val):
     if val is None: val = "None"
     if hasattr(val, "units"):
         val = val.in_cgs()
-        fh.attrs["%s_units" % att] = str(val.units)
-    fh.attrs[str(att)] = val
+        fh.attrs["%s_units" % attr] = str(val.units)
+    fh.attrs[str(attr)] = val
