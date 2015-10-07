@@ -211,8 +211,6 @@ Boxlib
    ~yt.frontends.boxlib.data_structures.OrionDataset
    ~yt.frontends.boxlib.fields.BoxlibFieldInfo
    ~yt.frontends.boxlib.io.IOHandlerBoxlib
-   ~yt.frontends.boxlib.io.IOHandlerCastro
-   ~yt.frontends.boxlib.io.IOHandlerNyx
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
 Chombo
