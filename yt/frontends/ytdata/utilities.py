@@ -34,8 +34,9 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     Parameters
     ----------
-    ds : dataset
-        The dataset associated with the fields.  
+    ds : dataset or dict
+        The dataset associated with the fields or a dictionary of
+        parameters.
     filename : str
         The name of the file to be written.
     data : dict
@@ -72,9 +73,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     >>> data = {"density": yt.YTArray(np.random.random(10), "g/cm**3"),
     ...         "temperature": yt.YTArray(np.random.random(10), "K")}
-    >>> ds_data = {"domain_left_edge": yt.YTArray(np.zeros(3), "cm"),
-    ...            "domain_right_edge": yt.YTArray(np.ones(3), "cm"),
-    ...            "current_time": yt.YTQuantity(10, "Myr")}
+    >>> ds_data = {"current_time": yt.YTQuantity(10, "Myr")}
     >>> yt.save_as_dataset(ds_data, "random_data.h5", data)
     >>> new_ds = yt.load("random_data.h5")
     >>> print new_ds.data["temperature"]
@@ -92,6 +91,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
                    "omega_matter", "hubble_constant"]
 
     fh = h5py.File(filename, "w")
+    if ds is None: ds = {}
     for attr in base_attrs:
         if isinstance(ds, dict):
             my_val = ds.get(attr, None)
@@ -99,19 +99,11 @@ def save_as_dataset(ds, filename, data, field_types=None,
             my_val = getattr(ds, attr, None)
         if my_val is None:
             continue
-        if hasattr(my_val, "units"):
-            my_val = my_val.in_cgs()
-            fh.attrs["%s_units" % attr] = str(my_val.units)
-        fh.attrs[attr] = my_val
+        _yt_array_hdf5_attr(fh, attr, my_val)
 
     for attr in extra_attrs:
         my_val = extra_attrs[attr]
-        if hasattr(my_val, "units"):
-            my_val = my_val.in_cgs()
-            fh.attrs["%s_units" % attr] = str(my_val.units)
-        if my_val is None:
-            my_val = "None"
-        fh.attrs[attr] = my_val
+        _yt_array_hdf5_attr(fh, attr, my_val)
     if "data_type" not in extra_attrs:
         fh.attrs["data_type"] = "yt_array_data"
 
@@ -178,7 +170,7 @@ def _yt_array_hdf5(fh, field, data):
         The hdf5 file or group to which the data will be written.
     field : str
         The name of the field to be saved.
-    ddata : YTArray
+    data : YTArray
         The data array to be saved.
 
     Returns
@@ -194,3 +186,27 @@ def _yt_array_hdf5(fh, field, data):
         units = str(data.units)
     dataset.attrs["units"] = units
     return dataset
+
+def _yt_array_hdf5_attr(fh, att, val):
+    r"""Save a YTArray or YTQuantity as an hdf5 attribute.
+
+    Save an hdf5 attribute.  If it has units, save an
+    additional attribute with the units.
+
+    Parameters
+    ----------
+    fh : an open hdf5 file, group, or dataset
+        The hdf5 file, group, or dataset to which the
+        attribute will be written.
+    att : str
+        The name of the attribute to be saved.
+    val : anything
+        The value to be saved.
+
+    """
+
+    if val is None: val = "None"
+    if hasattr(val, "units"):
+        val = val.in_cgs()
+        fh.attrs["%s_units" % att] = str(val.units)
+    fh.attrs[str(att)] = val
