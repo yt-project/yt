@@ -108,3 +108,26 @@ Fixed resolution buffers work just the same.
    frb_ds = yt.load(fn)
    print frb_ds.data["density"]
 
+.. _saving-spatial-plots:
+
+Spatial Plots
+-------------
+
+Spatial plots, such as projections, slices, and off-axis slices
+(cutting planes) can also be saved and reloaded.
+
+.. code-block:: python
+
+   proj = ds.proj("density", "x", weight_field="density")
+   proj.save_as_dataset()
+
+Once reloaded, they can be handed to their associated plotting
+functions to make images.
+
+.. code-block::
+
+   proj_ds = yt.load("DD0046_proj.h5")
+   p = yt.ProjectionPlot(proj_ds, "x", "density",
+                         weight_field="density")
+   p.save()
+
