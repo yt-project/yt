@@ -35,7 +35,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     communication_system, parallel_root_only, get_mpi_type, \
     parallel_capable
 from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import _astropy
 import warnings
 

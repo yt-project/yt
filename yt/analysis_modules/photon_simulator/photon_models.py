@@ -199,15 +199,24 @@ class ThermalPhotonModel(PhotonModel):
                 ei = start_e
                 for cn, Z in zip(number_of_photons[ibegin:iend], metalZ[ibegin:iend]):
                     if cn == 0: continue
+                    # The rather verbose form of the few next statements is a
+                    # result of code optimization and shouldn't be changed
+                    # without checking for perfomance degradation. See
+                    # https://bitbucket.org/yt_analysis/yt/pull-requests/1766
+                    # for details.
                     if self.method == "invert_cdf":
-                        cumspec = cumspec_c + Z*cumspec_m
-                        cumspec /= cumspec[-1]
+                        cumspec = cumspec_c
+                        cumspec += Z * cumspec_m
+                        norm_factor = 1.0 / cumspec[-1]
+                        cumspec *= norm_factor
                         randvec = np.random.uniform(size=cn)
                         randvec.sort()
                         cell_e = np.interp(randvec, cumspec, ebins)
                     elif self.method == "accept_reject":
-                        tot_spec = cspec.d+Z*mspec.d
-                        tot_spec /= tot_spec.sum()
+                        tot_spec = cspec.d
+                        tot_spec += Z * mspec.d
+                        norm_factor = 1.0 / tot_spec.sum()
+                        tot_spec *= norm_factor
                         eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
                     energies[ei:ei+cn] = cell_e

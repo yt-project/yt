@@ -14,7 +14,7 @@ The data-file handling functions
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.funcs import \
     mylog
 from yt.utilities.io_handler import \
