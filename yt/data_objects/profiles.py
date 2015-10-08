@@ -13,7 +13,7 @@ Profile classes, to deal with generating and obtaining profiles
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.frontends.ytdata.utilities import \

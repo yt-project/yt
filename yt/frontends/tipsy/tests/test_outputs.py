@@ -111,6 +111,7 @@ tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 @requires_ds(tipsy_gal)
 def test_tipsy_galaxy():
     for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
+        test_tipsy_galaxy.__name__ = test.description
         yield test
 
 @requires_file(gasoline_dmonly)

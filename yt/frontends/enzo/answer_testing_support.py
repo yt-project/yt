@@ -78,16 +78,17 @@ class ShockTubeTest(object):
 
     def __call__(self):
         # Read in the ds
-        ds = load(self.data_file)  
-        exact = self.get_analytical_solution() 
+        ds = load(self.data_file)
+        ds.setup_deprecated_fields()
+        exact = self.get_analytical_solution()
 
         ad = ds.all_data()
         position = ad['x']
         for k in self.fields:
-            field = ad[k]
+            field = ad[k].d
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin)*(position <= xmax)
-                exact_field = np.interp(position[mask], exact['pos'], exact[k]) 
+                exact_field = np.interp(position[mask], exact['pos'], exact[k])
                 myname = "ShockTubeTest_%s" % k
                 # yield test vs analytical solution 
                 yield AssertWrapper(myname, assert_allclose, field[mask], 
