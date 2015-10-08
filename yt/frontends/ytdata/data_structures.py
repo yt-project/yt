@@ -16,7 +16,6 @@ Data structures for YTData frontend.
 
 from collections import \
     defaultdict
-import h5py
 from numbers import \
     Number as numeric_type
 import numpy as np
@@ -53,6 +52,8 @@ from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound
+from yt.utilities.on_demand_imports import \
+    _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 
