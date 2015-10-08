@@ -297,13 +297,12 @@ class YTGridDataset(YTDataset):
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
 
     def create_field_info(self):
-        self.field_info = self._field_info_class(self, self.field_list)
+        super(YTGridDataset, self).create_field_info()
         for ftype, field in self.field_list:
             if ftype == self.default_fluid_type:
                 self.field_info.alias(
                     ("gas", field),
                     (self.default_fluid_type, field))
-        super(YTGridDataset, self).create_field_info()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -562,6 +561,11 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = \
                   tuple(self.parameters[bin_field])
             setattr(self, bin_field, self.parameters[bin_field])
+
+    def create_field_info(self):
+        super(YTProfileDataset, self).create_field_info()
+        self.field_info.alias(self.parameters["weight_field"],
+                              (self.default_fluid_type, "weight"))
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge +
