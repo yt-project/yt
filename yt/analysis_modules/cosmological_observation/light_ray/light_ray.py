@@ -540,7 +540,7 @@ class LightRay(CosmologySplice):
             for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
                 ds[attr] = getattr(self.cosmology, attr)
             ds["current_time"] = \
-              self.cosmology.t_from_z(fh.attrs["current_redshift"])
+              self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
         save_as_dataset(ds, filename, data, field_types=field_types,
