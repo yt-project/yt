@@ -442,7 +442,8 @@ class LightRay(CosmologySplice):
                     sub_vel = ds.arr([sub_ray['velocity_x'],
                                       sub_ray['velocity_y'],
                                       sub_ray['velocity_z']])
-                    sub_data['velocity_los'].extend((np.rollaxis(sub_vel, 1) *
+                    # line of sight velocity is reversed relative to ray
+                    sub_data['velocity_los'].extend(-1*(np.rollaxis(sub_vel, 1) *
                                                      line_of_sight).sum(axis=1)[asort])
                     del sub_vel
 
