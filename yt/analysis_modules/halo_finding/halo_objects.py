@@ -299,7 +299,7 @@ class Halo(object):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -668,7 +668,7 @@ class RockstarHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -861,7 +861,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -890,7 +890,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples

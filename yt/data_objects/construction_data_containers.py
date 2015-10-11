@@ -58,7 +58,7 @@ from yt.fields.field_exceptions import \
 from yt.fields.derived_field import \
     TranslationFunc
 
-class YTStreamlineBase(YTSelectionContainer1D):
+class YTStreamline(YTSelectionContainer1D):
     """
     This is a streamline, which is a set of points defined as
     being parallel to some vector field.
@@ -152,7 +152,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         return mask
 
 
-class YTQuadTreeProjBase(YTSelectionContainer2D):
+class YTQuadTreeProj(YTSelectionContainer2D):
     """
     This is a data object corresponding to a line integral through the
     simulation domain.
@@ -455,7 +455,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
-class YTCoveringGridBase(YTSelectionContainer3D):
+class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
     resolution.  Left edge should align with a cell boundary, but
     defaults to the closest cell boundary.
@@ -736,7 +736,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                                sim_time=self.ds.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
-class YTArbitraryGridBase(YTCoveringGridBase):
+class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
     In contrast to the Covering Grid, this object accepts a left edge, a right
@@ -806,7 +806,7 @@ class LevelState(object):
     base_dx = None
     dds = None
 
-class YTSmoothedCoveringGridBase(YTCoveringGridBase):
+class YTSmoothedCoveringGrid(YTCoveringGrid):
     """A 3D region with all data extracted and interpolated to a
     single, specified resolution. (Identical to covering_grid,
     except that it interpolates.)
@@ -834,13 +834,13 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
-    @wraps(YTCoveringGridBase.__init__)
+    @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
         ds = kwargs['ds']
         self._base_dx = ((ds.domain_right_edge - ds.domain_left_edge) /
                          ds.domain_dimensions.astype("float64"))
         self.global_endindex = None
-        YTCoveringGridBase.__init__(self, *args, **kwargs)
+        YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
@@ -958,7 +958,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         level_state.fields = new_fields
         self._setup_data_source(ls)
 
-class YTSurfaceBase(YTSelectionContainer3D):
+class YTSurface(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
@@ -1012,7 +1012,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
         self.field_value = field_value
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurfaceBase, self).__init__(center = center, ds=ds)
+        super(YTSurface, self).__init__(center = center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)

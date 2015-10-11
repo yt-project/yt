@@ -677,9 +677,13 @@ Overplot the Path of a Ray
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.RayCallback`.)
 
-    Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
-    annotate_ray() will properly account for periodic rays across the volume.
+    Adds a line representing the projected path of a ray across the plot.  The
+    ray can be either a
+    :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
+    :class:`~yt.data_objects.selection_data_contaners.YTRay`, or a
+    :class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
+    object.  annotate_ray() will properly account for periodic rays across the
+    volume.
 
 .. python-script::
 

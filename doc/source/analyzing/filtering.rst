@@ -23,7 +23,7 @@ Filtering Mesh Fields
 ----------------------
 
 Mesh fields can be filtered by two methods: cut region objects 
-(:class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`) 
+(:class:`~yt.data_objects.selection_data_containers.YTCutRegion`) 
 and NumPy boolean masks.  Boolean masks are simpler, but they only work
 for examining datasets, whereas cut regions objects create wholly new
 data objects suitable for full analysis (data examination, image generation, 
