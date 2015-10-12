@@ -28,8 +28,8 @@ test_dir = ytcfg.get("yt", "test_data_dir")
 ETC = test_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
 APEC = test_dir+"/xray_data/atomdb_v2.0.2"
 TBABS = test_dir+"/xray_data/tbabs_table.h5"
-ARF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
-RMF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
+ARF = test_dir+"/xray_data/aciss_aimpt_cy17.arf"
+RMF = test_dir+"/xray_data/aciss_aimpt_cy17.rmf"
 
 @requires_ds(ETC)
 @requires_file(APEC)
@@ -48,18 +48,19 @@ def test_etc():
     apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
-    sphere = ds.sphere("max", (0.5, "mpc"))
+    sphere = ds.sphere("max", (0.5, "Mpc"))
 
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
-    events = photons.project_photons([0.0,0.0,1.0],
-                                     responses=[ARF,RMF],
+    events = photons.project_photons("z", responses=[ARF,RMF],
                                      absorb_model=tbabs_model)
 
-    def photons_test(): return photons.photons
-    def events_test(): return events.events
+    def photons_test():
+        return photons.photons
+    def events_test():
+        return events.events
 
     for test in [GenericArrayTest(ds, photons_test),
                  GenericArrayTest(ds, events_test)]:
