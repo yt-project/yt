@@ -1478,7 +1478,7 @@ def convert_old_file(input_file, output_file):
     elif "pix_center" in f_in:
         params = ["exp_time", "area", "redshift", "d_a", "arf",
                   "rmf", "channel_type", "mission", "telescope",
-                  "instruemnt", "sky_center", "pix_center", "dtheta"]
+                  "instrument", "sky_center", "pix_center", "dtheta"]
         data = ["xsky", "ysky", "xpix", "ypix", "eobs", "pi", "pha"]
 
     f_out = h5py.File(output_file, "w")
