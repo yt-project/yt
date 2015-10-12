@@ -46,7 +46,6 @@ class XSpecThermalModel(SpectralModel):
 
     Parameters
     ----------
-
     model_name : string
         The name of the thermal emission model.
     emin : float
@@ -63,7 +62,7 @@ class XSpecThermalModel(SpectralModel):
     --------
     >>> mekal_model = XSpecThermalModel("mekal", 0.05, 50.0, 1000)
     """
-    def __init__(self, model_name, emin, emax, nchan, 
+    def __init__(self, model_name, emin, emax, nchan,
                  thermal_broad=False, settings=None):
         self.model_name = model_name
         self.thermal_broad = thermal_broad
@@ -114,7 +113,6 @@ class XSpecAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     model_name : string
         The name of the absorption model.
     nH : float
@@ -133,7 +131,7 @@ class XSpecAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("wabs", 0.1)
     """
-    def __init__(self, model_name, nH, emin=0.01, emax=50.0, 
+    def __init__(self, model_name, nH, emin=0.01, emax=50.0,
                  nchan=100000, settings=None):
         self.model_name = model_name
         self.nH = nH
@@ -168,11 +166,10 @@ class TableApecModel(SpectralModel):
     Initialize a thermal gas emission model from the AtomDB APEC tables
     available at http://www.atomdb.org. This code borrows heavily from Python
     routines used to read the APEC tables developed by Adam Foster at the
-    CfA (afoster@cfa.harvard.edu). 
+    CfA (afoster@cfa.harvard.edu).
 
     Parameters
     ----------
-
     apec_root : string
         The directory root where the APEC model files are stored.
     emin : float
@@ -202,7 +199,7 @@ class TableApecModel(SpectralModel):
                                      self.apec_prefix+"_coco.fits")
         self.linefile = os.path.join(self.apec_root,
                                      self.apec_prefix+"_line.fits")
-        super(TableApecModel, self).__init__(emin, emax, nchan)  
+        super(TableApecModel, self).__init__(emin, emax, nchan)
         self.wvbins = hc/self.ebins[::-1].d
         # H, He, and trace elements
         self.cosmic_elem = [1,2,3,4,5,9,11,15,17,19,21,22,23,24,25,27,29,30]
@@ -296,7 +293,7 @@ class TableApecModel(SpectralModel):
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
             cspec_l += self._make_spectrum(elem, tindex+2)
-            cspec_r += self._make_spectrum(elem, tindex+3)            
+            cspec_r += self._make_spectrum(elem, tindex+3)
         # Next do the metals
         for elem in self.metal_elem:
             mspec_l += self._make_spectrum(elem, tindex+2)
@@ -311,7 +308,6 @@ class TableAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     filename : string
         The name of the table file.
     nH : float
@@ -321,7 +317,6 @@ class TableAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("abs_table.h5", 0.1)
     """
-
     def __init__(self, filename, nH):
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)

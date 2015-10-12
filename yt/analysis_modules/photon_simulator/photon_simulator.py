@@ -183,7 +183,6 @@ class PhotonList(object):
 
         Parameters
         ----------
-
         data_source : `yt.data_objects.data_containers.YTSelectionContainer`
             The data source from which the photons will be generated.
         redshift : float
@@ -197,9 +196,9 @@ class PhotonList(object):
             dictionary and returns a *photons* dictionary. Must be of the
             form: photon_model(data_source, parameters)
         parameters : dict, optional
-            A dictionary of parameters to be passed to the user function. 
+            A dictionary of parameters to be passed to the user function.
         center : string or array_like, optional
-            The origin of the photons. Accepts "c", "max", or a coordinate.                
+            The origin of the photons. Accepts "c", "max", or a coordinate.
         dist : tuple, optional
             The angular diameter distance in the form (value, unit), used
             mainly for nearby sources. This may be optionally supplied
@@ -211,7 +210,6 @@ class PhotonList(object):
 
         Examples
         --------
-
         This is the simplest possible example, where we call the built-in thermal model:
 
         >>> thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
@@ -247,7 +245,7 @@ class PhotonList(object):
 
         >>> import numpy as np
         >>> import yt
-        >>> from yt.analysis_modules.photon_simulator import *
+        >>> from yt.analysis_modules.photon_simulator.api import PhotonList
         >>> def line_func(source, parameters):
         ...
         ...     ds = source.ds
@@ -277,7 +275,7 @@ class PhotonList(object):
         >>> ddims = (128,128,128)
         >>> random_data = {"density":(np.random.random(ddims),"g/cm**3")}
         >>> ds = yt.load_uniform_grid(random_data, ddims)
-        >>> dd = ds.all_data
+        >>> dd = ds.all_data()
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
         ...                                         time, line_func,
         ...                                         parameters=parameters)
@@ -377,7 +375,7 @@ class PhotonList(object):
 
             if comm.rank == 0:
                 num_cells = sum(sizes_c)
-                num_photons = sum(sizes_p)        
+                num_photons = sum(sizes_p)
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
                 disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
                 x = np.zeros(num_cells)
@@ -469,7 +467,7 @@ class PhotonList(object):
 
         comm.barrier()
 
-    def project_photons(self, normal, area_new=None, exp_time_new=None, 
+    def project_photons(self, normal, area_new=None, exp_time_new=None,
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None,
@@ -480,7 +478,6 @@ class PhotonList(object):
 
         Parameters
         ----------
-
         normal : character or array_like
             Normal vector to the plane of projection. If "x", "y", or "z", will
             assume to be along that axis (and will probably be faster). Otherwise, 
@@ -514,6 +511,7 @@ class PhotonList(object):
             the plane of projection. If not set, an arbitrary grid-aligned north_vector 
             is chosen. Ignored in the case where a particular axis (e.g., "x", "y", or
             "z") is explicitly specified.
+
         Examples
         --------
         >>> L = np.array([0.1,-0.2,0.3])
@@ -751,9 +749,6 @@ class PhotonList(object):
         return weights
 
     def _convolve_with_rmf(self, respfile, events, mat_key):
-        """
-        Convolve the events with a RMF file.
-        """
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
 
         hdulist = _astropy.pyfits.open(respfile)
@@ -880,7 +875,7 @@ class EventList(object):
 
     def filter_events(self, region):
         """
-        Filter events using a ds9 region. Requires the pyregion package.
+        Filter events using a ds9 *region*. Requires the pyregion package.
         Returns a new EventList.
         """
         import pyregion
@@ -1033,10 +1028,10 @@ class EventList(object):
 
              time = np.random.uniform(size=self.num_events, low=0.0,
                                       high=float(self.parameters["ExposureTime"]))
-             col_t = pyfits.Column(name="TIME", format='1D', unit='s', 
+             col_t = pyfits.Column(name="TIME", format='1D', unit='s',
                                    array=time)
              cols.append(col_t)
-        
+
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.BinTableHDU.from_columns(coldefs)
         tbhdu.update_ext_name("EVENTS")
@@ -1125,7 +1120,6 @@ class EventList(object):
 
         Parameters
         ----------
-
         prefix : string
             The filename prefix.
         clobber : boolean, optional
@@ -1254,7 +1248,6 @@ class EventList(object):
 
         Parameters
         ----------
-
         imagefile : string
             The name of the image file to write.
         clobber : boolean, optional
@@ -1313,7 +1306,6 @@ class EventList(object):
 
         Parameters
         ----------
-
         specfile : string
             The name of the FITS file to be written.
         bin_type : string, optional
@@ -1422,10 +1414,37 @@ class EventList(object):
 
 def merge_files(input_files, output_file, clobber=False,
                 add_exposure_times=False):
+    r"""
+    Helper function for merging PhotonList or EventList HDF5 files.
 
+    Parameters
+    ----------
+    input_files : list of strings
+        List of filenames that will be merged together.
+    output_file : string
+        Name of the merged file to be outputted.
+    clobber : boolean, default False
+        If a the output file already exists, set this to True to
+        overwrite it.
+    add_exposure_times : boolean, default False
+        If set to True, exposure times will be added together. Otherwise,
+        the exposure times of all of the files must be the same.
+
+    Examples
+    --------
+    >>> from yt.analysis_modules.photon_simulator.api import merge_files
+    >>> merge_files(["events_0.h5","events_1.h5","events_3.h5"], "events.h5",
+    ...             clobber=True, add_exposure_times=True)
+
+    Notes
+    -----
+    Currently, to merge files it is mandated that all of the parameters have the
+    same values, with the possible exception of the exposure time parameter "exp_time"
+    if add_exposure_times=False.
+    """
     if os.path.exists(output_file) and not clobber:
         raise IOError("Cannot overwrite existing file %s. " % output_file +
-                      "If you want to do this, use --clobber.")
+                      "If you want to do this, set clobber=True.")
 
     f_in = h5py.File(input_files[0], "r")
     f_out = h5py.File(output_file, "w")
@@ -1466,7 +1485,29 @@ def merge_files(input_files, output_file, clobber=False,
 
     f_out.close()
 
-def convert_old_file(input_file, output_file):
+def convert_old_file(input_file, output_file, clobber=False):
+    r"""
+    Helper function for converting old PhotonList or EventList HDF5
+    files (pre yt v3.3) to their new versions.
+
+    Parameters
+    ----------
+    input_file : list of strings
+        The filename of the old-versioned file to be converted.
+    output_file : string
+        Name of the new file to be outputted.
+    clobber : boolean, default False
+        If a the output file already exists, set this to True to
+        overwrite it.
+
+    Examples
+    --------
+    >>> from yt.analysis_modules.photon_simulator.api import convert_old_file
+    >>> merge_files("photons_old.h5", "photons_new.h5", clobber=True)
+    """
+    if os.path.exists(output_file) and not clobber:
+        raise IOError("Cannot overwrite existing file %s. " % output_file +
+                      "If you want to do this, set clobber=True.")
 
     f_in = h5py.File(input_file, "r")
 

@@ -52,14 +52,13 @@ class PhotonModel(object):
 
 class ThermalPhotonModel(PhotonModel):
     r"""
-    Initialize a ThermalPhotonModel from a thermal spectrum. 
+    Initialize a ThermalPhotonModel from a thermal spectrum.
 
     Parameters
     ----------
-
     spectral_model : `SpectralModel`
         A thermal spectral model instance, either of `XSpecThermalModel`
-        or `TableApecModel`. 
+        or `TableApecModel`.
     X_H : float, optional
         The hydrogen mass fraction.
     Zmet : float or string, optional
@@ -71,10 +70,10 @@ class ThermalPhotonModel(PhotonModel):
     method : string, optional
         The method used to generate the photon energies from the spectrum:
         "invert_cdf": Invert the cumulative distribution function of the spectrum.
-        "accept_reject": Acceptance-rejection method using the spectrum. 
-        The first method should be sufficient for most cases. 
+        "accept_reject": Acceptance-rejection method using the spectrum.
+        The first method should be sufficient for most cases.
     """
-    def __init__(self, spectral_model, X_H=0.75, Zmet=0.3, 
+    def __init__(self, spectral_model, X_H=0.75, Zmet=0.3,
                  photons_per_chunk=10000000, method="invert_cdf"):
         self.X_H = X_H
         self.Zmet = Zmet
