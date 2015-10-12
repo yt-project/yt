@@ -14,17 +14,8 @@ Rockstar-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
-
-from yt.utilities.physical_constants import \
-    mh, \
-    mass_sun_cgs
 
 m_units = "Msun / h"                # Msun / h
 p_units = "Mpccm / h"               # Mpc / h comoving

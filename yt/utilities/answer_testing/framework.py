@@ -646,10 +646,10 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = ("Analytic halo mass functions not equation for " +
+        err_msg = ("Analytic halo mass functions not equal for " +
                    "fitting function %d.") % self.fitting_function
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
+        assert_almost_equal(new_result, old_result,
+                            err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']

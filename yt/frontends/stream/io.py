@@ -13,17 +13,13 @@ Enzo-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from collections import defaultdict
-
-import os
 import numpy as np
 
 from yt.utilities.io_handler import \
-    BaseIOHandler, _axis_ids
+    BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.exceptions import *
+from yt.utilities.exceptions import YTDomainOverflow
 
 class IOHandlerStream(BaseIOHandler):
 
@@ -221,7 +217,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
+                    size, [fn for ft, fn in fields], ngrids)
         for field in fields:
             ind = 0
             ftype, fname = field

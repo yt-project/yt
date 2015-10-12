@@ -13,16 +13,11 @@ Fields specific to Enzo
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
 from yt.utilities.physical_constants import \
-    mh, me, mp, \
-    mass_sun_cgs
+    me, \
+    mp
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"

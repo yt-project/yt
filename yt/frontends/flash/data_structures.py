@@ -13,27 +13,20 @@ FLASH-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py
+import os
 import stat
 import numpy as np
 import weakref
 
-from yt.config import ytcfg
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.utilities.file_handler import \
     HDF5FileHandler
-from yt.utilities.io_handler import \
-    io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo
 
@@ -71,7 +64,6 @@ class FLASHHierarchy(GridIndex):
         pass
 
     def _detect_output_fields(self):
-        ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [("flash", s.decode("ascii","ignore"))
                            for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle):
@@ -159,9 +151,6 @@ class FLASHHierarchy(GridIndex):
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
 
     def _populate_grid_objects(self):
-        # We only handle 3D data, so offset is 7 (nfaces+1)
-        
-        offset = 7
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
         first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)

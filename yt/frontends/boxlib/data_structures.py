@@ -13,6 +13,7 @@ Data structures for BoxLib Codes
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import inspect
 import os
 import re
 
@@ -20,7 +21,9 @@ from stat import ST_CTIME
 
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, \
+    ensure_tuple
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -188,7 +191,7 @@ class BoxlibHierarchy(GridIndex):
             vals = next(header_file).split()
             lev, ngrids = int(vals[0]), int(vals[1])
             assert(lev == level)
-            nsteps = int(next(header_file))
+            nsteps = int(next(header_file))  # NOQA
             for gi in range(ngrids):
                 xlo, xhi = [float(v) for v in next(header_file).split()]
                 if self.dimensionality > 1:
@@ -211,7 +214,7 @@ class BoxlibHierarchy(GridIndex):
             next(level_header_file)
             next(level_header_file)
             # Now we get the number of components
-            ncomp_this_file = int(next(level_header_file))
+            ncomp_this_file = int(next(level_header_file))  # NOQA
             # Skip the next line, which contains the number of ghost zones
             next(level_header_file)
             # To decipher this next line, we expect something like:
@@ -889,15 +892,16 @@ class NyxHierarchy(BoxlibHierarchy):
                   ['particle_velocity_%s' % ax for ax in 'xyz']:
             self.field_list.append(("io", fn))
         header = open(os.path.join(self.ds.output_dir, "DM", "Header"))
-        version = header.readline()
-        ndim = header.readline()
-        nfields = header.readline()
-        ntotalpart = int(header.readline())
-        dummy = header.readline() # nextid
-        maxlevel = int(header.readline()) # max level
+        version = header.readline()  # NOQA
+        ndim = header.readline()  # NOQA
+        nfields = header.readline()  # NOQA
+        ntotalpart = int(header.readline())  # NOQA
+        nextid = header.readline()  # NOQA
+        maxlevel = int(header.readline())  # NOQA
 
         # Skip over how many grids on each level; this is degenerate
-        for i in range(maxlevel + 1): dummy = header.readline()
+        for i in range(maxlevel + 1):
+            header.readline()
 
         grid_info = np.fromiter((int(i) for line in header.readlines()
                                  for i in line.split()),
@@ -972,8 +976,9 @@ class NyxDataset(BoxlibDataset):
 
 def _guess_pcast(vals):
     # Now we guess some things about the parameter and its type
-    v = vals.split()[0] # Just in case there are multiple; we'll go
-                        # back afterward to using vals.
+    # Just in case there are multiple; we'll go
+    # back afterward to using vals.
+    v = vals.split()[0]
     try:
         float(v.upper().replace("D", "E"))
     except:
@@ -986,6 +991,7 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(v) for v in vals.split()]
-    if len(vals) == 1: vals = vals[0]
+    vals = [pcast(value) for value in vals.split()]
+    if len(vals) == 1:
+        vals = vals[0]
     return vals
