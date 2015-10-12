@@ -14,13 +14,15 @@ from yt.analysis_modules.photon_simulator.api import \
     XSpecThermalModel, XSpecAbsorbModel, \
     ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
-from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
     requires_module
 import numpy as np
 from yt.utilities.physical_ratios import \
     K_per_keV, mass_hydrogen_grams
 from yt.frontends.stream.api import load_uniform_grid
+import os
+import tempfile
+import shutil
 
 def setup():
     from yt.config import ytcfg
@@ -28,14 +30,27 @@ def setup():
 
 test_dir = ytcfg.get("yt", "test_data_dir")
 
-ETC = test_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
-ARF = test_dir+"/xray_data/sxt-s_120210_ts02um_intallpxl.arf"
-RMF = test_dir+"/xray_data/ah_sxs_5ev_basefilt_20100712.rmf"
+rmfs = ["pn-med.rmf", "acisi_aimpt_cy17.rmf",
+        "aciss_aimpt_cy17.rmf", "nustar.rmf",
+        "ah_sxs_5ev_basefilt_20100712.rmf"]
+arfs = ["pn-med.arf", "acisi_aimpt_cy17.arf",
+        "aciss_aimpt_cy17.arf", "nustar_3arcminA.arf",
+        "sxt-s_120210_ts02um_intallpxl.arf"]
 
 @requires_module("xspec")
-@requires_file(ARF)
-@requires_file(RMF)
 def test_beta_model():
+    import xspec
+    
+    xspec.Fit.statMethod = "cstat"
+    xspec.Xset.addModelString("APECTHERMAL","yes")
+    xspec.Fit.query = "yes"
+    xspec.Fit.method = ["leven","10","0.01"]
+    xspec.Fit.delta = 0.01
+    xspec.Xset.chatter = 5
+
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
 
     R = 1.0
     r_c = 0.05
@@ -73,7 +88,7 @@ def test_beta_model():
     exp_time = 1.0e5
     redshift = 0.05
 
-    apec_model = XSpecThermalModel("bapec", 0.1, 11.5, 40000,
+    apec_model = XSpecThermalModel("bapec", 0.1, 11.5, 20000,
                                    thermal_broad=True)
     abs_model = XSpecAbsorbModel("TBabs", 0.02)
 
@@ -83,6 +98,32 @@ def test_beta_model():
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
-    events = photons.project_photons("z", responses=[ARF,RMF],
-                                     absorb_model=abs_model)
+    for a, r in zip(rmfs, arfs):
+        arf = test_dir+"/xray_data/"+a
+        rmf = test_dir+"/xray_data/"+r
+        events = photons.project_photons("z", responses=[arf,rmf],
+                                         absorb_model=abs_model)
+        events.write_spectrum("beta_model_evt.pi", clobber=True)
 
+        s = xspec.Spectrum("beta_model_evt.pi")
+        s.ignore("**-0.5")
+        s.ignore("7.0-**")
+        m = xspec.Model("tbabs*bapec")
+        m.bapec.kT = 5.0
+        m.bapec.Abundanc = 0.25
+        m.bapec.norm = 1.0
+        m.bapec.Redshift = 0.05
+        m.bapec.Velocity = 0.0
+        m.TBabs.nH = 0.015
+
+        m.bapec.Velocity.frozen = False
+        m.bapec.Abundanc.frozen = False
+        m.bapec.Redshift.frozen = False
+        m.TBabs.nH.frozen = False
+
+        xspec.Fit.renorm()
+        xspec.Fit.nIterations = 100
+        xspec.Fit.perform()
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
