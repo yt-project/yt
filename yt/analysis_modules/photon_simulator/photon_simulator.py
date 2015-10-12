@@ -55,6 +55,25 @@ def parse_value(value, default_units):
     else:
         return YTQuantity(value, default_units)
 
+def validate_parameters(first, second, skip=[]):
+    keys1 = list(first.keys())
+    keys2 = list(first.keys())
+    keys1.sort()
+    keys2.sort()
+    if keys1 != keys2:
+        raise RuntimeError("The two inputs do not have the same parameters!")
+    for k1, k2 in zip(keys1, keys2):
+        if k1 not in skip:
+            v1 = first[k1]
+            v2 = second[k2]
+            if isinstance(v1, string_types) or isinstance(v2, string_types):
+                check_equal = v1 == v2
+            else:
+                check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
+            if not check_equal:
+                raise RuntimeError("The values for the parameter '%s' in the two inputs" % k1 +
+                                   " are not identical (%s vs. %s)!" % (v1, v2))
+
 class PhotonList(object):
 
     def __init__(self, photons, parameters, cosmo, p_bins):
@@ -851,22 +870,7 @@ class EventList(object):
 
     def __add__(self, other):
         assert_same_wcs(self.wcs, other.wcs)
-        keys1 = list(self.parameters.keys())
-        keys2 = list(other.parameters.keys())
-        keys1.sort()
-        keys2.sort()
-        if keys1 != keys2:
-            raise RuntimeError("The two EventLists do not have the same parameters!")
-        for k1, k2 in zip(keys1, keys2):
-            v1 = self.parameters[k1]
-            v2 = other.parameters[k2]
-            if isinstance(v1, string_types) or isinstance(v2, string_types):
-                check_equal = v1 == v2
-            else:
-                check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
-            if not check_equal:
-                raise RuntimeError("The values for the parameter '%s' in the two EventLists" % k1 +
-                                   " are not identical (%s vs. %s)!" % (v1, v2))
+        validate_parameters(self.parameters, other.parameters)
         events = {}
         for item1, item2 in zip(self.items(), other.items()):
             k1, v1 = item1
@@ -1433,6 +1437,15 @@ def merge_files(input_files, output_file, clobber=False,
             exp_time_key = key
         else:
             p_out[key] = param.value
+
+    skip = []
+    if add_exposure_times:
+        skip.append(exp_time_key)
+
+    for fn in input_files[1:]:
+        f = h5py.File(fn, "r")
+        validate_parameters(f_in["parameters"], f["parameters"], skip=skip)
+        f.close()
 
     f_in.close()
 
