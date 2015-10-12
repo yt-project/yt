@@ -25,6 +25,7 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
+from collections import defaultdict
 import numpy as np
 from yt.funcs import mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
@@ -38,6 +39,7 @@ from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import _astropy
 import warnings
+import os
 
 comm = communication_system.communicators[-1]
 
@@ -104,29 +106,31 @@ class PhotonList(object):
 
         f = h5py.File(filename, "r")
 
-        parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
-        parameters["FiducialArea"] = YTQuantity(f["/fid_area"].value, "cm**2")
-        parameters["FiducialRedshift"] = f["/fid_redshift"].value
-        parameters["FiducialAngularDiameterDistance"] = YTQuantity(f["/fid_d_a"].value, "Mpc")
-        parameters["Dimension"] = f["/dimension"].value
-        parameters["Width"] = YTQuantity(f["/width"].value, "kpc")
-        parameters["HubbleConstant"] = f["/hubble"].value
-        parameters["OmegaMatter"] = f["/omega_matter"].value
-        parameters["OmegaLambda"] = f["/omega_lambda"].value
+        p = f["/parameters"]
+        parameters["FiducialExposureTime"] = YTQuantity(p["fid_exp_time"].value, "s")
+        parameters["FiducialArea"] = YTQuantity(p["fid_area"].value, "cm**2")
+        parameters["FiducialRedshift"] = p["fid_redshift"].value
+        parameters["FiducialAngularDiameterDistance"] = YTQuantity(p["fid_d_a"].value, "Mpc")
+        parameters["Dimension"] = p["dimension"].value
+        parameters["Width"] = YTQuantity(p["width"].value, "kpc")
+        parameters["HubbleConstant"] = p["hubble"].value
+        parameters["OmegaMatter"] = p["omega_matter"].value
+        parameters["OmegaLambda"] = p["omega_lambda"].value
 
         num_cells = f["/x"][:].shape[0]
         start_c = comm.rank*num_cells//comm.size
         end_c = (comm.rank+1)*num_cells//comm.size
 
-        photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
-        photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
-        photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
-        photons["dx"] = YTArray(f["/dx"][start_c:end_c], "kpc")
-        photons["vx"] = YTArray(f["/vx"][start_c:end_c], "km/s")
-        photons["vy"] = YTArray(f["/vy"][start_c:end_c], "km/s")
-        photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
+        d = f["/data"]
+        photons["x"] = YTArray(d["x"][start_c:end_c], "kpc")
+        photons["y"] = YTArray(d["y"][start_c:end_c], "kpc")
+        photons["z"] = YTArray(d["z"][start_c:end_c], "kpc")
+        photons["dx"] = YTArray(d["dx"][start_c:end_c], "kpc")
+        photons["vx"] = YTArray(d["vx"][start_c:end_c], "km/s")
+        photons["vy"] = YTArray(d["vy"][start_c:end_c], "km/s")
+        photons["vz"] = YTArray(d["vz"][start_c:end_c], "km/s")
 
-        n_ph = f["/num_photons"][:]
+        n_ph = d["num_photons"][:]
 
         if comm.rank == 0:
             start_e = np.uint64(0)
@@ -139,7 +143,7 @@ class PhotonList(object):
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
 
-        photons["Energy"] = YTArray(f["/energy"][start_e:end_e], "keV")
+        photons["Energy"] = YTArray(d["energy"][start_e:end_e], "keV")
 
         f.close()
 
@@ -398,7 +402,7 @@ class PhotonList(object):
             comm.comm.Gatherv([self.photons["NumberOfPhotons"], local_num_cells, mpi_long],
                               [n_ph, (sizes_c, disps_c), mpi_long], root=0)
             comm.comm.Gatherv([self.photons["Energy"].d, local_num_photons, mpi_double],
-                              [e, (sizes_p, disps_p), mpi_double], root=0) 
+                              [e, (sizes_p, disps_p), mpi_double], root=0)
 
         else:
 
@@ -416,29 +420,31 @@ class PhotonList(object):
 
             f = h5py.File(photonfile, "w")
 
-            # Scalars
+            # Parameters
 
-            f.create_dataset("fid_area", data=float(self.parameters["FiducialArea"]))
-            f.create_dataset("fid_exp_time", data=float(self.parameters["FiducialExposureTime"]))
-            f.create_dataset("fid_redshift", data=self.parameters["FiducialRedshift"])
-            f.create_dataset("hubble", data=self.parameters["HubbleConstant"])
-            f.create_dataset("omega_matter", data=self.parameters["OmegaMatter"])
-            f.create_dataset("omega_lambda", data=self.parameters["OmegaLambda"])
-            f.create_dataset("fid_d_a", data=float(self.parameters["FiducialAngularDiameterDistance"]))
-            f.create_dataset("dimension", data=self.parameters["Dimension"])
-            f.create_dataset("width", data=float(self.parameters["Width"]))
+            p = f.create_group("parameters")
+            p.create_dataset("fid_area", data=float(self.parameters["FiducialArea"]))
+            p.create_dataset("fid_exp_time", data=float(self.parameters["FiducialExposureTime"]))
+            p.create_dataset("fid_redshift", data=self.parameters["FiducialRedshift"])
+            p.create_dataset("hubble", data=self.parameters["HubbleConstant"])
+            p.create_dataset("omega_matter", data=self.parameters["OmegaMatter"])
+            p.create_dataset("omega_lambda", data=self.parameters["OmegaLambda"])
+            p.create_dataset("fid_d_a", data=float(self.parameters["FiducialAngularDiameterDistance"]))
+            p.create_dataset("dimension", data=self.parameters["Dimension"])
+            p.create_dataset("width", data=float(self.parameters["Width"]))
 
-            # Arrays
+            # Data
 
-            f.create_dataset("x", data=x)
-            f.create_dataset("y", data=y)
-            f.create_dataset("z", data=z)
-            f.create_dataset("vx", data=vx)
-            f.create_dataset("vy", data=vy)
-            f.create_dataset("vz", data=vz)
-            f.create_dataset("dx", data=dx)
-            f.create_dataset("num_photons", data=n_ph)
-            f.create_dataset("energy", data=e)
+            d = f.create_group("parameters")
+            d.create_dataset("x", data=x)
+            d.create_dataset("y", data=y)
+            d.create_dataset("z", data=z)
+            d.create_dataset("vx", data=vx)
+            d.create_dataset("vy", data=vy)
+            d.create_dataset("vz", data=vz)
+            d.create_dataset("dx", data=dx)
+            d.create_dataset("num_photons", data=n_ph)
+            d.create_dataset("energy", data=e)
 
             f.close()
 
@@ -804,7 +810,7 @@ class PhotonList(object):
 
         return events, info
 
-class EventList(object) :
+class EventList(object):
 
     def __init__(self, events, parameters):
         self.events = events
@@ -899,36 +905,38 @@ class EventList(object) :
 
         f = h5py.File(h5file, "r")
 
-        parameters["ExposureTime"] = YTQuantity(f["/exp_time"].value, "s")
+        p = f["/parameters"]
+        parameters["ExposureTime"] = YTQuantity(p["exp_time"].value, "s")
         if isinstance(f["/area"].value, (string_types, bytes)):
-            parameters["Area"] = f["/area"].value.decode("utf8")
+            parameters["Area"] = p["area"].value.decode("utf8")
         else:
-            parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
-        parameters["Redshift"] = f["/redshift"].value
-        parameters["AngularDiameterDistance"] = YTQuantity(f["/d_a"].value, "Mpc")
-        if "rmf" in f:
-            parameters["RMF"] = f["/rmf"].value.decode("utf8")
-        if "arf" in f:
-            parameters["ARF"] = f["/arf"].value.decode("utf8")
-        if "channel_type" in f:
-            parameters["ChannelType"] = f["/channel_type"].value.decode("utf8")
-        if "mission" in f:
-            parameters["Mission"] = f["/mission"].value.decode("utf8")
-        if "telescope" in f:
-            parameters["Telescope"] = f["/telescope"].value.decode("utf8")
-        if "instrument" in f:
-            parameters["Instrument"] = f["/instrument"].value.decode("utf8")
+            parameters["Area"] = YTQuantity(p["area"].value, "cm**2")
+        parameters["Redshift"] = p["redshift"].value
+        parameters["AngularDiameterDistance"] = YTQuantity(p["d_a"].value, "Mpc")
+        parameters["sky_center"] = YTArray(p["sky_center"][:], "deg")
+        parameters["dtheta"] = YTQuantity(p["dtheta"].value, "deg")
+        parameters["pix_center"] = p["pix_center"][:]
+        if "rmf" in p:
+            parameters["RMF"] = p["rmf"].value.decode("utf8")
+        if "arf" in p:
+            parameters["ARF"] = p["arf"].value.decode("utf8")
+        if "channel_type" in p:
+            parameters["ChannelType"] = p["channel_type"].value.decode("utf8")
+        if "mission" in p:
+            parameters["Mission"] = p["mission"].value.decode("utf8")
+        if "telescope" in p:
+            parameters["Telescope"] = p["telescope"].value.decode("utf8")
+        if "instrument" in p:
+            parameters["Instrument"] = p["instrument"].value.decode("utf8")
 
-        events["xpix"] = f["/xpix"][:]
-        events["ypix"] = f["/ypix"][:]
-        events["eobs"] = YTArray(f["/eobs"][:], "keV")
-        if "pi" in f:
-            events["PI"] = f["/pi"][:]
-        if "pha" in f:
-            events["PHA"] = f["/pha"][:]
-        parameters["sky_center"] = YTArray(f["/sky_center"][:], "deg")
-        parameters["dtheta"] = YTQuantity(f["/dtheta"].value, "deg")
-        parameters["pix_center"] = f["/pix_center"][:]
+        d = f["/data"]
+        events["xpix"] = d["xpix"][:]
+        events["ypix"] = d["ypix"][:]
+        events["eobs"] = YTArray(d["eobs"][:], "keV")
+        if "pi" in d:
+            events["PI"] = d["pi"][:]
+        if "pha" in d:
+            events["PHA"] = d["pha"][:]
 
         f.close()
 
@@ -1197,38 +1205,40 @@ class EventList(object) :
         """
         f = h5py.File(h5file, "w")
 
-        f.create_dataset("/exp_time", data=float(self.parameters["ExposureTime"]))
+        p = f.create_group("parameters")
+        p.create_dataset("exp_time", data=float(self.parameters["ExposureTime"]))
         area = self.parameters["Area"]
         if not isinstance(area, string_types):
             area = float(area)
-        f.create_dataset("/area", data=area)
-        f.create_dataset("/redshift", data=self.parameters["Redshift"])
-        f.create_dataset("/d_a", data=float(self.parameters["AngularDiameterDistance"]))
+        p.create_dataset("area", data=area)
+        p.create_dataset("redshift", data=self.parameters["Redshift"])
+        p.create_dataset("d_a", data=float(self.parameters["AngularDiameterDistance"]))
         if "ARF" in self.parameters:
-            f.create_dataset("/arf", data=self.parameters["ARF"])
+            p.create_dataset("arf", data=self.parameters["ARF"])
         if "RMF" in self.parameters:
-            f.create_dataset("/rmf", data=self.parameters["RMF"])
+            p.create_dataset("rmf", data=self.parameters["RMF"])
         if "ChannelType" in self.parameters:
-            f.create_dataset("/channel_type", data=self.parameters["ChannelType"])
+            p.create_dataset("channel_type", data=self.parameters["ChannelType"])
         if "Mission" in self.parameters:
-            f.create_dataset("/mission", data=self.parameters["Mission"]) 
+            p.create_dataset("mission", data=self.parameters["Mission"])
         if "Telescope" in self.parameters:
-            f.create_dataset("/telescope", data=self.parameters["Telescope"])
+            p.create_dataset("telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
-            f.create_dataset("/instrument", data=self.parameters["Instrument"])
+            p.create_dataset("instrument", data=self.parameters["Instrument"])
+        p.create_dataset("sky_center", data=self.parameters["sky_center"].d)
+        p.create_dataset("pix_center", data=self.parameters["pix_center"])
+        p.create_dataset("dtheta", data=float(self.parameters["dtheta"]))
 
-        f.create_dataset("/xpix", data=self["xpix"])
-        f.create_dataset("/ypix", data=self["ypix"])
-        f.create_dataset("/xsky", data=self["xsky"].d)
-        f.create_dataset("/ysky", data=self["ysky"].d)
-        f.create_dataset("/eobs", data=self["eobs"].d)
-        if "PI" in self:
-            f.create_dataset("/pi", data=self["PI"])
-        if "PHA" in self:
-            f.create_dataset("/pha", data=self["PHA"])                  
-        f.create_dataset("/sky_center", data=self.parameters["sky_center"].d)
-        f.create_dataset("/pix_center", data=self.parameters["pix_center"])
-        f.create_dataset("/dtheta", data=float(self.parameters["dtheta"]))
+        d = f.create_group("data")
+        d.create_dataset("xpix", data=self["xpix"])
+        d.create_dataset("ypix", data=self["ypix"])
+        d.create_dataset("xsky", data=self["xsky"].d)
+        d.create_dataset("ysky", data=self["ysky"].d)
+        d.create_dataset("eobs", data=self["eobs"].d)
+        if "PI" in self.events:
+            d.create_dataset("pi", data=self.events["PI"])
+        if "PHA" in self.events:
+            d.create_dataset("pha", data=self.events["PHA"])
 
         f.close()
 
@@ -1405,3 +1415,71 @@ class EventList(object) :
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
 
         hdulist.writeto(specfile, clobber=clobber)
+
+def merge_files(input_files, output_file, clobber=False,
+                add_exposure_times=False):
+
+    if os.path.exists(output_file) and not clobber:
+        raise IOError("Cannot overwrite existing file %s. " % output_file +
+                      "If you want to do this, use --clobber.")
+
+    f_in = h5py.File(input_files[0], "r")
+    f_out = h5py.File(output_file, "w")
+
+    exp_time_key = ""
+    p_out = f_out.create_group("parameters")
+    for key, param in f_in["parameters"].items():
+        if key.endswidth("exp_time"):
+            exp_time_key = key
+        else:
+            p_out[key] = param.value
+
+    f_in.close()
+
+    data = defaultdict(list)
+    tot_exp_time = 0.0
+
+    for fn in input_files:
+        f = h5py.File(fn, "r")
+        if add_exposure_times:
+            tot_exp_time += f["/parameters"][exp_time_key].value
+        for key in f["/data"]:
+            data[key].append(f["/data"][key][:])
+        f.close()
+
+    d = f_out.create_group("data")
+    for k in data:
+        d.create_dataset(key, data=np.concatenate(data[k]))
+
+    f_out.close()
+
+def convert_old_file(input_file, output_file):
+
+    f_in = h5py.File(input_file, "r")
+
+    if "NumberOfPhotons" in f_in:
+        params = ["fid_exp_time", "fid_area", "fid_d_a", "fid_redshift",
+                  "dimension", "width", "hubble", "omega_matter",
+                  "omega_lambda"]
+        data = ["x", "y", "z", "vx", "vy", "vz", "energy", "num_photons"]
+    elif "pix_center" in f_in:
+        params = ["exp_time", "area", "redshift", "d_a", "arf",
+                  "rmf", "channel_type", "mission", "telescope",
+                  "instruemnt", "sky_center", "pix_center", "dtheta"]
+        data = ["xsky", "ysky", "xpix", "ypix", "eobs", "pi", "pha"]
+
+    f_out = h5py.File(output_file, "w")
+
+    p = f_out.create_group("parameters")
+    d = f_out.create_group("data")
+
+    for key in params:
+        if key in f_in:
+            p.create_dataset(key, data=f_in[key].value)
+
+    for key in data:
+        if key in f_in:
+            d.create_dataset(key, data=f_in[key].value)
+
+    f_in.close()
+    f_out.close()
