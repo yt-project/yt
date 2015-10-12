@@ -1161,8 +1161,8 @@ class EventList(object) :
         tbhdu.writeto(phfile, clobber=clobber)
 
         col1 = pyfits.Column(name='SRC_ID', format='J', array=np.array([1]).astype("int32"))
-        col2 = pyfits.Column(name='RA', format='D', array=np.array([float(self.parameters["sky_center"][0])]))
-        col3 = pyfits.Column(name='DEC', format='D', array=np.array([float(self.parameters["sky_center"][1])]))
+        col2 = pyfits.Column(name='RA', format='D', array=np.array([0.0]))
+        col3 = pyfits.Column(name='DEC', format='D', array=np.array([0.0]))
         col4 = pyfits.Column(name='E_MIN', format='D', array=np.array([float(emin)]))
         col5 = pyfits.Column(name='E_MAX', format='D', array=np.array([float(emax)]))
         col6 = pyfits.Column(name='FLUX', format='D', array=np.array([flux.value]))
