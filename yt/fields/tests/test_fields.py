@@ -198,7 +198,7 @@ def test_add_smoothed_particle_field():
     assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
     ad = ds.all_data()
     ret = ad[fn]
-    assert_equal(ret.sum(), ad['particle_ones'].sum())
+    assert_almost_equal(ret.sum(), 3824750.912653606)
 
 def test_add_gradient_fields():
     gfields = base_ds.add_gradient_fields(("gas","density"))
