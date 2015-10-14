@@ -67,15 +67,8 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
-class YTFieldNotFoundCustom(YTFieldNotFound):
-    def __init__(self, fname, ds, custom_msg):
-        self.fname = fname
-        self.ds = ds
-        self.custom_msg = custom_msg
-
-    def __str__(self):
-        return "Could not find field '%s' in %s. %s" % (self.fname, self.ds, self.custom_msg)
-
+class YTSceneFieldNotFound(YTException):
+    pass
 
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
