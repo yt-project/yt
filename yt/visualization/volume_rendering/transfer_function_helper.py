@@ -25,15 +25,17 @@ import functools
 
 def invalidate_tf(func):
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs)
-        func(self, *args, **kwargs)
+    def wrapper(self, *args, **kwargs):
+        rv = func(self, *args, **kwargs)
         self._tf_valid = False
+        return rv
     return wrapper
 
 class TransferFunctionHelper(object):
 
     profiles = None
     _tf_valid = False
+    _tf = None
 
     def __init__(self, ds):
         r"""A transfer function helper.
@@ -54,10 +56,12 @@ class TransferFunctionHelper(object):
         self.ds = ds
         self.field = None
         self.log = False
-        self.tf = None
         self.bounds = None
         self.grey_opacity = True 
         self.profiles = {}
+
+    def build_transfer_function(self, *args, **kwargs):
+        self.tf
 
     @invalidate_tf
     def set_bounds(self, bounds=None):
