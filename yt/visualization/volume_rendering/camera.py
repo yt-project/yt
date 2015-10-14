@@ -70,7 +70,7 @@ class Camera(Orientation):
         self.normal_vector = None
         self.light = None
         self._resolution = (512, 512)
-        self._width = 1.0
+        self._width = np.array([1.0, 1.0, 1.0])
         self._focus = np.array([0.0]*3)
         self._position = np.array([1.0]*3)
         self.set_lens(lens_type)
