@@ -94,7 +94,7 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None):
         in png format.
     sigma_clip: float, optional
         If specified, the resulting image will be clipped before saving,
-        using a threshold based on clip_ratio multiplied by the standard
+        using a threshold based on sigma_clip multiplied by the standard
         deviation of the pixel values. Recommended values are between 2 and 6.
         Default: None
 
@@ -113,5 +113,5 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None):
     >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
     """
     sc = create_scene(data_source, field=field)
-    im = sc.render(fname=fname, clip_ratio=clip_ratio)
+    im = sc.render(fname=fname, sigma_clip=sigma_clip)
     return im, sc
