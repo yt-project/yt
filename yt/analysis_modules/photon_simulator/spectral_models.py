@@ -239,7 +239,7 @@ class TableApecModel(SpectralModel):
         self.maxlam = self.wvbins.max()
         self.scale_factor = 1.0/(1.+zobs)
 
-    def _make_spectrum(self, element, tindex):
+    def _make_spectrum(self, kT, element, tindex):
 
         tmpspec = np.zeros(self.nchan)
 
@@ -250,16 +250,16 @@ class TableApecModel(SpectralModel):
                      (line_data.field('lambda') > self.minlam) &
                      (line_data.field('lambda') < self.maxlam))[0]
 
-        E0 = hc/line_data.field('lambda')[i].astype("float64")*self.scale_factor
+        E0 = hc/line_data.field('lambda')[i].astype("float64")
         amp = line_data.field('epsilon')[i].astype("float64")
         ebins = self.ebins.d
         de = self.de.d
         emid = self.emid.d
         if self.thermal_broad:
-            sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_grams))/cl
-            vec = compute_lines(E0, sigma, amp, emid)*de
+            sigma = E0*np.sqrt(2.*kT*erg_per_keV/(self.A[element]*amu_grams))/cl
+            vec = compute_lines(E0*self.scale_factor, sigma, amp, emid)*de
         else:
-            vec = np.histogram(E0, ebins, weights=amp)[0]
+            vec = np.histogram(E0*self.scale_factor, ebins, weights=amp)[0]*self.scale_factor
         tmpspec += vec
 
         ind = np.where((coco_data.field('Z') == element) &
@@ -273,13 +273,15 @@ class TableApecModel(SpectralModel):
         e_cont = coco_data.field('E_Cont')[ind][:n_cont]
         continuum = coco_data.field('Continuum')[ind][:n_cont]
 
-        tmpspec += np.interp(emid, e_cont, continuum)*de
+        tmpspec += np.interp(emid, e_cont*self.scale_factor, continuum)*de
 
         n_pseudo = coco_data.field('N_Pseudo')[ind]
         e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]
         pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
 
-        tmpspec += np.interp(emid, e_pseudo, pseudo)*de
+        tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de
+
+        tmpspec /= self.scale_factor
 
         return tmpspec
 
@@ -297,8 +299,8 @@ class TableApecModel(SpectralModel):
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
-            cspec_l += self._make_spectrum(elem, tindex+2)
-            cspec_r += self._make_spectrum(elem, tindex+3)
+            cspec_l += self._make_spectrum(kT, elem, tindex+2)
+            cspec_r += self._make_spectrum(kT, elem, tindex+3)
         # Next do the metals
         for elem in self.metal_elem:
             mspec_l += self._make_spectrum(elem, tindex+2)
