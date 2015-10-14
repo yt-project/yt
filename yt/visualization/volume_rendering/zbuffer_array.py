@@ -29,15 +29,15 @@ class ZBuffer(object):
     def __add__(self, other):
         assert(self.shape == other.shape)
         f = self.z < other.z
-        use_self = np.dstack((f, f, f, f))
-        b = self.z > other.z
-        use_other = np.dstack((b, b, b, b))
         if self.z.shape[1] == 1:
             # Non-rectangular
             rgba = (self.rgba * f[:,None,:])
             rgba += (other.rgba * (1.0 - f)[:,None,:])
         else:
-            rgba = self.rgba*use_self + other.rgba*use_other
+            b = self.z > other.z
+            rgba = np.empty(self.rgba.shape)
+            rgba[f] = self.rgba[f]
+            rgba[b] = other.rgba[b]
         z = np.min([self.z, other.z], axis=0)
         return ZBuffer(rgba, z)
 
