@@ -200,6 +200,24 @@ See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: camera_movement.py
 
+Volume Rendering with Custom Camera
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we modify the :ref:`cookbook-sumple_volume_rendering` recipe to
+use customized camera properties. See :ref:`volume_rendering` for more
+information.
+
+.. yt_cookbook:: custom_camera_volume_rendering.py
+
+Volume Rendering with a Custom Transfer Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we modify the :ref:`cookbook-sumple_volume_rendering` recipe to
+use customized camera properties. See :ref:`volume_rendering` for more
+information.
+
+.. yt_cookbook:: custom_transfer_function_volume_rendering.py
+
 Zooming into an Image
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -255,7 +273,7 @@ See :ref:`volume_rendering` for more information.
 .. yt_cookbook:: rendering_with_box_and_grids.py
 
 Volume Rendering with Annotation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to write the simulation time, show an
 axis triad indicating the direction of the coordinate system, and show
