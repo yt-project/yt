@@ -65,7 +65,7 @@ class XSpecThermalModel(SpectralModel):
     --------
     >>> mekal_model = XSpecThermalModel("mekal", 0.05, 50.0, 1000)
     """
-    def __init__(self, model_name, emin, emax, nchan, 
+    def __init__(self, model_name, emin, emax, nchan,
                  thermal_broad=False, settings=None):
         self.model_name = model_name
         self.thermal_broad = thermal_broad
@@ -270,13 +270,13 @@ class TableApecModel(SpectralModel):
             ind = ind[0]
 
         n_cont = coco_data.field('N_Cont')[ind]
-        e_cont = coco_data.field('E_Cont')[ind][:n_cont]*self.scale_factor
+        e_cont = coco_data.field('E_Cont')[ind][:n_cont]
         continuum = coco_data.field('Continuum')[ind][:n_cont]
 
         tmpspec += np.interp(emid, e_cont, continuum)*de
 
         n_pseudo = coco_data.field('N_Pseudo')[ind]
-        e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]*self.scale_factor
+        e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]
         pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
 
         tmpspec += np.interp(emid, e_pseudo, pseudo)*de
