@@ -233,6 +233,8 @@ onto an image, or if you want to draw lines connecting different regions or
 vertices.  For instance, lines can be used to draw outlines of regions or
 continents.
 
+.. _volume_rendering_annotations:
+
 Annotations
 +++++++++++
 
@@ -243,6 +245,9 @@ provides three annotations:
 :class:`~yt.visualization.volume_rendering.api.CoordinateVectorSource`.  These
 annotations will operate in data space and can draw boxes, grid information,
 and also provide a vector orientation within the image.
+
+For example scripts using these features, 
+see :ref:`cookbook-volume_rendering_annotations`.
 
 Care and Usage of the Camera
 ----------------------------
@@ -463,6 +468,8 @@ nodes, each with cores_per_node cores per node.
     the MPI tasks.
 
 For more information about enabling parallelism, see :ref:`parallel-computation`.
+
+.. _opaque_rendering:
 
 Opacity
 -------
