@@ -60,14 +60,22 @@ class YTNoDataInObjectError(YTException):
         return s
 
 class YTFieldNotFound(YTException):
-    def __init__(self, fname, ds, custom_msg=None):
+    def __init__(self, fname, ds):
         self.fname = fname
         self.ds = ds
-        if custom_msg is None: custom_msg = ""
+
+    def __str__(self):
+        return "Could not find field '%s' in %s." % (self.fname, self.ds)
+
+class YTFieldNotFoundCustom(YTFieldNotFound):
+    def __init__(self, fname, ds, custom_msg):
+        self.fname = fname
+        self.ds = ds
         self.custom_msg = custom_msg
 
     def __str__(self):
         return "Could not find field '%s' in %s. %s" % (self.fname, self.ds, self.custom_msg)
+
 
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):

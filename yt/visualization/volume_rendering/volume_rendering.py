@@ -17,7 +17,7 @@ from .camera import Camera
 from .render_source import VolumeSource
 from .utils import data_source_or_all
 from yt.funcs import mylog
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.exceptions import YTFieldNotFoundCustom
 
 
 def create_scene(data_source, field=None):
@@ -60,9 +60,8 @@ def create_scene(data_source, field=None):
     if field is None:
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
-            raise YTFieldNotFound(field, data_source.ds, 
-                "You must specify a field with volume_render(), since " + \
-                "the default field does not exist in your dataset.")
+            raise YTFieldNotFoundCustom(field, data_source.ds, 
+                "Please specify a field in create_scene()")
         mylog.info('Setting default field to %s' % field.__repr__())
 
     vol = VolumeSource(data_source, field=field)
