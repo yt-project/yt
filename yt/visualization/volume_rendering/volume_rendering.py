@@ -19,7 +19,8 @@ from .utils import data_source_or_all
 from yt.funcs import mylog
 
 
-def volume_render(data_source, field=None, fname=None, sigma_clip=None):
+def volume_render(data_source, field=None, fname=None, sigma_clip=None,
+                  lens_type='plane-parallel'):
     r""" Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
@@ -45,6 +46,11 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None):
         The resulting image will be clipped before saving, using a threshold
         based on `sigma_clip` multiplied by the standard deviation of the pixel
         values. Recommended values are between 2 and 6. Default: None
+    lens_type: string, optional
+        This specifies the type of lens to use for rendering. Current
+        options are 'plane-parallel', 'perspective', and 'fisheye'. See
+        :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+        Default: 'plane-parallel'
 
     Returns
     -------
@@ -81,6 +87,6 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None):
 
     vol = VolumeSource(data_source, field=field)
     sc.add_source(vol)
-    sc.camera = Camera(data_source)
+    sc.camera = Camera(data_source=data_source, lens_type=lens_type)
     im = sc.render(fname=fname, sigma_clip=sigma_clip)
     return im, sc
