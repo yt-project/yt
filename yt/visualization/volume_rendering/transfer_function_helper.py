@@ -21,11 +21,19 @@ from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from yt.extern.six.moves import StringIO
 import numpy as np
+import functools
 
+def invalidate_tf(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs)
+        func(self, *args, **kwargs)
+        self._tf_valid = False
+    return wrapper
 
 class TransferFunctionHelper(object):
 
     profiles = None
+    _tf_valid = False
 
     def __init__(self, ds):
         r"""A transfer function helper.
@@ -51,6 +59,7 @@ class TransferFunctionHelper(object):
         self.grey_opacity = True 
         self.profiles = {}
 
+    @invalidate_tf
     def set_bounds(self, bounds=None):
         """
         Set the bounds of the transfer function.
@@ -75,6 +84,7 @@ class TransferFunctionHelper(object):
             assert(self.bounds[1] > 0.0)
         return
 
+    @invalidate_tf
     def set_field(self, field):
         """
         Set the field to be rendered
@@ -87,6 +97,7 @@ class TransferFunctionHelper(object):
         self.field = field
         self.log = self.ds._get_field_info(self.field).take_log
 
+    @invalidate_tf
     def set_log(self, log):
         """
         Set whether or not the transfer function should be in log or linear
@@ -102,7 +113,8 @@ class TransferFunctionHelper(object):
         self.ds.index
         self.ds._get_field_info(self.field).take_log = log
 
-    def build_transfer_function(self):
+    @property
+    def tf(self):
         """
         Builds the transfer function according to the current state of the
         TransferFunctionHelper.
@@ -117,6 +129,8 @@ class TransferFunctionHelper(object):
         A ColorTransferFunction object.
 
         """
+        if self._tf_valid:
+            return self._tf
         if self.bounds is None:
             mylog.info('Calculating data bounds. This may take a while.' +
                        '  Set the .bounds to avoid this.')
@@ -127,11 +141,13 @@ class TransferFunctionHelper(object):
         else:
             mi, ma = self.bounds
 
-        self.tf = ColorTransferFunction((mi, ma),
+        self._tf = ColorTransferFunction((mi, ma),
                                         grey_opacity=self.grey_opacity,
                                         nbins=512)
-        return self.tf
+        self._tf_valid = True
+        return self._tf
 
+    @invalidate_tf
     def setup_default(self):
         """docstring for setup_default"""
         if self.log:
@@ -157,8 +173,6 @@ class TransferFunctionHelper(object):
         If fn is None, will return an image to an IPython notebook.
 
         """
-        if self.tf is None:
-            self.build_transfer_function()
         tf = self.tf
         if self.log:
             xfunc = np.logspace
