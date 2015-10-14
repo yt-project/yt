@@ -55,7 +55,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.camera = cam
         sc.add_source(vol)
-        sc.render('test_perspective_%s.png' % self.field[1], clip_ratio=6.0)
+        sc.render('test_perspective_%s.png' % self.field[1], sigma_clip=6.0)
 
     def test_stereoperspective_lens(self):
         sc = Scene()
@@ -68,7 +68,7 @@ class LensTest(TestCase):
         sc.camera = cam
         sc.add_source(vol)
         sc.render('test_stereoperspective_%s.png' % self.field[1],
-                  clip_ratio=6.0)
+                  sigma_clip=6.0)
 
     def test_fisheye_lens(self):
         dd = self.ds.sphere(self.ds.domain_center,
@@ -86,7 +86,7 @@ class LensTest(TestCase):
         sc.camera = cam
         sc.add_source(vol)
         sc.render('test_fisheye_%s.png' % self.field[1],
-                  clip_ratio=6.0)
+                  sigma_clip=6.0)
 
     def test_plane_lens(self):
         dd = self.ds.sphere(self.ds.domain_center,
@@ -102,7 +102,7 @@ class LensTest(TestCase):
         sc.camera = cam
         sc.add_source(vol)
         sc.render('test_plane_%s.png' % self.field[1],
-                  clip_ratio=6.0)
+                  sigma_clip=6.0)
 
     def test_spherical_lens(self):
         sc = Scene()
@@ -115,7 +115,7 @@ class LensTest(TestCase):
         sc.camera = cam
         sc.add_source(vol)
         sc.render('test_spherical_%s.png' % self.field[1],
-                  clip_ratio=6.0)
+                  sigma_clip=6.0)
 
     def test_stereospherical_lens(self):
         w = (self.ds.domain_width).in_units('code_length')
@@ -130,4 +130,4 @@ class LensTest(TestCase):
         sc.camera = cam
         sc.add_source(vol)
         sc.render('test_stereospherical_%s.png' % self.field[1],
-                  clip_ratio=6.0)
+                  sigma_clip=6.0)

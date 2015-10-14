@@ -76,9 +76,9 @@ class RotationTest(TestCase):
         mi_bound = ((ma-mi)*(0.10))+mi
         ma_bound = ((ma-mi)*(0.90))+mi
         tf.map_to_colormap(mi_bound, ma_bound,  scale=0.01, colormap='Reds_r')
-        sc.render('test_scene.png', clip_ratio=6.0)
+        sc.render('test_scene.png', sigma_clip=6.0)
 
         nrot = 2 
         for i in range(nrot):
             sc.camera.pitch(2*np.pi/nrot)
-            sc.render('test_rot_%04i.png' % i, clip_ratio=6.0)
+            sc.render('test_rot_%04i.png' % i, sigma_clip=6.0)

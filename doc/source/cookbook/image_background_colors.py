@@ -9,7 +9,7 @@ import numpy as np
 
 ds = yt.load("Enzo_64/DD0043/data0043")
 im, sc = yt.volume_render(ds, 'density')
-im.write_png("original.png", clip_ratio=8.0)
+im.write_png("original.png", sigma_clip=8.0)
 
 # Our image array can now be transformed to include different background
 # colors.  By default, the background color is black.  The following
@@ -22,10 +22,10 @@ im.write_png("original.png", clip_ratio=8.0)
 # None  (0.,0.,0.,0.) <-- Transparent!
 # any rgba list/array: [r,g,b,a], bounded by 0..1
 
-# We include the clip_ratio=8 keyword here to bring out more contrast between
+# We include the sigma_clip=8 keyword here to bring out more contrast between
 # the background and foreground, but it is entirely optional.
 
-im.write_png('black_bg.png', background='black', clip_ratio=8.0)
-im.write_png('white_bg.png', background='white', clip_ratio=8.0)
-im.write_png('green_bg.png', background=[0.,1.,0.,1.], clip_ratio=8.0)
-im.write_png('transparent_bg.png', background=None, clip_ratio=8.0)
+im.write_png('black_bg.png', background='black', sigma_clip=8.0)
+im.write_png('white_bg.png', background='white', sigma_clip=8.0)
+im.write_png('green_bg.png', background=[0.,1.,0.,1.], sigma_clip=8.0)
+im.write_png('transparent_bg.png', background=None, sigma_clip=8.0)
