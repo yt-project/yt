@@ -28,7 +28,7 @@ def test_perspective_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_perspective_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_perspective_%s.png' % field[1], sigma_clip=6.0)
 
 def test_stereoperspective_lens():
     #ds = fake_random_ds(32, fields = field)
@@ -42,7 +42,7 @@ def test_stereoperspective_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_stereoperspective_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_stereoperspective_%s.png' % field[1], sigma_clip=6.0)
 
 def test_fisheye_lens():
     ds = fake_random_ds(32, fields = field)
@@ -60,7 +60,7 @@ def test_fisheye_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_fisheye_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_fisheye_%s.png' % field[1], sigma_clip=6.0)
 
 def test_plane_lens():
     ds = fake_random_ds(32, fields = field)
@@ -76,7 +76,7 @@ def test_plane_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_plane_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_plane_%s.png' % field[1], sigma_clip=6.0)
 
 def test_spherical_lens():
     #ds = fake_random_ds(32, fields = field)
@@ -90,7 +90,7 @@ def test_spherical_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_spherical_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_spherical_%s.png' % field[1], sigma_clip=6.0)
 
 def test_stereospherical_lens():
     #ds = fake_random_ds(32, fields = field)
@@ -106,5 +106,5 @@ def test_stereospherical_lens():
     tf.grey_opacity = True
     sc.camera = cam
     sc.add_source(vol)
-    sc.render('test_stereospherical_%s.png' % field[1], clip_ratio=6.0)
+    sc.render('test_stereospherical_%s.png' % field[1], sigma_clip=6.0)
 
