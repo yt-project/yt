@@ -336,7 +336,7 @@ class Camera(Orientation):
         R = get_rotation_matrix(theta, rot_vector)
         new_position = np.dot(R, new_position) + rot_center
 
-	if (new_position == self._position).all():
+        if (new_position == self._position).all():
             normal_vector = self.unit_vectors[2]
         else:
             normal_vector = rot_center - new_position
