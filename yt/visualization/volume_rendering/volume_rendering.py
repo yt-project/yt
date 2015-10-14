@@ -20,6 +20,56 @@ from yt.funcs import mylog
 from yt.utilities.exceptions import YTFieldNotFound
 
 
+def create_scene(data_source, field=None):
+    r""" Set up a scene object with sensible defaults for use in volume 
+    rendering.
+
+    A helper function that creates a default camera view, transfer
+    function, and image size. Using these, it returns an instance 
+    of the Scene class, allowing one to further modify their rendering.
+
+    This function is the same as volume_render() except it doesn't render
+    the image.
+
+    Parameters
+    ----------
+    data_source : :class:`yt.data_objects.data_containers.AMR3DData`
+        This is the source to be rendered, which can be any arbitrary yt
+        3D object
+    field: string, tuple, optional
+        The field to be rendered. If unspecified, this will use the 
+        default_field for your dataset's frontend--usually ('gas', 'density').
+        A default transfer function will be built that spans the range of 
+        values for that given field, and the field will be logarithmically 
+        scaled if the field_info object specifies as such.
+
+    Returns
+    -------
+    sc: Scene
+        A :class:`yt.visualization.volume_rendering.scene.Scene` object
+        that was constructed during the rendering. Useful for further
+        modifications, rotations, etc.
+
+    Example:
+    >>> import yt
+    >>> ds = yt.load("Enzo_64/DD0046/DD0046")
+    >>> sc = yt.create_scene(ds)
+    """
+    data_source = data_source_or_all(data_source)
+    sc = Scene()
+    if field is None:
+        field = data_source.ds.default_field
+        if field not in data_source.ds.derived_field_list:
+            raise YTFieldNotFound(field, data_source.ds, 
+                "You must specify a field with volume_render(), since " + \
+                "the default field does not exist in your dataset.")
+        mylog.info('Setting default field to %s' % field.__repr__())
+
+    vol = VolumeSource(data_source, field=field)
+    sc.add_source(vol)
+    sc.camera = Camera(data_source)
+    return sc
+
 def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     r""" Create a simple volume rendering of a data source.
 
@@ -61,18 +111,6 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
     >>> im, sc = yt.volume_render(ds, fname='test.png', clip_ratio=4.0)
     """
-    data_source = data_source_or_all(data_source)
-    sc = Scene()
-    if field is None:
-        field = data_source.ds.default_field
-        if field not in data_source.ds.derived_field_list:
-            raise YTFieldNotFound(field, data_source.ds, 
-                "You must specify a field with volume_render(), since " + \
-                "the default field does not exist in your dataset.")
-        mylog.info('Setting default field to %s' % field.__repr__())
-
-    vol = VolumeSource(data_source, field=field)
-    sc.add_source(vol)
-    sc.camera = Camera(data_source)
+    sc = create_scene(data_source, field=field)
     im = sc.render(fname=fname, clip_ratio=clip_ratio)
     return im, sc
