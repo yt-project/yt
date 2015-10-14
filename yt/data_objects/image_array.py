@@ -11,9 +11,11 @@ ImageArray Class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import warnings
 import numpy as np
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.units.yt_array import YTArray
+
 
 class ImageArray(YTArray):
     r"""A custom Numpy ndarray used for images.
@@ -238,7 +240,7 @@ class ImageArray(YTArray):
         return out
 
     def write_png(self, filename, sigma_clip=None, background='black',
-                  rescale=True):
+                  rescale=True, clip_ratio=None):
         r"""Writes ImageArray to png file.
 
         Parameters
@@ -291,6 +293,10 @@ class ImageArray(YTArray):
 
         if filename[-4:] != '.png':
             filename += '.png'
+
+        if clip_ratio is not None:
+            warnings.warn("'clip_ratio' keyword is deprecated. Use 'sigma_clip' instead")
+            sigma_clip = clip_ratio
 
         if sigma_clip is not None:
             nz = out[:, :, :3][out[:, :, :3].nonzero()]
