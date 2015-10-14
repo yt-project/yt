@@ -4,6 +4,7 @@ from yt import \
     load
 from yt.testing import \
     fake_random_ds, \
+    assert_almost_equal, \
     assert_equal, \
     assert_array_almost_equal_nulp, \
     assert_array_equal, \
