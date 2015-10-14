@@ -5,7 +5,7 @@ cimport cython
 cdef extern from "math.h":
     double exp(double x) nogil
 
-cdef double gfac = 1.0/np.sqrt(2*np.pi)
+cdef double gfac = 1.0/np.sqrt(np.pi)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -26,6 +26,6 @@ def compute_lines(np.ndarray[np.float64_t, ndim=1] E0,
     for i in range(n):
         for j in range(m):
             x = (E[j]-E0[i])/sigma[i]
-            lines[j] += amp[i]*gfac*exp(-0.5*x*x)/sigma[i]
+            lines[j] += amp[i]*gfac*exp(-x*x)/sigma[i]
 
     return lines

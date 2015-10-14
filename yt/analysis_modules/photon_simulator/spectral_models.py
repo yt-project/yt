@@ -32,7 +32,7 @@ class SpectralModel(object):
         self.emin = YTQuantity(emin, "keV")
         self.emax = YTQuantity(emax, "keV")
         self.nchan = nchan
-        self.ebins = np.linspace(self.emin, self.emax, nchan+1)
+        self.ebins = YTArray(np.linspace(self.emin, self.emax, nchan+1), "keV")
         self.de = np.diff(self.ebins)
         self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
 
@@ -250,17 +250,17 @@ class TableApecModel(SpectralModel):
                      (line_data.field('lambda') > self.minlam) &
                      (line_data.field('lambda') < self.maxlam))[0]
 
-        E0 = hc/line_data.field('lambda')[i].astype("float64")
+        E0 = hc/line_data.field('lambda')[i].astype("float64")*self.scale_factor
         amp = line_data.field('epsilon')[i].astype("float64")
         ebins = self.ebins.d
         de = self.de.d
         emid = self.emid.d
         if self.thermal_broad:
             sigma = E0*np.sqrt(2.*kT*erg_per_keV/(self.A[element]*amu_grams))/cl
-            vec = compute_lines(E0*self.scale_factor, sigma, amp, emid)*de
+            vec = compute_lines(E0, sigma, amp, emid)*de
         else:
-            vec = np.histogram(E0*self.scale_factor, ebins, weights=amp)[0]*self.scale_factor
-        tmpspec += vec
+            vec = np.histogram(E0, ebins, weights=amp)[0]
+        tmpspec += vec*self.scale_factor
 
         ind = np.where((coco_data.field('Z') == element) &
                        (coco_data.field('rmJ') == 0))[0]
@@ -303,8 +303,8 @@ class TableApecModel(SpectralModel):
             cspec_r += self._make_spectrum(kT, elem, tindex+3)
         # Next do the metals
         for elem in self.metal_elem:
-            mspec_l += self._make_spectrum(elem, tindex+2)
-            mspec_r += self._make_spectrum(elem, tindex+3)
+            mspec_l += self._make_spectrum(kT, elem, tindex+2)
+            mspec_r += self._make_spectrum(kT, elem, tindex+3)
         cosmic_spec = YTArray(cspec_l*(1.-dT)+cspec_r*dT, "cm**3/s")
         metal_spec = YTArray(mspec_l*(1.-dT)+mspec_r*dT, "cm**3/s")
         return cosmic_spec, metal_spec
