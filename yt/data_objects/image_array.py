@@ -237,7 +237,7 @@ class ImageArray(YTArray):
         np.clip(out, 0.0, 1.0, out)
         return out
 
-    def write_png(self, filename, stddev_mask=None, background='black',
+    def write_png(self, filename, sigma_clip=None, background='black',
                   rescale=True):
         r"""Writes ImageArray to png file.
 
@@ -245,7 +245,7 @@ class ImageArray(YTArray):
         ----------
         filename: string
             Note filename not be modified.
-        stddev_mask: float, optional
+        sigma_clip: float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
@@ -292,10 +292,10 @@ class ImageArray(YTArray):
         if filename[-4:] != '.png':
             filename += '.png'
 
-        if stddev_mask is not None:
+        if sigma_clip is not None:
             nz = out[:, :, :3][out[:, :, :3].nonzero()]
             return write_bitmap(out.swapaxes(0, 1), filename,
-                                nz.mean() + stddev_mask * nz.std())
+                                nz.mean() + sigma_clip * nz.std())
         else:
             return write_bitmap(out.swapaxes(0, 1), filename)
 

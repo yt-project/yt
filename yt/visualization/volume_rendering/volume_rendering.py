@@ -19,7 +19,7 @@ from .utils import data_source_or_all
 from yt.funcs import mylog
 
 
-def volume_render(data_source, field=None, fname=None, stddev_mask=4.0):
+def volume_render(data_source, field=None, fname=None, sigma_clip=4.0):
     r""" Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
@@ -41,9 +41,9 @@ def volume_render(data_source, field=None, fname=None, stddev_mask=4.0):
     fname: string, optional
         If specified, the resulting rendering will be saved to this filename
         in png format.
-    stddev_mask: float
+    sigma_clip: float
         The resulting image will be clipped before saving, using a threshold
-        based on `stddev_mask` multiplied by the standard deviation of the pixel
+        based on `sigma_clip` multiplied by the standard deviation of the pixel
         values. Recommended values are between 2 and 6. Default: 4.0
 
     Returns
@@ -82,5 +82,5 @@ def volume_render(data_source, field=None, fname=None, stddev_mask=4.0):
     vol = VolumeSource(data_source, field=field)
     sc.add_source(vol)
     sc.camera = Camera(data_source)
-    im = sc.render(fname=fname, stddev_mask=stddev_mask)
+    im = sc.render(fname=fname, sigma_clip=sigma_clip)
     return im, sc

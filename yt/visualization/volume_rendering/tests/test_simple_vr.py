@@ -15,7 +15,7 @@ from yt.testing import fake_random_ds
 
 def test_simple_vr():
     ds = fake_random_ds(32)
-    im, sc = yt.volume_render(ds, fname='test.png', clip_ratio=4.0)
+    im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
     print(sc)
     return im, sc
 
