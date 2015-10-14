@@ -31,6 +31,7 @@ yt/utilities/lib/bitarray.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
+yt/utilities/lib/element_mappings.c
 yt/utilities/lib/FixedInterpolator.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
@@ -38,6 +39,7 @@ yt/utilities/lib/geometry_utils.c
 yt/utilities/lib/image_utilities.c
 yt/utilities/lib/Interpolators.c
 yt/utilities/lib/kdtree.c
+yt/utilities/lib/line_integral_convolution.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/Octree.c

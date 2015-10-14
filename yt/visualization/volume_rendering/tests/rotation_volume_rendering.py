@@ -21,4 +21,4 @@ angle = 2*np.pi
 frames = 10
 for i in range(frames):
     sc.camera.yaw(angle/frames)
-    sc.render('test_rot_%04i.png' % i, clip_ratio=6.0)
+    sc.render('test_rot_%04i.png' % i, sigma_clip=6.0)

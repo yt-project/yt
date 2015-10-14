@@ -19,4 +19,4 @@ sc.camera.position = ds.arr([0, 0, 0], 'unitary')
 
 # save to disk with a custom filename and apply sigma clipping to eliminate
 # very bright pixels, producing an image with better contrast.
-sc.render(fname='custom.png', clip_ratio=4)
+sc.render(fname='custom.png', sigma_clip=4)
