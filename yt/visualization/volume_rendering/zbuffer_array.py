@@ -28,13 +28,16 @@ class ZBuffer(object):
 
     def __add__(self, other):
         assert(self.shape == other.shape)
-        f_or_b = self.z < other.z
+        f = self.z < other.z
         if self.z.shape[1] == 1:
             # Non-rectangular
-            rgba = (self.rgba * f_or_b[:,None,:])
-            rgba += (other.rgba * (1.0 - f_or_b)[:,None,:])
+            rgba = (self.rgba * f[:,None,:])
+            rgba += (other.rgba * (1.0 - f)[:,None,:])
         else:
-            rgba = (self.rgba.T * f_or_b).T + (other.rgba.T * (1 - f_or_b)).T
+            b = self.z > other.z
+            rgba = np.empty(self.rgba.shape)
+            rgba[f] = self.rgba[f]
+            rgba[b] = other.rgba[b]
         z = np.min([self.z, other.z], axis=0)
         return ZBuffer(rgba, z)
 
