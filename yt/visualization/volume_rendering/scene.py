@@ -90,7 +90,7 @@ class Scene(object):
 
         return self
 
-    def render(self, fname=None, clip_ratio=None, camera=None):
+    def render(self, fname=None, sigma_clip=None, camera=None):
         r"""Render all sources in the Scene.
 
         Use the current state of the Scene object to render all sources
@@ -101,9 +101,10 @@ class Scene(object):
         fname: string, optional
             If specified, save the rendering as a bitmap to the file "fname".
             Default: None
-        clip_ratio: float, optional
-            If supplied, the 'max_val' argument to write_bitmap will be handed
-            clip_ratio * image.std()
+        sigma_clip: float, optional
+            Image will be clipped before saving to the standard deviation
+            of the image multiplied by this value.  Useful for enhancing
+            images. Default: None
         camera: :class:`Camera`, optional
             If specified, use a different :class:`Camera` to render the scene.
 
@@ -125,7 +126,7 @@ class Scene(object):
         self._validate()
         bmp = self.composite(camera=camera)
         if fname is not None:
-            bmp.write_png(fname, clip_ratio=clip_ratio)
+            bmp.write_png(fname, sigma_clip=sigma_clip)
         return bmp
 
     def _validate(self):

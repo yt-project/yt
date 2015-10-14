@@ -70,7 +70,7 @@ def create_scene(data_source, field=None):
     sc.camera = Camera(data_source)
     return sc
 
-def volume_render(data_source, field=None, fname=None, clip_ratio=None):
+def volume_render(data_source, field=None, fname=None, sigma_clip=None):
     r""" Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
@@ -92,10 +92,11 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     fname: string, optional
         If specified, the resulting rendering will be saved to this filename
         in png format.
-    clip_ratio: float, optional
+    sigma_clip: float, optional
         If specified, the resulting image will be clipped before saving,
         using a threshold based on clip_ratio multiplied by the standard
         deviation of the pixel values. Recommended values are between 2 and 6.
+        Default: None
 
     Returns
     -------
@@ -109,7 +110,7 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     Example:
     >>> import yt
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
-    >>> im, sc = yt.volume_render(ds, fname='test.png', clip_ratio=4.0)
+    >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
     """
     sc = create_scene(data_source, field=field)
     im = sc.render(fname=fname, clip_ratio=clip_ratio)
