@@ -183,7 +183,7 @@ class LightRay(CosmologySplice):
         "Create list of datasets to be added together to make the light ray."
 
         # Calculate dataset sizes, and get random dataset axes and centers.
-        np.random.seed(seed)
+        my_random = np.random.RandomState(seed)
 
         # If using only one dataset, set start and stop manually.
         if start_position is not None:
@@ -242,12 +242,13 @@ class LightRay(CosmologySplice):
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
                           non_periodic_ray(ds, left_edge, right_edge,
-                            self.light_ray_solution[q]['traversal_box_fraction'])
+                            self.light_ray_solution[q]['traversal_box_fraction'],
+                                           my_random=my_random)
                         del ds
                     else:
-                        self.light_ray_solution[q]['start'] = np.random.random(3)
-                        theta = np.pi * np.random.random()
-                        phi = 2 * np.pi * np.random.random()
+                        self.light_ray_solution[q]['start'] = my_random.random_sample(3)
+                        theta = np.pi * my_random.random_sample()
+                        phi = 2 * np.pi * my_random.random_sample()
                         box_fraction_used = 0.0
                 else:
                     # Use end point of previous segment and same theta and phi.
@@ -758,13 +759,16 @@ def periodic_ray(start, end, left=None, right=None):
 
     return segments
 
-def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=2):
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=2,
+                     my_random=None):
+    if my_random is None:
+        my_random = np.random.RandomState()
     i = 0
     while True:
-        start = np.random.random(3) * \
+        start = my_random.random_sample(3) * \
           (right_edge - left_edge) + left_edge
-        theta = np.pi * np.random.random()
-        phi = 2 * np.pi * np.random.random()
+        theta = np.pi * my_random.random_sample()
+        phi = 2 * np.pi * my_random.random_sample()
         end = start + ray_length * \
           np.array([np.cos(phi) * np.sin(theta),
                     np.sin(phi) * np.sin(theta),
