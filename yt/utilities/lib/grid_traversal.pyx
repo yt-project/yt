@@ -377,7 +377,7 @@ cdef class ImageSampler:
                             delta[i][1] = (vc.right_edge[i] - v_pos[i])/delta0[i]
                             for k in range(3):
                                 if i == k: continue
-                                dij[i][k] = v_dir[k] / v_dir[k]
+                                dij[i][j] = v_dir[i] / v_dir[k]
                         use_vec = 0
                         for i in range(3):
                             xi = (i + 1) % 3
