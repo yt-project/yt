@@ -18,7 +18,7 @@ import types
 import yt.units
 from yt.utilities.exceptions import YTDimensionalityError
 
-class DatasetAccess(object):
+class RegionExpression(object):
     _all_data = None
     def __init__(self, ds):
         self.ds = weakref.proxy(ds)

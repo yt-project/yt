@@ -48,8 +48,8 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.data_objects.dataset_access import \
-    DatasetAccess
+from yt.data_objects.region_expression import \
+    RegionExpression
 
 from yt.geometry.coordinates.api import \
     CoordinateHandler, \
@@ -163,7 +163,7 @@ class Dataset(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
-        self.d = DatasetAccess(self)
+        self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
