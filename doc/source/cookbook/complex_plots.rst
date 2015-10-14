@@ -203,7 +203,7 @@ See :ref:`volume_rendering` for more information.
 Volume Rendering with Custom Camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In this recipe we modify the :ref:`cookbook-sumple_volume_rendering` recipe to
+In this recipe we modify the :ref:`cookbook-simple_volume_rendering` recipe to
 use customized camera properties. See :ref:`volume_rendering` for more
 information.
 
@@ -212,7 +212,7 @@ information.
 Volume Rendering with a Custom Transfer Function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In this recipe we modify the :ref:`cookbook-sumple_volume_rendering` recipe to
+In this recipe we modify the :ref:`cookbook-simple_volume_rendering` recipe to
 use customized camera properties. See :ref:`volume_rendering` for more
 information.
 
