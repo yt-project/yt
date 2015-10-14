@@ -282,7 +282,7 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, j, ni, nj, nn
+        cdef int vi, vj, hit, i, j, k, ni, nj, nn, xi, yi
         cdef np.int64_t offset
         cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
@@ -314,6 +314,9 @@ cdef class ImageSampler:
         cdef ImageAccumulator *idata
         cdef np.float64_t px, py
         cdef np.float64_t width[3]
+        cdef np.float64_t delta[3][2], delta0[3]
+        cdef int use_vec
+        cdef np.float64_t dij[3][3]
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
@@ -356,6 +359,34 @@ cdef class ImageSampler:
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
                     if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
                         continue
+                    # Before we do *any* image copying, we will apply an early
+                    # termination step.  This uses the information that in
+                    # order to intersect a block, we need to intersect at least
+                    # one face.  So, we build up a set of derived values that
+                    # help us determine if we *know* we don't intersect.
+                    use_vec = 1
+                    if not ((vc.left_edge[0] <= v_pos[0] <= vc.right_edge[0]) and
+                            (vc.left_edge[1] <= v_pos[1] <= vc.right_edge[1]) and
+                            (vc.left_edge[2] <= v_pos[2] <= vc.right_edge[2])):
+                        for i in range(3):
+                            if v_dir[i] < 0:
+                                delta0[i] = vc.left_edge[i]
+                            else:
+                                delta0[i] = vc.right_edge[i]
+                            delta[i][0] = (vc.left_edge[i] - v_pos[i])/delta0[i]
+                            delta[i][1] = (vc.right_edge[i] - v_pos[i])/delta0[i]
+                            for k in range(3):
+                                if i == k: continue
+                                dij[i][j] = v_dir[i] / v_dir[j]
+                        use_vec = 0
+                        for i in range(3):
+                            xi = (i + 1) % 3
+                            yi = (i + 2) % 3
+                            if delta[xi][0] <= dij[xi][i] <= delta[xi][1] and \
+                               delta[yi][0] <= dij[yi][i] <= delta[yi][1]:
+                               use_vec = 1
+                               break
+                    if use_vec == 0: continue
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
                     for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
