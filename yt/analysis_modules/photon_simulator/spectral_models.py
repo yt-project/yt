@@ -17,8 +17,10 @@ import os
 
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.on_demand_imports import _astropy, _scipy
-from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
+from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.physical_constants import hcgs, clight
+from yt.utilities.physical_ratios import erg_per_keV, amu_grams
+from yt.analysis_modules.photon_simulator.utils import compute_lines
 
 hc = (hcgs*clight).in_units("keV*angstrom").v
 cl = clight.v
@@ -133,7 +135,7 @@ class XSpecAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("wabs", 0.1)
     """
-    def __init__(self, model_name, nH, emin=0.01, emax=50.0, 
+    def __init__(self, model_name, nH, emin=0.01, emax=50.0,
                  nchan=100000, settings=None):
         self.model_name = model_name
         self.nH = nH
@@ -191,8 +193,8 @@ class TableApecModel(SpectralModel):
 
     Examples
     --------
-    >>> apec_model = TableApecModel("/Users/jzuhone/Data/atomdb_v2.0.2/", 0.05, 50.0,
-    ...                             1000, thermal_broad=True)
+    >>> apec_model = TableApecModel("/Users/jzuhone/Data/spectral/", 0.05, 50.0,
+    ...                             1000, apec_vers="3.0", thermal_broad=True)
     """
     def __init__(self, apec_root, emin, emax, nchan,
                  apec_vers="2.0.2", thermal_broad=False):
@@ -202,7 +204,7 @@ class TableApecModel(SpectralModel):
                                      self.apec_prefix+"_coco.fits")
         self.linefile = os.path.join(self.apec_root,
                                      self.apec_prefix+"_line.fits")
-        super(TableApecModel, self).__init__(emin, emax, nchan)  
+        super(TableApecModel, self).__init__(emin, emax, nchan)
         self.wvbins = hc/self.ebins[::-1].d
         # H, He, and trace elements
         self.cosmic_elem = [1,2,3,4,5,9,11,15,17,19,21,22,23,24,25,27,29,30]
@@ -241,43 +243,43 @@ class TableApecModel(SpectralModel):
 
         tmpspec = np.zeros(self.nchan)
 
-        i = np.where((self.line_handle[tindex].data.field('element') == element) &
-                     (self.line_handle[tindex].data.field('lambda') > self.minlam) &
-                     (self.line_handle[tindex].data.field('lambda') < self.maxlam))[0]
+        line_data = self.line_handle[tindex].data
+        coco_data = self.coco_handle[tindex].data
 
-        vec = np.zeros(self.nchan)
-        E0 = hc/self.line_handle[tindex].data.field('lambda')[i]*self.scale_factor
-        amp = self.line_handle[tindex].data.field('epsilon')[i]
+        i = np.where((line_data.field('element') == element) &
+                     (line_data.field('lambda') > self.minlam) &
+                     (line_data.field('lambda') < self.maxlam))[0]
+
+        E0 = hc/line_data.field('lambda')[i].astype("float64")*self.scale_factor
+        amp = line_data.field('epsilon')[i].astype("float64")
         ebins = self.ebins.d
+        de = self.de.d
+        emid = self.emid.d
         if self.thermal_broad:
-            vec = np.zeros(self.nchan)
-            sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_cgs))/cl
-            for E, sig, a in zip(E0, sigma, amp):
-                cdf = _scipy.stats.norm(E,sig).cdf(ebins)
-                vec += np.diff(cdf)*a
+            sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_grams))/cl
+            vec = compute_lines(E0, sigma, amp, emid)*de
         else:
-            ie = np.searchsorted(ebins, E0, side='right')-1
-            for i, a in zip(ie, amp): vec[i] += a
+            vec = np.histogram(E0, ebins, weights=amp)[0]
         tmpspec += vec
 
-        ind = np.where((self.coco_handle[tindex].data.field('Z') == element) &
-                       (self.coco_handle[tindex].data.field('rmJ') == 0))[0]
+        ind = np.where((coco_data.field('Z') == element) &
+                       (coco_data.field('rmJ') == 0))[0]
         if len(ind) == 0:
             return tmpspec
         else:
             ind = ind[0]
 
-        n_cont = self.coco_handle[tindex].data.field('N_Cont')[ind]
-        e_cont = self.coco_handle[tindex].data.field('E_Cont')[ind][:n_cont]*self.scale_factor
-        continuum = self.coco_handle[tindex].data.field('Continuum')[ind][:n_cont]
+        n_cont = coco_data.field('N_Cont')[ind]
+        e_cont = coco_data.field('E_Cont')[ind][:n_cont]*self.scale_factor
+        continuum = coco_data.field('Continuum')[ind][:n_cont]
 
-        tmpspec += np.interp(self.emid.d, e_cont, continuum)*self.de.d
+        tmpspec += np.interp(emid, e_cont, continuum)*de
 
-        n_pseudo = self.coco_handle[tindex].data.field('N_Pseudo')[ind]
-        e_pseudo = self.coco_handle[tindex].data.field('E_Pseudo')[ind][:n_pseudo]*self.scale_factor
-        pseudo = self.coco_handle[tindex].data.field('Pseudo')[ind][:n_pseudo]
+        n_pseudo = coco_data.field('N_Pseudo')[ind]
+        e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]*self.scale_factor
+        pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
 
-        tmpspec += np.interp(self.emid.d, e_pseudo, pseudo)*self.de.d
+        tmpspec += np.interp(emid, e_pseudo, pseudo)*de
 
         return tmpspec
 
@@ -296,7 +298,7 @@ class TableApecModel(SpectralModel):
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
             cspec_l += self._make_spectrum(elem, tindex+2)
-            cspec_r += self._make_spectrum(elem, tindex+3)            
+            cspec_r += self._make_spectrum(elem, tindex+3)
         # Next do the metals
         for elem in self.metal_elem:
             mspec_l += self._make_spectrum(elem, tindex+2)
