@@ -20,7 +20,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.physical_constants import hcgs, clight
 from yt.utilities.physical_ratios import erg_per_keV, amu_grams
-from yt.analysis_modules.photon_simulator.utils import compute_lines
+from yt.analysis_modules.photon_simulator.utils import broaden_lines
 
 hc = (hcgs*clight).in_units("keV*angstrom").v
 cl = clight.v
@@ -257,10 +257,10 @@ class TableApecModel(SpectralModel):
         emid = self.emid.d
         if self.thermal_broad:
             sigma = E0*np.sqrt(2.*kT*erg_per_keV/(self.A[element]*amu_grams))/cl
-            vec = compute_lines(E0, sigma, amp, emid)*de
+            vec = broaden_lines(E0, sigma, amp, emid)*de
         else:
             vec = np.histogram(E0, ebins, weights=amp)[0]
-        tmpspec += vec*self.scale_factor
+        tmpspec += vec
 
         ind = np.where((coco_data.field('Z') == element) &
                        (coco_data.field('rmJ') == 0))[0]
@@ -273,15 +273,13 @@ class TableApecModel(SpectralModel):
         e_cont = coco_data.field('E_Cont')[ind][:n_cont]
         continuum = coco_data.field('Continuum')[ind][:n_cont]
 
-        tmpspec += np.interp(emid, e_cont*self.scale_factor, continuum)*de
+        tmpspec += np.interp(emid, e_cont*self.scale_factor, continuum)*de/self.scale_factor
 
         n_pseudo = coco_data.field('N_Pseudo')[ind]
         e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]
         pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
 
-        tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de
-
-        tmpspec /= self.scale_factor
+        tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de/self.scale_factor
 
         return tmpspec
 

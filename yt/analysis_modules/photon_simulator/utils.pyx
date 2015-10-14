@@ -10,7 +10,7 @@ cdef double gfac = 1.0/np.sqrt(np.pi)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def compute_lines(np.ndarray[np.float64_t, ndim=1] E0,
+def broaden_lines(np.ndarray[np.float64_t, ndim=1] E0,
                   np.ndarray[np.float64_t, ndim=1] sigma,
                   np.ndarray[np.float64_t, ndim=1] amp,
                   np.ndarray[np.float64_t, ndim=1] E):
