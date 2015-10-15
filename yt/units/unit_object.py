@@ -545,8 +545,13 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             return (unit_data[0] * prefix_value, unit_data[1])
 
     # no dice
-    raise UnitParseError("Could not find unit symbol '%s' in the provided " \
-                         "symbols." % symbol_str)
+    if symbol_str.startswith('code_'):
+        raise UnitParseError(
+            "Code units have not been defined. \n"
+            "Try creating the array or quantity using ds.arr instead: \n")
+    else:
+        raise UnitParseError("Could not find unit symbol '%s' in the provided " \
+                             "symbols." % symbol_str)
 
 def validate_dimensions(dimensions):
     if isinstance(dimensions, Mul):
