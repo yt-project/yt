@@ -4,7 +4,7 @@ from yt.visualization.volume_rendering.api import BoxSource, CoordinateVectorSou
 
 # Load the dataset.
 ds = yt.load("Enzo_64/DD0043/data0043")
-im, sc = yt.volume_render(ds, ('gas','density'))
+sc = yt.create_scene(ds, ('gas','density'))
 sc.get_source(0).transfer_function.grey_opacity=True
 
 sc.annotate_domain(ds)

@@ -60,6 +60,7 @@ to create satisfactory default volume renderings.
 Here is a working example for rendering the IsolatedGalaxy dataset.
 
 .. python-script::
+
   import yt
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -70,10 +71,10 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # sc is an instance of a Scene object, which allows you to further refine
   # your renderings.
 
-When the volume_render function is called, first an empty
-:class:`~yt.visualization.volume_rendering.scene.Scene` object is
-created. Next, a 
-:class:`~yt.visualization.volume_rendering.api.VolumeSource`
+When the :func:`~yt.visualization.volume_rendering.volume_render` function 
+is called, first an empty 
+:class:`~yt.visualization.volume_rendering.scene.Scene` object is created. 
+Next, a :class:`~yt.visualization.volume_rendering.api.VolumeSource`
 object is created, which decomposes the volume elements
 into a tree structure to provide back-to-front rendering of fixed-resolution
 blocks of data.  (If the volume elements are grids, this uses a
@@ -105,6 +106,21 @@ volume. Finally, the image and scene object is returned to the user.
 
 In this example, we don't add on any non-volume rendering sources; however, if
 such sources are added, they will be integrated as well.
+
+Alternatively, if you don't want to immediately generate an image of your
+volume rendering, and you just want access to the default scene object, 
+you can skip this expensive operation by just running the
+:func:`~yt.visualization.volume_rendering.create_scene` function in lieu of the
+:func:`~yt.visualization.volume_rendering.volume_render` function. Example:
+
+.. python-script::
+
+  import yt
+  # load the data
+  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+  # volume render the 'density' field 
+  sc = yt.create_scene(ds, 'density')
+
 
 Modifying the Scene
 -------------------
