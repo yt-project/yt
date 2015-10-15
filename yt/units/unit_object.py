@@ -29,15 +29,14 @@ from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
     mks_base_units, latex_prefixes, yt_base_units
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_registry import \
+    UnitRegistry, \
+    UnitParseError
 from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
 import string
 import token
-
-class UnitParseError(Exception):
-    pass
 
 class InvalidUnitOperation(Exception):
     pass
