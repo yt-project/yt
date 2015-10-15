@@ -314,9 +314,9 @@ cdef class ImageSampler:
         cdef ImageAccumulator *idata
         cdef np.float64_t px, py
         cdef np.float64_t width[3]
-        cdef np.float64_t delta[3][2], delta0[3]
+        cdef np.float64_t *delta, *delta0 # [3][2] and [3]
+        cdef np.float64_t *dij # [3][3]
         cdef int use_vec
-        cdef np.float64_t dij[3][3]
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
@@ -349,10 +349,14 @@ cdef class ImageSampler:
             with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
+                delta = <np.float64_t*> malloc(sizeof(np.float64_t) * 6)
+                delta0 = <np.float64_t*> malloc(sizeof(np.float64_t) * 3)
+                dij = <np.float64_t*> malloc(sizeof(np.float64_t) * 9)
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
+                
                 for j in prange(size, schedule="dynamic", chunksize=100):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
@@ -373,17 +377,17 @@ cdef class ImageSampler:
                                 delta0[i] = vc.left_edge[i]
                             else:
                                 delta0[i] = vc.right_edge[i]
-                            delta[i][0] = (vc.left_edge[i] - v_pos[i])/delta0[i]
-                            delta[i][1] = (vc.right_edge[i] - v_pos[i])/delta0[i]
+                            delta[i*2 + 0] = (vc.left_edge[i] - v_pos[i])
+                            delta[i*2 + 1] = (vc.right_edge[i] - v_pos[i])
                             for k in range(3):
                                 if i == k: continue
-                                dij[i][k] = v_dir[i] / v_dir[k]
+                                dij[i*3 + k] = v_dir[i] / v_dir[k]
                         use_vec = 0
                         for i in range(3):
                             xi = (i + 1) % 3
                             yi = (i + 2) % 3
-                            if delta[xi][0] <= dij[xi][i] <= delta[xi][1] and \
-                               delta[yi][0] <= dij[yi][i] <= delta[yi][1]:
+                            if delta[xi*2 + 0] <= dij[xi*3+i]*delta0[i] <= delta[xi*2+1] and \
+                               delta[yi*2 + 0] <= dij[yi*3+i]*delta0[i] <= delta[yi*2+1]:
                                use_vec = 1
                                break
                     if use_vec == 0: continue
@@ -400,6 +404,9 @@ cdef class ImageSampler:
                 free(v_dir)
                 free(idata)
                 free(v_pos)
+                free(dij)
+                free(delta)
+                free(delta0)
         return hit
 
     cdef void setup(self, PartitionedGrid pg):
