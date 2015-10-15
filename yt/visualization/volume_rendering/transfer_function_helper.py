@@ -139,6 +139,8 @@ class TransferFunctionHelper(object):
         else:
             mi, ma = self.bounds
         self.tf.add_layers(10, colormap='spectral')
+        factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
+        self.tf.funcs[-1].y *= 2*factor
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """
