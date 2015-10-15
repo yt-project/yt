@@ -90,12 +90,18 @@ class Camera(Orientation):
 
     def position():
         doc = '''The position is the location of the camera in
-               the coordinate system of the simulation.'''
+               the coordinate system of the simulation. This needs
+               to be either a YTArray or a numpy array. If it is a 
+               numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units 
+               automatically. '''
 
         def fget(self):
             return self._position
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._position = value
             self.switch_orientation()
 
@@ -105,12 +111,17 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = '''The width of the image that will be produced. '''
+        doc = '''The width of the region that will be seen in the image. 
+               This needs to be either a YTArray or a numpy array. If it 
+               is a numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units automatically. '''
 
         def fget(self):
             return self._width
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._width = value
             self.switch_orientation()
 
@@ -121,12 +132,18 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = '''The focus defines the point the Camera is pointed at. '''
+        doc = '''The focus defines the point the Camera is pointed at. This needs
+               to be either a YTArray or a numpy array. If it is a 
+               numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units 
+               automatically. '''
 
         def fget(self):
             return self._focus
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._focus = value
             self.switch_orientation()
 
