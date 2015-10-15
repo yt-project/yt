@@ -10,14 +10,41 @@ Test Simple Volume Rendering Scene
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
+import os
+import tempfile
+import shutil
 import yt
 from yt.testing import fake_random_ds
+from unittest import TestCase
 
-def test_simple_vr():
-    ds = fake_random_ds(32)
-    im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
-    print(sc)
-    return im, sc
+# This toggles using a temporary directory. Turn off to examine images.
+use_tmpdir = True
 
-if __name__ == "__main__":
-    im, sc = test_simple_vr()
+
+def setup():
+    """Test specific setup."""
+    from yt.config import ytcfg
+    ytcfg["yt", "__withintesting"] = "True"
+
+
+class SimpleVRTest(TestCase):
+    def setUp(self):
+        if use_tmpdir:
+            self.curdir = os.getcwd()
+            # Perform I/O in safe place instead of yt main dir
+            self.tmpdir = tempfile.mkdtemp()
+            os.chdir(self.tmpdir)
+        else:
+            self.curdir, self.tmpdir = None, None
+
+    def tearDown(self):
+        if use_tmpdir:
+            os.chdir(self.curdir)
+            shutil.rmtree(self.tmpdir)
+
+    def test_simple_vr(self):
+        ds = fake_random_ds(32)
+        im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
+        print(sc)
+        return im, sc

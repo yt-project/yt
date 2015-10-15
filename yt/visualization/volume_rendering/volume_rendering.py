@@ -17,9 +17,65 @@ from .camera import Camera
 from .render_source import VolumeSource
 from .utils import data_source_or_all
 from yt.funcs import mylog
+from yt.utilities.exceptions import YTSceneFieldNotFound
 
 
-def volume_render(data_source, field=None, fname=None, sigma_clip=None,
+def create_scene(data_source, field=None, lens_type='plane-parallel'):
+    r""" Set up a scene object with sensible defaults for use in volume 
+    rendering.
+
+    A helper function that creates a default camera view, transfer
+    function, and image size. Using these, it returns an instance 
+    of the Scene class, allowing one to further modify their rendering.
+
+    This function is the same as volume_render() except it doesn't render
+    the image.
+
+    Parameters
+    ----------
+    data_source : :class:`yt.data_objects.data_containers.AMR3DData`
+        This is the source to be rendered, which can be any arbitrary yt
+        3D object
+    field: string, tuple, optional
+        The field to be rendered. If unspecified, this will use the 
+        default_field for your dataset's frontend--usually ('gas', 'density').
+        A default transfer function will be built that spans the range of 
+        values for that given field, and the field will be logarithmically 
+        scaled if the field_info object specifies as such.
+    lens_type: string, optional
+        This specifies the type of lens to use for rendering. Current
+        options are 'plane-parallel', 'perspective', and 'fisheye'. See
+        :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+        Default: 'plane-parallel'
+
+    Returns
+    -------
+    sc: Scene
+        A :class:`yt.visualization.volume_rendering.scene.Scene` object
+        that was constructed during the rendering. Useful for further
+        modifications, rotations, etc.
+
+    Example:
+    >>> import yt
+    >>> ds = yt.load("Enzo_64/DD0046/DD0046")
+    >>> sc = yt.create_scene(ds)
+    """
+    data_source = data_source_or_all(data_source)
+    sc = Scene()
+    if field is None:
+        field = data_source.ds.default_field
+        if field not in data_source.ds.derived_field_list:
+            raise YTSceneFieldNotFound("""Could not find field '%s' in %s. 
+                  Please specify a field in create_scene()""" % \
+                  (field, data_source.ds))
+        mylog.info('Setting default field to %s' % field.__repr__())
+
+    vol = VolumeSource(data_source, field=field)
+    sc.add_source(vol)
+    sc.camera = Camera(data_source=data_source, lens_type=lens_type)
+    return sc
+
+def volume_render(data_source, field=None, fname=None, sigma_clip=None
                   lens_type='plane-parallel'):
     r""" Create a simple volume rendering of a data source.
 
@@ -34,18 +90,19 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None,
         This is the source to be rendered, which can be any arbitrary yt
         3D object
     field: string, tuple, optional
-        The field to be rendered. By default, this will use the first
-        field in data_source.ds.field_list.  A default transfer function
-        will be built that spans the range of values for that given field,
-        and the field will be logarithmically scaled if the field_info
-        object specifies as such.
+        The field to be rendered. If unspecified, this will use the 
+        default_field for your dataset's frontend--usually ('gas', 'density').
+        A default transfer function will be built that spans the range of 
+        values for that given field, and the field will be logarithmically 
+        scaled if the field_info object specifies as such.
     fname: string, optional
         If specified, the resulting rendering will be saved to this filename
         in png format.
-    sigma_clip: float
-        The resulting image will be clipped before saving, using a threshold
-        based on `sigma_clip` multiplied by the standard deviation of the pixel
-        values. Recommended values are between 2 and 6. Default: None
+    sigma_clip: float, optional
+        If specified, the resulting image will be clipped before saving,
+        using a threshold based on sigma_clip multiplied by the standard
+        deviation of the pixel values. Recommended values are between 2 and 6.
+        Default: None
     lens_type: string, optional
         This specifies the type of lens to use for rendering. Current
         options are 'plane-parallel', 'perspective', and 'fisheye'. See
@@ -64,29 +121,8 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None,
     Example:
     >>> import yt
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
-    >>> im, sc = yt.volume_render(ds, fname='test.png')
+    >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
     """
-    data_source = data_source_or_all(data_source)
-    sc = Scene()
-    if field is None:
-        data_source.ds.index
-        for ftype, f in sorted(data_source.ds.field_list):
-            if ftype == "all":
-                continue
-            if f == 'Density':
-                field = (ftype, f)
-            elif f == 'density':
-                field = (ftype, f)
-            elif ftype != 'index' and 'particle' not in f:
-                field = (ftype, f)
-                break
-        else:
-            raise RuntimeError("Could not find default field." +
-                               " Please set explicitly in volume_render call")
-        mylog.info('Setting default field to %s' % field.__repr__())
-
-    vol = VolumeSource(data_source, field=field)
-    sc.add_source(vol)
-    sc.camera = Camera(data_source=data_source, lens_type=lens_type)
+    sc = create_scene(data_source, field=field, lens_type=lens_type)
     im = sc.render(fname=fname, sigma_clip=sigma_clip)
     return im, sc
