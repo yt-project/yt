@@ -3,19 +3,20 @@ from yt.analysis_modules.photon_simulator.api import \
 import numpy as np
 from yt.testing import requires_module, fake_random_ds
 from yt.utilities.answer_testing.framework import \
-    GenericArrayTest
+    GenericArrayTest, data_dir_load
 from yt.config import ytcfg
 
 def setup():
-    from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
 test_data_dir = ytcfg.get("yt", "test_data_dir")
 
+ds = fake_random_ds(64)
+
 @requires_module("xspec")
 @requires_module("astropy")
 def test_apec():
-    ds = fake_random_ds(64)
+
     settings = {"APECROOT":test_data_dir+"/xray_data/apec_v2.0.2"}
     xmod = XSpecThermalModel("apec", 0.1, 10.0, 10000, thermal_broad=True,
                              settings=settings)
@@ -32,9 +33,9 @@ def test_apec():
     spec2 = acspec+0.3*amspec
 
     def spec1_test():
-        return spec1
+        return spec1.v
     def spec2_test():
-        return spec2
+        return spec2.v
 
     for test in [GenericArrayTest(ds, spec1_test),
                  GenericArrayTest(ds, spec2_test)]:
