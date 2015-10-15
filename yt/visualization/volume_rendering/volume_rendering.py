@@ -21,11 +21,11 @@ from yt.utilities.exceptions import YTSceneFieldNotFound
 
 
 def create_scene(data_source, field=None, lens_type='plane-parallel'):
-    r""" Set up a scene object with sensible defaults for use in volume 
+    r""" Set up a scene object with sensible defaults for use in volume
     rendering.
 
     A helper function that creates a default camera view, transfer
-    function, and image size. Using these, it returns an instance 
+    function, and image size. Using these, it returns an instance
     of the Scene class, allowing one to further modify their rendering.
 
     This function is the same as volume_render() except it doesn't render
@@ -37,10 +37,10 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
         This is the source to be rendered, which can be any arbitrary yt
         3D object
     field: string, tuple, optional
-        The field to be rendered. If unspecified, this will use the 
+        The field to be rendered. If unspecified, this will use the
         default_field for your dataset's frontend--usually ('gas', 'density').
-        A default transfer function will be built that spans the range of 
-        values for that given field, and the field will be logarithmically 
+        A default transfer function will be built that spans the range of
+        values for that given field, and the field will be logarithmically
         scaled if the field_info object specifies as such.
     lens_type: string, optional
         This specifies the type of lens to use for rendering. Current
@@ -65,9 +65,8 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     if field is None:
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
-            raise YTSceneFieldNotFound("""Could not find field '%s' in %s. 
-                  Please specify a field in create_scene()""" % \
-                  (field, data_source.ds))
+            raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
+                  Please specify a field in create_scene()""" % (field, data_source.ds))
         mylog.info('Setting default field to %s' % field.__repr__())
 
     vol = VolumeSource(data_source, field=field)
@@ -75,7 +74,8 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     sc.camera = Camera(data_source=data_source, lens_type=lens_type)
     return sc
 
-def volume_render(data_source, field=None, fname=None, sigma_clip=None
+
+def volume_render(data_source, field=None, fname=None, sigma_clip=None,
                   lens_type='plane-parallel'):
     r""" Create a simple volume rendering of a data source.
 
@@ -90,10 +90,10 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None
         This is the source to be rendered, which can be any arbitrary yt
         3D object
     field: string, tuple, optional
-        The field to be rendered. If unspecified, this will use the 
+        The field to be rendered. If unspecified, this will use the
         default_field for your dataset's frontend--usually ('gas', 'density').
-        A default transfer function will be built that spans the range of 
-        values for that given field, and the field will be logarithmically 
+        A default transfer function will be built that spans the range of
+        values for that given field, and the field will be logarithmically
         scaled if the field_info object specifies as such.
     fname: string, optional
         If specified, the resulting rendering will be saved to this filename
