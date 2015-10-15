@@ -210,6 +210,41 @@ cdef void calculate_extent_plane_parallel(ImageContainer *image,
     rv[2] = lrint((extrema[2] - cy - image.bounds[2])/image.pdy)
     rv[3] = rv[2] + lrint((extrema[3] - extrema[2])/image.pdy)
 
+# We do this for a bunch of lenses.  Fallback is to grab them from the vector
+# info supplied.
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void calculate_extent_null(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+    rv[0] = 0
+    rv[1] = image.nv[0]
+    rv[2] = 0
+    rv[3] = image.nv[1]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void generate_vector_info_plane_parallel(ImageContainer *im,
+            np.int64_t vi, np.int64_t vj,
+            np.float64_t width[2],
+            # Now outbound
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+    cdef np.float64_t px, py
+    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
+    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
+    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
+    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
+
+cdef void generate_vector_info_null(ImageContainer *im,
+            np.int64_t vi, np.int64_t vj,
+            np.float64_t width[2],
+            # Now outbound
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+    cdef int i
+    for i in range(3): v_pos[i] = im.vp_pos[i + vi*3]
+    for i in range(3): v_dir[i] = im.vp_dir[i + vi*3]
+
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
     void *supp_data
@@ -230,6 +265,10 @@ cdef class ImageSampler:
         cdef np.ndarray[np.float64_t, ndim=2] zbuffer
         zbuffer = kwargs.pop("zbuffer", None)
         self.lens_type = kwargs.pop("lens_type", None)
+        if self.lens_type == "plane-parallel":
+            self.extent_function = calculate_extent_plane_parallel
+        else:
+            self.extent_function = calculate_extent_null
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
@@ -290,20 +329,16 @@ cdef class ImageSampler:
         cdef np.int64_t nx, ny, size
         if self.lens_type == "plane-parallel":
             calculate_extent_plane_parallel(self.image, vc, iter)
-            iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
-            iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
-            iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
-            iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
-            nx = (iter[1] - iter[0])
-            ny = (iter[3] - iter[2])
-            size = nx * ny
         else:
-            nx = im.nv[0]
-            ny = 1
-            iter[0] = iter[1] = iter[2] = iter[3] = 0
-            size = nx
+            calculate_extent_null(self.image, vc, iter)
+        iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
+        iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
+        iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
+        iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
+        nx = (iter[1] - iter[0])
+        ny = (iter[3] - iter[2])
+        size = nx * ny
         cdef ImageAccumulator *idata
-        cdef np.float64_t px, py
         cdef np.float64_t width[3]
         cdef int use_vec, max_i
         for i in range(3):
@@ -313,16 +348,14 @@ cdef class ImageSampler:
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 for j in prange(size, schedule="static",chunksize=1):
                     vj = j % ny
                     vi = (j - vj) / ny + iter[0]
                     vj = vj + iter[2]
                     # Dynamically calculate the position
-                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
-                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-                    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
-                    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
-                    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
+                    generate_vector_info_plane_parallel(im, vi, vj, width,
+                        v_dir, v_pos)
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
                     for i in range(Nch): idata.rgba[i] = im.image[i + offset]
                     if im.zbuffer != NULL:
@@ -334,6 +367,7 @@ cdef class ImageSampler:
                     for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(idata)
                 free(v_pos)
+                free(v_dir)
         else:
             with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
@@ -344,44 +378,10 @@ cdef class ImageSampler:
                 # our rays 
                 
                 for j in prange(size, schedule="dynamic", chunksize=100):
-                    offset = j * 3
-                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
-                    for i in range(3): v_dir[i] = im.vp_dir[i + offset]
+                    generate_vector_info_null(im, j, 0, width,
+                        v_dir, v_pos)
                     if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
                         continue
-                    # Before we do *any* image copying, we will apply an early
-                    # termination step.  This uses the information that in
-                    # order to intersect a block, we need to intersect at least
-                    # one face.  So, we build up a set of derived values that
-                    # help us determine if we *know* we don't intersect.
-                    use_vec = 0
-                    if (vc.left_edge[0] > v_pos[0] or v_pos[0] > vc.right_edge[0] or
-                        vc.left_edge[1] > v_pos[1] or v_pos[1] > vc.right_edge[1] or
-                        vc.left_edge[2] > v_pos[2] or v_pos[2] > vc.right_edge[2]):
-                        # Find largest t of intersection with a face.
-                        max_t = -1e300
-                        max_i = -1
-                        for i in range(3):
-                            if v_dir[i] > 0 and \
-                              (vc.left_edge[i] - v_pos[i])/v_dir[i] > max_t:
-                                max_t = (vc.left_edge[i] - v_pos[i])/v_dir[i]
-                                max_i = i
-                            elif v_dir[i] < 0 and \
-                              (vc.right_edge[i] - v_pos[i])/v_dir[i] > max_t:
-                                max_t = (vc.right_edge[i] - v_pos[i])/v_dir[i]
-                                max_i = i
-                        xi = (i + 1) % 3
-                        yi = (i + 2) % 3
-                        if max_t < 0 or max_t > 1:
-                            pass
-                        elif ((vc.left_edge[xi] <= v_pos[xi] + v_dir[xi]*max_t
-                            <= vc.right_edge[xi]) and
-                            (vc.left_edge[yi] <= v_pos[yi] + v_dir[yi]*max_t
-                            <= vc.right_edge[yi])):
-                            use_vec = 1
-                    else:
-                        use_vec = 1
-                    if use_vec == 0: continue
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
                     for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
