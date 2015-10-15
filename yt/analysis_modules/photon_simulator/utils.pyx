@@ -16,7 +16,7 @@ def broaden_lines(np.ndarray[np.float64_t, ndim=1] E0,
                   np.ndarray[np.float64_t, ndim=1] E):
 
     cdef int i, j, n
-    cdef double x
+    cdef double x, isigma, iamp
     cdef np.ndarray[np.float64_t, ndim=1] lines
 
     n = E0.shape[0]
@@ -24,8 +24,10 @@ def broaden_lines(np.ndarray[np.float64_t, ndim=1] E0,
     lines = np.zeros(m)
 
     for i in range(n):
+        isigma = 1.0/sigma[i]
+        iamp = gfac*amp[i]*isigma
         for j in range(m):
-            x = (E[j]-E0[i])/sigma[i]
-            lines[j] += amp[i]*gfac*exp(-x*x)/sigma[i]
+            x = (E[j]-E0[i])*isigma
+            lines[j] += iamp*exp(-x*x)
 
     return lines
