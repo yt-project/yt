@@ -19,7 +19,7 @@ from yt.utilities.amr_kdtree.api import AMRKDTree
 
 # Load up a dataset and define the kdtree
 ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-sc = yt.volume_render(ds, 'density', fname='v0.png')
+im, sc = yt.volume_render(ds, 'density', fname='v0.png')
 sc.camera.set_width(ds.arr(100, 'kpc'))
 render_source = sc.get_source(0)
 kd=render_source.volume

@@ -5,7 +5,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # We start by building a default volume rendering scene 
 
-sc = yt.volume_render(ds, field=("gas","density"), fname="v0.png", sigma_clip=6.0)
+im, sc = yt.volume_render(ds, field=("gas","density"), fname="v0.png", sigma_clip=6.0)
 
 sc.camera.set_width(ds.arr(0.1,'code_length'))
 tf = sc.get_source(0).transfer_function 
