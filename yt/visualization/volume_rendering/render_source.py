@@ -138,7 +138,9 @@ class VolumeSource(RenderSource):
             self.build_defaults()
 
     def build_defaults(self):
+        mylog.info("Creating default volume")
         self.build_default_volume()
+        mylog.info("Creating default transfer function")
         self.build_default_transfer_function()
 
     def set_transfer_function(self, transfer_function):
