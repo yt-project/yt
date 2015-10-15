@@ -983,10 +983,14 @@ class ProfileND(ParallelAnalysisInterface):
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
         >>> print prof_ds.data["cell_mass"]
-        >>> print prof_ds.data["x"]
-        >>> print prof_ds.data["density"]
+        (128, 128)
+        >>> print prof_ds.data["x"].shape # x bins as 1D array
+        (128,)
+        >>> print prof_ds.data["density"] # x bins as 2D array
+        (128, 128)
         >>> p = yt.PhasePlot(prof_ds.data, "density", "temperature",
         ...                  "cell_mass", weight_field=None)
+        >>> p.save()
 
         """
 
