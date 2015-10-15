@@ -26,8 +26,8 @@ def new_mesh_sampler(camera, render_source):
         params['y_vec'],
         params['width'],
     )
-
-    sampler = mesh_traversal.MeshSampler(*args)
+    kwargs = {'lens_type': params['lens_type']}
+    sampler = mesh_traversal.MeshSampler(*args, **kwargs)
     return sampler
 
 
@@ -48,7 +48,7 @@ def new_volume_render_sampler(camera, render_source):
         params['transfer_function'],
         params['num_samples'],
     )
-    kwargs = {}
+    kwargs = {'lens_type': params['lens_type']}
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
         args[4][:] = render_source.zbuffer.rgba[:]
@@ -72,10 +72,10 @@ def new_interpolated_projection_sampler(camera, render_source):
         params['width'],
         params['num_samples'],
     )
-    kwargs = {}
+    kwargs = {'lens_type': params['lens_type']}
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
-    sampler = InterpolatedProjectionSampler(*args)
+    sampler = InterpolatedProjectionSampler(*args, **kwargs)
     return sampler
 
 
@@ -94,10 +94,10 @@ def new_projection_sampler(camera, render_source):
         params['width'],
         params['num_samples'],
     )
-    kwargs = {}
+    kwargs = {'lens_type': params['lens_type']}
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
-    sampler = ProjectionSampler(*args)
+    sampler = ProjectionSampler(*args, **kwargs)
     return sampler
 
 

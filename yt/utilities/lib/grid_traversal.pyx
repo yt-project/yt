@@ -174,6 +174,41 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void calculate_extent_plane_parallel(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+    # We do this for all eight corners
+    cdef np.float64_t temp
+    cdef np.float64_t *edges[2]
+    cdef np.float64_t cx, cy
+    cdef np.float64_t extrema[4]
+    cdef int i, j, k
+    edges[0] = vc.left_edge
+    edges[1] = vc.right_edge
+    extrema[0] = extrema[2] = 1e300; extrema[1] = extrema[3] = -1e300
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+                # This should rotate it into the vector plane
+                temp  = edges[i][0] * image.x_vec[0]
+                temp += edges[j][1] * image.x_vec[1]
+                temp += edges[k][2] * image.x_vec[2]
+                if temp < extrema[0]: extrema[0] = temp
+                if temp > extrema[1]: extrema[1] = temp
+                temp  = edges[i][0] * image.y_vec[0]
+                temp += edges[j][1] * image.y_vec[1]
+                temp += edges[k][2] * image.y_vec[2]
+                if temp < extrema[2]: extrema[2] = temp
+                if temp > extrema[3]: extrema[3] = temp
+    cx = cy = 0.0
+    for i in range(3):
+        cx += image.center[i] * image.x_vec[i]
+        cy += image.center[i] * image.y_vec[i]
+    rv[0] = lrint((extrema[0] - cx - image.bounds[0])/image.pdx)
+    rv[1] = rv[0] + lrint((extrema[1] - extrema[0])/image.pdx)
+    rv[2] = lrint((extrema[2] - cy - image.bounds[2])/image.pdy)
+    rv[3] = rv[2] + lrint((extrema[3] - extrema[2])/image.pdy)
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
@@ -194,6 +229,7 @@ cdef class ImageSampler:
         cdef ImageContainer *imagec = self.image
         cdef np.ndarray[np.float64_t, ndim=2] zbuffer
         zbuffer = kwargs.pop("zbuffer", None)
+        self.lens_type = kwargs.pop("lens_type", None)
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
@@ -235,49 +271,6 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv):
-        # Extrema need to be re-centered
-        cdef np.float64_t cx, cy
-        cdef ImageContainer *im = self.image
-        cdef int i
-        cx = cy = 0.0
-        for i in range(3):
-            cx += im.center[i] * im.x_vec[i]
-            cy += im.center[i] * im.y_vec[i]
-        rv[0] = lrint((ex[0] - cx - im.bounds[0])/im.pdx)
-        rv[1] = rv[0] + lrint((ex[1] - ex[0])/im.pdx)
-        rv[2] = lrint((ex[2] - cy - im.bounds[2])/im.pdy)
-        rv[3] = rv[2] + lrint((ex[3] - ex[2])/im.pdy)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void calculate_extent(self, np.float64_t extrema[4],
-                               VolumeContainer *vc) nogil:
-        # We do this for all eight corners
-        cdef np.float64_t temp
-        cdef np.float64_t *edges[2]
-        edges[0] = vc.left_edge
-        edges[1] = vc.right_edge
-        extrema[0] = extrema[2] = 1e300; extrema[1] = extrema[3] = -1e300
-        cdef int i, j, k
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    # This should rotate it into the vector plane
-                    temp  = edges[i][0] * self.image.x_vec[0]
-                    temp += edges[j][1] * self.image.x_vec[1]
-                    temp += edges[k][2] * self.image.x_vec[2]
-                    if temp < extrema[0]: extrema[0] = temp
-                    if temp > extrema[1]: extrema[1] = temp
-                    temp  = edges[i][0] * self.image.y_vec[0]
-                    temp += edges[j][1] * self.image.y_vec[1]
-                    temp += edges[k][2] * self.image.y_vec[2]
-                    if temp < extrema[2]: extrema[2] = temp
-                    if temp > extrema[3]: extrema[3] = temp
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def __call__(self, PartitionedGrid pg, int num_threads = 0):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
@@ -292,13 +285,11 @@ cdef class ImageSampler:
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.float64_t rgba[6]
-        cdef np.float64_t extrema[4]
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
-        if im.vd_strides[0] == -1:
-            self.calculate_extent(extrema, vc)
-            self.get_start_stop(extrema, iter)
+        if self.lens_type == "plane-parallel":
+            calculate_extent_plane_parallel(self.image, vc, iter)
             iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
             iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
             iter[2] = i64clip(iter[2]-1, 0, im.nv[1])

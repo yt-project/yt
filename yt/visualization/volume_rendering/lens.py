@@ -107,7 +107,7 @@ class PlaneParallelLens(Lens):
                  x_vec=camera.unit_vectors[0],
                  y_vec=camera.unit_vectors[1],
                  width=np.array(camera.width, dtype='float64'),
-                 image=image)
+                 image=image, lens_type="plane-parallel")
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -205,8 +205,8 @@ class PerspectiveLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="perspective")
 
         mylog.debug(positions)
         mylog.debug(vectors)
@@ -308,8 +308,8 @@ class StereoPerspectiveLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="stereo-perspective")
 
         return sampler_params
 
@@ -483,8 +483,8 @@ class FisheyeLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="fisheye")
 
         return sampler_params
 
@@ -591,7 +591,8 @@ class SphericalLens(Lens):
             x_vec=dummy,
             y_vec=dummy,
             width=np.zeros(3, dtype="float64"),
-            image=image)
+            image=image,
+            lens_type="spherical")
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -704,7 +705,8 @@ class StereoSphericalLens(Lens):
             x_vec=dummy,
             y_vec=dummy,
             width=np.zeros(3, dtype="float64"),
-            image=image)
+            image=image,
+            lens_type = "stereo-spherical")
         return sampler_params
 
     def set_viewpoint(self, camera):

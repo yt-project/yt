@@ -43,6 +43,10 @@ ctypedef void sampler_function(
                 int index[3],
                 void *data) nogil
 
+ctypedef void calculate_extent_function(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil
+
+cdef calculate_extent_function calculate_extent_plane_parallel
 
 cdef class ImageSampler:
     cdef ImageContainer *image
@@ -51,11 +55,7 @@ cdef class ImageSampler:
     cdef public object azbuffer
     cdef void *supp_data
     cdef np.float64_t width[3]
-
-    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv)
-
-    cdef void calculate_extent(self, np.float64_t extrema[4],
-                               VolumeContainer *vc) nogil
+    cdef public object lens_type
 
     cdef void setup(self, PartitionedGrid pg)
 
