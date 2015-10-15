@@ -299,7 +299,7 @@ class Camera(Orientation):
                                 north_vector=north_vector)
         self._moved = True
 
-    def rotate(self, theta, rot_vector=None):
+    def rotate(self, theta, rot_vector=None, rot_center=None):
         r"""Rotate by a given angle
 
         Rotate the view.  If `rot_vector` is None, rotation will occur
@@ -313,6 +313,10 @@ class Camera(Orientation):
             Specify the rotation vector around which rotation will
             occur.  Defaults to None, which sets rotation around
             `north_vector`
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur. Defaults
+            to None, which sets rotation around the original camera position
+            (i.e. the camera position does not change)
 
         Examples
         --------
@@ -323,12 +327,19 @@ class Camera(Orientation):
         rotate_all = rot_vector is not None
         if rot_vector is None:
             rot_vector = self.north_vector
+        if rot_center is None:
+            rot_center = self._position
         rot_vector = ensure_numpy_array(rot_vector)
         rot_vector = rot_vector/np.linalg.norm(rot_vector)
 
+        new_position = self._position - rot_center
         R = get_rotation_matrix(theta, rot_vector)
+        new_position = np.dot(R, new_position) + rot_center
 
-        normal_vector = self.unit_vectors[2]
+        if (new_position == self._position).all():
+            normal_vector = self.unit_vectors[2]
+        else:
+            normal_vector = rot_center - new_position
         normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
@@ -337,8 +348,9 @@ class Camera(Orientation):
                 north_vector=np.dot(R, self.unit_vectors[1]))
         else:
             self.switch_view(normal_vector=np.dot(R, normal_vector))
+        if (new_position != self._position).any(): self.set_position(new_position)
 
-    def pitch(self, theta):
+    def pitch(self, theta, rot_center=None):
         r"""Rotate by a given angle about the horizontal axis
 
         Pitch the view.
@@ -347,6 +359,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to pitch the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
@@ -354,9 +368,9 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.pitch(np.pi/4)
         """
-        self.rotate(theta, rot_vector=self.unit_vectors[0])
+        self.rotate(theta, rot_vector=self.unit_vectors[0], rot_center=rot_center)
 
-    def yaw(self, theta):
+    def yaw(self, theta, rot_center=None):
         r"""Rotate by a given angle about the vertical axis
 
         Yaw the view.
@@ -365,6 +379,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
@@ -372,9 +388,9 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.yaw(np.pi/4)
         """
-        self.rotate(theta, rot_vector=self.unit_vectors[1])
+        self.rotate(theta, rot_vector=self.unit_vectors[1], rot_center=rot_center)
 
-    def roll(self, theta):
+    def roll(self, theta, rot_center=None):
         r"""Rotate by a given angle about the view normal axis
 
         Roll the view.
@@ -383,6 +399,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to roll the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
@@ -390,9 +408,9 @@ class Camera(Orientation):
         >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
-        self.rotate(theta, rot_vector=self.unit_vectors[2])
+        self.rotate(theta, rot_vector=self.unit_vectors[2], rot_center=rot_center)
 
-    def iter_rotate(self, theta, n_steps, rot_vector=None):
+    def iter_rotate(self, theta, n_steps, rot_vector=None, rot_center=None):
         r"""Loop over rotate, creating a rotation
 
         This will rotate `n_steps` until the current view has been
@@ -408,6 +426,10 @@ class Camera(Orientation):
             Specify the rotation vector around which rotation will
             occur.  Defaults to None, which sets rotation around the
             original `north_vector`
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur. Defaults
+            to None, which sets rotation around the original camera position
+            (i.e. the camera position does not change)
 
         Examples
         --------
@@ -419,7 +441,7 @@ class Camera(Orientation):
 
         dtheta = (1.0*theta)/n_steps
         for i in xrange(n_steps):
-            self.rotate(dtheta, rot_vector=rot_vector)
+            self.rotate(dtheta, rot_vector=rot_vector, rot_center=rot_center)
             yield i
 
     def iter_move(self, final, n_steps, exponential=False):
