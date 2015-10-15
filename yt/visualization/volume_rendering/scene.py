@@ -20,7 +20,7 @@ from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
-
+from yt.funcs import get_image_suffix
 
 class Scene(object):
 
@@ -123,6 +123,7 @@ class Scene(object):
         if camera is None:
             camera = self.camera
         assert(camera is not None)
+        mylog.info("Rendering scene")
         self._validate()
         bmp = self.composite(camera=camera)
         self.last_render = bmp
@@ -133,6 +134,8 @@ class Scene(object):
 
         Once you have created a scene and rendered that scene to an image 
         array, this saves that image array to disk with an optional filename.
+        If an image has not yet been rendered for the current scene object,
+        it forces one and writes it out.
 
         Parameters
         ----------
@@ -152,6 +155,11 @@ class Scene(object):
         >>> sc.render()
         >>> sc.save('test.png')
 
+        # Or alternatively
+        >>> sc = yt.create_scene(ds)
+        >>> # Add sources/camera/etc
+        >>> sc.save('test.png')
+
         """
         if fname is None:
             sources = list(itervalues(self.sources))
@@ -168,6 +176,15 @@ class Scene(object):
             # if no render source present, use a default filename
             else:
                 fname = "Render.png"   
+        suffix = get_image_suffix(fname)
+        if suffix == '':
+            suffix = '.png'
+            fname = '%s%s' % (fname, suffix)
+
+        if self.last_render is None:
+            self.render()
+
+        mylog.info("Saving render %s", fname)
         self.last_render.write_png(fname)
  
     def _validate(self):
