@@ -31,11 +31,11 @@ mobile YouTube app), as well as standard screens.
    :align: center
    :alt: Diagram of a 3D Scene
 
-In versions of yt prior to 3.2, the only volume rendering interface accessible
+In versions of yt prior to 3.3, the only volume rendering interface accessible
 was through the "camera" object.  This presented a number of problems,
 principle of which was the inability to describe new scene elements or to
 develop complex visualizations that were independent of the specific elements
-being rendered.  The new "scene" based interface present in yt 3.2 and beyond
+being rendered.  The new "scene" based interface present in yt 3.3 and beyond
 enables both more complex visualizations to be constructed as well as a new,
 more intuitive interface for very simple 3D visualizations.
 
@@ -96,9 +96,10 @@ picture of a scene from a particular point in time and space, but different
 lenses can be swapped in and out.  For example, this might include a fisheye
 lens, a spherical lens, or some other method of describing the direction and
 origin of rays for rendering. Once the camera is added to the scene object, we
-call the main method of the
+call the main methods of the
 :class:`~yt.visualization.volume_rendering.scene.Scene` class,
-:meth:`~yt.visualization.volume_rendering.scene.Scene.render`.  When called,
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` and 
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  When called,
 the scene will loop through all of the
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
 that have been added and integrate the radiative transfer equation through the
@@ -322,7 +323,7 @@ used within a loop:
 .. python-script::
 
    for i in sc.camera.zoomin(100, 5):
-       sc.render("frame_%03i.png" % i)
+       sc.save("frame_%03i.png" % i)
 
 The variable ``i`` is the frame number in the particular loop being called.  In
 this case, this will zoom in by a factor of 100 over the course of 5 frames.
