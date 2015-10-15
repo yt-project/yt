@@ -359,6 +359,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to pitch the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
@@ -377,6 +379,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
@@ -395,6 +399,8 @@ class Camera(Orientation):
         ----------
         theta : float, in radians
              Angle (in radians) by which to roll the view.
+        rot_center  : array_like, optional
+            Specifiy the center around which rotation will occur.
 
         Examples
         --------
