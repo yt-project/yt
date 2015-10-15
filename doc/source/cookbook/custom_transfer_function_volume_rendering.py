@@ -5,8 +5,7 @@ import numpy as np
 ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Create a volume rendering
-# NOTE: This should use yt.create_scene once that exists
-im, sc = yt.volume_render(ds, field=('gas', 'density'))
+sc = yt.create_scene(ds, field=('gas', 'density'))
 
 # Modify the transfer function
 

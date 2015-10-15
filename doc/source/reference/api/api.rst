@@ -592,6 +592,7 @@ Here are the primary entry points:
    :toctree: generated/
 
    ~yt.visualization.volume_rendering.volume_rendering.volume_render
+   ~yt.visualization.volume_rendering.volume_rendering.create_scene
    ~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection
    ~yt.visualization.volume_rendering.scene.Scene
    ~yt.visualization.volume_rendering.camera.Camera
