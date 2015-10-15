@@ -29,13 +29,14 @@ Geometric Data Containers
 Data from geometric data containers can be saved with the
 :func:`~yt.data_objects.data_containers.save_as_dataset`` function.
 
-.. code-block:: python
+.. notebook-cell:: python
 
    import yt
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
 
    sphere = ds.sphere([0.5]*3, (10, "Mpc"))
    fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
+   print fn
 
 This function will return the name of the file to which the dataset
 was saved.  The filename will be a combination of the name of the
@@ -148,7 +149,7 @@ works just as above.  Profile datasets are a type of non-spatial grid
 datasets.  Geometric selection is not possible, but data can be
 accessed through the ``.data`` attribute.
 
-.. code-block:: python
+.. notebook-cell:: python
 
    import yt
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
@@ -167,7 +168,7 @@ arrays with "x", "y", and "z".
 
 .. code-block:: python
 
-   print prof_2d_ds.data.data["x"]
+   print prof_2d_ds.data["x"]
 
 The bin fields can also be returned with the same shape as the profile
 data by accessing them with their original names.  This allows for
@@ -176,7 +177,7 @@ boolean masking of profile data using the bin fields.
 .. code-block:: python
 
    # density is the x bin field
-   print prof_2d_ds.data.data["density"]
+   print prof_2d_ds.data["density"]
 
 For 1, 2, and 3D profile datasets, a fake profile object will be
 constructed by accessing the ".profile" attribute.  This is used
@@ -201,7 +202,10 @@ also available as ``yt.save_as_dataset``.  As with profiles, geometric
 selection is not possible, but the data can be accessed through the
 ``.data`` attribute.
 
-.. code-block:: python
+.. notebook-cell:: python
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
 
    region = ds.box([0.25]*3, [0.75]*3)
    sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
@@ -218,7 +222,9 @@ Array data can be saved with or without a dataset loaded.  If no
 dataset has been loaded, as fake dataset can be provided as a
 dictionary.
 
-.. code-block:: python
+.. notebook-cell:: python
+
+   import yt
 
    my_data = {"density": yt.YTArray(np.random.random(10), "g/cm**3"),
               "temperature": yt.YTArray(np.random.random(10), "K")}
