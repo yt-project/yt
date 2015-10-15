@@ -369,9 +369,9 @@ cdef class ImageSampler:
                     # one face.  So, we build up a set of derived values that
                     # help us determine if we *know* we don't intersect.
                     use_vec = 1
-                    if not ((vc.left_edge[0] <= v_pos[0] <= vc.right_edge[0]) and
-                            (vc.left_edge[1] <= v_pos[1] <= vc.right_edge[1]) and
-                            (vc.left_edge[2] <= v_pos[2] <= vc.right_edge[2])):
+                    if (vc.left_edge[0] > v_pos[0] or v_pos[0] > vc.right_edge[0] or
+                        vc.left_edge[1] > v_pos[1] or v_pos[1] > vc.right_edge[1] or
+                        vc.left_edge[2] > v_pos[2] or v_pos[2] > vc.right_edge[2]):
                         for i in range(3):
                             if v_dir[i] < 0:
                                 delta0[i] = vc.left_edge[i]
