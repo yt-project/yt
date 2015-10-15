@@ -314,9 +314,7 @@ cdef class ImageSampler:
         cdef ImageAccumulator *idata
         cdef np.float64_t px, py
         cdef np.float64_t width[3]
-        cdef np.float64_t *delta, *delta0 # [3][2] and [3]
-        cdef np.float64_t *dij # [3][3]
-        cdef int use_vec
+        cdef int use_vec, max_i
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
@@ -349,9 +347,6 @@ cdef class ImageSampler:
             with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
-                delta = <np.float64_t*> malloc(sizeof(np.float64_t) * 6)
-                delta0 = <np.float64_t*> malloc(sizeof(np.float64_t) * 3)
-                dij = <np.float64_t*> malloc(sizeof(np.float64_t) * 9)
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
@@ -368,28 +363,33 @@ cdef class ImageSampler:
                     # order to intersect a block, we need to intersect at least
                     # one face.  So, we build up a set of derived values that
                     # help us determine if we *know* we don't intersect.
-                    use_vec = 1
+                    use_vec = 0
                     if (vc.left_edge[0] > v_pos[0] or v_pos[0] > vc.right_edge[0] or
                         vc.left_edge[1] > v_pos[1] or v_pos[1] > vc.right_edge[1] or
                         vc.left_edge[2] > v_pos[2] or v_pos[2] > vc.right_edge[2]):
+                        # Find largest t of intersection with a face.
+                        max_t = -1e300
+                        max_i = -1
                         for i in range(3):
-                            if v_dir[i] < 0:
-                                delta0[i] = vc.left_edge[i]
-                            else:
-                                delta0[i] = vc.right_edge[i]
-                            delta[i*2 + 0] = (vc.left_edge[i] - v_pos[i])
-                            delta[i*2 + 1] = (vc.right_edge[i] - v_pos[i])
-                            for k in range(3):
-                                if i == k: continue
-                                dij[i*3 + k] = v_dir[i] / v_dir[k]
-                        use_vec = 0
-                        for i in range(3):
-                            xi = (i + 1) % 3
-                            yi = (i + 2) % 3
-                            if delta[xi*2 + 0] <= dij[xi*3+i]*delta0[i] <= delta[xi*2+1] and \
-                               delta[yi*2 + 0] <= dij[yi*3+i]*delta0[i] <= delta[yi*2+1]:
-                               use_vec = 1
-                               break
+                            if v_dir[i] > 0 and \
+                              (vc.left_edge[i] - v_pos[i])/v_dir[i] > max_t:
+                                max_t = (vc.left_edge[i] - v_pos[i])/v_dir[i]
+                                max_i = i
+                            elif v_dir[i] < 0 and \
+                              (vc.right_edge[i] - v_pos[i])/v_dir[i] > max_t:
+                                max_t = (vc.right_edge[i] - v_pos[i])/v_dir[i]
+                                max_i = i
+                        xi = (i + 1) % 3
+                        yi = (i + 2) % 3
+                        if max_t < 0 or max_t > 1:
+                            pass
+                        elif ((vc.left_edge[xi] <= v_pos[xi] + v_dir[xi]*max_t
+                            <= vc.right_edge[xi]) and
+                            (vc.left_edge[yi] <= v_pos[yi] + v_dir[yi]*max_t
+                            <= vc.right_edge[yi])):
+                            use_vec = 1
+                    else:
+                        use_vec = 1
                     if use_vec == 0: continue
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
@@ -404,9 +404,6 @@ cdef class ImageSampler:
                 free(v_dir)
                 free(idata)
                 free(v_pos)
-                free(dij)
-                free(delta)
-                free(delta0)
         return hit
 
     cdef void setup(self, PartitionedGrid pg):
