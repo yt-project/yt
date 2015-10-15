@@ -548,7 +548,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     if symbol_str.startswith('code_'):
         raise UnitParseError(
             "Code units have not been defined. \n"
-            "Try creating the array or quantity using ds.arr instead: \n")
+            "Try creating the array or quantity using ds.arr instead.")
     else:
         raise UnitParseError("Could not find unit symbol '%s' in the provided " \
                              "symbols." % symbol_str)
