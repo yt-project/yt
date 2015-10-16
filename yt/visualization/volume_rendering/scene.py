@@ -173,7 +173,7 @@ class Scene(object):
         if fname is None:
             sources = list(itervalues(self.sources))
             rensources = [s for s in sources if isinstance(s, RenderSource)]
-            # if a render source present, use its affiliated ds for fname
+            # if a volume source present, use its affiliated ds for fname
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
@@ -182,9 +182,9 @@ class Scene(object):
                 else:
                     field = rs.field[-1]
                 fname = "%s_Render_%s.png" % (basename, field)
-            # if no render source present, use a default filename
+            # if no volume source present, use a default filename
             else:
-                fname = "Render.png"   
+                fname = "Render_opaque.png"   
         suffix = get_image_suffix(fname)
         if suffix == '':
             suffix = '.png'
