@@ -71,8 +71,9 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # sc is an instance of a Scene object, which allows you to further refine
   # your renderings, and later save them.
 
-When the :func:`~yt.visualization.volume_rendering.volume_render` function 
-is called, first an empty 
+When the 
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
+function is called, first an empty 
 :class:`~yt.visualization.volume_rendering.scene.Scene` object is created. 
 Next, a :class:`~yt.visualization.volume_rendering.api.VolumeSource`
 object is created, which decomposes the volume elements
@@ -111,8 +112,8 @@ such sources are added, they will be integrated as well.
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object, 
 you can skip this expensive operation by just running the
-:func:`~yt.visualization.volume_rendering.create_scene` function in lieu of the
-:func:`~yt.visualization.volume_rendering.volume_render` function. Example:
+:func:`~yt.visualization.volume_rendering.volume_rendering.create_scene` function in lieu of the
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` function. Example:
 
 .. python-script::
 
@@ -144,7 +145,7 @@ to save it to disk.  Alternatively,
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` will return an 
 :class:`~yt.data_objects.image_array.ImageArray` object if you want to further 
 process it in Python (potentially writing it out with 
-:meth:`~yt.data_objects.image_array.ImageArray.write_png`.  You can continue 
+:meth:`~yt.data_objects.image_array.ImageArray.write_png`).  You can continue 
 modifying your :class:`~yt.visualization.volume_rendering.scene.Scene` object,
 and render it as you make changes to see how those changes affect the resulting
 image.  
@@ -162,12 +163,12 @@ image.
 
 .. _sigma_clip:
 
-Brightening an Image with Sigma Clipping
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Improving Image Contrast with Sigma Clipping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your images appear to be too dark, you can try using the ``sigma_clip``
 keyword in the :meth:`~yt.visualization.volume_rendering.scene.Scene.render` 
-:func:`~yt.visualization.volume_rendering.volume_render` functions.  
+or :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` functions.  
 Because the brightness range in an image is scaled to match the range of 
 emissivity values of underlying rendering, if you have a few really 
 high-emissivity points, they will scale the rest of your image to be quite 
