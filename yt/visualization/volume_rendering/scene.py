@@ -204,7 +204,7 @@ class Scene(object):
         """
         self.camera = camera
 
-    def get_camera(self, camera):
+    def get_camera(self):
         r"""
 
         Get the camera currently used by this scene.

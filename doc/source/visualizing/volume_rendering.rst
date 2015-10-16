@@ -304,7 +304,10 @@ In addition to this, methods such as
 :meth:`~yt.visualization.volume_rendering.camera.Camera.pitch`,
 :meth:`~yt.visualization.volume_rendering.camera.Camera.yaw`, and
 :meth:`~yt.visualization.volume_rendering.camera.Camera.roll` can rotate the
-camera in space.
+camera in space. The center around which the camera rotates can be specified by
+the optional parameter `rot_center` (very useful for perspective and spherical
+lenses), or by default `rot_center` is set to be at camera location (i.e. the 
+camera will rotate about its current position).
 
 When examining a particular point in space, 
 :meth:`~yt.visualization.volume_rendering.camera.Camera.zoom` can be of
