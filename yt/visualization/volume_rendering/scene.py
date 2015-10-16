@@ -14,7 +14,7 @@ The volume rendering Scene class.
 
 import numpy as np
 from collections import OrderedDict
-from yt.funcs import mylog, get_image_suffix, get_pbar
+from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues
 from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
@@ -129,6 +129,7 @@ class Scene(object):
         >>> sc.save()
 
         """
+        mylog.info("Rendering scene (Can take a while).")
         if camera is None:
             camera = self.camera
         assert(camera is not None)
@@ -198,11 +199,8 @@ class Scene(object):
     def _validate(self):
         r"""Validate the current state of the scene."""
 
-        pbar = get_pbar("Rendering scene: ", len(self.sources))
-        for i, (k, source) in enumerate(iteritems(self.sources)):
+        for k, source in iteritems(self.sources):
             source._validate()
-            pbar.update(i)
-        pbar.finish()
         return
 
     def composite(self, camera=None):
