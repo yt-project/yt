@@ -526,6 +526,7 @@ class FisheyeLens(Lens):
         # dz is distance the ray would travel
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
+        # px and py should be dimensionless
         px = (u * np.rint(px) / length_unit).astype("int64")
         py = (u * np.rint(py) / length_unit).astype("int64")
         return px, py, dz
@@ -628,9 +629,9 @@ class SphericalLens(Lens):
         # dz is distance the ray would travel
         px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
         py = ((-py + np.pi/2.0) / np.pi) * res[1]
+        # px and py should be dimensionless
         px = (u * np.rint(px) / length_unit).astype("int64")
         py = (u * np.rint(py) / length_unit).astype("int64")
-        dz = dz * length_unit
         return px, py, dz
 
 
