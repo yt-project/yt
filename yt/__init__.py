@@ -154,7 +154,7 @@ from yt.visualization.api import \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    volume_render, ColorTransferFunction, TransferFunction, \
+    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
     off_axis_projection
 import yt.visualization.volume_rendering.api as volume_rendering
 #    TransferFunctionHelper, MultiVariateTransferFunction
