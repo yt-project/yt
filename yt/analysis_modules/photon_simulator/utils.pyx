@@ -1,9 +1,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-
-cdef extern from "math.h":
-    double exp(double x) nogil
+from libc.math cimport exp
 
 cdef double gfac = 1.0/np.sqrt(np.pi)
 
