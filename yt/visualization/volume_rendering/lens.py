@@ -191,7 +191,7 @@ class PerspectiveLens(Lens):
         vectors = sample_x + sample_y + normal_vecs * camera.width[2]
 
         positions = np.tile(camera.position, camera.resolution[0] * camera.resolution[1])\
-                           .reshape(camera.resolution[0], camera.resolution[1], 3)
+                           .reshape(camera.resolution[0], camera.resolution[1], 3, order='C')
 
         uv = np.ones(3, dtype='float64')
 

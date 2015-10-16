@@ -33,6 +33,7 @@ cdef struct ImageContainer:
     int vd_strides[3]
     np.float64_t *x_vec
     np.float64_t *y_vec
+    int z_strides[2]
 
 ctypedef void sampler_function(
                 VolumeContainer *vc,
@@ -48,6 +49,14 @@ ctypedef void calculate_extent_function(ImageContainer *image,
 
 cdef calculate_extent_function calculate_extent_plane_parallel
 
+ctypedef void generate_vector_info_function(ImageContainer *im,
+            np.int64_t vi, np.int64_t vj,
+            np.float64_t width[2],
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil
+
+cdef generate_vector_info_function generate_vector_info_plane_parallel
+cdef generate_vector_info_function generate_vector_info_null
+
 cdef class ImageSampler:
     cdef ImageContainer *image
     cdef sampler_function *sampler
@@ -57,6 +66,7 @@ cdef class ImageSampler:
     cdef np.float64_t width[3]
     cdef public object lens_type
     cdef calculate_extent_function *extent_function
+    cdef generate_vector_info_function *vector_function
 
     cdef void setup(self, PartitionedGrid pg)
 

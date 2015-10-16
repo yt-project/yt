@@ -229,21 +229,29 @@ cdef void generate_vector_info_plane_parallel(ImageContainer *im,
             np.float64_t width[2],
             # Now outbound
             np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+    cdef int i
     cdef np.float64_t px, py
     px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
     py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
     v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
     v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
+    for i in range(3): v_dir[i] = im.vp_dir[i]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void generate_vector_info_null(ImageContainer *im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
             np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
     cdef int i
-    for i in range(3): v_pos[i] = im.vp_pos[i + vi*3]
-    for i in range(3): v_dir[i] = im.vp_dir[i + vi*3]
+    for i in range(3):
+        # Here's a funny thing: we use vi here because our *image* will be
+        # flattened.  That means that im.nv will be a better one-d offset,
+        # since vp_pos has funny strides.
+        v_pos[i] = im.vp_pos[vi*3 + i]
+        v_dir[i] = im.vp_dir[vi*3 + i]
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
@@ -267,8 +275,10 @@ cdef class ImageSampler:
         self.lens_type = kwargs.pop("lens_type", None)
         if self.lens_type == "plane-parallel":
             self.extent_function = calculate_extent_plane_parallel
+            self.vector_function = generate_vector_info_plane_parallel
         else:
             self.extent_function = calculate_extent_null
+            self.vector_function = generate_vector_info_null
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
@@ -289,6 +299,10 @@ cdef class ImageSampler:
         imagec.zbuffer = NULL
         if zbuffer is not None:
             imagec.zbuffer = <np.float64_t *> zbuffer.data
+            imagec.z_strides[0]
+            # 2D
+            for i in range(2):
+                imagec.z_strides[i] = zbuffer.strides[i] / 8
         imagec.nv[0] = image.shape[0]
         imagec.nv[1] = image.shape[1]
         for i in range(4): imagec.bounds[i] = bounds[i]
@@ -327,10 +341,7 @@ cdef class ImageSampler:
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
-        if self.lens_type == "plane-parallel":
-            calculate_extent_plane_parallel(self.image, vc, iter)
-        else:
-            calculate_extent_null(self.image, vc, iter)
+        self.extent_function(self.image, vc, iter)
         iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
         iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
         iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
@@ -343,58 +354,33 @@ cdef class ImageSampler:
         cdef int use_vec, max_i
         for i in range(3):
             width[i] = self.width[i]
-        if im.vd_strides[0] == -1:
-            with nogil, parallel(num_threads = num_threads):
-                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                idata.supp_data = self.supp_data
-                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                for j in prange(size, schedule="static",chunksize=1):
-                    vj = j % ny
-                    vi = (j - vj) / ny + iter[0]
-                    vj = vj + iter[2]
-                    # Dynamically calculate the position
-                    generate_vector_info_plane_parallel(im, vi, vj, width,
-                        v_dir, v_pos)
-                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
-                    if im.zbuffer != NULL:
-                        max_t = im.zbuffer[im.nv[0] * vi + vj]
-                    else:
-                        max_t = 1.0
-                    walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                                (<void *> idata), NULL, max_t)
-                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
-                free(idata)
-                free(v_pos)
-                free(v_dir)
-        else:
-            with nogil, parallel(num_threads = num_threads):
-                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                idata.supp_data = self.supp_data
-                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                # If we do not have a simple image plane, we have to cast all
-                # our rays 
-                
-                for j in prange(size, schedule="dynamic", chunksize=100):
-                    generate_vector_info_null(im, j, 0, width,
-                        v_dir, v_pos)
-                    if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
-                        continue
-                    # Note that for Nch != 3 we need a different offset into
-                    # the image object than for the vectors!
-                    for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
-                    if im.zbuffer != NULL:
-                        max_t = fclip(im.zbuffer[j], 0.0, 1.0)
-                    else:
-                        max_t = 1.0
-                    walk_volume(vc, v_pos, v_dir, self.sampler, 
-                                (<void *> idata), NULL, max_t)
-                    for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
-                free(v_dir)
-                free(idata)
-                free(v_pos)
+        with nogil, parallel(num_threads = num_threads):
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            for j in prange(size, schedule="static", chunksize=100):
+                vj = j % ny
+                vi = (j - vj) / ny + iter[0]
+                vj = vj + iter[2]
+                # Dynamically calculate the position
+                self.vector_function(im, vi, vj, width,
+                    v_dir, v_pos)
+                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                for i in range(Nch): idata.rgba[i] = im.image[i + offset]
+                if im.zbuffer != NULL:
+                    offset = im.z_strides[0] * vi + im.z_strides[1] * vj
+                    max_t = im.zbuffer[offset]
+                else:
+                    max_t = 1.0
+                max_t = fclip(max_t, 0.0, 1.0)
+                walk_volume(vc, v_pos, v_dir, self.sampler,
+                            (<void *> idata), NULL, max_t)
+                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
+                for i in range(Nch): im.image[i + offset] = idata.rgba[i]
+            free(idata)
+            free(v_pos)
+            free(v_dir)
         return hit
 
     cdef void setup(self, PartitionedGrid pg):
