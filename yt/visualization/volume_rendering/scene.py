@@ -24,12 +24,24 @@ from .zbuffer_array import ZBuffer
 
 class Scene(object):
 
-    """The Scene Class
+    """A virtual landscape for a volume rendering.
 
     The Scene class is meant to be the primary container for the
     new volume rendering framework. A single scene may contain
     several Camera and RenderSource instances, and is the primary
     driver behind creating a volume rendering.
+
+    This sets up the basics needed to add sources and cameras.
+    This does very little setup, and requires additional input
+    to do anything useful.
+
+    Parameters
+    ----------
+    None
+
+    Examples
+    --------
+    >>> sc = Scene()
 
     """
 
@@ -37,26 +49,13 @@ class Scene(object):
     _camera = None
 
     def __init__(self):
-        r"""Create a new Scene instance.
-
-        This sets up the basics needed to add sources and cameras.
-        This does very little setup, and requires additional input
-        to do anything useful.
-
-        Parameters
-        ----------
-        None
-
-        Examples
-        --------
-        >>> sc = Scene()
-
-        """
+        r"""Create a new Scene instance"""
         super(Scene, self).__init__()
         self.sources = OrderedDict()
         self.camera = None
 
     def get_source(self, source_num):
+        """Returns the volume rendering source indexed by ``source_num``"""
         return list(itervalues(self.sources))[source_num]
 
     def _iter_opaque_sources(self):
@@ -79,9 +78,18 @@ class Scene(object):
                 yield k, source
 
     def add_source(self, render_source, keyname=None):
-        """
-        Add a render source to the scene.  This will autodetect the
-        type of source.
+        """Add a render source to the scene.
+
+        This will autodetect the type of source.
+
+        Parameters
+        ----------
+        render_source: an instance of :class:`yt.visualization.volume_rendering.render_source.RenderSource`
+            A source to contribute to the volume rendering scene.
+
+        keyname: string (optional)
+            The dictionary key used to reference the source in the sources
+            dictionary.
         """
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
@@ -105,13 +113,13 @@ class Scene(object):
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
-        camera: :class:`Camera`, optional
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`, optional
             If specified, use a different :class:`Camera` to render the scene.
 
         Returns
         -------
-        bmp: :class:`ImageArray`
-            ImageArray instance of the current rendering image.
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the current rendering image.
 
         Examples
         --------

@@ -14,6 +14,7 @@ Volume Rendering Camera Class
 from yt.funcs import iterable, mylog, ensure_numpy_array
 from yt.utilities.orientation import Orientation
 from yt.units.yt_array import YTArray
+from yt.units.unit_registry import UnitParseError
 from yt.utilities.math_utils import get_rotation_matrix
 from .utils import data_source_or_all
 from .lens import lenses
@@ -22,15 +23,33 @@ import numpy as np
 
 class Camera(Orientation):
 
-    r"""
+    r"""A representation of a point of view into a Scene.
 
-    The Camera class. A Camera represents of point of view into a
-    Scene. It is defined by a position (the location of the camera
+    It is defined by a position (the location of the camera
     in the simulation domain,), a focus (the point at which the
     camera is pointed), a width (the width of the snapshot that will
     be taken, a resolution (the number of pixels in the image), and
     a north_vector (the "up" direction in the resulting image). A
     camera can use a variety of different Lens objects.
+
+    Parameters
+    ----------
+    data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+        This is the source to be rendered, which can be any arbitrary yt
+        data object or dataset.
+    lens_type: string, optional
+        This specifies the type of lens to use for rendering. Current
+        options are 'plane-parallel', 'perspective', and 'fisheye'. See
+        :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+        Default: 'plane-parallel'
+    auto: boolean
+        If True, build smart defaults using the data source extent. This
+        can be time-consuming to iterate over the entire dataset to find
+        the positional bounds. Default: False
+
+    Examples
+    --------
+    >>> cam = Camera(ds)
 
     """
 
@@ -42,29 +61,7 @@ class Camera(Orientation):
 
     def __init__(self, data_source=None, lens_type='plane-parallel',
                  auto=False):
-        """
-        Initialize a Camera Instance
-
-        Parameters
-        ----------
-        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
-            This is the source to be rendered, which can be any arbitrary yt
-            data object or dataset.
-        lens_type: string, optional
-            This specifies the type of lens to use for rendering. Current
-            options are 'plane-parallel', 'perspective', and 'fisheye'. See
-            :class:`yt.visualization.volume_rendering.lens.Lens` for details.
-            Default: 'plane-parallel'
-        auto: boolean
-            If True, build smart defaults using the data source extent. This
-            can be time-consuming to iterate over the entire dataset to find
-            the positional bounds. Default: False
-
-        Examples
-        --------
-        >>> cam = Camera(ds)
-
-        """
+        """Initialize a Camera Instance"""
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
@@ -90,12 +87,18 @@ class Camera(Orientation):
 
     def position():
         doc = '''The position is the location of the camera in
-               the coordinate system of the simulation.'''
+               the coordinate system of the simulation. This needs
+               to be either a YTArray or a numpy array. If it is a 
+               numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units 
+               automatically. '''
 
         def fget(self):
             return self._position
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._position = value
             self.switch_orientation()
 
@@ -105,12 +108,17 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = '''The width of the image that will be produced. '''
+        doc = '''The width of the region that will be seen in the image. 
+               This needs to be either a YTArray or a numpy array. If it 
+               is a numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units automatically. '''
 
         def fget(self):
             return self._width
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._width = value
             self.switch_orientation()
 
@@ -121,12 +129,18 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = '''The focus defines the point the Camera is pointed at. '''
+        doc = '''The focus defines the point the Camera is pointed at. This needs
+               to be either a YTArray or a numpy array. If it is a 
+               numpy array, it is assumed to be in code units. If it
+               is a YTArray, it will be converted to code units 
+               automatically. '''
 
         def fget(self):
             return self._focus
 
         def fset(self, value):
+            if isinstance(value, YTArray):
+                value = value.in_units("code_length")
             self._focus = value
             self.switch_orientation()
 
@@ -161,9 +175,7 @@ class Camera(Orientation):
         return lens_params
 
     def set_lens(self, lens_type):
-        r'''
-
-        Set the lens to be used with this camera. 
+        r"""Set the lens to be used with this camera.
 
         Parameters
         ----------
@@ -177,7 +189,7 @@ class Camera(Orientation):
             'spherical'
             'stereo-spherical'
 
-        '''
+        """
         if lens_type not in lenses:
             mylog.error("Lens type not available")
             raise RuntimeError()
@@ -185,6 +197,7 @@ class Camera(Orientation):
         self.lens.camera = self
 
     def set_defaults_from_data_source(self, data_source):
+        """Resets the camera attributes to their default values"""
         self.position = data_source.pf.domain_right_edge
 
         width = 1.5 * data_source.pf.domain_width.max()
@@ -215,20 +228,22 @@ class Camera(Orientation):
         self._moved = True
 
     def set_width(self, width):
-        r"""
-
-        Set the width of the image that will be produced by this camera.
-        This must be a YTQuantity.
+        r"""Set the width of the image that will be produced by this camera.
 
         Parameters
         ----------
 
-        width : :class:`yt.units.yt_array.YTQuantity`
-
+        width : YTQuantity or 3 element YTArray
+            The width of the volume rendering in the horizontal, vertical, and
+            depth directions. If a scalar, assumes that the width is the same in
+            all three directions.
         """
-        assert isinstance(width, YTArray), 'Width must be created with ds.arr'
-        if isinstance(width, YTArray):
+        try:
             width = width.in_units('code_length')
+        except (AttributeError, UnitParseError):
+            raise ValueError(
+                'Volume rendering width must be a YTArray that can be '
+                'converted to code units')
 
         if not iterable(width):
             width = YTArray([width.d]*3, width.units)  # Can't get code units.
@@ -236,9 +251,7 @@ class Camera(Orientation):
         self.switch_orientation()
 
     def set_position(self, position, north_vector=None):
-        r"""
-
-        Set the position of the camera.
+        r"""Set the position of the camera.
 
         Parameters
         ----------
@@ -256,8 +269,7 @@ class Camera(Orientation):
                                 north_vector=north_vector)
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
-        r"""
-        Change the view direction based on any of the orientation parameters.
+        r"""Change the view direction based on any of the orientation parameters.
 
         This will recalculate all the necessary vectors and vector planes
         related to an orientable object.
@@ -490,11 +502,6 @@ class Camera(Orientation):
         factor : float
             The factor by which to reduce the distance to the focal point.
 
-
-        Notes
-        -----
-
-        You will need to call snapshot() again to get a new image.
         """
         self.set_width(self.width / factor)
 
