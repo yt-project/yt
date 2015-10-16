@@ -102,11 +102,7 @@ class VolumeSource(RenderSource):
     Examples
     --------
     >>> source = VolumeSource(ds.all_data(), 'density')
-
-
     """
-
-
 
     _image = None
     data_source = None
@@ -198,12 +194,12 @@ class VolumeSource(RenderSource):
             If False, the AMRKDTree estimates vertex centered data using ghost
             zones, which can eliminate seams in the resulting volume rendering.
             Defaults to True for performance reasons.
-             fields = self.data_source._determine_fields(fields)
+    """
+        fields = self.data_source._determine_fields(fields)
         log_fields = [self.data_source.ds.field_info[f].take_log
                       for f in fields]
         self.volume.set_fields(fields, log_fields, no_ghost)
         self.field = fields
-    """
 
     def set_sampler(self, camera):
         """Sets a volume render sampler
@@ -424,29 +420,8 @@ class PointSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
-        r"""A rendering source of opaque points in the scene.
-
-        This class provides a mechanism for adding points to a scene; these
-        points will be opaque, and can also be colored.
-
-        Parameters
-        ----------
-        positions: array, shape (N, 3)
-            These positions, in data-space coordinates, are the points to be
-            added to the scene.
-        colors : array, shape (N, 4), optional
-            The colors of the points, including an alpha channel, in floating
-            point running from 0..1.
-        color_stride : int, optional
-            The stride with which to access the colors when putting them on the
-            scene.
-
-        Examples
-        --------
-        >>> source = PointSource(particle_positions)
-
+        """Construct a PointSource object.
         """
-    def __init__(self, positions, colors=None, color_stride=1):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
