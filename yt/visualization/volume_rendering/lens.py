@@ -239,6 +239,7 @@ class PerspectiveLens(Lens):
         dx = np.dot(pos1 - sight_center.d, camera.unit_vectors[0])
         dy = np.dot(pos1 - sight_center.d, camera.unit_vectors[1])
         dz = np.dot(pos - camera.position.d, camera.unit_vectors[2])
+
         # Transpose into image coords.
         px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
@@ -416,6 +417,7 @@ class StereoPerspectiveLens(Lens):
         dx = np.dot(pos1 - sight_center.d, east_vec_rot)
         dy = np.dot(pos1 - sight_center.d, north_vec)
         dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+        
         # Transpose into image coords.
         px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
