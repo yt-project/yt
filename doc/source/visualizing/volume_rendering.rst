@@ -210,7 +210,11 @@ object.  This allows for a set of weightings, linkages and so on.
 TransferFunctionHelper
 ----------------------
 
-.. notebook:: TransferFunctionHelper_Tutorial.ipynb
+Because good transfer functions can be difficult to generate, the 
+TransferFunctionHelper exists in order to help create and modify transfer
+functions with smart defaults for your datasets.  To follow a full example
+on how to use this interface, follow the
+:ref:`transfer-function-helper-tutorial`.
 
 Adding New Sources
 ++++++++++++++++++
