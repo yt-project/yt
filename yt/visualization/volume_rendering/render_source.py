@@ -39,10 +39,9 @@ except ImportError:
 
 class RenderSource(ParallelAnalysisInterface):
 
-    """
+    """Base Class for Render Sources.
 
-    Base Class for Render Sources. Will be inherited for volumes,
-    streamlines, etc.
+    Will be inherited for volumes, streamlines, etc.
 
     """
 
@@ -59,10 +58,9 @@ class RenderSource(ParallelAnalysisInterface):
 
 
 class OpaqueSource(RenderSource):
-    """
+    """A base class for opaque render sources.
 
-    A base class for opaque render sources. Will be inherited from
-    for LineSources, BoxSources, etc.
+    Will be inherited from for LineSources, BoxSources, etc.
 
     """
     def __init__(self):
@@ -82,40 +80,39 @@ class OpaqueSource(RenderSource):
 
 
 class VolumeSource(RenderSource):
+    """A class for rendering data from a volumetric data source
+
+    Examples of such sources include a sphere, cylinder, or the
+    entire computational domain.
+
+    A :class:`VolumeSource` provides the framework to decompose an arbitrary
+    yt data source into bricks that can be traversed and volume rendered.
+
+    Parameters
+    ----------
+    data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+        This is the source to be rendered, which can be any arbitrary yt
+        data object or dataset.
+    fields : string
+        The name of the field(s) to be rendered.
+    auto: bool, optional
+        If True, will build a default AMRKDTree and transfer function based
+        on the data.
+
+    Examples
+    --------
+    >>> source = VolumeSource(ds.all_data(), 'density')
+
 
     """
 
-    A VolumeSource is a class for rendering data from
-    an arbitrary volumetric data source, e.g. a sphere,
-    cylinder, or the entire computational domain.
 
 
-    """
     _image = None
     data_source = None
 
     def __init__(self, data_source, field, auto=True):
-        r"""Initialize a new volumetric source for rendering.
-
-        A :class:`VolumeSource` provides the framework to decompose an arbitrary
-        yt data source into bricks that can be traversed and volume rendered.
-
-        Parameters
-        ----------
-        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
-            This is the source to be rendered, which can be any arbitrary yt
-            data object or dataset.
-        fields : string
-            The name of the field(s) to be rendered.
-        auto: bool, optional
-            If True, will build a default AMRKDTree and transfer function based
-            on the data.
-
-        Examples
-        --------
-        >>> source = RenderSource(ds, 'density')
-
-        """
+        r"""Initialize a new volumetric source for rendering."""
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
@@ -138,15 +135,14 @@ class VolumeSource(RenderSource):
             self.build_defaults()
 
     def build_defaults(self):
+        """Sets a default volume and transfer function"""
         mylog.info("Creating default volume")
         self.build_default_volume()
         mylog.info("Creating default transfer function")
         self.build_default_transfer_function()
 
     def set_transfer_function(self, transfer_function):
-        """
-        Set transfer function for this source
-        """
+        """Set transfer function for this source"""
         if not isinstance(transfer_function,
                           (TransferFunction, ColorTransferFunction,
                            ProjectionTransferFunction)):
@@ -169,6 +165,7 @@ class VolumeSource(RenderSource):
             raise RuntimeError("Transfer Function not Supplied")
 
     def build_default_transfer_function(self):
+        """Sets up a transfer function"""
         self.tfh = \
             TransferFunctionHelper(self.data_source.pf)
         self.tfh.set_field(self.field)
@@ -177,6 +174,7 @@ class VolumeSource(RenderSource):
         self.transfer_function = self.tfh.tf
 
     def build_default_volume(self):
+        """Sets up an AMRKDTree based on the VolumeSource's field"""
         self.volume = AMRKDTree(self.data_source.pf,
                                 data_source=self.data_source)
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
@@ -184,25 +182,36 @@ class VolumeSource(RenderSource):
         self.volume.set_fields([self.field], log_fields, True)
 
     def set_volume(self, volume):
+        """Associates an AMRKDTree with the VolumeSource"""
         assert(isinstance(volume, AMRKDTree))
         del self.volume
         self.volume = volume
 
-    def set_field(self, field, no_ghost=True):
-        field = self.data_source._determine_fields(field)[0]
-        log_field = self.data_source.pf.field_info[field].take_log
-        self.volume.set_fields(field, [log_field], no_ghost)
-        self.field = field
-
     def set_fields(self, fields, no_ghost=True):
-        fields = self.data_source._determine_fields(fields)
+    """Set the source's fields to render
+
+        Parameters
+        ---------
+        fields: field name or list of field names
+            The field or fields to render
+        no_ghost: boolean
+            If False, the AMRKDTree estimates vertex centered data using ghost
+            zones, which can eliminate seams in the resulting volume rendering.
+            Defaults to True for performance reasons.
+             fields = self.data_source._determine_fields(fields)
         log_fields = [self.data_source.ds.field_info[f].take_log
                       for f in fields]
         self.volume.set_fields(fields, log_fields, no_ghost)
         self.field = fields
+    """
 
     def set_sampler(self, camera):
-        """docstring for add_sampler"""
+        """Sets a volume render sampler
+
+        The type of sampler is determined based on the ``sampler_type`` attribute
+        of the VolumeSource. Currently the ``volume_render`` and ``projection``
+        sampler types are supported.
+        """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
         elif self.sampler_type == 'projection':
@@ -213,6 +222,25 @@ class VolumeSource(RenderSource):
         assert(self.sampler is not None)
 
     def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
+ 
         self.zbuffer = zbuffer
         self.set_sampler(camera)
         assert (self.sampler is not None)
@@ -240,10 +268,23 @@ class VolumeSource(RenderSource):
         return self.current_image
 
     def finalize_image(self, camera, image, call_from_VR=False):
-        image = self.volume.reduce_tree_images(image,
+        """Parallel reduce the image.
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            The camera used to produce the volume rendering image.
+        image: :class:`yt.data_objects.image_array.ImageArray` instance
+            A reference to an image to fill
+        call_from_vr: boolean, optional
+            Whether or not this is being called from a higher level in the VR
+            interface. Used to set the correct orientation.
+        """
+         image = self.volume.reduce_tree_images(image,
                                                camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
-        # If the call is from VR, the image is rotated by 180 to get correct up dir
+        # If the call is from VR, the image is rotated by 180 to get correct
+        # up direction
         if call_from_VR: image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
@@ -256,38 +297,33 @@ class VolumeSource(RenderSource):
 
 
 class MeshSource(RenderSource):
+    """A mesh for unstructured mesh data
 
-    """
+    This functionality requires the embree ray-tracing engine and the
+    associated pyembree python bindings to be installed in order to
+    function.
 
-    MeshSource is a class for volume rendering unstructured mesh
-    data. This functionality requires the embree ray-tracing
-    engine and the associated pyembree python bindings to be
-    installed in order to function.
+    A :class:`MeshSource` provides the framework to volume render
+    unstructured mesh data.
 
+    Parameters
+    ----------
+    data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+        This is the source to be rendered, which can be any arbitrary yt
+        data object or dataset.
+    field : string
+        The name of the field to be rendered.
+
+    Examples
+    --------
+    >>> source = MeshSource(ds, ('all', 'convected'))
     """
 
     _image = None
     data_source = None
 
     def __init__(self, data_source, field):
-        r"""Initialize a new unstructured source for rendering.
-
-        A :class:`MeshSource` provides the framework to volume render
-        unstructured mesh data.
-
-        Parameters
-        ----------
-        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
-            This is the source to be rendered, which can be any arbitrary yt
-            data object or dataset.
-        fields : string
-            The name of the field to be rendered.
-
-        Examples
-        --------
-        >>> source = MeshSource(ds, ('all', 'convected'))
-
-        """
+        r"""Initialize a new unstructured source for rendering."""
         super(MeshSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
@@ -325,7 +361,25 @@ class MeshSource(RenderSource):
                                                   field_data.d)
 
     def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
 
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
+ 
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
@@ -342,6 +396,29 @@ class MeshSource(RenderSource):
 
 
 class PointSource(OpaqueSource):
+    r"""A rendering source of opaque points in the scene.
+
+    This class provides a mechanism for adding points to a scene; these
+    points will be opaque, and can also be colored.
+
+    Parameters
+    ----------
+    positions: array, shape (N, 3)
+        These positions, in data-space coordinates, are the points to be
+        added to the scene.
+    colors : array, shape (N, 4), optional
+        The colors of the points, including an alpha channel, in floating
+        point running from 0..1.
+    color_stride : int, optional
+        The stride with which to access the colors when putting them on the
+        scene.
+
+    Examples
+    --------
+    >>> source = PointSource(particle_positions)
+
+    """
+
 
     _image = None
     data_source = None
@@ -369,6 +446,7 @@ class PointSource(OpaqueSource):
         >>> source = PointSource(particle_positions)
 
         """
+    def __init__(self, positions, colors=None, color_stride=1):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -378,6 +456,24 @@ class PointSource(OpaqueSource):
         self.color_stride = color_stride
 
     def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
@@ -403,39 +499,38 @@ class PointSource(OpaqueSource):
 
 
 class LineSource(OpaqueSource):
+    r"""A render source for a sequence of opaque line segments.
+
+    This class provides a mechanism for adding lines to a scene; these
+    points will be opaque, and can also be colored.
+
+    Parameters
+    ----------
+    positions: array, shape (N, 2, 3)
+        These positions, in data-space coordinates, are the starting and
+        stopping points for each pair of lines. For example,
+        positions[0][0] and positions[0][1] would give the (x, y, z)
+        coordinates of the beginning and end points of the first line,
+        respectively.
+    colors : array, shape (N, 4), optional
+        The colors of the points, including an alpha channel, in floating
+        point running from 0..1.  Note that they correspond to the line
+        segment succeeding each point; this means that strictly speaking
+        they need only be (N-1) in length.
+    color_stride : int, optional
+        The stride with which to access the colors when putting them on the
+        scene.
+
+    Examples
+    --------
+    >>> source = LineSource(np.random.random((10, 3)))
+
+    """
 
     _image = None
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
-        r"""A render source for a sequence of opaque line segments.
-
-        This class provides a mechanism for adding lines to a scene; these
-        points will be opaque, and can also be colored.
-
-        Parameters
-        ----------
-        positions: array, shape (N, 2, 3)
-            These positions, in data-space coordinates, are the starting and
-            stopping points for each pair of lines. For example,
-            positions[0][0] and positions[0][1] would give the (x, y, z)
-            coordinates of the beginning and end points of the first line,
-            respectively.
-        colors : array, shape (N, 4), optional
-            The colors of the points, including an alpha channel, in floating
-            point running from 0..1.  Note that they correspond to the line
-            segment succeeding each point; this means that strictly speaking
-            they need only be (N-1) in length.
-        color_stride : int, optional
-            The stride with which to access the colors when putting them on the
-            scene.
-
-        Examples
-        --------
-        >>> source = LineSource(np.random.random((10, 3)))
-
-        """
-
         super(LineSource, self).__init__()
 
         assert(positions.shape[1] == 2)
@@ -453,6 +548,24 @@ class LineSource(OpaqueSource):
         self.color_stride = color_stride
 
     def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
@@ -478,26 +591,26 @@ class LineSource(OpaqueSource):
 
 
 class BoxSource(LineSource):
+    r"""A render source for a box drawn with line segments.
+    This render source will draw a box, with transparent faces, in data
+    space coordinates.  This is useful for annotations.
+
+    Parameters
+    ----------
+    left_edge: array-like, shape (3,), float
+        The left edge coordinates of the box.
+    right_edge : array-like, shape (3,), float
+        The right edge coordinates of the box.
+    color : array-like, shape (4,), float, optional
+        The colors (including alpha) to use for the lines.
+
+    Examples
+    --------
+    >>> source = BoxSource(grid_obj.LeftEdge, grid_obj.RightEdge)
+
+    """
     def __init__(self, left_edge, right_edge, color=None):
-        r"""A render source for a box drawn with line segments.
-
-        This render source will draw a box, with transparent faces, in data
-        space coordinates.  This is useful for annotations.
-
-        Parameters
-        ----------
-        left_edge: array-like, shape (3,), float
-            The left edge coordinates of the box.
-        right_edge : array-like, shape (3,), float
-            The right edge coordinates of the box.
-        color : array-like, shape (4,), float, optional
-            The colors (including alpha) to use for the lines.
-
-        Examples
-        --------
-        >>> source = BoxSource(grid_obj.LeftEdge, grid_obj.RightEdge)
-
-        """
+        r"""A render source for a box drawn with line segments."""
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
         color = ensure_numpy_array(color)
@@ -515,32 +628,32 @@ class BoxSource(LineSource):
 
 
 class GridSource(LineSource):
+    r"""A render source for drawing grids in a scene.
+
+    This render source will draw blocks that are within a given data
+    source, by default coloring them by their level of resolution.
+
+    Parameters
+    ----------
+    data_source: :class:`~yt.data_objects.api.DataContainer`
+        The data container that will be used to identify grids to draw.
+    alpha : float
+        The opacity of the grids to draw.
+    cmap : color map name
+        The color map to use to map resolution levels to color.
+    min_level : int, optional
+        Minimum level to draw
+    max_level : int, optional
+        Maximum level to draw
+
+    Examples
+    --------
+    >>> dd = ds.sphere("c", (0.1, "unitary"))
+    >>> source = GridSource(dd, alpha=1.0)
+
+    """
     def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
-        r"""A render source for drawing grids in a scene.
-
-        This render source will draw blocks that are within a given data
-        source, by default coloring them by their level of resolution.
-
-        Parameters
-        ----------
-        data_source: :class:`~yt.data_objects.api.DataContainer`
-            The data container that will be used to identify grids to draw.
-        alpha : float
-            The opacity of the grids to draw.
-        cmap : color map name
-            The color map to use to map resolution levels to color.
-        min_level : int, optional
-            Minimum level to draw
-        max_level : int, optional
-            Maximum level to draw
-
-        Examples
-        --------
-        >>> dd = ds.sphere("c", (0.1, "unitary"))
-        >>> source = GridSource(dd, alpha=1.0)
-
-        """
         data_source = data_source_or_all(data_source)
         corners = []
         levels = []
@@ -588,24 +701,25 @@ class GridSource(LineSource):
 
 
 class CoordinateVectorSource(OpaqueSource):
+    r"""Draw coordinate vectors on the scene.
+
+    This will draw a set of coordinate vectors on the camera image.  They
+    will appear in the lower right of the image.
+
+    Parameters
+    ----------
+    colors: array-like, shape (3,4), optional
+        The x, y, z RGBA values to use to draw the vectors.
+    alpha : float, optional
+        The opacity of the vectors.
+
+    Examples
+    --------
+    >>> source = CoordinateVectorSource()
+    """
+
     def __init__(self, colors=None, alpha=1.0):
-        r"""Draw coordinate vectors on the scene.
-
-        This will draw a set of coordinate vectors on the camera image.  They
-        will appear in the lower right of the image.
-
-        Parameters
-        ----------
-        colors: array-like, shape (3,4), optional
-            The x, y, z RGBA values to use to draw the vectors.
-        alpha : float, optional
-            The opacity of the vectors.
-
-        Examples
-        --------
-        >>> source = CoordinateVectorSource()
-
-        """
+        r"""Draw coordinate vectors on the scene."""
         super(CoordinateVectorSource, self).__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -618,6 +732,24 @@ class CoordinateVectorSource(OpaqueSource):
         self.color_stride = 2
 
     def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
         camera.lens.setup_box_properties(camera)
         center = camera.focus
         # Get positions at the focus

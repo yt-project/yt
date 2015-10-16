@@ -12,13 +12,40 @@
 #-----------------------------------------------------------------------------
 
 
-from yt.funcs import mylog
-from yt.data_objects.api import ImageArray
 import numpy as np
 
 
 class ZBuffer(object):
-    """docstring for ZBuffer"""
+    """A container object for z-buffer arrays
+
+    A zbuffer is a companion array for an image that allows the volume rendering
+    infrastructure to determine whether one opaque source is in front of another
+    opaque source.  The z buffer encodes the distance to the opaque source
+    relative to the camera position.
+
+    Parameters
+    ----------
+    rgba: MxNx4 image
+        The image the z buffer corresponds to
+    z: MxN image
+        The z depth of each pixel in the image. The shape of the image must be
+        the same as each RGBA channel in the original image.
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> shape = (64, 64)
+    >>> b1 = Zbuffer(np.random.random(shape), np.ones(shape))
+    >>> b2 = Zbuffer(np.random.random(shape), np.zeros(shape))
+    >>> c = b1 + b2
+    >>> np.all(c.rgba == b2.rgba)
+    True
+    >>> np.all(c.z == b2.z))
+    True
+    >>> np.all(c == b2)
+    True
+
+    """
     def __init__(self, rgba, z):
         super(ZBuffer, self).__init__()
         assert(rgba.shape[:len(z.shape)] == z.shape)
@@ -31,8 +58,8 @@ class ZBuffer(object):
         f = self.z < other.z
         if self.z.shape[1] == 1:
             # Non-rectangular
-            rgba = (self.rgba * f[:,None,:])
-            rgba += (other.rgba * (1.0 - f)[:,None,:])
+            rgba = (self.rgba * f[:, None, :])
+            rgba += (other.rgba * (1.0 - f)[:, None, :])
         else:
             b = self.z > other.z
             rgba = np.empty(self.rgba.shape)
