@@ -117,7 +117,6 @@ you can skip this expensive operation by just running the
 .. python-script::
 
   import yt
-  # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
   sc = yt.create_scene(ds, 'density')
 
@@ -143,10 +142,23 @@ trigger the scene to actually do the ray-tracing step.  After that, you can
 use the :meth:`~yt.visualization.volume_rendering.scene.Scene.save` method
 to save it to disk.  Alternatively, 
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` will return an 
-image array if you want to further process it in Python.  You can continue 
+:class:`~yt.data_objects.image_array.ImageArray` object if you want to further 
+process it in Python (potentially writing it out with 
+:meth:`~yt.data_objects.image_array.ImageArray.write_png`.  You can continue 
 modifying your :class:`~yt.visualization.volume_rendering.scene.Scene` object,
 and render it as you make changes to see how those changes affect the resulting
-image.
+image.  
+
+.. python-script::
+
+  import yt
+  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+  sc = yt.create_scene(ds, 'density')
+  sc.render() 
+  sc.save()
+  <make changes to scene>
+  sc.render()
+  sc.save('changes.png')
 
 .. _sigma_clip:
 
@@ -162,6 +174,12 @@ high-emissivity points, they will scale the rest of your image to be quite
 dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.  
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
+
+.. python-script::
+
+  sc = yt.create_scene(ds, 'density')
+  sc.render(sigma_clip=4)
+  sc.save()
 
 .. _transfer_functions:
 
