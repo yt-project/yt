@@ -132,7 +132,7 @@ here:
 
 .. code:: python
 
-    apec_model = TableApecModel("/Users/jzuhone/spectral",
+    apec_model = TableApecModel("$SPECTRAL_DATA/spectral",
                                 0.01, 20.0, 20000,
                                 thermal_broad=False,
                                 apec_vers="2.0.2")

@@ -193,7 +193,7 @@ class TableApecModel(SpectralModel):
 
     Examples
     --------
-    >>> apec_model = TableApecModel("/Users/jzuhone/Data/spectral/", 0.05, 50.0,
+    >>> apec_model = TableApecModel("$SPECTRAL_DATA/spectral/", 0.05, 50.0,
     ...                             1000, apec_vers="3.0", thermal_broad=True)
     """
     def __init__(self, apec_root, emin, emax, nchan,
