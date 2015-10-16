@@ -208,7 +208,7 @@ class TipsyDataset(ParticleDataset):
                 pval = dcosm[param]
                 setattr(self, param, pval)
         else:
-            self.cosmological_simulation = 0.0
+            self.cosmological_simulation = 0
             kpc_unit = self.parameters.get('dKpcUnit', 1.0)
             self._unit_base['cm'] = 1.0 / (kpc_unit * cm_per_kpc)
 
@@ -227,47 +227,51 @@ class TipsyDataset(ParticleDataset):
         super(TipsyDataset, self)._set_derived_attrs()
 
     def _set_code_unit_attributes(self):
+        # First try to set units based on parameter file
         if self.cosmological_simulation:
             mu = self.parameters.get('dMsolUnit', 1.)
+            self.mass_unit = self.quan(mu, 'Msun')
             lu = self.parameters.get('dKpcUnit', 1000.)
             # In cosmological runs, lengths are stored as length*scale_factor
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
-            self.mass_unit = self.quan(mu, 'Msun')
-            density_unit = self.mass_unit/(self.length_unit/self.scale_factor)**3
+            density_unit = self.mass_unit / (self.length_unit / self.scale_factor)**3
             if 'dHubble0' in self.parameters:
                 # Gasoline's internal hubble constant, dHubble0, is stored in
                 # units of proper code time
                 self.hubble_constant *= np.sqrt(G * density_unit)
                 # Finally, we scale the hubble constant by 100 km/s/Mpc
                 self.hubble_constant /= self.quan(100, 'km/s/Mpc')
-            cosmo = Cosmology(self.hubble_constant,
-                              self.omega_matter, self.omega_lambda)
-            self.current_time = cosmo.hubble_time(self.current_redshift)
         else:
             mu = self.parameters.get('dMsolUnit', 1.0)
             self.mass_unit = self.quan(mu, 'Msun')
             lu = self.parameters.get('dKpcUnit', 1.0)
             self.length_unit = self.quan(lu, 'kpc')
-            density_unit = self.mass_unit / self.length_unit**3
-        self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
         # If unit base is defined by the user, override all relevant units
         if self._unit_base is not None:
-            length = self._unit_base.get('length', self.length_unit)
-            length = self.quan(*length) if isinstance(length, tuple) else self.quan(length)
-            self.length_unit = length
+            for my_unit in ["length", "mass", "time"]:
+                if my_unit in self._unit_base:
+                    my_val = self._unit_base[my_unit]
+                    my_val = \
+                      self.quan(*my_val) if isinstance(my_val, tuple) \
+                      else self.quan(my_val)
+                    setattr(self, "%s_unit" % my_unit, my_val)
 
-            mass = self._unit_base.get('mass', self.mass_unit)
-            mass = self.quan(*mass) if isinstance(mass, tuple) else self.quan(mass)
-            self.mass_unit = mass
-
+        # Finally, set the dependent units
+        if self.cosmological_simulation:
+            cosmo = Cosmology(self.hubble_constant,
+                              self.omega_matter, self.omega_lambda)
+            self.current_time = cosmo.hubble_time(self.current_redshift)
+            # mass units are rho_crit(z=0) * domain volume
+            mu = cosmo.critical_density(0.0) * \
+              (1 + self.current_redshift)**3 * self.length_unit**3
+            self.mass_unit = self.quan(mu.in_units("Msun"), "Msun")
+            density_unit = self.mass_unit / (self.length_unit / self.scale_factor)**3
+        else:
             density_unit = self.mass_unit / self.length_unit**3
+
+        if not hasattr(self, "time_unit"):
             self.time_unit = 1.0 / np.sqrt(G * density_unit)
-
-            time = self._unit_base.get('time', self.time_unit)
-            time = self.quan(*time) if isinstance(time, tuple) else self.quan(time)
-            self.time_unit = time
-
 
     @staticmethod
     def _validate_header(filename):
