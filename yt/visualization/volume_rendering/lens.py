@@ -141,7 +141,6 @@ class PerspectiveLens(Lens):
 
     def __init__(self):
         super(PerspectiveLens, self).__init__()
-        self.expand_factor = 1.5
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -151,13 +150,6 @@ class PerspectiveLens(Lens):
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
-        # We should move away from pre-generation of vectors like this and into
-        # the usage of on-the-fly generation in the VolumeIntegrator module
-        # We might have a different width and back_center
-        # dl = (self.back_center - self.front_center)
-        # self.front_center += self.expand_factor*dl
-        # self.back_center -= dl
-
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
@@ -263,7 +255,6 @@ class StereoPerspectiveLens(Lens):
 
     def __init__(self):
         super(StereoPerspectiveLens, self).__init__()
-        self.expand_factor = 1.5
         self.disparity = None
 
     def new_image(self, camera):
