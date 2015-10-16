@@ -126,7 +126,6 @@ class PlaneParallelLens(Lens):
         # Transpose into image coords.
         py = (res[0]*(dx/camera.width[0].d)).astype('int')
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
-        print px, py, 'plane'
         return px, py, dz
 
     def __repr__(self):
