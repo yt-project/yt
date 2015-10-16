@@ -70,15 +70,6 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
-    def render(self, camera, zbuffer=None):
-        # This is definitely wrong for now
-        if zbuffer is not None and self.zbuffer is not None:
-            zbuffer.rgba = self.zbuffer.rgba
-            zbuffer.z = self.zbuffer.z
-            self.zbuffer = zbuffer
-        return self.zbuffer
-
-
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
@@ -184,7 +175,7 @@ class VolumeSource(RenderSource):
         self.volume = volume
 
     def set_fields(self, fields, no_ghost=True):
-    """Set the source's fields to render
+        """Set the source's fields to render
 
         Parameters
         ---------
@@ -194,7 +185,7 @@ class VolumeSource(RenderSource):
             If False, the AMRKDTree estimates vertex centered data using ghost
             zones, which can eliminate seams in the resulting volume rendering.
             Defaults to True for performance reasons.
-    """
+        """
         fields = self.data_source._determine_fields(fields)
         log_fields = [self.data_source.ds.field_info[f].take_log
                       for f in fields]
@@ -236,7 +227,6 @@ class VolumeSource(RenderSource):
         the rendered image.
 
         """
- 
         self.zbuffer = zbuffer
         self.set_sampler(camera)
         assert (self.sampler is not None)
@@ -281,7 +271,8 @@ class VolumeSource(RenderSource):
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR: image = np.rot90(image, k=2)
+        if call_from_VR is True: 
+            image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
         return image
@@ -293,7 +284,7 @@ class VolumeSource(RenderSource):
 
 
 class MeshSource(RenderSource):
-    """A mesh for unstructured mesh data
+    """A source for unstructured mesh data
 
     This functionality requires the embree ray-tracing engine and the
     associated pyembree python bindings to be installed in order to
@@ -420,8 +411,6 @@ class PointSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
-        """Construct a PointSource object.
-        """
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -469,7 +458,7 @@ class PointSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Points Source>"
+        disp = "<Point Source>"
         return disp
 
 
@@ -585,7 +574,6 @@ class BoxSource(LineSource):
 
     """
     def __init__(self, left_edge, right_edge, color=None):
-        r"""A render source for a box drawn with line segments."""
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
         color = ensure_numpy_array(color)
@@ -694,7 +682,6 @@ class CoordinateVectorSource(OpaqueSource):
     """
 
     def __init__(self, colors=None, alpha=1.0):
-        r"""Draw coordinate vectors on the scene."""
         super(CoordinateVectorSource, self).__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:

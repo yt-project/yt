@@ -118,7 +118,8 @@ class Scene(object):
 
         Returns
         -------
-        ImageArray instance of the current rendering image.
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the current rendering image.
 
         Examples
         --------

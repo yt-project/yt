@@ -373,6 +373,7 @@ used within a loop:
 .. python-script::
 
    for i in sc.camera.zoomin(100, 5):
+       sc.render()
        sc.save("frame_%03i.png" % i)
 
 The variable ``i`` is the frame number in the particular loop being called.  In
