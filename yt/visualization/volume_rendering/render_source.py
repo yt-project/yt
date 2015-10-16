@@ -70,7 +70,6 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
-
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
@@ -94,8 +93,8 @@ class VolumeSource(RenderSource):
     Examples
     --------
     >>> source = VolumeSource(ds.all_data(), 'density')
-
     """
+
     _image = None
     data_source = None
 
@@ -124,7 +123,9 @@ class VolumeSource(RenderSource):
 
     def build_defaults(self):
         """Sets a default volume and transfer function"""
+        mylog.info("Creating default volume")
         self.build_default_volume()
+        mylog.info("Creating default transfer function")
         self.build_default_transfer_function()
 
     def set_transfer_function(self, transfer_function):
@@ -265,12 +266,11 @@ class VolumeSource(RenderSource):
             Whether or not this is being called from a higher level in the VR
             interface. Used to set the correct orientation.
         """
-        image = self.volume.reduce_tree_images(image,
-                                               camera.lens.viewpoint)
+        image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
-        # up dirirection
-        if call_from_VR is True:
+        # up direction
+        if call_from_VR is True: 
             image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
@@ -365,6 +365,7 @@ class MeshSource(RenderSource):
         the rendered image.
 
         """
+ 
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
@@ -403,6 +404,7 @@ class PointSource(OpaqueSource):
     >>> source = PointSource(particle_positions)
 
     """
+
 
     _image = None
     data_source = None
@@ -455,7 +457,7 @@ class PointSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Points Source>"
+        disp = "<Point Source>"
         return disp
 
 
@@ -553,7 +555,6 @@ class LineSource(OpaqueSource):
 
 class BoxSource(LineSource):
     r"""A render source for a box drawn with line segments.
-
     This render source will draw a box, with transparent faces, in data
     space coordinates.  This is useful for annotations.
 
@@ -677,8 +678,8 @@ class CoordinateVectorSource(OpaqueSource):
     Examples
     --------
     >>> source = CoordinateVectorSource()
-
     """
+
     def __init__(self, colors=None, alpha=1.0):
         super(CoordinateVectorSource, self).__init__()
         # If colors aren't individually set, make black with full opacity

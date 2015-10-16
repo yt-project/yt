@@ -14,11 +14,11 @@ The volume rendering Scene class.
 
 import numpy as np
 from collections import OrderedDict
-from yt.funcs import mylog
+from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues
 from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridSource
+    GridSource, RenderSource
 from .zbuffer_array import ZBuffer
 
 
@@ -53,6 +53,8 @@ class Scene(object):
         super(Scene, self).__init__()
         self.sources = OrderedDict()
         self.camera = None
+        # An image array containing the last rendered image of the scene
+        self.last_render = None
 
     def get_source(self, source_num):
         """Returns the volume rendering source indexed by ``source_num``"""
@@ -98,22 +100,20 @@ class Scene(object):
 
         return self
 
-    def render(self, fname=None, sigma_clip=None, camera=None):
+    def render(self, sigma_clip=None, camera=None):
         r"""Render all sources in the Scene.
 
         Use the current state of the Scene object to render all sources
-        currently in the scene.
+        currently in the scene.  Returns the image array.  If you want to
+        save the output to a file, call the save() function.
 
         Parameters
         ----------
-        fname: string, optional
-            If specified, save the rendering as a bitmap to the file "fname".
-            Default: None
         sigma_clip: float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera`, optional
+        camera: :class:`Camera`, optional
             If specified, use a different :class:`Camera` to render the scene.
 
         Returns
@@ -125,20 +125,80 @@ class Scene(object):
         --------
         >>> sc = Scene()
         >>> # Add sources/camera/etc
-        >>> im = sc.render('rendering.png')
+        >>> im = sc.render(sigma_clip=4)
+        >>> sc.save()
 
         """
+        mylog.info("Rendering scene (Can take a while).")
         if camera is None:
             camera = self.camera
         assert(camera is not None)
         self._validate()
         bmp = self.composite(camera=camera)
-        if fname is not None:
-            bmp.write_png(fname, sigma_clip=sigma_clip)
+        self.last_render = bmp
         return bmp
 
+    def save(self, fname=None):
+        r"""Saves the most recently rendered image of the Scene to disk.
+
+        Once you have created a scene and rendered that scene to an image 
+        array, this saves that image array to disk with an optional filename.
+        If an image has not yet been rendered for the current scene object,
+        it forces one and writes it out.
+
+        Parameters
+        ----------
+        fname: string, optional
+            If specified, save the rendering as a bitmap to the file "fname".
+            If unspecified, it creates a default based on the dataset filename.
+            Default: None
+
+        Returns
+        -------
+            Nothing
+
+        Examples
+        --------
+        >>> sc = yt.create_scene(ds)
+        >>> # Add sources/camera/etc
+        >>> sc.render()
+        >>> sc.save('test.png')
+
+        # Or alternatively
+        >>> sc = yt.create_scene(ds)
+        >>> # Add sources/camera/etc
+        >>> sc.save('test.png')
+
+        """
+        if fname is None:
+            sources = list(itervalues(self.sources))
+            rensources = [s for s in sources if isinstance(s, RenderSource)]
+            # if a volume source present, use its affiliated ds for fname
+            if len(rensources) > 0:
+                rs = rensources[0]
+                basename = rs.data_source.ds.basename
+                if isinstance(rs.field, basestring):
+                    field = rs.field
+                else:
+                    field = rs.field[-1]
+                fname = "%s_Render_%s.png" % (basename, field)
+            # if no volume source present, use a default filename
+            else:
+                fname = "Render_opaque.png"   
+        suffix = get_image_suffix(fname)
+        if suffix == '':
+            suffix = '.png'
+            fname = '%s%s' % (fname, suffix)
+
+        if self.last_render is None:
+            self.render()
+
+        mylog.info("Saving render %s", fname)
+        self.last_render.write_png(fname)
+ 
     def _validate(self):
         r"""Validate the current state of the scene."""
+
         for k, source in iteritems(self.sources):
             source._validate()
         return

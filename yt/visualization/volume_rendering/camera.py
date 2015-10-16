@@ -447,7 +447,8 @@ class Camera(Orientation):
         --------
 
         >>> for i in cam.iter_rotate(np.pi, 10):
-        ...     im = sc.render("rotation_%04i.png" % i)
+        ...     im = sc.render()
+        ...     sc.save('rotation_%04i.png' % i)
         """
 
         dtheta = (1.0*theta)/n_steps
@@ -475,7 +476,8 @@ class Camera(Orientation):
         --------
 
         >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
-        ...     sc.render("move_%04i.png" % i)
+        ...     sc.render()
+        ...     sc.save("move_%04i.png" % i)
         """
         assert isinstance(final, YTArray)
         if exponential:
@@ -523,7 +525,8 @@ class Camera(Orientation):
         --------
 
         >>> for i in cam.iter_zoom(100.0, 10):
-        ...     sc.render("zoom_%04i.png" % i)
+        ...     sc.render()
+        ...     sc.save("zoom_%04i.png" % i)
         """
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):

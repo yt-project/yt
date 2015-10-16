@@ -31,11 +31,11 @@ mobile YouTube app), as well as standard screens.
    :align: center
    :alt: Diagram of a 3D Scene
 
-In versions of yt prior to 3.2, the only volume rendering interface accessible
+In versions of yt prior to 3.3, the only volume rendering interface accessible
 was through the "camera" object.  This presented a number of problems,
 principle of which was the inability to describe new scene elements or to
 develop complex visualizations that were independent of the specific elements
-being rendered.  The new "scene" based interface present in yt 3.2 and beyond
+being rendered.  The new "scene" based interface present in yt 3.3 and beyond
 enables both more complex visualizations to be constructed as well as a new,
 more intuitive interface for very simple 3D visualizations.
 
@@ -65,14 +65,15 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
   # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_render(ds, 'density', fname='test_rendering.png')
+  im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
 
-  # im is the image that was generated.
+  # im is the image array generated. it is also saved to 'rendering.png'.
   # sc is an instance of a Scene object, which allows you to further refine
-  # your renderings.
+  # your renderings, and later save them.
 
-When the :func:`~yt.visualization.volume_rendering.volume_render` function 
-is called, first an empty 
+When the 
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
+function is called, first an empty 
 :class:`~yt.visualization.volume_rendering.scene.Scene` object is created. 
 Next, a :class:`~yt.visualization.volume_rendering.api.VolumeSource`
 object is created, which decomposes the volume elements
@@ -96,9 +97,10 @@ picture of a scene from a particular point in time and space, but different
 lenses can be swapped in and out.  For example, this might include a fisheye
 lens, a spherical lens, or some other method of describing the direction and
 origin of rays for rendering. Once the camera is added to the scene object, we
-call the main method of the
+call the main methods of the
 :class:`~yt.visualization.volume_rendering.scene.Scene` class,
-:meth:`~yt.visualization.volume_rendering.scene.Scene.render`.  When called,
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` and 
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  When called,
 the scene will loop through all of the
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
 that have been added and integrate the radiative transfer equation through the
@@ -110,20 +112,17 @@ such sources are added, they will be integrated as well.
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object, 
 you can skip this expensive operation by just running the
-:func:`~yt.visualization.volume_rendering.create_scene` function in lieu of the
-:func:`~yt.visualization.volume_rendering.volume_render` function. Example:
+:func:`~yt.visualization.volume_rendering.volume_rendering.create_scene` function in lieu of the
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` function. Example:
 
 .. python-script::
 
   import yt
-  # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-  # volume render the 'density' field 
   sc = yt.create_scene(ds, 'density')
 
-
-Modifying the Scene
--------------------
+Modifying and Saving the Scene
+------------------------------
 
 Once a basic scene has been created with default render sources and
 camera operations, deeper modifications are possible. These
@@ -132,6 +131,56 @@ colors correspond to which values in the data) as well as the shape of the
 rendered image, the position of the camera in the scene, and other elements
 present in the scene.  Below, we describe a few of the aspects of tuning a
 scene to create a visualization that is communicative and pleasing.
+
+.. _rendering_scene:
+
+Rendering and Saving
+++++++++++++++++++++
+
+Whenever you want a rendering of your current scene configuration, use the
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` method to
+trigger the scene to actually do the ray-tracing step.  After that, you can
+use the :meth:`~yt.visualization.volume_rendering.scene.Scene.save` method
+to save it to disk.  Alternatively, 
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` will return an 
+:class:`~yt.data_objects.image_array.ImageArray` object if you want to further 
+process it in Python (potentially writing it out with 
+:meth:`~yt.data_objects.image_array.ImageArray.write_png`).  You can continue 
+modifying your :class:`~yt.visualization.volume_rendering.scene.Scene` object,
+and render it as you make changes to see how those changes affect the resulting
+image.  
+
+.. python-script::
+
+  import yt
+  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+  sc = yt.create_scene(ds, 'density')
+  sc.render() 
+  sc.save()
+  <make changes to scene>
+  sc.render()
+  sc.save('changes.png')
+
+.. _sigma_clip:
+
+Improving Image Contrast with Sigma Clipping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your images appear to be too dark, you can try using the ``sigma_clip``
+keyword in the :meth:`~yt.visualization.volume_rendering.scene.Scene.render` 
+or :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` functions.  
+Because the brightness range in an image is scaled to match the range of 
+emissivity values of underlying rendering, if you have a few really 
+high-emissivity points, they will scale the rest of your image to be quite 
+dark.  ``sigma_clip = N`` can address this by removing values that are more
+than ``N`` standard deviations brighter than the mean of your image.  
+Typically, a choice of 4 to 6 will help dramatically with your resulting image.
+
+.. python-script::
+
+  sc = yt.create_scene(ds, 'density')
+  sc.render(sigma_clip=4)
+  sc.save()
 
 .. _transfer_functions:
 
@@ -329,7 +378,8 @@ used within a loop:
 .. python-script::
 
    for i in sc.camera.zoomin(100, 5):
-       sc.render("frame_%03i.png" % i)
+       sc.render()
+       sc.save("frame_%03i.png" % i)
 
 The variable ``i`` is the frame number in the particular loop being called.  In
 this case, this will zoom in by a factor of 100 over the course of 5 frames.

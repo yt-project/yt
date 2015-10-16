@@ -21,4 +21,4 @@ render_source.transfer_function.map_to_colormap(
     np.log10(ds.quan(1.0e-29, 'g/cm**3')),
     scale=30.0, colormap='RdBu_r')
 
-im = sc.render(fname='new_tf.png', sigma_clip=None)
+sc.save('new_tf.png')
