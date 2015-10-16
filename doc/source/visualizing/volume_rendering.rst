@@ -65,11 +65,11 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
   # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_render(ds, 'density', fname='test_rendering.png')
+  im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
 
-  # im is the image that was generated.
+  # im is the image array generated. it is also saved to 'rendering.png'.
   # sc is an instance of a Scene object, which allows you to further refine
-  # your renderings.
+  # your renderings, and later save them.
 
 When the :func:`~yt.visualization.volume_rendering.volume_render` function 
 is called, first an empty 
@@ -119,12 +119,10 @@ you can skip this expensive operation by just running the
   import yt
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-  # volume render the 'density' field 
   sc = yt.create_scene(ds, 'density')
 
-
-Modifying the Scene
--------------------
+Modifying and Saving the Scene
+------------------------------
 
 Once a basic scene has been created with default render sources and
 camera operations, deeper modifications are possible. These
@@ -133,6 +131,37 @@ colors correspond to which values in the data) as well as the shape of the
 rendered image, the position of the camera in the scene, and other elements
 present in the scene.  Below, we describe a few of the aspects of tuning a
 scene to create a visualization that is communicative and pleasing.
+
+.. _rendering_scene:
+
+Rendering and Saving
+++++++++++++++++++++
+
+Whenever you want a rendering of your current scene configuration, use the
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` method to
+trigger the scene to actually do the ray-tracing step.  After that, you can
+use the :meth:`~yt.visualization.volume_rendering.scene.Scene.save` method
+to save it to disk.  Alternatively, 
+:meth:`~yt.visualization.volume_rendering.scene.Scene.render` will return an 
+image array if you want to further process it in Python.  You can continue 
+modifying your :class:`~yt.visualization.volume_rendering.scene.Scene` object,
+and render it as you make changes to see how those changes affect the resulting
+image.
+
+.. _sigma_clip:
+
+Brightening an Image with Sigma Clipping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your images appear to be too dark, you can try using the ``sigma_clip``
+keyword in the :meth:`~yt.visualization.volume_rendering.scene.Scene.render` 
+:func:`~yt.visualization.volume_rendering.volume_render` functions.  
+Because the brightness range in an image is scaled to match the range of 
+emissivity values of underlying rendering, if you have a few really 
+high-emissivity points, they will scale the rest of your image to be quite 
+dark.  ``sigma_clip = N`` can address this by removing values that are more
+than ``N`` standard deviations brighter than the mean of your image.  
+Typically, a choice of 4 to 6 will help dramatically with your resulting image.
 
 .. _transfer_functions:
 
