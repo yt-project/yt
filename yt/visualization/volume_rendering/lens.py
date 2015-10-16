@@ -126,6 +126,7 @@ class PlaneParallelLens(Lens):
         # Transpose into image coords.
         py = (res[0]*(dx/camera.width[0].d)).astype('int')
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
+        print px, py, 'plane'
         return px, py, dz
 
     def __repr__(self):
@@ -605,7 +606,7 @@ class SphericalLens(Lens):
             res = camera.resolution
         # Much of our setup here is the same as in the fisheye, except for the
         # actual conversion back to the px, py values.
-        lpos = camera.position - pos
+        lpos = camera.position.d - pos
         # inv_mat = np.linalg.inv(self.rotation_matrix)
         # lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
@@ -622,11 +623,13 @@ class SphericalLens(Lens):
         py = np.arcsin(lpos[:, 2])
         dz = mag / self.radius
         u = camera.focus.uq
+        length_unit = u / u.d
         # dz is distance the ray would travel
         px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
         py = ((-py + np.pi/2.0) / np.pi) * res[1]
-        px = (u * np.rint(px)).astype("int64")
-        py = (u * np.rint(py)).astype("int64")
+        px = (u * np.rint(px) / length_unit).astype("int64")
+        py = (u * np.rint(py) / length_unit).astype("int64")
+        dz = dz * length_unit
         return px, py, dz
 
 
