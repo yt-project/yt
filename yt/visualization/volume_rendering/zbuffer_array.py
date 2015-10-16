@@ -25,9 +25,9 @@ class ZBuffer(object):
 
     Parameters
     ----------
-    rgba: NxNx4 image
+    rgba: MxNx4 image
         The image the z buffer corresponds to
-    z: NxN image
+    z: MxN image
         The z depth of each pixel in the image. The shape of the image must be
         the same as each RGBA channel in the original image.
     
