@@ -266,8 +266,7 @@ class VolumeSource(RenderSource):
             Whether or not this is being called from a higher level in the VR
             interface. Used to set the correct orientation.
         """
-         image = self.volume.reduce_tree_images(image,
-                                               camera.lens.viewpoint)
+        image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
