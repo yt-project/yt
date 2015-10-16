@@ -149,7 +149,7 @@ class PerspectiveLens(Lens):
 
     def new_image(self, camera):
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
+            np.zeros((camera.resolution[0], camera.resolution[1], 
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image

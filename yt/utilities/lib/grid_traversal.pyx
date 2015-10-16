@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 #cimport healpix_interface
-from libc.stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
     lrint, fabs, atan, atan2, asin, cos, sin, sqrt
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
@@ -233,10 +233,12 @@ cdef void generate_vector_info_plane_parallel(ImageContainer *im,
     cdef np.float64_t px, py
     px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
     py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
-    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
-    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
-    for i in range(3): v_dir[i] = im.vp_dir[i]
+    # Note we skip 1,0,*
+    v_pos[0] = im.vp_pos[0,0,0]*px + im.vp_pos[0,1,0]*py + im.vp_pos[1,1,0]
+    v_pos[1] = im.vp_pos[0,0,1]*px + im.vp_pos[0,1,1]*py + im.vp_pos[1,1,1]
+    v_pos[2] = im.vp_pos[0,0,2]*px + im.vp_pos[0,1,2]*py + im.vp_pos[1,1,2]
+    # atleast_3d will add to beginning and end
+    for i in range(3): v_dir[i] = im.vp_dir[0,i,0]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -250,8 +252,8 @@ cdef void generate_vector_info_null(ImageContainer *im,
         # Here's a funny thing: we use vi here because our *image* will be
         # flattened.  That means that im.nv will be a better one-d offset,
         # since vp_pos has funny strides.
-        v_pos[i] = im.vp_pos[vi*3 + i]
-        v_dir[i] = im.vp_dir[vi*3 + i]
+        v_pos[i] = im.vp_pos[vi, vj, i]
+        v_dir[i] = im.vp_dir[vi, vj, i]
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
@@ -259,8 +261,8 @@ cdef struct ImageAccumulator:
 
 cdef class ImageSampler:
     def __init__(self,
-                  np.ndarray vp_pos,
-                  np.ndarray vp_dir,
+                  np.float64_t[:,:,:] vp_pos,
+                  np.float64_t[:,:,:] vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
@@ -268,10 +270,11 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   *args, **kwargs):
-        self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
-        cdef ImageContainer *imagec = self.image
-        cdef np.ndarray[np.float64_t, ndim=2] zbuffer
+        self.image = <ImageContainer *> calloc(sizeof(ImageContainer), 1)
+        cdef np.float64_t[:,:] zbuffer
         zbuffer = kwargs.pop("zbuffer", None)
+        if zbuffer is None:
+            zbuffer = np.ones((image.shape[0], image.shape[1]), "float64")
         self.lens_type = kwargs.pop("lens_type", None)
         if self.lens_type == "plane-parallel":
             self.extent_function = calculate_extent_plane_parallel
@@ -282,44 +285,26 @@ cdef class ImageSampler:
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
-        # de-allocation from reference counts.
-        self.avp_pos = vp_pos
-        self.avp_dir = vp_dir
+        # de-allocation from reference counts.  Note that we do this to the
+        # "atleast_3d" versions.  Also, note that we re-assign the input
+        # arguments.
+        self.image.vp_pos = vp_pos
+        self.image.vp_dir = vp_dir
+        self.image.image = self.aimage = image
         self.acenter = center
-        self.aimage = image
+        self.image.center = <np.float64_t *> center.data
         self.ax_vec = x_vec
+        self.image.x_vec = <np.float64_t *> x_vec.data
         self.ay_vec = y_vec
-        self.azbuffer = zbuffer
-        imagec.vp_pos = <np.float64_t *> vp_pos.data
-        imagec.vp_dir = <np.float64_t *> vp_dir.data
-        imagec.center = <np.float64_t *> center.data
-        imagec.image = <np.float64_t *> image.data
-        imagec.x_vec = <np.float64_t *> x_vec.data
-        imagec.y_vec = <np.float64_t *> y_vec.data
-        imagec.zbuffer = NULL
-        if zbuffer is not None:
-            imagec.zbuffer = <np.float64_t *> zbuffer.data
-            imagec.z_strides[0]
-            # 2D
-            for i in range(2):
-                imagec.z_strides[i] = zbuffer.strides[i] / 8
-        imagec.nv[0] = image.shape[0]
-        imagec.nv[1] = image.shape[1]
-        for i in range(4): imagec.bounds[i] = bounds[i]
-        imagec.pdx = (bounds[1] - bounds[0])/imagec.nv[0]
-        imagec.pdy = (bounds[3] - bounds[2])/imagec.nv[1]
+        self.image.y_vec = <np.float64_t *> y_vec.data
+        self.image.zbuffer = zbuffer
+        self.image.nv[0] = image.shape[0]
+        self.image.nv[1] = image.shape[1]
+        for i in range(4): self.image.bounds[i] = bounds[i]
+        self.image.pdx = (bounds[1] - bounds[0])/self.image.nv[0]
+        self.image.pdy = (bounds[3] - bounds[2])/self.image.nv[1]
         for i in range(3):
-            imagec.vp_strides[i] = vp_pos.strides[i] / 8
-            imagec.im_strides[i] = image.strides[i] / 8
             self.width[i] = width[i]
-
-        if vp_dir.ndim > 1:
-            for i in range(3):
-                imagec.vd_strides[i] = vp_dir.strides[i] / 8
-        elif vp_pos.ndim == 1:
-            imagec.vd_strides[0] = imagec.vd_strides[1] = imagec.vd_strides[2] = -1
-        else:
-            raise RuntimeError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -364,20 +349,14 @@ cdef class ImageSampler:
                 vi = (j - vj) / ny + iter[0]
                 vj = vj + iter[2]
                 # Dynamically calculate the position
-                self.vector_function(im, vi, vj, width,
-                    v_dir, v_pos)
-                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                for i in range(Nch): idata.rgba[i] = im.image[i + offset]
-                if im.zbuffer != NULL:
-                    offset = im.z_strides[0] * vi + im.z_strides[1] * vj
-                    max_t = im.zbuffer[offset]
-                else:
-                    max_t = 1.0
-                max_t = fclip(max_t, 0.0, 1.0)
+                self.vector_function(im, vi, vj, width, v_dir, v_pos)
+                for i in range(Nch):
+                    idata.rgba[i] = im.image[vi, vj, i]
+                max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
-                offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                for i in range(Nch): im.image[i + offset] = idata.rgba[i]
+                for i in range(Nch):
+                    im.image[vi, vj, i] = idata.rgba[i]
             free(idata)
             free(v_pos)
             free(v_dir)

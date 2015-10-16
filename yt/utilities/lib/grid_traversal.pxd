@@ -20,20 +20,16 @@ cimport cython
 cimport kdtree_utils
 
 cdef struct ImageContainer:
-    np.float64_t *vp_pos
-    np.float64_t *vp_dir
+    np.float64_t[:,:,:] vp_pos
+    np.float64_t[:,:,:] vp_dir
     np.float64_t *center
-    np.float64_t *image
-    np.float64_t *zbuffer
+    np.float64_t[:,:,:] image
+    np.float64_t[:,:] zbuffer
     np.float64_t pdx, pdy
     np.float64_t bounds[4]
     int nv[2]
-    int vp_strides[3]
-    int im_strides[3]
-    int vd_strides[3]
     np.float64_t *x_vec
     np.float64_t *y_vec
-    int z_strides[2]
 
 ctypedef void sampler_function(
                 VolumeContainer *vc,
@@ -60,7 +56,7 @@ cdef generate_vector_info_function generate_vector_info_null
 cdef class ImageSampler:
     cdef ImageContainer *image
     cdef sampler_function *sampler
-    cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
+    cdef public object acenter, aimage, ax_vec, ay_vec
     cdef public object azbuffer
     cdef void *supp_data
     cdef np.float64_t width[3]
