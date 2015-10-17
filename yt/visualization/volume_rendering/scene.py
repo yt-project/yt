@@ -100,7 +100,7 @@ class Scene(object):
 
         return self
 
-    def render(self, sigma_clip=None, camera=None):
+    def render(self, camera=None):
         r"""Render all sources in the Scene.
 
         Use the current state of the Scene object to render all sources
@@ -109,10 +109,6 @@ class Scene(object):
 
         Parameters
         ----------
-        sigma_clip: float, optional
-            Image will be clipped before saving to the standard deviation
-            of the image multiplied by this value.  Useful for enhancing
-            images. Default: None
         camera: :class:`Camera`, optional
             If specified, use a different :class:`Camera` to render the scene.
 
@@ -125,8 +121,8 @@ class Scene(object):
         --------
         >>> sc = Scene()
         >>> # Add sources/camera/etc
-        >>> im = sc.render(sigma_clip=4)
-        >>> sc.save()
+        >>> im = sc.render()
+        >>> sc.save(sigma_clip=4)
 
         """
         mylog.info("Rendering scene (Can take a while).")
@@ -138,7 +134,7 @@ class Scene(object):
         self.last_render = bmp
         return bmp
 
-    def save(self, fname=None):
+    def save(self, fname=None, sigma_clip=None):
         r"""Saves the most recently rendered image of the Scene to disk.
 
         Once you have created a scene and rendered that scene to an image 
@@ -152,6 +148,13 @@ class Scene(object):
             If specified, save the rendering as a bitmap to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
             Default: None
+        sigma_clip: float, optional
+            Image values greater than this number times the standard deviation
+            plus the mean of the image will be clipped before saving. Useful 
+            for enhancing images as it gets rid of rare high pixel values. 
+            Default: None
+
+            floor(vals > std_dev*sigma_clip + mean)
 
         Returns
         -------
@@ -162,12 +165,15 @@ class Scene(object):
         >>> sc = yt.create_scene(ds)
         >>> # Add sources/camera/etc
         >>> sc.render()
-        >>> sc.save('test.png')
+        >>> sc.save('test.png', sigma_clip=4)
 
         # Or alternatively
         >>> sc = yt.create_scene(ds)
         >>> # Add sources/camera/etc
-        >>> sc.save('test.png')
+        >>> sc.render()
+        >>> sc.save('raw.png')
+        >>> sc.save('clipped_2.png', sigma_clip=2)
+        >>> sc.save('clipped_4.png', sigma_clip=4)
 
         """
         if fname is None:
@@ -194,7 +200,7 @@ class Scene(object):
             self.render()
 
         mylog.info("Saving render %s", fname)
-        self.last_render.write_png(fname)
+        self.last_render.write_png(fname, sigma_clip=sigma_clip)
  
     def _validate(self):
         r"""Validate the current state of the scene."""
