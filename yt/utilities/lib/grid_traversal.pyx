@@ -233,11 +233,10 @@ cdef void generate_vector_info_plane_parallel(ImageContainer *im,
     cdef np.float64_t px, py
     px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
     py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-    # Note we skip 1,0,*
-    v_pos[0] = im.vp_pos[0,0,0]*px + im.vp_pos[0,1,0]*py + im.vp_pos[1,1,0]
-    v_pos[1] = im.vp_pos[0,0,1]*px + im.vp_pos[0,1,1]*py + im.vp_pos[1,1,1]
-    v_pos[2] = im.vp_pos[0,0,2]*px + im.vp_pos[0,1,2]*py + im.vp_pos[1,1,2]
     # atleast_3d will add to beginning and end
+    v_pos[0] = im.vp_pos[0,0,0]*px + im.vp_pos[0,3,0]*py + im.vp_pos[0,9,0]
+    v_pos[1] = im.vp_pos[0,1,0]*px + im.vp_pos[0,4,0]*py + im.vp_pos[0,10,0]
+    v_pos[2] = im.vp_pos[0,2,0]*px + im.vp_pos[0,5,0]*py + im.vp_pos[0,11,0]
     for i in range(3): v_dir[i] = im.vp_dir[0,i,0]
 
 @cython.boundscheck(False)
@@ -280,6 +279,8 @@ cdef class ImageSampler:
             self.extent_function = calculate_extent_plane_parallel
             self.vector_function = generate_vector_info_plane_parallel
         else:
+            assert(vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0])
+            assert(vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1])
             self.extent_function = calculate_extent_null
             self.vector_function = generate_vector_info_null
         self.sampler = NULL
