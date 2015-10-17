@@ -654,7 +654,14 @@ class CoordinateVectorSource(OpaqueSource):
             z = zbuffer.z
 
         # Draw the vectors
+
+        empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+        z.shape = (camera.resolution[0], camera.resolution[1])
+
         zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+        z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer
