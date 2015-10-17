@@ -175,14 +175,13 @@ high-emissivity points, they will scale the rest of your image to be quite
 dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.  
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
+See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
 
 .. python-script::
 
   sc = yt.create_scene(ds, 'density')
   sc.render()
-  sc.save('raw.png')
-  sc.save('clip_2.png', sigma_clip=2)
-  sc.save('clip_4.png', sigma_clip=4)
+  sc.save(sigma_clip=4)
 
 .. _transfer_functions:
 

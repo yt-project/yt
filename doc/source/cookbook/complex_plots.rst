@@ -218,6 +218,17 @@ information.
 
 .. yt_cookbook:: custom_transfer_function_volume_rendering.py
 
+.. _cookbook-sigma_clip:
+
+Volume Rendering with Sigma Clipping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we output several images with different values of sigma_clip
+set in order to change the contrast of the resulting image.  See 
+:ref:`sigma_clip` for more information.
+
+.. yt_cookbook:: sigma_clip.py
+
 Zooming into an Image
 ~~~~~~~~~~~~~~~~~~~~~
 
