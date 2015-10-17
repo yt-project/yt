@@ -39,7 +39,8 @@ print(kd_low_res.count_cells())
 
 render_source.set_volume(kd_low_res)
 render_source.set_fields('density')
-sc.render("v1.png")
+sc.render()
+sc.save("v1.png")
 
 # This operation was substantiall faster.  Now lets modify the low resolution
 # rendering until we find something we like.
@@ -48,12 +49,14 @@ tf = render_source.transfer_function
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
               alpha=np.ones(4, dtype='float64'), colormap='RdBu_r')
-sc.render("v2.png", sigma_clip=6.0)
+sc.render(sigma_clip=6.0)
+sc.save("v2.png")
 
 # This looks better.  Now let's try turning on opacity.
 
 tf.grey_opacity = True
-sc.render("v3.png", sigma_clip=6.0)
+sc.render(sigma_clip=6.0)
+sc.save("v3.png")
 #
 ## That seemed to pick out som interesting structures.  Now let's bump up the
 ## opacity.
@@ -61,11 +64,13 @@ sc.render("v3.png", sigma_clip=6.0)
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
               alpha=10.0 * np.ones(4, dtype='float64'), colormap='RdBu_r')
-sc.render("v4.png", sigma_clip=6.0)
+sc.render(sigma_clip=6.0)
+sc.save("v4.png")
 #
 ## This looks pretty good, now lets go back to the full resolution AMRKDTree
 #
 render_source.set_volume(kd)
-sc.render("v5.png", sigma_clip=6.0)
+sc.render(sigma_clip=6.0)
+sc.render("v5.png")
 
 # This looks great!
