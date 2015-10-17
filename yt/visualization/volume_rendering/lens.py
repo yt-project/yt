@@ -261,8 +261,8 @@ class StereoPerspectiveLens(Lens):
     def new_image(self, camera):
         """Initialize a new ImageArray to be used with this lens."""
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
-                      4), dtype='float64', order='C'),
+            np.zeros((camera.resolution[0], camera.resolution[1], 4),
+                     dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
 
@@ -289,9 +289,9 @@ class StereoPerspectiveLens(Lens):
         vectors_comb = np.vstack([vectors_left, vectors_right])
         positions_comb = np.vstack([positions_left, positions_right])
 
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params =\
             dict(vp_pos=positions_comb,
@@ -588,9 +588,9 @@ class SphericalLens(Lens):
             image = self.new_image(camera)
 
         dummy = np.ones(3, dtype='float64')
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params = dict(
             vp_pos=positions,
@@ -709,9 +709,9 @@ class StereoSphericalLens(Lens):
         vectors_comb = np.vstack([vectors, vectors])
         positions_comb = np.vstack([positions_left, positions_right])
 
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params = dict(
             vp_pos=positions_comb,
