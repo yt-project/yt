@@ -71,6 +71,6 @@ sc.save("v4.png", sigma_clip=6.0)
 #
 render_source.set_volume(kd)
 sc.render()
-sc.render("v5.png", sigma_clip=6.0)
+sc.save("v5.png", sigma_clip=6.0)
 
 # This looks great!
