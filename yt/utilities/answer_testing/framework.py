@@ -678,8 +678,8 @@ class VRImageComparisonTest(AnswerTestingTest):
     def run(self):
         tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
         os.close(tmpfd)
-        self.scene.render(sigma_clip=1.0)
-        self.scene.save(tmpname)
+        self.scene.render()
+        self.scene.save(tmpname, sigma_clip=1.0)
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
         return [zlib.compress(image.dumps())]
