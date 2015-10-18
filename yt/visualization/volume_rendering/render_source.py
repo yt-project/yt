@@ -390,7 +390,16 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
+
         zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         self.zbuffer = zbuffer
         return zbuffer
