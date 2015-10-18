@@ -465,7 +465,16 @@ class LineSource(OpaqueSource):
         # DRAW SOME LINES
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
+
         zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -655,16 +664,19 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-        z.shape = (camera.resolution[0], camera.resolution[1])
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
 
         zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
 
-        empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-        z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer
+
         return zbuffer
 
     def __repr__(self):
