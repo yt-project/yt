@@ -130,6 +130,10 @@ cdef class GridTree:
         grids = <GridTreeNodePadded[:self.num_grids]> \
             (<GridTreeNodePadded*> self.grids)
         grids_basic = np.asarray(grids)
+        # This next bit is necessary because as of 0.23.4, Cython can't make
+        # nested dtypes automatically where you have a property that is
+        # something like float[3].  So we unroll all of those, then re-roll
+        # them in a new dtype.
         dtn = {}
         dt = grids_basic.dtype
         for name in dt.names:

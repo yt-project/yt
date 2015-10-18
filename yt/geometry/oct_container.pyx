@@ -110,7 +110,8 @@ cdef class OctreeContainer:
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
 
-    def get_memview(self):
+    @property
+    def oct_arrays(self):
         cdef OctAllocationContainer *cur = self.cont
         cdef Oct *this
         cdef int i
