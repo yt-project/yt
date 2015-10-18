@@ -713,6 +713,8 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+    _xlim = (None, None)
+    _ylim = (None, None)
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
@@ -817,6 +819,8 @@ class PhasePlot(ImagePlotContainer):
             draw_colorbar = True
             draw_axes = True
             zlim = (None, None)
+            xlim = self._xlim
+            ylim = self._ylim
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
@@ -871,6 +875,9 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+
+            self.plots[f].axes.set_xlim(xlim)
+            self.plots[f].axes.set_ylim(ylim)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
@@ -1177,6 +1184,7 @@ class PhasePlot(ImagePlotContainer):
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._xlim = (xmin, xmax)
         return self
 
     @invalidate_plot
@@ -1241,6 +1249,7 @@ class PhasePlot(ImagePlotContainer):
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._ylim = (ymin, ymax)
         return self
 
 
