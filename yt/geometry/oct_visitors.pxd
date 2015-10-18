@@ -24,6 +24,12 @@ cdef struct Oct:
     np.int64_t domain       # (opt) addl int index
     Oct **children          # Up to 8 long
 
+cdef struct OctPadded:
+    np.int64_t file_ind
+    np.int64_t domain_ind
+    np.int64_t domain
+    np.int64_t padding
+
 cdef struct OctVisitorData:
     np.uint64_t index
     np.uint64_t last
