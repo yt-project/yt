@@ -93,7 +93,19 @@ class VolumeSource(RenderSource):
 
     Examples
     --------
+
+    This example manually creates a VolumeSource, adds it to a scene, sets the
+    camera, and renders an image.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> sc.add_source(source)
+    >>> cam = Camera(ds)
+    >>> sc.camera = cam
+    >>> im = sc.render()
 
     """
     _image = None
@@ -309,7 +321,7 @@ class MeshSource(RenderSource):
     data_source = None
 
     def __init__(self, data_source, field):
-        r"""Initialize a new unstructured source for rendering."""
+        r"""Initialize a new unstructured mesh source for rendering."""
         super(MeshSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
@@ -334,7 +346,11 @@ class MeshSource(RenderSource):
             raise RuntimeError("Mesh not initialized")
 
     def build_mesh(self):
+        """
 
+        This constructs the mesh that will be ray-traced.
+
+        """
         field_data = self.data_source[self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
 
