@@ -93,6 +93,16 @@ class VolumeSource(RenderSource):
     Examples
     --------
 
+    The easiest way to make a VolumeSource is to use the volume_render
+    function, so that the VolumeSource gets created automatically. This 
+    example shows how to do this and then access the resulting source:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> im, sc = yt.volume_render(ds)
+    >>> volume_source = sc.get_source(0)
+
+    You can also create VolumeSource instances by hand and add them to Scenes.
     This example manually creates a VolumeSource, adds it to a scene, sets the
     camera, and renders an image.
 
@@ -105,6 +115,7 @@ class VolumeSource(RenderSource):
     >>> cam = Camera(ds)
     >>> sc.camera = cam
     >>> im = sc.render()
+
     """
 
     _image = None
@@ -417,7 +428,26 @@ class PointSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = PointSource(particle_positions)
+
+    This example creates a volume rendering and adds 1000 random points to
+    the image:
+
+    >>> import yt
+    >>> import numpy as np
+    >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    
+    >>> im, sc = yt.volume_render(ds)
+    
+    >>> npoints = 1000
+    >>> vertices = np.random.random([npoints, 3])
+    >>> colors = np.random.random([npoints, 4])
+    >>> colors[:,3] = 1.0
+
+    >>> points = PointSource(vertices, colors=colors)
+    >>> sc.add_source(points)
+
+    >>> im = sc.render()
 
     """
 
@@ -502,8 +532,27 @@ class LineSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = LineSource(np.random.random((10, 3)))
 
+    This example creates a volume rendering and then adds some random lines
+    to the image:
+
+    >>> import yt
+    >>> import numpy as np
+    >>> from yt.visualization.volume_rendering.api import LineSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    
+    >>> im, sc = yt.volume_render(ds)
+    
+    >>> npoints = 100
+    >>> vertices = np.random.random([npoints, 2, 3])
+    >>> colors = np.random.random([npoints, 4])
+    >>> colors[:,3] = 1.0
+    
+    >>> lines = LineSource(vertices, colors)
+    >>> sc.add_source(lines)
+
+    >>> im = sc.render()
+    
     """
 
     _image = None
@@ -585,7 +634,22 @@ class BoxSource(LineSource):
 
     Examples
     --------
-    >>> source = BoxSource(grid_obj.LeftEdge, grid_obj.RightEdge)
+
+    This example shows how to use BoxSource to add an outline of the 
+    domain boundaries to a volume rendering.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import BoxSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
+    >>> box_source = BoxSource(ds.domain_left_edge,
+    >>>                       ds.domain_right_edge,
+    >>>                       [1.0, 1.0, 1.0, 1.0])
+    >>> sc.add_source(box_source)
+    >>> 
+    >>> im = sc.render()
 
     """
     def __init__(self, left_edge, right_edge, color=None):
@@ -626,8 +690,38 @@ class GridSource(LineSource):
 
     Examples
     --------
+
+    This example makes a volume rendering and adds outlines of all the 
+    AMR grids in the simulation:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import GridSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>>
+    >>> grid_source = GridSource(ds.all_data(), alpha=1.0)
+    >>>
+    >>> sc.add_source(grid_source)
+    >>>
+    >>> im = sc.render()
+
+    This example does the same thing, except it only draws the grids
+    that are inside a sphere of radius (0.1, "unitary") located at the
+    domain center:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import GridSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> 
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
     >>> dd = ds.sphere("c", (0.1, "unitary"))
-    >>> source = GridSource(dd, alpha=1.0)
+    >>> grid_source = GridSource(dd, alpha=1.0)
+    >>> 
+    >>> sc.add_source(grid_source)
+    >>>
+    >>> im = sc.render()
 
     """
     def __init__(self, data_source, alpha=0.3, cmap='algae',
@@ -693,7 +787,19 @@ class CoordinateVectorSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = CoordinateVectorSource()
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import CoordinateVectorSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
+    >>> coord_source = CoordinateVectorSource()
+    >>> 
+    >>> sc.add_source(coord_source)
+    >>> 
+    >>> im = sc.render()
+
     """
 
     def __init__(self, colors=None, alpha=1.0):
