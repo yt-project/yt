@@ -22,5 +22,5 @@ tf = volume_source.transfer_function
 tf.clear()
 tf.grey_opacity=True
 tf.add_layers(3, colormap='RdBu')
-sc.render("new_tf.png")
-
+sc.render()
+sc.save("new_tf.png")

@@ -238,7 +238,8 @@ class PerspectiveLens(Lens):
 
         dx = np.dot(pos1 - sight_center.d, camera.unit_vectors[0])
         dy = np.dot(pos1 - sight_center.d, camera.unit_vectors[1])
-        dz = np.dot(pos1 - sight_center.d, camera.unit_vectors[2])
+        dz = np.dot(pos - camera.position.d, camera.unit_vectors[2])
+
         # Transpose into image coords.
         px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
@@ -415,8 +416,8 @@ class StereoPerspectiveLens(Lens):
 
         dx = np.dot(pos1 - sight_center.d, east_vec_rot)
         dy = np.dot(pos1 - sight_center.d, north_vec)
-        dz = np.dot(pos1 - sight_center.d, normal_vec_rot)
-
+        dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+        
         # Transpose into image coords.
         px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
@@ -512,7 +513,7 @@ class FisheyeLens(Lens):
         # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
         # vector, and we need the reverse.
         # First, we transform lpos into *relative to the camera* coordinates.
-        lpos = camera.position - pos
+        lpos = camera.position.d - pos
         lpos = lpos.dot(self.rotation_matrix)
         # lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
@@ -525,11 +526,13 @@ class FisheyeLens(Lens):
         px = r * np.cos(phi)
         py = r * np.sin(phi)
         u = camera.focus.uq
+        length_unit = u / u.d
         # dz is distance the ray would travel
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
-        px = (u * np.rint(px)).astype("int64")
-        py = (u * np.rint(py)).astype("int64")
+        # px and py should be dimensionless
+        px = (u * np.rint(px) / length_unit).astype("int64")
+        py = (u * np.rint(py) / length_unit).astype("int64")
         return px, py, dz
 
 
@@ -609,7 +612,7 @@ class SphericalLens(Lens):
             res = camera.resolution
         # Much of our setup here is the same as in the fisheye, except for the
         # actual conversion back to the px, py values.
-        lpos = camera.position - pos
+        lpos = camera.position.d - pos
         # inv_mat = np.linalg.inv(self.rotation_matrix)
         # lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
@@ -626,11 +629,13 @@ class SphericalLens(Lens):
         py = np.arcsin(lpos[:, 2])
         dz = mag / self.radius
         u = camera.focus.uq
+        length_unit = u / u.d
         # dz is distance the ray would travel
         px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
         py = ((-py + np.pi/2.0) / np.pi) * res[1]
-        px = (u * np.rint(px)).astype("int64")
-        py = (u * np.rint(py)).astype("int64")
+        # px and py should be dimensionless
+        px = (u * np.rint(px) / length_unit).astype("int64")
+        py = (u * np.rint(py) / length_unit).astype("int64")
         return px, py, dz
 
 
