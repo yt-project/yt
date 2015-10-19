@@ -36,9 +36,26 @@ cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float6
                                np.float64_t *DLE, np.float64_t *DRE, np.int32_t order):
     cdef int i
     cdef np.float64_t dds[3]
-    cdef np.uint64_t ii[3], mi
+    cdef np.uint64_t ii[3]
+    cdef np.uint64_t mi
     for i in range(3):
         dds[i] = (DRE[i] - DLE[i]) / (1 << order)
+    ii[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
+    ii[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
+    ii[2] = <np.uint64_t> ((z - DLE[2])/dds[2])
+    mi = 0
+    mi |= spread_bits(ii[2])<<0
+    mi |= spread_bits(ii[1])<<1
+    mi |= spread_bits(ii[0])<<2
+    return mi
+  
+# This dosn't seem to be much, if at all, faster...
+@cython.cdivision(True)
+cdef inline np.uint64_t bounded_morton_mml(np.float64_t x, np.float64_t y, np.float64_t z,
+                               np.float64_t *DLE, np.float64_t *dds):
+    cdef int i
+    cdef np.uint64_t ii[3]
+    cdef np.uint64_t mi
     ii[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
     ii[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
     ii[2] = <np.uint64_t> ((z - DLE[2])/dds[2])

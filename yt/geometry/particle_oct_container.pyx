@@ -21,7 +21,7 @@ from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from fp_utils cimport *
-from yt.utilities.lib.geometry_utils cimport bounded_morton
+from yt.utilities.lib.geometry_utils cimport bounded_morton,bounded_morton_mml
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject, \
@@ -176,7 +176,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
-        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0) # why not just -1?
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
@@ -186,11 +186,15 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                 # This is a marker for the index not being inside the domain
                 # we're interested in.
                 continue
+            # Convert morton index to 3D index of octree root
             for i in range(3):
                 ind[i] = (index >> ((order - level)*3 + (2 - i))) & 1
             cur = self.root_mesh[ind[0]][ind[1]][ind[2]]
             if cur == NULL:
                 raise RuntimeError
+            # Continue refining the octree until you reach the level of the
+            # morton indexing order. Along the way, use prefix to count
+            # previous indices at levels in the octree?
             while (cur.file_ind + 1) > self.n_ref:
                 if level >= order: break # Just dump it here.
                 level += 1
@@ -240,6 +244,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef void filter_particles(self, Oct *o, np.uint64_t *data, np.int64_t p,
                                int level, np.uint8_t order):
         # Now we look at the last nref particles to decide where they go.
+        # If p: Loops over all previous morton indices
+        # If n_ref: Loops over n_ref previous morton indices
         cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
         cdef np.uint64_t prefix1, prefix2
@@ -250,7 +256,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(n):
             prefix2 = arr[i] >> (order - level)*3
             if (prefix1 == prefix2):
-                o.file_ind += 1
+                o.file_ind += 1 # Says how many morton indices are in this octant?
         #print ind[0], ind[1], ind[2], o.file_ind, level
 
     def recursively_count(self):
@@ -290,6 +296,7 @@ cdef class ParticleForest:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
+    cdef np.float64_t dds_mi[3]
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
     cdef public np.uint64_t nfiles
@@ -328,8 +335,11 @@ cdef class ParticleForest:
             self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
-            self.right_edge[i] = right_edge[i]
-            self.idds[i] = 1.0/self.dds[i]
+            self.idds[i] = 1.0/self.dds[i] 
+            # To save time, don't do this if index_order changes
+            # (Can you use properties in cython? If so, index_order should be
+            # property to handle changes that effect dds_mi)
+            self.dds_mi = (right_edge[i] - left_edge[i]) / (1<<index_order)
         # We use 64-bit masks
         self.masks = []
         self.index_order = index_order
@@ -346,27 +356,33 @@ cdef class ParticleForest:
                       np.uint64_t file_id, int filter,
                       np.float64_t rel_buffer):
         # TODO: Replace with the bitarray
-        cdef np.int64_t no = pos.shape[0]
+        # Initialize
         cdef np.int64_t p, i
         cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.float64_t dds[3]
         cdef np.int32_t order = self.index_order
+        # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            dds[i] = self.dds_mi[i]
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         cdef np.ndarray[np.uint8_t, ndim=1] morton_count = self.morton_count
-        for p in range(pos.shape[0]):
+        # Mark index of particles that are in this file
+        for p in range(pos.shape[0]): # Over particles
             skip = 0
-            for i in range(3):
+            for i in range(3): # Over dimensions
+                # Skip particles outside the domain
                 if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
+            #mi = bounded_morton_mml(ppos[0], ppos[1], ppos[2], LE, dds)
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
         return
@@ -377,51 +393,65 @@ cdef class ParticleForest:
     def secondary_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                       np.ndarray[np.uint8_t, ndim=1] mask,
                       np.uint64_t file_id, int order):
+        # Initialize
         cdef np.int64_t no = pos.shape[0]
         cdef np.int64_t p, i
         cdef np.uint64_t mi, nsub_mi, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
-        cdef np.float64_t LE[3], box_left[3]
-        cdef np.float64_t RE[3], box_right[3]
+        cdef np.float64_t LE[3]
+        cdef np.float64_t box_left[3]
+        cdef np.float64_t RE[3]
+        cdef np.float64_t box_right[3]
         cdef np.float64_t dds[3]
         cdef np.int64_t total_hits = 0
         cdef ParticleOctreeContainer octree = self.index_octree
+        # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
-            dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
+            #dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
+            dds[i] = self.dds_mi[i]
         tr = []
         cdef np.ndarray[np.uint64_t, ndim=2] sub_mi
         sub_mi = np.zeros((2, pos.shape[0]), dtype="uint64")
         nsub_mi = 0
+        # Loop over positions
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
+                # Skip particles outside domain
                 if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
+            # Find coarse index of particle
+            # (Balance between memory cost of storing morton indices & computation time?)
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order)
+            #mi = bounded_morton_mml(ppos[0], ppos[1], ppos[2], LE, dds)
             # Only look if it's within the mask
             if mask[mi] == 0: continue
             total_hits += 1
-            # Compute the bounding box
+            # Compute the bounding box for this index
+            # (this is also done inside bounded_morton)
             for i in range(3):
                 box_left[i] = (<np.int64_t>((ppos[i] - LE[i])/dds[i])) * dds[i]
                 box_right[i] = box_left[i] + dds[i]
+            # Determine sub index within cell of primary index
             sub_mi[0, nsub_mi] = mi
             sub_mi[1, nsub_mi] = bounded_morton(ppos[0], ppos[1], ppos[2],
                                                 box_left, box_right, order)
             nsub_mi += 1
-        print sub_mi.size,
+        # Only subs of particles in the mask
+        #print sub_mi.size,
         sub_mi = sub_mi[:,:nsub_mi]
-        print sub_mi.size
+        #print sub_mi.size
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort(sub_mi)
         last_submi = last_mi = 0
         for i in range(nsub_mi):
             p = ind[i]
+            # Make sure its sorted
             if not (sub_mi[1,p] >= last_submi):
                 print last_mi, last_submi, sub_mi[0,p], sub_mi[1,p]
                 raise RuntimeError
@@ -503,7 +533,8 @@ cdef class ParticleForest:
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
         files, pcount, omask, buffer_files = data_file_info
-        cdef np.float64_t LE[3], RE[3]
+        cdef np.float64_t LE[3]
+        cdef np.float64_t RE[3]
         cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t selected, fcheck, fmask
         cdef np.ndarray[np.uint64_t, ndim=3] counts
@@ -579,12 +610,14 @@ cdef class ParticleForest:
                     particle_count[forest_nodes[i,j,k]] = counts[i,j,k]
                     total_pcount += counts[i,j,k]
         # Okay, now just to filter based on our mask.
-        cdef int ind[3], arri
+        cdef int ind[3]
+        cdef int arri
         cdef np.ndarray pos
         cdef np.ndarray[np.float32_t, ndim=2] pos32
         cdef np.ndarray[np.float64_t, ndim=2] pos64
         cdef np.float64_t ppos[3]
-        cdef np.float64_t DLE[3], DRE[3]
+        cdef np.float64_t DLE[3]
+        cdef np.float64_t DRE[3]
         cdef int bitsize = 0
         for i in range(self.nfiles):
             if file_ids[i] == 0: continue
@@ -750,9 +783,11 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
-        cdef Oct *cur, *root
+        cdef Oct *cur
+        cdef Oct *root
         cdef np.int64_t no = indices.shape[0], p, index
-        cdef int i, level, ind[3]
+        cdef int i, level
+        cdef int ind[3]
         ind[0] = root_i
         ind[1] = root_j
         ind[2] = root_k
@@ -794,7 +829,8 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
-        cdef int i, j, k, m, n, ind[3]
+        cdef int i, j, k, m, n
+        cdef int ind[3]
         cdef Oct *noct
         cdef np.uint64_t prefix1, prefix2
         # TODO: This does not need to be changed.
@@ -867,7 +903,8 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
             for j in range(3):
                 ind[j] = i64ind[j]
             obj.next_root(1, ind)
-        cdef np.float64_t pos[3], dds[3]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
