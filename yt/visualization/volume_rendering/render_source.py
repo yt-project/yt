@@ -685,7 +685,6 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Set the new zbuffer
         self.zbuffer = zbuffer
-
         return zbuffer
 
     def __repr__(self):
