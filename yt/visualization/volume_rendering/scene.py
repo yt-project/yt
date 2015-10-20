@@ -147,8 +147,14 @@ class Scene(object):
 
         Examples
         --------
-        >>> sc = Scene()
-        >>> # Add sources/camera/etc
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
         >>> im = sc.render(sigma_clip=4.0)
         >>> sc.save()
 
@@ -183,14 +189,26 @@ class Scene(object):
 
         Examples
         --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
         >>> sc = yt.create_scene(ds)
-        >>> # Add sources/camera/etc
+        >>> # Modify camera, sources, etc...
         >>> sc.render()
         >>> sc.save('test.png')
 
-        # Or alternatively
+        Or alternatively:
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
         >>> sc = yt.create_scene(ds)
-        >>> # Add sources/camera/etc
+        >>> # Modify camera, sources, etc...
         >>> sc.save('test.png')
 
         """
@@ -247,8 +265,14 @@ class Scene(object):
 
         Examples
         --------
-        >>> sc = Scene()
-        >>> # Add sources/camera/etc
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
         >>> im = sc.composite()
 
         """
@@ -320,6 +344,18 @@ class Scene(object):
             simulation being rendered. Used to get the domain bounds.
 
 
+        Examples
+        --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_domain(ds)
+        >>> im = sc.render()
+
         """
         box_source = BoxSource(ds.domain_left_edge,
                                ds.domain_right_edge,
@@ -329,6 +365,40 @@ class Scene(object):
 
     def annotate_grids(self, data_source, alpha=0.3, cmap='algae',
                        min_level=None, max_level=None):
+        r"""
+
+        Modifies this scene by drawing the edges of the AMR grids.
+        This adds a new BoxSource to the scene for each AMR grid 
+        and returns the resulting Scene object.
+
+        Parameters
+        ----------
+
+        data_source: :class:`~yt.data_objects.api.DataContainer`
+            The data container that will be used to identify grids to draw.
+        alpha : float
+            The opacity of the grids to draw.
+        cmap : color map name
+            The color map to use to map resolution levels to color.
+        min_level : int, optional
+            Minimum level to draw
+        max_level : int, optional
+            Maximum level to draw
+
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_grids(ds.all_data())
+        >>> im = sc.render()
+
+        """
         grids = GridSource(data_source, alpha=alpha, cmap=cmap,
                             min_level=min_level, max_level=max_level)
         self.add_source(grids)
@@ -347,6 +417,18 @@ class Scene(object):
             The x, y, z RGBA values to use to draw the axes.
         alpha : float, optional
             The opacity of the vectors.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import PointSource
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_axes(alpha=0.5)
+        >>> im = sc.render()
 
         """
         coords = CoordinateVectorSource(colors, alpha)
