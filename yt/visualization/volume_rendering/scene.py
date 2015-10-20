@@ -282,8 +282,8 @@ class Scene(object):
         opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self._iter_opaque_sources():
-            opaque = source.render(camera, zbuffer=opaque)
-            im = opaque.rgba
+            source.render(camera, zbuffer=opaque)
+            im = source.zbuffer.rgba
 
         for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
