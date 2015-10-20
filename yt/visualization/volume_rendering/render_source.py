@@ -456,6 +456,7 @@ class PointSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
+        assert(positions.ndim == 2 and positions.shape[1] == 3)
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -645,8 +646,8 @@ class BoxSource(LineSource):
     >>> im, sc = yt.volume_render(ds)
     >>> 
     >>> box_source = BoxSource(ds.domain_left_edge,
-    >>>                       ds.domain_right_edge,
-    >>>                       [1.0, 1.0, 1.0, 1.0])
+    ...                       ds.domain_right_edge,
+    ...                       [1.0, 1.0, 1.0, 1.0])
     >>> sc.add_source(box_source)
     >>> 
     >>> im = sc.render()
