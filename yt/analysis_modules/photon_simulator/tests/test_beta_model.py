@@ -28,7 +28,7 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-test_dir = ytcfg.get("yt", "test_data_dir")
+xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
 rmfs = ["pn-med.rmf", "acisi_aimpt_cy17.rmf",
         "aciss_aimpt_cy17.rmf", "nustar.rmf",
@@ -99,8 +99,8 @@ def test_beta_model():
                                       thermal_model)
 
     for a, r in zip(rmfs, arfs):
-        arf = test_dir+"/xray_data/"+a
-        rmf = test_dir+"/xray_data/"+r
+        arf = xray_data_dir+a
+        rmf = xray_data_dir+r
         events = photons.project_photons("z", responses=[arf,rmf],
                                          absorb_model=abs_model)
         events.write_spectrum("beta_model_evt.pi", clobber=True)
@@ -113,7 +113,7 @@ def test_beta_model():
         m.bapec.Abundanc = 0.25
         m.bapec.norm = 1.0
         m.bapec.Redshift = 0.05
-        m.bapec.Velocity = 0.0
+        m.bapec.Velocity = 100.0
         m.TBabs.nH = 0.015
 
         m.bapec.Velocity.frozen = False
@@ -124,6 +124,12 @@ def test_beta_model():
         xspec.Fit.renorm()
         xspec.Fit.nIterations = 100
         xspec.Fit.perform()
+
+        assert np.abs(m.bapec.Redshift.values[0]-v_shift) < 1.0
+        assert np.abs(m.bapec.kT.values[0]-6.0) < 1.0
+        assert np.abs(m.bapec.Abundanc.values[0]-0.3) < 1.0
+        assert np.abs(m.bapec.Velocity.values[0]-0.0) < 1.0
+        assert np.abs(m.TBabs.nH.values[0]-0.02) < 1.0
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)

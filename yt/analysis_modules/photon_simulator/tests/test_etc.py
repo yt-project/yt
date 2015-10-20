@@ -23,13 +23,14 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-test_dir = ytcfg.get("yt", "test_data_dir")
+test_data_dir = ytcfg.get("yt", "test_data_dir")
+xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
-ETC = test_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
-APEC = test_dir+"/xray_data/atomdb_v2.0.2"
-TBABS = test_dir+"/xray_data/tbabs_table.h5"
-ARF = test_dir+"/xray_data/aciss_aimpt_cy17.arf"
-RMF = test_dir+"/xray_data/aciss_aimpt_cy17.rmf"
+ETC = test_data_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
+APEC = xray_data_dir+"/atomdb_v2.0.2"
+TBABS = xray_data_dir+"/tbabs_table.h5"
+ARF = xray_data_dir+"/aciss_aimpt_cy17.arf"
+RMF = xray_data_dir+"/aciss_aimpt_cy17.rmf"
 
 @requires_ds(ETC)
 @requires_file(APEC)
