@@ -49,7 +49,30 @@ class Camera(Orientation):
 
     Examples
     --------
+    
+    In this example, the camera is set using defaults that are chosen
+    to be reasonable for the argument Dataset.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> cam = Camera(ds)
+
+    Here, we set the camera properties manually:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> cam = Camera()
+    >>> cam.position = np.array([0.5, 0.5, -1.0])
+    >>> cam.focus = np.array([0.5, 0.5, 0.0])
+    >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
+
+    Finally, we create a camera with a non-default lens:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> cam = Camera(ds, lens_type='perspective')
 
     """
 
