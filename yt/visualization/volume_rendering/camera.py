@@ -356,7 +356,19 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> cam.rotate(np.pi/4)
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import \
+        ...     Scene, \
+        ...     PointSource, \
+        ...     Camera
+        >>> cam = Camera()
+        >>> # rotate the camera by pi / 4 radians:
+        >>> cam.rotate(np.pi/4.0)  
+        >>> # rotate the camera about the y-axis instead of cam.north_vector:
+        >>> cam.rotate(np.pi/4.0, np.array([0.0, 1.0, 0.0]))  
+        >>> # rotate the camera about the origin instead of its own position:
+        >>> cam.rotate(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))  
 
         """
         rotate_all = rot_vector is not None
@@ -400,8 +412,18 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import \
+        ...     Scene, \
+        ...     PointSource, \
+        ...     Camera
         >>> cam = Camera()
-        >>> cam.pitch(np.pi/4)
+        >>> # pitch the camera by pi / 4 radians:
+        >>> cam.pitch(np.pi/4.0)  
+        >>> # pitch the camera about the origin instead of its own position:
+        >>> cam.pitch(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[0], rot_center=rot_center)
 
@@ -420,8 +442,18 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import \
+        ...     Scene, \
+        ...     PointSource, \
+        ...     Camera
         >>> cam = Camera()
-        >>> cam.yaw(np.pi/4)
+        >>> # yaw the camera by pi / 4 radians:
+        >>> cam.yaw(np.pi/4.0)  
+        >>> # yaw the camera about the origin instead of its own position:
+        >>> cam.yaw(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[1], rot_center=rot_center)
 
@@ -440,8 +472,18 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import \
+        ...     Scene, \
+        ...     PointSource, \
+        ...     Camera
         >>> cam = Camera()
-        >>> cam.roll(np.pi/4)
+        >>> # roll the camera by pi / 4 radians:
+        >>> cam.roll(np.pi/4.0)  
+        >>> # roll the camera about the origin instead of its own position:
+        >>> cam.roll(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2], rot_center=rot_center)
 
@@ -469,9 +511,16 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> 
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):
-        ...     im = sc.render()
-        ...     sc.save('rotation_%04i.png' % i)
+        ... im = sc.render()
+        ... sc.save('rotation_%04i.png' % i)
+
         """
 
         dtheta = (1.0*theta)/n_steps
@@ -493,14 +542,22 @@ class Camera(Orientation):
             The number of snapshots to make.
         exponential : boolean
             Specifies whether the move/zoom transition follows an
-            exponential path toward the destination or linear
+            exponential path toward the destination or linear.
+            Default is False.
 
         Examples
         --------
 
-        >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> final_position = ds.arr([0.2, 0.3, 0.6], 'unitary')
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
+        >>> for i in cam.iter_move(final_position, 10):
         ...     sc.render()
         ...     sc.save("move_%04i.png" % i)
+
         """
         assert isinstance(final, YTArray)
         if exponential:
@@ -527,7 +584,17 @@ class Camera(Orientation):
         factor : float
             The factor by which to reduce the distance to the focal point.
 
+        Examples
+        --------
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> cam = Camera(ds)
+        >>> cam.zoom(1.1)
+
         """
+
         self.set_width(self.width / factor)
 
     def iter_zoom(self, final, n_steps):
@@ -547,9 +614,15 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
         >>> for i in cam.iter_zoom(100.0, 10):
         ...     sc.render()
         ...     sc.save("zoom_%04i.png" % i)
+
         """
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):
