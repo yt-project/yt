@@ -198,7 +198,7 @@ class Camera(Orientation):
 
     def set_defaults_from_data_source(self, data_source):
         """Resets the camera attributes to their default values"""
-        self.position = data_source.pf.domain_right_edge
+        self._position = data_source.pf.domain_right_edge
 
         width = 1.5 * data_source.pf.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
@@ -220,8 +220,8 @@ class Camera(Orientation):
         if not isinstance(focus, YTArray):
             focus = self.pf.arr(focus, input_units="code_length")
 
-        self.set_width(width)
-        self.focus = focus
+        self._width = width
+        self._focus = focus
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
