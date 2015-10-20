@@ -9,7 +9,7 @@ from yt.config import ytcfg
 def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
-test_data_dir = ytcfg.get("yt", "test_data_dir")
+xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
 ds = fake_random_ds(64)
 
@@ -17,7 +17,7 @@ ds = fake_random_ds(64)
 @requires_module("astropy")
 def test_apec():
 
-    settings = {"APECROOT":test_data_dir+"/xray_data/apec_v2.0.2"}
+    settings = {"APECROOT":xray_data_dir+"/xray_data/apec_v2.0.2"}
     xmod = XSpecThermalModel("apec", 0.1, 10.0, 10000, thermal_broad=True,
                              settings=settings)
     xmod.prepare_spectrum(0.2)
@@ -25,10 +25,10 @@ def test_apec():
     xcspec, xmspec = xmod.get_spectrum(6.0)
     spec1 = xcspec+0.3*xmspec
 
-    amod = TableApecModel(test_data_dir+"/xray_data", 0.1, 10.0, 
+    amod = TableApecModel(xray_data_dir+"/xray_data", 0.1, 10.0, 
                           10000, thermal_broad=True)
     amod.prepare_spectrum(0.2)
-    
+
     acspec, amspec = amod.get_spectrum(6.0)
     spec2 = acspec+0.3*amspec
 
