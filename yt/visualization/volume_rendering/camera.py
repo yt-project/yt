@@ -358,10 +358,7 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import \
-        ...     Scene, \
-        ...     PointSource, \
-        ...     Camera
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
         >>> # rotate the camera by pi / 4 radians:
         >>> cam.rotate(np.pi/4.0)  
@@ -414,10 +411,7 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import \
-        ...     Scene, \
-        ...     PointSource, \
-        ...     Camera
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
         >>> # pitch the camera by pi / 4 radians:
         >>> cam.pitch(np.pi/4.0)  
@@ -444,10 +438,7 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import \
-        ...     Scene, \
-        ...     PointSource, \
-        ...     Camera
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
         >>> # yaw the camera by pi / 4 radians:
         >>> cam.yaw(np.pi/4.0)  
@@ -474,10 +465,7 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import \
-        ...     Scene, \
-        ...     PointSource, \
-        ...     Camera
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
         >>> # roll the camera by pi / 4 radians:
         >>> cam.roll(np.pi/4.0)  
