@@ -41,7 +41,31 @@ class Scene(object):
 
     Examples
     --------
+
+    This example shows how to create an empty scene and add a VolumeSource
+    and a Camera.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
+    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> sc.add_source(source)
+    >>> cam = Camera(ds)
+    >>> sc.camera = cam
+    >>> im = sc.render()
+
+    Alternatively, you can use the create_scene function to set up defaults 
+    and then modify the Scene later:
+
+    >>> import yt
+    >>> import numpy as np
+    >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> 
+    >>> sc = yt.create_scene(ds)
+    >>> # Modify camera, sources, etc...
+    >>> im = sc.render()
 
     """
 
@@ -125,7 +149,7 @@ class Scene(object):
         --------
         >>> sc = Scene()
         >>> # Add sources/camera/etc
-        >>> im = sc.render(sigma_clip=4)
+        >>> im = sc.render(sigma_clip=4.0)
         >>> sc.save()
 
         """
@@ -225,7 +249,7 @@ class Scene(object):
         --------
         >>> sc = Scene()
         >>> # Add sources/camera/etc
-        >>> im = sc.composite(')
+        >>> im = sc.composite()
 
         """
         if camera is None:
