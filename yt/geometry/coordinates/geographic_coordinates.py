@@ -230,19 +230,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
-    # Despite being mutables, we uses these here to be clear about how these
-    # are generated and to ensure that they are not re-generated unnecessarily
-    axis_name = { 0  : 'latitude',  1  : 'longitude',  2  : 'altitude',
-                 'latitude' : 'latitude',
-                 'longitude' : 'longitude', 
-                 'altitude' : 'altitude',
-                 'Latitude' : 'latitude',
-                 'Longitude' : 'longitude', 
-                 'Altitude' : 'altitude',
-                 'lat' : 'latitude',
-                 'lon' : 'longitude', 
-                 'alt' : 'altitude' }
-
     _image_axis_name = None
     @property
     def image_axis_name(self):    
@@ -287,9 +274,31 @@ class GeographicCoordinateHandler(CoordinateHandler):
                               0.0 * display_center[1],
                               0.0 * display_center[2])
         elif name == 'longitude':
-            c = self.ds.domain_right_edge[self.axis_id['altitude']]/2.0
+            ri = self.axis_id['altitude']
+            c = (self.ds.domain_right_edge[ri] +
+                 self.ds.domain_left_edge[ri])/2.0
             display_center = [0.0 * display_center[0], 
                               0.0 * display_center[1],
                               0.0 * display_center[2]]
             display_center[self.axis_id['latitude']] = c
         return center, display_center
+
+    def sanitize_width(self, axis, width, depth):
+        name = self.axis_name[axis]
+        if width is not None:
+            width = super(GeographicCoordinateHandler, self).sanitize_width(
+              axis, width, depth)
+        elif name == 'altitude':
+            width = [self.ds.domain_width[self.y_axis['altitude']],
+                     self.ds.domain_width[self.x_axis['altitude']]]
+        elif name == 'latitude':
+            ri = self.axis_id['altitude']
+            # Remember, in spherical coordinates when we cut in theta,
+            # we create a conic section
+            width = [2.0*self.ds.domain_width[ri],
+                     2.0*self.ds.domain_width[ri]]
+        elif name == 'longitude':
+            ri = self.axis_id['altitude']
+            width = [self.ds.domain_width[ri],
+                     2.0*self.ds.domain_width[ri]]
+        return width
