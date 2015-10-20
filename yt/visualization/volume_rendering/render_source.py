@@ -153,12 +153,15 @@ class VolumeSource(RenderSource):
 
     def build_default_transfer_function(self):
         """Sets up a transfer function"""
-        self.tfh = \
-            TransferFunctionHelper(self.data_source.pf)
-        self.tfh.set_field(self.field)
-        self.tfh.build_transfer_function()
-        self.tfh.setup_default()
-        self.transfer_function = self.tfh.tf
+        ad = self.data_source.ds.all_data()
+        mi, ma = ad.quantities.extrema(self.field)
+        mi = np.log10(mi)
+        ma = np.log10(ma)
+        func = lambda x, mi, ma: (x - mi)/(ma - mi)
+        self.transfer_function = ColorTransferFunction((mi, ma))
+        self.transfer_function.map_to_colormap(mi, ma, scale=1, \
+            colormap='algae', scale_func=func)
+        self.transfer_function.grey_opacity=True
 
     def build_default_volume(self):
         """Sets up an AMRKDTree based on the VolumeSource's field"""
