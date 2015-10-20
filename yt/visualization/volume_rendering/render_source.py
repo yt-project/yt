@@ -446,7 +446,7 @@ class PointSource(OpaqueSource):
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
-
+    
     >>> im = sc.render()
 
     """
@@ -457,6 +457,9 @@ class PointSource(OpaqueSource):
 
     def __init__(self, positions, colors=None, color_stride=1):
         assert(positions.ndim == 2 and positions.shape[1] == 3)
+        if colors is not None:
+            assert(colors.ndim == 2 and colors.shape[1] == 4)
+            assert(colors.shape[0] == positions.shape[0]) 
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -562,8 +565,12 @@ class LineSource(OpaqueSource):
     def __init__(self, positions, colors=None, color_stride=1):
         super(LineSource, self).__init__()
 
+        assert(positions.ndim == 3)
         assert(positions.shape[1] == 2)
         assert(positions.shape[2] == 3)
+        if colors is not None:
+            assert(colors.ndim == 2)
+            assert(colors.shape[1] == 4)
 
         # convert the positions to the shape expected by zlines, below
         N = positions.shape[0]
@@ -654,8 +661,13 @@ class BoxSource(LineSource):
 
     """
     def __init__(self, left_edge, right_edge, color=None):
+
+        assert(left_edge.shape == (3,))
+        assert(right_edge.shape == (3,))
+        
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
+
         color = ensure_numpy_array(color)
         color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
