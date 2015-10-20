@@ -577,7 +577,7 @@ class PhotonList(object):
                                   "responses are normalized properly. If not, you may "+
                                   "get inconsistent results.")
                 f.close()
-                Aratio = eff_area.max()/self.parameters["FiducialArea"]
+                Aratio = eff_area.max()/self.parameters["FiducialArea"].v
             else:
                 mylog.info("Using constant effective area.")
                 Aratio = parse_value(area_new, "cm**2")/self.parameters["FiducialArea"]
