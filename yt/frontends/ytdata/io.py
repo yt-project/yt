@@ -203,7 +203,6 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             all_count = self._count_particles(data_file)
-            pcount = all_count["grid"]
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     x = _get_position_array(ptype, f, "x")
@@ -299,7 +298,6 @@ class IOHandlerSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             all_count = self._count_particles(data_file)
-            pcount = all_count["grid"]
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     x = _get_position_array(ptype, f, "px")
