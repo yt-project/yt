@@ -506,8 +506,8 @@ class Camera(Orientation):
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):
-        ... im = sc.render()
-        ... sc.save('rotation_%04i.png' % i)
+        ...     im = sc.render()
+        ...     sc.save('rotation_%04i.png' % i)
 
         """
 
