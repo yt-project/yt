@@ -398,9 +398,9 @@ class FixedResolutionBuffer(object):
             will be a combination of the original dataset and the type 
             of data container.
         fields : list of strings or tuples, optional
-            If this is supplied, it is the list of fields to be exported into
-            the data frame.  If not supplied, whatever fields presently exist
-            will be used.
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
 
         Returns
         -------
