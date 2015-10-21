@@ -167,20 +167,21 @@ Improving Image Contrast with Sigma Clipping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your images appear to be too dark, you can try using the ``sigma_clip``
-keyword in the :meth:`~yt.visualization.volume_rendering.scene.Scene.render` 
-or :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` functions.  
-Because the brightness range in an image is scaled to match the range of 
-emissivity values of underlying rendering, if you have a few really 
+keyword in the :meth:`~yt.visualization.volume_rendering.scene.Scene.save` 
+or :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
+functions.  Because the brightness range in an image is scaled to match the 
+range of emissivity values of underlying rendering, if you have a few really 
 high-emissivity points, they will scale the rest of your image to be quite 
 dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.  
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
+See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
 
 .. python-script::
 
   sc = yt.create_scene(ds, 'density')
-  sc.render(sigma_clip=4)
-  sc.save()
+  sc.render()
+  sc.save(sigma_clip=4)
 
 .. _transfer_functions:
 

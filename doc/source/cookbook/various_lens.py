@@ -34,8 +34,8 @@ cam.switch_orientation(normal_vector=normal_vector,
 cam.set_width(ds.domain_width * 0.5)
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_plane-parallel.png')
+sc.render()
+sc.save('lens_plane-parallel.png', sigma_clip=6.0)
 
 # Perspective lens
 cam = Camera(ds, lens_type='perspective')
@@ -51,8 +51,8 @@ cam.switch_orientation(normal_vector=normal_vector,
 cam.set_width(ds.domain_width * 0.5)
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_perspective.png')
+sc.render()
+sc.save('lens_perspective.png', sigma_clip=6.0)
 
 # Stereo-perspective lens
 cam = Camera(ds, lens_type='stereo-perspective')
@@ -67,8 +67,8 @@ cam.set_width(ds.domain_width*0.5)
 cam.lens.disparity = ds.domain_width[0] * 1.e-3
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_stereo-perspective.png')
+sc.render()
+sc.save('lens_stereo-perspective.png', sigma_clip=6.0)
 
 # Fisheye lens
 dd = ds.sphere(ds.domain_center, ds.domain_width[0] / 10)
@@ -82,8 +82,8 @@ cam.set_width(ds.domain_width)
 cam.lens.fov = 360.0
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_fisheye.png')
+sc.render()
+sc.save('lens_fisheye.png', sigma_clip=6.0)
 
 # Spherical lens
 cam = Camera(ds, lens_type='spherical')
@@ -100,8 +100,8 @@ cam.switch_orientation(normal_vector=normal_vector,
 cam.set_width(ds.domain_width * 0.5)
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_spherical.png')
+sc.render()
+sc.save('lens_spherical.png', sigma_clip=6.0)
 
 # Stereo-spherical lens
 cam = Camera(ds, lens_type='stereo-spherical')
@@ -116,5 +116,5 @@ cam.set_width(ds.domain_width * 0.5)
 cam.lens.disparity = ds.domain_width[0] * 1.e-3
 sc.camera = cam
 sc.add_source(vol)
-sc.render(sigma_clip=6.0)
-sc.save('lens_stereo-spherical.png')
+sc.render()
+sc.save('lens_stereo-spherical.png', sigma_clip=6.0)
