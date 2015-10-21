@@ -113,6 +113,6 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None):
     >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
     """
     sc = create_scene(data_source, field=field)
-    im = sc.render(sigma_clip=sigma_clip)
-    sc.save(fname=fname)
+    im = sc.render()
+    sc.save(fname=fname, sigma_clip=sigma_clip)
     return im, sc
