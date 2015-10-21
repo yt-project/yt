@@ -460,7 +460,7 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k,v in self.specified_parameters.items():
+        for k, v in list(self.specified_parameters.items()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning("Supplying unit conversions from the parameters dict is deprecated, "+
