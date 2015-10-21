@@ -114,9 +114,6 @@ used internally.
   to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``'False'``): If true, automatic caching of datasets
   is turned off.
-* ``xray_data_dir`` (default: ``'/does/not/exist'``): The default path for data related
-  to the :ref:`photon simulator analysis module <photon_simulator>`. Currently used only
-  for testing. 
 
 .. _plugin-file:
 
