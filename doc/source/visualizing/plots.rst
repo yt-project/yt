@@ -1284,6 +1284,8 @@ yielding
    bananas_Slice_z_kT.eps
    bananas_Slice_z_density.eps
 
+.. _remaking-plots:
+
 Remaking Figures from Plot Datasets
 -----------------------------------
 

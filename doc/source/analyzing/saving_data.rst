@@ -19,7 +19,7 @@ the following:
   * generic array data
 
 In the case of projections, slices, and profiles, reloaded data can be
-used to remake plots using the methods decribed in :ref:`how-to-make-plots`.
+used to remake plots.  For information on this, see :ref:`remaking-plots`.
 
 .. _saving-data-containers:
 
