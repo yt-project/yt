@@ -1,3 +1,5 @@
+.. _photon_simulator:
+
 Constructing Mock X-ray Observations
 ------------------------------------
 

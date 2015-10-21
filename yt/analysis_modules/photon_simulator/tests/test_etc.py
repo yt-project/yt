@@ -60,6 +60,7 @@ def test_etc():
 
     def photons_test():
         return photons.photons
+
     def events_test():
         return events.events
 
