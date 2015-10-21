@@ -463,19 +463,19 @@ class FisheyeLens(Lens):
     def new_image(self, camera):
         """Initialize a new ImageArray to be used with this lens."""
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]**2, 1,
+            np.zeros((camera.resolution[0], camera.resolution[0],
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
         vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
-        vp.shape = (camera.resolution[0]**2, 1, 3)
+        vp.shape = (camera.resolution[0], camera.resolution[0], 3)
         vp = vp.dot(np.linalg.inv(self.rotation_matrix))
         vp *= self.radius
         uv = np.ones(3, dtype='float64')
-        positions = np.ones((camera.resolution[0]**2, 1, 3),
-                            dtype='float64') * camera.position
+        positions = np.ones((camera.resolution[0], camera.resolution[0], 3),
+            dtype='float64') * camera.position
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba

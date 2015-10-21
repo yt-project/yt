@@ -279,8 +279,13 @@ cdef class ImageSampler:
             self.extent_function = calculate_extent_plane_parallel
             self.vector_function = generate_vector_info_plane_parallel
         else:
-            assert(vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0])
-            assert(vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1])
+            if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
+               not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
+                print "Bad lense shape / direction for %s" % (self.lens_type)
+                print "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
+                    vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
+                    vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
+                raise RuntimeError
             self.extent_function = calculate_extent_null
             self.vector_function = generate_vector_info_null
         self.sampler = NULL
