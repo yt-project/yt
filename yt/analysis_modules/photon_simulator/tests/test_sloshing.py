@@ -26,7 +26,7 @@ def setup():
 test_data_dir = ytcfg.get("yt", "test_data_dir")
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
-ETC = test_data_dir+"/enzo_tiny_cosmology/DD0046/DD0046"
+gslr = test_data_dir+"/GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 APEC = xray_data_dir+"/atomdb_v2.0.2"
 TBABS = xray_data_dir+"/tbabs_table.h5"
 ARF = xray_data_dir+"/aciss_aimpt_cy17.arf"
@@ -41,22 +41,23 @@ def test_etc():
 
     np.random.seed(seed=0x4d3d3d3)
 
-    ds = data_dir_load(ETC)
-    A = 3000.
+    ds = data_dir_load(gslr)
+    A = 2000.
     exp_time = 1.0e5
     redshift = 0.1
 
     apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
-    sphere = ds.sphere("max", (0.5, "Mpc"))
+    sphere = ds.sphere("c", (0.1, "Mpc"))
 
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
     events = photons.project_photons("z", responses=[ARF,RMF],
-                                     absorb_model=tbabs_model)
+                                     absorb_model=tbabs_model,
+                                     convolve_energies=True)
 
     def photons_test():
         return photons.photons

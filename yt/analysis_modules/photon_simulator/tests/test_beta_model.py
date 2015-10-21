@@ -101,7 +101,7 @@ def test_beta_model():
     for a, r in zip(rmfs, arfs):
         arf = xray_data_dir+a
         rmf = xray_data_dir+r
-        events = photons.project_photons("z", responses=[arf,rmf],
+        events = photons.project_photons([1.0,-1.0,0.5], responses=[arf,rmf],
                                          absorb_model=abs_model)
         events.write_spectrum("beta_model_evt.pi", clobber=True)
 
