@@ -30,6 +30,8 @@ from .fields import \
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 from yt.data_objects.profiles import \
     Profile1DFromDataset, \
     Profile2DFromDataset, \
@@ -79,6 +81,32 @@ class YTDataset(Dataset):
             setattr(self, attr, self.parameters.get(attr))
         self.unique_identifier = \
           int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+    def create_field_info(self):
+        self.field_dependencies = {}
+        self.derived_field_list = []
+        self.filtered_particle_types = []
+        self.field_info = self._field_info_class(self, self.field_list)
+        self.coordinates.setup_fields(self.field_info)
+        self.field_info.setup_fluid_fields()
+        for ptype in self.particle_types:
+            self.field_info.setup_particle_fields(ptype)
+
+        for ftype, field in self.field_list:
+            if ftype == self.default_fluid_type:
+                self.field_info.alias(
+                    ("gas", field),
+                    (self.default_fluid_type, field))
+
+        if "all" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'all'")
+            pu = ParticleUnion("all", list(self.particle_types_raw))
+            self.add_particle_union(pu)
+        self.field_info.setup_extra_union_fields()
+        mylog.info("Loading field plugins.")
+        self.field_info.load_all_plugins()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
 
     def _set_code_unit_attributes(self):
         attrs = ('length_unit', 'mass_unit', 'time_unit',
@@ -297,14 +325,6 @@ class YTGridDataset(YTDataset):
             self.domain_dimensions = \
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
 
-    def create_field_info(self):
-        super(YTGridDataset, self).create_field_info()
-        for ftype, field in self.field_list:
-            if ftype == self.default_fluid_type:
-                self.field_info.alias(
-                    ("gas", field),
-                    (self.default_fluid_type, field))
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
@@ -481,7 +501,6 @@ class YTNonspatialDataset(YTGridDataset):
 
     @parallel_root_only
     def print_key_parameters(self):
-        mylog.info("YTArrayDataset")
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
                   "domain_right_edge", "cosmological_simulation"]:
             v = getattr(self, a)
