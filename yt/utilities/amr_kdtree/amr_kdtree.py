@@ -16,7 +16,7 @@ from __future__ import absolute_import
 
 from yt.funcs import *
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 from .amr_kdtools import \
         receive_and_reduce, send_to_parent, scatter_image
 

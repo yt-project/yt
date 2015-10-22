@@ -9,48 +9,47 @@ ART-specific data structures
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+import glob
 import numpy as np
 import os
 import stat
+import struct
 import weakref
-from yt.extern.six.moves import cStringIO
-import difflib
-import glob
 
-from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
-    Index, YTDataChunk
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
 from yt.data_objects.octree_subset import \
     OctreeSubset
+from yt.funcs import \
+    mylog
 from yt.geometry.oct_container import \
     ARTOctreeContainer
-from .fields import ARTFieldInfo
-from yt.utilities.io_handler import \
-    io_registry
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
+from yt.frontends.art.definitions import \
+    fluid_fields, \
+    particle_fields, \
+    filename_pattern, \
+    particle_header_struct, \
+    amr_header_struct, \
+    dmparticle_header_struct, \
+    constants, \
+    seek_extras
+from yt.frontends.art.fields import ARTFieldInfo
 from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
-from yt.utilities.lib.geometry_utils import compute_morton
 
-from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
-from .io import _read_art_level_info
-from .io import _read_child_level
-from .io import _read_root_level
-from .io import b2t
-from .io import a2b
-
-from yt.utilities.io_handler import \
-    io_registry
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
+from yt.frontends.art.io import \
+    _read_art_level_info, \
+    _read_child_level, \
+    _read_root_level, \
+    b2t, \
+    a2b
 
 
 class ARTIndex(OctreeIndex):
@@ -181,8 +180,6 @@ class ARTDataset(Dataset):
         self.max_level = limit_level
         self.force_max_level = force_max_level
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')
-        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -193,7 +190,7 @@ class ARTDataset(Dataset):
         particle header, star files, etc.
         """
         base_prefix, base_suffix = filename_pattern['amr']
-        aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
+        numericstr = file_amr.rsplit('_',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
@@ -201,7 +198,10 @@ class ARTDataset(Dataset):
                 continue
             match = None
             for possible in possibles:
-                if possible.endswith(aexpstr+suffix):
+                if possible.endswith(numericstr+suffix):
+                    if os.path.basename(possible).startswith(prefix):
+                        match = possible
+                elif possible.endswith(suffix):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:
@@ -228,7 +228,6 @@ class ARTDataset(Dataset):
         aexpn = self.parameters["aexpn"]
 
         # all other units
-        wmu = self.parameters["wmu"]
         Om0 = self.parameters['Om0']
         ng = self.parameters['ng']
         boxh = self.parameters['boxh']
@@ -252,6 +251,8 @@ class ARTDataset(Dataset):
         """
         Get the various simulation parameters & constants.
         """
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         self.dimensionality = 3
         self.refine_by = 2
         self.periodicity = (True, True, True)
@@ -265,7 +266,7 @@ class ARTDataset(Dataset):
         with open(self._file_amr, 'rb') as f:
             amr_header_vals = fpu.read_attrs(f, amr_header_struct, '>')
             for to_skip in ['tl', 'dtl', 'tlold', 'dtlold', 'iSO']:
-                skipped = fpu.skip(f, endian='>')
+                fpu.skip(f, endian='>')
             (self.ncell) = fpu.read_vector(f, 'i', '>')[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
@@ -380,7 +381,7 @@ class ARTDataset(Dataset):
             return False
         with open(f, 'rb') as fh:
             try:
-                amr_header_vals = fpu.read_attrs(fh, amr_header_struct, '>')
+                fpu.read_attrs(fh, amr_header_struct, '>')
                 return True
             except:
                 return False
@@ -422,8 +423,6 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')
-        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -467,7 +466,6 @@ class DarkMatterARTDataset(ARTDataset):
         aexpn = self.parameters["aexpn"]
 
         # all other units
-        wmu = self.parameters["wmu"]
         Om0 = self.parameters['Om0']
         ng = self.parameters['ng']
         boxh = self.parameters['boxh']
@@ -491,6 +489,8 @@ class DarkMatterARTDataset(ARTDataset):
         """
         Get the various simulation parameters & constants.
         """
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
         self.dimensionality = 3
         self.refine_by = 2
         self.periodicity = (True, True, True)
@@ -630,32 +630,32 @@ class DarkMatterARTDataset(ARTDataset):
             try:
                 seek = 4
                 fh.seek(seek)
-                headerstr = np.fromfile(fh, count=1, dtype=(str,45))
-                aexpn = np.fromfile(fh, count=1, dtype='>f4')
-                aexp0 = np.fromfile(fh, count=1, dtype='>f4')
-                amplt = np.fromfile(fh, count=1, dtype='>f4')
-                astep = np.fromfile(fh, count=1, dtype='>f4')
-                istep = np.fromfile(fh, count=1, dtype='>i4')
-                partw = np.fromfile(fh, count=1, dtype='>f4')
-                tintg = np.fromfile(fh, count=1, dtype='>f4')
-                ekin = np.fromfile(fh, count=1, dtype='>f4')
-                ekin1 = np.fromfile(fh, count=1, dtype='>f4')
-                ekin2 = np.fromfile(fh, count=1, dtype='>f4')
-                au0 = np.fromfile(fh, count=1, dtype='>f4')
-                aeu0 = np.fromfile(fh, count=1, dtype='>f4')
-                nrowc = np.fromfile(fh, count=1, dtype='>i4')
-                ngridc = np.fromfile(fh, count=1, dtype='>i4')
-                nspecs = np.fromfile(fh, count=1, dtype='>i4')
-                nseed = np.fromfile(fh, count=1, dtype='>i4')
-                Om0 = np.fromfile(fh, count=1, dtype='>f4')
-                Oml0 = np.fromfile(fh, count=1, dtype='>f4')
-                hubble = np.fromfile(fh, count=1, dtype='>f4')
-                Wp5 = np.fromfile(fh, count=1, dtype='>f4')
-                Ocurv = np.fromfile(fh, count=1, dtype='>f4')
-                wspecies = np.fromfile(fh, count=10, dtype='>f4')
-                lspecies = np.fromfile(fh, count=10, dtype='>i4')
-                extras = np.fromfile(fh, count=79, dtype='>f4')
-                boxsize = np.fromfile(fh, count=1, dtype='>f4')
+                headerstr = np.fromfile(fh, count=1, dtype=(str,45))  # NOQA
+                aexpn = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                aexp0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                amplt = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                astep = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                istep = np.fromfile(fh, count=1, dtype='>i4')  # NOQA
+                partw = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                tintg = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                ekin = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                ekin1 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                ekin2 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                au0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                aeu0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                nrowc = np.fromfile(fh, count=1, dtype='>i4')  # NOQA
+                ngridc = np.fromfile(fh, count=1, dtype='>i4')  # NOQA
+                nspecs = np.fromfile(fh, count=1, dtype='>i4')  # NOQA
+                nseed = np.fromfile(fh, count=1, dtype='>i4')  # NOQA
+                Om0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                Oml0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                hubble = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                Wp5 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                Ocurv = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
+                wspecies = np.fromfile(fh, count=10, dtype='>f4')  # NOQA
+                lspecies = np.fromfile(fh, count=10, dtype='>i4')  # NOQA
+                extras = np.fromfile(fh, count=79, dtype='>f4')  # NOQA
+                boxsize = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 return True
             except:
                 return False
@@ -699,7 +699,7 @@ class ARTDomainSubset(OctreeSubset):
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.
-        for level in range(1, self.ds.max_level + 1):
+        for level in range(1, self.ds.index.max_level + 1):
             no = self.domain.level_count[level]
             noct_range = [0, no]
             source = _read_child_level(
@@ -786,9 +786,7 @@ class ARTDomainFile(object):
             Level[Lev], iNOLL[Lev], iHOLL[Lev] = fpu.read_vector(f, 'i', '>')
             # print 'Level %i : '%Lev, iNOLL
             # print 'offset after level record:',f.tell()
-            iOct = iHOLL[Lev] - 1
             nLevel = iNOLL[Lev]
-            nLevCells = nLevel * nchild
             ntot = ntot + nLevel
 
             # Skip all the oct hierarchy data
@@ -831,11 +829,9 @@ class ARTDomainFile(object):
 
     def _read_amr_root(self, oct_handler):
         self.level_offsets
-        f = open(self.ds._file_amr, "rb")
         # add the root *cell* not *oct* mesh
         root_octs_side = self.ds.domain_dimensions[0]/2
         NX = np.ones(3)*root_octs_side
-        octs_side = NX*2 # Level == 0
         LE = np.array([0.0, 0.0, 0.0], dtype='float64')
         RE = np.array([1.0, 1.0, 1.0], dtype='float64')
         root_dx = (RE - LE) / NX
@@ -846,7 +842,7 @@ class ARTDomainFile(object):
                            LL[1]:RL[1]:NX[1]*1j,
                            LL[2]:RL[2]:NX[2]*1j]
         root_fc = np.vstack([p.ravel() for p in root_fc]).T
-        nocts_check = oct_handler.add(self.domain_id, 0, root_fc)
+        oct_handler.add(self.domain_id, 0, root_fc)
         assert(oct_handler.nocts == root_fc.shape[0])
         mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
                     root_octs_side**3, 0, oct_handler.nocts)

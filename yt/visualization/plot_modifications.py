@@ -1953,13 +1953,13 @@ class RayCallback(PlotCallback):
     annotate_ray(ray, plot_args=None)
 
     Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
 
     Parameters
     ----------
 
-    ray : YTOrthoRayBase, YTRayBase, or LightRay
+    ray : YTOrthoRay, YTRay, or LightRay
         Ray is the object that we want to include.  We overplot the projected
         trajectory of the ray.  If the object is a
         analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
@@ -2052,7 +2052,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
+            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or "
                               "LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting

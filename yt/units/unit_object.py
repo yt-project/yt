@@ -18,7 +18,7 @@ from sympy import \
     Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
 from sympy.core.numbers import One
-from sympy import sympify, latex, symbols
+from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
@@ -32,7 +32,6 @@ from yt.units.unit_registry import UnitRegistry
 from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
-import string
 import token
 
 class UnitParseError(Exception):
@@ -395,9 +394,15 @@ class Unit(Expr):
         # Use sympy to factor the dimensions into base CGS unit symbols.
         units = []
         my_dims = self.dimensions.expand()
-        for dim in base_units:
+        if my_dims is dimensionless:
+            return ""
+        for factor in my_dims.as_ordered_factors():
+            dim = list(factor.free_symbols)[0]
             unit_string = base_units[dim]
-            power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
+            if factor.is_Pow:
+                power_string = "**(%s)" % factor.as_base_exp()[1]
+            else:
+                power_string = ""
             units.append("".join([unit_string, power_string]))
         return " * ".join(units)
 

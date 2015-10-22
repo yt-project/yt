@@ -17,7 +17,7 @@ Geometry container base class.
 import os
 from yt.extern.six.moves import cPickle
 import weakref
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.config import ytcfg

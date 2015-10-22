@@ -164,7 +164,7 @@ def configuration(parent_package='', top_path=None):
     config.make_config_py()
     # config.make_svn_version_py()
     config.add_subpackage('yt', 'yt')
-    config.add_scripts("scripts/*")
+    config.add_scripts("scripts/iyt")
 
     return config
 

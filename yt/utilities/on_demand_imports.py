@@ -67,6 +67,7 @@ class astropy_imports:
         if self._units is None:
             try:
                 from astropy import units
+                self.log
             except ImportError:
                 units = NotAModule(self._name)
             self._units = units
@@ -83,6 +84,18 @@ class astropy_imports:
                 conv = NotAModule(self._name)
             self._conv = conv
         return self._conv
+
+    _time = None
+    @property
+    def time(self):
+        if self._time is None:
+            try:
+                import astropy.time as time
+                self.log
+            except ImportError:
+                time = NotAModule(self._name)
+            self._time = time
+        return self._time
 
 _astropy = astropy_imports()
 
@@ -166,3 +179,97 @@ class scipy_imports:
         return self._spatial
 
 _scipy = scipy_imports()
+
+class h5py_imports:
+    _name = "h5py"
+
+    _File = None
+    @property
+    def File(self):
+        if self._File is None:
+            try:
+                from h5py import File
+            except ImportError:
+                File = NotAModule(self._name)
+            self._File = File
+        return self._File
+
+    _Group = None
+    @property
+    def Group(self):
+        if self._Group is None:
+            try:
+                from h5py import Group
+            except ImportError:
+                Group = NotAModule(self._name)
+            self._Group = Group
+        return self._Group
+
+    ___version__ = None
+    @property
+    def __version__(self):
+        if self.___version__ is None:
+            try:
+                from h5py import __version__
+            except ImportError:
+                __version__ = NotAModule(self._name)
+            self.___version__ = __version__
+        return self.___version__
+
+    _get_config = None
+    @property
+    def get_config(self):
+        if self._get_config is None:
+            try:
+                from h5py import get_config
+            except ImportError:
+                get_config = NotAModule(self._name)
+            self._get_config = get_config
+        return self._get_config
+
+    _h5f = None
+    @property
+    def h5f(self):
+        if self._h5f is None:
+            try:
+                import h5py.h5f as h5f
+            except ImportError:
+                h5f = NotAModule(self._name)
+            self._h5f = h5f
+        return self._h5f
+
+    _h5d = None
+    @property
+    def h5d(self):
+        if self._h5d is None:
+            try:
+                import h5py.h5d as h5d
+            except ImportError:
+                h5d = NotAModule(self._name)
+            self._h5d = h5d
+        return self._h5d
+
+    _h5s = None
+    @property
+    def h5s(self):
+        if self._h5s is None:
+            try:
+                import h5py.h5s as h5s
+            except ImportError:
+                h5s = NotAModule(self._name)
+            self._h5s = h5s
+        return self._h5s
+
+    _version = None
+    @property
+    def version(self):
+        if self._version is None:
+            try:
+                import h5py.version as File
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = File
+        return self._version
+
+_h5py = h5py_imports()
+

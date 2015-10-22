@@ -13,13 +13,10 @@ FLASH-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
-    kboltz, mh, Na
-from yt.units.yt_array import \
-    YTArray
+    Na
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #

@@ -1116,7 +1116,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def cut_region(self, field_cuts, field_parameters=None):
         """
-        Return an YTCutRegionBase, where the a cell is identified as being inside
+        Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
         previous versions of yt the name 'grid' was used to represent the data
         object used to construct the field cut, as of yt 3.0, this has been

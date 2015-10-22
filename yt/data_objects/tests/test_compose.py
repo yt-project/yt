@@ -20,7 +20,6 @@ def _IDFIELD(field, data):
     yi = y / min_dx
     zi = z / min_dx
     index = xi + delta[0] * (yi + delta[1] * zi)
-    index = index.astype('int64')
     return index
 
 def test_compose_no_overlap():

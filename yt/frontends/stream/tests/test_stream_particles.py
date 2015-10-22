@@ -1,12 +1,10 @@
 import numpy as np
-from yt.mods import *
-from yt.testing import *
+
+from yt.testing import \
+    assert_equal
 from yt.frontends.stream.api import load_uniform_grid, refine_amr, load_amr_grids
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
-
-def setup() :
-    pass
 
 # Field information
 

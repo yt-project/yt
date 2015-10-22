@@ -17,7 +17,7 @@ import numpy as np
 import abc
 import json
 import sys
-import h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5
 import os
 from uuid import uuid4
 from yt.extern.six.moves import urllib

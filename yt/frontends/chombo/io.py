@@ -88,7 +88,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith('particle_'):
-                comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
+                comp_number = int(re.match('particle_component_(\d+)', key).groups()[0])
                 field_dict[val.decode("ascii")] = comp_number
         self._particle_field_index = field_dict
         return self._particle_field_index
@@ -182,9 +182,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         offsets = np.append(np.array([0]), offsets)
         offsets = np.array(offsets, dtype=np.int64)
 
-        # convert between the global grid id and the id on this level            
+        # convert between the global grid id and the id on this level
         grid_levels = np.array([g.Level for g in self.ds.index.grids])
-        grid_ids = np.array([g.id    for g in self.ds.index.grids])
+        grid_ids = np.array([g.id for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1

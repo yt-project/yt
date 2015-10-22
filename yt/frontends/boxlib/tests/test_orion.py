@@ -13,11 +13,13 @@ Orion frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    big_patch_amr, \
     data_dir_load
 from yt.frontends.boxlib.api import OrionDataset
 

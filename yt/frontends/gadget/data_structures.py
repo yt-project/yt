@@ -15,12 +15,11 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +29,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 

@@ -295,7 +295,7 @@ Projection Argument Order
 Previously, projections were inconsistent with the other data objects.
 (The API for Plot Windows is the same.)  The argument order is now ``field``
 then ``axis`` as seen here: 
-:class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`.
+:class:`~yt.data_objects.construction_data_containers.YTQuadTreeProj`.
 
 Field Parameters
 ^^^^^^^^^^^^^^^^

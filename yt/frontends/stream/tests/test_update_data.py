@@ -1,4 +1,4 @@
-from yt.testing import *
+from yt.testing import fake_random_ds
 from yt.data_objects.profiles import BinnedProfile1D
 from numpy.random import uniform
 

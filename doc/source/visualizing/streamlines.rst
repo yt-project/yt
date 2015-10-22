@@ -19,7 +19,7 @@ tasks.  By specifying a set of starting positions, the user is
 returned a set of 3D positions that can, in turn, be used to visualize
 the 3D path of the streamlines.  Additionally, individual streamlines
 can be converted into
-:class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` objects,
+:class:`~yt.data_objects.construction_data_containers.YTStreamline` objects,
 and queried for all the available fields along the streamline.
 
 The implementation of streamlining  in yt is described below.
@@ -100,7 +100,7 @@ Data Access Along the Streamline
     let us know on the yt-dev mailing list.
 
 Once the streamlines are found, a
-:class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` object can
+:class:`~yt.data_objects.construction_data_containers.YTStreamline` object can
 be created using the
 :meth:`~yt.visualization.streamlines.Streamlines.path` function, which
 takes as input the index of the streamline requested. This conversion

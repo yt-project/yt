@@ -22,7 +22,7 @@ from yt.config import ytcfg
 from collections import OrderedDict
 
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
