@@ -23,6 +23,7 @@ import os
 
 from yt.frontends.sph.data_structures import \
     ParticleDataset
+from yt.funcs import deprecate
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -32,7 +33,6 @@ from yt.utilities.cosmology import \
 from yt.utilities.physical_constants import \
     G, \
     cm_per_kpc
-from yt import YTQuantity
 
 from .fields import \
     TipsyFieldInfo
@@ -169,9 +169,9 @@ class TipsyDataset(ParticleDataset):
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
         self.periodicity = (periodic, periodic, periodic)
-        self.comoving = self.parameters.get(
-            'bComove', self._cosmology_parameters is not None)
-        if self.comoving and period is None:
+        self.cosmological_simulation = float(self.parameters.get(
+            'bComove', self._cosmology_parameters is not None))
+        if self.cosmological_simulation and period is None:
             period = 1.0
         if self.bounding_box is None:
             if periodic and period is not None:
@@ -191,11 +191,10 @@ class TipsyDataset(ParticleDataset):
 
         # If the cosmology parameters dictionary got set when data is
         # loaded, we can assume it's a cosmological data set
-        if self.comoving is True:
+        if self.cosmological_simulation == 1.0:
             cosm = self._cosmology_parameters or {}
             # In comoving simulations, time stores the scale factor a
             self.scale_factor = hvals["time"]
-            self.cosmological_simulation = 1
             dcosm = dict(
                 current_redshift=(1.0/self.scale_factor)-1.0,
                 omega_lambda=self.parameters.get(
@@ -208,7 +207,6 @@ class TipsyDataset(ParticleDataset):
                 pval = dcosm[param]
                 setattr(self, param, pval)
         else:
-            self.cosmological_simulation = 0
             kpc_unit = self.parameters.get('dKpcUnit', 1.0)
             self._unit_base['cm'] = 1.0 / (kpc_unit * cm_per_kpc)
 
@@ -319,3 +317,8 @@ class TipsyDataset(ParticleDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         return TipsyDataset._validate_header(args[0])[0]
+
+    @property
+    @deprecate(replacement='cosmological_simulation')
+    def comoving(self):
+        return self.cosmological_simulation == 1.0
