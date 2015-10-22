@@ -634,7 +634,12 @@ class LineSource(OpaqueSource):
             empty.shape = (camera.resolution[0], camera.resolution[1], 4)
             z.shape = (camera.resolution[0], camera.resolution[1])
 
-        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        if len(px.shape) == 1:
+            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        else:
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
+            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
 
         if 'plane-parallel' not in str(camera.lens):
             empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
@@ -880,19 +885,39 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
-        dpx = px[1::2] - px[::2]
-        dpy = py[1::2] - py[::2]
 
-        # Set the center of the coordinates to be in the lower left of the image
-        lpx = camera.resolution[0] / 8
-        lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+        if len(px.shape) == 1:
 
-        # Offset the pixels according to the projections above
-        px[::2] = lpx
-        px[1::2] = lpx + dpx
-        py[::2] = lpy
-        py[1::2] = lpy + dpy
-        dz[:] = 0.0
+            dpx = px[1::2] - px[::2]
+            dpy = py[1::2] - py[::2]
+
+            # Set the center of the coordinates to be in the lower left of the image
+            lpx = camera.resolution[0] / 8
+            lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+
+            # Offset the pixels according to the projections above
+            px[::2] = lpx
+            px[1::2] = lpx + dpx
+            py[::2] = lpy
+            py[1::2] = lpy + dpy
+            dz[:] = 0.0
+
+        else:
+
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            dpx = px[:,1::2] - px[:,::2]
+            dpy = py[:,1::2] - py[:,::2]
+
+            lpx = camera.resolution[0] / 16
+            lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+
+            # Offset the pixels according to the projections above
+            px[:,::2] = lpx
+            px[:,1::2] = lpx + dpx
+            px[1,:] += camera.resolution[0] / 2
+            py[:,::2] = lpy
+            py[:,1::2] = lpy + dpy
+            dz[:,:] = 0.0
 
         # Create a zbuffer if needed
         if zbuffer is None:
@@ -913,7 +938,12 @@ class CoordinateVectorSource(OpaqueSource):
             empty.shape = (camera.resolution[0], camera.resolution[1], 4)
             z.shape = (camera.resolution[0], camera.resolution[1])
 
-        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        if len(px.shape) == 1:
+            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        else:
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
+            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
 
         if 'plane-parallel' not in str(camera.lens):
             empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)

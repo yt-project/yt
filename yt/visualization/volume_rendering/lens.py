@@ -372,9 +372,9 @@ class StereoPerspectiveLens(Lens):
         px_right, py_right, dz_right = self._get_px_py_dz(
             camera, pos, res, self.disparity)
 
-        px = np.hstack([px_left, px_right])
-        py = np.hstack([py_left, py_right])
-        dz = np.hstack([dz_left, dz_right])
+        px = np.vstack([px_left, px_right])
+        py = np.vstack([py_left, py_right])
+        dz = np.vstack([dz_left, dz_right])
 
         return px, py, dz
 
@@ -419,7 +419,10 @@ class StereoPerspectiveLens(Lens):
         dz = np.dot(pos - camera_position_shift, normal_vec_rot)
         
         # Transpose into image coords.
-        px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
+        if disparity > 0:
+            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
+        else:
+            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
 
         return px, py, dz
