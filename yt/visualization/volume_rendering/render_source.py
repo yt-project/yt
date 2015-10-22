@@ -887,7 +887,6 @@ class CoordinateVectorSource(OpaqueSource):
         px, py, dz = camera.lens.project_to_plane(camera, positions)
 
         if len(px.shape) == 1:
-
             dpx = px[1::2] - px[::2]
             dpy = py[1::2] - py[::2]
 
@@ -901,9 +900,7 @@ class CoordinateVectorSource(OpaqueSource):
             py[::2] = lpy
             py[1::2] = lpy + dpy
             dz[:] = 0.0
-
         else:
-
             # For stereo-lens, two sets of pos for each eye are contained in px...pz
             dpx = px[:,1::2] - px[:,::2]
             dpy = py[:,1::2] - py[:,::2]
