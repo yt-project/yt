@@ -92,11 +92,7 @@ class YTDataset(Dataset):
         for ptype in self.particle_types:
             self.field_info.setup_particle_fields(ptype)
 
-        for ftype, field in self.field_list:
-            if ftype == self.default_fluid_type:
-                self.field_info.alias(
-                    ("gas", field),
-                    (self.default_fluid_type, field))
+        self._setup_gas_alias()
 
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
@@ -156,6 +152,14 @@ class YTDataContainerDataset(YTDataset):
         self.file_count = 1
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
+
+    def _setup_gas_alias(self):
+        "Alias the grid type to gas by making a particle union."
+
+        if "grid" in self.particle_types and \
+          "gas" not in self.particle_types:
+            pu = ParticleUnion("gas", ["grid"])
+            self.add_particle_union(pu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -324,6 +328,13 @@ class YTGridDataset(YTDataset):
               np.concatenate([self.parameters["right_edge"], [1.]])
             self.domain_dimensions = \
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
+
+    def _setup_gas_alias(self):
+        "Alias the grid type to gas with a field alias."
+
+        for ftype, field in self.field_list:
+            if ftype == "grid":
+                self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
