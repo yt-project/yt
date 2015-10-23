@@ -72,6 +72,7 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.data_objects.data_containers.YTDataContainer
    ~yt.data_objects.data_containers.YTSelectionContainer
    ~yt.data_objects.data_containers.YTSelectionContainer0D
    ~yt.data_objects.data_containers.YTSelectionContainer1D
@@ -383,6 +384,28 @@ Stream
    ~yt.frontends.stream.io.IOHandlerStreamOctree
    ~yt.frontends.stream.io.StreamParticleIOHandler
 
+ytdata
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.ytdata.data_structures.YTDataContainerDataset
+   ~yt.frontends.ytdata.data_structures.YTSpatialPlotDataset
+   ~yt.frontends.ytdata.data_structures.YTGridDataset
+   ~yt.frontends.ytdata.data_structures.YTGridHierarchy
+   ~yt.frontends.ytdata.data_structures.YTGrid
+   ~yt.frontends.ytdata.data_structures.YTNonspatialDataset
+   ~yt.frontends.ytdata.data_structures.YTNonspatialHierarchy
+   ~yt.frontends.ytdata.data_structures.YTNonspatialGrid
+   ~yt.frontends.ytdata.data_structures.YTProfileDataset
+   ~yt.frontends.ytdata.fields.YTDataContainerFieldInfo
+   ~yt.frontends.ytdata.fields.YTGridFieldInfo
+   ~yt.frontends.ytdata.io.IOHandlerYTDataContainerHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTGridHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTSpatialPlotHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTNonspatialhdf5
+
 Loading Data
 ------------
 
@@ -416,7 +439,6 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile2D
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.ParticleProfile
-   ~yt.data_objects.profiles.create_profile
 
 .. _halo_analysis_ref:
 
@@ -739,8 +761,12 @@ Function List
    :toctree: generated/
 
    ~yt.convenience.load
+   ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
+   ~yt.data_objects.static_output.Dataset.disk
+   ~yt.data_objects.static_output.Dataset.ray
+   ~yt.data_objects.static_output.Dataset.sphere
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar
