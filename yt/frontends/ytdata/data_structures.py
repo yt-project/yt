@@ -161,6 +161,33 @@ class YTDataContainerDataset(YTDataset):
             pu = ParticleUnion("gas", ["grid"])
             self.add_particle_union(pu)
 
+    @property
+    def data(self):
+        """
+        Return a data container configured like the original used to
+        create this dataset.
+        """
+
+        # Some data containers can't be recontructed in the same way
+        # since this is now particle-like data.
+        if self.parameters["container_type"] in \
+          ["cutting", "proj", "ray", "slice"]:
+            mylog.info("Returning an all_data data container.")
+            return self.all_data()
+
+        my_obj = getattr(self, self.parameters["container_type"])
+        my_args = []
+        for con_arg in self.parameters["con_args"]:
+            my_arg = self.parameters[con_arg]
+            my_units = self.parameters.get("%s_units" % con_arg)
+            if my_units is not None:
+                if isinstance(my_arg, np.ndarray):
+                    my_arg = self.arr(my_arg, my_units)
+                else:
+                    my_arg = self.quan(my_arg, my_units)
+            my_args.append(my_arg)
+        return my_obj(*my_args)
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
