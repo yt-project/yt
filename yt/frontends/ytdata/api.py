@@ -26,7 +26,10 @@ from .data_structures import \
     YTProfileDataset
 
 from .io import \
-    IOHandlerYTDataContainerHDF5
+    IOHandlerYTDataContainerHDF5, \
+    IOHandlerYTGridHDF5, \
+    IOHandlerYTSpatialPlotHDF5, \
+    IOHandlerYTNonspatialhdf5
 
 from .fields import \
     YTDataContainerFieldInfo, \

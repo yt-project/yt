@@ -268,7 +268,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                                    for field in f[ptype]]))
         return fields, units
 
-class IOHandlerSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
+class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
     _dataset_type = "ytspatialplot_hdf5"
 
     def _read_particle_coords(self, chunks, ptf):
