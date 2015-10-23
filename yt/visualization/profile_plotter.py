@@ -682,10 +682,6 @@ class PhasePlot(ImagePlotContainer):
     fractional : If True the profile values are divided by the sum of all 
         the profile data such that the profile represents a probability 
         distribution function.
-    profile : profile object
-        If not None, a profile object created with 
-        `yt.data_objects.profiles.create_profile`.
-        Default: None.
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
@@ -717,21 +713,20 @@ class PhasePlot(ImagePlotContainer):
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
-                 accumulation=False, fractional=False, profile=None,
+                 accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
 
-        if profile is None:
-            if isinstance(data_source.ds, YTProfileDataset):
-                profile = data_source.ds.profile
-            else:
-                profile = create_profile(
-                    data_source,
-                    [x_field, y_field],
-                    ensure_list(z_fields),
-                    n_bins=[x_bins, y_bins],
-                    weight_field=weight_field,
-                    accumulation=accumulation,
-                    fractional=fractional)
+        if isinstance(data_source.ds, YTProfileDataset):
+            profile = data_source.ds.profile
+        else:
+            profile = create_profile(
+                data_source,
+                [x_field, y_field],
+                ensure_list(z_fields),
+                n_bins=[x_bins, y_bins],
+                weight_field=weight_field,
+                accumulation=accumulation,
+                fractional=fractional)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
