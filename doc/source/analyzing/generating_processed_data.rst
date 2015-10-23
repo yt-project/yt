@@ -176,7 +176,7 @@ Line Queries and Planar Integrals
 ---------------------------------
 
 To calculate the values along a line connecting two points in a simulation, you
-can use the object :class:`~yt.data_objects.selection_data_containers.YTRayBase`,
+can use the object :class:`~yt.data_objects.selection_data_containers.YTRay`,
 accessible as the ``ray`` property on a index.  (See :ref:`data-objects`
 for more information on this.)  To do so, you can supply two points and access
 fields within the returned object.  For instance, this code will generate a ray

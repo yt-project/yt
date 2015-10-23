@@ -554,7 +554,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'ds':weakref.proxy(self)})
+            self._add_object_class(name, cls)
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -567,10 +567,9 @@ class Dataset(object):
             self.proj = self.overlap_proj
         self.object_types.sort()
 
-    def _add_object_class(self, name, class_name, base, dd):
+    def _add_object_class(self, name, base):
         self.object_types.append(name)
-        dd.update({'__doc__': base.__doc__})
-        obj = type(class_name, (base,), dd)
+        obj = functools.partial(base, ds=weakref.proxy(self))
         setattr(self, name, obj)
 
     def find_max(self, field):

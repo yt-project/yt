@@ -13,20 +13,22 @@ Answer Testing support for Enzo.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
-from yt.config import ytcfg
-from yt.mods import *
+import numpy as np
+import os
 
+from functools import wraps
+
+from yt.config import ytcfg
+from yt.convenience import load
+from yt.testing import assert_allclose
 from yt.utilities.answer_testing.framework import \
-     AnswerTestingTest, \
-     can_run_ds, \
-     FieldValuesTest, \
-     GridHierarchyTest, \
-     GridValuesTest, \
-     ProjectionValuesTest, \
-     ParentageRelationshipsTest, \
-     temp_cwd, \
-     AssertWrapper
+    AnswerTestingTest, \
+    can_run_ds, \
+    FieldValuesTest, \
+    GridValuesTest, \
+    ProjectionValuesTest, \
+    temp_cwd, \
+    AssertWrapper
 
 def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):

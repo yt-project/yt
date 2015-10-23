@@ -15,15 +15,10 @@ Data structures for a generic SDF frontend
 #-----------------------------------------------------------------------------
 
 
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
-import weakref
-import struct
-import glob
 import time
 import os
-import types
 import sys
 import contextlib
 
@@ -32,14 +27,8 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
-from yt.utilities.physical_ratios import \
-    cm_per_kpc, \
-    mass_sun_grams, \
-    sec_per_Gyr
 from .fields import \
     SDFFieldInfo
-from .io import \
-    IOHandlerSDF
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\

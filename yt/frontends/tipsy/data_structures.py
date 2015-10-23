@@ -32,7 +32,6 @@ from yt.utilities.cosmology import \
 from yt.utilities.physical_constants import \
     G, \
     cm_per_kpc
-from yt import YTQuantity
 
 from .fields import \
     TipsyFieldInfo
@@ -85,7 +84,6 @@ class TipsyDataset(ParticleDataset):
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
-                tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
                 self.parameters['nstar']))

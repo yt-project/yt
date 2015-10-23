@@ -19,13 +19,16 @@ import numpy as np
 import os
 import stat
 import string
+import time
 import re
 
-from threading import Thread
-
+from collections import defaultdict
 from yt.extern.six.moves import zip as izip
 
-from yt.funcs import *
+from yt.funcs import \
+    ensure_list, \
+    ensure_tuple, \
+    get_pbar
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -36,20 +39,15 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    NullFunc
 from yt.utilities.physical_constants import \
     rho_crit_g_cm3_h2, cm_per_mpc
-from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.pyparselibconfig import libconfig
 
 from .fields import \
     EnzoFieldInfo
 
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_blocking_call
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -77,7 +75,6 @@ class EnzoGrid(AMRGridPatch):
         """
         rf = self.ds.refine_by
         my_ind = self.id - self._id_offset
-        le = self.LeftEdge
         self.dds = self.Parent.dds/rf
         ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
@@ -148,12 +145,9 @@ class EnzoGridGZ(EnzoGrid):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
-        nr = nl + self.ActiveDimensions + 2*n_zones
         new_left_edge = nl * self.dds + self.ds.domain_left_edge
-        new_right_edge = nr * self.dds + self.ds.domain_left_edge
         # Something different needs to be done for the root grid, though
         level = self.Level
-        args = (level, new_left_edge, new_right_edge)
         kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
                   'num_ghost_zones':n_zones,
                   'use_pbar':False}
@@ -197,7 +191,7 @@ class EnzoHierarchy(GridIndex):
     def __init__(self, ds, dataset_type):
 
         self.dataset_type = dataset_type
-        if ds.file_style != None:
+        if ds.file_style is not None:
             self._bn = ds.file_style
         else:
             self._bn = "%s.cpu%%04i"
@@ -268,14 +262,12 @@ class EnzoHierarchy(GridIndex):
             for line in f:
                 if line.startswith(token):
                     return line.split()[2:]
-        t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
         f = open(self.index_filename, "rt")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
-        all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         version = self.dataset.parameters.get("VersionNumber", None)
         params = self.dataset.parameters
@@ -326,7 +318,6 @@ class EnzoHierarchy(GridIndex):
         temp_grids[:] = self.grids
         self.grids = temp_grids
         self.filenames = fn
-        t2 = time.time()
 
     def _initialize_grid_arrays(self):
         super(EnzoHierarchy, self)._initialize_grid_arrays()
@@ -403,7 +394,7 @@ class EnzoHierarchy(GridIndex):
         fields = []
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
-            if np.any(select_grids) == False:
+            if np.any(select_grids) is False:
                 current_ptypes = self.dataset.particle_types
                 new_ptypes = [p for p in current_ptypes if p != ptype]
                 self.dataset.particle_types = new_ptypes
@@ -1027,7 +1018,8 @@ class EnzoDatasetInMemory(EnzoDataset):
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
     def _obtain_enzo(self):
-        import enzo; return enzo
+        import enzo
+        return enzo
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

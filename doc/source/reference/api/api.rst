@@ -87,17 +87,17 @@ geometric.
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.selection_data_containers.YTPointBase
-   ~yt.data_objects.selection_data_containers.YTOrthoRayBase
-   ~yt.data_objects.selection_data_containers.YTRayBase
-   ~yt.data_objects.selection_data_containers.YTSliceBase
-   ~yt.data_objects.selection_data_containers.YTCuttingPlaneBase
-   ~yt.data_objects.selection_data_containers.YTDiskBase
-   ~yt.data_objects.selection_data_containers.YTRegionBase
-   ~yt.data_objects.selection_data_containers.YTDataCollectionBase
-   ~yt.data_objects.selection_data_containers.YTSphereBase
-   ~yt.data_objects.selection_data_containers.YTEllipsoidBase
-   ~yt.data_objects.selection_data_containers.YTCutRegionBase
+   ~yt.data_objects.selection_data_containers.YTPoint
+   ~yt.data_objects.selection_data_containers.YTOrthoRay
+   ~yt.data_objects.selection_data_containers.YTRay
+   ~yt.data_objects.selection_data_containers.YTSlice
+   ~yt.data_objects.selection_data_containers.YTCuttingPlane
+   ~yt.data_objects.selection_data_containers.YTDisk
+   ~yt.data_objects.selection_data_containers.YTRegion
+   ~yt.data_objects.selection_data_containers.YTDataCollection
+   ~yt.data_objects.selection_data_containers.YTSphere
+   ~yt.data_objects.selection_data_containers.YTEllipsoid
+   ~yt.data_objects.selection_data_containers.YTCutRegion
    ~yt.data_objects.grid_patch.AMRGridPatch
 
 Construction Objects
@@ -110,12 +110,12 @@ expensive set of intermediate data.
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.construction_data_containers.YTStreamlineBase
-   ~yt.data_objects.construction_data_containers.YTQuadTreeProjBase
-   ~yt.data_objects.construction_data_containers.YTCoveringGridBase
-   ~yt.data_objects.construction_data_containers.YTArbitraryGridBase
-   ~yt.data_objects.construction_data_containers.YTSmoothedCoveringGridBase
-   ~yt.data_objects.construction_data_containers.YTSurfaceBase
+   ~yt.data_objects.construction_data_containers.YTStreamline
+   ~yt.data_objects.construction_data_containers.YTQuadTreeProj
+   ~yt.data_objects.construction_data_containers.YTCoveringGrid
+   ~yt.data_objects.construction_data_containers.YTArbitraryGrid
+   ~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid
+   ~yt.data_objects.construction_data_containers.YTSurface
 
 Time Series Objects
 ^^^^^^^^^^^^^^^^^^^
@@ -211,8 +211,6 @@ Boxlib
    ~yt.frontends.boxlib.data_structures.OrionDataset
    ~yt.frontends.boxlib.fields.BoxlibFieldInfo
    ~yt.frontends.boxlib.io.IOHandlerBoxlib
-   ~yt.frontends.boxlib.io.IOHandlerCastro
-   ~yt.frontends.boxlib.io.IOHandlerNyx
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
 Chombo

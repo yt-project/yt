@@ -47,7 +47,7 @@ calculate a flux, call
 both of these operations will run in parallel.  For more information on enabling
 parallelism in yt, see :ref:`parallel-computation`.
 
-Alternatively, you can make an object called ``YTSurfaceBase`` that makes
+Alternatively, you can make an object called ``YTSurface`` that makes
 this process much easier.  You can create one of these objects by specifying a
 source data object and a field over which to identify a surface at a given
 value.  For example:
@@ -101,7 +101,7 @@ model in a website with other supplemental data, or you can use Sketchfab to
 discuss morphological properties of a dataset with collaborators.  It's also
 just plain cool.
 
-The ``YTSurfaceBase`` object includes a method to upload directly to Sketchfab,
+The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
