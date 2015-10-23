@@ -765,9 +765,6 @@ Function List
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.data_objects.static_output.Dataset.disk
-   ~yt.data_objects.static_output.Dataset.ray
-   ~yt.data_objects.static_output.Dataset.sphere
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar
