@@ -502,6 +502,10 @@ class YTDataContainer(object):
         >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
         >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
         >>> sphere_ds = yt.load(fn)
+        >>> # the original data container is available as the data attribute
+        >>> print (sds.data["density"])
+        [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
+           3.57339907e-30   2.83150720e-30] g/cm**3
         >>> ad = sphere_ds.all_data()
         >>> print (ad["temperature"])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
