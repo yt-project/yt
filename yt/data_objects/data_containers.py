@@ -475,8 +475,8 @@ class YTDataContainer(object):
 
         This function will take a data object and output a dataset 
         containing either the fields presently existing or fields 
-        given in a list.  The resulting dataset can be reloaded as 
-        a yt dataset.
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
 
         Parameters
         ----------
