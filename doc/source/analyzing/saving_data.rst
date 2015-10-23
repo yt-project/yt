@@ -47,9 +47,11 @@ be saved.
 
 The newly created dataset can be loaded like all other supported
 data through ``yt.load``.  Once loaded, field data can be accessed
-through the traditional data containers.  Grid data is accessed by
-the ``grid`` data type and particle data is accessed with the
-original particle type.  As with the original dataset, grid
+through the traditional data containers or through the ``data``
+attribute, which will be a data container configured like the
+original data container used to make the dataset.  Grid data is
+accessed by the ``grid`` data type and particle data is accessed
+with the original particle type.  As with the original dataset, grid
 positions and cell sizes are accessible with, for example,
 ("grid", "x") and ("grid", "dx").  Particle positions are
 accessible as (<particle_type>, "particle_position_x").  All original
@@ -59,6 +61,11 @@ dictionary, normally associated with all datasets.
 .. code-block:: python
 
    sphere_ds = yt.load("DD0046_sphere.h5")
+
+   # use the original data container
+   print (sphere_ds.data["grid", "density"])
+
+   # create a new data container
    ad = sphere_ds.all_data()
 
    # grid data
