@@ -29,14 +29,14 @@ Geometric Data Containers
 Data from geometric data containers can be saved with the
 :func:`~yt.data_objects.data_containers.save_as_dataset`` function.
 
-.. notebook-cell:: python
+.. notebook-cell::
 
    import yt
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
 
    sphere = ds.sphere([0.5]*3, (10, "Mpc"))
    fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
-   print fn
+   print (fn)
 
 This function will return the name of the file to which the dataset
 was saved.  The filename will be a combination of the name of the
@@ -62,13 +62,13 @@ dictionary, normally associated with all datasets.
    ad = sphere_ds.all_data()
 
    # grid data
-   print ad["grid", "density"]
-   print ad["grid", "x"]
-   print ad["grid", "dx"]
+   print (ad["grid", "density"])
+   print (ad["grid", "x"])
+   print (ad["grid", "dx"])
 
    # particle data
-   print ad["all", "particle_mass"]
-   print ad["all", "particle_position_x"]
+   print (ad["all", "particle_mass"])
+   print (ad["all", "particle_position_x"])
 
 Note that because field data queried from geometric containers is
 returned as unordered 1D arrays, data container datasets are treated,
@@ -94,14 +94,14 @@ containers.
 
    cg_ds = yt.load(fn)
    ad = cg_ds.all_data()
-   print ad["grid", "density"]
+   print (ad["grid", "density"])
 
 Multidimensional indexing of field data is also available through
 the ``data`` attribute.
 
 .. code-block:: python
 
-   print cg_ds.data["grid", "density"]
+   print (cg_ds.data["grid", "density"])
 
 Fixed resolution buffers work just the same.
 
@@ -111,7 +111,7 @@ Fixed resolution buffers work just the same.
    frb = my_proj.to_frb(1.0, (800, 800))
    fn = frb.save_as_dataset(fields=["density"])
    frb_ds = yt.load(fn)
-   print frb_ds.data["density"]
+   print (frb_ds.data["density"])
 
 .. _saving-spatial-plots:
 
@@ -149,7 +149,7 @@ works just as above.  Profile datasets are a type of non-spatial grid
 datasets.  Geometric selection is not possible, but data can be
 accessed through the ``.data`` attribute.
 
-.. notebook-cell:: python
+.. notebook-cell::
 
    import yt
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
@@ -161,14 +161,14 @@ accessed through the ``.data`` attribute.
    profile_2d.save_as_dataset()
 
    prof_2d_ds = yt.load("DD0046_Profile2D.h5")
-   print prof_2d_ds.data["cell_mass"]
+   print (prof_2d_ds.data["cell_mass"])
 
 The x, y (if at least 2D), and z (if 3D) bin fields can be accessed as 1D
 arrays with "x", "y", and "z".
 
 .. code-block:: python
 
-   print prof_2d_ds.data["x"]
+   print (prof_2d_ds.data["x"])
 
 The bin fields can also be returned with the same shape as the profile
 data by accessing them with their original names.  This allows for
@@ -177,7 +177,7 @@ boolean masking of profile data using the bin fields.
 .. code-block:: python
 
    # density is the x bin field
-   print prof_2d_ds.data["density"]
+   print (prof_2d_ds.data["density"])
 
 For 1, 2, and 3D profile datasets, a fake profile object will be
 constructed by accessing the ".profile" attribute.  This is used
@@ -202,7 +202,7 @@ also available as ``yt.save_as_dataset``.  As with profiles, geometric
 selection is not possible, but the data can be accessed through the
 ``.data`` attribute.
 
-.. notebook-cell:: python
+.. notebook-cell::
 
    import yt
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
@@ -215,15 +215,16 @@ selection is not possible, but the data can be accessed through the
    yt.save_as_dataset(ds, "test_data.h5", my_data)
 
    array_ds = yt.load("test_data.h5")
-   print array_ds.data["region_density"]
-   print array_ds.data["sphere_density"]
+   print (array_ds.data["region_density"])
+   print (array_ds.data["sphere_density"])
 
 Array data can be saved with or without a dataset loaded.  If no
 dataset has been loaded, as fake dataset can be provided as a
 dictionary.
 
-.. notebook-cell:: python
+.. notebook-cell::
 
+   import numpy as np
    import yt
 
    my_data = {"density": yt.YTArray(np.random.random(10), "g/cm**3"),
@@ -232,4 +233,4 @@ dictionary.
    yt.save_as_dataset(fake_ds, "random_data.h5", my_data)
 
    new_ds = yt.load("random_data.h5")
-   print new_ds.data["density"]
+   print (new_ds.data["density"])
