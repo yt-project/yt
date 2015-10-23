@@ -416,7 +416,7 @@ class FixedResolutionBuffer(object):
         >>> frb = proj.to_frb(1.0, (800, 800))
         >>> fn = frb.save_as_dataset(fields=["density"])
         >>> ds2 = yt.load(fn)
-        >>> print ds2.data["density"]
+        >>> print (ds2.data["density"])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
