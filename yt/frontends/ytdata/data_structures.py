@@ -641,7 +641,6 @@ class YTProfileDataset(YTNonspatialDataset):
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()
-        mylog.warn("Geometric data selection not available for this dataset type.")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
