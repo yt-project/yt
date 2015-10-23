@@ -826,8 +826,6 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
-<<<<<<< local: be9fb8fc3cb5  bd_kernel_function yt - qobilidop: remove add_de...
-||||||| base
 def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
                        kernel_name = 'cubic'):
     if kernel_name == 'cubic':
@@ -856,7 +854,6 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
                        units = "g/cm**3")
     return [field_name]
 
-=======
 def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
                        kernel_name = 'cubic'):
     if kernel_name == 'cubic':
@@ -885,7 +882,6 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
                        units = "g/cm**3")
     return [field_name]
 
->>>>>>> other: a5d76f647fbb development yt - brittonsmith: Merged in ngoldbau...
 def add_union_field(registry, ptype, field_name, units):
     """
     Create a field that is the concatenation of multiple particle types.
