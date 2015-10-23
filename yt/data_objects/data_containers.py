@@ -503,7 +503,7 @@ class YTDataContainer(object):
         >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
         >>> sphere_ds = yt.load(fn)
         >>> ad = sphere_ds.all_data()
-        >>> print ad["temperature"]
+        >>> print (ad["temperature"])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
            4.54380547e+04   4.72560117e+04] K
 

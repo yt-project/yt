@@ -1560,8 +1560,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
-    >>> print profile.x
-    >>> print profile["gas", "temperature"]
+    >>> print (profile.x)
+    >>> print (profile["gas", "temperature"])
 
     """
     bin_fields = data_source._determine_fields(bin_fields)
