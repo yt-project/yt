@@ -221,24 +221,29 @@ def rootloginfo(*args):
     if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
     mylog.info(*args)
 
-def deprecate(func):
-    """
-    This decorator issues a deprecation warning.
+def deprecate(replacement):
+    def real_deprecate(func):
+        """
+        This decorator issues a deprecation warning.
 
-    This can be used like so:
+        This can be used like so:
 
-    .. code-block:: python
+        .. code-block:: python
 
-       @deprecate
-       def some_really_old_function(...):
+        @deprecate("new_function")
+        def some_really_old_function(...):
 
-    """
-    @wraps(func)
-    def run_func(*args, **kwargs):
-        warnings.warn("%s has been deprecated and may be removed without notice!" \
-                % func.__name__, DeprecationWarning, stacklevel=2)
-        func(*args, **kwargs)
-    return run_func
+        """
+        @wraps(func)
+        def run_func(*args, **kwargs):
+            message = "%s has been deprecated and may be removed without notice!"
+            if replacement is not None:
+                message += " Use %s instead." % replacement
+            warnings.warn(message % func.__name__, DeprecationWarning,
+                          stacklevel=2)
+            func(*args, **kwargs)
+        return run_func
+    return real_deprecate
 
 def pdb_run(func):
     """
@@ -367,9 +372,6 @@ def get_pbar(title, maxval):
        "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__withinreason"):
-        from yt.gui.reason.extdirect_repl import ExtProgressBar
-        return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
     widgets = [ title,

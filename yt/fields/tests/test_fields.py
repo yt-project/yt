@@ -1,13 +1,20 @@
-from yt.testing import *
 import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    assert_array_almost_equal_nulp, \
+    assert_array_equal, \
+    assert_raises
 from yt.utilities.cosmology import \
-     Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    Cosmology
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    YTArray, YTQuantity
+from yt.utilities.exceptions import \
+    YTFieldUnitError, \
+    YTFieldUnitParseError
 
 def setup():
     global base_ds
@@ -88,19 +95,6 @@ def _strip_ftype(field):
         return field
     return field[1]
 
-def _expand_field(field):
-    if isinstance(field, tuple):
-        return field
-    if field in KnownStreamFields:
-        fi = KnownStreamFields[field]
-        if fi.particle_type:
-            return ("all", field)
-        else:
-            return ("gas", field)
-    # Otherwise, we just guess.
-    if "particle" in field:
-        return ("all", field)
-    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None
@@ -196,15 +190,23 @@ def test_add_deposited_particle_field():
 
 def test_add_gradient_fields():
     gfields = base_ds.add_gradient_fields(("gas","density"))
+    gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
                   ('gas', 'density_gradient_y'),
                   ('gas', 'density_gradient_z'),
-                  ('gas', 'density_gradient_magnitude')]
+                  ('gas', 'density_gradient_magnitude'),
+                  ('index', 'ones_gradient_x'),
+                  ('index', 'ones_gradient_y'),
+                  ('index', 'ones_gradient_z'),
+                  ('index', 'ones_gradient_magnitude')]
     assert_equal(gfields, field_list)
     ad = base_ds.all_data()
     for field in field_list:
         ret = ad[field]
-        assert str(ret.units) == "g/cm**4"
+        if field[0] == 'gas':
+            assert str(ret.units) == "g/cm**4"
+        else:
+            assert str(ret.units) == "1/cm"
 
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are

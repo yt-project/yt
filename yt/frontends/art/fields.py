@@ -13,13 +13,8 @@ ART-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
-from yt.frontends.art.definitions import *
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -55,7 +50,7 @@ class ARTFieldInfo(FieldInfoContainer):
         ("particle_mass", ("code_mass", [], None)),
         ("particle_index", ("", [], None)),
         ("particle_species", ("", ["particle_type"], None)),
-        ("particle_creation_time", ("code_time", [], None)),
+        ("particle_creation_time", ("Gyr", [], None)),
         ("particle_mass_initial", ("code_mass", [], None)),
         ("particle_metallicity1", ("", [], None)),
         ("particle_metallicity2", ("", [], None)),
@@ -68,7 +63,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr *= data.ds.parameters['wmu'] * data.ds.parameters['Om0']
             tr *= (data.ds.parameters['gamma'] - 1.)
             tr /= data.ds.parameters['aexpn']**2
-            return  tr * data['art', 'GasEnergy'] / data['art', 'Density']
+            return tr * data['art', 'GasEnergy'] / data['art', 'Density']
         self.add_field(('gas', 'temperature'),
                        function=_temperature, 
                        units='K')

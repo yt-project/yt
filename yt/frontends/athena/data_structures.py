@@ -13,25 +13,27 @@ Data structures for Athena.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
+import os
 import weakref
-import glob #ST 9/12
-from yt.funcs import *
+import glob
+
+from yt.funcs import \
+    mylog, \
+    ensure_tuple
 from yt.data_objects.grid_patch import \
-           AMRGridPatch
+    AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
-           Dataset
+    Dataset
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.extern.six import PY2, PY3
+from yt.extern.six import PY2
 
 from .fields import AthenaFieldInfo
-from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import \
     decompose_array, get_psize
 
@@ -75,9 +77,9 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level, start, dimensions,
                  file_offset, read_dims):
-        df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               index = index)
@@ -224,7 +226,6 @@ class AthenaHierarchy(GridIndex):
         grid = {}
         grid['read_field'] = None
         grid['read_type'] = None
-        table_read=False
         line = f.readline()
         while grid['read_field'] is None:
             parse_line(line, grid)
@@ -270,7 +271,6 @@ class AthenaHierarchy(GridIndex):
             gridread = {}
             gridread['read_field'] = None
             gridread['read_type'] = None
-            table_read=False
             line = f.readline()
             while gridread['read_field'] is None:
                 parse_line(line, gridread)
@@ -421,8 +421,6 @@ class AthenaHierarchy(GridIndex):
                                 self.grid_levels[i] + 1,
                                 self.grid_left_edge, self.grid_right_edge,
                                 self.grid_levels, mask)
-                #ids = np.where(mask.astype("bool")) # where is a tuple
-                #mask[ids] = True
             grid.Children = [g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1]
         mylog.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids): # Second pass
@@ -436,7 +434,6 @@ class AthenaHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
-        gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in gobjs:
             yield YTDataChunk(dobj, "io", [subset],
@@ -460,7 +457,7 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k,v in self.specified_parameters.items():
+        for k, v in list(self.specified_parameters.items()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning("Supplying unit conversions from the parameters dict is deprecated, "+

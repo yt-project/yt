@@ -159,7 +159,7 @@ class OctreeSubset(YTSelectionContainer):
             indexed octree will be constructed on these particles.
         fields : list of arrays
             All the necessary fields for computing the particle operation.  For
-            instance, this might include mass, velocity, etc.  
+            instance, this might include mass, velocity, etc.
         method : string
             This is the "method name" which will be looked up in the
             `particle_deposit` namespace as `methodname_deposit`.  Current
@@ -216,7 +216,7 @@ class OctreeSubset(YTSelectionContainer):
             indexed octree will be constructed on these particles.
         fields : list of arrays
             All the necessary fields for computing the particle operation.  For
-            instance, this might include mass, velocity, etc.  
+            instance, this might include mass, velocity, etc.
         index_fields : list of arrays
             All of the fields defined on the mesh that may be used as input to
             the operation.
@@ -273,11 +273,14 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_octree(self.oct_handler, mdom_ind, positions, 
+        # Pointer operations within 'process_octree' require arrays to be
+        # contiguous cf. https://bitbucket.org/yt_analysis/yt/issues/1079
+        fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
+        op.process_octree(self.oct_handler, mdom_ind, positions,
             self.fcoords, fields,
             self.domain_id, self._domain_offset, self.ds.periodicity,
             index_fields, particle_octree, pdom_ind, self.ds.geometry)
-        # If there are 0s in the smoothing field this will not throw an error, 
+        # If there are 0s in the smoothing field this will not throw an error,
         # but silently return nans for vals where dividing by 0
         # Same as what is currently occurring, but suppressing the div by zero
         # error.
@@ -354,7 +357,7 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_particles(particle_octree, pdom_ind, positions, 
+        op.process_particles(particle_octree, pdom_ind, positions,
             fields, self.domain_id, self._domain_offset, self.ds.periodicity,
             self.ds.geometry)
         vals = op.finalize()
@@ -506,7 +509,7 @@ class YTPositionArray(YTArray):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        octree = ParticleOctreeContainer(dims, LE, RE, 
+        octree = ParticleOctreeContainer(dims, LE, RE,
             over_refine = over_refine_factor)
         octree.n_ref = n_ref
         octree.add(mi)

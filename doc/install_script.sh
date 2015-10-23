@@ -47,7 +47,6 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
-INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
@@ -109,7 +108,6 @@ function write_config
     echo INST_BZLIB=${INST_BZLIB} >> ${CONFIG_FILE}
     echo INST_PNG=${INST_PNG} >> ${CONFIG_FILE}
     echo INST_FTYPE=${INST_FTYPE} >> ${CONFIG_FILE}
-    echo INST_ENZO=${INST_ENZO} >> ${CONFIG_FILE}
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
@@ -426,10 +424,6 @@ printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
-printf "%-15s = %s so I " "INST_ENZO" "${INST_ENZO}"
-get_willwont ${INST_ENZO}
-echo "be checking out Enzo"
-
 printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
@@ -650,7 +644,6 @@ echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a9135
 echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
-echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo '4a83f9ae1855a7fad90133b327d426201c8ccfd2e7fbe9f39b2d61a2eee2f3ebe2ea02cf80f3d4e1ad659f8e790c173df8cc99b87d0b7ce63d34aa88cfdc7939  h5py-2.5.0.tar.gz' > h5py-2.5.0.tar.gz.sha512
 echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
@@ -692,7 +685,6 @@ get_ytproject $MATPLOTLIB.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
-get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
@@ -1047,14 +1039,6 @@ then
     fi
 fi
 
-if [ $INST_ENZO -eq 1 ]
-then
-    echo "Cloning a copy of Enzo."
-    cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
-    cd $MY_PWD
-fi
-
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
    ( grep -q python2.6 $HOME/.matplotlib/fontList.cache )
 then
@@ -1104,16 +1088,6 @@ function print_afterword
       echo "Mercurial has also been installed:"
       echo
       echo "$DEST_DIR/bin/hg"
-      echo
-    fi
-    if [ $INST_ENZO -eq 1 ]
-    then
-      echo "Enzo has also been checked out, but not built."
-      echo
-      echo "$DEST_DIR/src/enzo-hg-stable"
-      echo
-      echo "The value of YT_DEST can be used as an HDF5 installation location."
-      echo "Questions about Enzo should be directed to the Enzo User List."
       echo
     fi
     echo

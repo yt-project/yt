@@ -14,8 +14,8 @@ import numpy as np
 import base64
 from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
+from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _astropy
-from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.utilities.fits_image import FITSImageData
@@ -23,7 +23,7 @@ if PY3:
     from io import BytesIO as IO
 else:
     from yt.extern.six.moves import StringIO as IO
-    
+
 import os
 
 def _make_counts(emin, emax):

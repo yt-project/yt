@@ -52,6 +52,7 @@ def invalidate_figure(f):
             args[0].plots[field].figure = None
             args[0].plots[field].axes = None
             args[0].plots[field].cax = None
+        args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -71,9 +72,9 @@ def validate_plot(f):
             if not args[0]._data_valid:
                 args[0]._recreate_frb()
         if not args[0]._plot_valid:
+            # it is the responsibility of _setup_plots to
+            # call args[0].run_callbacks()
             args[0]._setup_plots()
-            if hasattr(args[0], 'run_callbacks'):
-                args[0].run_callbacks()
         rv = f(*args, **kwargs)
         return rv
     return newfunc
@@ -81,7 +82,6 @@ def validate_plot(f):
 def apply_callback(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        #rv = f(*args[1:], **kwargs)
         args[0]._callbacks.append((f.__name__, (args, kwargs)))
         return args[0]
     return newfunc

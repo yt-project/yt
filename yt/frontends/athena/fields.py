@@ -13,12 +13,10 @@ Athena-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
-    kboltz,mh
-from yt.units.yt_array import YTArray
+    kboltz, mh
 
 b_units = "code_magnetic"
 pres_units = "code_mass/(code_length*code_time**2)"

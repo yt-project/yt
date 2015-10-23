@@ -32,18 +32,6 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.api.Dataset` subclass.
     """
-    if len(args) == 0:
-        try:
-            from yt.extern.six.moves import tkinter
-            import tkinter, tkFileDialog
-        except ImportError:
-            raise YTOutputNotIdentified(args, kwargs)
-        root = tkinter.Tk()
-        filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
-        if filename != None:
-            return load(filename)
-        else:
-            raise YTOutputNotIdentified(args, kwargs)
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, str)
             else arg for arg in args]
@@ -99,32 +87,6 @@ def load(*args ,**kwargs):
     for c in candidates:
         mylog.error("    Possible: %s", c)
     raise YTOutputNotIdentified(args, kwargs)
-
-def projload(ds, axis, weight_field = None):
-    # This is something of a hack, so that we can just get back a projection
-    # and not utilize any of the intermediate index objects.
-    class ProjMock(dict):
-        pass
-    import h5py
-    f = h5py.File(os.path.join(ds.fullpath, ds.parameter_filename + ".yt"))
-    b = f["/Projections/%s/" % (axis)]
-    wf = "weight_field_%s" % weight_field
-    if wf not in b: raise KeyError(wf)
-    fields = []
-    for k in b:
-        if k.startswith("weight_field"): continue
-        if k.endswith("_%s" % weight_field):
-            fields.append(k)
-    proj = ProjMock()
-    for f in ["px","py","pdx","pdy"]:
-        proj[f] = b[f][:]
-    for f in fields:
-        new_name = f[:-(len(weight_field) + 1)]
-        proj[new_name] = b[f][:]
-    proj.axis = axis
-    proj.ds = ds
-    f.close()
-    return proj
 
 def simulation(parameter_filename, simulation_type, find_outputs=False):
     """

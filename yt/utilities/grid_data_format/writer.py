@@ -15,7 +15,7 @@ from __future__ import print_function
 
 import os
 import sys
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from contextlib import contextmanager
 

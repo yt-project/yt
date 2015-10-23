@@ -12,10 +12,10 @@ Export/Import of volume rendered images.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import mylog
 
 def export_rgba(image, fn, h5=True, fits=False, ):
     """

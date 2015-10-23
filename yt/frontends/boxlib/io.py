@@ -15,10 +15,8 @@ Orion data-file handling functions
 
 import os
 import numpy as np
-from yt.utilities.lib.fortran_reader import \
-    read_castro_particles
 from yt.utilities.io_handler import \
-           BaseIOHandler
+    BaseIOHandler
 from yt.funcs import mylog, defaultdict
 from yt.frontends.chombo.io import parse_orion_sinks
 
@@ -156,37 +154,3 @@ class IOHandlerOrion(IOHandlerBoxlib):
                     line = lines[num]
                     particles.append(read(line, field))
             return np.array(particles)
-
-
-class IOHandlerCastro(IOHandlerBoxlib):
-    _dataset_type = "castro_native"
-
-    def _read_particle_field(self, grid, field):
-        offset = grid._particle_offset
-        filen = os.path.expanduser(grid.particle_filename)
-        off = grid._particle_offset
-        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
-        read_castro_particles(filen, off,
-            castro_particle_field_names.index(field),
-            len(castro_particle_field_names),
-            tr)
-        return tr
-
-nyx_particle_field_names = ['particle_position_%s' % ax for ax in 'xyz'] + \
-                           ['particle_mass'] +  \
-                           ['particle_velocity_%s' % ax for ax in 'xyz']
-
-class IOHandlerNyx(IOHandlerBoxlib):
-    _dataset_type = "nyx_native"
-
-    def _read_particle_coords(self, chunks, ptf):
-        offset = grid._particle_offset
-        filen = os.path.expanduser(grid.particle_filename)
-        off = grid._particle_offset
-        tr = np.zeros(grid.NumberOfParticles, dtype='float64')
-        read_castro_particles(filen, off,
-                            nyx_particle_field_names.index(field),
-                            len(nyx_particle_field_names), tr)
-
-    def _read_particle_fields(self, chunks, ptf, fields):
-        pass

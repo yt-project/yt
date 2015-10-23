@@ -388,12 +388,13 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        field = obj._determine_fields(self.field)[0]
         if self.particle_type:
-            weight_field = "particle_ones"
+            weight_field = (field[0], "particle_ones")
         else:
-            weight_field = "ones"
+            weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight=weight_field)
+            field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
@@ -403,8 +404,8 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
-            assert_allclose(new_result, old_result, 10.**(-self.decimals),
-                             err_msg=err_msg, verbose=True)
+            assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
+                                  err_msg=err_msg, verbose=True)
 
 class AllFieldValuesTest(AnswerTestingTest):
     _type_name = "AllFieldValues"
@@ -478,8 +479,8 @@ class ProjectionValuesTest(AnswerTestingTest):
             if self.decimals is None:
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
-                assert_allclose(nres, ores, 10.**-(self.decimals),
-                                err_msg=err_msg)
+                assert_allclose_units(nres, ores, 10.**-(self.decimals),
+                                      err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
@@ -645,10 +646,10 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = ("Analytic halo mass functions not equation for " +
+        err_msg = ("Analytic halo mass functions not equal for " +
                    "fitting function %d.") % self.fitting_function
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
+        assert_almost_equal(new_result, old_result,
+                            err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
@@ -727,7 +728,8 @@ class GenericArrayTest(AnswerTestingTest):
             if self.decimals is None:
                 assert_equal(new_result[k], old_result[k])
             else:
-                assert_allclose(new_result[k], old_result[k], 10**(-self.decimals))
+                assert_allclose_units(new_result[k], old_result[k],
+                                      10**(-self.decimals))
 
 class GenericImageTest(AnswerTestingTest):
     _type_name = "GenericImage"
@@ -803,7 +805,8 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
-    if not can_run_ds(ds_fn): return
+    if not can_run_ds(ds_fn):
+        return
     dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
@@ -815,6 +818,41 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield PixelizedProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
+
+
+def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
+    if not can_run_ds(ds_fn):
+        return
+    if ds_kwargs is None:
+        ds_kwargs = {}
+    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
+    yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
+                        str(ds), ds_str_repr)
+    dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
+    dd = ds.all_data()
+    yield AssertWrapper("%s_all_data_part_shape" % str(ds), assert_equal,
+                        dd["particle_position"].shape, (ds_nparticles, 3))
+    tot = sum(dd[ptype, "particle_position"].shape[0]
+              for ptype in ds.particle_types if ptype != "all")
+    yield AssertWrapper("%s_all_data_part_total" % str(ds), assert_equal,
+                        tot, ds_nparticles)
+    for dobj_name in dso:
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        yield AssertWrapper("%s_mask_test" % str(ds), assert_equal, s1, s2)
+        for field, weight_field in fields.items():
+            if field[0] in ds.particle_types:
+                particle_type = True
+            else:
+                particle_type = False
+            for axis in [0, 1, 2]:
+                if particle_type is False:
+                    yield PixelizedProjectionValuesTest(
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name,
+                                  particle_type=particle_type)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

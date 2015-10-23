@@ -13,15 +13,19 @@ Athena frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    assert_allclose_units
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    big_patch_amr, \
     data_dir_load
 from yt.frontends.athena.api import AthenaDataset
 from yt.config import ytcfg
 from yt.convenience import load
+
+import yt.units as u
 
 _fields_cloud = ("scalar[0]", "density", "total_energy")
 
@@ -62,9 +66,9 @@ def test_stripping():
 
 sloshing = "MHDSloshing/virgo_low_res.0054.vtk"
 
-uo_sloshing = {"length_unit":(1.0,"Mpc"),
-               "time_unit":(1.0,"Myr"),
-               "mass_unit":(1.0e14,"Msun")}
+uo_sloshing = {"length_unit": (1.0,"Mpc"),
+               "time_unit": (1.0,"Myr"),
+               "mass_unit": (1.0e14,"Msun")}
 
 @requires_file(sloshing)
 def test_nprocs():
@@ -77,11 +81,16 @@ def test_nprocs():
     sp2 = ds2.sphere("c", (100.,"kpc"))
     prj2 = ds1.proj("density",0)
 
+    ds3 = load(sloshing, parameters=uo_sloshing)
+    assert_equal(ds3.length_unit, u.Mpc)
+    assert_equal(ds3.time_unit, u.Myr)
+    assert_equal(ds3.mass_unit, 1e14*u.Msun)
+
     yield assert_equal, sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure")
-    yield assert_allclose, sp1.quantities.total_quantity("pressure"), sp2.quantities.total_quantity("pressure")
+    yield assert_allclose_units, sp1.quantities.total_quantity("pressure"), sp2.quantities.total_quantity("pressure")
     for ax in "xyz":
         yield assert_equal, sp1.quantities.extrema("velocity_%s" % ax), sp2.quantities.extrema("velocity_%s" % ax)
-    yield assert_allclose, sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
+    yield assert_allclose_units, sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
     yield assert_equal, prj1["density"], prj2["density"]
 
     ytcfg["yt","skip_dataset_cache"] = "False"

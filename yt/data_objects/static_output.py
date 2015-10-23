@@ -554,7 +554,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'ds':weakref.proxy(self)})
+            self._add_object_class(name, cls)
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -567,10 +567,9 @@ class Dataset(object):
             self.proj = self.overlap_proj
         self.object_types.sort()
 
-    def _add_object_class(self, name, class_name, base, dd):
+    def _add_object_class(self, name, base):
         self.object_types.append(name)
-        dd.update({'__doc__': base.__doc__})
-        obj = type(class_name, (base,), dd)
+        obj = functools.partial(base, ds=weakref.proxy(self))
         setattr(self, name, obj)
 
     def find_max(self, field):
@@ -683,6 +682,7 @@ class Dataset(object):
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
         """
@@ -690,8 +690,7 @@ class Dataset(object):
 
         """
         from yt.units.dimensions import length
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
@@ -700,19 +699,20 @@ class Dataset(object):
                 self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
                                        (1 + self.current_redshift),
                                        length, "\\rm{%s}/(1+z)" % my_unit)
+            self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
 
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
-            setattr(self, "cosmology",
+            self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
-                              unit_registry=self.unit_registry))
-            setattr(self, "critical_density",
-                    self.cosmology.critical_density(self.current_redshift))
+                              unit_registry=self.unit_registry)
+            self.critical_density = \
+                    self.cosmology.critical_density(self.current_redshift)
+            self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
     def get_unit_from_registry(self, unit_str):
         """

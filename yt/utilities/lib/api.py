@@ -29,3 +29,4 @@ from .marching_cubes import *
 from .write_array import *
 from .mesh_utilities import *
 from .ContourFinding import *
+from .line_integral_convolution import *

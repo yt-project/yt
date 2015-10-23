@@ -1,14 +1,11 @@
 import numpy as np
-from yt.mods import *
-from yt.testing import *
 from yt.frontends.stream.api import \
-    load_hexahedral_mesh, load_uniform_grid
+    load_hexahedral_mesh
 from yt.frontends.stream.data_structures import \
     hexahedral_connectivity
-
-def setup() :
-    pass
-
+from yt.testing import \
+    assert_almost_equal, \
+    assert_equal
 # Field information
 
 def test_stream_hexahedral() :

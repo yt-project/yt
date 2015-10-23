@@ -109,6 +109,16 @@ in the ``output_file`` keyword: ``.fits`` for a fits file,
 
 .. note:: To write out a fits file, you must install the `astropy <http://www.astropy.org>`_ python library in order to access the astropy.io.fits module.  You can usually do this by simply running `pip install astropy` at the command line.
 
+Generating Spectra in Parallel
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The spectrum generator can be run in parallel simply by following the procedures 
+laid out in :ref:`parallel-computation` for running yt scripts in parallel.  
+Spectrum generation is parallelized using a multi-level strategy where each 
+absorption line is deposited by a different processor.  If the number of available 
+processors is greater than the number of lines, then the deposition of 
+individual lines will be divided over multiple processors.
+
 Fitting an Absorption Spectrum
 ------------------------------
 

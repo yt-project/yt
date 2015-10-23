@@ -13,7 +13,7 @@ from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.data_objects.construction_data_containers import YTCoveringGridBase
+from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.utilities.on_demand_imports import _astropy, NotAModule
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
@@ -152,7 +152,7 @@ class FITSImageData(HDUList):
                 yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
                 center = [xctr, yctr]
                 cdelt = [dx,dy]
-            elif isinstance(img_data, YTCoveringGridBase):
+            elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.in_units(units).v
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
             else:

@@ -13,8 +13,6 @@ This is a semi-global field plugin registry.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 field_plugins = {}
 
 def register_field_plugin(func):

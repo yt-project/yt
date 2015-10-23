@@ -17,6 +17,7 @@ def check_for_openmp():
 
         # Get compiler invocation
         compiler = os.getenv('CC', 'cc')
+        compiler = compiler.split(' ')
 
         # Attempt to compile a test script.
         # See http://openmp.org/wp/openmp-compilers/
@@ -32,11 +33,13 @@ def check_for_openmp():
             )
         file.flush()
         with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, '-fopenmp', filename],
+            exit_code = subprocess.call(compiler + ['-fopenmp', filename],
                                         stdout=fnull, stderr=fnull)
 
         # Clean up
         file.close()
+    except OSError:
+        return False
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
@@ -155,6 +158,8 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("amr_kdtools", 
                          ["yt/utilities/lib/amr_kdtools.pyx"],
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("line_integral_convolution",
+                         ["yt/utilities/lib/line_integral_convolution.pyx"])
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

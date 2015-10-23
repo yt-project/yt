@@ -15,7 +15,7 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from .absorption_line import tau_profile
@@ -26,6 +26,10 @@ from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     speed_of_light_cgs
 from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    _get_comm, \
+    parallel_objects, \
+    parallel_root_only
 
 pyfits = _astropy.pyfits
 
@@ -50,7 +54,7 @@ class AbsorptionSpectrum(object):
         self.spectrum_line_list = None
         self.lambda_bins = YTArray(np.linspace(lambda_min, lambda_max, n_lambda),
                                    "angstrom")
-        self.bin_width = YTQuantity((lambda_max - lambda_min) / 
+        self.bin_width = YTQuantity((lambda_max - lambda_min) /
                                     float(n_lambda - 1), "angstrom")
         self.line_list = []
         self.continuum_list = []
@@ -62,7 +66,7 @@ class AbsorptionSpectrum(object):
 
         Parameters
         ----------
-        
+
         label : string
            label for the line.
         field_name : string
@@ -108,9 +112,9 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_file, output_file='spectrum.h5',
-                      line_list_file='lines.txt',
-                      use_peculiar_velocity=True):
+    def make_spectrum(self, input_file, output_file="spectrum.h5",
+                      line_list_file="lines.txt",
+                      use_peculiar_velocity=True, njobs="auto"):
         """
         Make spectrum from ray data using the line list.
 
@@ -119,11 +123,35 @@ class AbsorptionSpectrum(object):
 
         input_file : string
            path to input ray data.
-        output_file : string
-           path for output file.  File formats are chosen based on the filename extension.
-           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
-        use_peculiar_velocity : bool
+        output_file : optional, string
+           path for output file.  File formats are chosen based on the
+           filename extension.  ``.h5`` for hdf5, ``.fits`` for fits,
+           and everything else is ASCII.
+           Default: "spectrum.h5"
+        line_list_file : optional, string
+           path to file in which the list of all deposited lines
+           will be saved.  If set to None, the line list will not
+           be saved.  Note, when running in parallel, combining the
+           line lists can be quite slow, so it is recommended to set
+           this to None when running in parallel unless you really
+           want them.
+           Default: "lines.txt"
+        use_peculiar_velocity : optional, bool
            if True, include line of sight velocity for shifting lines.
+           Default: True
+        njobs : optional, int or "auto"
+           the number of process groups into which the loop over
+           absorption lines will be divided.  If set to -1, each
+           absorption line will be deposited by exactly one processor.
+           If njobs is set to a value less than the total number of
+           available processors (N), then the deposition of an
+           individual line will be parallelized over (N / njobs)
+           processors.  If set to "auto", it will first try to
+           parallelize over the list of lines and only parallelize
+           the line deposition if there are more processors than
+           lines.  This is the optimal strategy for parallelizing
+           spectrum generation.
+           Default: "auto"
         """
 
         input_fields = ['dl', 'redshift', 'temperature']
@@ -131,7 +159,9 @@ class AbsorptionSpectrum(object):
         field_data = {}
         if use_peculiar_velocity:
             input_fields.append('velocity_los')
+            input_fields.append('redshift_eff')
             field_units["velocity_los"] = "cm/s"
+            field_units["redshift_eff"] = ""
         for feature in self.line_list + self.continuum_list:
             if not feature['field_name'] in input_fields:
                 input_fields.append(feature['field_name'])
@@ -145,7 +175,12 @@ class AbsorptionSpectrum(object):
         self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
 
-        self._add_lines_to_spectrum(field_data, use_peculiar_velocity)
+        if njobs == "auto":
+            comm = _get_comm(())
+            njobs = min(comm.size, len(self.line_list))
+
+        self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
+                                    line_list_file is not None, njobs=njobs)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
         self.flux_field = np.exp(-self.tau_field)
@@ -156,7 +191,8 @@ class AbsorptionSpectrum(object):
             self._write_spectrum_fits(output_file)
         else:
             self._write_spectrum_ascii(output_file)
-        self._write_spectrum_line_list(line_list_file)
+        if line_list_file is not None:
+            self._write_spectrum_line_list(line_list_file)
 
         del field_data
         return (self.lambda_bins, self.flux_field)
@@ -170,11 +206,11 @@ class AbsorptionSpectrum(object):
 
         for continuum in self.continuum_list:
             column_density = field_data[continuum['field_name']] * field_data['dl']
-            delta_lambda = continuum['wavelength'] * field_data['redshift']
+            # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
-                # include factor of (1 + z) because our velocity is in proper frame.
-                delta_lambda += continuum['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['velocity_los'] / speed_of_light_cgs
+                delta_lambda = continuum['wavelength'] * field_data['redshift_eff']
+            else:
+                delta_lambda = continuum['wavelength'] * field_data['redshift']
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
@@ -196,7 +232,8 @@ class AbsorptionSpectrum(object):
                 pbar.update(i)
             pbar.finish()
 
-    def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity):
+    def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
+                               save_line_list, njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
@@ -205,13 +242,13 @@ class AbsorptionSpectrum(object):
         # Widen wavelength window until optical depth reaches a max value at the ends.
         max_tau = 0.001
 
-        for line in self.line_list:
+        for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
-            delta_lambda = line['wavelength'] * field_data['redshift']
+            # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
-                # include factor of (1 + z) because our velocity is in proper frame.
-                delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
-                    field_data['velocity_los'] / speed_of_light_cgs
+                delta_lambda = line['wavelength'] * field_data['redshift_eff']
+            else:
+                delta_lambda = line['wavelength'] * field_data['redshift']
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
                                   field_data['temperature']) /
                                   line['atomic_mass'])
@@ -238,17 +275,26 @@ class AbsorptionSpectrum(object):
                                    (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             valid_lines.size)
-            for i, lixel in enumerate(valid_lines):
+
+            # Sanitize units here
+            column_density.convert_to_units("cm ** -2")
+            lbins = self.lambda_bins.d  # Angstroms
+            lambda_0 = line['wavelength'].d  # Angstroms
+            v_doppler = thermal_b.in_cgs().d  # cm / s
+            cdens = column_density.d
+            dlambda = delta_lambda.d  # Angstroms
+            vlos = field_data['velocity_los'].in_units("km/s").d
+
+            for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
                 my_bin_ratio = spectrum_bin_ratio
+
                 while True:
                     lambda_bins, line_tau = \
                         tau_profile(
-                            line['wavelength'], line['f_value'],
-                            line['gamma'], thermal_b[lixel].in_units("km/s"),
-                            column_density[lixel],
-                            delta_lambda=delta_lambda[lixel],
-                            lambda_bins=self.lambda_bins[left_index[lixel]:right_index[lixel]])
-                        
+                            lambda_0, line['f_value'], line['gamma'], v_doppler[lixel],
+                            cdens[lixel], delta_lambda=dlambda[lixel],
+                            lambda_bins=lbins[left_index[lixel]:right_index[lixel]])
+
                     # Widen wavelength window until optical depth reaches a max value at the ends.
                     if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
                       (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
@@ -260,16 +306,16 @@ class AbsorptionSpectrum(object):
                     right_index[lixel] = (center_bins[lixel] +
                                           my_bin_ratio *
                                           width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
+
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
-                if line['label_threshold'] is not None and \
-                        column_density[lixel] >= line['label_threshold']:
+                if save_line_list and line['label_threshold'] is not None and \
+                        cdens[lixel] >= line['label_threshold']:
                     if use_peculiar_velocity:
-                        peculiar_velocity = field_data['velocity_los'][lixel].in_units("km/s")
+                        peculiar_velocity = vlos[lixel]
                     else:
                         peculiar_velocity = 0.0
                     self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (line['wavelength'] +
-                                                                   delta_lambda[lixel]),
+                                                    'wavelength': (lambda_0 + dlambda[lixel]),
                                                     'column_density': column_density[lixel],
                                                     'b_thermal': thermal_b[lixel],
                                                     'redshift': field_data['redshift'][lixel],
@@ -280,6 +326,13 @@ class AbsorptionSpectrum(object):
             del column_density, delta_lambda, thermal_b, \
                 center_bins, width_ratio, left_index, right_index
 
+        comm = _get_comm(())
+        self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
+        if save_line_list:
+            self.spectrum_line_list = comm.par_combine_object(
+                self.spectrum_line_list, "cat", datatype="list")
+
+    @parallel_root_only
     def _write_spectrum_line_list(self, filename):
         """
         Write out list of spectral lines.
@@ -295,6 +348,7 @@ class AbsorptionSpectrum(object):
                                                 line['redshift'], line['v_pec']))
         f.close()
 
+    @parallel_root_only
     def _write_spectrum_ascii(self, filename):
         """
         Write spectrum to an ascii file.
@@ -307,6 +361,7 @@ class AbsorptionSpectrum(object):
                                     self.tau_field[i], self.flux_field[i]))
         f.close()
 
+    @parallel_root_only
     def _write_spectrum_fits(self, filename):
         """
         Write spectrum to a fits file.
@@ -318,6 +373,7 @@ class AbsorptionSpectrum(object):
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
 
+    @parallel_root_only
     def _write_spectrum_hdf5(self, filename):
         """
         Write spectrum to an hdf5 file.

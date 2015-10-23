@@ -15,20 +15,16 @@ Here are some fields that are specific to fluids.
 
 import numpy as np
 
-from yt.funcs import \
-    just_one
-
 from .derived_field import \
-    ValidateParameter, \
     ValidateSpatial
 
 from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
-     create_averaged_field, \
-     create_magnitude_field, \
-     create_vector_fields
+    create_averaged_field, \
+    create_magnitude_field, \
+    create_vector_fields
 
 from yt.utilities.physical_constants import \
     mh, \
@@ -37,20 +33,6 @@ from yt.utilities.physical_constants import \
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
-from yt.units.yt_array import \
-    YTArray
-
-from yt.utilities.math_utils import \
-    get_sph_r_component, \
-    get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component, \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
 
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
@@ -215,7 +197,11 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             return new_field
         return func
 
-    grad_units = "(%s) / cm" % field_units
+    if field_units != "":
+        grad_units = "(%s) / cm" % field_units
+    else:
+        grad_units = "1 / cm"
+
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),

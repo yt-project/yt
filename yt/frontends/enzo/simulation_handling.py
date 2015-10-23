@@ -17,6 +17,8 @@ import numpy as np
 import glob
 import os
 
+from math import ceil
+
 from yt.convenience import \
     load, \
     only_on_root
@@ -26,13 +28,14 @@ from yt.units import dimensions
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
-    YTArray, YTQuantity
+    YTArray
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
-    NoStoppingCondition
+    NoStoppingCondition, \
+    YTOutputNotIdentified
 from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -77,7 +80,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()
-        self.unit_registry.lut["code_time"] = (1.0, dimensions.time)
+        self.unit_registry.add("code_time", 1.0, dimensions.time)
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
             self.cosmology = \
@@ -385,7 +388,7 @@ class EnzoSimulation(SimulationTimeSeries):
                           'final_redshift': 'CosmologyFinalRedshift'}
             self.cosmological_simulation = 1
             for a, v in cosmo_attr.items():
-                if not v in self.parameters:
+                if v not in self.parameters:
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
         else:
@@ -412,7 +415,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         self.all_time_outputs = []
         if self.final_time is None or \
-            not 'dtDataDump' in self.parameters or \
+            'dtDataDump' not in self.parameters or \
             self.parameters['dtDataDump'] <= 0.0: return []
 
         index = 0
@@ -441,7 +444,7 @@ class EnzoSimulation(SimulationTimeSeries):
         mylog.warn('Calculating cycle outputs.  Dataset times will be unavailable.')
 
         if self.stop_cycle is None or \
-            not 'CycleSkipDataDump' in self.parameters or \
+            'CycleSkipDataDump' not in self.parameters or \
             self.parameters['CycleSkipDataDump'] <= 0.0: return []
 
         self.all_time_outputs = []
@@ -623,7 +626,6 @@ class EnzoSimulation(SimulationTimeSeries):
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, 'w')
         for q, output in enumerate(outputs):
-            z_string = "%%s[%%d] = %%.%df" % decimals
             f.write(("CosmologyOutputRedshift[%d] = %."
                      + str(decimals) + "f\n") %
                     ((q + start_index), output['redshift']))

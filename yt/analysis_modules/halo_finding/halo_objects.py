@@ -14,24 +14,18 @@ HOP-output data handling
 #-----------------------------------------------------------------------------
 
 import gc
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import math
 import numpy as np
-import random
-import sys
 import glob
 import os
 import os.path as path
 from functools import cmp_to_key
-from collections import defaultdict
 from yt.extern.six import add_metaclass
 from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
 from yt.funcs import mylog, ensure_dir_exists
-from yt.utilities.performance_counters import \
-    time_function, \
-    yt_counters
 from yt.utilities.math_utils import \
     get_rotation_matrix, \
     periodic_dist
@@ -39,7 +33,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs, \
     TINY
 from yt.utilities.physical_ratios import \
-     rho_crit_g_cm3_h2
+    rho_crit_g_cm3_h2
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
@@ -282,7 +276,7 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        if ytcfg.getboolean("yt", "inline") == False:
+        if ytcfg.getboolean("yt", "inline") is False:
             return self.data[key][self.indices]
         else:
             return self.data[key][self.indices]
@@ -305,7 +299,7 @@ class Halo(object):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -339,8 +333,6 @@ class Halo(object):
         if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
-        n = handle["/%s" % gn]
-        # set attributes on n
         self._processing = False
 
     def virial_mass(self, virial_overdensity=200., bins=300):
@@ -419,7 +411,7 @@ class Halo(object):
         """
         self.virial_info(bins=bins)
         over = (self.overdensity > virial_overdensity)
-        if (over == True).any():
+        if over.any():
             vir_bin = max(np.arange(bins + 1)[over])
             return vir_bin
         else:
@@ -676,7 +668,7 @@ class RockstarHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -869,7 +861,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -898,7 +890,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -1233,7 +1225,6 @@ class RockstarHaloList(HaloList):
         fglob = path.join(basedir, 'halos_%d.*.bin' % n)
         files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        Jc = 1.0
         length = 1.0 / ds['Mpchcm']
         conv = dict(pos = np.array([length, length, length,
                                     1, 1, 1]), # to unitary

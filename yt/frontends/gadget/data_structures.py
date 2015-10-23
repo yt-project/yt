@@ -15,12 +15,11 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +29,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
@@ -108,6 +105,14 @@ class GadgetDataset(ParticleDataset):
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
         super(GadgetDataset, self).__init__(filename, dataset_type)
+        if self.cosmological_simulation:
+            self.time_unit.convert_to_units('s/h')
+            self.length_unit.convert_to_units('kpccm/h')
+            self.mass_unit.convert_to_units('g/h')
+        else:
+            self.time_unit.convert_to_units('s')
+            self.length_unit.convert_to_units('kpc')
+            self.mass_unit.convert_to_units('Msun')
 
     def _setup_binary_spec(self, spec, spec_dict):
         if isinstance(spec, str):
@@ -218,12 +223,21 @@ class GadgetDataset(ParticleDataset):
         self.length_unit = self.quan(length_unit[0], length_unit[1])
 
         unit_base = self._unit_base or {}
+
+        if self.cosmological_simulation:
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            # for why we need to include a factor of square root of the
+            # scale factor
+            vel_units = "cm/s * sqrt(a)"
+        else:
+            vel_units = "cm/s"
+
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
-            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], "cm/s")
+            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], vel_units)
         else:
-            velocity_unit = (1e5, "cm/s")
+            velocity_unit = (1e5, vel_units)
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
 
@@ -238,10 +252,26 @@ class GadgetDataset(ParticleDataset):
                 mass_unit = (unit_base["UnitMass_in_g"], "g/h")
         else:
             # Sane default
-            mass_unit = (1.0, "1e10*Msun/h")
+            mass_unit = (1e10, "Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
-        self.time_unit = self.length_unit / self.velocity_unit
+        if self.cosmological_simulation:
+            # self.velocity_unit is the unit to rescale on-disk velocities, The
+            # actual internal velocity unit is really in comoving units
+            # since the time unit is derived from the internal velocity unit, we
+            # infer the internal velocity unit here and name it vel_unit
+            #
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            if 'velocity' in unit_base:
+                vel_unit = unit_base['velocity']
+            elif "UnitVelocity_in_cm_per_s" in unit_base:
+                vel_unit = (unit_base['UnitVelocity_in_cm_per_s'], 'cmcm/s')
+            else:
+                vel_unit = (1, 'kmcm/s')
+            vel_unit = self.quan(*vel_unit)
+        else:
+            vel_unit = self.velocity_unit
+        self.time_unit = self.length_unit / vel_unit
 
     @staticmethod
     def _validate_header(filename):
@@ -264,7 +294,11 @@ class GadgetDataset(ParticleDataset):
         # or the byte swapped equivalents (65536 and 134217728).
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
-        (rhead,) = struct.unpack('<I',f.read(4))
+        try:
+            (rhead,) = struct.unpack('<I',f.read(4))
+        except struct.error:
+            f.close()
+            return False, 1
         # Use value to check endianess
         if rhead == 256:
             endianswap = '<'

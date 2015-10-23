@@ -16,8 +16,7 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.fields.particle_fields import add_volume_weighted_smoothed_field, add_nearest_neighbor_field
-from yt.utilities.physical_constants import mp, kb
+from yt.fields.particle_fields import add_nearest_neighbor_field
 
 class TipsyFieldInfo(SPHFieldInfo):
     aux_particle_fields = {
@@ -38,7 +37,8 @@ class TipsyFieldInfo(SPHFieldInfo):
         'FeMassFrac':("FeMassFrac", ("dimensionless", ["Fe_fraction"], None)),
         'c':("c", ("code_velocity", [""], None)),
         'acc':("acc", ("code_velocity / code_time", [""], None)),
-        'accg':("accg", ("code_velocity / code_time", [""], None))}
+        'accg':("accg", ("code_velocity / code_time", [""], None)),
+        'smoothlength':('smoothlength', ("code_length", ["smoothing_length"], None))}
 
     def __init__(self, ds, field_list, slice_info = None):
         for field in field_list:
@@ -60,15 +60,19 @@ class TipsyFieldInfo(SPHFieldInfo):
 
     def setup_gas_particle_fields(self, ptype):
 
-        def _smoothing_length(field, data):
-            # For now, we hardcode num_neighbors.  We should make this configurable
-            # in the future.
-            num_neighbors = 64
-            fn, = add_nearest_neighbor_field(ptype, "particle_position", self, num_neighbors)
-            return data[ptype, 'nearest_neighbor_distance_%d' % num_neighbors]
+        num_neighbors = 65
+        fn, = add_nearest_neighbor_field(ptype, "particle_position", self, num_neighbors)
+        def _func():
+            def _smoothing_length(field, data):
+                # For now, we hardcode num_neighbors.  We should make this configurable
+                # in the future.
+                rv = data[ptype, 'nearest_neighbor_distance_%d' % num_neighbors]
+                #np.maximum(rv, 0.5*data[ptype, "Epsilon"], rv)
+                return rv
+            return _smoothing_length
 
         self.add_field(
             (ptype, "smoothing_length"),
-            function=_smoothing_length,
+            function=_func(),
             particle_type=True,
             units="code_length")
