@@ -955,9 +955,8 @@ class ProfileND(ParallelAnalysisInterface):
         r"""Export a profile to a reloadable yt dataset.
 
         This function will take a profile and output a dataset
-        containing either the fields presently existing or fields
-        given in a list.  The resulting dataset can be reloaded as
-        a yt dataset.
+        containing all relevant fields.  The resulting dataset
+        can be reloaded as a yt dataset.
 
         Parameters
         ----------
