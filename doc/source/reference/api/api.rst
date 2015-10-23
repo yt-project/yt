@@ -439,6 +439,7 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile2D
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.ParticleProfile
+   ~yt.data_objects.profiles.create_profile
 
 .. _halo_analysis_ref:
 
