@@ -3,10 +3,15 @@
 3D Visualization and Volume Rendering
 =====================================
 
-yt has the ability to create 3D visualizations, using a process known as volume
-rendering.  Currently all of the rendering capabilities are implemented in
-software, requiring no specialized hardware. Optimized versions implemented
-with OpenGL and utilizing graphics processors are being actively developed.
+yt has the ability to create 3D visualizations using a process known as *volume
+rendering* (VR).  This volume rendering code differs from the standard yt 
+infrastructure for generating :ref:`simple-inspection` in that it 
+evaluates the radiative transfer equations through the volume with 
+user-defined transfer functions for each ray.  Thus it can accommodate both
+opaque and transparent structures appropriately.  Currently all of the 
+rendering capabilities are implemented in software, requiring no specialized 
+hardware. Optimized versions implemented with OpenGL and utilizing graphics 
+processors are being actively developed.
 
 Constructing a 3D visualization is a process of describing the "scene" that
 will be rendered.  This includes the location of the viewing point (i.e., where
@@ -15,7 +20,7 @@ the "lens," which may be orthographic, perspective, fisheye, spherical, and so
 on) and the components that will be rendered (render "sources," such as volume
 elements, lines, annotations, and opaque surfaces).  The 3D plotting
 infrastructure then develops a resultant image from this scene, which can be
-saved to a file or viewed inline.
+saved to a file or viewed inline.  
 
 By constructing the scene in this programmatic way, full control can be had
 over each component in the scene as well as the method by which the scene is
@@ -24,7 +29,8 @@ as grid or continent lines, and then to render a production-quality
 visualization.  By changing the "lens" used, a single camera path can output
 images suitable for planetarium domes, immersive and head tracking systems
 (such as the Occulus Rift or recent "spherical" movie viewers such as the
-mobile YouTube app), as well as standard screens.
+mobile YouTube app), as well as standard screens.  For more details on how 
+all of this works behind the scenes, see :ref:`volume-rendering-method`.
 
 .. image:: _images/scene_diagram.svg
    :width: 50%
@@ -44,7 +50,8 @@ more intuitive interface for very simple 3D visualizations.
              information can be hard.  We've provided information about best
              practices and tried to make the interface easy to develop nice
              visualizations, but getting them *just right* is often
-             time-consuming.
+             time-consuming.  It's usually best to start out simple with the 
+             built-in helper interface, and expand on that if you need to.
 
 Tutorial
 --------
@@ -54,9 +61,6 @@ of arbitrary data sources. As such, manual composition of a scene can require a
 bit more work, but we will also provide several helper functions that attempt
 to create satisfactory default volume renderings.
 
-.. note:: It's usually best to start out simple with the built-in helper
-          interface, and expand on that if you need to.
-
 Here is a working example for rendering the IsolatedGalaxy dataset.
 
 .. python-script::
@@ -64,12 +68,15 @@ Here is a working example for rendering the IsolatedGalaxy dataset.
   import yt
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
   # volume render the 'density' field, and save the resulting image
   im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
 
   # im is the image array generated. it is also saved to 'rendering.png'.
   # sc is an instance of a Scene object, which allows you to further refine
-  # your renderings, and later save them.
+  # your renderings and later save them.
+
+  print sc
 
 When the 
 :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
@@ -83,15 +90,18 @@ blocks of data.  (If the volume elements are grids, this uses a
 :class:`~yt.visualization.volume_rendering.api.VolumeSource`
 object is created, by default it will create a transfer function
 based on the extrema of the field that you are rendering. The transfer function
-describes how rays that pass through the domain are "transfered" and thus how
+describes how rays that pass through the domain are "transferred" and thus how
 brightness and color correlates to the field values.  Modifying and adjusting
 the transfer function is the primary way to modify the appearance of an image
 based on volumes.
 
-Once the basic set of objects to be rendered is constructed, a
-:class:`~yt.visualization.volume_rendering.camera.Camera` object is created and
+Once the basic set of objects to be rendered is constructed (e.g. 
+:class:`~yt.visualization.volume_rendering.scene.Scene`, 
+:class:`~yt.visualization.volume_rendering.render_source.RenderSource`, and
+:class:`~yt.visualization.volume_rendering.api.VolumeSource` objects) , a
+:class:`~yt.visualization.volume_rendering.camera.Camera` is created and
 added to the scene.  By default the creation of a camera also creates a
-default, plane-parallel :class:`~yt.visualization.volume_rendering.lens.Lens`
+plane-parallel :class:`~yt.visualization.volume_rendering.lens.Lens`
 object. The analog to a real camera is intentional -- a camera can take a
 picture of a scene from a particular point in time and space, but different
 lenses can be swapped in and out.  For example, this might include a fisheye
@@ -100,10 +110,10 @@ origin of rays for rendering. Once the camera is added to the scene object, we
 call the main methods of the
 :class:`~yt.visualization.volume_rendering.scene.Scene` class,
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` and 
-:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  When called,
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  When rendered,
 the scene will loop through all of the
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
-that have been added and integrate the radiative transfer equation through the
+that have been added and integrate the radiative transfer equations through the
 volume. Finally, the image and scene object is returned to the user.
 
 In this example, we don't add on any non-volume rendering sources; however, if
@@ -111,9 +121,11 @@ such sources are added, they will be integrated as well.
 
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object, 
-you can skip this expensive operation by just running the
-:func:`~yt.visualization.volume_rendering.volume_rendering.create_scene` function in lieu of the
-:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` function. Example:
+you can skip the expensive operation of rendering by just running the
+:func:`~yt.visualization.volume_rendering.volume_rendering.create_scene` 
+function in lieu of the
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
+function. Example:
 
 .. python-script::
 
@@ -121,11 +133,14 @@ you can skip this expensive operation by just running the
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
   sc = yt.create_scene(ds, 'density')
 
-Modifying and Saving the Scene
-------------------------------
+Modifying the Scene and its Components
+--------------------------------------
 
 Once a basic scene has been created with default render sources and
-camera operations, deeper modifications are possible. These
+camera operations using 
+:func:`~yt.visualization.volume_rendering.volume_rendering.create_scene` or
+:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render`,
+deeper modifications of the scene structure are possible. These
 modifications can tune the appearance of the render sources (such as which
 colors correspond to which values in the data) as well as the shape of the
 rendered image, the position of the camera in the scene, and other elements
@@ -177,29 +192,18 @@ than ``N`` standard deviations brighter than the mean of your image.
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
 See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
 
-.. python-script::
-
-  sc = yt.create_scene(ds, 'density')
-  sc.render()
-  sc.save(sigma_clip=4)
-
 .. _transfer_functions:
 
 Transfer Functions
 ++++++++++++++++++
 
-Transfer functions are the most essential component of a rendering that
-includes volume sources.  Several different fundamental types have been
+A transfer function describes how rays that pass through the domain are 
+mapped from simulation field values to brightness, color, and opacity in the
+resulting volume rendered image.  Several different fundamental types have been
 provided, but there are many different ways to construct complicated
 expressions that produce visualizations and images using the underlying
 machinery.
 
-.. note::
-   All of the information about how transfer functions are used and values
-   extracted is contained in the functions `TransferFunctionProxy.eval_transfer`
-   and `FIT_get_value` in the file `yt/_amr_utils/VolumeIntegrator.pyx`.  If
-   you're curious about how to construct your own, or why you get the values
-   you do, you should read the source!
 
 There are three ready-to-go transfer functions implemented in yt.
 :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`,
@@ -211,34 +215,40 @@ Color Transfer Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 These transfer functions are the standard way to apply colors to specific
-values in the field being rendered.  For instance, applying isocontours at
-specific densities.  They have several different mechanisms that can be used.
-The easiest mechanism is to use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
-which will add evenly spaced isocontours between the bounds of the transfer
-function.  However, you can also use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
-which will sample a colormap at a given value.  Additionally, you can directly
-call
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
-which will allow you to specify the colors directly.
+values in the field being rendered.  One can add discrete features to the
+transfer function, which will render isocontours in the field data and 
+works well for visualizing nested structures in a simulation.  Alternatively,
+one can add continuous features to the transfer function, which tends to 
+produce better results for more general datasets.
 
-An alternate method for modifying the colormap is
+In order to modify a 
+:class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`
+use 
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
+which will add evenly spaced isocontours along the transfer
+function; use 
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
+which will sample a colormap at a given value; 
+use
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
+which will allow you to specify the colors directly on the transfer function,
+and use 
 :meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
 where you can map a segment of the transfer function space to an entire
-colormap at a single alpha value.  This is sometimes useful for very opaque
-renderings.
+colormap at a single alpha value.  
 
-See :ref:`cookbook-simple_volume_rendering` for an example usage.
+See :ref:`cookbook-custom-transfer-function` for an example usage.
 
 Projection Transfer Function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is designed to allow you to very easily project off-axis through a region.
-See :ref:`cookbook-offaxis_projection` for a simple example.  Note that the
-integration here is scaled to a width of 1.0; this means that if you want to
-apply a colorbar, you will have to multiply by the integration width (specified
-when you initialize the volume renderer) in whatever units are appropriate.
+This is designed to allow you to generate projections like what you obtain
+from the standard :ref:`projection-plots`, and it forms the basis of 
+:ref:`off-axis-projections`.  See :ref:`cookbook-offaxis_projection` for a 
+simple example.  Note that the integration here is scaled to a width of 1.0; 
+this means that if you want to apply a colorbar, you will have to multiply by 
+the integration width (specified when you initialize the volume renderer) in 
+whatever units are appropriate.
 
 Planck Transfer Function
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -254,26 +264,33 @@ More Complicated Transfer Functions
 For more complicated transfer functions, you can use the
 :class:`~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction`
 object.  This allows for a set of weightings, linkages and so on.
+All of the information about how all transfer functions are used and values are
+extracted is contained in the sourcefile ``utilities/lib/grid_traversal.pyx``.
+For more information on how the transfer function is actually applied, look
+over the source code there.
 
 .. _transfer-function-helper:
 
 TransferFunctionHelper
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 Because good transfer functions can be difficult to generate, the 
-TransferFunctionHelper exists in order to help create and modify transfer
-functions with smart defaults for your datasets.  To follow a full example
-on how to use this interface, follow the
-:ref:`transfer-function-helper-tutorial`.
+:class:`~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper`
+exists in order to help create and modify transfer functions with smart 
+defaults for your datasets.  To follow a full example on how to use this 
+interface, follow the annotated :ref:`transfer-function-helper-tutorial`.
 
-Adding New Sources
-++++++++++++++++++
+Adding New RenderSources
+++++++++++++++++++++++++
 
-The resulting image of a rendering process is a combination of the different
-sources present in a scene.  While at present there are only a few sources
+When a scene object is rendered, it passes its rays through the 
+:class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
+present in the Scene.  While at present there are only a few sources
 available, in principle new sources can be defined and added to yt over time.
 
-By default, the scene will construct a volume object that includes the fluid
+Next, a :class:`~yt.visualization.volume_rendering.api.VolumeSource`
+
+By default, the scene will construct a XXXvolume object that includes the fluid
 components of a data source. 
 
 Volume Objects
@@ -284,9 +301,6 @@ integrated.  The volume object is affiliated with a transfer function, a set of
 voxels (drawn from a data source) and is integrated in a front-to-back manner.
 Depending on whether or not other opaque objects are in the scene, the volume
 may or may not be traversed in its entirety.
-
-.. note:: Behavior is undefined for volume sources that overlap that are added
-          to a scene.
 
 Hard and Opaque Objects
 +++++++++++++++++++++++
@@ -319,8 +333,8 @@ and also provide a vector orientation within the image.
 For example scripts using these features, 
 see :ref:`cookbook-volume_rendering_annotations`.
 
-Care and Usage of the Camera
-----------------------------
+Usage of the Camera
+-------------------
 
 When constructing a movie or utilizing volume rendering to visualize particular
 objects or phenomena, control over the exact position of the camera is
@@ -413,6 +427,8 @@ At the present time, there are a few cameras that can be used:
 
 For more information on the usage of different lenses and their features, see the
 cookbook example :ref:`cookbook-various_lens`.
+
+.. _volume-rendering-method:
 
 Volume Rendering Method
 -----------------------

@@ -609,6 +609,7 @@ These objects set up the way the image looks:
    ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
    ~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction
    ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
+   ~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper
 
 There are also advanced objects for particular use cases:
 
