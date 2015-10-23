@@ -113,7 +113,7 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_ds, output_file="spectrum.h5",
+    def make_spectrum(self, input_file, output_file="spectrum.h5",
                       line_list_file="lines.txt",
                       use_peculiar_velocity=True, njobs="auto"):
         """
@@ -122,7 +122,7 @@ class AbsorptionSpectrum(object):
         Parameters
         ----------
 
-        input_ds : string or dataset
+        input_file : string or dataset
            path to input ray data or a loaded ray dataset
         output_file : optional, string
            path for output file.  File formats are chosen based on the
@@ -167,8 +167,10 @@ class AbsorptionSpectrum(object):
                 input_fields.append(feature['field_name'])
                 field_units[feature["field_name"]] = "cm**-3"
 
-        if isinstance(input_ds, str):
-            input_ds = load(input_ds)
+        if isinstance(input_file, str):
+            input_ds = load(input_file)
+        else:
+            input_ds = input_file
         field_data = input_ds.all_data()
 
         self.tau_field = np.zeros(self.lambda_bins.size)
