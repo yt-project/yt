@@ -21,7 +21,7 @@ from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from fp_utils cimport *
-from yt.utilities.lib.geometry_utils cimport bounded_morton,bounded_morton_mml
+from yt.utilities.lib.geometry_utils cimport bounded_morton#,bounded_morton_mml
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject, \
@@ -339,7 +339,7 @@ cdef class ParticleForest:
             # To save time, don't do this if index_order changes
             # (Can you use properties in cython? If so, index_order should be
             # property to handle changes that effect dds_mi)
-            self.dds_mi = (right_edge[i] - left_edge[i]) / (1<<index_order)
+            self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order)
         # We use 64-bit masks
         self.masks = []
         self.index_order = index_order
@@ -449,7 +449,7 @@ cdef class ParticleForest:
         #print sub_mi.size
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort(sub_mi)
         last_submi = last_mi = 0
-        for i in range(nsub_mi):
+        for i in range(int(nsub_mi)):
             p = ind[i]
             # Make sure its sorted
             if not (sub_mi[1,p] >= last_submi):
@@ -533,6 +533,7 @@ cdef class ParticleForest:
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
         files, pcount, omask, buffer_files = data_file_info
+        # cdef np.float64_t LE[3], RE[3]
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.uint64_t total_pcount = 0
