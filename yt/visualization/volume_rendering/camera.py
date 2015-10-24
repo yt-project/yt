@@ -221,9 +221,9 @@ class Camera(Orientation):
 
     def set_defaults_from_data_source(self, data_source):
         """Resets the camera attributes to their default values"""
-        self.position = data_source.pf.domain_right_edge
+        self.position = data_source.ds.domain_right_edge
 
-        width = 1.5 * data_source.pf.domain_width.max()
+        width = 1.5 * data_source.ds.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
@@ -231,17 +231,17 @@ class Camera(Orientation):
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = data_source.pf.quan(width[0], input_units=width[1])
+            width = data_source.ds.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
         if not iterable(width):
-            width = data_source.pf.arr([width, width, width],
+            width = data_source.ds.arr([width, width, width],
                                        input_units='code_length')
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.pf.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
-            focus = self.pf.arr(focus, input_units="code_length")
+            focus = self.ds.arr(focus, input_units="code_length")
 
         self.set_width(width)
         self.focus = focus
@@ -300,7 +300,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -321,7 +321,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -561,16 +561,16 @@ class Camera(Orientation):
             yield i
 
     def zoom(self, factor):
-        r"""Change the distance to the focal point.
+        r"""Change the width of the FOV of the camera.
 
-        This will zoom the camera in by some `factor` toward the focal point,
-        along the current view direction, modifying the left/right and up/down
-        extents as well.
+        This will appear to zoom the camera in by some `factor` toward the 
+        focal point along the current view direction, but really it's just
+        changing the width of the field of view.
 
         Parameters
         ----------
         factor : float
-            The factor by which to reduce the distance to the focal point.
+            The factor by which to divide the width
 
         Examples
         --------

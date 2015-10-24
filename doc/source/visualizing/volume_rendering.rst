@@ -90,9 +90,7 @@ RenderSources
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
 comprise the contents of what is actually *rendered*.  One can add several 
 different RenderSources to a Scene and the ray-tracing step will pass rays
-through all of them to produce the final rendered image.  Valid RenderSources
-include :ref:`volume-sources`, :ref:`opaque-sources`, and 
-:ref:`annotations <volume-rendering-annotations>`.
+through all of them to produce the final rendered image.  
 
 .. _volume-sources:
 
@@ -144,29 +142,40 @@ see :ref:`cookbook-volume_rendering_annotations`.
 Transfer Functions
 ^^^^^^^^^^^^^^^^^^
 
-A transfer function describes how rays that pass through the domain are 
-mapped from simulation field values to brightness, color, and opacity in the
-resulting volume rendered image.  Several different fundamental types have been
-provided, but there are many different ways to construct complicated
-expressions that produce visualizations and images using the underlying
-machinery.
+A transfer function describes how rays that pass through the domain of a
+:class:`~yt.visualization.volume_rendering.render_source.VolumeSource` are
+mapped from simulation field values to color, brightness, and opacity in the
+resulting rendered image.  A transfer function consists of an array over 
+the x and y dimensions.  The x dimension typically represents field values in 
+your underlying dataset to which you want your rendering to be sensitive (e.g. 
+density from 1e20 to 1e23).  The y dimension consists of 4 channels for red, 
+green, blue, and alpha (opacity).  A transfer function starts with all zeros 
+for its y dimension values, implying that rays traversing the VolumeSource 
+will not show up at all in the final image.  However, you can add features to 
+the transfer function that will highlight certain field values in your 
+rendering.
 
+.. _transfer-function-helper:
 
-There are three ready-to-go transfer functions implemented in yt.
-:class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`,
-:class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`,
-and
-:class:`~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction`.
+TransferFunctionHelper
+++++++++++++++++++++++
+
+Because good transfer functions can be difficult to generate, the 
+:class:`~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper`
+exists in order to help create and modify transfer functions with smart 
+defaults for your datasets.  To see a full example on how to use this 
+interface, follow the annotated :ref:`transfer-function-helper-tutorial`.
 
 Color Transfer Functions
 ++++++++++++++++++++++++
 
-These transfer functions are the standard way to apply colors to specific
-values in the field being rendered.  One can add discrete features to the
+A :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`
+is the standard way to map dataset field values to colors, brightnesses, 
+and opacities in the rendered rays.  One can add discrete features to the
 transfer function, which will render isocontours in the field data and 
 works well for visualizing nested structures in a simulation.  Alternatively,
 one can add continuous features to the transfer function, which tends to 
-produce better results for more general datasets.
+produce better results for most datasets.
 
 In order to modify a 
 :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`
@@ -216,115 +225,111 @@ extracted is contained in the sourcefile ``utilities/lib/grid_traversal.pyx``.
 For more information on how the transfer function is actually applied, look
 over the source code there.
 
-.. _transfer-function-helper:
-
-TransferFunctionHelper
-++++++++++++++++++++++
-
-Because good transfer functions can be difficult to generate, the 
-:class:`~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper`
-exists in order to help create and modify transfer functions with smart 
-defaults for your datasets.  To follow a full example on how to use this 
-interface, follow the annotated :ref:`transfer-function-helper-tutorial`.
-
 .. _camera:
 
 Camera
 ^^^^^^
 
-When constructing a movie or utilizing volume rendering to visualize particular
-objects or phenomena, control over the exact position of the camera is
-necessary for both aesthetic and scientific reasons.
-
-yt provides methods for moving the camera by altering its position and
-orientation in space.  There are helper methods that can provide easier ways if
-you are guiding visualization based on quantities in the data.
-
-Cameras also posses "lens" objects, which control the manner in which rays are
-shot out of the camera.  Some of these make some camera properties
-(specifically the width property) irrelevant.
+The :class:`~yt.visualization.volume_rendering.camera.Camera` object
+is what it sounds like, a camera within the Scene.  It possesses the 
+quantities:
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.position` - the position of the camera in scene-space
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.width` - the width of the plane the camera can see
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.focus` - the point in space the camera is looking at
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.resolution` - the image resolution
+ * ``north_vector`` - a vector defining the "up" direction in an image
+ * :ref:`lens <lenses>` - an object controlling how rays traverse the Scene
 
 .. _camera_movement:
 
 Moving and Orienting the Camera
 +++++++++++++++++++++++++++++++
 
-There are multiple ways to manipulate the camera viewpoint to create a series of
-renderings.  For an example, see this cookbook:
-:ref:`cookbook-camera_movement`.  For a current list of
-motion helper functions, see the docstrings associated with
-:class:`~yt.visualization.volume_rendering.camera.Camera`.  In short, the
-camera possesses a number of properties and methods that make changing its
-position easy.  These properties can be set, and will automatically trigger an
-update of the other properties of the camera:
+There are multiple ways to manipulate the camera viewpoint and orientation.
+One can set the properties listed above explicitly, or one can use the
+:class:`~yt.visualization.volume_rendering.camera.Camera` helper methods.  
+In either case, any change triggers an update of all of the other properties.
+Note that the camera exists in a right-handed coordinate system centered on
+the camera.
 
- * `position` - the position of the camera in scene-space
- * `width` - the width of the plane the camera can see
- * `focus` - the point in space the camera is looking at
- * `resolution` - the image resolution
+Rotation-related methods
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.pitch` - rotate about the lateral axis
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.yaw` - rotate about the vertical axis (i.e. ``north_vector``)
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.roll` - rotate about the longitudinal axis (i.e. ``normal_vector``)
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.rotate` - rotate about an arbitrary axis
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.iter_rotate` - iteratively rotate about an arbitrary axis
 
-In addition to this, methods such as
-:meth:`~yt.visualization.volume_rendering.camera.Camera.rotate`,
-:meth:`~yt.visualization.volume_rendering.camera.Camera.pitch`,
-:meth:`~yt.visualization.volume_rendering.camera.Camera.yaw`, and
-:meth:`~yt.visualization.volume_rendering.camera.Camera.roll` can rotate the
-camera in space. The center around which the camera rotates can be specified by
-the optional parameter `rot_center` (very useful for perspective and spherical
-lenses), or by default `rot_center` is set to be at camera location (i.e. the 
-camera will rotate about its current position).
+For the rotation methods, the camera pivots around the ``rot_center`` rotation 
+center.  By default, this is the camera position, which means that the 
+camera doesn't change its position at all, it just changes its orientation.  
 
-When examining a particular point in space, 
-:meth:`~yt.visualization.volume_rendering.camera.Camera.zoom` can be of
-assistance, as it will move the camera toward the focal point by a factor
-related to the current distance between them.
+Zoom-related methods
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.set_width` - change the width of the FOV
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.zoom` - change the width of the FOV
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.iter_zoom` - iteratively change the width of the FOV
 
-In addition to manual control, the camera also has iteration methods that help
-with moving and rotating.  The 
-:meth:`~yt.visualization.volume_rendering.camera.Camera.rotation`,
-:meth:`~yt.visualization.volume_rendering.camera.Camera.zoomin`, and
-:meth:`~yt.visualization.volume_rendering.camera.Camera.move_to` methods
-provide iteration over a sequence of positions and orientations.  These can be
-used within a loop:
+Perhaps counterintuitively, the camera does not get closer to the focus
+during a zoom; it simply reduces the width of the field of view.
 
-.. python-script::
+Translation-related methods
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.set_position` - change the location of the camera keeping the focus fixed
+ * :meth:`~yt.visualization.volume_rendering.camera.Camera.iter_move` - iteratively change the location of the camera keeping the focus fixed
 
-   for i in sc.camera.zoomin(100, 5):
-       sc.render()
-       sc.save("frame_%03i.png" % i)
-
-The variable ``i`` is the frame number in the particular loop being called.  In
-this case, this will zoom in by a factor of 100 over the course of 5 frames.
+The iterative methods provide iteration over a series of changes in the 
+position or orientation of the camera.  These can be used within a loop.
+For an example on how to use all of these camera movement functions, see 
+:ref:`cookbook-camera_movement`.  
 
 .. _lenses:
 
 Camera Lenses
 ^^^^^^^^^^^^^
 
-Setting a lens on a camera changes the resulting image.  These lenses can be
-changed at run time or at the time when a camera is initialized by specifying
-the `lens_type` argument with a string.
+Cameras possess :class:`~yt.visualization.volume_rendering.lens.Lens` objects, 
+which control the geometric path in which rays travel to the camera.  These
+lenses can be swapped in and out of an existing camera to produce different
+views of the same Scene.  For a full demonstration of a Scene object 
+rendered with different lenses, see :ref:`cookbook-various_lens`.
 
-At the present time, there are a few cameras that can be used:
-`plane-parallel`, `(stereo)perspective`, `fisheye`, and `(stereo)spherical`.
+Plane Parallel
+++++++++++++++
 
- * Plane parallel: This lens type is the standard type used for orthographic
-   projections.  All rays emerge parallel to each other, arranged along a
-   plane.
- * Perspective: This lens type adjusts for an opening view angle, so that the
-   scene will have an element of perspective to it.
- * Fisheye: This lens type accepts a field-of-view property, `fov`, that
-   describes how wide an angle the fisheye can see.  Fisheye images are
-   typically used for dome-based presentations; the Hayden planetarium for
-   instance has a field of view of 194.6.  The images returned by this camera
-   will be flat pixel images that can and should be reshaped to the resolution.
- * Spherical: This is a cylindrical-spherical projection.  Movies rendered in
-   this way can be displayed in head-tracking devices or in YouTube 360 view
-   (for more information see `the YouTube help
-   <https://support.google.com/youtube/answer/6178631?hl=en>`, but it's a
-   simple matter of running a script on an encoded movie file.)
+The :class:`~yt.visualization.volume_rendering.lens.PlaneParallelLens` is the
+standard lens type used for orthographic projections.  All rays emerge 
+parallel to each other, arranged along a plane.
 
-For more information on the usage of different lenses and their features, see the
-cookbook example :ref:`cookbook-various_lens`.
+Perspective and Stereo Perspective
+++++++++++++++++++++++++++++++++++
+
+The :class:`~yt.visualization.volume_rendering.lens.PerspectiveLens` 
+adjusts for an opening view angle, so that the scene will have an 
+element of perspective to it.
+:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`
+is identical to PerspectiveLens, but it produces two images from nearby 
+camera positions for use in 3D viewing.
+
+Fisheye or Dome
++++++++++++++++
+
+The :class:`~yt.visualization.volume_rendering.lens.FisheyeLens` 
+is appropriate for viewing an arbitrary field of view.  Fisheye images 
+are typically used for dome-based presentations; the Hayden planetarium 
+for instance has a field of view of 194.6.  The images returned by this 
+camera will be flat pixel images that can and should be reshaped to the 
+resolution.
+
+Spherical and Stereo Spherical
+++++++++++++++++++++++++++++++
+
+The :class:`~yt.visualization.volume_rendering.lens.SphericalLens` produces
+a cylindrical-spherical projection.  Movies rendered in this way can be 
+displayed in head-tracking devices (e.g. Oculus Rift) or in YouTube 360 view
+(for more information see `the YouTube help
+<https://support.google.com/youtube/answer/6178631?hl=en>`, but it's a
+simple matter of running a script on an encoded movie file.)
+:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens` 
+is identical to :class:`~yt.visualization.volume_rendering.lens.SphericalLens` 
+but it produces two images from nearby camera positions for use in 3D viewing.
 
 .. _annotated-vr-example:
 
@@ -593,5 +598,3 @@ dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.  
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
 See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
-
-
