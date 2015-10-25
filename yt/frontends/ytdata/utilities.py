@@ -221,4 +221,8 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if hasattr(val, "units"):
         val = val.in_cgs()
         fh.attrs["%s_units" % attr] = str(val.units)
+    # The following is a crappy workaround
+    # for h5py in Python 3
+    if attr is 'con_args':
+        val = np.array(val, dtype='|S9')
     fh.attrs[str(attr)] = val
