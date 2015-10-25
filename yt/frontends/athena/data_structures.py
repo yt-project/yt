@@ -489,7 +489,7 @@ class AthenaDataset(Dataset):
     def set_code_units(self):
         super(AthenaDataset, self).set_code_units()
         mag_unit = getattr(self, "magnetic_unit", None)
-        vel_unit = getattr(self, "magnetic_unit", None)
+        vel_unit = getattr(self, "velocity_unit", None)
         if mag_unit is None:
             self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                          (self.time_unit**2 * self.length_unit))
