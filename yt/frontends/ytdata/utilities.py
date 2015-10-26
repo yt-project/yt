@@ -17,6 +17,7 @@ Utility functions for ytdata frontend.
 import h5py
 import numpy as np
 
+from yt.funcs import iterable
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \
@@ -221,8 +222,10 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if hasattr(val, "units"):
         val = val.in_cgs()
         fh.attrs["%s_units" % attr] = str(val.units)
-    # The following is a crappy workaround
-    # for h5py in Python 3
-    if attr is 'con_args':
-        val = np.array(val, dtype='|S9')
+    # The following is a crappy workaround for getting
+    # Unicode strings into HDF5 attributes in Python 3
+    if iterable(val):
+        val = np.array(val)
+        if val.dtype.kind == 'U':
+            val = val.astype('|S40')
     fh.attrs[str(attr)] = val
