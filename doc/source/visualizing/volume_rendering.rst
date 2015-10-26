@@ -339,6 +339,14 @@ but it produces two images from nearby camera positions for use in 3D viewing.
 Annotated Examples
 ------------------
 
+.. warning:: 3D visualizations can be fun but frustrating!  Tuning the
+             parameters to both look nice and convey useful scientific
+             information can be hard.  We've provided information about best
+             practices and tried to make the interface easy to develop nice
+             visualizations, but getting them *just right* is often
+             time-consuming.  It's usually best to start out simple with the 
+             built-in helper interface, and expand on that as you need.
+
 The scene interface provides a modular interface for creating renderings
 of arbitrary data sources. As such, manual composition of a scene can require 
 a bit more work, but we will also provide several helper functions that attempt
@@ -410,13 +418,6 @@ function. Example:
   sc = yt.create_scene(ds, 'density')
 
 
-3D visualizations can be fun but frustrating!  Tuning the
-parameters to both look nice and convey useful scientific
-information can be hard.  We've provided information about best
-practices and tried to make the interface easy to develop nice
-visualizations, but getting them *just right* is often
-time-consuming.  It's usually best to start out simple with the 
-built-in helper interface, and expand on that if you need to.
 
 If you're eager to just see what a volume rendering of your simulation looks
 like, there is the high-level function 
