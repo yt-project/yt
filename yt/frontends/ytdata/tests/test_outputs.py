@@ -172,16 +172,18 @@ def test_nonspatial_data():
     my_data = {}
     my_data["region_density"] = region["density"]
     my_data["sphere_density"] = sphere["density"]
-    fn = save_as_dataset(ds, "test_data.h5", my_data)
+    fn = "test_data.h5"
+    save_as_dataset(ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)
     array_ds = load(full_fn)
     assert isinstance(array_ds, YTNonspatialDataset)
     yield YTDataFieldTest(full_fn, "region_density", geometric=False)
     yield YTDataFieldTest(full_fn, "sphere_density", geometric=False)
 
-    my_data = {"density": YTArray(np.random.random(10), "g/cm**3")}
+    my_data = {"density": YTArray(np.linspace(1.,20.,10), "g/cm**3")}
     fake_ds = {"current_time": YTQuantity(10, "Myr")}
-    fn = save_as_dataset(fake_ds, "random_data.h5", my_data)
+    fn = "random_data.h5"
+    save_as_dataset(fake_ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)
     new_ds = load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
