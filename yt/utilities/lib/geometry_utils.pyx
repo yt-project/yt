@@ -22,6 +22,7 @@ from libc.math cimport copysign
 from yt.utilities.exceptions import YTDomainOverflow
 
 DEF ORDER_MAX=20
+DEF INDEX_MAX=2097151
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -330,6 +331,7 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -371,6 +373,44 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
         mi |= spread_bits(ii[0])<<2
         ind[i] = mi
     return pos_x.shape[0]
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.int64_t morton_to_leftindex(np.ndarray[np.uint64_t, ndim=1] ind,
+                                    np.ndarray[np.uint64_t, ndim=1] ind_x,
+                                    np.ndarray[np.uint64_t, ndim=1] ind_y,
+                                    np.ndarray[np.uint64_t, ndim=1] ind_z):
+                        # np.ndarray[anyfloat, ndim=1] pos_y,
+                        # np.ndarray[anyfloat, ndim=1] pos_z,
+                        # np.float64_t dds[3], np.float64_t DLE[3],
+                        # np.float64_t DRE[3],
+                        # np.ndarray[np.uint64_t, ndim=1] ind,
+                        # int filter):
+    cdef np.int64_t i,mi
+    cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
+    for i in range(ind.shape[0]):
+        mi = ind[i]
+        if (mi == FLAG):
+            continue
+        ind_x[i] = compact_bits(mi>>2)
+        ind_y[i] = compact_bits(mi>>1)
+        ind_z[i] = compact_bits(mi>>0)
+    return ind.shape[0]
+
+def compute_leftindex(np.ndarray ind):
+
+    cdef np.ndarray[np.uint64_t, ndim=1] ind_x
+    cdef np.ndarray[np.uint64_t, ndim=1] ind_y
+    cdef np.ndarray[np.uint64_t, ndim=1] ind_z
+    ind_x = np.zeros(ind.shape[0], dtype="uint64")
+    ind_y = np.zeros(ind.shape[0], dtype="uint64")
+    ind_z = np.zeros(ind.shape[0], dtype="uint64")
+    cdef np.int64_t rv
+
+    rv = morton_to_leftindex(ind, ind_x, ind_y, ind_z)
+
+    return ind_x, ind_y, ind_z
 
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                    domain_left_edge, domain_right_edge, filter_bbox = False):
