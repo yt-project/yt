@@ -13,8 +13,8 @@ rendering capabilities are implemented in software, requiring no specialized
 hardware. Optimized versions implemented with OpenGL and utilizing graphics 
 processors are being actively developed.
 
-Volume Rendering Infrastructure
--------------------------------
+Volume Rendering Introduction
+-----------------------------
 
 Constructing a 3D visualization is a process of describing the "scene" that
 will be rendered.  This includes the location of the viewing point (i.e., where
@@ -31,7 +31,7 @@ rendered; this can be used to prototype visualizations, inject annotation such
 as grid or continent lines, and then to render a production-quality
 visualization.  By changing the "lens" used, a single camera path can output
 images suitable for planetarium domes, immersive and head tracking systems
-(such as the Occulus Rift or recent "spherical" movie viewers such as the
+(such as the Oculus Rift or recent "spherical" movie viewers such as the
 mobile YouTube app), as well as standard screens.  
 
 .. image:: _images/scene_diagram.svg
@@ -41,8 +41,11 @@ mobile YouTube app), as well as standard screens.
 
 .. _scene-description:
 
-Description of Scene Components
--------------------------------
+Volume Rendering Components
+---------------------------
+
+The Scene class and its subcomponents are organized as follows.  Indented
+objects *hang* off of their parent object.  
 
 * :ref:`Scene <scene>` - container object describing a volume and its contents
     * :ref:`Sources <render-sources>` - objects to be rendered
@@ -337,12 +340,19 @@ Annotated Examples
 ------------------
 
 The scene interface provides a modular interface for creating renderings
-of arbitrary data sources. As such, manual composition of a scene can require a
-bit more work, but we will also provide several helper functions that attempt
+of arbitrary data sources. As such, manual composition of a scene can require 
+a bit more work, but we will also provide several helper functions that attempt
 to create satisfactory default volume renderings.
 
-Here is a working example for rendering the IsolatedGalaxy dataset.
-
+***needs ipython notebook with two examples here: one high-level one using the 
+yt.volume_render() functionality and the other detailed example using 
+yt.create_scene() to generate a base scene, then modifying all of the 
+components, adding some opaque sources, changing the camera position, 
+transfer function, lens, etc.  Then using "print scene" to display the
+useful __repr__ output for the scene and other VR classes.  The text below
+could be useful too.  Right now, we cannot use ipython notebooks with
+the VR infrastructure because there is no Scene.show() method.  Once it is
+introduced we should be able to do this.***
 
 When the 
 :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
