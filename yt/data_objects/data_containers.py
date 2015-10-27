@@ -527,7 +527,7 @@ class YTDataContainer(object):
         for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
-        data_fields = data.keys()
+        data_fields = list(data.keys())
 
         need_grid_positions = False
         need_particle_positions = False

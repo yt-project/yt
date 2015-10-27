@@ -17,6 +17,7 @@ Utility functions for ytdata frontend.
 import h5py
 import numpy as np
 
+from yt.funcs import iterable
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \
@@ -128,7 +129,10 @@ def save_as_dataset(ds, filename, data, field_types=None,
             fh.create_group(field_type)
         # for now, let's avoid writing "code" units
         if hasattr(data[field], "units"):
-            data[field].convert_to_cgs()
+            for atom in data[field].units.expr.atoms():
+                if str(atom).startswith("code"):
+                    data[field].convert_to_cgs()
+                    break
         if isinstance(field, tuple):
             field_name = field[1]
         else:
@@ -221,4 +225,10 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if hasattr(val, "units"):
         val = val.in_cgs()
         fh.attrs["%s_units" % attr] = str(val.units)
+    # The following is a crappy workaround for getting
+    # Unicode strings into HDF5 attributes in Python 3
+    if iterable(val):
+        val = np.array(val)
+        if val.dtype.kind == 'U':
+            val = val.astype('|S40')
     fh.attrs[str(attr)] = val
