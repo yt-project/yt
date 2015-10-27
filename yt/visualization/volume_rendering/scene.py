@@ -21,6 +21,7 @@ from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
 from yt.visualization.image_writer import write_bitmap
+from yt.extern.six.moves import builtins
 
 
 class Scene(object):
@@ -425,8 +426,34 @@ class Scene(object):
         self.add_source(coords)
         return self
 
+
     def show(self):
-        return self
+        r"""This will send the most recently rendered image to the IPython 
+        notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will send the current image of this Scene 
+        to the notebook for display. If there is no current image, it will
+        run the render() method on this Scene before sending the result to the
+        notebook.
+
+        If yt can't determine if it's inside an IPython session, this will raise
+        YTNotInsideNotebook.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.show()
+
+        """
+        if "__IPYTHON__" in dir(builtins):
+            return self
+        else:
+            raise YTNotInsideNotebook
 
     def _repr_png_(self):
         if self.last_render is None:
