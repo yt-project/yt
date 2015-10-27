@@ -67,13 +67,23 @@ _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
+def parse_h5_attr(f, attr):
+    val = f.attrs.get(attr, None)
+    if isinstance(val, bytes):
+        return val.decode('utf8')
+    else:
+        return val
+
 class YTDataset(Dataset):
     """Base dataset class for all ytdata datasets."""
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
-            self.parameters.update(
-                dict((key, f.attrs[key]) for key in f.attrs.keys()))
+            for key in f.attrs.keys():
+                v = f.attrs[key]
+                if isinstance(v, bytes):
+                    v = v.decode("utf8")
+                self.parameters[key] = v
             self.num_particles = \
               dict([(group, f[group].attrs["num_elements"])
                     for group in f if group != self.default_fluid_type])
@@ -196,8 +206,8 @@ class YTDataContainerDataset(YTDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", b"").decode("utf8")
-            cont_type = f.attrs.get("container_type", b"").decode("utf8")
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
                 return False
             if data_type in ["yt_light_ray"]:
@@ -229,8 +239,8 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", b"").decode("utf8")
-            cont_type = f.attrs.get("container_type", b"").decode("utf8")
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and \
                 cont_type in ["cutting", "proj", "slice"]:
                 return True
@@ -371,8 +381,8 @@ class YTGridDataset(YTDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", b"").decode("utf8")
-            cont_type = f.attrs.get("container_type", b"").decode("utf8")
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_frb":
                 return True
             if data_type == "yt_data_container" and \
@@ -559,7 +569,7 @@ class YTNonspatialDataset(YTGridDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", b"").decode("utf8")
+            data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
                 return True
         return False
@@ -650,7 +660,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", b"").decode("utf8")
+            data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
                 return True
         return False
