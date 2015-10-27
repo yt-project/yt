@@ -20,6 +20,7 @@ from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
+from yt.visualization.image_writer import write_bitmap
 
 
 class Scene(object):
@@ -423,6 +424,14 @@ class Scene(object):
         coords = CoordinateVectorSource(colors, alpha)
         self.add_source(coords)
         return self
+
+    def show(self):
+        return self
+
+    def _repr_png_(self):
+        if self.last_render is None:
+            self.render()
+        return write_bitmap(self.last_render, filename=None)
 
     def __repr__(self):
         disp = "<Scene Object>:"
