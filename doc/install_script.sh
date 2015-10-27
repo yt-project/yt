@@ -233,53 +233,61 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-	echo "The instructions for obtaining these tools varies according"
-	echo "to your exact OS version.  On older versions of OS X, you"
-	echo "must register for an account on the apple developer tools"
-	echo "website: https://developer.apple.com/downloads to obtain the"
-	echo "download link."
-	echo
-	echo "We have gathered some additional instructions for each"
-	echo "version of OS X below. If you have trouble installing yt"
-	echo "after following these instructions, don't hesitate to contact"
-	echo "the yt user's e-mail list."
-	echo
-	echo "You can see which version of OSX you are running by clicking"
-	echo "'About This Mac' in the apple menu on the left hand side of"
-	echo "menu bar.  We're assuming that you've installed all operating"
-	echo "system updates; if you have an older version, we suggest"
-	echo "running software update and installing all available updates."
-	echo
+	    echo "The instructions for obtaining these tools varies according"
+	    echo "to your exact OS version.  On older versions of OS X, you"
+	    echo "must register for an account on the apple developer tools"
+	    echo "website: https://developer.apple.com/downloads to obtain the"
+	    echo "download link."
+	    echo
+	    echo "We have gathered some additional instructions for each"
+	    echo "version of OS X below. If you have trouble installing yt"
+	    echo "after following these instructions, don't hesitate to contact"
+	    echo "the yt user's e-mail list."
+	    echo
+	    echo "You can see which version of OSX you are running by clicking"
+	    echo "'About This Mac' in the apple menu on the left hand side of"
+	    echo "menu bar.  We're assuming that you've installed all operating"
+	    echo "system updates; if you have an older version, we suggest"
+	    echo "running software update and installing all available updates."
+	    echo
         echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the"
-	echo "Apple developer tools website."
+	    echo "Apple developer tools website."
         echo
         echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
-	echo "developer tools website.  You can either download the"
-	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
-	echo "Software Update to update to XCode 3.2.6 or"
-	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
-	echo "bundle (4.1 GB)."
+	    echo "developer tools website.  You can either download the"
+	    echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+	    echo "Software Update to update to XCode 3.2.6 or"
+	    echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
+	    echo "bundle (4.1 GB)."
         echo
         echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
-	echo "(search for Xcode)."
+	    echo "(search for Xcode)."
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of"
-	echo "Xcode from the mac app store (search for Xcode)."
-    echo
-	echo "Additionally, you will have to manually install the Xcode"
-	echo "command line tools."
-    echo
-    echo "For OS X 10.8, see:"
-   	echo "http://stackoverflow.com/questions/9353444"
-	echo
-    echo "For OS X 10.9 and 10.10, the command line tools can be installed"
-    echo "with the following command:"
-    echo "    xcode-select --install"
-    echo
-    OSX_VERSION=`sw_vers -productVersion`
-    if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+	    echo "OS X 10.8.4, 10.9, 10.10, and 10.11:"
+        echo "download the appropriate version of Xcode from the"
+        echo "mac app store (search for Xcode)."
+        echo
+	    echo "Additionally, you will have to manually install the Xcode"
+	    echo "command line tools."
+        echo
+        echo "For OS X 10.8, see:"
+   	    echo "http://stackoverflow.com/questions/9353444"
+	    echo
+        echo "For OS X 10.9 and newer the command line tools can be installed"
+        echo "with the following command:"
+        echo "    xcode-select --install"
+        echo
+        echo "For OS X 10.11, you will additionally need to install the OpenSSL"
+        echo "library using a package manager like homebrew or macports."
+        echo "If you install fails with a message like"
+        echo "    ImportError: cannot import HTTPSHandler"
+        echo "then you do not have the OpenSSL headers available in a location"
+        echo "visible to your C compiler. Consider installing yt using the"
+        echo "get_yt.sh script instead, as that bundles OpenSSL."
+        OSX_VERSION=`sw_vers -productVersion`
+        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
