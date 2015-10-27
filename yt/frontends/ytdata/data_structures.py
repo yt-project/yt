@@ -101,8 +101,17 @@ class YTDataset(Dataset):
         self.field_info.setup_extra_union_fields()
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+
+        self._setup_override_fields()
+
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
+
+    def _setup_gas_alias(self):
+        pass
+
+    def _setup_override_fields(self):
+        pass
 
     def _set_code_unit_attributes(self):
         attrs = ('length_unit', 'mass_unit', 'time_unit',
@@ -160,6 +169,16 @@ class YTDataContainerDataset(YTDataset):
           "gas" not in self.particle_types:
             pu = ParticleUnion("gas", ["grid"])
             self.add_particle_union(pu)
+
+    def _setup_override_fields(self):
+        """
+        Override some derived fields to use frontend-specific fields.
+        We need to do this because we are treating grid data like particles.
+        This will be fixed eventually when grid data can be exported properly.
+        """
+
+        del self.field_info[("gas", "cell_mass")]
+        self.field_info.alias(("gas", "cell_mass"), ("grid", "cell_mass"))
 
     @property
     def data(self):
