@@ -83,6 +83,8 @@ class YTDataset(Dataset):
                 v = f.attrs[key]
                 if isinstance(v, bytes):
                     v = v.decode("utf8")
+                if key == "con_args":
+                    v = v.astype("str")
                 self.parameters[key] = v
             self.num_particles = \
               dict([(group, f[group].attrs["num_elements"])
