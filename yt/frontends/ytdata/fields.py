@@ -48,6 +48,31 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
         (v_units, "particle_velocity_z"),
     )
 
+    def __init__(self, ds, field_list):
+        super(YTDataContainerFieldInfo, self).__init__(ds, field_list)
+        self.add_fake_grid_fields()
+
+    def add_fake_grid_fields(self):
+        """
+        Add cell volume and mass fields that use the dx, dy, and dz
+        fields that come with the dataset instead of the index fields
+        which correspond to the oct tree.  We need to do this for now
+        since we're treating the grid data like particles until we
+        implement exporting AMR hierarchies.
+        """
+
+        def _cell_volume(field, data):
+            return data["grid", "dx"] * \
+              data["grid", "dy"] * \
+              data["grid", "dz"]
+        self.add_field(("grid", "cell_volume"), function=_cell_volume,
+                       units="cm**3", particle_type=True)
+
+        def _cell_mass(field, data):
+            return data["grid", "density"] * data["grid", "cell_volume"]
+        self.add_field(("grid", "cell_mass"), function=_cell_mass,
+                       units="g", particle_type=True)
+
 class YTGridFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )
