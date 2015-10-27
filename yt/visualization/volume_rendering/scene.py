@@ -59,8 +59,6 @@ class Scene(object):
     and then modify the Scene later:
 
     >>> import yt
-    >>> import numpy as np
-    >>> from yt.visualization.volume_rendering.api import PointSource
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> 
     >>> sc = yt.create_scene(ds)
@@ -145,8 +143,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -194,8 +190,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -206,8 +200,6 @@ class Scene(object):
         Or alternatively:
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -272,8 +264,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -353,8 +343,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -395,8 +383,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
@@ -427,8 +413,6 @@ class Scene(object):
         --------
 
         >>> import yt
-        >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import PointSource
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
