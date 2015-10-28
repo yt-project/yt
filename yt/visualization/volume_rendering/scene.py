@@ -458,7 +458,9 @@ class Scene(object):
     def _repr_png_(self):
         if self.last_render is None:
             self.render()
-        return write_bitmap(self.last_render, filename=None)
+        im = self.last_render.add_background_color(background='black', 
+                                                   inline=False)
+        return write_bitmap(im, filename=None)
 
     def __repr__(self):
         disp = "<Scene Object>:"
