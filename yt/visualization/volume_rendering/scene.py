@@ -79,6 +79,9 @@ class Scene(object):
         self.camera = None
         # An image array containing the last rendered image of the scene
         self.last_render = None
+        # A non-public attribute used to get around the fact that we can't
+        # pass kwargs into _repr_png_()
+        self._sigma_clip = None
 
     def get_source(self, source_num):
         """Returns the volume rendering source indexed by ``source_num``"""
@@ -451,18 +454,19 @@ class Scene(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
-            # dynamically set the _repr_png(self) method using the 
-            # input value of sigma_clip
-            def func(self):
-                if self.last_render is None:
-                    self.render()
-                return self.last_render.write_png(filename=None,
-                                                  sigma_clip=sigma_clip,
-                                                  background='black')
-            self._repr_png_ = MethodType(func, self, Scene)
+            self._sigma_clip = sigma_clip
             return self
         else:
             raise YTNotInsideNotebook
+
+    def _repr_png_(self):
+        if self.last_render is None:
+            self.render()
+        png = self.last_render.write_png(filename=None,
+                                         sigma_clip=self._sigma_clip,
+                                         background='black')
+        self._sigma_clip = None
+        return png
 
     def __repr__(self):
         disp = "<Scene Object>:"
