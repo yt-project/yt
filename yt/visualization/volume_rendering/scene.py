@@ -21,7 +21,6 @@ from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
-from types import MethodType
 
 
 class Scene(object):
