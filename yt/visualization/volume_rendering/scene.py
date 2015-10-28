@@ -20,8 +20,8 @@ from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
-from yt.visualization.image_writer import write_bitmap
 from yt.extern.six.moves import builtins
+from types import MethodType
 
 
 class Scene(object):
@@ -427,7 +427,7 @@ class Scene(object):
         return self
 
 
-    def show(self):
+    def show(self, sigma_clip=None):
         r"""This will send the most recently rendered image to the IPython 
         notebook.
 
@@ -451,16 +451,18 @@ class Scene(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
+            # dynamically set the _repr_png(self) method using the 
+            # input value of sigma_clip
+            def func(self):
+                if self.last_render is None:
+                    self.render()
+                return self.last_render.write_png(filename=None,
+                                                  sigma_clip=sigma_clip,
+                                                  background='black')
+            self._repr_png_ = MethodType(func, self, Scene)
             return self
         else:
             raise YTNotInsideNotebook
-
-    def _repr_png_(self):
-        if self.last_render is None:
-            self.render()
-        im = self.last_render.add_background_color(background='black', 
-                                                   inline=False)
-        return write_bitmap(im, filename=None)
 
     def __repr__(self):
         disp = "<Scene Object>:"
