@@ -246,7 +246,8 @@ class ImageArray(YTArray):
         Parameters
         ----------
         filename: string
-            Note filename not be modified.
+            Filename to save to.  If None, PNG contents will be returned as a
+            string.
         sigma_clip: float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
@@ -291,7 +292,7 @@ class ImageArray(YTArray):
         else:
             out = scaled
 
-        if filename[-4:] != '.png':
+        if filename is not None and filename[-4:] != '.png':
             filename += '.png'
 
         if clip_ratio is not None:
