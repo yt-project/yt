@@ -176,6 +176,9 @@ def test_all_fields():
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
             continue
+        if field[1].find("vertex") > -1:
+            # don't test the vertex fields for now
+            continue
         if field in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.

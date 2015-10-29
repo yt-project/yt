@@ -21,7 +21,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.units.yt_array import YTQuantity
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.api import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
 from yt import units
@@ -221,16 +221,16 @@ class SZProjection(object):
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens    = off_axis_projection(self.ds, ctr, L, w, nx, "density")
-        Te      = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")/dens
-        bpar    = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par")/dens
-        omega1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")/dens
-        omega1  = omega1/(Te*Te) - 1.
+        dens   = off_axis_projection(self.ds, ctr, L, w, nx, "density")[0]
+        Te     = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")[0]/dens
+        bpar   = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par"[0])/dens
+        omega1 = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")[0]/dens
+        omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")/dens
-            sigma1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")/dens
-            sigma1  = sigma1/Te - bpar
-            kappa1  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")/dens
+            bperp2 = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")[0]/dens
+            sigma1 = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")[0]/dens
+            sigma1 = sigma1/Te - bpar
+            kappa1 = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")[0]/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))

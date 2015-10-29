@@ -259,6 +259,7 @@ def fake_particle_ds(
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword

@@ -41,6 +41,12 @@ def _get_coord_fields(axi, units = "code_length"):
         return data._reshape_vals(rv)
     return _dds, _coords
 
+def _get_vert_fields(axi, units = "code_length"):
+    def _vert(field, data):
+        rv = data.ds.arr(data.fcoords_vertex[...,axi].copy(), units)
+        return rv
+    return _vert
+
 def validate_iterable_width(width, ds, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         validate_width_tuple(width[0])

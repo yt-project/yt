@@ -395,6 +395,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
 Derived Datatypes
 -----------------
@@ -588,9 +589,13 @@ Here are the primary entry points:
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.volume_rendering.volume_rendering.volume_render
+   ~yt.visualization.volume_rendering.volume_rendering.create_scene
+   ~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection
+   ~yt.visualization.volume_rendering.scene.Scene
    ~yt.visualization.volume_rendering.camera.Camera
-   ~yt.visualization.volume_rendering.camera.off_axis_projection
-   ~yt.visualization.volume_rendering.camera.allsky_projection
+   ~yt.visualization.volume_rendering.lens.Lens
+   ~yt.visualization.volume_rendering.render_source.RenderSource
 
 These objects set up the way the image looks:
 
@@ -613,6 +618,19 @@ There are also advanced objects for particular use cases:
    ~yt.visualization.volume_rendering.camera.PerspectiveCamera
    ~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree
    ~yt.visualization.volume_rendering.camera.StereoPairCamera
+
+Additional sources can be added to a scene:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.api.VolumeSource
+   ~yt.visualization.volume_rendering.api.PointSource
+   ~yt.visualization.volume_rendering.api.LineSource
+   ~yt.visualization.volume_rendering.api.BoxSource
+   ~yt.visualization.volume_rendering.api.GridSource
+   ~yt.visualization.volume_rendering.api.CoordinateVectorSource
+   ~yt.visualization.volume_rendering.render_source.MeshSource
 
 Streamlining
 ^^^^^^^^^^^^
