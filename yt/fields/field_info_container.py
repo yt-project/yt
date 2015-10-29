@@ -63,6 +63,16 @@ class FieldInfoContainer(dict):
     def setup_fluid_fields(self):
         pass
 
+    def setup_fluid_index_fields(self):
+        # Now we get all our index types and set up aliases to them
+        if self.ds is None: return
+        index_fields = set([f for _, f in self if _ == "index"])
+        for ftype in self.ds.fluid_types + tuple(self.ds.particle_types_raw):
+            if ftype in ("index", "deposit"): continue
+            if (ftype, f) in self.field_list: continue
+            for f in index_fields:
+                self.alias((ftype, f), ("index", f))
+
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
