@@ -196,10 +196,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        if hasattr(data.ds, "surface_height"):
-            surface_height = data.ds.surface_height
+        if hasattr(self.ds, "surface_height"):
+            surface_height = self.ds.surface_height
         else:
-            surface_height = data.ds.quan(0.0, "code_length")
+            surface_height = self.ds.quan(0.0, "code_length")
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
             alt = self.axis_id['altitude']
             lon = self.axis_id['longitude']
