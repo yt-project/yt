@@ -118,9 +118,6 @@ class YTDataset(Dataset):
         self.field_info.setup_extra_union_fields()
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
-
-        self._setup_override_fields()
-
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
 
@@ -162,6 +159,7 @@ class YTDataContainerDataset(YTDataset):
     _file_class = YTDataHDF5File
     _field_info_class = YTDataContainerFieldInfo
     _suffix = ".h5"
+    fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
                  n_ref = 16, over_refine_factor = 1, units_override=None):
@@ -186,16 +184,9 @@ class YTDataContainerDataset(YTDataset):
           "gas" not in self.particle_types:
             pu = ParticleUnion("gas", ["grid"])
             self.add_particle_union(pu)
-
-    def _setup_override_fields(self):
-        """
-        Override some derived fields to use frontend-specific fields.
-        We need to do this because we are treating grid data like particles.
-        This will be fixed eventually when grid data can be exported properly.
-        """
-
-        del self.field_info[("gas", "cell_mass")]
-        self.field_info.alias(("gas", "cell_mass"), ("grid", "cell_mass"))
+        # We have to alias this because particle unions only
+        # cover the field_list.
+        self.field_info.alias(("gas", "cell_volume"), ("grid", "cell_volume"))
 
     @property
     def data(self):

@@ -68,11 +68,6 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
         self.add_field(("grid", "cell_volume"), function=_cell_volume,
                        units="cm**3", particle_type=True)
 
-        def _cell_mass(field, data):
-            return data["grid", "density"] * data["grid", "cell_volume"]
-        self.add_field(("grid", "cell_mass"), function=_cell_mass,
-                       units="g", particle_type=True)
-
 class YTGridFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )
