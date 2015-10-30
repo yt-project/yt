@@ -196,11 +196,15 @@ class GeographicCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
+        if hasattr(data.ds, "surface_height"):
+            surface_height = data.ds.surface_height
+        else:
+            surface_height = data.ds.quan(0.0, "code_length")
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
             alt = self.axis_id['altitude']
             lon = self.axis_id['longitude']
             lat = self.axis_id['latitude']
-            r = coord[:,alt] + self.ds.surface_height
+            r = coord[:,alt] + surface_height
             theta = coord[:,lon] * np.pi/180
             phi = coord[:,lat] * np.pi/180
             nc = np.zeros_like(coord)
@@ -212,7 +216,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             a, b, c = coord
             theta = b * np.pi/180
             phi = a * np.pi/180
-            r = self.ds.surface_height + c
+            r = surface_height + c
             nc = (np.cos(phi) * np.sin(theta)*r,
                   np.sin(phi) * np.sin(theta)*r,
                   np.cos(theta) * r)
