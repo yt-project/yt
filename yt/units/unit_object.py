@@ -104,7 +104,10 @@ def auto_positive_symbol(tokens, local_dict, global_dict):
 def get_latex_representation(expr, registry):
     symbol_table = {}
     for ex in expr.free_symbols:
-        symbol_table[ex] = registry.lut[str(ex)][3]
+        try:
+            symbol_table[ex] = registry.lut[str(ex)][3]
+        except:
+            symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
     latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
                        fold_frac_powers=True, fold_short_frac=True)
     if latex_repr == '1':
@@ -214,7 +217,7 @@ class Unit(Expr):
             if dimensions is not None:
                 validate_dimensions(dimensions)
             if latex_repr is None:
-                latex_repr = r"\rm{" + str(unit_expr).replace('_', '\ ') + "}"
+                latex_repr = get_latex_representation(unit_expr, registry)
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
