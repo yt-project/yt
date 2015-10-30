@@ -58,18 +58,34 @@ from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.fields.field_exceptions import \
+    NeedsGridType
+from yt.data_objects.data_containers import \
+    GenerationInProgress
 
 _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
+
+def parse_h5_attr(f, attr):
+    val = f.attrs.get(attr, None)
+    if isinstance(val, bytes):
+        return val.decode('utf8')
+    else:
+        return val
 
 class YTDataset(Dataset):
     """Base dataset class for all ytdata datasets."""
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
-            self.parameters.update(
-                dict((key, f.attrs[key]) for key in f.attrs.keys()))
+            for key in f.attrs.keys():
+                v = f.attrs[key]
+                if isinstance(v, bytes):
+                    v = v.decode("utf8")
+                if key == "con_args":
+                    v = v.astype("str")
+                self.parameters[key] = v
             self.num_particles = \
               dict([(group, f[group].attrs["num_elements"])
                     for group in f if group != self.default_fluid_type])
@@ -102,8 +118,17 @@ class YTDataset(Dataset):
         self.field_info.setup_extra_union_fields()
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+
+        self._setup_override_fields()
+
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
+
+    def _setup_gas_alias(self):
+        pass
+
+    def _setup_override_fields(self):
+        pass
 
     def _set_code_unit_attributes(self):
         attrs = ('length_unit', 'mass_unit', 'time_unit',
@@ -162,6 +187,16 @@ class YTDataContainerDataset(YTDataset):
             pu = ParticleUnion("gas", ["grid"])
             self.add_particle_union(pu)
 
+    def _setup_override_fields(self):
+        """
+        Override some derived fields to use frontend-specific fields.
+        We need to do this because we are treating grid data like particles.
+        This will be fixed eventually when grid data can be exported properly.
+        """
+
+        del self.field_info[("gas", "cell_mass")]
+        self.field_info.alias(("gas", "cell_mass"), ("grid", "cell_mass"))
+
     @property
     def data(self):
         """
@@ -193,14 +228,14 @@ class YTDataContainerDataset(YTDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
                 return False
             if data_type in ["yt_light_ray"]:
                 return True
             if data_type == "yt_data_container" and \
-              f.attrs.get("container_type", None) not in \
-              _grid_data_containers:
+                cont_type not in _grid_data_containers:
                 return True
         return False
 
@@ -226,10 +261,10 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and \
-              f.attrs.get("container_type", None) in \
-              ["cutting", "proj", "slice"]:
+                cont_type in ["cutting", "proj", "slice"]:
                 return True
         return False
 
@@ -368,12 +403,12 @@ class YTGridDataset(YTDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_frb":
                 return True
             if data_type == "yt_data_container" and \
-              f.attrs.get("container_type", None) in \
-              _grid_data_containers:
+                cont_type in _grid_data_containers:
                 return True
         return False
 
@@ -556,7 +591,7 @@ class YTNonspatialDataset(YTGridDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
+            data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
                 return True
         return False
@@ -647,7 +682,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
-            data_type = f.attrs.get("data_type", None)
+            data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
                 return True
         return False
