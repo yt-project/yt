@@ -93,6 +93,7 @@ class YTDataset(Dataset):
             self.field_info.setup_particle_fields(ptype)
 
         self._setup_gas_alias()
+        self.field_info.setup_fluid_index_fields()
 
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
