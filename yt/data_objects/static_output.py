@@ -572,6 +572,7 @@ class Dataset(object):
     def _add_object_class(self, name, base):
         self.object_types.append(name)
         obj = functools.partial(base, ds=weakref.proxy(self))
+        obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
     def find_max(self, field):
