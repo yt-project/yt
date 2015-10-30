@@ -376,7 +376,7 @@ field ``("gas", "temperature")`` for convenience.
 
 Other smoothing kernels besides the cubic spline one are available through a
 keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
-Current available ``kernel_name``s include:
+Current available kernel names include:
 
 * ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
 * ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
