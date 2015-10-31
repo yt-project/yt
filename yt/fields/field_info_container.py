@@ -67,7 +67,7 @@ class FieldInfoContainer(dict):
         # Now we get all our index types and set up aliases to them
         if self.ds is None: return
         index_fields = set([f for _, f in self if _ == "index"])
-        for ftype in self.ds.fluid_types + tuple(self.ds.particle_types_raw):
+        for ftype in self.ds.fluid_types:
             if ftype in ("index", "deposit"): continue
             for f in index_fields:
                 if (ftype, f) in self: continue
