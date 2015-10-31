@@ -61,12 +61,13 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
         implement exporting AMR hierarchies.
         """
 
-        def _cell_volume(field, data):
-            return data["grid", "dx"] * \
-              data["grid", "dy"] * \
-              data["grid", "dz"]
-        self.add_field(("grid", "cell_volume"), function=_cell_volume,
-                       units="cm**3", particle_type=True)
+        if ("grid", "cell_volume") not in self.field_list:
+            def _cell_volume(field, data):
+                return data["grid", "dx"] * \
+                  data["grid", "dy"] * \
+                  data["grid", "dz"]
+            self.add_field(("grid", "cell_volume"), function=_cell_volume,
+                           units="cm**3", particle_type=True)
 
 class YTGridFieldInfo(FieldInfoContainer):
     known_other_fields = (
