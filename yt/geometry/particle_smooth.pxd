@@ -41,10 +41,6 @@ cdef class ParticleSmoothOperation:
     cdef int maxn
     cdef int curn
     cdef bint periodicity[3]
-    cdef np.int64_t *doffs
-    cdef np.int64_t *pinds
-    cdef np.int64_t *pcounts
-    cdef np.float64_t *ppos
     # Note that we are preallocating here, so this is *not* threadsafe.
     cdef NeighborList *neighbors
     cdef void (*pos_setup)(np.float64_t ipos[3], np.float64_t opos[3])
