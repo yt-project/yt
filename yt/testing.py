@@ -745,6 +745,20 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(yt.__file__)
     yt_dir = os.path.dirname(yt_file)
+    if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
+        # Provide a nice error message to work around nose bug
+        # see https://github.com/nose-devs/nose/issues/701
+        raise RuntimeError(
+            """
+    The yt.run_nose function does not work correctly when invoked in
+    the same directory as the installed yt package. Try starting
+    a python session in a different directory before invoking yt.run_nose
+    again. Alternatively, you can also run the "nosetests" executable in
+    the current directory like so:
+
+        $ nosetests
+            """
+            )
     os.chdir(yt_dir)
     try:
         nose.run(argv=nose_argv)
