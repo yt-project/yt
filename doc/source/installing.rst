@@ -290,14 +290,14 @@ Then install the required Python packages with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install -r requirements.txt
+  $ pip install numpy matplotlib cython cython h5py nose sympy
 
 If you're using IPython notebooks, you can install its dependencies
 with ``pip`` as well:
 
 .. code-block:: bash
 
-  $ pip install -r optional-requirements.txt
+  $ pip install ipython[notebook]
 
 From here, you can use ``pip`` (which comes with ``Python``) to install the latest
 stable version of yt:
