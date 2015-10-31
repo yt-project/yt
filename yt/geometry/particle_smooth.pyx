@@ -80,6 +80,7 @@ cdef class ParticleSmoothOperation:
         self.nvals = nvals
         self.nfields = nfields
         self.maxn = max_neighbors
+
         self.neighbors = <NeighborList *> malloc(
             sizeof(NeighborList) * self.maxn)
         self.neighbor_reset()
@@ -134,6 +135,7 @@ cdef class ParticleSmoothOperation:
             pdom_ind = mdom_ind
         cdef int nf, i, j, n
         cdef int dims[3]
+        cdef np.float64_t[:] *field_check
         cdef np.float64_t **field_pointers
         cdef np.float64_t *field_vals
         cdef np.float64_t pos[3]
@@ -146,8 +148,8 @@ cdef class ParticleSmoothOperation:
         cdef Oct *oct
         cdef np.int64_t numpart, offset, local_ind, poff
         cdef np.int64_t moff_p, moff_m
-        cdef np.int64_t *doffs
-        cdef np.int64_t *pinds
+        cdef np.int64_t[:] doffs
+        cdef np.int64_t[:] pinds
         cdef np.int64_t *pcounts
         cdef np.ndarray[np.int64_t, ndim=1] pind, doff, pdoms, pcount
         cdef np.ndarray[np.int64_t, ndim=2] doff_m
@@ -247,8 +249,8 @@ cdef class ParticleSmoothOperation:
         # refers to that oct's particles.
         ppos = <np.float64_t *> positions.data
         cart_pos = <np.float64_t *> cart_positions.data
-        doffs = <np.int64_t*> doff.data
-        pinds = <np.int64_t*> pind.data
+        doffs = doff
+        pinds = pinds
         pcounts = <np.int64_t*> pcount.data
         cdef np.ndarray[np.uint8_t, ndim=1] visited
         visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
@@ -304,8 +306,8 @@ cdef class ParticleSmoothOperation:
         cdef Oct **neighbors = NULL
         cdef np.int64_t nneighbors, numpart, offset, local_ind
         cdef np.int64_t moff_p, moff_m, pind0, poff
-        cdef np.int64_t *doffs
-        cdef np.int64_t *pinds
+        cdef np.int64_t[:] doffs
+        cdef np.int64_t[:] pinds
         cdef np.int64_t *pcounts
         cdef np.ndarray[np.int64_t, ndim=1] pind, doff, pdoms, pcount
         cdef np.ndarray[np.float64_t, ndim=1] tarr
@@ -378,8 +380,8 @@ cdef class ParticleSmoothOperation:
         # refers to that oct's particles.
         ppos = <np.float64_t *> positions.data
         cart_pos = <np.float64_t *> cart_positions.data
-        doffs = <np.int64_t*> doff.data
-        pinds = <np.int64_t*> pind.data
+        doffs = doff
+        pinds = pind
         pcounts = <np.int64_t*> pcount.data
         cdef int maxnei = 0
         cdef int nproc = 0
@@ -527,9 +529,9 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
                             np.int64_t *nind,
-                            np.int64_t *doffs,
+                            np.int64_t[:] doffs,
                             np.int64_t *pcounts,
-                            np.int64_t *pinds,
+                            np.int64_t[:] pinds,
                             np.float64_t *ppos,
                             np.float64_t cpos[3],
                             np.float64_t *oct_left_edges,
@@ -587,8 +589,8 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields,
-                               np.int64_t *doffs, np.int64_t **nind,
-                               np.int64_t *pinds, np.int64_t *pcounts,
+                               np.int64_t [:] doffs, np.int64_t **nind,
+                               np.int64_t [:] pinds, np.int64_t *pcounts,
                                np.int64_t offset,
                                np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
@@ -629,8 +631,8 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_process_particle(self, np.float64_t cpos[3],
                                np.float64_t *ppos,
                                np.float64_t **fields,
-                               np.int64_t *doffs, np.int64_t **nind,
-                               np.int64_t *pinds, np.int64_t *pcounts,
+                               np.int64_t[:] doffs, np.int64_t **nind,
+                               np.int64_t[:] pinds, np.int64_t *pcounts,
                                np.int64_t offset,
                                np.float64_t **index_fields,
                                OctreeContainer octree,
