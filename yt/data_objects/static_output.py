@@ -928,9 +928,10 @@ class Dataset(object):
            methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
            `weighted_mean`, `mesh_id`, and `nearest`.
         kernel_name : string, default 'cubic'
-           This is the name of the smoothing kernel to use. Current supported
-           kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-           `wendland4`, and `wendland6`.
+           This is the name of the smoothing kernel to use. It is only used for
+           the `simple_smooth` method and is otherwise ignored. Current
+           supported kernel names include `cubic`, `quartic`, `quintic`,
+           `wendland2`, `wendland4`, and `wendland6`.
 
         Returns
         -------
