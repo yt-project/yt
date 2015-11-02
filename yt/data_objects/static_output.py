@@ -1,7 +1,7 @@
 """
-Generalized Enzo output objects, both static and time-series.
+Dataset and related data structures.
 
-Presumably at some point EnzoRun will be absorbed into here.
+
 
 
 """
@@ -373,6 +373,7 @@ class Dataset(object):
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
             self.field_info.setup_particle_fields(ptype)
+        self.field_info.setup_fluid_index_fields()
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
