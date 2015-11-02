@@ -304,7 +304,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -325,7 +325,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -565,16 +565,16 @@ class Camera(Orientation):
             yield i
 
     def zoom(self, factor):
-        r"""Change the distance to the focal point.
+        r"""Change the width of the FOV of the camera.
 
-        This will zoom the camera in by some `factor` toward the focal point,
-        along the current view direction, modifying the left/right and up/down
-        extents as well.
+        This will appear to zoom the camera in by some `factor` toward the 
+        focal point along the current view direction, but really it's just
+        changing the width of the field of view.
 
         Parameters
         ----------
         factor : float
-            The factor by which to reduce the distance to the focal point.
+            The factor by which to divide the width
 
         Examples
         --------

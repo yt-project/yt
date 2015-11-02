@@ -209,6 +209,8 @@ information.
 
 .. yt_cookbook:: custom_camera_volume_rendering.py
 
+.. _cookbook-custom-transfer-function:
+
 Volume Rendering with a Custom Transfer Function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -586,7 +586,8 @@ Volume Rendering
 
 See also :ref:`volume_rendering`.
 
-Here are the primary entry points:
+Here are the primary entry points and the main classes involved in the 
+Scene infrastructure:
 
 .. autosummary::
    :toctree: generated/
@@ -596,45 +597,46 @@ Here are the primary entry points:
    ~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection
    ~yt.visualization.volume_rendering.scene.Scene
    ~yt.visualization.volume_rendering.camera.Camera
-   ~yt.visualization.volume_rendering.lens.Lens
-   ~yt.visualization.volume_rendering.render_source.RenderSource
-
-These objects set up the way the image looks:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
-
-There are also advanced objects for particular use cases:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.volume_rendering.camera.MosaicFisheyeCamera
-   ~yt.visualization.volume_rendering.camera.FisheyeCamera
-   ~yt.visualization.volume_rendering.camera.MosaicCamera
-   ~yt.visualization.volume_rendering.camera.plot_allsky_healpix
-   ~yt.visualization.volume_rendering.camera.PerspectiveCamera
    ~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree
-   ~yt.visualization.volume_rendering.camera.StereoPairCamera
 
-Additional sources can be added to a scene:
+The different kinds of sources:
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.visualization.volume_rendering.api.VolumeSource
-   ~yt.visualization.volume_rendering.api.PointSource
-   ~yt.visualization.volume_rendering.api.LineSource
-   ~yt.visualization.volume_rendering.api.BoxSource
-   ~yt.visualization.volume_rendering.api.GridSource
-   ~yt.visualization.volume_rendering.api.CoordinateVectorSource
+   ~yt.visualization.volume_rendering.render_source.RenderSource
+   ~yt.visualization.volume_rendering.render_source.VolumeSource
+   ~yt.visualization.volume_rendering.render_source.PointSource
+   ~yt.visualization.volume_rendering.render_source.LineSource
+   ~yt.visualization.volume_rendering.render_source.BoxSource
+   ~yt.visualization.volume_rendering.render_source.GridSource
+   ~yt.visualization.volume_rendering.render_source.CoordinateVectorSource
    ~yt.visualization.volume_rendering.render_source.MeshSource
+
+The different kinds of transfer functions:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
+   ~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper
+ 
+The different kinds of lenses:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.lens.Lens
+   ~yt.visualization.volume_rendering.lens.PlaneParallelLens
+   ~yt.visualization.volume_rendering.lens.PerspectiveLens
+   ~yt.visualization.volume_rendering.lens.StereoPerspectiveLens
+   ~yt.visualization.volume_rendering.lens.FisheyeLens
+   ~yt.visualization.volume_rendering.lens.SphericalLens
+   ~yt.visualization.volume_rendering.lens.StereoSphericalLens
 
 Streamlining
 ^^^^^^^^^^^^
