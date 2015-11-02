@@ -278,8 +278,8 @@ class LightRay(CosmologySplice):
                        trajectory=None,
                        fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       get_los_velocity=None, use_peculiar_velocity=True, 
-                       redshift=None, njobs=-1):
+                       get_los_velocity=None, use_peculiar_velocity=True,
+                       redshift=None, field_parameters=None, njobs=-1):
         """
         make_light_ray(seed=None, start_position=None, end_position=None,
                        trajectory=None, fields=None, setup_function=None,
@@ -401,6 +401,9 @@ class LightRay(CosmologySplice):
                                            trajectory=trajectory,
                                            filename=solution_filename)
 
+        if field_parameters is None:
+            field_parameters = {}
+
         # Initialize data structures.
         self._data = {}
         if fields is None: fields = []
@@ -487,6 +490,8 @@ class LightRay(CosmologySplice):
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = ds.ray(sub_segment[0], sub_segment[1])
+                for key, val in field_parameters.items():
+                    sub_ray.set_field_parameter(key, val)
                 asort = np.argsort(sub_ray["t"])
                 sub_data['dl'].extend(sub_ray['dts'][asort] *
                                       vector_length(sub_ray.start_point,
