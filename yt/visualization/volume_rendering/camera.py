@@ -99,6 +99,8 @@ class Camera(Orientation):
             self._focus = data_source.ds.domain_center
             self._position = data_source.ds.domain_right_edge
             self._width = 1.5*data_source.ds.domain_width
+            self._domain_center = data_source.ds.domain_center
+            self._domain_width = data_source.ds.domain_width
         if auto:
             self.set_defaults_from_data_source(data_source)
 
@@ -221,9 +223,9 @@ class Camera(Orientation):
 
     def set_defaults_from_data_source(self, data_source):
         """Resets the camera attributes to their default values"""
-        self.position = data_source.pf.domain_right_edge
+        self.position = data_source.ds.domain_right_edge
 
-        width = 1.5 * data_source.pf.domain_width.max()
+        width = 1.5 * data_source.ds.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
@@ -231,20 +233,22 @@ class Camera(Orientation):
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = data_source.pf.quan(width[0], input_units=width[1])
+            width = data_source.ds.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
         if not iterable(width):
-            width = data_source.pf.arr([width, width, width],
+            width = data_source.ds.arr([width, width, width],
                                        input_units='code_length')
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.pf.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
-            focus = self.pf.arr(focus, input_units="code_length")
+            focus = self.ds.arr(focus, input_units="code_length")
 
         self.set_width(width)
         self.focus = focus
+        self._domain_center = data_source.ds.domain_center
+        self._domain_width = data_source.ds.domain_width
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)

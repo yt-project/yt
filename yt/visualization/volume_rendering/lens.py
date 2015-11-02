@@ -180,7 +180,12 @@ class PerspectiveLens(Lens):
         normal_vecs = normal_vecs.reshape(
             camera.resolution[0], camera.resolution[1], 3)
 
-        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
+            (max_length / camera.width[2])
 
         positions = np.tile(
             camera.position, camera.resolution[0] * camera.resolution[1])
@@ -345,7 +350,12 @@ class StereoPerspectiveLens(Lens):
         east_vecs = east_vecs.reshape(
             single_resolution_x, camera.resolution[1], 3)
 
-        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
+            (max_length / camera.width[2])
 
         positions = np.tile(
             camera.position, single_resolution_x * camera.resolution[1])
@@ -416,7 +426,7 @@ class StereoPerspectiveLens(Lens):
 
         dx = np.dot(pos1 - sight_center.d, east_vec_rot)
         dy = np.dot(pos1 - sight_center.d, north_vec)
-        dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+        dz = np.dot(pos - camera_position_shift.d, normal_vec_rot)
         
         # Transpose into image coords.
         px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
@@ -567,7 +577,12 @@ class SphericalLens(Lens):
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-        vectors = vectors * camera.width[0]
+
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = vectors * max_length
 
         positions = np.tile(
             camera.position,
@@ -673,7 +688,12 @@ class StereoSphericalLens(Lens):
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-        vectors = vectors * camera.width[0]
+
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = vectors * max_length
 
         vectors2 = np.zeros((single_resolution_x, camera.resolution[1], 3),
                             dtype='float64', order='C')
