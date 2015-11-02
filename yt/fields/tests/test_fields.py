@@ -1,11 +1,15 @@
 import numpy as np
 
+from yt import \
+    load
 from yt.testing import \
     fake_random_ds, \
+    assert_almost_equal, \
     assert_equal, \
     assert_array_almost_equal_nulp, \
     assert_array_equal, \
-    assert_raises
+    assert_raises, \
+    requires_file
 from yt.utilities.cosmology import \
     Cosmology
 from yt.frontends.stream.fields import \
@@ -187,6 +191,15 @@ def test_add_deposited_particle_field():
     ad = base_ds.all_data()
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
+
+@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
+def test_add_smoothed_particle_field():
+    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
+    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
+    ad = ds.all_data()
+    ret = ad[fn]
+    assert_almost_equal(ret.sum(), 3824750.912653606)
 
 def test_add_gradient_fields():
     gfields = base_ds.add_gradient_fields(("gas","density"))

@@ -19,7 +19,9 @@ import unittest
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import\
     parameterized, param
-from yt.testing import fake_random_ds
+from yt.testing import \
+    fake_random_ds, \
+    assert_array_almost_equal
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
@@ -60,6 +62,15 @@ class TestProfilePlotSave(unittest.TestCase):
                 p2d = create_profile(reg, [x_field, y_field], z_field,
                                      n_bins=[16, 16])
                 phases.append(PhasePlot.from_profile(p2d))
+        pp = PhasePlot(test_ds.all_data(), 'density', 'temperature', 'cell_mass')
+        pp.set_xlim(0.3, 0.8)
+        pp.set_ylim(0.4, 0.6)
+        pp._setup_plots()
+        xlim = pp.plots['cell_mass'].axes.get_xlim()
+        ylim = pp.plots['cell_mass'].axes.get_ylim()
+        assert_array_almost_equal(xlim, (0.3, 0.8))
+        assert_array_almost_equal(ylim, (0.4, 0.6))
+        phases.append(pp)
         cls.profiles = profiles
         cls.phases = phases
         cls.ds = test_ds

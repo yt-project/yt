@@ -256,7 +256,8 @@ class CenterOfMass(DerivedQuantity):
           (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
-            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
+            vals += [(data["gas", ax] *
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
@@ -657,7 +658,7 @@ class SpinParameter(DerivedQuantity):
         m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
-                  data["index", "cell_volume"]).sum(dtype=np.float64)
+                  data["gas", "cell_volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "cell_mass"].sum(dtype=np.float64)
         if use_particles:

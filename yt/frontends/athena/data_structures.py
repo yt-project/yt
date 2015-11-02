@@ -457,7 +457,7 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k,v in self.specified_parameters.items():
+        for k, v in list(self.specified_parameters.items()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning("Supplying unit conversions from the parameters dict is deprecated, "+
@@ -489,12 +489,15 @@ class AthenaDataset(Dataset):
     def set_code_units(self):
         super(AthenaDataset, self).set_code_units()
         mag_unit = getattr(self, "magnetic_unit", None)
+        vel_unit = getattr(self, "velocity_unit", None)
         if mag_unit is None:
             self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                          (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
-
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        if vel_unit is None:
+            self.velocity_unit = self.length_unit/self.time_unit
+        self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")

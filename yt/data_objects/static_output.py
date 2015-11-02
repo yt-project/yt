@@ -1,7 +1,7 @@
 """
-Generalized Enzo output objects, both static and time-series.
+Dataset and related data structures.
 
-Presumably at some point EnzoRun will be absorbed into here.
+
 
 
 """
@@ -37,6 +37,8 @@ from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.fields.fluid_fields import \
     setup_gradient_fields
+from yt.fields.particle_fields import \
+    add_volume_weighted_smoothed_field
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -371,6 +373,7 @@ class Dataset(object):
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
             self.field_info.setup_particle_fields(ptype)
+        self.field_info.setup_fluid_index_fields()
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
@@ -570,6 +573,7 @@ class Dataset(object):
     def _add_object_class(self, name, base):
         self.object_types.append(name)
         obj = functools.partial(base, ds=weakref.proxy(self))
+        obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
     def find_max(self, field):
@@ -910,7 +914,7 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -922,8 +926,16 @@ class Dataset(object):
            The field name tuple of the particle field the deposited field will
            be created from.  This must be a field name tuple so yt can
            appropriately infer the correct particle type.
-        method : one of 'count', 'sum', or 'cic'
-           The particle deposition method to use.
+        method : string
+           This is the "method name" which will be looked up in the
+           `particle_deposit` namespace as `methodname_deposit`.  Current
+           methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
+           `weighted_mean`, `mesh_id`, and `nearest`.
+        kernel_name : string, default 'cubic'
+           This is the name of the smoothing kernel to use. It is only used for
+           the `simple_smooth` method and is otherwise ignored. Current
+           supported kernel names include `cubic`, `quartic`, `quintic`,
+           `wendland2`, `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -947,15 +959,17 @@ class Dataset(object):
             if method != 'count':
                 pden = data[ptype, "particle_mass"]
                 top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method)
-                bottom = data.deposit(pos, [pden], method=method)
+                                   method=method, kernel_name=kernel_name)
+                bottom = data.deposit(pos, [pden], method=method,
+                                      kernel_name=kernel_name)
                 top[bottom == 0] = 0.0
                 bnz = bottom.nonzero()
                 top[bnz] /= bottom[bnz]
                 d = data.ds.arr(top, input_units=units)
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method))
+                                             method=method,
+                                             kernel_name=kernel_name))
             return d
         name_map = {"cic": "cic", "sum": "nn", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"
@@ -967,6 +981,56 @@ class Dataset(object):
             take_log=False,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
+
+    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
+                                    nneighbors=64, kernel_name="cubic"):
+        """Add a new smoothed particle field
+
+        Creates a new smoothed field based on the particle *smooth_field*.
+
+        Parameters
+        ----------
+
+        smooth_field : tuple
+           The field name tuple of the particle field the smoothed field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        method : string, default 'volume_weighted'
+           The particle smoothing method to use. Can only be 'volume_weighted'
+           for now.
+        nneighbors : int, default 64
+            The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+        """
+        self.index
+        if isinstance(smooth_field, tuple):
+            ptype, smooth_field = smooth_field[0], smooth_field[1]
+        else:
+            raise RuntimeError("smooth_field must be a tuple, received %s" %
+                               smooth_field)
+        if method != "volume_weighted":
+            raise NotImplementedError("method must be 'volume_weighted'")
+
+        coord_name = "particle_position"
+        mass_name = "particle_mass"
+        smoothing_length_name = "smoothing_length"
+        if (ptype, smoothing_length_name) not in self.derived_field_list:
+            raise ValueError("%s not in derived_field_list" %
+                             ((ptype, smoothing_length_name),))
+        density_name = "density"
+        registry = self.field_info
+
+        return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
+                   smoothing_length_name, density_name, smooth_field, registry,
+                   nneighbors=nneighbors, kernel_name=kernel_name)[0]
 
     def add_gradient_fields(self, input_field):
         """Add gradient fields.
