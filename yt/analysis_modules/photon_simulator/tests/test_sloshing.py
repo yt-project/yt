@@ -59,7 +59,7 @@ def test_sloshing():
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
-    events = photons.project_photons("z", responses=[ARF,RMF],
+    events = photons.project_photons([1.0,-0.5,0.2], responses=[ARF,RMF],
                                      absorb_model=tbabs_model,
                                      convolve_energies=True,
                                      prng=prng)
