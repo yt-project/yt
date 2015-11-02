@@ -18,6 +18,7 @@ from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import requires_ds, \
     GenericArrayTest, data_dir_load
 import numpy as np
+from numpy.random import RandomState
 
 def setup():
     from yt.config import ytcfg
@@ -26,46 +27,59 @@ def setup():
 test_data_dir = ytcfg.get("yt", "test_data_dir")
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
-gslr = test_data_dir+"/GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
-APEC = xray_data_dir+"/atomdb_v2.0.2"
-TBABS = xray_data_dir+"/tbabs_table.h5"
-ARF = xray_data_dir+"/aciss_aimpt_cy17.arf"
-RMF = xray_data_dir+"/aciss_aimpt_cy17.rmf"
+rmfs = ["pn-med.rmf", "acisi_aimpt_cy17.rmf",
+        "aciss_aimpt_cy17.rmf", "nustar.rmf",
+        "ah_sxs_5ev_basefilt_20100712.rmf"]
+arfs = ["pn-med.arf", "acisi_aimpt_cy17.arf",
+        "aciss_aimpt_cy17.arf", "nustar_3arcminA.arf",
+        "sxt-s_120210_ts02um_intallpxl.arf"]
 
-@requires_ds(ETC)
+gslr = test_data_dir+"/GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
+APEC = xray_data_dir
+TBABS = xray_data_dir+"/tbabs_table.h5"
+
+@requires_ds(gslr)
 @requires_file(APEC)
 @requires_file(TBABS)
-@requires_file(ARF)
-@requires_file(RMF)
-def test_etc():
+def test_sloshing():
 
-    np.random.seed(seed=0x4d3d3d3)
+    prng = RandomState(0x4d3d3d3)
 
     ds = data_dir_load(gslr)
     A = 2000.
     exp_time = 1.0e5
     redshift = 0.1
 
-    apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
+    apec_model = TableApecModel(APEC, 0.1, 11.0, 10000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
     sphere = ds.sphere("c", (0.1, "Mpc"))
 
-    thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
+    thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3, prng=prng)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
     events = photons.project_photons("z", responses=[ARF,RMF],
                                      absorb_model=tbabs_model,
-                                     convolve_energies=True)
+                                     convolve_energies=True,
+                                     prng=prng)
+
+    test_sloshing.__name__ = test.description
 
     def photons_test():
         return photons.photons
 
-    def events_test():
-        return events.events
+    yield GenericArrayTest(ds, photons_test)
 
-    for test in [GenericArrayTest(ds, photons_test),
-                 GenericArrayTest(ds, events_test)]:
-        test_etc.__name__ = test.description
-        yield test
+    for a, r in zip(arfs, rmfs):
+        arf = os.path.join(xray_data_dir,a)
+        rmf = os.path.join(xray_data_dir,r)
+        events = photons.project_photons("z", responses=[arf,rmf],
+                                         absorb_model=tbabs_model, 
+                                         convolve_energies=True)
+
+        def events_test():
+            return events.events
+
+        yield GenericArrayTest(ds, events_test)
+
