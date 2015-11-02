@@ -132,7 +132,7 @@ class GadgetDataset(ParticleDataset):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
-        f = open(self.parameter_filename)
+        f = open(self.parameter_filename, 'rb')
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
