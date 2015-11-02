@@ -20,6 +20,7 @@ from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
+from yt.extern.six.moves import builtins
 
 
 class Scene(object):
@@ -41,7 +42,29 @@ class Scene(object):
 
     Examples
     --------
+
+    This example shows how to create an empty scene and add a VolumeSource
+    and a Camera.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
+    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> sc.add_source(source)
+    >>> cam = Camera(ds)
+    >>> sc.camera = cam
+    >>> im = sc.render()
+
+    Alternatively, you can use the create_scene function to set up defaults 
+    and then modify the Scene later:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> 
+    >>> sc = yt.create_scene(ds)
+    >>> # Modify camera, sources, etc...
+    >>> im = sc.render()
 
     """
 
@@ -55,6 +78,9 @@ class Scene(object):
         self.camera = None
         # An image array containing the last rendered image of the scene
         self.last_render = None
+        # A non-public attribute used to get around the fact that we can't
+        # pass kwargs into _repr_png_()
+        self._sigma_clip = None
 
     def get_source(self, source_num):
         """Returns the volume rendering source indexed by ``source_num``"""
@@ -100,7 +126,7 @@ class Scene(object):
 
         return self
 
-    def render(self, sigma_clip=None, camera=None):
+    def render(self, camera=None):
         r"""Render all sources in the Scene.
 
         Use the current state of the Scene object to render all sources
@@ -109,10 +135,6 @@ class Scene(object):
 
         Parameters
         ----------
-        sigma_clip: float, optional
-            Image will be clipped before saving to the standard deviation
-            of the image multiplied by this value.  Useful for enhancing
-            images. Default: None
         camera: :class:`Camera`, optional
             If specified, use a different :class:`Camera` to render the scene.
 
@@ -123,10 +145,14 @@ class Scene(object):
 
         Examples
         --------
-        >>> sc = Scene()
-        >>> # Add sources/camera/etc
-        >>> im = sc.render(sigma_clip=4)
-        >>> sc.save()
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
+        >>> im = sc.render()
+        >>> sc.save(sigma_clip=4.0)
 
         """
         mylog.info("Rendering scene (Can take a while).")
@@ -138,7 +164,7 @@ class Scene(object):
         self.last_render = bmp
         return bmp
 
-    def save(self, fname=None):
+    def save(self, fname=None, sigma_clip=None):
         r"""Saves the most recently rendered image of the Scene to disk.
 
         Once you have created a scene and rendered that scene to an image 
@@ -152,6 +178,13 @@ class Scene(object):
             If specified, save the rendering as a bitmap to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
             Default: None
+        sigma_clip: float, optional
+            Image values greater than this number times the standard deviation
+            plus the mean of the image will be clipped before saving. Useful 
+            for enhancing images as it gets rid of rare high pixel values. 
+            Default: None
+
+            floor(vals > std_dev*sigma_clip + mean)
 
         Returns
         -------
@@ -159,15 +192,25 @@ class Scene(object):
 
         Examples
         --------
-        >>> sc = yt.create_scene(ds)
-        >>> # Add sources/camera/etc
-        >>> sc.render()
-        >>> sc.save('test.png')
 
-        # Or alternatively
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
         >>> sc = yt.create_scene(ds)
-        >>> # Add sources/camera/etc
-        >>> sc.save('test.png')
+        >>> # Modify camera, sources, etc...
+        >>> sc.render()
+        >>> sc.save('test.png', sigma_clip=4)
+
+        Or alternatively:
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # save with different sigma clipping values
+        >>> sc.save('raw.png')
+        >>> sc.save('clipped_2.png', sigma_clip=2)
+        >>> sc.save('clipped_4.png', sigma_clip=4)
 
         """
         if fname is None:
@@ -194,7 +237,7 @@ class Scene(object):
             self.render()
 
         mylog.info("Saving render %s", fname)
-        self.last_render.write_png(fname)
+        self.last_render.write_png(fname, sigma_clip=sigma_clip)
  
     def _validate(self):
         r"""Validate the current state of the scene."""
@@ -223,9 +266,13 @@ class Scene(object):
 
         Examples
         --------
-        >>> sc = Scene()
-        >>> # Add sources/camera/etc
-        >>> im = sc.composite(')
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
+        >>> im = sc.composite()
 
         """
         if camera is None:
@@ -235,6 +282,7 @@ class Scene(object):
 
         for k, source in self._iter_opaque_sources():
             source.render(camera, zbuffer=opaque)
+            im = source.zbuffer.rgba
 
         for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
@@ -295,6 +343,16 @@ class Scene(object):
             simulation being rendered. Used to get the domain bounds.
 
 
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_domain(ds)
+        >>> im = sc.render()
+
         """
         box_source = BoxSource(ds.domain_left_edge,
                                ds.domain_right_edge,
@@ -304,6 +362,38 @@ class Scene(object):
 
     def annotate_grids(self, data_source, alpha=0.3, cmap='algae',
                        min_level=None, max_level=None):
+        r"""
+
+        Modifies this scene by drawing the edges of the AMR grids.
+        This adds a new BoxSource to the scene for each AMR grid 
+        and returns the resulting Scene object.
+
+        Parameters
+        ----------
+
+        data_source: :class:`~yt.data_objects.api.DataContainer`
+            The data container that will be used to identify grids to draw.
+        alpha : float
+            The opacity of the grids to draw.
+        cmap : color map name
+            The color map to use to map resolution levels to color.
+        min_level : int, optional
+            Minimum level to draw
+        max_level : int, optional
+            Maximum level to draw
+
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_grids(ds.all_data())
+        >>> im = sc.render()
+
+        """
         grids = GridSource(data_source, alpha=alpha, cmap=cmap,
                             min_level=min_level, max_level=max_level)
         self.add_source(grids)
@@ -323,10 +413,59 @@ class Scene(object):
         alpha : float, optional
             The opacity of the vectors.
 
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.annotate_axes(alpha=0.5)
+        >>> im = sc.render()
+
         """
         coords = CoordinateVectorSource(colors, alpha)
         self.add_source(coords)
         return self
+
+
+    def show(self, sigma_clip=None):
+        r"""This will send the most recently rendered image to the IPython 
+        notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will send the current image of this Scene 
+        to the notebook for display. If there is no current image, it will
+        run the render() method on this Scene before sending the result to the
+        notebook.
+
+        If yt can't determine if it's inside an IPython session, this will raise
+        YTNotInsideNotebook.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> sc.show()
+
+        """
+        if "__IPYTHON__" in dir(builtins):
+            self._sigma_clip = sigma_clip
+            return self
+        else:
+            raise YTNotInsideNotebook
+
+    def _repr_png_(self):
+        if self.last_render is None:
+            self.render()
+        png = self.last_render.write_png(filename=None,
+                                         sigma_clip=self._sigma_clip,
+                                         background='black')
+        self._sigma_clip = None
+        return png
 
     def __repr__(self):
         disp = "<Scene Object>:"

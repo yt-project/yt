@@ -104,7 +104,7 @@ class PlaneParallelLens(Lens):
                  x_vec=camera.unit_vectors[0],
                  y_vec=camera.unit_vectors[1],
                  width=np.array(camera.width, dtype='float64'),
-                 image=image)
+                 image=image, lens_type="plane-parallel")
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -144,7 +144,7 @@ class PerspectiveLens(Lens):
 
     def new_image(self, camera):
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
+            np.zeros((camera.resolution[0], camera.resolution[1], 
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
@@ -180,7 +180,12 @@ class PerspectiveLens(Lens):
         normal_vecs = normal_vecs.reshape(
             camera.resolution[0], camera.resolution[1], 3)
 
-        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
+            (max_length / camera.width[2])
 
         positions = np.tile(
             camera.position, camera.resolution[0] * camera.resolution[1])
@@ -199,8 +204,8 @@ class PerspectiveLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="perspective")
 
         mylog.debug(positions)
         mylog.debug(vectors)
@@ -261,8 +266,8 @@ class StereoPerspectiveLens(Lens):
     def new_image(self, camera):
         """Initialize a new ImageArray to be used with this lens."""
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
-                      4), dtype='float64', order='C'),
+            np.zeros((camera.resolution[0], camera.resolution[1], 4),
+                     dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
 
@@ -289,9 +294,9 @@ class StereoPerspectiveLens(Lens):
         vectors_comb = np.vstack([vectors_left, vectors_right])
         positions_comb = np.vstack([positions_left, positions_right])
 
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params =\
             dict(vp_pos=positions_comb,
@@ -301,8 +306,8 @@ class StereoPerspectiveLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="stereo-perspective")
 
         return sampler_params
 
@@ -345,7 +350,12 @@ class StereoPerspectiveLens(Lens):
         east_vecs = east_vecs.reshape(
             single_resolution_x, camera.resolution[1], 3)
 
-        vectors = sample_x + sample_y + normal_vecs * camera.width[2]
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
+            (max_length / camera.width[2])
 
         positions = np.tile(
             camera.position, single_resolution_x * camera.resolution[1])
@@ -372,9 +382,9 @@ class StereoPerspectiveLens(Lens):
         px_right, py_right, dz_right = self._get_px_py_dz(
             camera, pos, res, self.disparity)
 
-        px = np.hstack([px_left, px_right])
-        py = np.hstack([py_left, py_right])
-        dz = np.hstack([dz_left, dz_right])
+        px = np.vstack([px_left, px_right])
+        py = np.vstack([py_left, py_right])
+        dz = np.vstack([dz_left, dz_right])
 
         return px, py, dz
 
@@ -416,10 +426,13 @@ class StereoPerspectiveLens(Lens):
 
         dx = np.dot(pos1 - sight_center.d, east_vec_rot)
         dy = np.dot(pos1 - sight_center.d, north_vec)
-        dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+        dz = np.dot(pos - camera_position_shift.d, normal_vec_rot)
         
         # Transpose into image coords.
-        px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
+        if disparity > 0:
+            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
+        else:
+            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
 
         return px, py, dz
@@ -463,19 +476,19 @@ class FisheyeLens(Lens):
     def new_image(self, camera):
         """Initialize a new ImageArray to be used with this lens."""
         self.current_image = ImageArray(
-            np.zeros((camera.resolution[0]**2, 1,
+            np.zeros((camera.resolution[0], camera.resolution[0],
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
         vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
-        vp.shape = (camera.resolution[0]**2, 1, 3)
+        vp.shape = (camera.resolution[0], camera.resolution[0], 3)
         vp = vp.dot(np.linalg.inv(self.rotation_matrix))
         vp *= self.radius
         uv = np.ones(3, dtype='float64')
-        positions = np.ones((camera.resolution[0]**2, 1, 3),
-                            dtype='float64') * camera.position
+        positions = np.ones((camera.resolution[0], camera.resolution[0], 3),
+            dtype='float64') * camera.position
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -490,8 +503,8 @@ class FisheyeLens(Lens):
                  x_vec=uv,
                  y_vec=uv,
                  width=np.zeros(3, dtype='float64'),
-                 image=image
-                 )
+                 image=image,
+                 lens_type="fisheye")
 
         return sampler_params
 
@@ -567,7 +580,12 @@ class SphericalLens(Lens):
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-        vectors = vectors * camera.width[0]
+
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = vectors * max_length
 
         positions = np.tile(
             camera.position,
@@ -588,9 +606,9 @@ class SphericalLens(Lens):
             image = self.new_image(camera)
 
         dummy = np.ones(3, dtype='float64')
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params = dict(
             vp_pos=positions,
@@ -600,7 +618,8 @@ class SphericalLens(Lens):
             x_vec=dummy,
             y_vec=dummy,
             width=np.zeros(3, dtype="float64"),
-            image=image)
+            image=image,
+            lens_type="spherical")
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -673,7 +692,12 @@ class StereoSphericalLens(Lens):
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
         vectors[:, :, 2] = np.sin(py)
-        vectors = vectors * camera.width[0]
+
+        # The maximum possible length of ray
+        max_length = np.linalg.norm(camera.position - camera._domain_center) \
+            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        # Rescale the ray to be long enough to cover the entire domain
+        vectors = vectors * max_length
 
         vectors2 = np.zeros((single_resolution_x, camera.resolution[1], 3),
                             dtype='float64', order='C')
@@ -708,9 +732,9 @@ class StereoSphericalLens(Lens):
         vectors_comb = np.vstack([vectors, vectors])
         positions_comb = np.vstack([positions_left, positions_right])
 
-        image.shape = (camera.resolution[0]*camera.resolution[1], 1, 4)
-        vectors_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
-        positions_comb.shape = (camera.resolution[0]*camera.resolution[1], 1, 3)
+        image.shape = (camera.resolution[0], camera.resolution[1], 4)
+        vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
+        positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
         sampler_params = dict(
             vp_pos=positions_comb,
@@ -720,7 +744,8 @@ class StereoSphericalLens(Lens):
             x_vec=dummy,
             y_vec=dummy,
             width=np.zeros(3, dtype="float64"),
-            image=image)
+            image=image,
+            lens_type = "stereo-spherical")
         return sampler_params
 
     def set_viewpoint(self, camera):

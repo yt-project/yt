@@ -49,7 +49,30 @@ class Camera(Orientation):
 
     Examples
     --------
+    
+    In this example, the camera is set using defaults that are chosen
+    to be reasonable for the argument Dataset.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> cam = Camera(ds)
+
+    Here, we set the camera properties manually:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> cam = Camera()
+    >>> cam.position = np.array([0.5, 0.5, -1.0])
+    >>> cam.focus = np.array([0.5, 0.5, 0.0])
+    >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
+
+    Finally, we create a camera with a non-default lens:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> cam = Camera(ds, lens_type='perspective')
 
     """
 
@@ -76,6 +99,8 @@ class Camera(Orientation):
             self._focus = data_source.ds.domain_center
             self._position = data_source.ds.domain_right_edge
             self._width = 1.5*data_source.ds.domain_width
+            self._domain_center = data_source.ds.domain_center
+            self._domain_width = data_source.ds.domain_width
         if auto:
             self.set_defaults_from_data_source(data_source)
 
@@ -198,10 +223,10 @@ class Camera(Orientation):
 
     def set_defaults_from_data_source(self, data_source):
         """Resets the camera attributes to their default values"""
-        
-        position = data_source.pf.domain_right_edge
 
-        width = 1.5 * data_source.pf.domain_width.max()
+        position = data_source.ds.domain_right_edge
+
+        width = 1.5 * data_source.ds.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
@@ -209,17 +234,17 @@ class Camera(Orientation):
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = data_source.pf.quan(width[0], input_units=width[1])
+            width = data_source.ds.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
         if not iterable(width):
-            width = data_source.pf.arr([width, width, width],
+            width = data_source.ds.arr([width, width, width],
                                        input_units='code_length')
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.pf.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
-            focus = self.pf.arr(focus, input_units="code_length")
+            focus = self.ds.arr(focus, input_units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.
@@ -227,6 +252,8 @@ class Camera(Orientation):
         self._width = width
         self._focus = focus
         self._position = position
+        self._domain_center = data_source.ds.domain_center
+        self._domain_width = data_source.ds.domain_width
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
@@ -282,7 +309,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -303,7 +330,7 @@ class Camera(Orientation):
         Parameters
         ----------
         normal_vector: array_like, optional
-            The new looking vector.
+            The new looking vector from the camera to the focus.
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
@@ -338,7 +365,16 @@ class Camera(Orientation):
         Examples
         --------
 
-        >>> cam.rotate(np.pi/4)
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> cam = Camera()
+        >>> # rotate the camera by pi / 4 radians:
+        >>> cam.rotate(np.pi/4.0)  
+        >>> # rotate the camera about the y-axis instead of cam.north_vector:
+        >>> cam.rotate(np.pi/4.0, np.array([0.0, 1.0, 0.0]))  
+        >>> # rotate the camera about the origin instead of its own position:
+        >>> cam.rotate(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))  
 
         """
         rotate_all = rot_vector is not None
@@ -382,8 +418,15 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
-        >>> cam.pitch(np.pi/4)
+        >>> # pitch the camera by pi / 4 radians:
+        >>> cam.pitch(np.pi/4.0)  
+        >>> # pitch the camera about the origin instead of its own position:
+        >>> cam.pitch(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[0], rot_center=rot_center)
 
@@ -402,8 +445,15 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
-        >>> cam.yaw(np.pi/4)
+        >>> # yaw the camera by pi / 4 radians:
+        >>> cam.yaw(np.pi/4.0)  
+        >>> # yaw the camera about the origin instead of its own position:
+        >>> cam.yaw(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[1], rot_center=rot_center)
 
@@ -422,8 +472,15 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> from yt.visualization.volume_rendering.api import Camera
         >>> cam = Camera()
-        >>> cam.roll(np.pi/4)
+        >>> # roll the camera by pi / 4 radians:
+        >>> cam.roll(np.pi/4.0)  
+        >>> # roll the camera about the origin instead of its own position:
+        >>> cam.roll(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2], rot_center=rot_center)
 
@@ -451,9 +508,16 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> 
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):
         ...     im = sc.render()
         ...     sc.save('rotation_%04i.png' % i)
+
         """
 
         dtheta = (1.0*theta)/n_steps
@@ -475,14 +539,22 @@ class Camera(Orientation):
             The number of snapshots to make.
         exponential : boolean
             Specifies whether the move/zoom transition follows an
-            exponential path toward the destination or linear
+            exponential path toward the destination or linear.
+            Default is False.
 
         Examples
         --------
 
-        >>> for i in cam.iter_move([0.2,0.3,0.6], 10):
+        >>> import yt
+        >>> import numpy as np
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> final_position = ds.arr([0.2, 0.3, 0.6], 'unitary')
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
+        >>> for i in cam.iter_move(final_position, 10):
         ...     sc.render()
         ...     sc.save("move_%04i.png" % i)
+
         """
         assert isinstance(final, YTArray)
         if exponential:
@@ -498,18 +570,28 @@ class Camera(Orientation):
             yield i
 
     def zoom(self, factor):
-        r"""Change the distance to the focal point.
+        r"""Change the width of the FOV of the camera.
 
-        This will zoom the camera in by some `factor` toward the focal point,
-        along the current view direction, modifying the left/right and up/down
-        extents as well.
+        This will appear to zoom the camera in by some `factor` toward the 
+        focal point along the current view direction, but really it's just
+        changing the width of the field of view.
 
         Parameters
         ----------
         factor : float
-            The factor by which to reduce the distance to the focal point.
+            The factor by which to divide the width
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> cam = Camera(ds)
+        >>> cam.zoom(1.1)
 
         """
+
         self.set_width(self.width / factor)
 
     def iter_zoom(self, final, n_steps):
@@ -529,9 +611,15 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> im, sc = yt.volume_render(ds)
+        >>> cam = sc.camera
         >>> for i in cam.iter_zoom(100.0, 10):
         ...     sc.render()
         ...     sc.save("zoom_%04i.png" % i)
+
         """
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):

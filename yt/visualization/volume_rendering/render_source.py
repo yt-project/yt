@@ -92,7 +92,30 @@ class VolumeSource(RenderSource):
 
     Examples
     --------
+
+    The easiest way to make a VolumeSource is to use the volume_render
+    function, so that the VolumeSource gets created automatically. This 
+    example shows how to do this and then access the resulting source:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> im, sc = yt.volume_render(ds)
+    >>> volume_source = sc.get_source(0)
+
+    You can also create VolumeSource instances by hand and add them to Scenes.
+    This example manually creates a VolumeSource, adds it to a scene, sets the
+    camera, and renders an image.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> sc.add_source(source)
+    >>> cam = Camera(ds)
+    >>> sc.camera = cam
+    >>> im = sc.render()
+
     """
 
     _image = None
@@ -309,7 +332,7 @@ class MeshSource(RenderSource):
     data_source = None
 
     def __init__(self, data_source, field):
-        r"""Initialize a new unstructured source for rendering."""
+        r"""Initialize a new unstructured mesh source for rendering."""
         super(MeshSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
@@ -334,7 +357,11 @@ class MeshSource(RenderSource):
             raise RuntimeError("Mesh not initialized")
 
     def build_mesh(self):
+        """
 
+        This constructs the mesh that will be ray-traced.
+
+        """
         field_data = self.data_source[self.field]
         vertices = self.data_source.ds.index.meshes[0].connectivity_coords
 
@@ -401,7 +428,26 @@ class PointSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = PointSource(particle_positions)
+
+    This example creates a volume rendering and adds 1000 random points to
+    the image:
+
+    >>> import yt
+    >>> import numpy as np
+    >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    
+    >>> im, sc = yt.volume_render(ds)
+    
+    >>> npoints = 1000
+    >>> vertices = np.random.random([npoints, 3])
+    >>> colors = np.random.random([npoints, 4])
+    >>> colors[:,3] = 1.0
+
+    >>> points = PointSource(vertices, colors=colors)
+    >>> sc.add_source(points)
+    
+    >>> im = sc.render()
 
     """
 
@@ -410,6 +456,10 @@ class PointSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
+        assert(positions.ndim == 2 and positions.shape[1] == 3)
+        if colors is not None:
+            assert(colors.ndim == 2 and colors.shape[1] == 4)
+            assert(colors.shape[0] == positions.shape[0]) 
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -451,7 +501,18 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
+
+        # Non-plane-parallel lenses only support 1D array
+        # 1D array needs to be transformed to 2D to get points plotted
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
+
         zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -486,8 +547,27 @@ class LineSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = LineSource(np.random.random((10, 3)))
 
+    This example creates a volume rendering and then adds some random lines
+    to the image:
+
+    >>> import yt
+    >>> import numpy as np
+    >>> from yt.visualization.volume_rendering.api import LineSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    
+    >>> im, sc = yt.volume_render(ds)
+    
+    >>> npoints = 100
+    >>> vertices = np.random.random([npoints, 2, 3])
+    >>> colors = np.random.random([npoints, 4])
+    >>> colors[:,3] = 1.0
+    
+    >>> lines = LineSource(vertices, colors)
+    >>> sc.add_source(lines)
+
+    >>> im = sc.render()
+    
     """
 
     _image = None
@@ -496,8 +576,12 @@ class LineSource(OpaqueSource):
     def __init__(self, positions, colors=None, color_stride=1):
         super(LineSource, self).__init__()
 
+        assert(positions.ndim == 3)
         assert(positions.shape[1] == 2)
         assert(positions.shape[2] == 3)
+        if colors is not None:
+            assert(colors.ndim == 2)
+            assert(colors.shape[1] == 4)
 
         # convert the positions to the shape expected by zlines, below
         N = positions.shape[0]
@@ -543,7 +627,23 @@ class LineSource(OpaqueSource):
         # DRAW SOME LINES
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        # Non-plane-parallel lenses only support 1D array
+        # 1D array needs to be transformed to 2D to get lines plotted
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
+
+        if len(px.shape) == 1:
+            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        else:
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
+            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -569,12 +669,32 @@ class BoxSource(LineSource):
 
     Examples
     --------
-    >>> source = BoxSource(grid_obj.LeftEdge, grid_obj.RightEdge)
+
+    This example shows how to use BoxSource to add an outline of the 
+    domain boundaries to a volume rendering.
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import BoxSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
+    >>> box_source = BoxSource(ds.domain_left_edge,
+    ...                       ds.domain_right_edge,
+    ...                       [1.0, 1.0, 1.0, 1.0])
+    >>> sc.add_source(box_source)
+    >>> 
+    >>> im = sc.render()
 
     """
     def __init__(self, left_edge, right_edge, color=None):
+
+        assert(left_edge.shape == (3,))
+        assert(right_edge.shape == (3,))
+        
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
+
         color = ensure_numpy_array(color)
         color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
@@ -610,8 +730,38 @@ class GridSource(LineSource):
 
     Examples
     --------
+
+    This example makes a volume rendering and adds outlines of all the 
+    AMR grids in the simulation:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import GridSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>>
+    >>> grid_source = GridSource(ds.all_data(), alpha=1.0)
+    >>>
+    >>> sc.add_source(grid_source)
+    >>>
+    >>> im = sc.render()
+
+    This example does the same thing, except it only draws the grids
+    that are inside a sphere of radius (0.1, "unitary") located at the
+    domain center:
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import GridSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> 
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
     >>> dd = ds.sphere("c", (0.1, "unitary"))
-    >>> source = GridSource(dd, alpha=1.0)
+    >>> grid_source = GridSource(dd, alpha=1.0)
+    >>> 
+    >>> sc.add_source(grid_source)
+    >>>
+    >>> im = sc.render()
 
     """
     def __init__(self, data_source, alpha=0.3, cmap='algae',
@@ -677,7 +827,19 @@ class CoordinateVectorSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = CoordinateVectorSource()
+
+    >>> import yt
+    >>> from yt.visualization.volume_rendering.api import CoordinateVectorSource
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> im, sc = yt.volume_render(ds)
+    >>> 
+    >>> coord_source = CoordinateVectorSource()
+    >>> 
+    >>> sc.add_source(coord_source)
+    >>> 
+    >>> im = sc.render()
+
     """
 
     def __init__(self, colors=None, alpha=1.0):
@@ -723,19 +885,36 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
-        dpx = px[1::2] - px[::2]
-        dpy = py[1::2] - py[::2]
 
-        # Set the center of the coordinates to be in the lower left of the image
-        lpx = camera.resolution[0] / 8
-        lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+        if len(px.shape) == 1:
+            dpx = px[1::2] - px[::2]
+            dpy = py[1::2] - py[::2]
 
-        # Offset the pixels according to the projections above
-        px[::2] = lpx
-        px[1::2] = lpx + dpx
-        py[::2] = lpy
-        py[1::2] = lpy + dpy
-        dz[:] = 0.0
+            # Set the center of the coordinates to be in the lower left of the image
+            lpx = camera.resolution[0] / 8
+            lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+
+            # Offset the pixels according to the projections above
+            px[::2] = lpx
+            px[1::2] = lpx + dpx
+            py[::2] = lpy
+            py[1::2] = lpy + dpy
+            dz[:] = 0.0
+        else:
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            dpx = px[:,1::2] - px[:,::2]
+            dpy = py[:,1::2] - py[:,::2]
+
+            lpx = camera.resolution[0] / 16
+            lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
+
+            # Offset the pixels according to the projections above
+            px[:,::2] = lpx
+            px[:,1::2] = lpx + dpx
+            px[1,:] += camera.resolution[0] / 2
+            py[:,::2] = lpy
+            py[:,1::2] = lpy + dpy
+            dz[:,:] = 0.0
 
         # Create a zbuffer if needed
         if zbuffer is None:
@@ -749,7 +928,23 @@ class CoordinateVectorSource(OpaqueSource):
             z = zbuffer.z
 
         # Draw the vectors
-        zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+
+        # Non-plane-parallel lenses only support 1D array
+        # 1D array needs to be transformed to 2D to get lines plotted
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
+            z.shape = (camera.resolution[0], camera.resolution[1])
+
+        if len(px.shape) == 1:
+            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+        else:
+            # For stereo-lens, two sets of pos for each eye are contained in px...pz
+            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
+            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
+
+        if 'plane-parallel' not in str(camera.lens):
+            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
+            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer
