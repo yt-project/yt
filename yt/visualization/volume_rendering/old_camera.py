@@ -598,16 +598,16 @@ class Camera(ParallelAnalysisInterface):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
+        args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
+                self.back_center,
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
                 np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'plane-parallel'}
 
     star_trees = None
-    def get_sampler(self, args):
-        kwargs = {}
+    def get_sampler(self, args, kwargs):
         if self.star_trees is not None:
             kwargs = {'star_list': self.star_trees}
         if self.use_light:
@@ -781,8 +781,8 @@ class Camera(ParallelAnalysisInterface):
         if num_threads is None:
             num_threads=get_num_threads()
         image = self.new_image()
-        args = self.get_sampler_args(image)
-        sampler = self.get_sampler(args)
+        args, kwargs = self.get_sampler_args(image)
+        sampler = self.get_sampler(args, kwargs)
         self.initialize_source()
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
@@ -1248,14 +1248,14 @@ class PerspectiveCamera(Camera):
         positions = self.ds.arr(positions, input_units="code_length")
 
         dummy = np.ones(3, dtype='float64')
-        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+        image.shape = (self.resolution[0], self.resolution[1],4)
 
         args = (positions, vectors, self.back_center,
                 (0.0,1.0,0.0,1.0),
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'perspective'}
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1430,7 +1430,7 @@ class HEALpixCamera(Camera):
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
-        return args
+        return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
@@ -1492,8 +1492,8 @@ class HEALpixCamera(Camera):
         if num_threads is None:
             num_threads=get_num_threads()
         image = self.new_image()
-        args = self.get_sampler_args(image)
-        sampler = self.get_sampler(args)
+        args, kwargs = self.get_sampler_args(image)
+        sampler = self.get_sampler(args, kwargs)
         self.volume.initialize_source()
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
@@ -1653,7 +1653,7 @@ class FisheyeCamera(Camera):
                 image, uv, uv,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {}
 
 
     def finalize_image(self, image):
@@ -1799,8 +1799,8 @@ class MosaicCamera(Camera):
             mylog.debug('Working on: %i %i' % (self.imi, self.imj))
             self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
             image = self.new_image()
-            args = self.get_sampler_args(image)
-            sampler = self.get_sampler(args)
+            args, kwargs = self.get_sampler_args(image)
+            sampler = self.get_sampler(args, kwargs)
             image = self._render(double_check, num_threads, image, sampler)
             sto.id = self.imj*self.nimx + self.imi
             sto.result = image
@@ -2405,11 +2405,11 @@ class ProjectionCamera(Camera):
         except AttributeError:
             pass
 
-    def get_sampler(self, args):
+    def get_sampler(self, args, kwargs):
         if self.interpolated:
-            sampler = InterpolatedProjectionSampler(*args)
+            sampler = InterpolatedProjectionSampler(*args, **kwargs)
         else:
-            sampler = ProjectionSampler(*args)
+            sampler = ProjectionSampler(*args, **kwargs)
         return sampler
 
     def initialize_source(self):
@@ -2420,12 +2420,13 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
+        args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
+                self.back_center,
             (-self.width[0]/2., self.width[0]/2.,
              -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
                 np.array(self.width, dtype='float64'), self.sub_samples)
-        return args
+        return args, {'lens_type': 'plane-parallel'}
 
     def finalize_image(self,image):
         ds = self.ds
@@ -2506,9 +2507,9 @@ class ProjectionCamera(Camera):
 
         image = self.new_image()
 
-        args = self.get_sampler_args(image)
+        args, kwargs = self.get_sampler_args(image)
 
-        sampler = self.get_sampler(args)
+        sampler = self.get_sampler(args, kwargs)
 
         self.initialize_source()
 
@@ -2559,7 +2560,7 @@ class SphericalCamera(Camera):
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'spherical'}
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -2639,7 +2640,7 @@ class StereoSphericalCamera(Camera):
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'stereo-spherical'}
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0, transparent=False):
@@ -2649,16 +2650,16 @@ class StereoSphericalCamera(Camera):
 
         self.disparity_s = self.disparity
         image1 = self.new_image()
-        args1 = self.get_sampler_args(image1)
-        sampler1 = self.get_sampler(args1)
+        args1, kwargs1 = self.get_sampler_args(image1)
+        sampler1 = self.get_sampler(args1, kwargs1)
         self.initialize_source()
         image1 = self._render(double_check, num_threads,
                               image1, sampler1, '(Left) ')
 
         self.disparity_s = -self.disparity
         image2 = self.new_image()
-        args2 = self.get_sampler_args(image2)
-        sampler2 = self.get_sampler(args2)
+        args2, kwargs2 = self.get_sampler_args(image2)
+        sampler2 = self.get_sampler(args2, kwargs2)
         self.initialize_source()
         image2 = self._render(double_check, num_threads,
                               image2, sampler2, '(Right)')
