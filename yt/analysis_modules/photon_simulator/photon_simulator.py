@@ -449,7 +449,7 @@ class PhotonList(object):
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None,
                         convolve_energies=False, no_shifting=False,
-                        north_vector=None):
+                        north_vector=None, prng=np.random):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -489,6 +489,11 @@ class PhotonList(object):
             the plane of projection. If not set, an arbitrary grid-aligned north_vector 
             is chosen. Ignored in the case where a particular axis (e.g., "x", "y", or
             "z") is explicitly specified.
+        prng : NumPy `RandomState` object or numpy.random                                                                              
+            A pseudo-random number generator. Typically will only be specified if you
+            have a reason to generate the same set of random numbers, such as for a                                    
+            test. Default is the numpy.random module.                                                                            
+
         Examples
         --------
         >>> L = np.array([0.1,-0.2,0.3])
@@ -612,14 +617,14 @@ class PhotonList(object):
         if my_n_obs == n_ph_tot:
             idxs = np.arange(my_n_obs,dtype='uint64')
         else:
-            idxs = np.random.permutation(n_ph_tot)[:my_n_obs].astype("uint64")
+            idxs = prng.permutation(n_ph_tot)[:my_n_obs].astype("uint64")
         obs_cells = np.searchsorted(self.p_bins, idxs, side='right')-1
         delta = dx[obs_cells]
 
         if isinstance(normal, string_types):
 
-            xsky = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            ysky = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            xsky = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            ysky = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
             xsky *= delta
             ysky *= delta
             xsky += self.photons[axes_lookup[normal][0]][obs_cells]
@@ -629,9 +634,9 @@ class PhotonList(object):
                 vz = self.photons["v%s" % normal]
 
         else:
-            x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            z = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            x = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            y = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            z = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
 
             if not no_shifting:
                 vz = self.photons["vx"]*z_hat[0] + \
@@ -664,7 +669,7 @@ class PhotonList(object):
             emid = absorb_model.emid
             aspec = absorb_model.get_spectrum()
             absorb = np.interp(eobs, emid, aspec, left=0.0, right=0.0)
-            randvec = aspec.max()*np.random.random(eobs.shape)
+            randvec = aspec.max()*prng.uniform(size=eobs.shape)
             not_abs = randvec < absorb
 
         if eff_area is None:
@@ -672,7 +677,7 @@ class PhotonList(object):
         else:
             mylog.info("Applying energy-dependent effective area.")
             earea = np.interp(eobs, earf, eff_area, left=0.0, right=0.0)
-            randvec = eff_area.max()*np.random.random(eobs.shape)
+            randvec = eff_area.max()*prng.uniform(size=eobs.shape)
             detected = randvec < earea
 
         detected = np.logical_and(not_abs, detected)
@@ -689,8 +694,8 @@ class PhotonList(object):
         events = comm.par_combine_object(events, datatype="dict", op="cat")
 
         if psf_sigma is not None:
-            events["xpix"] += np.random.normal(sigma=psf_sigma/dtheta)
-            events["ypix"] += np.random.normal(sigma=psf_sigma/dtheta)
+            events["xpix"] += prng.normal(sigma=psf_sigma/dtheta)
+            events["ypix"] += prng.normal(sigma=psf_sigma/dtheta)
 
         num_events = len(events["xpix"])
 
@@ -698,7 +703,8 @@ class PhotonList(object):
             mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
-            events, info = self._convolve_with_rmf(parameters["RMF"], events, mat_key)
+            events, info = self._convolve_with_rmf(parameters["RMF"], events, 
+                                                   mat_key, prng)
             for k, v in info.items():
                 parameters[k] = v
 
@@ -725,7 +731,7 @@ class PhotonList(object):
         rmf.close()
         return weights
 
-    def _convolve_with_rmf(self, respfile, events, mat_key):
+    def _convolve_with_rmf(self, respfile, events, mat_key, prng):
         """
         Convolve the events with a RMF file.
         """
@@ -780,7 +786,7 @@ class PhotonList(object):
             if len(trueChannel) > 0:
                 for q in range(fcurr,last):
                     if phEE[q] >= low and phEE[q] < high:
-                        channelInd = np.random.choice(len(weights), p=weights)
+                        channelInd = prng.choice(len(weights), p=weights)
                         fcurr += 1
                         detectedChannels.append(trueChannel[channelInd])
                     if phEE[q] >= high:
@@ -1349,6 +1355,8 @@ class EventList(object) :
                 bins = 0.5*(ee[1:]+ee[:-1])
                 spectype = "energy"
             else:
+                mylog.info("Events haven't been convolved with an RMF, so assuming "
+                           "a perfect response and %d PI channels." % nchan)
                 bins = (np.arange(nchan)+1).astype("int32")
                 spectype = "pi"
 
