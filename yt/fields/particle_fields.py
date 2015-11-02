@@ -826,34 +826,6 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
-def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64,
-                       kernel_name = 'cubic'):
-    if kernel_name == 'cubic':
-        field_name = (ptype, "smoothed_density")
-    else:
-        field_name = (ptype, "%s_smoothed_density" % (kernel_name))
-
-    def _nth_neighbor(field, data):
-        pos = data[ptype, coord_name]
-        pos.convert_to_units("code_length")
-        mass = data[ptype, mass_name]
-        mass.convert_to_units("g")
-        densities = mass * 0.0
-        data.particle_operation(pos, [mass, densities],
-                         method="density",
-                         nneighbors = nneighbors,
-                         kernel_name = kernel_name)
-        ones = pos.prod(axis=1) # Get us in code_length**3
-        ones[:] = 1.0
-        densities /= ones
-        # Now some quick unit conversions.
-        return densities
-    registry.add_field(field_name, function = _nth_neighbor,
-                       validators = [ValidateSpatial(0)],
-                       particle_type = True,
-                       units = "g/cm**3")
-    return [field_name]
-
 def add_union_field(registry, ptype, field_name, units):
     """
     Create a field that is the concatenation of multiple particle types.
