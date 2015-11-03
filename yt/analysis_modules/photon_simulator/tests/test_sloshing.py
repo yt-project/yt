@@ -40,7 +40,7 @@ APEC = xray_data_dir
 TBABS = xray_data_dir+"/tbabs_table.h5"
 
 def return_data(data):
-    def _return_data():
+    def _return_data(name):
         return data
     return _return_data
 
@@ -68,7 +68,7 @@ def test_sloshing():
     return_photons = return_data(photons.photons)
 
     tests = []
-    tests.append(GenericArrayTest(ds, return_photons))
+    tests.append(GenericArrayTest(ds, return_photons, args=["photons"]))
 
     for a, r in zip(arfs, rmfs):
         arf = os.path.join(xray_data_dir,a)
@@ -79,7 +79,7 @@ def test_sloshing():
 
         return_events = return_data(events.events)
 
-        tests.append(GenericArrayTest(ds, return_events))
+        tests.append(GenericArrayTest(ds, return_events, args=[a]))
 
     for test in tests:
         test_sloshing.__name__ = test.description
