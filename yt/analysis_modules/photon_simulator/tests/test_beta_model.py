@@ -163,6 +163,9 @@ def test_beta_model():
     assert np.abs(Z-Z_sim) < dZ
     assert np.abs(sigma-sigma_sim) < dsigma
     assert np.abs(norm-norm_sim) < dnorm
-        
+
+    xspec.AllModels.clear()
+    xspec.AllData.clear()
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)

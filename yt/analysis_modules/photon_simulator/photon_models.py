@@ -258,4 +258,6 @@ class ThermalPhotonModel(PhotonModel):
         mylog.info("Number of photons generated: %d" % int(np.sum(photons["NumberOfPhotons"])))
         mylog.info("Number of cells with photons: %d" % len(photons["x"]))
 
+        self.spectral_model.cleanup_spectrum()
+
         return photons

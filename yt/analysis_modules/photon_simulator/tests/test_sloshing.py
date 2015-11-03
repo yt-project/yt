@@ -19,6 +19,7 @@ from yt.utilities.answer_testing.framework import requires_ds, \
     GenericArrayTest, data_dir_load
 import numpy as np
 from numpy.random import RandomState
+import os
 
 def setup():
     from yt.config import ytcfg
@@ -38,6 +39,11 @@ gslr = test_data_dir+"/GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 APEC = xray_data_dir
 TBABS = xray_data_dir+"/tbabs_table.h5"
 
+def return_data(data):
+    def _return_data():
+        return data
+    return _return_data
+
 @requires_ds(gslr)
 @requires_file(APEC)
 @requires_file(TBABS)
@@ -47,7 +53,7 @@ def test_sloshing():
 
     ds = data_dir_load(gslr)
     A = 2000.
-    exp_time = 1.0e5
+    exp_time = 1.0e4
     redshift = 0.1
 
     apec_model = TableApecModel(APEC, 0.1, 11.0, 10000)
@@ -59,27 +65,22 @@ def test_sloshing():
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
 
-    events = photons.project_photons([1.0,-0.5,0.2], responses=[ARF,RMF],
-                                     absorb_model=tbabs_model,
-                                     convolve_energies=True,
-                                     prng=prng)
+    return_photons = return_data(photons.photons)
 
-    test_sloshing.__name__ = test.description
-
-    def photons_test():
-        return photons.photons
-
-    yield GenericArrayTest(ds, photons_test)
+    tests = []
+    tests.append(GenericArrayTest(ds, return_photons))
 
     for a, r in zip(arfs, rmfs):
         arf = os.path.join(xray_data_dir,a)
         rmf = os.path.join(xray_data_dir,r)
-        events = photons.project_photons("z", responses=[arf,rmf],
+        events = photons.project_photons([1.0,-0.5,0.2], responses=[arf,rmf],
                                          absorb_model=tbabs_model, 
-                                         convolve_energies=True)
+                                         convolve_energies=True, prng=prng)
 
-        def events_test():
-            return events.events
+        return_events = return_data(events.events)
 
-        yield GenericArrayTest(ds, events_test)
+        tests.append(GenericArrayTest(ds, return_events))
 
+    for test in tests:
+        test_sloshing.__name__ = test.description
+        yield test

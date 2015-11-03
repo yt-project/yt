@@ -90,6 +90,9 @@ class PhotonList(object):
         else:
             return self.photons[key]
 
+    def __contains__(self, key):
+        return key in self.photons
+
     def __repr__(self):
         return self.photons.__repr__()
 
@@ -671,6 +674,7 @@ class PhotonList(object):
             absorb = np.interp(eobs, emid, aspec, left=0.0, right=0.0)
             randvec = aspec.max()*prng.uniform(size=eobs.shape)
             not_abs = randvec < absorb
+            absorb_model.cleanup_spectrum()
 
         if eff_area is None:
             detected = np.ones(eobs.shape, dtype='bool')

@@ -42,3 +42,4 @@ def test_apec():
         test_apec.__name__ = test.description
         yield test
 
+    xmod.cleanup_spectrum()
