@@ -15,21 +15,29 @@ Data containers that require processing before they can be utilized.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import math
-import weakref
-import itertools
-import shelve
 from functools import wraps
 import fileinput
 from re import finditer
+from tempfile import TemporaryFile
 import os
+import zipfile
 
 from yt.config import ytcfg
-from yt.funcs import *
-from yt.utilities.logger import ytLogger
-from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_field_information_state, YTFieldData
+from yt.data_objects.data_containers import \
+    YTSelectionContainer1D, \
+    YTSelectionContainer2D, \
+    YTSelectionContainer3D, \
+    YTFieldData
+from yt.funcs import \
+    ensure_list, \
+    mylog, \
+    get_memory_usage, \
+    iterable, \
+    only_on_root
+from yt.utilities.exceptions import \
+    YTParticleDepositionNotImplemented, \
+    YTNoAPIKey, \
+    YTTooManyVertices
 from yt.utilities.lib.QuadTree import \
     QuadTree
 from yt.utilities.lib.Interpolators import \
@@ -38,8 +46,6 @@ from yt.utilities.lib.misc_utilities import \
     fill_region
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.data_point_utilities import CombineGrids,\
-    DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -47,16 +53,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
+from yt.fields.field_exceptions import \
+    NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
 
-from yt.fields.field_exceptions import \
-    NeedsGridType,\
-    NeedsOriginalGrid,\
-    NeedsDataField,\
-    NeedsProperty,\
-    NeedsParameter
-from yt.fields.derived_field import \
-    TranslationFunc
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -369,10 +369,10 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         data['pdy'] = self.ds.arr(pdy, code_length)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        fd = data['fields']
+        data['fields']
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
-            finfo = self.ds._get_field_info(*field)
+            self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
@@ -939,7 +939,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.current_level += 1
         ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
-        LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex, end_index, ls.current_dims = \
             self._minimal_box(ls.current_dx)
@@ -1509,11 +1508,8 @@ class YTSurface(YTSelectionContainer3D):
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        import io
-        from sys import version
         if plot_index is None:
             plot_index = 0
-            vmax=0
         ftype = [("cind", "uint8"), ("emit", "float")]
         vtype = [("x","float"),("y","float"), ("z","float")]
         #(0) formulate vertices
@@ -1552,7 +1548,7 @@ class YTSurface(YTSelectionContainer3D):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp
-        return  v, lut, transparency, emiss, f['cind']
+        return v, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
@@ -1734,8 +1730,6 @@ class YTSurface(YTSelectionContainer3D):
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
-        import zipfile, json
-        from tempfile import TemporaryFile
 
         ply_file = TemporaryFile()
         self.export_ply(ply_file, bounds, color_field, color_map, color_log,

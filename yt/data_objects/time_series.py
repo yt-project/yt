@@ -13,17 +13,33 @@ Time series analysis functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import inspect, functools, weakref, glob, types, os
+import inspect
+import functools
+import glob
+import numpy as np
+import os
+import weakref
 
-from yt.funcs import *
+from functools import wraps
+
 from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
-from .data_containers import data_object_registry
-from .analyzer_objects import create_quantity_proxy, \
-    analysis_task_registry, AnalysisTask
+from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.derived_quantities import \
+    derived_quantity_registry
+from yt.data_objects.analyzer_objects import \
+    create_quantity_proxy, \
+    analysis_task_registry, \
+    AnalysisTask
+from yt.funcs import \
+    iterable, \
+    ensure_list, \
+    mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException
+from yt.utilities.exceptions import \
+    YTException, \
+    YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import parallel_objects, parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -285,7 +301,7 @@ class DatasetSeries(object):
                     if style == 'ds':
                         arg = ds
                     elif style == 'data_object':
-                        if obj == None:
+                        if obj is None:
                             obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(ds)
                     rv = task.eval(arg)
@@ -377,7 +393,7 @@ class TimeSeriesQuantitiesContainer(object):
         if key not in self.quantities: raise KeyError(key)
         q = self.quantities[key]
         def run_quantity_wrapper(quantity, quantity_name):
-            @wraps(quantity_info[quantity_name][1])
+            @wraps(derived_quantity_registry[quantity_name][1])
             def run_quantity(*args, **kwargs):
                 to_run = quantity(*args, **kwargs)
                 return self.data_object.eval(to_run)
@@ -390,7 +406,7 @@ class DatasetSeriesObject(object):
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in quantity_info.items()])
+        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in derived_quantity_registry.items()])
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):

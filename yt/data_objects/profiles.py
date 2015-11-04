@@ -13,14 +13,15 @@ Profile classes, to deal with generating and obtaining profiles
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
-from yt.funcs import get_output_filename
-from yt.funcs import *
-from yt.units.yt_array import uconcatenate, array_like_field
+from yt.funcs import \
+    get_output_filename, \
+    ensure_list, \
+    iterable
+from yt.units.yt_array import array_like_field
 from yt.units.unit_object import Unit
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib.misc_utilities import \
@@ -29,7 +30,6 @@ from yt.utilities.lib.misc_utilities import \
     new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
-from yt.utilities.exceptions import YTEmptyProfileData
 from yt.utilities.lib.CICDeposit import \
     CICDeposit_2, \
     NGPDeposit_2

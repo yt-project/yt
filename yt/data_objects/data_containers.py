@@ -13,32 +13,39 @@ Various non-grid data containers.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import itertools
-import os
-import types
 import uuid
-from yt.extern.six import string_types
-
-data_object_registry = {}
 
 import numpy as np
 import weakref
 import shelve
-from contextlib import contextmanager
 
-from yt.funcs import get_output_filename
-from yt.funcs import *
+from collections import defaultdict
+from contextlib import contextmanager
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog, \
+    ensure_list, \
+    fix_axis, \
+    iterable
 from yt.units.unit_object import UnitParseError
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
-    YTSpatialFieldUnitError
+    YTSpatialFieldUnitError, \
+    YTCouldNotGenerateField, \
+    YTFieldNotParseable, \
+    YTFieldNotFound, \
+    YTFieldTypeNotFound, \
+    YTDataSelectorNotImplemented
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -55,9 +62,10 @@ from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
 
+data_object_registry = {}
+
 def force_array(item, shape):
     try:
-        sh = item.shape
         return item.copy()
     except AttributeError:
         if item:
@@ -831,7 +839,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get.append(field)
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
-        elif self._locked == True:
+        elif self._locked is True:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys())
@@ -1400,7 +1408,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         with child cells are left untouched.
         """
         for grid in self._grids:
-            if default_value != None:
+            if default_value is not None:
                 grid[field] = np.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
