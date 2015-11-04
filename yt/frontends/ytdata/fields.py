@@ -14,9 +14,7 @@ YTData-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
