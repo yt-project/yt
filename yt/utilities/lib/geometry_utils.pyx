@@ -377,16 +377,30 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef np.int64_t leftindex_to_morton(np.ndarray[np.uint64_t, ndim=1] ind_x,
+                                    np.ndarray[np.uint64_t, ndim=1] ind_y,
+                                    np.ndarray[np.uint64_t, ndim=1] ind_z,
+                                    np.ndarray[np.uint64_t, ndim=1] ind):
+    cdef np.int64_t i,mi
+    cdef np.uint64_t ii[3]
+    for i in range(ind_x.shape[0]):
+        ii[0] = <np.uint64_t> ind_x[i]
+        ii[1] = <np.uint64_t> ind_y[i]
+        ii[2] = <np.uint64_t> ind_z[i]
+        mi = 0
+        mi |= spread_bits(ii[2])<<0
+        mi |= spread_bits(ii[1])<<1
+        mi |= spread_bits(ii[0])<<2
+        ind[i] = mi
+    return ind_x.shape[0]
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t morton_to_leftindex(np.ndarray[np.uint64_t, ndim=1] ind,
                                     np.ndarray[np.uint64_t, ndim=1] ind_x,
                                     np.ndarray[np.uint64_t, ndim=1] ind_y,
                                     np.ndarray[np.uint64_t, ndim=1] ind_z):
-                        # np.ndarray[anyfloat, ndim=1] pos_y,
-                        # np.ndarray[anyfloat, ndim=1] pos_z,
-                        # np.float64_t dds[3], np.float64_t DLE[3],
-                        # np.float64_t DRE[3],
-                        # np.ndarray[np.uint64_t, ndim=1] ind,
-                        # int filter):
     cdef np.int64_t i,mi
     cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
     for i in range(ind.shape[0]):
@@ -413,7 +427,8 @@ def compute_leftindex(np.ndarray ind):
     return ind_x, ind_y, ind_z
 
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
-                   domain_left_edge, domain_right_edge, filter_bbox = False):
+                   domain_left_edge, domain_right_edge, filter_bbox = False,
+                   order = ORDER_MAX):
     cdef int i
     cdef int filter
     if filter_bbox:
@@ -426,7 +441,7 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
     for i in range(3):
         DLE[i] = domain_left_edge[i]
         DRE[i] = domain_right_edge[i]
-        dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
+        dds[i] = (DRE[i] - DLE[i]) / (1 << order)
     cdef np.ndarray[np.uint64_t, ndim=1] ind
     ind = np.zeros(pos_x.shape[0], dtype="uint64")
     cdef np.int64_t rv
@@ -446,6 +461,14 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
         mas = (pos_x.max(), pos_y.max(), pos_z.max())
         raise YTDomainOverflow(mis, mas,
                                domain_left_edge, domain_right_edge)
+    return ind
+
+def compute_morton_leftindex(np.ndarray ind_x, np.ndarray ind_y, np.ndarray ind_z):
+
+    cdef np.ndarray[np.uint64_t, ndim=1] ind
+    ind = np.zeros(ind_x.shape[0], dtype="uint64")
+    cdef np.int64_t rv
+    rv = leftindex_to_morton(ind_x, ind_y, ind_z, ind)
     return ind
 
 @cython.boundscheck(False)
