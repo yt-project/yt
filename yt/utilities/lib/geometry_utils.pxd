@@ -113,30 +113,25 @@ cdef inline np.uint64_t encode_morton_64bit(np.uint64_t x_ind, np.uint64_t y_ind
     mi |= spread_64bits_by2(x_ind)<<2
     return mi
 
-# @cython.cdivision(True)
-# cdef inline np.uint64_t decode_morton_64bit(np.uint64_t mi):
-#     cdef np.uint64_t ii[3]
-#     ii[0] = compact_64bits_by2(mi>>2)
-#     ii[1] = compact_64bits_by2(mi>>1)
-#     ii[2] = compact_64bits_by2(mi>>0)
-#     return ii
+@cython.cdivision(True)
+cdef inline void decode_morton_64bit(np.uint64_t mi, np.uint64_t *p):
+    p[0] = compact_64bits_by2(mi>>2)
+    p[1] = compact_64bits_by2(mi>>1)
+    p[2] = compact_64bits_by2(mi>>0)
 
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *DRE, np.int32_t order):
     cdef int i
     cdef np.float64_t dds[3]
-    cdef np.uint64_t ii[3]
+    cdef np.uint64_t x_ind, y_ind, z_ind
     cdef np.uint64_t mi
     for i in range(3):
         dds[i] = (DRE[i] - DLE[i]) / (1 << order)
-    ii[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
-    ii[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
-    ii[2] = <np.uint64_t> ((z - DLE[2])/dds[2])
-    mi = 0
-    mi |= spread_bits(ii[2])<<0
-    mi |= spread_bits(ii[1])<<1
-    mi |= spread_bits(ii[0])<<2
+    x_ind = <np.uint64_t> ((x - DLE[0])/dds[0])
+    y_ind = <np.uint64_t> ((y - DLE[1])/dds[1])
+    z_ind = <np.uint64_t> ((z - DLE[2])/dds[2])
+    mi = encode_morton_64bit(x_ind,y_ind,z_ind)
     return mi
   
 # This dosn't seem to be much, if at all, faster...
@@ -144,13 +139,10 @@ cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float6
 cdef inline np.uint64_t bounded_morton_mml(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds):
     cdef int i
-    cdef np.uint64_t ii[3]
+    cdef np.uint64_t x_ind, y_ind, z_ind
     cdef np.uint64_t mi
-    ii[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
-    ii[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
-    ii[2] = <np.uint64_t> ((z - DLE[2])/dds[2])
-    mi = 0
-    mi |= spread_bits(ii[2])<<0
-    mi |= spread_bits(ii[1])<<1
-    mi |= spread_bits(ii[0])<<2
+    x_ind = <np.uint64_t> ((x - DLE[0])/dds[0])
+    y_ind = <np.uint64_t> ((y - DLE[1])/dds[1])
+    z_ind = <np.uint64_t> ((z - DLE[2])/dds[2])
+    mi = encode_morton_64bit(x_ind,y_ind,z_ind)
     return mi

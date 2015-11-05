@@ -298,16 +298,31 @@ def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef np.uint64_t point_to_morton(np.uint64_t p[3]):
+    # Weird indent thing going on... also, should this reference the pxd func?
+    cdef np.uint64_t mi
+    mi = encode_morton_64bit(p[0],p[1],p[2])
+    return mi
+    
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void morton_to_point(np.uint64_t mi, np.uint64_t *p):
+    decode_morton_64bit(mi,p)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
-    cdef np.int64_t i, mi
+    cdef np.int64_t i
     cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    cdef np.uint64_t p[3]
     morton_indices = np.zeros(left_index.shape[0], 'uint64')
     for i in range(left_index.shape[0]):
-        mi = 0
-        mi |= spread_bits(left_index[i,2])<<0
-        mi |= spread_bits(left_index[i,1])<<1
-        mi |= spread_bits(left_index[i,0])<<2
-        morton_indices[i] = mi
+        p[0] = left_index[i, 0]
+        p[1] = left_index[i, 1]
+        p[2] = left_index[i, 2]
+        morton_indices[i] = point_to_morton(p)
     return morton_indices
 
 @cython.cdivision(True)
@@ -315,22 +330,36 @@ def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
 @cython.wraparound(False)
 def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
                                np.ndarray[np.uint64_t, ndim=1] left_y,
-                               np.ndarray[np.uint64_t, ndim=1] left_z,):
-    cdef np.int64_t i, mi
+                               np.ndarray[np.uint64_t, ndim=1] left_z):
+    cdef np.int64_t i
     cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    cdef np.uint64_t p[3]
     morton_indices = np.zeros(left_x.shape[0], 'uint64')
     for i in range(left_x.shape[0]):
-        mi = 0
-        mi |= spread_bits(left_z[i])<<0
-        mi |= spread_bits(left_y[i])<<1
-        mi |= spread_bits(left_x[i])<<2
-        morton_indices[i] = mi
+        p[0] = left_x[i]
+        p[1] = left_y[i]
+        p[2] = left_z[i]
+        morton_indices[i] = point_to_morton(p)
     return morton_indices
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
+    # This is inspired by the scurve package by user cortesi on GH.
+    cdef int i, j
+    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=2] positions
+    positions = np.zeros((indices.shape[0], 3), 'uint64')
+    for i in range(indices.shape[0]):
+        morton_to_point(indices[i], p)
+        for j in range(3):
+            positions[i, j] = p[j]
+    return positions
 
 ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
-
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -367,64 +396,8 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
         if use == 0:
             ind[i] = FLAG
             continue
-        mi = 0
-        mi |= spread_bits(ii[2])<<0
-        mi |= spread_bits(ii[1])<<1
-        mi |= spread_bits(ii[0])<<2
-        ind[i] = mi
+        ind[i] = encode_morton_64bit(ii[0],ii[1],ii[2])
     return pos_x.shape[0]
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef np.int64_t leftindex_to_morton(np.ndarray[np.uint64_t, ndim=1] ind_x,
-                                    np.ndarray[np.uint64_t, ndim=1] ind_y,
-                                    np.ndarray[np.uint64_t, ndim=1] ind_z,
-                                    np.ndarray[np.uint64_t, ndim=1] ind):
-    cdef np.int64_t i,mi
-    cdef np.uint64_t ii[3]
-    for i in range(ind_x.shape[0]):
-        ii[0] = <np.uint64_t> ind_x[i]
-        ii[1] = <np.uint64_t> ind_y[i]
-        ii[2] = <np.uint64_t> ind_z[i]
-        mi = 0
-        mi |= spread_bits(ii[2])<<0
-        mi |= spread_bits(ii[1])<<1
-        mi |= spread_bits(ii[0])<<2
-        ind[i] = mi
-    return ind_x.shape[0]
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef np.int64_t morton_to_leftindex(np.ndarray[np.uint64_t, ndim=1] ind,
-                                    np.ndarray[np.uint64_t, ndim=1] ind_x,
-                                    np.ndarray[np.uint64_t, ndim=1] ind_y,
-                                    np.ndarray[np.uint64_t, ndim=1] ind_z):
-    cdef np.int64_t i,mi
-    cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
-    for i in range(ind.shape[0]):
-        mi = ind[i]
-        if (mi == FLAG):
-            continue
-        ind_x[i] = compact_bits(mi>>2)
-        ind_y[i] = compact_bits(mi>>1)
-        ind_z[i] = compact_bits(mi>>0)
-    return ind.shape[0]
-
-def compute_leftindex(np.ndarray ind):
-
-    cdef np.ndarray[np.uint64_t, ndim=1] ind_x
-    cdef np.ndarray[np.uint64_t, ndim=1] ind_y
-    cdef np.ndarray[np.uint64_t, ndim=1] ind_z
-    ind_x = np.zeros(ind.shape[0], dtype="uint64")
-    ind_y = np.zeros(ind.shape[0], dtype="uint64")
-    ind_z = np.zeros(ind.shape[0], dtype="uint64")
-    cdef np.int64_t rv
-
-    rv = morton_to_leftindex(ind, ind_x, ind_y, ind_z)
-
-    return ind_x, ind_y, ind_z
 
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                    domain_left_edge, domain_right_edge, filter_bbox = False,
@@ -461,14 +434,6 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
         mas = (pos_x.max(), pos_y.max(), pos_z.max())
         raise YTDomainOverflow(mis, mas,
                                domain_left_edge, domain_right_edge)
-    return ind
-
-def compute_morton_leftindex(np.ndarray ind_x, np.ndarray ind_y, np.ndarray ind_z):
-
-    cdef np.ndarray[np.uint64_t, ndim=1] ind
-    ind = np.zeros(ind_x.shape[0], dtype="uint64")
-    cdef np.int64_t rv
-    rv = leftindex_to_morton(ind_x, ind_y, ind_z, ind)
     return ind
 
 @cython.boundscheck(False)
