@@ -1375,9 +1375,9 @@ def uunion1d(arr1, arr2):
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.ds._get_field_info(field[0],field[1]).units
+        units = data.ds._get_field_info(field[0],field[1]).output_units
     else:
-        units = data.ds._get_field_info(field).units
+        units = data.ds._get_field_info(field).output_units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)
