@@ -369,14 +369,13 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         data['pdy'] = self.ds.arr(pdy, code_length)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        data['fields']
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
-            self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in list(data.keys()): self[i] = data.pop(i)
+        for i in list(data.keys()):
+            self[i] = data.pop(i)
         mylog.info("Projection completed")
         self.tree = tree
 
