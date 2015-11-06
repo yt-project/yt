@@ -14,12 +14,12 @@ Coding Style Guide
    requiring a namespace or class-definition modification.  Classes should live
    at the top level.  ``__metaclass__`` is exempt from this.
  * Do not use unnecessary parenthesis in conditionals.  ``if((something) and
-   (something_else))`` should be rewritten as 
+   (something_else))`` should be rewritten as
    ``if something and something_else``. Python is more forgiving than C.
- * Avoid copying memory when possible. For example, don't do 
+ * Avoid copying memory when possible. For example, don't do
    ``a = a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
- * In general, avoid all double-underscore method names: ``__something`` is 
+ * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * When writing a subclass, use the super built-in to access the super class,
    rather than explicitly. Ex: ``super(SpecialGridSubclass, self).__init__()``
@@ -29,14 +29,14 @@ Coding Style Guide
    fiducial example of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
    imports should happen at the top of the file, after the copyright blurb.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use 
-   ``is`` or ``is not``. 
- * If you are comparing with a numpy boolean array, just refer to the array. 
+ * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
+   ``is`` or ``is not``.
+ * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never comapre with None using ``==`` or ``!=``, use ``is None`` or 
+ * Never comapre with None using ``==`` or ``!=``, use ``is None`` or
    ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more 
+ * Only one statement per line, do not use semicolons to put two or more
    statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
@@ -55,7 +55,7 @@ API Guide
 
      ``from yt.visualization.plot_window import ProjectionPlot``
 
- * Import symbols from the module where they are defined, avoid transitive 
+ * Import symbols from the module where they are defined, avoid transitive
    imports.
  * Import standard library modules, functions, and classes from builtins, do not
    import them from other yt files.
@@ -94,7 +94,7 @@ Avoid Enzo-isms.  This includes but is not limited to:
     - ``CosmologyOmegaMatterNow `` => `` omega_matter``
     - ``CosmologyOmegaLambdaNow `` => `` omega_lambda``
     - ``CosmologyHubbleConstantNow `` => `` hubble_constant``
- 
+
  * Do not assume that the domain runs from 0 .. 1.  This is not true
    everywhere.
  * Variable names should be short but descriptive.

@@ -494,4 +494,4 @@ This can be very useful for tracking down functions in the yt source.
 
 .. _code-style-guide:
 
-.. include:: ../../coding_styleguide.txt
+.. include:: ../../../coding_styleguide.txt
