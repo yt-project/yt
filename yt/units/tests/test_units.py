@@ -37,7 +37,7 @@ from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
 # unit definitions
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
     mass_sun_grams
 

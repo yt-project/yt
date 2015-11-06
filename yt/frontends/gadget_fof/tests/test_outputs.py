@@ -15,11 +15,11 @@ GadgetFOF frontend tests using gadget_fof datasets
 
 import os.path
 from yt.testing import \
+    requires_file, \
     assert_equal
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
-    requires_file, \
     data_dir_load
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
 

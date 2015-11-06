@@ -16,21 +16,32 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
-import time, types, signal, inspect, traceback, sys, pdb, os, re
+import time
+import inspect
+import traceback
+import sys
+import pdb
+import os
+import re
 import contextlib
-import warnings, struct, subprocess
+import warnings
+import struct
+import subprocess
 import numpy as np
+import itertools
+import base64
+import numpy
+import matplotlib
+import getpass
 from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
 from yt.extern.six.moves import builtins, urllib
-from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.exceptions import YTInvalidWidthError
 import yt.extern.progressbar as pb
-import yt.utilities.rpdb as rpdb
 from yt.units.yt_array import YTArray, YTQuantity
-from collections import defaultdict
 from functools import wraps
 
 # Some functions for handling sequences and other types
@@ -171,7 +182,7 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","timefunctions") == True:
+    if ytcfg.getboolean("yt","timefunctions") is True:
         return wrapper
     else:
         return func
@@ -293,7 +304,7 @@ def insert_ipython(num_up=1):
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
-
+    import IPython
     api_version = get_ipython_api_version()
 
     frame = inspect.stack()[num_up]
@@ -466,7 +477,6 @@ def paste_traceback_detailed(exc_type, exc, tb):
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
-    import itertools, base64
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
     print(dec_s)
@@ -541,12 +551,10 @@ def get_yt_version():
     return version
 
 def get_version_stack():
-    import numpy, matplotlib, h5py
     version_info = {}
     version_info['yt'] = get_yt_version()
     version_info['numpy'] = numpy.version.version
     version_info['matplotlib'] = matplotlib.__version__
-    version_info['h5py'] = h5py.version.version
     return version_info
 
 def get_script_contents():
@@ -585,6 +593,7 @@ def bb_apicall(endpoint, data, use_pass = True):
     return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
+    import hglib
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
@@ -605,8 +614,8 @@ def get_yt_supp():
             print("%s" % (supp_path))
             print()
             sys.exit(1)
-        rv = commands.clone(uu,
-                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
+        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", 
+                         supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)

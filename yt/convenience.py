@@ -13,15 +13,18 @@ Some convenience functions, objects, and iterators
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os, os.path, types
+import os
 
 # Named imports
-from yt.funcs import *
 from yt.config import ytcfg
+from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     simulation_time_series_registry, \
     EnzoRunDatabase
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified, \
+    YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def load(*args ,**kwargs):

@@ -24,8 +24,8 @@ from yt.units.yt_array import array_like_field
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.physical_constants import \
-    gravitational_constant_cgs, \
-    HUGE
+    gravitational_constant_cgs
+from yt.utilities.physical_ratios import HUGE
 from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}

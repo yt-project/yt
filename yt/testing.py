@@ -19,16 +19,21 @@ import itertools as it
 import numpy as np
 import importlib
 import os
-from yt.funcs import *
+from yt.funcs import iterable
 from yt.config import ytcfg
-from numpy.testing import assert_array_equal, assert_almost_equal, \
-    assert_approx_equal, assert_array_almost_equal, assert_equal, \
-    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
-    assert_allclose, assert_raises
-from yt.units.yt_array import uconcatenate
-import yt.fields.api as field_api
+# we import this in a weird way from numpy.testing to avoid triggering
+# flake8 errors from the unused imports. These test functions are imported
+# elsewhere in yt from here so we want them to be imported here.
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
+from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
+from numpy.testing import assert_equal, assert_array_less  # NOQA
+from numpy.testing import assert_string_equal  # NOQA
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA
+from numpy.testing import assert_allclose, assert_raises  # NOQA
+from nose.tools import assert_true, assert_less_equal  # NOQA
 from yt.convenience import load
-
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTUnitOperationError
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -728,7 +733,10 @@ def periodicity_cases(ds):
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
-    import nose, os, sys, yt
+    import nose
+    import os
+    import sys
+    import yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
