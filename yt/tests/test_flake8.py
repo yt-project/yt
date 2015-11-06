@@ -11,6 +11,8 @@ def test_flake8():
     initial_dir = os.getcwd()
     os.chdir(yt_dir)
     output_file = os.path.sep.join([os.path.dirname(initial_dir), 'flake8.out'])
+    if os.path.exists(output_file):
+        os.remove(output_file)
     output_string = "--output-file=%s" % output_file
     subprocess.call(['flake8', output_string, os.curdir])
     os.chdir(initial_dir)
