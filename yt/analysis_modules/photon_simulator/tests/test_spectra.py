@@ -1,9 +1,8 @@
 from yt.analysis_modules.photon_simulator.api import \
     TableApecModel, XSpecThermalModel
-import numpy as np
 from yt.testing import requires_module, fake_random_ds
 from yt.utilities.answer_testing.framework import \
-    GenericArrayTest, data_dir_load
+    GenericArrayTest
 from yt.config import ytcfg
 
 def setup():
