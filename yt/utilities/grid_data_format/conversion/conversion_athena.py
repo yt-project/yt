@@ -1,15 +1,9 @@
 from __future__ import print_function
 from __future__ import absolute_import
-import os
-import weakref
 import numpy as np
+from yt.utilities.grid_data_format.conversion.conversion_abc import Converter
 from yt.utilities.on_demand_imports import _h5py as h5
-from .conversion_abc import *
 from glob import glob
-from collections import \
-    defaultdict
-from stat import \
-    ST_CTIME
 
 translation_dict = {}
 translation_dict['density'] = 'density'
@@ -40,7 +34,7 @@ class AthenaDistributedConverter(Converter):
         self.handle = None
 
     def parse_line(self,line, grid):
-    #    print line
+        # print line
         # grid is a dictionary
         splitup = line.strip().split()
         if "vtk" in splitup:
@@ -83,7 +77,7 @@ class AthenaDistributedConverter(Converter):
         except:
             pass
         # print 'Writing %s' % name
-        if not name in g.keys(): 
+        if name not in g.keys():
             g.create_dataset(name,data=data)
         
 
@@ -111,7 +105,6 @@ class AthenaDistributedConverter(Converter):
             grid = {}
             grid['read_field'] = None
             grid['read_type'] = None
-            table_read=False
             line = f.readline()
             while grid['read_field'] is None:
                 self.parse_line(line, grid)
@@ -150,9 +143,9 @@ class AthenaDistributedConverter(Converter):
         g = f.create_group('gridded_data_format')
         g.attrs['format_version']=np.float32(1.0)
         g.attrs['data_software']='athena'
-        data_g = f.create_group('data')
-        field_g = f.create_group('field_types')
-        part_g = f.create_group('particle_types')
+        f.create_group('data')
+        f.create_group('field_types')
+        f.create_group('particle_types')
         pars_g = f.create_group('simulation_parameters')
 
 
@@ -161,24 +154,23 @@ class AthenaDistributedConverter(Converter):
         dle = np.min(gles,axis=0)
         dre = np.max(gles+grid_dims*grid_dds,axis=0)
         glis = ((gles - dle)/grid_dds).astype('int64')
-        gris = glis + gdims
 
         ddims = (dre-dle)/grid_dds[0]
 
         # grid_left_index
-        gli = f.create_dataset('grid_left_index',data=glis)
+        f.create_dataset('grid_left_index',data=glis)
         # grid_dimensions
-        gdim = f.create_dataset('grid_dimensions',data=gdims)
+        f.create_dataset('grid_dimensions',data=gdims)
 
         # grid_level
-        level = f.create_dataset('grid_level',data=grid_levels)
+        f.create_dataset('grid_level',data=grid_levels)
 
         ## ----------QUESTIONABLE NEXT LINE--------- ##
         # This data needs two dimensions for now. 
-        part_count = f.create_dataset('grid_particle_count',data=grid_particle_counts)
+        f.create_dataset('grid_particle_count',data=grid_particle_counts)
 
         # grid_parent_id
-        pids = f.create_dataset('grid_parent_id',data=grid_parent_ids)
+        f.create_dataset('grid_parent_id',data=grid_parent_ids)
 
         ## --------- Done with top level nodes --------- ##
 
@@ -318,7 +310,7 @@ class AthenaConverter(Converter):
 
 
     def parse_line(self, line, grid):
-    #    print line
+        #    print line
         # grid is a dictionary
         splitup = line.strip().split()
         if "vtk" in splitup:
@@ -401,34 +393,33 @@ class AthenaConverter(Converter):
         g.attrs['data_software']='athena'
         data_g = f.create_group('data')
         field_g = f.create_group('field_types')
-        part_g = f.create_group('particle_types')
+        f.create_group('particle_types')
         pars_g = f.create_group('simulation_parameters')
 
         dle = grid['left_edge'] # True only in this case of one grid for the domain
         gles = np.array([grid['left_edge']])
         gdims = np.array([grid['dimensions']])
         glis = ((gles - dle)/grid['dds']).astype('int64')
-        gris = glis + gdims
 
         # grid_left_index
-        gli = f.create_dataset('grid_left_index',data=glis)
+        f.create_dataset('grid_left_index',data=glis)
         # grid_dimensions
-        gdim = f.create_dataset('grid_dimensions',data=gdims)
+        f.create_dataset('grid_dimensions',data=gdims)
 
         levels = np.array([0]).astype('int64') # unigrid example
         # grid_level
-        level = f.create_dataset('grid_level',data=levels)
+        f.create_dataset('grid_level',data=levels)
 
         ## ----------QUESTIONABLE NEXT LINE--------- ##
         # This data needs two dimensions for now. 
         n_particles = np.array([[0]]).astype('int64')
         #grid_particle_count
-        part_count = f.create_dataset('grid_particle_count',data=n_particles)
+        f.create_dataset('grid_particle_count',data=n_particles)
 
         # Assume -1 means no parent.
         parent_ids = np.array([-1]).astype('int64')
         # grid_parent_id
-        pids = f.create_dataset('grid_parent_id',data=parent_ids)
+        f.create_dataset('grid_parent_id',data=parent_ids)
 
         ## --------- Done with top level nodes --------- ##
 
@@ -441,7 +432,7 @@ class AthenaConverter(Converter):
             name = field
             if field in translation_dict.keys():
                 name = translation_dict[name]
-            if not name in g0.keys(): 
+            if name not in g0.keys(): 
                 g0.create_dataset(name,data=grid[field])
 
         ## --------- Store Particle Data --------- ##
