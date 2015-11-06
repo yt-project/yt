@@ -20,6 +20,9 @@ from yt.utilities.exceptions import \
     YTFieldUnitError, \
     YTFieldUnitParseError
 
+base_ds = None
+
+
 def setup():
     global base_ds
     # Make this super teeny tiny
