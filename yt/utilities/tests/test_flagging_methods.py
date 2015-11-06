@@ -1,4 +1,6 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import fake_random_ds
 from yt.utilities.flagging_methods import flagging_method_registry
 
 def setup():
