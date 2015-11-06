@@ -27,6 +27,8 @@ import zlib
 import tempfile
 import glob
 
+from collections import defaultdict
+
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 from yt.funcs import \
