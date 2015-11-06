@@ -15,7 +15,6 @@ A simple periodic table.
 
 import numpy as np
 import numbers
-import types
 
 _elements = (
     (1, 1.0079400000, "Hydrogen", "H"),

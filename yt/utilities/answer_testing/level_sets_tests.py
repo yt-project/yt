@@ -15,10 +15,10 @@ Answer Testing for level sets
 
 import numpy as np
 
-from yt.testing import *
-
-from .framework import \
-    AnswerTestingTest, requires_ds, data_dir_load
+from yt.testing import \
+    assert_equal
+from yt.utilities.answer_testing.framework import \
+    AnswerTestingTest
 
 class ExtractConnectedSetsTest(AnswerTestingTest):
     _type_name = "ExtractConnectedSets"

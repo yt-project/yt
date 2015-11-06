@@ -797,6 +797,7 @@ class KDTree(object):
         result : dok_matrix
             Sparse matrix representing the results in "dictionary of keys" format.
         """
+        from yt.utilities.on_demand_imports import _scipy as scipy
         result = scipy.sparse.dok_matrix((self.n,other.n))
 
         def traverse(node1, rect1, node2, rect2):

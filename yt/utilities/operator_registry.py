@@ -14,7 +14,6 @@ Operation registry class
 #-----------------------------------------------------------------------------
 
 import copy
-import types
 
 class OperatorRegistry(dict):
     def find(self, op, *args, **kwargs):

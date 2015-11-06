@@ -16,8 +16,8 @@ containers and cameras.
 
 import numpy as np
 
-from yt.funcs import *
-from yt.utilities.math_utils import get_rotation_matrix
+from yt.funcs import mylog
+from yt.units.yt_array import YTArray
 
 class Orientation:
     def __init__(self, normal_vector, north_vector=None, steady_north=False):

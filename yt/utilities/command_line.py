@@ -15,16 +15,39 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import argparse
+import base64
+import getpass
+import numpy as np
+import os
+import sys
+import subprocess
+import tempfile
+import json
+import pprint
+
+
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
-from yt.mods import *
-from yt.funcs import *
+from yt.funcs import \
+    ensure_list, \
+    get_hg_version, \
+    mylog, \
+    ensure_dir_exists, \
+    update_hg, \
+    enable_plugins
 from yt.extern.six import add_metaclass
 from yt.extern.six.moves import urllib
-from yt.utilities.minimal_representation import MinimalProjectDescription
-import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import base64, os
+from yt.convenience import load
+from yt.visualization.plot_window import \
+    SlicePlot, \
+    ProjectionPlot
+
+# loading field plugins for backward compatibility, since this module
+# used to do "from yt.mods import *"
+if ytcfg.getboolean("yt","loadfieldplugins"):
+    enable_plugins()
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -419,11 +442,11 @@ class YTBugreportCmd(YTCommand):
         if "EDITOR" in os.environ:
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
-            loki = raw_input()
+            raw_input()
             tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
-            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
+            subprocess.call("$EDITOR %s" % fn, shell = True)
             content = open(fn).read()
             try:
                 os.unlink(fn)
@@ -464,7 +487,7 @@ class YTBugreportCmd(YTCommand):
         print("'submit'.  Next we'll ask for your Bitbucket Username.")
         print("If you don't have one, run the 'yt bootstrap_dev' command.")
         print()
-        loki = raw_input()
+        raw_input()
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
@@ -536,7 +559,7 @@ class YTHubRegisterCmd(YTCommand):
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
-        loki = raw_input()
+        raw_input()
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
@@ -544,7 +567,7 @@ class YTHubRegisterCmd(YTCommand):
         hub_url = "https://hub.yt-project.org/create_user"
         req = urllib.request.Request(hub_url, data)
         try:
-            status = urllib.request.urlopen(req).read()
+            urllib.request.urlopen(req).read()
         except urllib.error.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
@@ -585,14 +608,12 @@ class YTInstInfoCmd(YTCommand):
         print()
         print("yt module located at:")
         print("    %s" % (path))
-        update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
                 print("The supplemental repositories are located at:")
                 print("    %s" % (spath))
-                update_supp = True
         vstring = get_yt_version()
         if vstring == -1:
             vstring = "unknown"
@@ -693,7 +714,7 @@ class YTMapserverCmd(YTCommand):
         else:
             p = SlicePlot(ds, args.axis, args.field)
         from yt.visualization.mapserver.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data_source, args.field)
+        PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
         bottle.debug(True)
         bottle_dir = os.path.dirname(bottle.__file__)
@@ -970,11 +991,11 @@ class YTStatsCmd(YTCommand):
         ds.print_stats()
         vals = {}
         if args.field in ds.derived_field_list:
-            if args.max == True:
+            if args.max is True:
                 vals['min'] = ds.find_max(args.field)
                 print("Maximum %s: %0.5e at %s" % (args.field,
                     vals['min'][0], vals['min'][1]))
-            if args.min == True:
+            if args.min is True:
                 vals['max'] = ds.find_min(args.field)
                 print("Minimum %s: %0.5e at %s" % (args.field,
                     vals['max'][0], vals['max'][1]))
@@ -1006,14 +1027,12 @@ class YTUpdateCmd(YTCommand):
         print()
         print("yt module located at:")
         print("    %s" % (path))
-        update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
                 print("The supplemental repositories are located at:")
                 print("    %s" % (spath))
-                update_supp = True
         vstring = None
         if "site-packages" not in path:
             vstring = get_hg_version(path)
@@ -1052,7 +1071,6 @@ class YTUploadImageCmd(YTCommand):
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
             return 1
-        import base64, json, pprint
         image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',

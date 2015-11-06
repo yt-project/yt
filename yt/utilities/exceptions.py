@@ -416,9 +416,6 @@ class YTRockstarMultiMassNotSupported(YTException):
             self.ma)
         return v
 
-class YTEmptyProfileData(Exception):
-    pass
-
 class YTTooParallel(YTException):
     def __str__(self):
         return "You've used too many processors for this dataset."
