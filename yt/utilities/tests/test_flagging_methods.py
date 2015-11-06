@@ -9,6 +9,7 @@ def setup():
     ds.index
 
 def test_over_density():
+    global ds
     od_flag = flagging_method_registry["overdensity"](0.75) 
     criterion = (ds.index.grids[0]["density"] > 0.75)
     assert( np.all( od_flag(ds.index.grids[0]) == criterion) )

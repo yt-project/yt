@@ -58,8 +58,10 @@ def test_etc():
                                      responses=[ARF,RMF],
                                      absorb_model=tbabs_model)
 
-    def photons_test(): return photons.photons
-    def events_test(): return events.events
+    def photons_test():
+        return photons.photons
+    def events_test():
+        return events.events
 
     for test in [GenericArrayTest(ds, photons_test),
                  GenericArrayTest(ds, events_test)]:

@@ -197,7 +197,7 @@ class YTDataContainer(object):
         elif isinstance(center, string_types):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
-             # is this dangerous for race conditions?
+            # is this dangerous for race conditions?
             elif center.lower() in ("max", "m"):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
