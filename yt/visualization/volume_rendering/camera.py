@@ -108,9 +108,6 @@ class Camera(Orientation):
 
         self.set_lens(lens_type)
 
-        # This should be run on-demand if certain attributes are not set.
-        self.lens.setup_box_properties(self)
-
     def position():
         doc = '''The position is the location of the camera in
                the coordinate system of the simulation. This needs
@@ -220,7 +217,7 @@ class Camera(Orientation):
             mylog.error("Lens type not available")
             raise RuntimeError()
         self.lens = lenses[lens_type]()
-        self.lens.camera = self
+        self.lens.set_camera(self)
 
     def set_defaults_from_data_source(self, data_source):
         """Resets the camera attributes to their default values"""
