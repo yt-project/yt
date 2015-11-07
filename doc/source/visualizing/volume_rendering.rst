@@ -352,16 +352,6 @@ of arbitrary data sources. As such, manual composition of a scene can require
 a bit more work, but we will also provide several helper functions that attempt
 to create satisfactory default volume renderings.
 
-***needs ipython notebook with two examples here: one high-level one using the 
-yt.volume_render() functionality and the other detailed example using 
-yt.create_scene() to generate a base scene, then modifying all of the 
-components, adding some opaque sources, changing the camera position, 
-transfer function, lens, etc.  Then using "print scene" to display the
-useful __repr__ output for the scene and other VR classes.  The text below
-could be useful too.  Right now, we cannot use ipython notebooks with
-the VR infrastructure because there is no Scene.show() method.  Once it is
-introduced we should be able to do this.***
-
 When the 
 :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
 function is called, first an empty 
@@ -398,10 +388,23 @@ call the main methods of the
 the scene will loop through all of the
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` objects
 that have been added and integrate the radiative transfer equations through the
-volume. Finally, the image and scene object is returned to the user.
+volume. Finally, the image and scene object is returned to the user. An example
+script the uses the high-level :func:`~yt.visualization.volume_rendering.volume_rendering.volume_render`
+function to quickly set up defaults is:
 
-In this example, we don't add on any non-volume rendering sources; however, if
-such sources are added, they will be integrated as well.
+.. python-script::
+
+  import yt
+  # load the data
+  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+  # volume render the 'density' field, and save the resulting image
+  im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
+
+  # im is the image array generated. it is also saved to 'rendering.png'.
+  # sc is an instance of a Scene object, which allows you to further refine
+  # your renderings and later save them.
+
 
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object, 
@@ -418,26 +421,8 @@ function. Example:
   sc = yt.create_scene(ds, 'density')
 
 
-
-If you're eager to just see what a volume rendering of your simulation looks
-like, there is the high-level function 
-:func:`~yt.visualization.volume_rendering.volume_rendering.volume_render` 
-that can set up several defaults and provide you with an rendered image
-quickly:
-
-.. python-script::
-
-  import yt
-  # load the data
-  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-
-  # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
-
-  # im is the image array generated. it is also saved to 'rendering.png'.
-  # sc is an instance of a Scene object, which allows you to further refine
-  # your renderings and later save them.
-
+For a more in-depth tutorial on how to create a Scene and modify its contents,
+see this annotated :ref:`volume-rendering-tutorial`.
 
 
 .. _volume-rendering-method:
