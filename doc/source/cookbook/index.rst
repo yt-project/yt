@@ -51,3 +51,4 @@ Example Notebooks
    fits_xray_images
    tipsy_notebook
    halo_analysis_example
+   ../visualizing/volume_rendering_tutorial
