@@ -34,7 +34,6 @@ class AthenaDistributedConverter(Converter):
         self.handle = None
 
     def parse_line(self,line, grid):
-        # print line
         # grid is a dictionary
         splitup = line.strip().split()
         if "vtk" in splitup:
@@ -210,7 +209,6 @@ class AthenaDistributedConverter(Converter):
             #print 'Reading data from %s' % fn
             line = f.readline()
             while line is not '':
-                # print line
                 if len(line) == 0: break
                 splitup = line.strip().split()
 
@@ -310,7 +308,6 @@ class AthenaConverter(Converter):
 
 
     def parse_line(self, line, grid):
-        #    print line
         # grid is a dictionary
         splitup = line.strip().split()
         if "vtk" in splitup:
@@ -353,7 +350,6 @@ class AthenaConverter(Converter):
                 if 'TABLE' in line.strip().split():
                     table_read = True
                 if len(line) == 0: break
-            #    print line
 
             if len(line) == 0: break
             if np.prod(grid['dimensions']) != grid['ncells']:
