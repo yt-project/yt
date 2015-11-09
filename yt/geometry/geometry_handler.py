@@ -389,7 +389,7 @@ class YTDataChunk(object):
         ind = 0
         for obj in self._fast_index or self.objs:
             gdt, gt = obj.select_tcoords(self.dobj)
-            if gt.shape == 0: continue
+            if gt.size == 0: continue
             ct[ind:ind+gt.size] = gt
             cdt[ind:ind+gdt.size] = gdt
             ind += gt.size
