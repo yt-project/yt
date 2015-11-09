@@ -599,16 +599,16 @@ class Camera(ParallelAnalysisInterface):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
+        args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
+                self.back_center,
                 (-self.width[0]/2.0, self.width[0]/2.0,
                  -self.width[1]/2.0, self.width[1]/2.0),
                 image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
                 np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'plane-parallel'}
 
     star_trees = None
-    def get_sampler(self, args):
-        kwargs = {}
+    def get_sampler(self, args, kwargs):
         if self.star_trees is not None:
             kwargs = {'star_list': self.star_trees}
         if self.use_light:
@@ -782,8 +782,8 @@ class Camera(ParallelAnalysisInterface):
         if num_threads is None:
             num_threads=get_num_threads()
         image = self.new_image()
-        args = self.get_sampler_args(image)
-        sampler = self.get_sampler(args)
+        args, kwargs = self.get_sampler_args(image)
+        sampler = self.get_sampler(args, kwargs)
         self.initialize_source()
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
@@ -1246,14 +1246,14 @@ class PerspectiveCamera(Camera):
         positions = self.ds.arr(positions, input_units="code_length")
 
         dummy = np.ones(3, dtype='float64')
-        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+        image.shape = (self.resolution[0], self.resolution[1],4)
 
         args = (positions, vectors, self.back_center,
                 (0.0,1.0,0.0,1.0),
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'perspective'}
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1363,6 +1363,215 @@ def corners(left_edge, right_edge):
     ], dtype='float64')
 
 
+class HEALpixCamera(Camera):
+
+    _sampler_object = None 
+    
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 ds = None, use_kd=True, no_ghost=False, use_light=False,
+                 inner_radius = 10):
+        mylog.error('I am sorry, HEALpix Camera does not work yet in 3.0')
+        raise NotImplementedError
+        ParallelAnalysisInterface.__init__(self)
+        if ds is not None: self.ds = ds
+        self.center = np.array(center, dtype='float64')
+        self.radius = radius
+        self.inner_radius = inner_radius
+        self.nside = nside
+        self.use_kd = use_kd
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+
+        if isinstance(self.transfer_function, ProjectionTransferFunction):
+            self._sampler_object = InterpolatedProjectionSampler
+            self._needs_tf = 0
+        else:
+            self._sampler_object = VolumeRenderSampler
+            self._needs_tf = 1
+
+        if fields is None: fields = ["density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        dd = ds.all_data()
+        efields = dd._determine_fields(self.fields)
+        if self.log_fields is None:
+            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
+        self.use_light = use_light
+        self.light_dir = None
+        self.light_rgba = None
+        if volume is None:
+            volume = AMRKDTree(self.ds, min_level=min_level,
+                               max_level=max_level, data_source=self.data_source)
+        self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+
+    def new_image(self):
+        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype='float64', order='C')
+        return image
+
+    def get_sampler_args(self, image):
+        nv = 12 * self.nside ** 2
+        vs = arr_pix2vec_nest(self.nside, np.arange(nv))
+        vs.shape = (nv, 1, 3)
+        vs += 1e-8
+        uv = np.ones(3, dtype='float64')
+        positions = np.ones((nv, 1, 3), dtype='float64') * self.center
+        dx = min(g.dds.min() for g in self.ds.index.find_point(self.center)[0])
+        positions += self.inner_radius * dx * vs
+        vs *= self.radius
+        args = (positions, vs, self.center,
+                (0.0, 1.0, 0.0, 1.0),
+                image, uv, uv,
+                np.zeros(3, dtype='float64'))
+        if self._needs_tf:
+            args += (self.transfer_function,)
+        args += (self.sub_samples,)
+        return args, {}
+
+    def _render(self, double_check, num_threads, image, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+        
+        view_pos = self.center
+        for brick in self.volume.traverse(view_pos):
+            sampler(brick, num_threads=num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        
+        pbar.finish()
+        image = sampler.aimage
+
+        self.finalize_image(image)
+
+        return image
+
+    def finalize_image(self, image):
+        view_pos = self.center
+        image = self.volume.reduce_tree_images(image, view_pos)
+        return image
+
+    def get_information(self):
+        info_dict = {'fields':self.fields,
+                     'type':self.__class__.__name__,
+                     'center':self.center,
+                     'radius':self.radius,
+                     'dataset':self.ds.fullpath}
+        return info_dict
+
+
+    def snapshot(self, fn = None, clip_ratio = None, double_check = False,
+                 num_threads = 0, clim = None, label = None):
+        r"""Ray-cast the camera.
+
+        This method instructs the camera to take a snapshot -- i.e., call the ray
+        caster -- based on its current settings.
+
+        Parameters
+        ----------
+        fn : string, optional
+            If supplied, the image will be saved out to this before being
+            returned.  Scaling will be to the maximum value.
+        clip_ratio : float, optional
+            If supplied, the 'max_val' argument to write_bitmap will be handed
+            clip_ratio * image.std()
+
+        Returns
+        -------
+        image : array
+            An (N,M,3) array of the final returned values, in float64 form.
+        """
+        if num_threads is None:
+            num_threads=get_num_threads()
+        image = self.new_image()
+        args, kwargs = self.get_sampler_args(image)
+        sampler = self.get_sampler(args, kwargs)
+        self.volume.initialize_source()
+        image = ImageArray(self._render(double_check, num_threads, 
+                                        image, sampler),
+                           info=self.get_information())
+        self.save_image(image, fn=fn, clim=clim, label = label)
+        return image
+
+    def save_image(self, image, fn=None, clim=None, label = None):
+        if self.comm.rank == 0 and fn is not None:
+            # This assumes Density; this is a relatively safe assumption.
+            if label is None:
+                label = "Projected %s" % (self.fields[0])
+            if clim is not None:
+                cmin, cmax = clim
+            else:
+                cmin = cmax = None
+            plot_allsky_healpix(image[:,0,0], self.nside, fn, label, 
+                                cmin = cmin, cmax = cmax)
+
+class AdaptiveHEALpixCamera(Camera):
+    def __init__(self, center, radius, nside,
+                 transfer_function = None, fields = None,
+                 sub_samples = 5, log_fields = None, volume = None,
+                 ds = None, use_kd=True, no_ghost=False,
+                 rays_per_cell = 0.1, max_nside = 8192):
+        ParallelAnalysisInterface.__init__(self)
+        if ds is not None: self.ds = ds
+        self.center = np.array(center, dtype='float64')
+        self.radius = radius
+        self.use_kd = use_kd
+        if transfer_function is None:
+            transfer_function = ProjectionTransferFunction()
+        self.transfer_function = transfer_function
+        if fields is None: fields = ["density"]
+        self.fields = fields
+        self.sub_samples = sub_samples
+        self.log_fields = log_fields
+        if volume is None:
+            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
+                               log_fields=log_fields)
+        self.use_kd = isinstance(volume, AMRKDTree)
+        self.volume = volume
+        self.initial_nside = nside
+        self.rays_per_cell = rays_per_cell
+        self.max_nside = max_nside
+
+    def snapshot(self, fn = None):
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.volume.initialize_source()
+        mylog.info("Adaptively rendering.")
+        pbar = get_pbar("Ray casting",
+                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
+        left_edges = np.array([b.LeftEdge for b in bricks])
+        right_edges = np.array([b.RightEdge for b in bricks])
+        min_dx = min(((b.RightEdge[0] - b.LeftEdge[0])/b.my_data[0].shape[0]
+                     for b in bricks))
+        # We jitter a bit if we're on a boundary of our initial grid
+        for i in range(3):
+            if bricks[0].LeftEdge[i] == self.center[i]:
+                self.center += 1e-2 * min_dx
+            elif bricks[0].RightEdge[i] == self.center[i]:
+                self.center -= 1e-2 * min_dx
+        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
+                                       self.initial_nside, self.radius,
+                                       bricks, left_edges, right_edges, self.max_nside)
+        for i,brick in enumerate(bricks):
+            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges,
+                                       bricks)
+            total_cells += np.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        info, values = ray_source.get_rays()
+        return info, values
+
+
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
         ParallelAnalysisInterface.__init__(self)
@@ -1445,7 +1654,7 @@ class FisheyeCamera(Camera):
                 image, uv, uv,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {}
 
 
     def finalize_image(self, image):
@@ -1591,8 +1800,8 @@ class MosaicCamera(Camera):
             mylog.debug('Working on: %i %i' % (self.imi, self.imj))
             self._setup_box_properties(self.width, self.center, self.orienter.unit_vectors)
             image = self.new_image()
-            args = self.get_sampler_args(image)
-            sampler = self.get_sampler(args)
+            args, kwargs = self.get_sampler_args(image)
+            sampler = self.get_sampler(args, kwargs)
             image = self._render(double_check, num_threads, image, sampler)
             sto.id = self.imj*self.nimx + self.imi
             sto.result = image
@@ -1673,11 +1882,11 @@ class ProjectionCamera(Camera):
         except AttributeError:
             pass
 
-    def get_sampler(self, args):
+    def get_sampler(self, args, kwargs):
         if self.interpolated:
-            sampler = InterpolatedProjectionSampler(*args)
+            sampler = InterpolatedProjectionSampler(*args, **kwargs)
         else:
-            sampler = ProjectionSampler(*args)
+            sampler = ProjectionSampler(*args, **kwargs)
         return sampler
 
     def initialize_source(self):
@@ -1688,12 +1897,13 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
+        args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
+                self.back_center,
             (-self.width[0]/2., self.width[0]/2.,
              -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
                 np.array(self.width, dtype='float64'), self.sub_samples)
-        return args
+        return args, {'lens_type': 'plane-parallel'}
 
     def finalize_image(self,image):
         ds = self.ds
@@ -1771,9 +1981,9 @@ class ProjectionCamera(Camera):
 
         image = self.new_image()
 
-        args = self.get_sampler_args(image)
+        args, kwargs = self.get_sampler_args(image)
 
-        sampler = self.get_sampler(args)
+        sampler = self.get_sampler(args, kwargs)
 
         self.initialize_source()
 
@@ -1824,7 +2034,7 @@ class SphericalCamera(Camera):
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'spherical'}
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1904,7 +2114,7 @@ class StereoSphericalCamera(Camera):
                 image, dummy, dummy,
                 np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
-        return args
+        return args, {'lens_type': 'stereo-spherical'}
 
     def snapshot(self, fn = None, clip_ratio = None, double_check = False,
                  num_threads = 0, transparent=False):
@@ -1914,16 +2124,16 @@ class StereoSphericalCamera(Camera):
 
         self.disparity_s = self.disparity
         image1 = self.new_image()
-        args1 = self.get_sampler_args(image1)
-        sampler1 = self.get_sampler(args1)
+        args1, kwargs1 = self.get_sampler_args(image1)
+        sampler1 = self.get_sampler(args1, kwargs1)
         self.initialize_source()
         image1 = self._render(double_check, num_threads,
                               image1, sampler1, '(Left) ')
 
         self.disparity_s = -self.disparity
         image2 = self.new_image()
-        args2 = self.get_sampler_args(image2)
-        sampler2 = self.get_sampler(args2)
+        args2, kwargs2 = self.get_sampler_args(image2)
+        sampler2 = self.get_sampler(args2, kwargs2)
         self.initialize_source()
         image2 = self._render(double_check, num_threads,
                               image2, sampler2, '(Right)')

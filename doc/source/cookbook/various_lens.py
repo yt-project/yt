@@ -95,9 +95,8 @@ cam.resolution = [1000, 500]
 cam.position = ds.arr([0.4, 0.5, 0.5], 'code_length')
 cam.switch_orientation(normal_vector=normal_vector,
                        north_vector=north_vector)
-# In (stereo)spherical camera, width[0] specifies the radius of the sphere (the
-# depth of your line of sight), while width[1] or width[2] are not used.
-cam.set_width(ds.domain_width * 0.5)
+# In (stereo)spherical camera, camera width is not used since the entire volume
+# will be rendered
 sc.camera = cam
 sc.add_source(vol)
 sc.render()
@@ -111,7 +110,8 @@ cam.resolution = [2000, 500]
 cam.position = ds.arr([0.4, 0.5, 0.5], 'code_length')
 cam.switch_orientation(normal_vector=normal_vector,
                        north_vector=north_vector)
-cam.set_width(ds.domain_width * 0.5)
+# In (stereo)spherical camera, camera width is not used since the entire volume
+# will be rendered
 # Set the distance between left-eye and right-eye.
 cam.lens.disparity = ds.domain_width[0] * 1.e-3
 sc.camera = cam
