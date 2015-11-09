@@ -24,7 +24,8 @@ from .data_structures import \
       load_hexahedral_mesh, \
       hexahedral_connectivity, \
       load_octree, \
-      refine_amr
+      refine_amr, \
+      load_unstructured_mesh
 
 from .fields import \
       StreamFieldInfo
