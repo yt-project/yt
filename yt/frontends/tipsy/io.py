@@ -241,7 +241,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         ds = data_file.ds
-        morton = np.empty(sum(data_file.total_particles.values()),
+        morton = np.empty(sum(list(data_file.total_particles.values())),
                           dtype="uint64")
         ind = 0
         DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
@@ -318,7 +318,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             self._field_list.append((ptype, field))
 
         # Find out which auxiliaries we have and what is their format
-        tot_parts = np.sum(data_file.total_particles.values())
+        tot_parts = np.sum(list(data_file.total_particles.values()))
         endian = data_file.ds.endian
         self._aux_pdtypes = {}
         self._aux_fields = [f.rsplit('.')[-1]
@@ -332,8 +332,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             filesize = os.stat(filename).st_size
             if np.fromfile(filename, np.dtype(endian + 'i4'),
                            count=1) != tot_parts:
-                with open(filename) as f:
-                    if int(f.readline()) != tot_parts:
+                with open(filename, 'rb') as f:
+                    header_nparts = f.readline()
+                    if int(header_nparts) != tot_parts:
                         raise RuntimeError
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
