@@ -35,8 +35,8 @@ def setup():
 
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
-arf = xray_data_dir+"/sxt-s_120210_ts02um_intallpxl.arf"
-rmf = xray_data_dir+"/ah_sxs_5ev_basefilt_20100712.rmf"
+arf = os.path.join(xray_data_dir,"sxt-s_120210_ts02um_intallpxl.arf")
+rmf = os.path.join(xray_data_dir,"ah_sxs_5ev_basefilt_20100712.rmf")
 
 @requires_module("xspec")
 @requires_file(arf)
