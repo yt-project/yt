@@ -309,17 +309,21 @@ echo "You must now modify your PATH variable by prepending:"
 echo 
 echo "   $DEST_DIR/bin"
 echo
-echo "For example, if you use bash, place something like this at the end"
-echo "of your ~/.bashrc :"
+echo "On Bash-style shells you can copy/paste the following command to "
+echo "temporarily activate the yt installtion:"
 echo
-echo "   export PATH=$DEST_DIR/bin:\$PATH"
+echo "    export PATH=$DEST_DIR/bin:\$PATH"
+echo
+echo "and on csh-style shells"
+echo
+echo "    setenv PATH $DEST_DIR/bin:\$PATH"
+echo
+echo "You can also the init file appropriate for your shell to include the same"
+echo "command."
 echo
 echo "To get started with yt, check out the orientation:"
 echo
 echo "    http://yt-project.org/doc/orientation/"
-echo
-echo "or just activate your environment and run 'yt serve' to bring up the"
-echo "yt GUI."
 echo
 echo "For support, see the website and join the mailing list:"
 echo
