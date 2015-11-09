@@ -618,11 +618,12 @@ cdef class SelectorObject:
         # convert data to be hashed to a byte array, which FNV algorithm expects
         hash_data = bytearray()
         for v in self._hash_vals() + self._base_hash():
+            print v
             if isinstance(v, tuple):
                 hash_data.extend(v[0].encode('ascii'))
-                hash_data.extend(str(v[1]).encode('ascii'))
+                hash_data.extend(repr(v[1]).encode('ascii'))
             else:
-                hash_data.extend(str(v).encode('ascii'))
+                hash_data.extend(repr(v).encode('ascii'))
         return fnv_hash(hash_data)
 
     def _hash_vals(self):
