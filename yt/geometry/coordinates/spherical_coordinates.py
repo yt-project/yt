@@ -235,7 +235,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                      2.0*self.ds.domain_width[ri]]
         elif name == 'phi':
             ri = self.axis_id['r']
-            width = [self.ds.domain_right_edge[ri] / 2.0,
+            width = [self.ds.domain_right_edge[ri],
                      2.0*self.ds.domain_width[ri]]
         return width
 

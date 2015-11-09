@@ -88,46 +88,9 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    if ds.geometry in ("cartesian", "spectral_cube"):
-        width = ds.coordinates.sanitize_width(axis, width, None)
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-    elif ds.geometry in ("polar", "cylindrical"):
-        # Set our default width to be the full domain
-        axis_name = ds.coordinates.axis_name[axis]
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        # Note: regardless of axes, these are set up to give consistent plots
-        # when plotted, which is not strictly a "right hand rule" for axes.
-        r_ax, theta_ax, z_ax = (ds.coordinates.axis_id[ax]
-                                for ax in ('r', 'theta', 'z'))
-        if axis_name == "r": # soup can label
-            width = [2.0*np.pi * ds.domain_width.uq, ds.domain_width[z_ax]]
-        elif axis_name == "theta":
-            width = [ds.domain_right_edge[r_ax], ds.domain_width[z_ax]]
-        elif axis_name == "z":
-            width = [2.0*ds.domain_right_edge[r_ax],
-                     2.0*ds.domain_right_edge[r_ax]]
-    elif ds.geometry == "spherical":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            # latitude slice
-            width = ds.arr([2*np.pi, np.pi], "code_length")
-        elif axis == 1:
-            width = [2.0*ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-        elif axis == 2:
-            width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-    elif ds.geometry == "geographic":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 1:
-            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-    else:
-        raise NotImplementedError
+    axis_name = ds.coordinates.axis_name[axis]
+    width = ds.coordinates.sanitize_width(axis, width, None)
+    center, display_center = ds.coordinates.sanitize_center(center, axis)
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
     bounds = (display_center[xax]-width[0] / 2,
