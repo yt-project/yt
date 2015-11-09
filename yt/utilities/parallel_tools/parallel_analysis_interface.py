@@ -471,7 +471,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
-    ...     print c[sphere_id], L
+    ...     print centers[sphere_id], L
     ...
 
     """
