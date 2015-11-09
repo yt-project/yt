@@ -1285,6 +1285,81 @@ yielding
    bananas_Slice_z_kT.eps
    bananas_Slice_z_density.eps
 
+.. _remaking-plots:
+
+Remaking Figures from Plot Datasets
+-----------------------------------
+
+When working with datasets that are too large to be stored locally,
+making figures just right can be cumbersome as it requires continuously
+moving images somewhere they can be viewed.  However, image creation is
+actually a two step process of first creating the projection, slice,
+or profile object, and then converting that object into an actual image.
+Fortunately, the hard part (creating slices, projections, profiles) can
+be separated from the easy part (generating images).  The intermediate
+slice, projection, and profile objects can be saved as reloadable
+datasets, then handed back to the plotting machinery discussed here.
+
+For slices and projections, the savable object is associated with the
+plot object as ``data_source``.  This can be saved with the
+:func:`~yt.data_objects.data_containers.save_as_dataset`` function.  For
+more information, see :ref:`saving_data`.
+
+.. code-block:: python
+
+   p = yt.ProjectionPlot(ds, "x", "density",
+                         weight_field="density")
+   fn = p.data_source.save_as_dataset()
+
+This function will optionally take a ``filename`` keyword that follows
+the same logic as dicussed above in :ref:`saving_plots`.  The filename
+to which the dataset was written will be returned.
+
+Once saved, this file can be reloaded completely independently of the
+original dataset and given back to the plot function with the same
+arguments.  One can now continue to tweak the figure to one's liking.
+
+.. code-block:: python
+
+   new_ds = yt.load(fn)
+   new_p = yt.ProjectionPlot(new_ds, "x", "density",
+                             weight_field="density")
+   new_p.save()
+
+The same functionality is available for profile and phase plots.  In
+each case, a special data container, ``data``, is given to the plotting
+functions.
+
+For ``ProfilePlot``:
+
+.. code-block:: python
+
+   ad = ds.all_data()
+   p1 = yt.ProfilePlot(ad, "density", "temperature",
+                       weight_field="cell_mass")
+
+   # note that ProfilePlots can hold a list of profiles
+   fn = p1.profiles[0].save_as_dataset()
+
+   new_ds = yt.load(fn)
+   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature",
+                       weight_field="cell_mass")
+   p2.save()
+
+For ``PhasePlot``:
+
+.. code-block:: python
+
+   ad = ds.all_data()
+   p1 = yt.PhasePlot(ad, "density", "temperature",
+                     "cell_mass", weight_field=None)
+   fn = p1.profile.save_as_dataset()
+
+   new_ds = yt.load(fn)
+   p2 = yt.PhasePlot(new_ds.data, "density", "temperature",
+                     "cell_mass", weight_field=None)
+   p2.save()
+
 .. _eps-writer:
 
 Publication-ready Figures
