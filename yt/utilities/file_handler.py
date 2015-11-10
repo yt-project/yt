@@ -13,7 +13,7 @@ Wrapper classes for h5py and netCDF4 file objects.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 from distutils.version import LooseVersion
 

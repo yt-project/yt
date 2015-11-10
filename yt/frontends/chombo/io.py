@@ -182,9 +182,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         offsets = np.append(np.array([0]), offsets)
         offsets = np.array(offsets, dtype=np.int64)
 
-        # convert between the global grid id and the id on this level            
+        # convert between the global grid id and the id on this level
         grid_levels = np.array([g.Level for g in self.ds.index.grids])
-        grid_ids = np.array([g.id    for g in self.ds.index.grids])
+        grid_ids = np.array([g.id for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
@@ -241,19 +241,18 @@ def parse_orion_sinks(fn):
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
+        index['particle_mdot']      = 14
         index['particle_burnstate'] = 15
 
-    elif len(line.strip().split()) == 18:
+    elif (len(line.strip().split()) == 18 or len(line.strip().split()) == 19):
         # these are the newer style, add luminosity as well
         index['particle_mlast']     = 10
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
-        index['particle_burnstate'] = 15,
+        index['particle_mdot']      = 14
+        index['particle_burnstate'] = 15
         index['particle_luminosity']= 16
-
     else:
         # give a warning if none of the above apply:
         mylog.warning('Warning - could not figure out particle output file')

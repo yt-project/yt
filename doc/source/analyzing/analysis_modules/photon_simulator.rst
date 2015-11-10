@@ -132,7 +132,7 @@ here:
 
 .. code:: python
 
-    apec_model = TableApecModel("atomdb_v2.0.2",
+    apec_model = TableApecModel("$SPECTRAL_DATA/spectral",
                                 0.01, 20.0, 20000,
                                 thermal_broad=False,
                                 apec_vers="2.0.2")
@@ -476,6 +476,7 @@ for details on how to do this):
 .. code:: python
 
    import yt
+   import numpy as np
    from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
    from yt.utilities.cosmology import Cosmology
    from yt.analysis_modules.photon_simulator.api import *
@@ -548,14 +549,15 @@ example:
                                0.01, 20.0, 20000)
    abs_model = TableAbsorbModel("tbabs_table.h5", 0.1)
 
-   thermal_model = ThermalPhotonModel(apec_model)
+   thermal_model = ThermalPhotonModel(apec_model, photons_per_chunk=40000000)
    photons = PhotonList.from_scratch(sphere, redshift, A,
                                      exp_time, thermal_model, center="c")
 
 
    events = photons.project_photons([0.0,0.0,1.0], 
                                     responses=["sim_arf.fits","sim_rmf.fits"], 
-                                    absorb_model=abs_model)
+                                    absorb_model=abs_model,
+                                    north_vector=[0.0,1.0,0.0])
 
    events.write_fits_image("img.fits", clobber=True)
 

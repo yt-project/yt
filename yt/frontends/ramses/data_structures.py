@@ -21,29 +21,25 @@ import stat
 import weakref
 from io import BytesIO
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
-    Index, YTDataChunk
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .definitions import ramses_header, field_aliases
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.utilities.io_handler import \
-    io_registry
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
-from yt.fields.particle_fields import \
-    standard_particle_fields
+from yt.arraytypes import blankRecordArray
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -108,7 +104,7 @@ class RAMSESDomainFile(object):
                     print("You are running with the wrong number of fields.")
                     print("If you specified these in the load command, check the array length.")
                     print("In this file there are %s hydro fields." % skipped)
-                    #print "The last set of field sizes was: %s" % skipped
+                    #print"The last set of field sizes was: %s" % skipped
                     raise
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
@@ -192,8 +188,8 @@ class RAMSESDomainFile(object):
             self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
         else:
             self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
-        ordering = fpu.read_vector(f, 'c')
+        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
+        ordering = fpu.read_vector(f, 'c')  # NOQA
         fpu.skip(f, 4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
@@ -240,7 +236,7 @@ class RAMSESDomainFile(object):
                 #ng is the number of octs on this level on this domain
                 ng = _ng(cpu, level)
                 if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")
+                ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')
                 pos[:,0] = fpu.read_vector(f, "d") - nx
@@ -464,6 +460,58 @@ class RAMSESIndex(OctreeIndex):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
+    def _initialize_level_stats(self):
+        levels=sum([dom.level_count for dom in self.domains])
+        desc = {'names': ['numcells','level'],
+                'formats':['Int64']*2}
+        max_level=self.dataset.min_level+self.dataset.max_level+2
+        self.level_stats = blankRecordArray(desc, max_level)
+        self.level_stats['level'] = [i for i in range(max_level)]
+        self.level_stats['numcells'] = [0 for i in range(max_level)]
+        for level in range(self.dataset.min_level+1):
+            self.level_stats[level+1]['numcells']=2**(level*self.dataset.dimensionality)
+        for level in range(self.max_level+1):
+            self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
+
+    def print_stats(self):
+        
+        # This function prints information based on the fluid on the grids,
+        # and therefore does not work for DM only runs. 
+        if not self.fluid_field_list:
+            print("This function is not implemented for DM only runs")
+            return
+
+        self._initialize_level_stats()
+        """
+        Prints out (stdout) relevant information about the simulation
+        """
+        header = "%3s\t%14s\t%14s" % ("level", "# cells","# cells^3")
+        print(header)
+        print("%s" % (len(header.expandtabs())*"-"))
+        for level in range(self.dataset.min_level+self.dataset.max_level+2):
+            print("% 3i\t% 14i\t% 14i" % \
+                  (level,
+                   self.level_stats['numcells'][level],
+                   np.ceil(self.level_stats['numcells'][level]**(1./3))))
+        print("-" * 46)
+        print("   \t% 14i" % (self.level_stats['numcells'].sum()))
+        print("\n")
+
+        dx = self.get_smallest_dx()
+        try:
+            print("z = %0.8f" % (self.dataset.current_redshift))
+        except:
+            pass
+        print("t = %0.8e = %0.8e s = %0.8e years" % (
+            self.ds.current_time.in_units("code_time"),
+            self.ds.current_time.in_units("s"),
+            self.ds.current_time.in_units("yr")))
+        print("\nSmallest Cell:")
+        for item in ("Mpc", "pc", "AU", "cm"):
+            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+
+
+
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
@@ -491,26 +539,18 @@ class RAMSESDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        #Please note that for all units given in the info file, the boxlen
-        #still needs to be folded in, as shown below!
-
+        # loading the units from the info file
         boxlen=self.parameters['boxlen']
-        length_unit = self.parameters['unit_l'] * boxlen
-        density_unit = self.parameters['unit_d']/ boxlen**3
-
-        # In the mass unit, the factors of boxlen cancel back out, so this 
-        #is equivalent to unit_d*unit_l**3
-
-        mass_unit = density_unit * length_unit**3
-
-        # Cosmological runs are done in lookback conformal time. 
-        # To convert to proper time, the time unit is calculated from 
-        # the expansion factor. This is not yet  done here!
-
+        length_unit = self.parameters['unit_l']
+        density_unit = self.parameters['unit_d']
         time_unit = self.parameters['unit_t']
+
+        # calculating derived units (except velocity and temperature, done below)
+        mass_unit = density_unit * length_unit**3     
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit)**2
+
         # TODO:
         # Generalize the temperature field to account for ionization
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
@@ -518,13 +558,15 @@ class RAMSESDataset(Dataset):
 
         self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit * boxlen, "cm")
-        self.mass_unit = self.quan(mass_unit, "g")
-        self.time_unit = self.quan(time_unit, "s")
-        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
-        self.temperature_unit = (self.velocity_unit**2 * mp *
-                                 mean_molecular_weight_factor / kb)
         self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
+        self.time_unit = self.quan(time_unit, "s")
+        self.mass_unit = self.quan(mass_unit, "g")
+        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
+        self.temperature_unit = (self.velocity_unit**2*mp* 
+                                 mean_molecular_weight_factor/kb).in_units('K')
+
+        # Only the length unit get scales by a factor of boxlen
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
 
     def _parse_parameter_file(self):
         # hardcoded for now

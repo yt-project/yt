@@ -20,28 +20,26 @@ from yt.extern.six import string_types, iteritems
 import base64
 import os
 
-from functools import wraps
 import matplotlib
 import numpy as np
 from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
-from yt.units.yt_array import YTArray
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
-    create_profile, \
-    sanitize_field_tuple_keys
+    create_profile
+from yt.frontends.ytdata.data_structures import \
+    YTProfileDataset
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
-    iterable, \
     get_image_suffix, \
     get_ipython_api_version
 
@@ -208,13 +206,16 @@ class ProfilePlot(object):
         else:
             logs = {x_field:x_log}
 
-        profiles = [create_profile(data_source, [x_field],
-                                   n_bins=[n_bins],
-                                   fields=ensure_list(y_fields),
-                                   weight_field=weight_field,
-                                   accumulation=accumulation,
-                                   fractional=fractional,
-                                   logs=logs)]
+        if isinstance(data_source.ds, YTProfileDataset):
+            profiles = [data_source.ds.profile]
+        else:
+            profiles = [create_profile(data_source, [x_field],
+                                       n_bins=[n_bins],
+                                       fields=ensure_list(y_fields),
+                                       weight_field=weight_field,
+                                       accumulation=accumulation,
+                                       fractional=fractional,
+                                       logs=logs)]
 
         if plot_spec is None:
             plot_spec = [dict() for p in profiles]
@@ -681,10 +682,6 @@ class PhasePlot(ImagePlotContainer):
     fractional : If True the profile values are divided by the sum of all 
         the profile data such that the profile represents a probability 
         distribution function.
-    profile : profile object
-        If not None, a profile object created with 
-        `yt.data_objects.profiles.create_profile`.
-        Default: None.
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
@@ -713,20 +710,25 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+    _xlim = (None, None)
+    _ylim = (None, None)
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
 
-        profile = create_profile(
-            data_source,
-            [x_field, y_field],
-            ensure_list(z_fields),
-            n_bins=[x_bins, y_bins],
-            weight_field=weight_field,
-            accumulation=accumulation,
-            fractional=fractional)
+        if isinstance(data_source.ds, YTProfileDataset):
+            profile = data_source.ds.profile
+        else:
+            profile = create_profile(
+                data_source,
+                [x_field, y_field],
+                ensure_list(z_fields),
+                n_bins=[x_bins, y_bins],
+                weight_field=weight_field,
+                accumulation=accumulation,
+                fractional=fractional)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
@@ -817,6 +819,8 @@ class PhasePlot(ImagePlotContainer):
             draw_colorbar = True
             draw_axes = True
             zlim = (None, None)
+            xlim = self._xlim
+            ylim = self._ylim
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
@@ -871,6 +875,9 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+
+            self.plots[f].axes.set_xlim(xlim)
+            self.plots[f].axes.set_ylim(ylim)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
@@ -1177,6 +1184,7 @@ class PhasePlot(ImagePlotContainer):
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._xlim = (xmin, xmax)
         return self
 
     @invalidate_plot
@@ -1241,6 +1249,7 @@ class PhasePlot(ImagePlotContainer):
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._ylim = (ymin, ymax)
         return self
 
 

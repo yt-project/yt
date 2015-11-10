@@ -24,7 +24,8 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 
 from yt.extern.six import string_types
 import numpy as np
-from yt.funcs import *
+from yt.funcs import mylog, get_pbar
+from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import mp
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_objects
@@ -137,7 +138,7 @@ class ThermalPhotonModel(PhotonModel):
 
             idxs = np.argsort(kT)
 
-            kT_bins = np.linspace(kT_min, max(my_kT_max, kT_max), num=n_kT+1)
+            kT_bins = np.linspace(kT_min, max(my_kT_max.v, kT_max), num=n_kT+1)
             dkT = kT_bins[1]-kT_bins[0]
             kT_idxs = np.digitize(kT[idxs], kT_bins)
             kT_idxs = np.minimum(np.maximum(1, kT_idxs), n_kT) - 1
@@ -198,15 +199,24 @@ class ThermalPhotonModel(PhotonModel):
                 ei = start_e
                 for cn, Z in zip(number_of_photons[ibegin:iend], metalZ[ibegin:iend]):
                     if cn == 0: continue
+                    # The rather verbose form of the few next statements is a
+                    # result of code optimization and shouldn't be changed
+                    # without checking for perfomance degradation. See
+                    # https://bitbucket.org/yt_analysis/yt/pull-requests/1766
+                    # for details.
                     if self.method == "invert_cdf":
-                        cumspec = cumspec_c + Z*cumspec_m
-                        cumspec /= cumspec[-1]
+                        cumspec = cumspec_c
+                        cumspec += Z * cumspec_m
+                        norm_factor = 1.0 / cumspec[-1]
+                        cumspec *= norm_factor
                         randvec = np.random.uniform(size=cn)
                         randvec.sort()
                         cell_e = np.interp(randvec, cumspec, ebins)
                     elif self.method == "accept_reject":
-                        tot_spec = cspec.d+Z*mspec.d
-                        tot_spec /= tot_spec.sum()
+                        tot_spec = cspec.d
+                        tot_spec += Z * mspec.d
+                        norm_factor = 1.0 / tot_spec.sum()
+                        tot_spec *= norm_factor
                         eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
                     energies[ei:ei+cn] = cell_e

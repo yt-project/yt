@@ -13,11 +13,13 @@ Profile classes, to deal with generating and obtaining profiles
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import get_output_filename
 from yt.funcs import *
-
 from yt.units.yt_array import uconcatenate, array_like_field
 from yt.units.unit_object import Unit
 from yt.data_objects.data_containers import YTFieldData
@@ -949,6 +951,112 @@ class ProfileND(ParallelAnalysisInterface):
         else:
             return np.linspace(mi, ma, n+1)
 
+    def save_as_dataset(self, filename=None):
+        r"""Export a profile to a reloadable yt dataset.
+
+        This function will take a profile and output a dataset
+        containing all relevant fields.  The resulting dataset
+        can be reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset plus
+            the type of object, e.g., Profile1D.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> ad = ds.all_data()
+        >>> profile = yt.create_profile(ad, ["density", "temperature"],
+        ...                            "cell_mass", weight_field=None,
+        ...                             n_bins=(128, 128))
+        >>> fn = profile.save_as_dataset()
+        >>> prof_ds = yt.load(fn)
+        >>> print (prof_ds.data["cell_mass"])
+        (128, 128)
+        >>> print (prof_ds.data["x"].shape) # x bins as 1D array
+        (128,)
+        >>> print (prof_ds.data["density"]) # x bins as 2D array
+        (128, 128)
+        >>> p = yt.PhasePlot(prof_ds.data, "density", "temperature",
+        ...                  "cell_mass", weight_field=None)
+        >>> p.save()
+
+        """
+
+        keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        args = ("field", "log")
+        extra_attrs = {"data_type": "yt_profile",
+                       "profile_dimensions": self.size,
+                       "weight_field": self.weight_field,
+                       "fractional": self.fractional}
+        data = {}
+        data.update(self.field_data)
+        data["weight"] = self.weight
+        data["used"] = self.used.astype("float64")
+
+        dimensionality = 0
+        bin_data = []
+        for ax in "xyz":
+            if hasattr(self, ax):
+                dimensionality += 1
+                data[ax] = getattr(self, ax)
+                bin_data.append(data[ax])
+                bin_field_name = "%s_bins" % ax
+                data[bin_field_name] = getattr(self, bin_field_name)
+                extra_attrs["%s_range" % ax] = self.ds.arr([data[bin_field_name][0],
+                                                            data[bin_field_name][-1]])
+                for arg in args:
+                    key = "%s_%s" % (ax, arg)
+                    extra_attrs[key] = getattr(self, key)
+
+        bin_fields = np.meshgrid(*bin_data)
+        for i, ax in enumerate("xyz"[:dimensionality]):
+            data[getattr(self, "%s_field" % ax)] = bin_fields[i]
+
+        extra_attrs["dimensionality"] = dimensionality
+        ftypes = dict([(field, "data") for field in data])
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
+
+class ProfileNDFromDataset(ProfileND):
+    """
+    An ND profile object loaded from a ytdata dataset.
+    """
+    def __init__(self, ds):
+        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
+        self.fractional = ds.parameters["fractional"]
+        exclude_fields = ["used", "weight"]
+        for ax in "xyz"[:ds.dimensionality]:
+            setattr(self, ax, ds.data[ax])
+            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
+            setattr(self, "%s_field" % ax,
+                    tuple(ds.parameters["%s_field" % ax]))
+            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
+            exclude_fields.extend([ax, "%s_bins" % ax,
+                                   ds.parameters["%s_field" % ax][1]])
+        self.weight = ds.data["weight"]
+        self.used = ds.data["used"].d.astype(bool)
+        profile_fields = [f for f in ds.field_list
+                          if f[1] not in exclude_fields]
+        for field in profile_fields:
+            self.field_map[field[1]] = field
+            self.field_data[field] = ds.data[field]
+            self.field_units[field] = ds.data[field].units
+
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
 
@@ -1010,6 +1118,14 @@ class Profile1D(ProfileND):
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
+
+class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
+    """
+    A 1D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 class Profile2D(ProfileND):
     """An object that represents a 2D profile.
@@ -1108,6 +1224,13 @@ class Profile2D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
 
+class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
+    """
+    A 2D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 class ParticleProfile(Profile2D):
     """An object that represents a *deposited* 2D profile. This is like a
@@ -1354,6 +1477,13 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
+class Profile3DFromDataset(ProfileNDFromDataset, Profile3D):
+    """
+    A 2D profile object loaded from a ytdata dataset.
+    """
+
+    def __init(self, ds):
+        ProfileNDFromDataset.__init__(self, ds)
 
 def sanitize_field_tuple_keys(input_dict, data_source):
     if input_dict is not None:
@@ -1429,8 +1559,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
-    >>> print profile.x
-    >>> print profile["gas", "temperature"]
+    >>> print (profile.x)
+    >>> print (profile["gas", "temperature"])
 
     """
     bin_fields = data_source._determine_fields(bin_fields)

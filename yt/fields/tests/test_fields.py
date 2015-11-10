@@ -1,13 +1,25 @@
-from yt.testing import *
 import numpy as np
+
+from yt import \
+    load
+from yt.testing import \
+    fake_random_ds, \
+    assert_almost_equal, \
+    assert_equal, \
+    assert_array_almost_equal_nulp, \
+    assert_array_equal, \
+    assert_raises, \
+    requires_file
 from yt.utilities.cosmology import \
-     Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    Cosmology
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    array_like_field, \
+    YTArray, YTQuantity
+from yt.utilities.exceptions import \
+    YTFieldUnitError, \
+    YTFieldUnitParseError
 
 def setup():
     global base_ds
@@ -88,19 +100,6 @@ def _strip_ftype(field):
         return field
     return field[1]
 
-def _expand_field(field):
-    if isinstance(field, tuple):
-        return field
-    if field in KnownStreamFields:
-        fi = KnownStreamFields[field]
-        if fi.particle_type:
-            return ("all", field)
-        else:
-            return ("gas", field)
-    # Otherwise, we just guess.
-    if "particle" in field:
-        return ("all", field)
-    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None
@@ -197,17 +196,34 @@ def test_add_deposited_particle_field():
     ret = ad[fn]
     assert_equal(ret.sum(), ad['particle_ones'].sum())
 
+@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
+def test_add_smoothed_particle_field():
+    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
+    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
+    ad = ds.all_data()
+    ret = ad[fn]
+    assert_almost_equal(ret.sum(), 3824750.912653606)
+
 def test_add_gradient_fields():
     gfields = base_ds.add_gradient_fields(("gas","density"))
+    gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
                   ('gas', 'density_gradient_y'),
                   ('gas', 'density_gradient_z'),
-                  ('gas', 'density_gradient_magnitude')]
+                  ('gas', 'density_gradient_magnitude'),
+                  ('index', 'ones_gradient_x'),
+                  ('index', 'ones_gradient_y'),
+                  ('index', 'ones_gradient_z'),
+                  ('index', 'ones_gradient_magnitude')]
     assert_equal(gfields, field_list)
     ad = base_ds.all_data()
     for field in field_list:
         ret = ad[field]
-        assert str(ret.units) == "g/cm**4"
+        if field[0] == 'gas':
+            assert str(ret.units) == "g/cm**4"
+        else:
+            assert str(ret.units) == "1/cm"
 
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are
@@ -252,9 +268,17 @@ def test_add_field_unit_semantics():
     assert_equal(str(ad['dimensionless_explicit'].units), 'dimensionless')
     assert_raises(YTFieldUnitError, get_data, ds, 'dimensionful')
 
+def test_array_like_field():
+    ds = fake_random_ds(4, particles=64)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
         t()
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
+    test_array_like_field()

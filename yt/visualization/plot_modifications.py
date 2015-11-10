@@ -5,9 +5,6 @@ Callbacks to add additional functionality on to plots.
 
 
 """
-from __future__ import absolute_import
-from yt.extern.six import string_types
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -16,29 +13,33 @@ from yt.extern.six import string_types
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
+import warnings
+
+import matplotlib
 import numpy as np
-import h5py
 
 from distutils.version import LooseVersion
 
 from matplotlib.patches import Circle
 from matplotlib.colors import colorConverter
+from matplotlib import cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, iterable
 from yt.extern.six import add_metaclass
-from ._mpl_imports import *
-from yt.utilities.physical_constants import \
-    sec_per_Gyr, sec_per_Myr, \
-    sec_per_kyr, sec_per_year, \
-    sec_per_day, sec_per_hr
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
      import periodic_ray
+from yt.utilities.lib.line_integral_convolution import \
+    line_integral_convolution_2d
 import warnings
+
 
 from . import _MPL
 
@@ -114,13 +115,11 @@ class PlotCallback(object):
 
         x0 = np.array(np.tile(plot.xlim[0],ncoord))
         x1 = np.array(np.tile(plot.xlim[1],ncoord))
-        x2 = np.array([0, 1])
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
         y0 = np.array(np.tile(plot.ylim[0],ncoord))
         y1 = np.array(np.tile(plot.ylim[1],ncoord))
-        y2 = np.array([0, 1])
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
@@ -230,7 +229,7 @@ class PlotCallback(object):
         # For each label, set the font properties and color to the figure
         # defaults if not already set in the callback itself
         for label in labels:
-            if plot.font_color is not None and not 'color' in kwargs:
+            if plot.font_color is not None and 'color' not in kwargs:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
 
@@ -371,7 +370,7 @@ class QuiverCallback(PlotCallback):
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
-                           ).transpose()
+                             ).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
@@ -380,7 +379,7 @@ class QuiverCallback(PlotCallback):
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
-                           ).transpose()
+                             ).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -1822,7 +1821,7 @@ class ScaleCallback(PlotCallback):
     """
     annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
                    max_frac=0.16, min_frac=0.015, coord_system='axis',
-                   size_bar_args=None, draw_inset_box=False,
+                   text_args=None, size_bar_args=None, draw_inset_box=False,
                    inset_box_args=None)
 
     Annotates the scale of the plot at a specified location in the image
@@ -1832,8 +1831,11 @@ class ScaleCallback(PlotCallback):
     specified, an appropriate pair will be determined such that your scale bar
     is never smaller than min_frac or greater than max_frac of your plottable
     axis length.  Additional customization of the scale bar is possible by
-    adjusting the size_bar_args dictionary.  This accepts keyword arguments
-    for the AnchoredSizeBar class in matplotlib's axes_grid toolkit.
+    adjusting the text_args and size_bar_args dictionaries.  The text_args
+    dictionary accepts matplotlib's font_properties arguments to override
+    the default font_properties for the current plot.  The size_bar_args 
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in 
+    matplotlib's axes_grid toolkit.
 
     Parameters
     ----------
@@ -1880,6 +1882,12 @@ class ScaleCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
+    text_args : dictionary, optional
+        A dictionary of parameters to used to update the font_properties
+        for the text in this callback.  For any property not set, it will
+        use the defaults of the plot.  Thus one can modify the text size with:
+        text_args={'size':24}
+
     size_bar_args : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
@@ -1906,7 +1914,8 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
+                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 inset_box_args=None):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -1940,6 +1949,9 @@ class ScaleCallback(PlotCallback):
         else:
             self.inset_box_args = inset_box_args
         self.draw_inset_box = draw_inset_box
+        if text_args is None:
+            text_args = {}
+        self.text_args = text_args
 
     def __call__(self, plot):
         # Callback only works for plots with axis ratios of 1
@@ -1990,8 +2002,17 @@ class ScaleCallback(PlotCallback):
 
         size_vertical = self.size_bar_args.pop('size_vertical', .005)
         fontproperties = self.size_bar_args.pop(
-            'fontproperties', plot.font_properties)
+            'fontproperties', plot.font_properties.copy())
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
+        # FontProperties instances use set_<property>() setter functions
+        for key, val in self.text_args.items():
+            setter_func = "set_"+key
+            try: 
+                getattr(fontproperties, setter_func)(val)
+            except AttributeError:
+                raise AttributeError("Cannot set text_args keyword " \
+                "to include '%s' because MPL's fontproperties object does " \
+                "not contain function '%s'." % (key, setter_func))
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
@@ -2015,13 +2036,13 @@ class RayCallback(PlotCallback):
     annotate_ray(ray, plot_args=None)
 
     Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
 
     Parameters
     ----------
 
-    ray : YTOrthoRayBase, YTRayBase, or LightRay
+    ray : YTOrthoRay, YTRay, or LightRay
         Ray is the object that we want to include.  We overplot the projected
         trajectory of the ray.  If the object is a
         analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
@@ -2114,7 +2135,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
+            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or "
                               "LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting
@@ -2136,5 +2157,122 @@ class RayCallback(PlotCallback):
                                    coord_system='data',
                                    plot_args=self.plot_args)
             lcb(plot)
+
+        return plot
+
+class LineIntegralConvolutionCallback(PlotCallback):
+    """
+    annotate_line_integral_convolution(field_x, field_y, texture=None,
+                                       kernellen=50., lim=(0.5,0.6),
+                                       cmap='binary', alpha=0.8,
+                                       const_alpha=False):
+
+    Add the line integral convolution to the plot for vector fields 
+    visualization. Two component of vector fields needed to be provided
+    (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
+
+    Parameters
+    ----------
+
+    field_x, field_y : string
+        The names of two components of vector field which will be visualized
+
+    texture : 2-d array with the same shape of image, optional
+        Texture will be convolved when computing line integral convolution.
+        A white noise background will be used as default.
+
+    kernellen : float, optional
+        The lens of kernel for convolution, which is the length over which the
+        convolution will be performed. For longer kernellen, longer streamline
+        structure will appear.
+
+    lim : 2-element tuple, list, or array, optional
+        The value of line integral convolution will be clipped to the range
+        of lim, which applies upper and lower bounds to the values of line
+        integral convolution and enhance the visibility of plots. Each element
+        should be in the range of [0,1].
+
+    cmap : string, optional
+        The name of colormap for line integral convolution plot.
+
+    alpha : float, optional
+        The alpha value for line integral convolution plot.
+
+    const_alpha : boolean, optional
+        If set to False (by default), alpha will be weighted spatially by
+        the values of line integral convolution; otherwise a constant value
+        of the given alpha is used.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> ds = yt.load('Enzo_64/DD0020/data0020')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_line_integral_convolution('velocity_x', 'velocity_y',\
+                                             lim=(0.5,0.65))
+    """
+    _type_name = "line_integral_convolution"
+    def __init__(self, field_x, field_y, texture=None, kernellen=50.,
+                 lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
+        PlotCallback.__init__(self)
+        self.field_x = field_x
+        self.field_y = field_y
+        self.texture = texture
+        self.kernellen = kernellen
+        self.lim = lim
+        self.cmap = cmap
+        self.alpha = alpha
+        self.const_alpha = const_alpha
+
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        bounds = [x0,x1,y0,y1]
+        extent = [xx0,xx1,yy0,yy1]
+
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[0]
+        ny = plot.image._A.shape[1]
+        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_x,
+                                                 bounds,
+                                                 (nx,ny))
+        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_y,
+                                                 bounds,
+                                                 (nx,ny))
+
+        vectors = np.concatenate((pixX[...,np.newaxis],
+                                  pixY[...,np.newaxis]),axis=2)
+
+        if self.texture == None:
+            self.texture = np.random.rand(nx,ny).astype(np.double)
+        elif self.texture.shape != (nx,ny):
+            raise SyntaxError("'texture' must have the same shape "
+                              "with that of output image (%d, %d)" % (nx,ny))
+
+        kernel = np.sin(np.arange(self.kernellen)*np.pi/self.kernellen)
+        kernel = kernel.astype(np.double)
+
+        lic_data = line_integral_convolution_2d(vectors,self.texture,kernel)
+        lic_data = np.flipud(lic_data / lic_data.max())
+        lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
+
+        if self.const_alpha:
+            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap, 
+                              alpha=self.alpha)
+        else:
+            lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
+                            to_rgba(lic_data_clip)
+            lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
+                                    / (self.lim[1] - self.lim[0])
+            lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
+            plot._axes.imshow(lic_data_rgba, extent=extent)
+        plot._axes.hold(False)
 
         return plot

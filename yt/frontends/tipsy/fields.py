@@ -16,8 +16,7 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.fields.particle_fields import add_volume_weighted_smoothed_field, add_nearest_neighbor_field
-from yt.utilities.physical_constants import mp, kb
+from yt.fields.particle_fields import add_nearest_neighbor_field
 
 class TipsyFieldInfo(SPHFieldInfo):
     aux_particle_fields = {

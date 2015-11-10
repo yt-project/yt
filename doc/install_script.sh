@@ -233,53 +233,61 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-	echo "The instructions for obtaining these tools varies according"
-	echo "to your exact OS version.  On older versions of OS X, you"
-	echo "must register for an account on the apple developer tools"
-	echo "website: https://developer.apple.com/downloads to obtain the"
-	echo "download link."
-	echo
-	echo "We have gathered some additional instructions for each"
-	echo "version of OS X below. If you have trouble installing yt"
-	echo "after following these instructions, don't hesitate to contact"
-	echo "the yt user's e-mail list."
-	echo
-	echo "You can see which version of OSX you are running by clicking"
-	echo "'About This Mac' in the apple menu on the left hand side of"
-	echo "menu bar.  We're assuming that you've installed all operating"
-	echo "system updates; if you have an older version, we suggest"
-	echo "running software update and installing all available updates."
-	echo
+        echo "The instructions for obtaining these tools varies according"
+        echo "to your exact OS version.  On older versions of OS X, you"
+        echo "must register for an account on the apple developer tools"
+        echo "website: https://developer.apple.com/downloads to obtain the"
+        echo "download link."
+        echo
+        echo "We have gathered some additional instructions for each"
+        echo "version of OS X below. If you have trouble installing yt"
+        echo "after following these instructions, don't hesitate to contact"
+        echo "the yt user's e-mail list."
+        echo
+        echo "You can see which version of OSX you are running by clicking"
+        echo "'About This Mac' in the apple menu on the left hand side of"
+        echo "menu bar.  We're assuming that you've installed all operating"
+        echo "system updates; if you have an older version, we suggest"
+        echo "running software update and installing all available updates."
+        echo
         echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the"
-	echo "Apple developer tools website."
+        echo "Apple developer tools website."
         echo
         echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
-	echo "developer tools website.  You can either download the"
-	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
-	echo "Software Update to update to XCode 3.2.6 or"
-	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
-	echo "bundle (4.1 GB)."
+        echo "developer tools website.  You can either download the"
+        echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+        echo "Software Update to update to XCode 3.2.6 or"
+        echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
+        echo "bundle (4.1 GB)."
         echo
         echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
-	echo "(search for Xcode)."
+        echo "(search for Xcode)."
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of"
-	echo "Xcode from the mac app store (search for Xcode)."
-    echo
-	echo "Additionally, you will have to manually install the Xcode"
-	echo "command line tools."
-    echo
-    echo "For OS X 10.8, see:"
-   	echo "http://stackoverflow.com/questions/9353444"
-	echo
-    echo "For OS X 10.9 and 10.10, the command line tools can be installed"
-    echo "with the following command:"
-    echo "    xcode-select --install"
-    echo
-    OSX_VERSION=`sw_vers -productVersion`
-    if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+        echo "OS X 10.8.4, 10.9, 10.10, and 10.11:"
+        echo "download the appropriate version of Xcode from the"
+        echo "mac app store (search for Xcode)."
+        echo
+        echo "Additionally, you will have to manually install the Xcode"
+        echo "command line tools."
+        echo
+        echo "For OS X 10.8, see:"
+        echo "http://stackoverflow.com/questions/9353444"
+        echo
+        echo "For OS X 10.9 and newer the command line tools can be installed"
+        echo "with the following command:"
+        echo "    xcode-select --install"
+        echo
+        echo "For OS X 10.11, you will additionally need to install the OpenSSL"
+        echo "library using a package manager like homebrew or macports."
+        echo "If you install fails with a message like"
+        echo "    ImportError: cannot import HTTPSHandler"
+        echo "then you do not have the OpenSSL headers available in a location"
+        echo "visible to your C compiler. Consider installing yt using the"
+        echo "get_yt.sh script instead, as that bundles OpenSSL."
+        OSX_VERSION=`sw_vers -productVersion`
+        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
@@ -358,17 +366,17 @@ function host_specific
     fi
     if [ $INST_SCIPY -eq 1 ]
     then
-	echo
-	echo "Looks like you've requested that the install script build SciPy."
-	echo
-	echo "If the SciPy build fails, please uncomment one of the the lines"
-	echo "at the top of the install script that sets NUMPY_ARGS, delete"
-	echo "any broken installation tree, and re-run the install script"
-	echo "verbatim."
-	echo
-	echo "If that doesn't work, don't hesitate to ask for help on the yt"
-	echo "user's mailing list."
-	echo
+    echo
+    echo "Looks like you've requested that the install script build SciPy."
+    echo
+    echo "If the SciPy build fails, please uncomment one of the the lines"
+    echo "at the top of the install script that sets NUMPY_ARGS, delete"
+    echo "any broken installation tree, and re-run the install script"
+    echo "verbatim."
+    echo
+    echo "If that doesn't work, don't hesitate to ask for help on the yt"
+    echo "user's mailing list."
+    echo
     fi
     if [ ! -z "${CFLAGS}" ]
     then
@@ -490,9 +498,9 @@ function do_exit
 
 if [ $INST_PY3 -eq 1 ]
 then
-	 PYTHON_EXEC='python3.4'
+     PYTHON_EXEC='python3.4'
 else 
-	 PYTHON_EXEC='python2.7'
+     PYTHON_EXEC='python2.7'
 fi
 
 function do_setup_py
@@ -644,7 +652,6 @@ echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a9135
 echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
-echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo '4a83f9ae1855a7fad90133b327d426201c8ccfd2e7fbe9f39b2d61a2eee2f3ebe2ea02cf80f3d4e1ad659f8e790c173df8cc99b87d0b7ce63d34aa88cfdc7939  h5py-2.5.0.tar.gz' > h5py-2.5.0.tar.gz.sha512
 echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
@@ -686,7 +693,6 @@ get_ytproject $MATPLOTLIB.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
-get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
@@ -901,28 +907,28 @@ then
 else
     if [ ! -e $SCIPY/done ]
     then
-	if [ ! -e BLAS/done ]
-	then
-	    tar xfz blas.tar.gz
-	    echo "Building BLAS"
-	    cd BLAS
-	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
-	    ( ar r libfblas.a *.o 2>&1 ) 1>> ${LOG_FILE}
-	    ( ranlib libfblas.a 2>&1 ) 1>> ${LOG_FILE}
-	    rm -rf *.o
-	    touch done
-	    cd ..
-	fi
-	if [ ! -e $LAPACK/done ]
-	then
-	    tar xfz $LAPACK.tar.gz
-	    echo "Building LAPACK"
-	    cd $LAPACK/
-	    cp INSTALL/make.inc.gfortran make.inc
-	    ( make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 2>&1 ) 1>> ${LOG_FILE} || do_exit
-	    touch done
-	    cd ..
-	fi
+    if [ ! -e BLAS/done ]
+    then
+        tar xfz blas.tar.gz
+        echo "Building BLAS"
+        cd BLAS
+        gfortran -O2 -fPIC -fno-second-underscore -c *.f
+        ( ar r libfblas.a *.o 2>&1 ) 1>> ${LOG_FILE}
+        ( ranlib libfblas.a 2>&1 ) 1>> ${LOG_FILE}
+        rm -rf *.o
+        touch done
+        cd ..
+    fi
+    if [ ! -e $LAPACK/done ]
+    then
+        tar xfz $LAPACK.tar.gz
+        echo "Building LAPACK"
+        cd $LAPACK/
+        cp INSTALL/make.inc.gfortran make.inc
+        ( make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
     fi
     export BLAS=$PWD/BLAS/libfblas.a
     export LAPACK=$PWD/$LAPACK/liblapack.a
@@ -1032,7 +1038,7 @@ touch done
 cd $MY_PWD
 
 if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
-	[[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
+    [[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
 then
     if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then

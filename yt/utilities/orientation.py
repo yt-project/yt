@@ -63,6 +63,13 @@ class Orientation(object):
     def _setup_normalized_vectors(self, normal_vector, north_vector):
         mylog.debug('Setting normalized vectors' + str(normal_vector)
                     + str(north_vector))
+
+        # Make sure vectors are unitless
+        if north_vector is not None:
+            north_vector = YTArray(north_vector, "", dtype='float64')
+        if normal_vector is not None:
+            normal_vector = YTArray(normal_vector, "", dtype='float64')
+
         # Now we set up our various vectors
         normal_vector /= np.sqrt(np.dot(normal_vector, normal_vector))
         if north_vector is None:
@@ -74,7 +81,7 @@ class Orientation(object):
             # The north_vector calculated here will still be included in self.unit_vectors.
             north_vector = np.cross(normal_vector, east_vector).ravel()
         else:
-            if self.steady_north:
+            if self.steady_north or (np.dot(north_vector, normal_vector) != 0.0):
                 north_vector = north_vector - np.dot(north_vector,normal_vector)*normal_vector
             east_vector = np.cross(north_vector, normal_vector).ravel()
         north_vector /= np.sqrt(np.dot(north_vector, north_vector))

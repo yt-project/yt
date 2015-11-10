@@ -24,25 +24,25 @@ import numpy as np
 
 
 class TransferFunctionHelper(object):
+    r"""A transfer function helper.
 
+    This attempts to help set up a good transfer function by finding
+    bounds, handling linear/log options, and displaying the transfer
+    function combined with 1D profiles of rendering quantity.
+
+    Parameters
+    ----------
+    ds: A Dataset instance
+        A static output that is currently being rendered. This is used to
+        help set up data bounds.
+
+    Notes
+    -----
+    """
+ 
     profiles = None
 
     def __init__(self, ds):
-        r"""A transfer function helper.
-
-        This attempts to help set up a good transfer function by finding
-        bounds, handling linear/log options, and displaying the transfer
-        function combined with 1D profiles of rendering quantity.
-
-        Parameters
-        ----------
-        ds: A Dataset instance
-            A static output that is currently being rendered. This is used to
-            help set up data bounds.
-
-        Notes
-        -----
-        """
         self.ds = ds
         self.field = None
         self.log = False
@@ -139,6 +139,8 @@ class TransferFunctionHelper(object):
         else:
             mi, ma = self.bounds
         self.tf.add_layers(10, colormap='spectral')
+        factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
+        self.tf.funcs[-1].y *= 2*factor
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """

@@ -16,8 +16,7 @@ OWLS photoionization equilibrium lookup tables.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import sys
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 
@@ -31,7 +30,7 @@ def h5rd( fname, path, dtype=None ):
     data = None
     with h5py.File( fname, 'r' ) as h5f:
         ds = h5f[path]
-        if dtype == None:
+        if dtype is None:
             dtype = ds.dtype
         data = np.zeros( ds.shape, dtype=dtype )
         data = ds.value

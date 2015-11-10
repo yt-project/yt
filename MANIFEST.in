@@ -1,14 +1,15 @@
-include distribute_setup.py README* CREDITS COPYING.txt CITATION
-recursive-include yt/gui/reason/html *.html *.png *.ico *.js *.gif *.css
-recursive-include yt *.py *.pyx *.pxd *.h README* *.txt LICENSE*
-recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.inc *.html
+include README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt
+include yt/visualization/mapserver/html/map_index.html
+include yt/visualization/mapserver/html/leaflet/*.css
+include yt/visualization/mapserver/html/leaflet/*.js
+include yt/visualization/mapserver/html/leaflet/images/*.png
+exclude scripts/pr_backport.py
+recursive-include yt *.py *.pyx *.pxd *.h README* *.txt LICENSE* *.cu
+recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
 include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
 include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
-prune doc/build/
+prune doc/build
 recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
 prune yt/frontends/_skeleton
-prune tests
-graft yt/gui/reason/html/resources
-exclude clean.sh .hgchurn

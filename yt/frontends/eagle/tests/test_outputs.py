@@ -17,7 +17,6 @@ Eagle frontend tests using the snapshot_028_z000p000 dataset
 from yt.testing import \
     requires_file
 from yt.utilities.answer_testing.framework import \
-    requires_ds, \
     data_dir_load
 from yt.frontends.eagle.api import EagleDataset
 

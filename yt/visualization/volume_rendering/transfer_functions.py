@@ -17,9 +17,11 @@ from __future__ import absolute_import
 import numpy as np
 from matplotlib.cm import get_cmap
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, ensure_list
 
-from yt.utilities.physical_constants import *
+from yt.utilities.physical_constants import \
+    clight, hcgs, kboltz
 
 class TransferFunction(object):
     r"""A transfer function governs the transmission of emission and
@@ -195,7 +197,9 @@ class TransferFunction(object):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.plot("sample.png")
         """
-        import matplotlib;matplotlib.use("Agg");import pylab
+        import matplotlib
+        matplotlib.use("Agg")
+        import pylab
         pylab.clf()
         pylab.plot(self.x, self.y, 'xk-')
         pylab.xlim(*self.x_bounds)
@@ -217,7 +221,7 @@ class TransferFunction(object):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
-        import matplotlib;import pylab
+        import pylab
         pylab.clf()
         pylab.plot(self.x, self.y, 'xk-')
         pylab.xlim(*self.x_bounds)
@@ -598,7 +602,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
-            if label_fmt == None:
+            if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
                     e = np.floor(np.log10(abs(val)))
                     return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
@@ -883,7 +887,8 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*anorm
             tf = TransferFunction(rho_bounds)
             mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
-            tf.y *= 0.0; tf.y += scat
+            tf.y *= 0.0
+            tf.y += scat
             self.add_field_table(tf, 1, weight_field_id = 1)
             self.link_channels(i+3, i+3)
 

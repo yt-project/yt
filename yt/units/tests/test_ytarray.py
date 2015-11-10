@@ -34,7 +34,7 @@ from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
-    uunion1d
+    uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import \
@@ -467,6 +467,13 @@ def test_unit_conversions():
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
+    dimless = YTQuantity(1.0, "")
+    yield assert_equal, dimless.in_cgs(), dimless
+    yield assert_equal, dimless.in_cgs(), 1.0
+    yield assert_equal, dimless.in_mks(), dimless
+    yield assert_equal, dimless.in_mks(), 1.0
+    yield assert_equal, str(dimless.in_cgs().units), "dimensionless"
+
 def test_temperature_conversions():
     """
     Test conversions between various supported temperatue scales.
@@ -553,6 +560,17 @@ def test_selecting():
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
     yield assert_true, a_slice.base is a
+
+
+def test_iteration():
+    """
+    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    """
+    a = np.arange(3)
+    b = YTArray(np.arange(3), 'cm')
+    for ia, ib, in zip(a, b):
+        yield assert_equal, ia, ib.value
+        yield assert_equal, ib.units, b.units
 
 
 def test_fix_length():
@@ -668,6 +686,8 @@ def unary_ufunc_comparison(ufunc, a):
 
         assert_array_equal(ret1, npret1)
         assert_array_equal(ret2, npret2)
+    elif ufunc is np.invert:
+        assert_raises(TypeError, ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)
@@ -686,6 +706,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         elif a.units != b.units:
             assert_raises(YTUnitOperationError, ufunc, a, b)
             return
+    if ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor,
+                 np.left_shift, np.right_shift, np.ldexp):
+        assert_raises(TypeError, ufunc, a, b)
+        return
 
     ret = ufunc(a, b, out=out)
 
@@ -721,8 +745,10 @@ def test_ufuncs():
             a = YTArray([.3, .4, .5], 'cm')
             b = YTArray([.1, .2, .3], 'dimensionless')
             c = np.array(b)
+            d = YTArray([1., 2., 3.], 'g')
             yield binary_ufunc_comparison, ufunc, a, b
             yield binary_ufunc_comparison, ufunc, a, c
+            assert_raises(YTUnitOperationError, ufunc, a, d)
             continue
 
         a = YTArray([.3, .4, .5], 'cm')
@@ -817,6 +843,33 @@ def test_astropy():
 
     yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
+
+@requires_module("pint")
+def test_pint():
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    
+    p_arr = np.arange(10)*ureg.km/ureg.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_pint(p_arr)
+
+    p_quan = 10.*ureg.g**0.5/(ureg.mm**3)
+    yt_quan = YTQuantity(10., "sqrt(g)/mm**3")
+    yt_quan2 = YTQuantity.from_pint(p_quan)
+
+    yield assert_array_equal, p_arr, yt_arr.to_pint()
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
+
+    yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
+    yield assert_equal, yt_quan, yt_quan2
+
+    yield assert_array_equal, yt_arr, YTArray.from_pint(yt_arr.to_pint())
+    yield assert_equal, yt_quan, YTQuantity.from_pint(yt_quan.to_pint())
 
 def test_subclass():
 
@@ -1010,7 +1063,18 @@ def test_electromagnetic():
     V = YTQuantity(1.0, "statV")
     V_mks = V.to_equivalent("V", "SI")
     yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
-    
+
+def test_ytarray_coercion():
+    a = YTArray([1, 2, 3], 'cm')
+    q = YTQuantity(3, 'cm')
+    na = np.array([1, 2, 3])
+
+    assert_isinstance(a*q, YTArray)
+    assert_isinstance(q*na, YTArray)
+    assert_isinstance(q*3, YTQuantity)
+    assert_isinstance(q*np.float64(3), YTQuantity)
+    assert_isinstance(q*np.array(3), YTQuantity)
+
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
@@ -1051,3 +1115,22 @@ def test_modified_unit_division():
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
     yield assert_true, ret.units.base_value == 1.0
+
+def test_load_and_save():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    a = YTArray(np.random.random(10), "kpc")
+    b = YTArray(np.random.random(10), "Msun")
+    c = YTArray(np.random.random(10), "km/s")
+
+    savetxt("arrays.dat", [a,b,c], delimiter=",")
+
+    d, e = loadtxt("arrays.dat", usecols=(1,2), delimiter=",")
+
+    yield assert_array_equal, b, d
+    yield assert_array_equal, c, e
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

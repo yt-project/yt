@@ -165,6 +165,10 @@ class OctreeSubset(YTSelectionContainer):
             `particle_deposit` namespace as `methodname_deposit`.  Current
             methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
             `weighted_mean`, `mesh_id`, and `nearest`.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -228,6 +232,10 @@ class OctreeSubset(YTSelectionContainer):
             we are able to find and identify all relevant particles.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -313,6 +321,10 @@ class OctreeSubset(YTSelectionContainer):
             `particle_smooth` namespace as `methodname_smooth`.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------

@@ -22,7 +22,7 @@ def is_colormap(cmap):
 
 def check_color(name):
     try:
-        ss = cc.colorConverter.to_rgb(name)
+        cc.colorConverter.to_rgb(name)
         return True
     except ValueError:
         return False

@@ -826,7 +826,7 @@ so:
 
 .. code-block:: python
 
-   from yt.frontends.sph.definitions import gadget_field_specs
+   from yt.frontends.gadget.definitions import gadget_field_specs
    gadget_field_specs["my_field_def"] = my_field_def
 
 Please also feel free to issue a pull request with any new field
@@ -926,7 +926,7 @@ Generic AMR Data
 ----------------
 
 See :ref:`loading-numpy-array` and
-:func:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
+:func:`~yt.frontends.stream.data_structures.load_amr_grids` for more detail.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying

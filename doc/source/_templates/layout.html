@@ -1,5 +1,10 @@
 {% extends '!layout.html' %}
 
+{%- block linktags %}
+    <link href="http://yt-project.org/doc/{{ pagename }}.html" rel="canonical" />
+    {{ super() }}
+{%- endblock %}
+
 {%- block extrahead %}
     {{ super() }}
     <script type="text/javascript">

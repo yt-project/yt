@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import setuptools
 
 
 def configuration(parent_package='', top_path=None):
@@ -32,6 +31,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("sph")
     config.add_subpackage("stream")
     config.add_subpackage("tipsy")
+    config.add_subpackage("ytdata")
     config.add_subpackage("art/tests")
     config.add_subpackage("artio/tests")
     config.add_subpackage("athena/tests")
@@ -52,4 +52,5 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("stream/tests")
     config.add_subpackage("stream/sample_data")
     config.add_subpackage("tipsy/tests")
+    config.add_subpackage("ytdata/tests")
     return config

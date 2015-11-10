@@ -42,6 +42,16 @@ cdef extern from "math.h":
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
 
+cdef np.int64_t fnv_hash(unsigned char[:] octets):
+    # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
+    # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
+    cdef np.int64_t hash_val = 2166136261
+    cdef char octet
+    for octet in octets:
+        hash_val = hash_val ^ octet
+        hash_val = hash_val * 16777619
+    return hash_val
+
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -109,6 +119,8 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
+        cdef np.float64_t [:] DLE
+        cdef np.float64_t [:] DRE
         self.min_level = getattr(dobj, "min_level", 0)
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
@@ -385,7 +397,6 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef int i, j, k, selected
         cdef int npoints, nv = mesh._connectivity_length
-        cdef int ndim = mesh.connectivity_coords.shape[1]
         cdef int total = 0
         cdef int offset = mesh._index_offset
         coords = _ensure_code(mesh.connectivity_coords)
@@ -394,11 +405,11 @@ cdef class SelectorObject:
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(ndim):
+            for k in range(3):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
-                for k in range(ndim):
+                for k in range(3):
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
@@ -445,7 +456,7 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
-                                np.float64_t right_edge[3], 
+                                np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
@@ -602,10 +613,15 @@ cdef class SelectorObject:
         return mask.view("bool")
 
     def __hash__(self):
-        cdef np.int64_t hash_val = 0
+        # convert data to be hashed to a byte array, which FNV algorithm expects
+        hash_data = bytearray()
         for v in self._hash_vals() + self._base_hash():
-            hash_val ^= hash(v)
-        return hash_val
+            if isinstance(v, tuple):
+                hash_data.extend(v[0].encode('ascii'))
+                hash_data.extend(repr(v[1]).encode('ascii'))
+            else:
+                hash_data.extend(repr(v).encode('ascii'))
+        return fnv_hash(hash_data)
 
     def _hash_vals(self):
         raise NotImplementedError
@@ -1106,7 +1122,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
 
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),
-                ("norm_vec[1]", self.norm_vec[1]), 
+                ("norm_vec[1]", self.norm_vec[1]),
                 ("norm_vec[2]", self.norm_vec[2]),
                 ("d", self.d))
 

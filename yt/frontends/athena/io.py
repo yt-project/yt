@@ -12,10 +12,11 @@ The data-file handling functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
 from yt.utilities.io_handler import \
-           BaseIOHandler
+    BaseIOHandler
 import numpy as np
-from yt.funcs import mylog, defaultdict
+from yt.funcs import mylog
 from .data_structures import chk23
 
 float_size = {"float":np.dtype(">f4").itemsize,

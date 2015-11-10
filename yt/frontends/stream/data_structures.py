@@ -13,6 +13,8 @@ Data structures for Streaming, in-memory datasets
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import os
+import time
 import weakref
 import numpy as np
 import uuid
@@ -20,13 +22,12 @@ from itertools import chain, product
 
 from numbers import Number as numeric_type
 
+from yt.funcs import \
+    iterable, \
+    ensure_list
 from yt.utilities.io_handler import io_registry
-from yt.funcs import *
-from yt.config import ytcfg
 from yt.data_objects.data_containers import \
-    YTFieldData, \
-    YTDataContainer, \
-    YTSelectionContainer
+    YTFieldData
 from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.data_objects.grid_patch import \
@@ -43,10 +44,6 @@ from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
-from yt.fields.particle_fields import \
-    particle_vector_functions, \
-    particle_deposition_functions, \
-    standard_particle_fields
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
@@ -54,8 +51,6 @@ from yt.geometry.unstructured_mesh_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.grid_container import \
@@ -63,9 +58,9 @@ from yt.geometry.grid_container import \
     MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+from yt.units.yt_array import \
+    YTQuantity, \
+    uconcatenate
 from yt.utilities.flagging_methods import \
     FlaggingGrid
 from yt.data_objects.unstructured_mesh import \
@@ -96,7 +91,6 @@ class StreamGrid(AMRGridPatch):
     def _guess_properties_from_parent(self):
         rf = self.ds.refine_by
         my_ind = self.id - self._id_offset
-        le = self.LeftEdge
         self.dds = self.Parent.dds/rf
         ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
@@ -1072,7 +1066,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * (1<<over_refine_factor)
+    domain_dimensions = np.ones(3, "int32") * (1 << over_refine_factor)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')

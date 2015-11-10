@@ -15,7 +15,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -32,7 +32,7 @@ CHUNKSIZE = 10000000
 def _get_h5_handle(fn):
     try:
         f = h5py.File(fn, "r")
-    except IOError as e:
+    except IOError:
         print("ERROR OPENING %s" % (fn))
         if os.path.exists(fn):
             print("FILENAME EXISTS")

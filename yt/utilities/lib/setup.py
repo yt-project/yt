@@ -79,6 +79,7 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
                          "yt/utilities/lib/ContourFinding.pxd",
+                         "yt/utilities/lib/grid_traversal.pxd",
                          "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
@@ -171,6 +172,9 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("amr_kdtools", 
                          ["yt/utilities/lib/amr_kdtools.pyx"],
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("line_integral_convolution",
+                         ["yt/utilities/lib/line_integral_convolution.pyx"])
+
     include_dirs = check_for_pyembree()
     if include_dirs is not None:
         config.add_extension("mesh_construction",
@@ -182,7 +186,8 @@ def configuration(parent_package='',top_path=None):
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
-                             depends=["yt/utilities/lib/mesh_traversal.pxd"])
+                             depends=["yt/utilities/lib/mesh_traversal.pxd",
+                                      "yt/utilities/lib/grid_traversal.pxd"])
         config.add_extension("mesh_samplers",
                              ["yt/utilities/lib/mesh_samplers.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
@@ -194,6 +199,7 @@ def configuration(parent_package='',top_path=None):
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
                              depends=["yt/utilities/lib/mesh_intersection.pxd"])
+
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

@@ -17,12 +17,10 @@ import numpy as np
 import re
 
 from yt.utilities.physical_constants import \
-    mh, \
-    mass_sun_cgs, \
     amu_cgs
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction
-from yt.funcs import *
+
 from yt.utilities.chemical_formulas import \
     ChemicalFormula
 from .field_plugin_registry import \

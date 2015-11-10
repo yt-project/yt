@@ -14,7 +14,7 @@ Halo Mass Function and supporting functions.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import math, time
+import math
 
 from yt.funcs import mylog
 from yt.units.yt_array import \
@@ -184,7 +184,7 @@ class HaloMassFcn():
             if log_mass_max is None:
                 self.log_mass_max = 16
         # If we're making the analytic function...
-        if self.make_analytic == True:
+        if self.make_analytic is True:
             # Try to set cosmological parameters from the simulation dataset
             if simulation_ds is not None:
                 self.omega_matter0 = self.simulation_ds.omega_matter
@@ -623,27 +623,27 @@ You should call the former once (per cosmology) and the latter as
 many times as you want. */
 
 /* TFmdm_set_cosm() -- User passes all the cosmological parameters as
-	arguments; the routine sets up all of the scalar quantites needed 
-	computation of the fitting formula.  The input parameters are: 
-	1) omega_matter -- Density of CDM, baryons, and massive neutrinos,
-				in units of the critical density. 
-	2) omega_baryon -- Density of baryons, in units of critical. 
-	3) omega_hdm    -- Density of massive neutrinos, in units of critical 
-	4) degen_hdm    -- (Int) Number of degenerate massive neutrino species 
-	5) omega_lambda -- Cosmological constant 
-	6) hubble       -- Hubble constant, in units of 100 km/s/Mpc 
-	7) redshift     -- The redshift at which to evaluate */
+   arguments; the routine sets up all of the scalar quantites needed 
+   computation of the fitting formula.  The input parameters are: 
+   1) omega_matter -- Density of CDM, baryons, and massive neutrinos,
+                      in units of the critical density. 
+   2) omega_baryon -- Density of baryons, in units of critical. 
+   3) omega_hdm    -- Density of massive neutrinos, in units of critical 
+   4) degen_hdm    -- (Int) Number of degenerate massive neutrino species 
+   5) omega_lambda -- Cosmological constant 
+   6) hubble       -- Hubble constant, in units of 100 km/s/Mpc 
+   7) redshift     -- The redshift at which to evaluate */
 
 /* TFmdm_onek_mpc() -- User passes a single wavenumber, in units of Mpc^-1.
-	Routine returns the transfer function from the Eisenstein & Hu
-	fitting formula, based on the cosmology currently held in the 
-	internal variables.  The routine returns T_cb (the CDM+Baryon
-	density-weighted transfer function), although T_cbn (the CDM+
-	Baryon+Neutrino density-weighted transfer function) is stored
-	in the global variable tf_cbnu. */
+   Routine returns the transfer function from the Eisenstein & Hu
+   fitting formula, based on the cosmology currently held in the 
+   internal variables.  The routine returns T_cb (the CDM+Baryon
+   density-weighted transfer function), although T_cbn (the CDM+
+   Baryon+Neutrino density-weighted transfer function) is stored
+   in the global variable tf_cbnu. */
 
 /* We also supply TFmdm_onek_hmpc(), which is identical to the previous
-	routine, but takes the wavenumber in units of h Mpc^-1. */
+   routine, but takes the wavenumber in units of h Mpc^-1. */
 
 /* We hold the internal scalar quantities in global variables, so that
 the user may access them in an external program, via "extern" declarations. */
@@ -667,7 +667,7 @@ class TransferFunction(object):
         sets many global variables for use in TFmdm_onek_mpc() */
     """
     def __init__(self, omega_matter, omega_baryon, omega_hdm,
-	    degen_hdm, omega_lambda, hubble, redshift):
+                 degen_hdm, omega_lambda, hubble, redshift):
         self.qwarn = 0;
         self.theta_cmb = 2.728/2.7 # Assuming T_cmb = 2.728 K
     

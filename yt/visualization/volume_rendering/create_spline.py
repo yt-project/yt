@@ -15,6 +15,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import sys
 
 def create_spline(old_x, old_y, new_x, tension=0.5, sorted=False):
     """

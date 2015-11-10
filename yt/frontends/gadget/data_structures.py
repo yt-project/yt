@@ -15,12 +15,11 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +29,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
@@ -132,7 +129,7 @@ class GadgetDataset(ParticleDataset):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
-        f = open(self.parameter_filename)
+        f = open(self.parameter_filename, 'rb')
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
@@ -297,7 +294,11 @@ class GadgetDataset(ParticleDataset):
         # or the byte swapped equivalents (65536 and 134217728).
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
-        (rhead,) = struct.unpack('<I',f.read(4))
+        try:
+            (rhead,) = struct.unpack('<I',f.read(4))
+        except struct.error:
+            f.close()
+            return False, 1
         # Use value to check endianess
         if rhead == 256:
             endianswap = '<'

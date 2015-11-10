@@ -103,7 +103,9 @@ from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate, \
     uintersect1d, \
-    uunion1d
+    uunion1d, \
+    loadtxt, \
+    savetxt
 
 from yt.fields.api import \
     field_plugins, \
@@ -136,6 +138,9 @@ from yt.frontends.stream.api import \
     load_particles, load_hexahedral_mesh, load_octree, \
     hexahedral_connectivity, load_unstructured_mesh
 
+from yt.frontends.ytdata.api import \
+    save_as_dataset
+
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
@@ -154,7 +159,7 @@ from yt.visualization.api import \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    volume_render, ColorTransferFunction, TransferFunction, \
+    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
     off_axis_projection
 import yt.visualization.volume_rendering.api as volume_rendering
 #    TransferFunctionHelper, MultiVariateTransferFunction
@@ -172,4 +177,3 @@ from yt.testing import \
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
-

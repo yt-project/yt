@@ -13,8 +13,7 @@ Data structures for GDF.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import types
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
 import os
@@ -201,7 +200,7 @@ class GDFDataset(Dataset):
                 else:
                     current_field_units = \
                         just_one(current_field.attrs['field_units'])
-                self.field_units[field_name] = current_field_units
+                self.field_units[field_name] = current_field_units.decode("utf8")
             else:
                 self.field_units[field_name] = ""
 

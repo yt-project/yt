@@ -152,6 +152,9 @@ def off_axis_projection(data_source, center, normal_vector,
     camera.set_width(width)
     camera.switch_orientation(normal_vector=normal_vector,
                               north_vector=north_vector)
+    if not iterable(width):
+        width = data_source.ds.arr([width]*3)
+    camera.position = center - width[2]*camera.normal_vector
     camera.focus = center
     sc.camera = camera
     sc.add_source(vol)
@@ -173,9 +176,6 @@ def off_axis_projection(data_source, center, normal_vector,
     east_vector = camera.unit_vectors[1]
     normal_vector = camera.unit_vectors[2]
     fields = vol.field
-    if not iterable(width):
-        width = data_source.ds.arr([width]*3)
-
     mi = ds.domain_right_edge.copy()
     ma = ds.domain_left_edge.copy()
     for off1 in [-1, 1]:

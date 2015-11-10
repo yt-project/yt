@@ -298,9 +298,9 @@ class OWLSFieldInfo(SPHFieldInfo):
         owls_ion_path = os.path.join( data_dir, "owls_ion_data" )
 
         if not os.path.exists(owls_ion_path):
-            mylog.info(txt % (data_url, data_dir))                    
+            mylog.info(txt % (data_url, data_dir))
             fname = data_dir + "/" + data_file
-            fn = download_file(os.path.join(data_url, data_file), fname)
+            download_file(os.path.join(data_url, data_file), fname)
 
             cmnd = "cd " + data_dir + "; " + "tar xf " + data_file
             os.system(cmnd)

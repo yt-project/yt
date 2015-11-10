@@ -32,7 +32,7 @@ def get_radius(data, field_prefix):
         # it from a cm**2 array.
         np.subtract(data["%s%s" % (field_prefix, ax)].in_units("cm"),
                     center[i], r)
-        if data.ds.periodicity[i] == True:
+        if data.ds.periodicity[i] is True:
             np.abs(r, r)
             np.subtract(r, DW[i], rdw)
             np.abs(rdw, rdw)

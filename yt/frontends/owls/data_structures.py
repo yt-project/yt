@@ -15,8 +15,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import types
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 import yt.units
 from yt.frontends.gadget.data_structures import \

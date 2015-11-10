@@ -388,7 +388,7 @@ class Cosmology(object):
         --------
 
         >>> co = Cosmology()
-        >>> print co.t_from_z(4.e17)
+        >>> print co.z_from_t(4.e17)
 
         """
 

@@ -15,7 +15,7 @@ from yt.analysis_modules.ppv_cube.api import PPVCube
 import yt.units as u
 from yt.utilities.physical_constants import kboltz, mh, clight
 import numpy as np
-from yt.testing import *
+from yt.testing import assert_allclose_units
 
 def setup():
     """Test specific setup."""

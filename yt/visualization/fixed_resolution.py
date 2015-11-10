@@ -13,7 +13,11 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
@@ -27,6 +31,7 @@ from . import _MPL
 import numpy as np
 import weakref
 import re
+import types
 
 class FixedResolutionBuffer(object):
     r"""
@@ -46,7 +51,7 @@ class FixedResolutionBuffer(object):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -160,7 +165,7 @@ class FixedResolutionBuffer(object):
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
         result = False
-        if p.search( fname ) != None:
+        if p.search( fname ) is not None:
             result = True
         return result
 
@@ -173,7 +178,7 @@ class FixedResolutionBuffer(object):
 
         p = re.compile("_p[0-9]+_")
         m = p.search( fname )
-        if m != None:
+        if m is not None:
             pstr = m.string[m.start()+1:m.end()-1]
             segments = fname.split("_")
             for i,s in enumerate(segments):
@@ -377,6 +382,84 @@ class FixedResolutionBuffer(object):
                                  periodicity=(False,False,False),
                                  geometry=self.ds.geometry,
                                  nprocs=nprocs)
+
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export a fixed resolution buffer to a reloadable yt dataset.
+
+        This function will take a fixed resolution buffer and output a 
+        dataset containing either the fields presently existing or fields 
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> frb = proj.to_frb(1.0, (800, 800))
+        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> ds2 = yt.load(fn)
+        >>> print (ds2.data["density"])
+        [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         ...,
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]] g/cm**3
+
+        """
+
+        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self.data_source._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.data)
+
+        ftypes = dict([(field, "grid") for field in data])
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self.data_source._con_args +
+                            self.data_source._tds_attrs])
+        extra_attrs["left_edge"] = self.ds.arr([self.bounds[0],
+                                                self.bounds[2]])
+        extra_attrs["right_edge"] = self.ds.arr([self.bounds[1],
+                                                 self.bounds[3]])
+        extra_attrs["ActiveDimensions"] = self.buff_size
+        extra_attrs["level"] = 0
+        extra_attrs["data_type"] = "yt_frb"
+        extra_attrs["container_type"] = self.data_source._type_name
+        extra_attrs["dimensionality"] = self.data_source._dimensionality
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
 
     @property
     def limits(self):

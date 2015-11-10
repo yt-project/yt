@@ -33,6 +33,16 @@ from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}
 
+def get_position_fields(field, data):
+    axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
+    if field[0] in data.ds.particle_types:
+        position_fields = [(field[0], 'particle_position_%s' % d)
+                           for d in axis_names]
+    else:
+        position_fields = axis_names
+
+    return position_fields
+
 class RegisteredDerivedQuantity(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
@@ -246,7 +256,8 @@ class CenterOfMass(DerivedQuantity):
           (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
-            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
+            vals += [(data["gas", ax] *
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
@@ -544,14 +555,15 @@ class MaxLocation(DerivedQuantity):
     def process_chunk(self, data, field):
         field = data._determine_fields(field)[0]
         ma = array_like_field(data, -HUGE, field)
-        mx = array_like_field(data, -1, "x")
-        my = array_like_field(data, -1, "y")
-        mz = array_like_field(data, -1, "z")
+        position_fields = get_position_fields(field, data)
+        mx = array_like_field(data, -1, position_fields[0])
+        my = array_like_field(data, -1, position_fields[1])
+        mz = array_like_field(data, -1, position_fields[2])
         maxi = -1
         if data[field].size > 0:
             maxi = np.argmax(data[field])
             ma = data[field][maxi]
-            mx, my, mz = [data[ax][maxi] for ax in 'xyz']
+            mx, my, mz = [data[ax][maxi] for ax in position_fields]
         return (ma, maxi, mx, my, mz)
 
     def reduce_intermediate(self, values):
@@ -587,14 +599,15 @@ class MinLocation(DerivedQuantity):
     def process_chunk(self, data, field):
         field = data._determine_fields(field)[0]
         ma = array_like_field(data, HUGE, field)
-        mx = array_like_field(data, -1, "x")
-        my = array_like_field(data, -1, "y")
-        mz = array_like_field(data, -1, "z")
+        position_fields = get_position_fields(field, data)
+        mx = array_like_field(data, -1, position_fields[0])
+        my = array_like_field(data, -1, position_fields[1])
+        mz = array_like_field(data, -1, position_fields[2])
         mini = -1
         if data[field].size > 0:
             mini = np.argmin(data[field])
             ma = data[field][mini]
-            mx, my, mz = [data[ax][mini] for ax in 'xyz']
+            mx, my, mz = [data[ax][mini] for ax in position_fields]
         return (ma, mini, mx, my, mz)
 
     def reduce_intermediate(self, values):
@@ -645,7 +658,7 @@ class SpinParameter(DerivedQuantity):
         m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
-                  data["index", "cell_volume"]).sum(dtype=np.float64)
+                  data["gas", "cell_volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "cell_mass"].sum(dtype=np.float64)
         if use_particles:

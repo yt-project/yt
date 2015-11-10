@@ -13,7 +13,7 @@ A registry for units that can be added to and modified.
 #-----------------------------------------------------------------------------
 
 from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, latex_symbol_lut
+    default_unit_symbol_lut
 
 class SymbolNotFoundError(Exception):
     pass
@@ -39,7 +39,7 @@ class UnitRegistry:
     def __contains__(self, item):
         return item in self.lut
 
-    def add(self, symbol, base_value, dimensions, tex_repr=None):
+    def add(self, symbol, base_value, dimensions, tex_repr=None, offset=None):
         """
         Add a symbol to this registry.
 
@@ -48,18 +48,25 @@ class UnitRegistry:
 
         # Validate
         if not isinstance(base_value, float):
-            raise UnitParseError("base_value must be a float, got a %s."
-                                 % type(base_value))
+            raise UnitParseError("base_value (%s) must be a float, got a %s."
+                                 % (base_value, type(base_value)))
+
+        if offset is not None:
+            if not isinstance(offset, float):
+                raise UnitParseError(
+                    "offset value (%s) must be a float, got a %s."
+                    % (offset, type(offset)))
+        else:
+            offset = 0.0
 
         validate_dimensions(dimensions)
 
-        # Add to symbol lut
         if tex_repr is None:
-            tex_repr = "\\rm{" + symbol + "}"
-        latex_symbol_lut.setdefault(symbol, tex_repr)
+            # make educated guess that will look nice in most cases
+            tex_repr = r"\rm{" + symbol.replace('_', '\ ') + "}"
 
         # Add to lut
-        self.lut.update({symbol: (base_value, dimensions)})
+        self.lut.update({symbol: (base_value, dimensions, offset, tex_repr)})
 
     def remove(self, symbol):
         """
@@ -86,7 +93,8 @@ class UnitRegistry:
 
         if hasattr(base_value, "in_base"):
             base_value = float(base_value.in_base().value)
-        self.lut[symbol] = (base_value, self.lut[symbol][1])
+
+        self.lut[symbol] = (base_value, ) + self.lut[symbol][1:]
 
     def keys(self):
         """

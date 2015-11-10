@@ -10,6 +10,7 @@
 # Elementary masses
 mass_electron_grams = 9.10938291e-28
 amu_grams         = 1.660538921e-24
+mass_hydrogen_grams = 1.007947*amu_grams
 
 # Solar values (see Mamajek 2012)
 # https://sites.google.com/site/mamajeksstarnotes/bc-scale
