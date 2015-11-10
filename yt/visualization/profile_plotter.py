@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types, iteritems
+from collections import OrderedDict
 import base64
 import os
 
@@ -59,7 +60,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
-class FigureContainer(dict):
+class FigureContainer(OrderedDict):
     def __init__(self):
         super(FigureContainer, self).__init__()
 
@@ -68,7 +69,7 @@ class FigureContainer(dict):
         self[key] = figure
         return self[key]
 
-class AxesContainer(dict):
+class AxesContainer(OrderedDict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
         self.ylim = {}
@@ -334,8 +335,7 @@ class ProfilePlot(object):
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
 
-        # This relies on 'profile' leaking
-        for fname, axes in self.axes.items():
+        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
             xscale, yscale = self._get_field_log(fname, profile)
             xtitle, ytitle = self._get_field_title(fname, profile)
             axes.set_xscale(xscale)

@@ -111,6 +111,12 @@ class TestProfilePlotSave(unittest.TestCase):
         assert_array_almost_equal(xlim, (0.3, 0.8))
         assert_array_almost_equal(ylim, (0.4, 0.6))
         phases.append(pp)
+
+        p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
+        p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
+        profiles.append(ProfilePlot.from_profiles(
+            [p1, p2], labels=['temperature', 'velocity']))
+
         cls.profiles = profiles
         cls.phases = phases
         cls.ds = test_ds
