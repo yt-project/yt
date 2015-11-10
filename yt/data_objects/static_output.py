@@ -18,7 +18,7 @@ import string, re, gc, time, os, os.path, weakref
 import functools
 
 from yt.funcs import *
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
 from yt.utilities.cosmology import \
@@ -131,7 +131,7 @@ class Dataset(object):
 
     def __new__(cls, filename=None, *args, **kwargs):
         from yt.frontends.stream.data_structures import StreamHandler
-        if not isinstance(filename, str):
+        if not isinstance(filename, string_types):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -458,7 +458,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, str):
+        if isinstance(filter, string_types):
             used = False
             for f in filter_registry[filter]:
                 used = self._setup_filtered_type(f)

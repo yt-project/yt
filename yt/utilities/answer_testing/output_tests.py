@@ -14,6 +14,7 @@ Base classes for answer testing
 #-----------------------------------------------------------------------------
 
 import matplotlib
+from yt.extern.six import string_types
 from yt.mods import *
 
 # We first create our dictionary of tests to run.  This starts out empty, and
@@ -150,7 +151,7 @@ class MultipleOutputTest(RegressionTest):
         self.io_log = io_log
 
     def __iter__(self):
-        if isinstance(self.io_log, str):
+        if isinstance(self.io_log, string_types):
             for line in open(self.io_log):
                 yield line[len(self.io_log_header):].split()[0].strip()
         elif isinstance(self.io_log, list):
