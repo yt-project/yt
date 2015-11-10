@@ -71,6 +71,7 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
+
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
