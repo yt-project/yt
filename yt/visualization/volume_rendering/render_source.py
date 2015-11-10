@@ -22,6 +22,7 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler
 from yt.visualization.image_writer import apply_colormap
+from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
@@ -456,8 +457,8 @@ class MeshSource(OpaqueSource):
                                                  color_bounds=color_bounds)
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
-                               self.sampler.zbuffer)
-
+                           self.sampler.zbuffer)
+        zbuffer.rgba = ImageArray(zbuffer.rgba.astype('uint8'))
         self.zbuffer = zbuffer
         self.zbuffer.rgba = self.zbuffer.rgba.astype('uint8')
         self.current_image = self.zbuffer.rgba
