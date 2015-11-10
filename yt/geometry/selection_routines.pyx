@@ -397,6 +397,7 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef int i, j, k, selected
         cdef int npoints, nv = mesh._connectivity_length
+        cdef int ndim = mesh.connectivity_coords.shape[1]
         cdef int total = 0
         cdef int offset = mesh._index_offset
         coords = _ensure_code(mesh.connectivity_coords)
@@ -405,11 +406,11 @@ cdef class SelectorObject:
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(3):
+            for k in range(ndim):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
-                for k in range(3):
+                for k in range(ndim):
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
