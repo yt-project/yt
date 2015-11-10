@@ -456,22 +456,12 @@ class MeshSource(OpaqueSource):
                                                  color_bounds=color_bounds)
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
-                           self.sampler.zbuffer)
+                               self.sampler.zbuffer)
 
         self.zbuffer = zbuffer
-        self.current_image = self.zbuffer.rgba.astype('uint8')
+        self.zbuffer.rgba = self.zbuffer.rgba.astype('uint8')
+        self.current_image = self.zbuffer.rgba
         return self.current_image
-
-        shape = (camera.resolution[0], camera.resolution[1], 4)
-        if zbuffer is None:
-            empty = np.empty(shape, dtype='float64')
-            z = np.empty(empty.shape[:2], dtype='float64')
-            empty[:] = 0.0
-            z[:] = np.inf
-            zbuffer = ZBuffer(empty, z)
-        elif zbuffer.rgba.shape != shape:
-            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
-                              zbuffer.z.reshape(shape[:2]))
 
     def finalize_image(self, camera, image):
         sam = self.sampler
