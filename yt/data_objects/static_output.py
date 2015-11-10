@@ -114,6 +114,7 @@ def requires_index(attr_name):
 class Dataset(object):
 
     default_fluid_type = "gas"
+    default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")
     particle_types = ("io",) # By default we have an 'all'
     particle_types_raw = ("io",)

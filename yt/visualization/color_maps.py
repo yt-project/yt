@@ -101,6 +101,15 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
 
 add_cmap('black_green', cdict)
 
+cdict = {'red':   ((0.0, 0.0, 0.0),
+                   (1.0, 0.2, 0.2)),
+         'green': ((0.0, 0.0, 0.0),
+                   (1.0, 0.2, 0.2)),
+         'blue':  ((0.0, 0.0, 0.0),
+                   (1.0, 1.0, 1.0))}
+
+add_cmap('black_blueish', cdict)
+
 # This one is a variant of a colormap commonly
 # used for X-ray observations by Maxim Markevitch
 

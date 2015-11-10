@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import pkg_resources
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
@@ -46,6 +47,13 @@ def check_for_openmp():
 
     return exit_code == 0
 
+def check_for_pyembree():
+    try:
+        fn = pkg_resources.resource_filename("pyembree", "rtcore.pxd")
+    except ImportError:
+        return None
+    return os.path.dirname(fn)
+
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
@@ -71,6 +79,7 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
                          "yt/utilities/lib/ContourFinding.pxd",
+                         "yt/utilities/lib/grid_traversal.pxd",
                          "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
@@ -102,12 +111,13 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("misc_utilities", 
                 ["yt/utilities/lib/misc_utilities.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("pixelization_routines", 
+    config.add_extension("pixelization_routines",
                 ["yt/utilities/lib/pixelization_routines.pyx",
                  "yt/utilities/lib/pixelization_constants.c"],
                include_dirs=["yt/utilities/lib/"],
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
-                                  "yt/utilities/lib/pixelization_constants.h"])
+               language="c++",
+               libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
+                                   "yt/utilities/lib/pixelization_constants.h"])
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -153,6 +163,9 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("write_array",
                          ["yt/utilities/lib/write_array.pyx"])
+    config.add_extension("element_mappings",
+                         ["yt/utilities/lib/element_mappings.pyx"],
+                         libraries=["m"], depends=["yt/utilities/lib/element_mappings.pxd"])
     config.add_extension("ragged_arrays",
                          ["yt/utilities/lib/ragged_arrays.pyx"])
     config.add_extension("amr_kdtools", 
@@ -160,6 +173,26 @@ def configuration(parent_package='',top_path=None):
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("line_integral_convolution",
                          ["yt/utilities/lib/line_integral_convolution.pyx"])
+
+    include_dirs = check_for_pyembree()
+    if include_dirs is not None:
+        config.add_extension("mesh_construction",
+                             ["yt/utilities/lib/mesh_construction.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", "embree"], language="c++",
+                             depends=[])
+        config.add_extension("mesh_traversal",
+                             ["yt/utilities/lib/mesh_traversal.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", "embree"], language="c++",
+                             depends=["yt/utilities/lib/mesh_traversal.pxd",
+                                      "yt/utilities/lib/grid_traversal.pxd"])
+        config.add_extension("mesh_samplers",
+                             ["yt/utilities/lib/mesh_samplers.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", "embree"], language="c++",
+                             depends=["yt/utilities/lib/mesh_samplers.pxd"])
+
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

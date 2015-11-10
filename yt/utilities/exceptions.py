@@ -67,6 +67,9 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTSceneFieldNotFound(YTException):
+    pass
+
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
         return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
