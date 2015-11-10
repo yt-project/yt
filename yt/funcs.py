@@ -626,7 +626,7 @@ def fix_length(length, ds=None):
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
-    unit_is_string = isinstance(length[1], str)
+    unit_is_string = isinstance(length[1], string_types)
     if length_valid_tuple and unit_is_string:
         return YTArray(*length, registry=registry)
     else:
