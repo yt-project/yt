@@ -475,22 +475,32 @@ class LightRay(CosmologySplice):
             # doppler redshift.
             
             # first convert los velocities to comoving frame (ie mult. by (1+z)), 
-            # then calculate doppler redshift:
-            # 1 + redshift_dopp = sqrt((1+v/c) / (1-v/c))
+            # then calculate los doppler redshift:
+            # 1 + redshift_dopp_los = sqrt((1+v/c) / (1-v/c))
 
-            # then to add cosmological redshift and doppler redshift, follow
+            # next, convert transverse velocities to comoving frame
+            # then calculate transverse doppler redshift (from time dilation):
+            # 1 + redshift_dopp_trans = 1 / sqrt(1+v**2/c**2)
+
+            # then to add cosmological redshift and doppler redshifts, follow
             # eqn 3.75 in Peacock's Cosmological Physics:
-            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler)
+            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler_los) * (1 + z_doppler_trans)
             # Alternatively, see eqn 5.49 in Peebles for a similar result.
             if get_los_velocity:
 
                 velocity_los_cm = (1 + sub_data['redshift']) * \
                                   sub_data['velocity_los']
-                redshift_dopp = ((1 + velocity_los_cm / speed_of_light_cgs) /
-                                (1 - velocity_los_cm / speed_of_light_cgs))**(0.5) - 1
-                sub_data['redshift_eff'] = ((1 + redshift_dopp) * \
-                                           (1 + sub_data['redshift'])) - 1
-                del velocity_los_cm, redshift_dopp
+                velocity_trans_cm = (1 + sub_data['redshift']) * \
+                                    sub_data['velocity_trans']
+                redshift_dopp_los = ((1 + velocity_los_cm / speed_of_light_cgs) /
+                                     (1 - velocity_los_cm / speed_of_light_cgs))**0.5 - 1
+                redshift_dopp_trans = (1 / (1 - (velocity_trans_cm**2 / 
+                                                 speed_of_light_cgs**2))**0.5) - 1
+                sub_data['redshift_eff'] = ((1 + redshift_dopp_los) * \
+                                            (1 + redshift_dopp_trans) * \
+                                            (1 + sub_data['redshift'])) - 1
+                del velocity_los_cm, velocity_trans_cm, redshift_dopp_los, \
+                    redshift_dopp_trans
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
