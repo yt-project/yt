@@ -13,7 +13,9 @@ Various non-grid data containers.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import h5py
 import itertools
+import os
 import types
 import uuid
 from yt.extern.six import string_types
@@ -25,9 +27,12 @@ import weakref
 import shelve
 from contextlib import contextmanager
 
+from yt.funcs import get_output_filename
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
 from yt.units.unit_object import UnitParseError
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
@@ -98,6 +103,8 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _tds_attrs = ()
+    _tds_fields = ()
     _field_cache = None
     _index = None
 
@@ -463,6 +470,117 @@ class YTDataContainer(object):
         df = pd.DataFrame(data)
         return df
 
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export a data object to a reloadable yt dataset.
+
+        This function will take a data object and output a dataset 
+        containing either the fields presently existing or fields 
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
+        >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
+        >>> sphere_ds = yt.load(fn)
+        >>> # the original data container is available as the data attribute
+        >>> print (sds.data["density"])
+        [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
+           3.57339907e-30   2.83150720e-30] g/cm**3
+        >>> ad = sphere_ds.all_data()
+        >>> print (ad["temperature"])
+        [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
+           4.54380547e+04   4.72560117e+04] K
+
+        """
+
+        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        # get the extra fields needed to reconstruct the container
+        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        for f in [f for f in self._container_fields + tds_fields \
+                  if f not in data]:
+            data[f] = self[f]
+        data_fields = list(data.keys())
+
+        need_grid_positions = False
+        need_particle_positions = False
+        ptypes = []
+        ftypes = {}
+        for field in data_fields:
+            if field in self._container_fields:
+                ftypes[field] = "grid"
+                need_grid_positions = True
+            elif self.ds.field_info[field].particle_type:
+                if field[0] not in ptypes:
+                    ptypes.append(field[0])
+                ftypes[field] = field[0]
+                need_particle_positions = True
+            else:
+                ftypes[field] = "grid"
+                need_grid_positions = True
+        # projections and slices use px and py, so don't need positions
+        if self._type_name in ["cutting", "proj", "slice"]:
+            need_grid_positions = False
+
+        if need_particle_positions:
+            for ax in "xyz":
+                for ptype in ptypes:
+                    p_field = (ptype, "particle_position_%s" % ax)
+                    if p_field in self.ds.field_info and p_field not in data:
+                        data_fields.append(field)
+                        ftypes[p_field] = p_field[0]
+                        data[p_field] = self[p_field]
+        if need_grid_positions:
+            for ax in "xyz":
+                g_field = ("index", ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+                g_field = ("index", "d" + ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self._con_args + self._tds_attrs])
+        extra_attrs["con_args"] = self._con_args
+        extra_attrs["data_type"] = "yt_data_container"
+        extra_attrs["container_type"] = self._type_name
+        extra_attrs["dimensionality"] = self._dimensionality
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
+        
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
@@ -954,6 +1072,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
+
+    @property
+    def fcoords_vertex(self):
+        if self._current_chunk is None:
+            self.index._identify_base_chunk(self)
+        return self._current_chunk.fcoords_vertex
+
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False

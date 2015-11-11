@@ -20,6 +20,8 @@ import numpy as np
 
 from .absorption_line import tau_profile
 
+from yt.extern.six import string_types
+from yt.convenience import load
 from yt.funcs import get_pbar, mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import \
@@ -121,8 +123,8 @@ class AbsorptionSpectrum(object):
         Parameters
         ----------
 
-        input_file : string
-           path to input ray data.
+        input_file : string or dataset
+           path to input ray data or a loaded ray dataset
         output_file : optional, string
            path for output file.  File formats are chosen based on the
            filename extension.  ``.h5`` for hdf5, ``.fits`` for fits,
@@ -156,7 +158,6 @@ class AbsorptionSpectrum(object):
 
         input_fields = ['dl', 'redshift', 'temperature']
         field_units = {"dl": "cm", "redshift": "", "temperature": "K"}
-        field_data = {}
         if use_peculiar_velocity:
             input_fields.append('velocity_los')
             input_fields.append('redshift_eff')
@@ -167,10 +168,11 @@ class AbsorptionSpectrum(object):
                 input_fields.append(feature['field_name'])
                 field_units[feature["field_name"]] = "cm**-3"
 
-        input = h5py.File(input_file, 'r')
-        for field in input_fields:
-            field_data[field] = YTArray(input[field].value, field_units[field])
-        input.close()
+        if isinstance(input_file, string_types):
+            input_ds = load(input_file)
+        else:
+            input_ds = input_file
+        field_data = input_ds.all_data()
 
         self.tau_field = np.zeros(self.lambda_bins.size)
         self.spectrum_line_list = []
@@ -337,6 +339,8 @@ class AbsorptionSpectrum(object):
         """
         Write out list of spectral lines.
         """
+        if filename is None:
+            return
         mylog.info("Writing spectral line list: %s." % filename)
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')

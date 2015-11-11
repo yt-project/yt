@@ -18,6 +18,7 @@ native.
 import numpy as np
 from numbers import Number as numeric_type
 
+from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
 from .derived_field import \
@@ -62,6 +63,20 @@ class FieldInfoContainer(dict):
 
     def setup_fluid_fields(self):
         pass
+
+    def setup_fluid_index_fields(self):
+        # Now we get all our index types and set up aliases to them
+        if self.ds is None: return
+        index_fields = set([f for _, f in self if _ == "index"])
+        for ftype in self.ds.fluid_types:
+            if ftype in ("index", "deposit"): continue
+            for f in index_fields:
+                if (ftype, f) in self: continue
+                self.alias((ftype, f), ("index", f))
+                # Different field types have different default units.
+                # We want to make sure the aliased field will have
+                # the same units as the "index" field.
+                self[(ftype, f)].units = self["index", f].units
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ("code_length",)
@@ -165,7 +180,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, str) and args[0] != "":
+            if not isinstance(units, string_types) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:

@@ -374,6 +374,17 @@ defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 "Gas_smoothed_Temperature")``, which in most cases would be aliased to the
 field ``("gas", "temperature")`` for convenience.
 
+Other smoothing kernels besides the cubic spline one are available through a
+keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
+Current available kernel names include:
+
+* ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
+* ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
+
+The added smoothed particle field can be accessed by
+``("deposit", "particletype_kernelname_smoothed_fieldname")`` (except for the
+cubic spline kernel, which obeys the naming scheme given above).
+
 Computing the Nth Nearest Neighbor
 ----------------------------------
 

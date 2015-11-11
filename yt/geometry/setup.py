@@ -44,6 +44,7 @@ def configuration(parent_package='',top_path=None):
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/utilities/lib/grid_traversal.pxd",
                          "yt/geometry/oct_container.pxd",
                          "yt/geometry/oct_visitors.pxd",
                          "yt/geometry/grid_container.pxd",

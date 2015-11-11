@@ -14,6 +14,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
@@ -259,6 +260,7 @@ def fake_particle_ds(
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
@@ -328,7 +330,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, str):
+            if isinstance(val, string_types):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -345,7 +347,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], str):
+                if isinstance(keywords[key], string_types):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -745,6 +747,20 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(yt.__file__)
     yt_dir = os.path.dirname(yt_file)
+    if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
+        # Provide a nice error message to work around nose bug
+        # see https://github.com/nose-devs/nose/issues/701
+        raise RuntimeError(
+            """
+    The yt.run_nose function does not work correctly when invoked in
+    the same directory as the installed yt package. Try starting
+    a python session in a different directory before invoking yt.run_nose
+    again. Alternatively, you can also run the "nosetests" executable in
+    the current directory like so:
+
+        $ nosetests
+            """
+            )
     os.chdir(yt_dir)
     try:
         nose.run(argv=nose_argv)

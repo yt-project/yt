@@ -20,7 +20,7 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
@@ -40,7 +40,7 @@ def _fix_ds(arg):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, str):
+    if isinstance(arg, string_types):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []

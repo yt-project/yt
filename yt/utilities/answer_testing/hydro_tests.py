@@ -64,7 +64,7 @@ class TestOffAxisProjection(YTDatasetTest):
 
     def run(self):
         # Here proj will just be the data array.
-        proj = off_axis_projection(self.ds, 
+        proj, sc = off_axis_projection(self.ds, 
                                    (0.5 * (self.ds.domain_left_edge + 
                                            self.ds.domain_right_edge)),
                                    [1., 1., 1.], 1., 400,

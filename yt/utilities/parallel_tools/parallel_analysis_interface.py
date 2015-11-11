@@ -471,7 +471,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
-    ...     print c[sphere_id], L
+    ...     print centers[sphere_id], L
     ...
 
     """
@@ -504,8 +504,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     # If our objects object is slice-aware, like time series data objects are,
     # this will prevent intermediate objects from being created.
     oiter = itertools.islice(enumerate(objects), my_new_id, None, njobs)
-    for obj_id, obj in oiter:
-        result_id = obj_id * njobs + my_new_id
+    for result_id, obj in oiter:
         if storage is not None:
             rstore = ResultsStorage()
             rstore.result_id = result_id

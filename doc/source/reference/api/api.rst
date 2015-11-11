@@ -72,6 +72,7 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.data_objects.data_containers.YTDataContainer
    ~yt.data_objects.data_containers.YTSelectionContainer
    ~yt.data_objects.data_containers.YTSelectionContainer0D
    ~yt.data_objects.data_containers.YTSelectionContainer1D
@@ -383,6 +384,28 @@ Stream
    ~yt.frontends.stream.io.IOHandlerStreamOctree
    ~yt.frontends.stream.io.StreamParticleIOHandler
 
+ytdata
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.ytdata.data_structures.YTDataContainerDataset
+   ~yt.frontends.ytdata.data_structures.YTSpatialPlotDataset
+   ~yt.frontends.ytdata.data_structures.YTGridDataset
+   ~yt.frontends.ytdata.data_structures.YTGridHierarchy
+   ~yt.frontends.ytdata.data_structures.YTGrid
+   ~yt.frontends.ytdata.data_structures.YTNonspatialDataset
+   ~yt.frontends.ytdata.data_structures.YTNonspatialHierarchy
+   ~yt.frontends.ytdata.data_structures.YTNonspatialGrid
+   ~yt.frontends.ytdata.data_structures.YTProfileDataset
+   ~yt.frontends.ytdata.fields.YTDataContainerFieldInfo
+   ~yt.frontends.ytdata.fields.YTGridFieldInfo
+   ~yt.frontends.ytdata.io.IOHandlerYTDataContainerHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTGridHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTSpatialPlotHDF5
+   ~yt.frontends.ytdata.io.IOHandlerYTNonspatialhdf5
+
 Loading Data
 ------------
 
@@ -395,6 +418,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
 Derived Datatypes
 -----------------
@@ -583,36 +607,57 @@ Volume Rendering
 
 See also :ref:`volume_rendering`.
 
-Here are the primary entry points:
+Here are the primary entry points and the main classes involved in the 
+Scene infrastructure:
 
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.volume_rendering.volume_rendering.volume_render
+   ~yt.visualization.volume_rendering.volume_rendering.create_scene
+   ~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection
+   ~yt.visualization.volume_rendering.scene.Scene
    ~yt.visualization.volume_rendering.camera.Camera
-   ~yt.visualization.volume_rendering.camera.off_axis_projection
-   ~yt.visualization.volume_rendering.camera.allsky_projection
-
-These objects set up the way the image looks:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction
-   ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
-
-There are also advanced objects for particular use cases:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.volume_rendering.camera.FisheyeCamera
-   ~yt.visualization.volume_rendering.camera.MosaicCamera
-   ~yt.visualization.volume_rendering.camera.PerspectiveCamera
    ~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree
-   ~yt.visualization.volume_rendering.camera.StereoPairCamera
+
+The different kinds of sources:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.render_source.RenderSource
+   ~yt.visualization.volume_rendering.render_source.VolumeSource
+   ~yt.visualization.volume_rendering.render_source.PointSource
+   ~yt.visualization.volume_rendering.render_source.LineSource
+   ~yt.visualization.volume_rendering.render_source.BoxSource
+   ~yt.visualization.volume_rendering.render_source.GridSource
+   ~yt.visualization.volume_rendering.render_source.CoordinateVectorSource
+   ~yt.visualization.volume_rendering.render_source.MeshSource
+
+The different kinds of transfer functions:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
+   ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
+   ~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper
+ 
+The different kinds of lenses:
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.volume_rendering.lens.Lens
+   ~yt.visualization.volume_rendering.lens.PlaneParallelLens
+   ~yt.visualization.volume_rendering.lens.PerspectiveLens
+   ~yt.visualization.volume_rendering.lens.StereoPerspectiveLens
+   ~yt.visualization.volume_rendering.lens.FisheyeLens
+   ~yt.visualization.volume_rendering.lens.SphericalLens
+   ~yt.visualization.volume_rendering.lens.StereoSphericalLens
 
 Streamlining
 ^^^^^^^^^^^^
@@ -739,6 +784,7 @@ Function List
    :toctree: generated/
 
    ~yt.convenience.load
+   ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate

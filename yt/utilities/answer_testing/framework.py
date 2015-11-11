@@ -305,7 +305,9 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        if isinstance(ds_fn, Dataset):
+        if ds_fn is None:
+            self.ds = None
+        elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
             self.ds = data_dir_load(ds_fn)
@@ -315,7 +317,8 @@ class AnswerTestingTest(object):
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
+                raise YTNoOldAnswer(
+                    "%s : %s" % (self.storage_name, self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -661,6 +664,30 @@ def compare_image_lists(new_result, old_result, decimals):
         assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
         for fn in fns: os.remove(fn)
 
+class VRImageComparisonTest(AnswerTestingTest):
+    _type_name = "VRImageComparison"
+    _attrs = ('desc',)
+
+    def __init__(self, scene, ds, desc, decimals):
+        super(VRImageComparisonTest, self).__init__(None)
+        self.obj_type = ('vr',)
+        self.ds = ds
+        self.scene = scene
+        self.desc = desc
+        self.decimals = decimals
+
+    def run(self):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        self.scene.render()
+        self.scene.save(tmpname, sigma_clip=1.0)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
@@ -776,6 +803,16 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
     else:
         return ftrue
 
+def requires_answer_testing():
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if AnswerTestingTest.result_storage is not None:
+        return ftrue
+    else:
+        return ffalse
+    
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
