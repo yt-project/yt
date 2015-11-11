@@ -203,7 +203,7 @@ class AbsorptionSpectrum(object):
         Add continuum features to the spectrum.
         """
         # Only add continuum features down to tau of 1.e-4.
-        tau_min = 1.e-4
+        min_tau = 1.e-4
 
         for continuum in self.continuum_list:
             column_density = field_data[continuum['field_name']] * field_data['dl']
@@ -215,12 +215,12 @@ class AbsorptionSpectrum(object):
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
-                                     np.power((tau_min * continuum['normalization'] /
+                                     np.power((min_tau * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
                                     self.lambda_bins).clip(0, self.n_lambda)
 
             valid_continuua = np.where(((column_density /
-                                         continuum['normalization']) > tau_min) &
+                                         continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
             pbar = get_pbar("Adding continuum feature - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
@@ -240,8 +240,9 @@ class AbsorptionSpectrum(object):
         """
         # Only make voigt profile for slice of spectrum that is 10 times the line width.
         spectrum_bin_ratio = 5
-        # Widen wavelength window until optical depth reaches a max value at the ends.
-        max_tau = 0.001
+        # Widen wavelength window until optical depth reaches a min value at 
+        # the ends to assure that the wings of a line have been fully resolved.
+        min_tau = 0.001
 
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
@@ -297,7 +298,7 @@ class AbsorptionSpectrum(object):
                             lambda_bins=lbins[left_index[lixel]:right_index[lixel]])
 
                     # Widen wavelength window until optical depth reaches a max value at the ends.
-                    if (line_tau[0] < max_tau and line_tau[-1] < max_tau) or \
+                    if (line_tau[0] < min_tau and line_tau[-1] < min_tau) or \
                       (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
                         break
                     my_bin_ratio *= 2
