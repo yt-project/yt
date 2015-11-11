@@ -369,8 +369,8 @@ class LightRay(CosmologySplice):
         all_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         data_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         if get_los_velocity:
-            all_fields.extend(['velocity_x', 'velocity_y',
-                               'velocity_z', 'velocity_los', 'redshift_eff'])
+            all_fields.extend(['velocity_x', 'velocity_y', 'velocity_z', 
+                               'velocity_los', 'velocity_trans', 'redshift_eff'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
@@ -451,9 +451,11 @@ class LightRay(CosmologySplice):
                                       sub_ray['velocity_y'],
                                       sub_ray['velocity_z']])
                     # line of sight velocity is reversed relative to ray
-                    sub_data['velocity_los'].extend(-1*(np.rollaxis(sub_vel, 1) *
-                                                     line_of_sight).sum(axis=1)[asort])
-                    del sub_vel
+                    sub_vel_los = -1*(np.rollaxis(sub_vel, 1) * line_of_sight).sum(axis=1)
+                    sub_vel_trans = (sub_ray['velocity_magnitude']**2 - sub_vel_los**2)**0.5
+                    sub_data['velocity_los'].extend(sub_vel_los[asort])
+                    sub_data['velocity_trans'].extend(sub_vel_trans[asort])
+                    del sub_vel, sub_vel_los, sub_vel_trans
 
                 sub_ray.clear_data()
                 del sub_ray, asort
