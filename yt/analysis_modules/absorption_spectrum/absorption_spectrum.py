@@ -238,95 +238,132 @@ class AbsorptionSpectrum(object):
         """
         Add the absorption lines to the spectrum.
         """
-        # Only make voigt profile for slice of spectrum that is 10 times the line width.
-        spectrum_bin_ratio = 5
-        # Widen wavelength window until optical depth reaches a min value at 
-        # the ends to assure that the wings of a line have been fully resolved.
+        # Widen wavelength window until optical depth falls below this tau 
+        # value at the ends to assure that the wings of a line have been 
+        # fully resolved.
         min_tau = 0.001
 
+        # step through each ionic transition (e.g. HI, HII, MgII) specified
+        # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
+
             # redshift_eff field combines cosmological and velocity redshifts
+            # so delta_lambda gives the offset in angstroms from the rest frame
+            # wavelength to the observed wavelength of the transition 
             if use_peculiar_velocity:
                 delta_lambda = line['wavelength'] * field_data['redshift_eff']
             else:
                 delta_lambda = line['wavelength'] * field_data['redshift']
+            # lambda_obs is central wavelength of line after redshift
+            lambda_obs = line['wavelength'] + delta_lambda
+            # thermal broadening b parameter
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
                                   field_data['temperature']) /
                                   line['atomic_mass'])
-            center_bins = np.digitize((delta_lambda + line['wavelength']),
-                                      self.lambda_bins)
 
-            # ratio of line width to bin width
-            width_ratio = ((line['wavelength'] + delta_lambda) * \
-                           thermal_b / speed_of_light_cgs / self.bin_width).in_units("").d
+            # the actual thermal width of the lines
+            thermal_width = (lambda_obs * thermal_b / 
+                             speed_of_light_cgs).convert_to_units("angstrom")
 
-            if (width_ratio < 1.0).any():
-                mylog.warn(("%d out of %d line components are unresolved, " +
-                            "consider increasing spectral resolution.") %
-                           ((width_ratio < 1.0).sum(), width_ratio.size))
+            if (thermal_width < self.bin_width).any():
+                mylog.warn(("%d out of %d line components are unresolved.") %
+                           ((thermal_width < self.bin_width).sum(), 
+                            thermal_width.size))
 
-            # do voigt profiles for a subset of the full spectrum
-            left_index  = (center_bins -
-                           spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
-            right_index = (center_bins +
-                           spectrum_bin_ratio * width_ratio).astype(int).clip(0, self.n_lambda)
+            # Sanitize units for faster runtime of the tau_profile machinery.
+            lambda_0 = line['wavelength'].d  # line's rest frame; angstroms
+            lambda_1 = lambda_obs.d # line's observed frame; angstroms
+            cdens = column_density.in_units("cm**-2").d # cm**-2
+            thermb = thermal_b.in_cgs().d  # thermal b coefficient; cm / s
+            dlambda = delta_lambda.d  # lambda offset; angstroms
+            vlos = field_data['velocity_los'].in_units("km/s").d # km/s
 
-            # loop over all lines wider than the bin width
-            valid_lines = np.where((width_ratio >= 1.0) &
-                                   (right_index - left_index > 1))[0]
+            # When we actually deposit the voigt profile, sometimes we will
+            # have underresolved lines (ie lines with smaller widths than
+            # the spectral bin size).  Here, we create virtual bins small
+            # enough in width to well resolve each line, deposit the voigt 
+            # profile into them, then numerically integrate their tau values
+            # and sum them to redeposit them into the actual spectral bins.
+
+            # virtual bins will be the smaller of 2 options:
+            # --1/10th of the thermal width
+            # --the actual spectral bin width
+            # to start, the window over which the voigt profile will be
+            # deposited will be 50 v_bins, but this may grow if necessary
+            vbin_width = np.amin(zip(thermal_width / 10., 
+                                           self.bin_width * 
+                                           np.ones(len(thermal_width))),
+                                       axis=1)
+            n_vbins = 50
+            vbin_window_width = n_vbins*vbin_width
+
+            valid_lines = np.arange(len(thermal_width))
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
-                            valid_lines.size)
+                            thermal_width.size)
 
-            # Sanitize units here
-            column_density.convert_to_units("cm ** -2")
-            lbins = self.lambda_bins.d  # Angstroms
-            lambda_0 = line['wavelength'].d  # Angstroms
-            v_doppler = thermal_b.in_cgs().d  # cm / s
-            cdens = column_density.d
-            dlambda = delta_lambda.d  # Angstroms
-            vlos = field_data['velocity_los'].in_units("km/s").d
-
+            # for a given transition, step through each location in the 
+            # observed spectrum where it occurs and deposit a voigt profile
             for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
-                my_bin_ratio = spectrum_bin_ratio
+                my_vbin_window_width = vbin_window_width[i]
+                my_n_vbins = n_vbins
+                my_vbin_width = vbin_width[i]
 
                 while True:
-                    lambda_bins, line_tau = \
+                    vbins = \
+                        np.linspace(lambda_1[i]-my_vbin_window_width/2.,
+                                    lambda_1[i]+my_vbin_window_width/2., 
+                                    my_n_vbins, endpoint=False)
+
+                    vbins, vtau = \
                         tau_profile(
-                            lambda_0, line['f_value'], line['gamma'], v_doppler[lixel],
-                            cdens[lixel], delta_lambda=dlambda[lixel],
-                            lambda_bins=lbins[left_index[lixel]:right_index[lixel]])
+                            lambda_0, line['f_value'], line['gamma'], thermb[i],
+                            cdens[i], delta_lambda=dlambda[i],
+                            lambda_bins=vbins)
 
-                    # Widen wavelength window until optical depth reaches a max value at the ends.
-                    if (line_tau[0] < min_tau and line_tau[-1] < min_tau) or \
-                      (left_index[lixel] <= 0 and right_index[lixel] >= self.n_lambda):
+                    # If tau has not dropped below min tau threshold by the
+                    # edges (ie the wings), then widen the wavelength 
+                    # window and repeat process. 
+                    if (vtau[0] < min_tau and vtau[-1] < min_tau):
                         break
-                    my_bin_ratio *= 2
-                    left_index[lixel]  = (center_bins[lixel] -
-                                          my_bin_ratio *
-                                          width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
-                    right_index[lixel] = (center_bins[lixel] +
-                                          my_bin_ratio *
-                                          width_ratio[lixel]).astype(int).clip(0, self.n_lambda)
+                    my_vbin_window_width *= 2
+                    my_n_vbins *= 2
 
-                self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
-                if save_line_list and line['label_threshold'] is not None and \
-                        cdens[lixel] >= line['label_threshold']:
-                    if use_peculiar_velocity:
-                        peculiar_velocity = vlos[lixel]
-                    else:
-                        peculiar_velocity = 0.0
-                    self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (lambda_0 + dlambda[lixel]),
-                                                    'column_density': column_density[lixel],
-                                                    'b_thermal': thermal_b[lixel],
-                                                    'redshift': field_data['redshift'][lixel],
-                                                    'v_pec': peculiar_velocity})
+                # run digitize to identify which vbins are deposited into which
+                # global lambda bins.
+                # shift global lambda bins over by half a bin width; 
+                # this has the effect of assuring np.digitize will place 
+                # the vbins in the closest bin center.
+                binned = np.digitize(vbins, 
+                                     self.lambda_bins + (0.5 * self.bin_width))
+
+                # numerically integrate the virtual bins to calculate a
+                # virtual equivalent width; then sum the virtual equivalent
+                # widths and deposit into each spectral bin
+                vEW = vtau * my_vbin_width
+                EW = [vEW[binned == j].sum() for j in range(len(self.lambda_bins))]
+                EW = np.array(EW)/self.bin_width.d
+                self.tau_field += EW
+
+                #self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
+                #if save_line_list and line['label_threshold'] is not None and \
+                #        cdens[lixel] >= line['label_threshold']:
+                #    if use_peculiar_velocity:
+                #        peculiar_velocity = vlos[lixel]
+                #    else:
+                #        peculiar_velocity = 0.0
+                #    self.spectrum_line_list.append({'label': line['label'],
+                #                                    'wavelength': (lambda_0 + dlambda[lixel]),
+                #                                    'column_density': column_density[lixel],
+                #                                    'b_thermal': thermal_b[lixel],
+                #                                    'redshift': field_data['redshift'][lixel],
+                #                                    'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
 
             del column_density, delta_lambda, thermal_b, \
-                center_bins, width_ratio, left_index, right_index
+                thermal_width, vbins, vtau, vbin_width, n_vbins, \
+                vbin_window_width
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
