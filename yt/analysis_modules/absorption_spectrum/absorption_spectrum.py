@@ -269,11 +269,6 @@ class AbsorptionSpectrum(object):
             thermal_width = (lambda_obs * thermal_b / 
                              speed_of_light_cgs).convert_to_units("angstrom")
 
-            if (thermal_width < self.bin_width).any():
-                mylog.warn(("%d out of %d line components are unresolved.") %
-                           ((thermal_width < self.bin_width).sum(), 
-                            thermal_width.size))
-
             # Sanitize units for faster runtime of the tau_profile machinery.
             lambda_0 = line['wavelength'].d  # line's rest frame; angstroms
             lambda_1 = lambda_obs.d # line's observed frame; angstroms
@@ -305,13 +300,18 @@ class AbsorptionSpectrum(object):
             n_vbins = np.ceil(5*thermal_width.d/vbin_width)
             vbin_window_width = n_vbins*vbin_width
 
+            if (thermal_width < self.bin_width).any():
+                mylog.warn(("%d out of %d line components are unresolved.") %
+                           ((thermal_width < self.bin_width).sum(), 
+                            thermal_width.size))
+
             valid_lines = np.arange(len(thermal_width))
             pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
                             thermal_width.size)
 
             # for a given transition, step through each location in the 
             # observed spectrum where it occurs and deposit a voigt profile
-            for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
+            for i in parallel_objects(valid_lines, njobs=-1):
                 my_vbin_window_width = vbin_window_width[i]
                 my_n_vbins = n_vbins[i]
                 my_vbin_width = vbin_width[i]
@@ -361,25 +361,25 @@ class AbsorptionSpectrum(object):
                 EW = np.array(EW)/self.bin_width.d
                 self.tau_field[left_index:right_index] += EW
 
-                #self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
-                #if save_line_list and line['label_threshold'] is not None and \
-                #        cdens[lixel] >= line['label_threshold']:
-                #    if use_peculiar_velocity:
-                #        peculiar_velocity = vlos[lixel]
-                #    else:
-                #        peculiar_velocity = 0.0
-                #    self.spectrum_line_list.append({'label': line['label'],
-                #                                    'wavelength': (lambda_0 + dlambda[lixel]),
-                #                                    'column_density': column_density[lixel],
-                #                                    'b_thermal': thermal_b[lixel],
-                #                                    'redshift': field_data['redshift'][lixel],
-                #                                    'v_pec': peculiar_velocity})
+                if save_line_list and line['label_threshold'] is not None and \
+                        cdens[i] >= line['label_threshold']:
+                    if use_peculiar_velocity:
+                        peculiar_velocity = vlos[i]
+                    else:
+                        peculiar_velocity = 0.0
+                    self.spectrum_line_list.append({'label': line['label'],
+                                                    'wavelength': (lambda_0 + dlambda[i]),
+                                                    'column_density': column_density[i],
+                                                    'b_thermal': thermal_b[i],
+                                                    'redshift': field_data['redshift'][i],
+                                                    'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
 
-            del column_density, delta_lambda, thermal_b, \
-                thermal_width, vbins, vtau, vbin_width, n_vbins, \
-                vbin_window_width
+            del column_density, delta_lambda, lambda_obs, center_index, \
+                thermal_b, thermal_width, lambda_1, cdens, thermb, dlambda, \
+                vlos, resolution, vbin_width, n_vbins, vbin_window_width, \
+                valid_lines, vbins, vtau, vEW
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
