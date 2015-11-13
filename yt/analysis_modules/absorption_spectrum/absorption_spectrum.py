@@ -289,16 +289,20 @@ class AbsorptionSpectrum(object):
             # profile into them, then numerically integrate their tau values
             # and sum them to redeposit them into the actual spectral bins.
 
-            # virtual bins will be the smaller of 2 options:
-            # --1/10th of the thermal width
-            # --the actual spectral bin width
-            # to start, the window over which the voigt profile will be
-            # deposited will be 50 v_bins, but this may grow if necessary
-            vbin_width = np.amin(zip(thermal_width / 100., 
-                                           self.bin_width * 
-                                           np.ones(len(thermal_width))),
-                                       axis=1)
-            n_vbins = 500
+            # virtual bins (vbins) will be:
+            # 1) <= the bin_width; assures at least as good as spectral bins
+            # 2) <= 1/10th the thermal width; assures resolving voigt profiles
+            # 3) a bin width will be divisible by vbin_width times a power of 
+            #    10; this will assure we don't get spikes in the deposited
+            #    spectra from uneven numbers of vbins per bin
+            resolution = thermal_width / self.bin_width 
+            vbin_width = self.bin_width / \
+                         10**(np.ceil(np.log10(10/resolution)).clip(0, np.inf))
+            vbin_width = vbin_width.in_units('angstrom').d
+
+            # the virtual window into which the line is deposited initially 
+            # spans a region of 5 thermal_widths, but this may expand
+            n_vbins = np.ceil(5*thermal_width.d/vbin_width)
             vbin_window_width = n_vbins*vbin_width
 
             valid_lines = np.arange(len(thermal_width))
@@ -309,7 +313,7 @@ class AbsorptionSpectrum(object):
             # observed spectrum where it occurs and deposit a voigt profile
             for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
                 my_vbin_window_width = vbin_window_width[i]
-                my_n_vbins = n_vbins
+                my_n_vbins = n_vbins[i]
                 my_vbin_width = vbin_width[i]
 
                 while True:
