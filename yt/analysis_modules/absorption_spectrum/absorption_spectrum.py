@@ -257,6 +257,9 @@ class AbsorptionSpectrum(object):
                 delta_lambda = line['wavelength'] * field_data['redshift']
             # lambda_obs is central wavelength of line after redshift
             lambda_obs = line['wavelength'] + delta_lambda
+            # bin index in lambda_bins of central wavelength of line after z
+            center_index = np.digitize(lambda_obs, self.lambda_bins)
+
             # thermal broadening b parameter
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
                                   field_data['temperature']) /
@@ -291,11 +294,11 @@ class AbsorptionSpectrum(object):
             # --the actual spectral bin width
             # to start, the window over which the voigt profile will be
             # deposited will be 50 v_bins, but this may grow if necessary
-            vbin_width = np.amin(zip(thermal_width / 10., 
+            vbin_width = np.amin(zip(thermal_width / 100., 
                                            self.bin_width * 
                                            np.ones(len(thermal_width))),
                                        axis=1)
-            n_vbins = 50
+            n_vbins = 500
             vbin_window_width = n_vbins*vbin_width
 
             valid_lines = np.arange(len(thermal_width))
@@ -329,21 +332,30 @@ class AbsorptionSpectrum(object):
                     my_vbin_window_width *= 2
                     my_n_vbins *= 2
 
+                # identify the extrema of the vbin_window so as to speed
+                # up searching over the entire lambda_bins array
+                bins_from_center = np.ceil((my_vbin_window_width/2.) / \
+                                           self.bin_width.d) + 1
+                left_index = (center_index[i] - bins_from_center).clip(0, self.n_lambda)
+                right_index = (center_index[i] + bins_from_center).clip(0, self.n_lambda)
+                window_width = right_index - left_index
+
                 # run digitize to identify which vbins are deposited into which
                 # global lambda bins.
                 # shift global lambda bins over by half a bin width; 
                 # this has the effect of assuring np.digitize will place 
                 # the vbins in the closest bin center.
                 binned = np.digitize(vbins, 
-                                     self.lambda_bins + (0.5 * self.bin_width))
+                                     self.lambda_bins[left_index:right_index] \
+                                     + (0.5 * self.bin_width))
 
                 # numerically integrate the virtual bins to calculate a
                 # virtual equivalent width; then sum the virtual equivalent
                 # widths and deposit into each spectral bin
                 vEW = vtau * my_vbin_width
-                EW = [vEW[binned == j].sum() for j in range(len(self.lambda_bins))]
+                EW = [vEW[binned == j].sum() for j in np.arange(window_width)]
                 EW = np.array(EW)/self.bin_width.d
-                self.tau_field += EW
+                self.tau_field[left_index:right_index] += EW
 
                 #self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
                 #if save_line_list and line['label_threshold'] is not None and \
