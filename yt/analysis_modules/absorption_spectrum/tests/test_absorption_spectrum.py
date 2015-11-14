@@ -12,7 +12,7 @@ Unit test for the AbsorptionSpectrum analysis module
 
 import numpy as np
 from yt.testing import \
-    assert_allclose_units, requires_file, requires_module
+    assert_allclose_units, requires_file, requires_module, assert_almost_equal
 from yt.analysis_modules.absorption_spectrum.absorption_line import \
     voigt_old, voigt_scipy
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
@@ -22,10 +22,10 @@ import os
 import shutil
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
-
+COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
 
 @requires_file(COSMO_PLUS)
-def test_absorption_spectrum():
+def test_absorption_spectrum_cosmo():
     """
     This test is simply following the description in the docs for how to
     generate an absorption spectrum from a cosmological light ray for one
@@ -37,7 +37,7 @@ def test_absorption_spectrum():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    lr = LightRay(COSMO_PLUS, 'Enzo', 0.0, 0.1)
+    lr = LightRay(COSMO_PLUS, 'Enzo', 0.0, 0.03)
 
     lr.make_light_ray(seed=1234567,
                       fields=['temperature', 'density', 'H_number_density'],
@@ -68,6 +68,105 @@ def test_absorption_spectrum():
                                         output_file='spectrum.txt',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(COSMO_PLUS_SINGLE)
+def test_absorption_spectrum_non_cosmo():
+    """
+    This test is simply following the description in the docs for how to
+    generate an absorption spectrum from a non-cosmological light ray for one
+    of the sample datasets
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    lr = LightRay(COSMO_PLUS_SINGLE)
+
+    ray_start = [0,0,0]
+    ray_end = [1,1,1]
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
+                      fields=['temperature', 'density', 'H_number_density'],
+                      data_filename='lightray.h5')
+
+    sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
+
+    my_label = 'HI Lya'
+    field = 'H_number_density'
+    wavelength = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
+
+    my_label = 'HI Lya'
+    field = 'H_number_density'
+    wavelength = 912.323660  # Angstroms
+    normalization = 1.6e17
+    index = 3.0
+
+    sp.add_continuum(my_label, field, wavelength, normalization, index)
+
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.txt',
+                                        line_list_file='lines.txt',
+                                        use_peculiar_velocity=True)
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(COSMO_PLUS_SINGLE)
+def test_equivalent_width_conserved():
+    """
+    This test assures that the equivalent width of the optical depth 
+    is conserved regardless of the bin width employed in wavelength space.
+    Unresolved lines should still deposit optical depth into the spectrum.
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    lr = LightRay(COSMO_PLUS_SINGLE)
+
+    ray_start = [0,0,0]
+    ray_end = [1,1,1]
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
+                      fields=['temperature', 'density', 'H_number_density'],
+                      data_filename='lightray.h5')
+
+    my_label = 'HI Lya'
+    field = 'H_number_density'
+    wave = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    lambda_min= 1200
+    lambda_max= 1300
+    lambda_bin_widths = [1e-3, 1e-2, 1e-1, 1e0, 1e1]
+    total_tau = []
+
+    for lambda_bin_width in lambda_bin_widths:
+        n_lambda = ((lambda_max - lambda_min)/ lambda_bin_width) + 1
+        sp = AbsorptionSpectrum(lambda_min=lambda_min, lambda_max=lambda_max, 
+                                n_lambda=n_lambda)
+        sp.add_line(my_label, field, wave, f_value, gamma, mass)
+        wavelength, flux = sp.make_spectrum('ray.h5')
+        total_tau.append((lambda_bin_width * sp.tau_field).sum())
+        
+    # assure that the total tau values are all within 1e-5 of each other
+    for tau in total_tau:
+        assert_almost_equal(tau, total_tau[0], 5)
 
     # clean up
     os.chdir(curdir)
