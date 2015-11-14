@@ -172,7 +172,7 @@ def test_equivalent_width_conserved():
         sp = AbsorptionSpectrum(lambda_min=lambda_min, lambda_max=lambda_max, 
                                 n_lambda=n_lambda)
         sp.add_line(my_label, field, wave, f_value, gamma, mass)
-        wavelength, flux = sp.make_spectrum('ray.h5')
+        wavelength, flux = sp.make_spectrum('lightray.h5')
         total_tau.append((lambda_bin_width * sp.tau_field).sum())
         
     # assure that the total tau values are all within 1e-5 of each other
