@@ -12,17 +12,24 @@ Unit test for the AbsorptionSpectrum analysis module
 
 import numpy as np
 from yt.testing import \
-    assert_allclose_units, requires_file, requires_module, assert_almost_equal
+    assert_allclose_units, requires_file, requires_module, \
+    assert_almost_equal, assert_array_almost_equal
 from yt.analysis_modules.absorption_spectrum.absorption_line import \
     voigt_old, voigt_scipy
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 from yt.analysis_modules.cosmological_observation.api import LightRay
+from yt.config import ytcfg
 import tempfile
 import os
 import shutil
+import h5py as h5
+
+test_dir = ytcfg.get("yt", "test_data_dir")
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
+HI_SPECTRUM = "absorption_spectrum_data/enzo_lyman_alpha_spec.h5"
+HI_SPECTRUM_FILE = os.path.join(test_dir, HI_SPECTRUM)
 
 @requires_file(COSMO_PLUS)
 def test_absorption_spectrum_cosmo():
@@ -74,6 +81,7 @@ def test_absorption_spectrum_cosmo():
     shutil.rmtree(tmpdir)
 
 @requires_file(COSMO_PLUS_SINGLE)
+@requires_file(HI_SPECTRUM)
 def test_absorption_spectrum_non_cosmo():
     """
     This test is simply following the description in the docs for how to
@@ -94,7 +102,7 @@ def test_absorption_spectrum_non_cosmo():
                       fields=['temperature', 'density', 'H_number_density'],
                       data_filename='lightray.h5')
 
-    sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
+    sp = AbsorptionSpectrum(1200.0, 1300.0, 10001)
 
     my_label = 'HI Lya'
     field = 'H_number_density'
@@ -106,18 +114,21 @@ def test_absorption_spectrum_non_cosmo():
     sp.add_line(my_label, field, wavelength, f_value,
                 gamma, mass, label_threshold=1.e10)
 
-    my_label = 'HI Lya'
-    field = 'H_number_density'
-    wavelength = 912.323660  # Angstroms
-    normalization = 1.6e17
-    index = 3.0
-
-    sp.add_continuum(my_label, field, wavelength, normalization, index)
-
     wavelength, flux = sp.make_spectrum('lightray.h5',
-                                        output_file='spectrum.txt',
+                                        output_file='spectrum.h5',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    f_new = h5.File('spectrum.h5', 'r')
+
+    # load standard data for comparison
+    f_old = h5.File(HI_SPECTRUM_FILE, 'r')
+
+    # compare between standard data and current data for each array saved 
+    # (wavelength, flux, tau)
+    for key in f_old.keys():
+        assert_array_almost_equal(f_new[key].value, f_old[key].value, 10)
 
     # clean up
     os.chdir(curdir)
@@ -187,7 +198,7 @@ def test_absorption_spectrum_fits():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    lr = LightRay(COSMO_PLUS, 'Enzo', 0.0, 0.1)
+    lr = LightRay(COSMO_PLUS, 'Enzo', 0.0, 0.03)
 
     lr.make_light_ray(seed=1234567,
                       fields=['temperature', 'density', 'H_number_density'],
