@@ -36,8 +36,7 @@ def test_multiple_fields():
     im, sc = yt.volume_render(ds)
 
     volume_source = sc.get_source(0)
-    volume_source.set_field(('gas', 'velocity_x'))
-    volume_source.build_default_transfer_function()
+    volume_source.set_fields([('gas', 'velocity_x'), ('gas', 'density')])
     sc.render()
 
 def test_rotation_volume_rendering():
