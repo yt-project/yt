@@ -10,7 +10,6 @@ Run a simple volume rendering
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import yt
-import numpy as np
 from yt.testing import \
     fake_random_ds
 

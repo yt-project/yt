@@ -82,7 +82,6 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    axis_name = ds.coordinates.axis_name[axis]
     width = ds.coordinates.sanitize_width(axis, width, None)
     center, display_center = ds.coordinates.sanitize_center(center, axis)
     xax = ds.coordinates.x_axis[axis]

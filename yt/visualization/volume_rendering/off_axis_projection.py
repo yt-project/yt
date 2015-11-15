@@ -110,7 +110,7 @@ def off_axis_projection(data_source, center, normal_vector,
     if method not in ['integrate','sum']:
         raise NotImplementedError("Only 'integrate' or 'sum' methods are valid for off-axis-projections")
 
-    if interpolated == True:
+    if interpolated is True:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
 
 
@@ -163,7 +163,6 @@ def off_axis_projection(data_source, center, normal_vector,
     assert (vol.sampler is not None)
 
     mylog.debug("Casting rays")
-    total_cells = 0
     double_check = False
     if double_check:
         for brick in vol.volume.bricks:
@@ -190,7 +189,7 @@ def off_axis_projection(data_source, center, normal_vector,
     data_source = ds.region(center, mi, ma)
 
     for i, (grid, mask) in enumerate(data_source.blocks):
-        data = [(grid[field] * mask).astype("float64") for field in fields]
+        data = [(grid[f] * mask).astype("float64") for f in fields]
         pg = PartitionedGrid(
             grid.id, data,
             mask.astype('uint8'),

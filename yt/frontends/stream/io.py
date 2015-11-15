@@ -267,9 +267,9 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
         mesh_id = chunk.objs[0].mesh_id
         rv = {}
         for field in fields:
-            ftype, fname = field
+            field_type = field[0]
             nodes_per_element = self.fields[mesh_id][field].shape[1]
-            if fname in self._node_types:
+            if field_type in self._node_types:
                 rv[field] = np.empty((size, nodes_per_element), dtype="float64")
             else:
                 rv[field] = np.empty(size, dtype="float64")

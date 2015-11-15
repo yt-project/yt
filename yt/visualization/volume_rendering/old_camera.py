@@ -26,7 +26,8 @@ from copy import deepcopy
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.lib.grid_traversal import \
-    arr_fisheye_vectors, \
+    pixelize_healpix, \
+    arr_fisheye_vectors, arr_pix2vec_nest, \
     PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, InterpolatedProjectionSampler
 from yt.utilities.lib.misc_utilities import \
@@ -1404,8 +1405,7 @@ class HEALpixCamera(Camera):
         self.light_dir = None
         self.light_rgba = None
         if volume is None:
-            volume = AMRKDTree(self.ds, min_level=min_level,
-                               max_level=max_level, data_source=self.data_source)
+            volume = AMRKDTree(self.ds, data_source=self.data_source)
         self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
@@ -1512,64 +1512,6 @@ class HEALpixCamera(Camera):
                 cmin = cmax = None
             plot_allsky_healpix(image[:,0,0], self.nside, fn, label, 
                                 cmin = cmin, cmax = cmax)
-
-class AdaptiveHEALpixCamera(Camera):
-    def __init__(self, center, radius, nside,
-                 transfer_function = None, fields = None,
-                 sub_samples = 5, log_fields = None, volume = None,
-                 ds = None, use_kd=True, no_ghost=False,
-                 rays_per_cell = 0.1, max_nside = 8192):
-        ParallelAnalysisInterface.__init__(self)
-        if ds is not None: self.ds = ds
-        self.center = np.array(center, dtype='float64')
-        self.radius = radius
-        self.use_kd = use_kd
-        if transfer_function is None:
-            transfer_function = ProjectionTransferFunction()
-        self.transfer_function = transfer_function
-        if fields is None: fields = ["density"]
-        self.fields = fields
-        self.sub_samples = sub_samples
-        self.log_fields = log_fields
-        if volume is None:
-            volume = AMRKDTree(self.ds, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
-        self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
-        self.initial_nside = nside
-        self.rays_per_cell = rays_per_cell
-        self.max_nside = max_nside
-
-    def snapshot(self, fn = None):
-        tfp = TransferFunctionProxy(self.transfer_function)
-        tfp.ns = self.sub_samples
-        self.volume.initialize_source()
-        mylog.info("Adaptively rendering.")
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-        total_cells = 0
-        bricks = [b for b in self.volume.traverse(None, self.center, None)][::-1]
-        left_edges = np.array([b.LeftEdge for b in bricks])
-        right_edges = np.array([b.RightEdge for b in bricks])
-        min_dx = min(((b.RightEdge[0] - b.LeftEdge[0])/b.my_data[0].shape[0]
-                     for b in bricks))
-        # We jitter a bit if we're on a boundary of our initial grid
-        for i in range(3):
-            if bricks[0].LeftEdge[i] == self.center[i]:
-                self.center += 1e-2 * min_dx
-            elif bricks[0].RightEdge[i] == self.center[i]:
-                self.center -= 1e-2 * min_dx
-        ray_source = AdaptiveRaySource(self.center, self.rays_per_cell,
-                                       self.initial_nside, self.radius,
-                                       bricks, left_edges, right_edges, self.max_nside)
-        for i,brick in enumerate(bricks):
-            ray_source.integrate_brick(brick, tfp, i, left_edges, right_edges,
-                                       bricks)
-            total_cells += np.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-        pbar.finish()
-        info, values = ray_source.get_rays()
-        return info, values
 
 
 class StereoPairCamera(Camera):
@@ -1824,6 +1766,28 @@ class MosaicCamera(Camera):
         return final_image
 
 data_object_registry["mosaic_camera"] = MosaicCamera
+
+def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
+                        take_log = True, resolution=512, cmin=None, cmax=None):
+    import matplotlib.figure
+    import matplotlib.backends.backend_agg
+    if rotation is None: rotation = np.eye(3).astype("float64")
+
+    img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
+
+    fig = matplotlib.figure.Figure((10, 5))
+    ax = fig.add_subplot(1,1,1,projection='aitoff')
+    if take_log: func = np.log10
+    else: func = lambda a: a
+    implot = ax.imshow(func(img), extent=(-np.pi,np.pi,-np.pi/2,np.pi/2),
+                       clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax)
+    cb = fig.colorbar(implot, orientation='horizontal')
+    cb.set_label(label)
+    ax.xaxis.set_ticks(())
+    ax.yaxis.set_ticks(())
+    canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+    canvas.print_figure(fn)
+    return img, count
 
 class ProjectionCamera(Camera):
     def __init__(self, center, normal_vector, width, resolution,

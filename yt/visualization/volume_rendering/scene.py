@@ -21,7 +21,7 @@ from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
-
+from yt.utilities.exceptions import YTNotInsideNotebook
 
 class Scene(object):
 
