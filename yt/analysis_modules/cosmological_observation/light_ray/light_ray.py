@@ -168,7 +168,7 @@ class LightRay(CosmologySplice):
 
         # If using only one dataset, set start and stop manually.
         if start_position is not None:
-            if self.near_redshift != self.far_redshift:
+            if self.near_redshift is not None or self.far_redshift is not None:
                 raise RuntimeError("LightRay Error: cannot specify both " + \
                                    "start_position and a redshift range.")
             if not ((end_position is None) ^ (trajectory is None)):
