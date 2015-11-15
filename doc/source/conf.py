@@ -67,7 +67,7 @@ copyright = u'2013, the yt Project'
 # built documents.
 #
 # The short X.Y version.
-version = '3.3'
+version = '3.3-dev'
 # The full version, including alpha/beta/rc tags.
 release = '3.3-dev'
 
