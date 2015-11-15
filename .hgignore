@@ -32,6 +32,7 @@ yt/utilities/lib/bitarray.c
 yt/utilities/lib/CICDeposit.c
 yt/utilities/lib/ContourFinding.c
 yt/utilities/lib/DepthFirstOctree.c
+yt/utilities/lib/element_mappings.c
 yt/utilities/lib/FixedInterpolator.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c

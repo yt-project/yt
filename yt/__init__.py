@@ -135,7 +135,7 @@ frontends = _frontend_container()
 from yt.frontends.stream.api import \
     load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree, \
-    hexahedral_connectivity
+    hexahedral_connectivity, load_unstructured_mesh
 
 from yt.frontends.ytdata.api import \
     save_as_dataset
@@ -158,8 +158,11 @@ from yt.visualization.api import \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
+    off_axis_projection
+import yt.visualization.volume_rendering.api as volume_rendering
+#    TransferFunctionHelper, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system

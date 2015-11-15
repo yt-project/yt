@@ -16,6 +16,7 @@ Some convenience functions, objects, and iterators
 import os
 
 # Named imports
+from yt.extern.six import string_types
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
@@ -36,11 +37,11 @@ def load(*args ,**kwargs):
     :class:`yt.data_objects.api.Dataset` subclass.
     """
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, str)
+    args = [os.path.expanduser(arg) if isinstance(arg, string_types)
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
-        if isinstance(arg, str):
+        if isinstance(arg, string_types):
             if os.path.exists(arg):
                 valid_file.append(True)
             elif arg.startswith("http"):
@@ -76,7 +77,7 @@ def load(*args ,**kwargs):
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
-           and isinstance(args[0], str):
+           and isinstance(args[0], string_types):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"

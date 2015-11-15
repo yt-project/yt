@@ -19,7 +19,7 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.old_camera import off_axis_projection
 import re
 
 pyfits = _astropy.pyfits

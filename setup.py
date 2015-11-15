@@ -200,8 +200,8 @@ def setup_package():
                 'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
             ]
         },
-        author="Matthew J. Turk",
-        author_email="matthewturk@gmail.com",
+        author="The yt project",
+        author_email="yt-dev@lists.spacepope.org",
         url="http://yt-project.org/",
         license="BSD",
         configuration=configuration,

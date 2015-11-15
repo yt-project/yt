@@ -15,6 +15,7 @@ from yt.utilities.cosmology import \
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
+    array_like_field, \
     YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTFieldUnitError, \
@@ -181,6 +182,9 @@ def test_all_fields():
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
             continue
+        if field[1].find("vertex") > -1:
+            # don't test the vertex fields for now
+            continue
         if field in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
@@ -271,9 +275,17 @@ def test_add_field_unit_semantics():
     assert_equal(str(ad['dimensionless_explicit'].units), 'dimensionless')
     assert_raises(YTFieldUnitError, get_data, ds, 'dimensionful')
 
+def test_array_like_field():
+    ds = fake_random_ds(4, particles=64)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
         t()
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
+    test_array_like_field()

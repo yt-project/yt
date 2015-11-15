@@ -37,7 +37,7 @@ from yt.funcs import \
     ensure_dir_exists, \
     update_hg, \
     enable_plugins
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib
 from yt.convenience import load
 from yt.visualization.plot_window import \
@@ -63,7 +63,7 @@ def _fix_ds(arg):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, str):
+    if isinstance(arg, string_types):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []

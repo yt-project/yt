@@ -237,7 +237,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _parse_parameter_file(self):
         super(YTSpatialPlotDataset, self)._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
-            if isinstance(self.parameters["weight_field"], str) and \
+            if isinstance(self.parameters["weight_field"], string_types) and \
               self.parameters["weight_field"] == "None":
                 self.parameters["weight_field"] = None
             elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -601,7 +601,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
 
-        if isinstance(self.parameters["weight_field"], str) and \
+        if isinstance(self.parameters["weight_field"], string_types) and \
           self.parameters["weight_field"] == "None":
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -635,7 +635,7 @@ class YTProfileDataset(YTNonspatialDataset):
                              self.parameters[range_name+"_units"]))
 
             bin_field = "%s_field" % ax
-            if isinstance(self.parameters[bin_field], str) and \
+            if isinstance(self.parameters[bin_field], string_types) and \
               self.parameters[bin_field] == "None":
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):

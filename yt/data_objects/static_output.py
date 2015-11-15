@@ -21,7 +21,7 @@ import time
 import weakref
 
 from collections import defaultdict
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
 from yt.funcs import \
@@ -123,6 +123,7 @@ def requires_index(attr_name):
 class Dataset(object):
 
     default_fluid_type = "gas"
+    default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")
     particle_types = ("io",) # By default we have an 'all'
     particle_types_raw = ("io",)
@@ -138,7 +139,7 @@ class Dataset(object):
     _instantiated = False
 
     def __new__(cls, filename=None, *args, **kwargs):
-        if not isinstance(filename, str):
+        if not isinstance(filename, string_types):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -464,7 +465,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, str):
+        if isinstance(filter, string_types):
             used = False
             for f in filter_registry[filter]:
                 used = self._setup_filtered_type(f)
