@@ -15,7 +15,7 @@ The volume rendering Scene class.
 import numpy as np
 from collections import OrderedDict
 from yt.funcs import mylog, get_image_suffix
-from yt.extern.six import iteritems, itervalues
+from yt.extern.six import iteritems, itervalues, string_types
 from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
     GridSource, RenderSource
@@ -220,7 +220,7 @@ class Scene(object):
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
-                if isinstance(rs.field, basestring):
+                if isinstance(rs.field, string_types):
                     field = rs.field
                 else:
                     field = rs.field[-1]
