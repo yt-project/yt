@@ -15,9 +15,89 @@ Particle Deposition onto Octs
 #-----------------------------------------------------------------------------
 cimport numpy as np
 cimport cython
+from libc.float cimport DBL_MANT_DIG
+from libc.math cimport frexp,ldexp
 
 DEF ORDER_MAX=20
 DEF INDEX_MAX=2097151
+    
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.int64_t ifrexp(np.float64_t x, np.int64_t *e):
+    cdef np.float64_t m
+    cdef int e0
+    m = frexp(x,&e0)
+    e[0] = <np.int64_t>e0
+    return <np.int64_t>ldexp(m,DBL_MANT_DIG)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.int64_t msdb(np.int64_t a, np.int64_t b):
+    """Get the most significant differing bit between a and b."""
+    cdef np.int64_t c, ndx
+    c = a ^ b
+    ndx = 0
+    while (1 < c):
+        c = (c >> 1)
+        ndx+=1
+    return ndx
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.int64_t xor_msb(np.float64_t a, np.float64_t b):
+    """Get the exponent of the highest differing bit between a and b"""
+    # Get mantissa and exponents for each number
+    cdef np.int64_t a_m, a_e, b_m, b_e, x, y, z
+    b_e = 0
+    a_e = 0
+    a_m = ifrexp(a,&a_e)
+    b_m = ifrexp(b,&b_e)
+    x = a_e
+    y = b_e
+    # Compare mantissa if exponents equal
+    if x == y:
+        z = msdb(a_m,b_m)
+        x = x - z
+        return x
+    # Otherwise return largest exponent
+    if y < x:
+        return x
+    else:
+        return y
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int compare_floats_morton(np.float64_t p[3], np.float64_t q[3]):
+    cdef int j, out, dim
+    cdef np.int64_t x, y
+    x = -308
+    y = 0
+    dim = 0
+    for j in range(3):#[::-1]:
+        y = xor_msb(p[j],q[j])
+        if x < y:
+           x = y
+           dim = j
+    if p[dim] < q[dim]:
+        out = 1
+    else:
+        out = 0
+    return out
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]):
+    cdef int j
+    cdef np.float64_t d
+    d = 0.0
+    for j in range(3):
+        d+=(p[j]-q[j])**2
+    return np.sqrt(d)
 
 #-----------------------------------------------------------------------------
 # 21 bits spread over 64 with 2 bits in between
@@ -91,7 +171,7 @@ cdef inline np.uint32_t compact_32bits_by2(np.uint32_t x):
     return x
 
 #-----------------------------------------------------------------------------
-# Shortcuts for default
+# Shortcuts for default (May be invalid to call inline from within inline...)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
