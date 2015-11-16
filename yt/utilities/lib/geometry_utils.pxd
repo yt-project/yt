@@ -99,6 +99,51 @@ cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]
         d+=(p[j]-q[j])**2
     return np.sqrt(d)
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q[3], np.int32_t order,
+                                               np.float64_t DLE[3], np.float64_t DRE[3],
+					       np.float64_t *cx, np.float64_t *cy, np.float64_t *cz):
+    cdef int j
+    cdef np.float64_t c[3]
+    cdef np.uint64_t pidx[3]
+    cdef np.uint64_t qidx[3]
+    for j in range(3):
+        pidx[j] = 0
+        qidx[j] = 0
+    cdef np.uint64_t pidx_next[3]
+    cdef np.uint64_t qidx_next[3]
+    cdef np.float64_t dds[3]
+    cdef np.float64_t rad
+    cdef int lvl = 0
+    cdef int done = 0
+    while not done:
+        if (lvl+1 >= order):
+            done = 1
+        for j in range(3):
+            dds[j] = (DRE[j] - DLE[j])/(1 << int(lvl+1))
+            pidx_next[j] = <np.uint64_t>((p[j] - DLE[j])/dds[j])
+            qidx_next[j] = <np.uint64_t>((q[j] - DLE[j])/dds[j])
+        for j in range(3):
+            if pidx_next[j]!=qidx_next[j]:
+                done = 1
+                break
+        if not done:
+            for j in range(3):
+                pidx[j] = pidx_next[j]
+                qidx[j] = qidx_next[j]
+            lvl+=1
+    rad = 0.0
+    for j in range(3):
+        dds[j] = (DRE[j] - DLE[j])/(1 << lvl)
+        c[j] = dds[j]*(<np.float64_t>pidx[j]+0.5)
+        rad+=((dds[j]/2.0)**2)
+    cx[0] = c[0]
+    cy[0] = c[1]
+    cz[0] = c[2]
+    return np.sqrt(rad)
+
 #-----------------------------------------------------------------------------
 # 21 bits spread over 64 with 2 bits in between
 @cython.cdivision(True)
