@@ -203,7 +203,7 @@ class AbsorptionSpectrum(object):
         Add continuum features to the spectrum.
         """
         # Only add continuum features down to tau of 1.e-4.
-        min_tau = 1.e-4
+        min_tau = 1.e-3
 
         for continuum in self.continuum_list:
             column_density = field_data[continuum['field_name']] * field_data['dl']
@@ -241,7 +241,7 @@ class AbsorptionSpectrum(object):
         # Widen wavelength window until optical depth falls below this tau 
         # value at the ends to assure that the wings of a line have been 
         # fully resolved.
-        min_tau = 0.001
+        min_tau = 1e-3
 
         # step through each ionic transition (e.g. HI, HII, MgII) specified
         # and deposit the lines into the spectrum
