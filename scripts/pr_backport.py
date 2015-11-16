@@ -23,7 +23,12 @@ def clone_new_repo(source=None):
     with hglib.open(dest_repo_path) as client:
         # Changesets that are on the yt branch but aren't topological ancestors
         # of whichever changeset the experimental bookmark is pointing at
-        client.update('heads(branch(yt) - ::bookmark(experimental))')
+        bookmarks, _ = client.bookmarks()
+        bookmark_names = [b[0] for b in bookmarks]
+        if 'experimental' in bookmark_names:
+            client.update('heads(branch(yt) - ::bookmark(experimental))')
+        else:
+            client.update('heads(branch(yt))')
     return dest_repo_path
 
 
@@ -51,9 +56,13 @@ def get_first_commit_after_last_major_release(repo_path):
 def get_branch_tip(repo_path, branch, exclude=None):
     """Returns the SHA1 hash of the most recent commit on the given branch"""
     revset = "head() and branch(%s)" % branch
-    if exclude is not None:
-        revset += "and not %s" % exclude
     with hglib.open(repo_path) as client:
+        if exclude is not None:
+            try:
+                client.log(exclude)
+                revset += "and not %s" % exclude
+            except hglib.error.CommandError:
+                pass
         change = client.log(revset)[0][1][:12]
     return change
 
