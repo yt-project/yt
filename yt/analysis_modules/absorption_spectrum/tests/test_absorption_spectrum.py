@@ -29,15 +29,16 @@ test_dir = ytcfg.get("yt", "test_data_dir")
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
+HI_SPECTRUM_COSMO = "absorption_spectrum_data/enzo_lyman_alpha_cosmo_spec.h5"
+HI_SPECTRUM_COSMO_FILE = os.path.join(test_dir, HI_SPECTRUM_COSMO)
 HI_SPECTRUM = "absorption_spectrum_data/enzo_lyman_alpha_spec.h5"
 HI_SPECTRUM_FILE = os.path.join(test_dir, HI_SPECTRUM)
 
 @requires_file(COSMO_PLUS)
+@requires_file(HI_SPECTRUM_COSMO)
 def test_absorption_spectrum_cosmo():
     """
-    This test is simply following the description in the docs for how to
-    generate an absorption spectrum from a cosmological light ray for one
-    of the sample datasets
+    This test generates an absorption spectrum from a cosmological light ray
     """
 
     # Set up in a temp dir
@@ -73,9 +74,20 @@ def test_absorption_spectrum_cosmo():
     sp.add_continuum(my_label, field, wavelength, normalization, index)
 
     wavelength, flux = sp.make_spectrum('lightray.h5',
-                                        output_file='spectrum.txt',
+                                        output_file='spectrum.h5',
                                         line_list_file='lines.txt',
                                         use_peculiar_velocity=True)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    f_new = h5.File('spectrum.h5', 'r')
+
+    # load standard data for comparison
+    f_old = h5.File(HI_SPECTRUM_COSMO_FILE, 'r')
+
+    # compare between standard data and current data for each array saved 
+    # (wavelength, flux, tau)
+    for key in f_old.keys():
+        assert_array_almost_equal(f_new[key].value, f_old[key].value, 10)
 
     # clean up
     os.chdir(curdir)
@@ -85,9 +97,7 @@ def test_absorption_spectrum_cosmo():
 @requires_file(HI_SPECTRUM)
 def test_absorption_spectrum_non_cosmo():
     """
-    This test is simply following the description in the docs for how to
-    generate an absorption spectrum from a non-cosmological light ray for one
-    of the sample datasets
+    This test generates an absorption spectrum from a non-cosmological light ray
     """
 
     # Set up in a temp dir
@@ -138,8 +148,8 @@ def test_absorption_spectrum_non_cosmo():
 @requires_file(COSMO_PLUS_SINGLE)
 def test_equivalent_width_conserved():
     """
-    This test assures that the equivalent width of the optical depth 
-    is conserved regardless of the bin width employed in wavelength space.
+    This tests that the equivalent width of the optical depth is conserved 
+    regardless of the bin width employed in wavelength space.
     Unresolved lines should still deposit optical depth into the spectrum.
     """
 
@@ -185,13 +195,11 @@ def test_equivalent_width_conserved():
     shutil.rmtree(tmpdir)
 
 
-@requires_file(COSMO_PLUS)
+@requires_file(COSMO_PLUS_SINGLE)
 @requires_module("astropy")
 def test_absorption_spectrum_fits():
     """
-    This test is simply following the description in the docs for how to
-    generate an absorption spectrum from a cosmological light ray for one
-    of the sample datasets.  Outputs to fits file if astropy is installed.
+    This test generates an absorption spectrum and saves it as a fits file.
     """
 
     # Set up in a temp dir
@@ -199,11 +207,12 @@ def test_absorption_spectrum_fits():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    lr = LightRay(COSMO_PLUS, 'Enzo', 0.0, 0.03)
+    lr = LightRay(COSMO_PLUS_SINGLE)
 
-    lr.make_light_ray(seed=1234567,
+    ray_start = [0,0,0]
+    ray_end = [1,1,1]
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
                       fields=['temperature', 'density', 'H_number_density'],
-                      get_los_velocity=True,
                       data_filename='lightray.h5')
 
     sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
