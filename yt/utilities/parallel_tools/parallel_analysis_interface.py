@@ -124,7 +124,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt","__global_parallel_size"] = str(communicator.size)
     ytcfg["yt","__parallel"] = "True"
     if exe_name == "embed_enzo" or \
-        ("_parallel" in dir(sys) and sys._parallel == True):
+        ("_parallel" in dir(sys) and sys._parallel is True):
         ytcfg["yt","inline"] = "True"
     if communicator.rank > 0:
         if ytcfg.getboolean("yt","LogFile"):
@@ -270,7 +270,7 @@ class ParallelDummy(type):
             if attrname.startswith("_") or attrname in skip:
                 if attrname not in extra: continue
             attr = getattr(cls, attrname)
-            if type(attr) == types.MethodType:
+            if isinstance(attr, types.MethodType):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
@@ -323,7 +323,7 @@ def parallel_root_only(func):
             try:
                 rv = func(*args, **kwargs)
                 all_clear = 1
-            except Exception as ex:
+            except Exception:
                 traceback.print_last()
                 all_clear = 0
         else:
@@ -917,7 +917,7 @@ class Communicator(object):
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
-        if rank == None:
+        if rank is None:
             return "%s_%04i" % (prefix, self.comm.rank)
         else:
             return "%s_%04i" % (prefix, rank)
@@ -1246,7 +1246,7 @@ class ParallelAnalysisInterface(object):
                 if f in xyzfactors[nextdim]:
                     cuts.append([nextdim, f])
                     topop = xyzfactors[nextdim].index(f)
-                    temp = xyzfactors[nextdim].pop(topop)
+                    xyzfactors[nextdim].pop(topop)
                     lastdim = nextdim
                     break
                 nextdim = (nextdim + 1) % 3

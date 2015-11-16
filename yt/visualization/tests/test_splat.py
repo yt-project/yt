@@ -19,7 +19,7 @@ import shutil
 import numpy as np
 import yt
 from yt.testing import \
-    assert_equal, expand_keywords
+    assert_equal
 from yt.utilities.lib.api import add_rgba_points_to_image
 
 

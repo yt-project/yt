@@ -79,7 +79,6 @@ class LensTest(TestCase):
         cam.lens.fov = 360.0
         cam.set_width(self.ds.domain_width)
         v, c = self.ds.find_max('density')
-        p = self.ds.domain_center.copy()
         cam.set_position(c-0.0005*self.ds.domain_width)
         vol = VolumeSource(dd, field=self.field)
         tf = vol.transfer_function
@@ -96,7 +95,6 @@ class LensTest(TestCase):
         cam = Camera(dd, lens_type='plane-parallel')
         cam.set_width(self.ds.domain_width*1e-2)
         v, c = self.ds.find_max('density')
-        p = self.ds.domain_center.copy()
         vol = VolumeSource(dd, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True

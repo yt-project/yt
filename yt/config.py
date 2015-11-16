@@ -16,7 +16,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import os
-import types
 from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(

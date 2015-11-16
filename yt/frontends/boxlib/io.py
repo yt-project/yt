@@ -15,9 +15,11 @@ Orion data-file handling functions
 
 import os
 import numpy as np
+from collections import defaultdict
+
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.funcs import mylog, defaultdict
+from yt.funcs import mylog
 from yt.frontends.chombo.io import parse_orion_sinks
 
 class IOHandlerBoxlib(BaseIOHandler):

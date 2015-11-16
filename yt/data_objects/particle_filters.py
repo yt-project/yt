@@ -14,16 +14,14 @@ This is a library for defining and using particle filters.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import copy
+from collections import defaultdict
 
 from contextlib import contextmanager
-from functools import wraps
 
 from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
 from yt.utilities.exceptions import YTIllDefinedFilter
-from yt.funcs import *
 
 # One to many mapping
 filter_registry = defaultdict(list)

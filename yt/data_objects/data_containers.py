@@ -13,32 +13,39 @@ Various non-grid data containers.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import itertools
-import os
-import types
 import uuid
-from yt.extern.six import string_types
-
-data_object_registry = {}
 
 import numpy as np
 import weakref
 import shelve
-from contextlib import contextmanager
 
-from yt.funcs import get_output_filename
-from yt.funcs import *
+from collections import defaultdict
+from contextlib import contextmanager
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog, \
+    ensure_list, \
+    fix_axis, \
+    iterable
 from yt.units.unit_object import UnitParseError
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
-    YTSpatialFieldUnitError
+    YTSpatialFieldUnitError, \
+    YTCouldNotGenerateField, \
+    YTFieldNotParseable, \
+    YTFieldNotFound, \
+    YTFieldTypeNotFound, \
+    YTDataSelectorNotImplemented
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -55,9 +62,10 @@ from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
 
+data_object_registry = {}
+
 def force_array(item, shape):
     try:
-        sh = item.shape
         return item.copy()
     except AttributeError:
         if item:
@@ -189,7 +197,7 @@ class YTDataContainer(object):
         elif isinstance(center, string_types):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
-             # is this dangerous for race conditions?
+            # is this dangerous for race conditions?
             elif center.lower() in ("max", "m"):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
@@ -831,7 +839,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get.append(field)
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
-        elif self._locked == True:
+        elif self._locked is True:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys())
@@ -1407,7 +1415,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         with child cells are left untouched.
         """
         for grid in self._grids:
-            if default_value != None:
+            if default_value is not None:
                 grid[field] = np.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
@@ -1474,167 +1482,3 @@ def _reconstruct_object(*args, **kwargs):
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
-
-class YTBooleanRegionBase(YTSelectionContainer3D):
-    """
-    This will build a hybrid region based on the boolean logic
-    of the regions.
-
-    Parameters
-    ----------
-    regions : list
-        A list of region objects and strings describing the boolean logic
-        to use when building the hybrid region. The boolean logic can be
-        nested using parentheses.
-
-    Examples
-    --------
-    >>> re1 = ds.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
-        [0.6, 0.6, 0.6])
-    >>> re2 = ds.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
-        [0.55, 0.55, 0.55])
-    >>> sp1 = ds.sphere([0.575, 0.575, 0.575], .03)
-    >>> toroid_shape = ds.boolean([re1, "NOT", re2])
-    >>> toroid_shape_with_hole = ds.boolean([re1, "NOT", "(", re2, "OR",
-        sp1, ")"])
-    """
-    _type_name = "boolean"
-    _con_args = ("regions",)
-    def __init__(self, regions, fields = None, ds = None, field_parameters = None, data_source = None):
-        # Center is meaningless, but we'll define it all the same.
-        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, field_parameters, data_source)
-        self.regions = regions
-        self._all_regions = []
-        self._some_overlap = []
-        self._all_overlap = []
-        self._cut_masks = {}
-        self._get_all_regions()
-        self._make_overlaps()
-        self._get_list_of_grids()
-
-    def _get_all_regions(self):
-        # Before anything, we simply find out which regions are involved in all
-        # of this process, uniquely.
-        for item in self.regions:
-            if isinstance(item, bytes): continue
-            self._all_regions.append(item)
-            # So cut_masks don't get messed up.
-            item._boolean_touched = True
-        self._all_regions = np.unique(self._all_regions)
-
-    def _make_overlaps(self):
-        # Using the processed cut_masks, we'll figure out what grids
-        # are left in the hybrid region.
-        pbar = get_pbar("Building boolean", len(self._all_regions))
-        for i, region in enumerate(self._all_regions):
-            try:
-                region._get_list_of_grids() # This is no longer supported.
-                alias = region
-            except AttributeError:
-                alias = region.data         # This is no longer supported.
-            for grid in alias._grids:
-                if grid in self._some_overlap or grid in self._all_overlap:
-                    continue
-                # Get the cut_mask for this grid in this region, and see
-                # if there's any overlap with the overall cut_mask.
-                overall = self._get_cut_mask(grid)
-                local = force_array(alias._get_cut_mask(grid),
-                    grid.ActiveDimensions)
-                # Below we don't want to match empty masks.
-                if overall.sum() == 0 and local.sum() == 0: continue
-                # The whole grid is in the hybrid region if a) its cut_mask
-                # in the original region is identical to the new one and b)
-                # the original region cut_mask is all ones.
-                if (local == np.bitwise_and(overall, local)).all() and \
-                        (local == True).all():
-                    self._all_overlap.append(grid)
-                    continue
-                if (overall == local).any():
-                    # Some of local is in overall
-                    self._some_overlap.append(grid)
-                    continue
-            pbar.update(i)
-        pbar.finish()
-
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.ds)
-        s += "["
-        for i, region in enumerate(self.regions):
-            if region in ["OR", "AND", "NOT", "(", ")"]:
-                s += region
-            else:
-                s += region.__repr__()
-            if i < (len(self.regions) - 1): s += ", "
-        s += "]"
-        return s
-
-    def _is_fully_enclosed(self, grid):
-        return (grid in self._all_overlap)
-
-    def _get_list_of_grids(self):
-        self._grids = np.array(self._some_overlap + self._all_overlap,
-            dtype='object')
-
-    def _get_cut_mask(self, grid, field=None):
-        if self._is_fully_enclosed(grid):
-            return True # We do not want child masking here
-        if grid.id in self._cut_masks:
-            return self._cut_masks[grid.id]
-        # If we get this far, we have to generate the cut_mask.
-        return self._get_level_mask(self.regions, grid)
-
-    def _get_level_mask(self, ops, grid):
-        level_masks = []
-        end = 0
-        for i, item in enumerate(ops):
-            if end > 0 and i < end:
-                # We skip over things inside parentheses on this level.
-                continue
-            if isinstance(item, YTDataContainer):
-                # Add this regions cut_mask to level_masks
-                level_masks.append(force_array(item._get_cut_mask(grid),
-                    grid.ActiveDimensions))
-            elif item == "AND" or item == "NOT" or item == "OR":
-                level_masks.append(item)
-            elif item == "(":
-                # recurse down, and we'll append the results, which
-                # should be a single cut_mask
-                open_count = 0
-                for ii, item in enumerate(ops[i + 1:]):
-                    # We look for the matching closing parentheses to find
-                    # where we slice ops.
-                    if item == "(":
-                        open_count += 1
-                    if item == ")" and open_count > 0:
-                        open_count -= 1
-                    elif item == ")" and open_count == 0:
-                        end = i + ii + 1
-                        break
-                level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
-                    grid), grid.ActiveDimensions))
-                end += 1
-            elif isinstance(item.data, AMRData):
-                level_masks.append(force_array(item.data._get_cut_mask(grid),
-                    grid.ActiveDimensions))
-            else:
-                mylog.error("Item in the boolean construction unidentified.")
-        # Now we do the logic on our level_mask.
-        # There should be no nested logic anymore.
-        # The first item should be a cut_mask,
-        # so that will be our starting point.
-        this_cut_mask = level_masks[0]
-        for i, item in enumerate(level_masks):
-            # I could use a slice above, but I'll keep i consistent instead.
-            if i == 0: continue
-            if item == "AND":
-                # So, the next item in level_masks we want to AND.
-                np.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
-            if item == "NOT":
-                # It's convenient to remember that NOT == AND NOT
-                np.bitwise_and(this_cut_mask, np.invert(level_masks[i+1]),
-                    this_cut_mask)
-            if item == "OR":
-                np.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
-        self._cut_masks[grid.id] = this_cut_mask
-        return this_cut_mask

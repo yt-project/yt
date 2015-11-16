@@ -15,7 +15,9 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import logging
+import numpy as np
 import os
+import time
 import hashlib
 import contextlib
 import sys
@@ -25,19 +27,30 @@ import zlib
 import tempfile
 import glob
 
+from collections import defaultdict
+
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
-from yt.testing import *
+from yt.funcs import \
+    get_pbar
+from yt.testing import \
+    assert_equal, \
+    assert_allclose_units, \
+    assert_rel_equal, \
+    assert_almost_equal
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
+from yt.utilities.exceptions import \
+    YTNoOldAnswer, \
+    YTCloudError, \
+    YTOutputNotIdentified
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -171,7 +184,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError as ex:
+        except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
@@ -661,7 +674,7 @@ def compare_image_lists(new_result, old_result, decimals):
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
+        assert compare_images(fns[0], fns[1], 10**(-decimals)) is None
         for fn in fns: os.remove(fn)
 
 class VRImageComparisonTest(AnswerTestingTest):
@@ -796,7 +809,7 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
@@ -818,7 +831,7 @@ def requires_ds(ds_fn, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_ds(ds_fn, file_check):
         return ffalse

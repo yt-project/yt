@@ -1,4 +1,4 @@
-from yt.testing import *
+from yt.testing import assert_equal
 from yt.utilities.periodic_table import _elements, periodic_table
 
 def test_element_accuracy():
