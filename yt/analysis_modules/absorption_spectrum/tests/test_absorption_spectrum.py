@@ -22,7 +22,8 @@ from yt.config import ytcfg
 import tempfile
 import os
 import shutil
-import h5py as h5
+from yt.utilities.on_demand_imports import \
+    _h5py as h5
 
 test_dir = ytcfg.get("yt", "test_data_dir")
 
