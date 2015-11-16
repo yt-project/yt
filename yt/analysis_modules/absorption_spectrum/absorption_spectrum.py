@@ -301,12 +301,14 @@ class AbsorptionSpectrum(object):
             vbin_window_width = n_vbins*vbin_width
 
             if (thermal_width < self.bin_width).any():
-                mylog.warn(("%d out of %d line components are unresolved.") %
+                mylog.info(("%d out of %d line components will be " + \
+                            "deposited as unresolved lines.") %
                            ((thermal_width < self.bin_width).sum(), 
                             thermal_width.size))
 
             valid_lines = np.arange(len(thermal_width))
-            pbar = get_pbar("Adding line - %s [%f A]: " % (line['label'], line['wavelength']),
+            pbar = get_pbar("Adding line - %s [%f A]: " % \
+                            (line['label'], line['wavelength']),
                             thermal_width.size)
 
             # for a given transition, step through each location in the 
