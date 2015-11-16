@@ -115,7 +115,8 @@ class AbsorptionSpectrum(object):
 
     def make_spectrum(self, input_file, output_file="spectrum.h5",
                       line_list_file="lines.txt",
-                      use_peculiar_velocity=True, njobs="auto"):
+                      use_peculiar_velocity=True, 
+                      subgrid_resolution=10, njobs="auto"):
         """
         Make spectrum from ray data using the line list.
 
@@ -140,6 +141,17 @@ class AbsorptionSpectrum(object):
         use_peculiar_velocity : optional, bool
            if True, include line of sight velocity for shifting lines.
            Default: True
+        subgrid_resolution : optional, int
+           When a line is being added that is unresolved (ie its thermal
+           width is less than the spectral bin width), the voigt profile of
+           the line is deposited into an array of virtual bins at higher
+           resolution.  The optical depth from these virtual bins is integrated
+           and then added to the coarser spectral bin.  The subgrid_resolution
+           value determines the ratio between the thermal width and the 
+           bin width of the virtual bins.  Increasing this value yields smaller
+           virtual bins, which increases accuracy, but is more expensive.
+           A value of 10 yields accuracy to the 4th significant digit.
+           Default: 10
         njobs : optional, int or "auto"
            the number of process groups into which the loop over
            absorption lines will be divided.  If set to -1, each
@@ -181,7 +193,9 @@ class AbsorptionSpectrum(object):
             njobs = min(comm.size, len(self.line_list))
 
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
-                                    line_list_file is not None, njobs=njobs)
+                                    line_list_file is not None, 
+                                    subgrid_resolution=subgrid_resolution,
+                                    njobs=njobs)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
         self.flux_field = np.exp(-self.tau_field)
@@ -234,7 +248,7 @@ class AbsorptionSpectrum(object):
             pbar.finish()
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
-                               save_line_list, njobs=-1):
+                               save_line_list, subgrid_resolution=10, njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
@@ -287,12 +301,13 @@ class AbsorptionSpectrum(object):
             # virtual bins (vbins) will be:
             # 1) <= the bin_width; assures at least as good as spectral bins
             # 2) <= 1/10th the thermal width; assures resolving voigt profiles
+            #   (actually 1/subgrid_resolution value, default is 1/10)
             # 3) a bin width will be divisible by vbin_width times a power of 
             #    10; this will assure we don't get spikes in the deposited
             #    spectra from uneven numbers of vbins per bin
             resolution = thermal_width / self.bin_width 
             vbin_width = self.bin_width / \
-                         10**(np.ceil(np.log10(10/resolution)).clip(0, np.inf))
+                         10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
             vbin_width = vbin_width.in_units('angstrom').d
 
             # the virtual window into which the line is deposited initially 
