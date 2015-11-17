@@ -115,7 +115,7 @@ class AbsorptionSpectrum(object):
                                     'index': index})
 
     def make_spectrum(self, input_file, output_file=None,
-                      line_list_file="lines.txt",
+                      output_absorbers_file=None,
                       use_peculiar_velocity=True, 
                       subgrid_resolution=10, njobs="auto"):
         """
@@ -127,18 +127,16 @@ class AbsorptionSpectrum(object):
         input_file : string or dataset
            path to input ray data or a loaded ray dataset
         output_file : optional, string
-           File containing the wavelength, flux, and optical depth fields.
-           File formats are chosen based on the filename extension.  
+           Option to save a file containing the wavelength, flux, and optical 
+           depth fields.  File formats are chosen based on the filename extension.  
            ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
            Default: None
-        line_list_file : optional, string
-           path to file in which the list of all deposited lines
-           will be saved.  If set to None, the line list will not
-           be saved.  Note, when running in parallel, combining the
-           line lists can be quite slow, so it is recommended to set
-           this to None when running in parallel unless you really
-           want them.
-           Default: "lines.txt"
+        output_absorbers_file : optional, string
+           Option to save a text file containing all of the absorbers and 
+           corresponding wavelength and redshift information.
+           For parallel jobs, combining the lines lists can be slow so it
+           is recommended to set to None in such circumstances.
+           Default: None
         use_peculiar_velocity : optional, bool
            if True, include line of sight velocity for shifting lines.
            Default: True
@@ -194,7 +192,7 @@ class AbsorptionSpectrum(object):
             njobs = min(comm.size, len(self.line_list))
 
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
-                                    line_list_file is not None, 
+                                    output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
                                     njobs=njobs)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
@@ -209,8 +207,8 @@ class AbsorptionSpectrum(object):
             self._write_spectrum_fits(output_file)
         else:
             self._write_spectrum_ascii(output_file)
-        if line_list_file is not None:
-            self._write_spectrum_line_list(line_list_file)
+        if output_absorbers_file is not None:
+            self._write_spectrum_line_list(output_absorbers_file)
 
         del field_data
         return (self.lambda_bins, self.flux_field)
