@@ -201,7 +201,9 @@ class AbsorptionSpectrum(object):
 
         self.flux_field = np.exp(-self.tau_field)
 
-        if output_file.endswith('.h5'):
+        if output_file is None:
+            pass
+        elif output_file.endswith('.h5'):
             self._write_spectrum_hdf5(output_file)
         elif output_file.endswith('.fits'):
             self._write_spectrum_fits(output_file)
