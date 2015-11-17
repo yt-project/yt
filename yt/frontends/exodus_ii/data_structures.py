@@ -72,8 +72,8 @@ class ExodusIIDataset(Dataset):
         self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
         self.step = step
-        Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+        super(ExodusIIDataset, self).__init__(filename, dataset_type,
+                                              units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
 
