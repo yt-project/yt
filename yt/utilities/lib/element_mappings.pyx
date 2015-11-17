@@ -445,6 +445,73 @@ cdef inline void Q1Jacobian3D(double* rcol,
                    rp*sp*vertices[18 + i] + rm*sp*vertices[21 + i]
 
 
+cdef class S2Sampler3D(NonlinearSolveSampler3D):
+
+    ''' 
+
+    This implements sampling inside a 3D, 20-node hexahedral mesh element.
+
+    '''
+
+    def __init__(self):
+        super(S2Sampler3D, self).__init__()
+        self.num_mapped_coords = 3
+        self.dim = 3
+        self.func = S2Function3D
+        self.jac = S2Jacobian3D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
+        pass
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
+            fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, 
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil:
+        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
+            return 1
+        else:
+            return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void S2Function3D(double* fx,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:
+            pass
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void S2Jacobian3D(double* rcol,
+                              double* scol,
+                              double* tcol,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:    
+            pass
+
+
 cdef class NonlinearSolveSampler2D(ElementSampler):
 
     '''

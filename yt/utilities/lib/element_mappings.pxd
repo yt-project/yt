@@ -170,6 +170,26 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
                              double tolerance,
                              int direction) nogil
 
+cdef class S2Sampler3D(NonlinearSolveSampler3D):
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x, 
+                               double* vertices,
+                               double* physical_x) nogil
+
+
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil
+
+    cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
+
 cdef class NonlinearSolveSampler2D(ElementSampler):
 
     cdef int dim
