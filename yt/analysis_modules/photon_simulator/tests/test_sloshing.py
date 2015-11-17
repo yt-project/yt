@@ -18,7 +18,6 @@ from yt.config import ytcfg
 from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import requires_ds, \
     GenericArrayTest, data_dir_load
-import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.random import RandomState
 import os
