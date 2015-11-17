@@ -215,21 +215,20 @@ class ExodusIIDataset(Dataset):
 
     def _read_coordinates(self):
         """
+
         Loads the coordinates for the mesh
+
         """
-        if self.dimensionality == 3:
-            coord_axes = 'xyz'
-        elif self.dimensionality == 2:
-            coord_axes = 'xy'
+        
+        coord_axes = 'xyz'[:self.dimensionality]
 
         mylog.info("Loading coordinates")
-
-        try:
-            return np.array([coord for coord in
-                             self._vars["coord"][:]]).transpose().copy()
-        except KeyError:
+        if "coord" not in self._vars:
             return np.array([self._vars["coord%s" % ax][:]
                              for ax in coord_axes]).transpose().copy()
+        else:
+            return np.array([coord for coord in
+                             self._vars["coord"][:]]).transpose().copy()
 
     def _read_connectivity(self):
         """
