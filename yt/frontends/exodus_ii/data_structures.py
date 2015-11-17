@@ -49,9 +49,6 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
                        for mesh_id, conn_ind in
                        enumerate(self.ds._read_connectivity())]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.ds)
-
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
         node_names = self.dataset.parameters['nod_names']
