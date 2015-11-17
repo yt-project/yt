@@ -333,7 +333,9 @@ Exodus II Data
 Exodus II is a file format for Finite Element datasets that is used by the MOOSE
 framework for file IO. Support for this format (and for unstructured mesh data in 
 general) is a new feature in yt, so while we aim to fully support it, we also expect 
-there to be some buggy features at present. 
+there to be some buggy features at present. Currently, yt can visualize first-order
+mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
+Development of higher-order visualization capability is a work in progress.
 
 To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
 file:
@@ -381,6 +383,40 @@ would do:
    ds = yt.load("out.e-s010", step=0)
    ad = ds.all_data()  # geometric selection, this just grabs everything
    print ad['connect1', 'convected']
+
+In this dataset, ('connect1', 'convected') is nodal field, meaning that the field values
+are defined at the vertices of the elements. If we examine the shape of the returned array:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   ad = ds.all_data()
+   print ad['connect1', 'convected'].shape
+
+we see that this mesh has 12480 8-node hexahedral elements, and that we get 8 field values
+for each element. To get the vertex positions at which these field values are defined, we
+can do, for instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   ad = ds.all_data()
+   print ad['connect1', 'vertex_x']
+
+If we instead look at an element-centered field, like ('connect1', 'conv_indicator'),
+we get:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("out.e-s010", step=0)
+   ad = ds.all_data()
+   print ad['connect1', 'conv_indicator'].shape
+
+we instead get only one field value per element.
+
 
 FITS Data
 ---------
