@@ -370,7 +370,8 @@ class LightRay(CosmologySplice):
         data_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         if get_los_velocity:
             all_fields.extend(['velocity_x', 'velocity_y', 'velocity_z', 
-                               'velocity_los', 'velocity_trans', 'redshift_eff'])
+                               'velocity_los', 'velocity_mag', 'theta',
+                               'redshift_eff'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
@@ -445,17 +446,22 @@ class LightRay(CosmologySplice):
                     sub_data[field].extend(sub_ray[field][asort])
 
                 if get_los_velocity:
-                    line_of_sight = sub_segment[1] - sub_segment[0]
+                    line_of_sight = sub_segment[0] - sub_segment[1]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
                     sub_vel = ds.arr([sub_ray['velocity_x'],
                                       sub_ray['velocity_y'],
                                       sub_ray['velocity_z']])
-                    # line of sight velocity is reversed relative to ray
-                    sub_vel_los = -1*(np.rollaxis(sub_vel, 1) * line_of_sight).sum(axis=1)
-                    sub_vel_trans = (sub_ray['velocity_magnitude']**2 - sub_vel_los**2)**0.5
+                    sub_vel_los = (np.rollaxis(sub_vel, 1) * \
+                                   line_of_sight).sum(axis=1)
                     sub_data['velocity_los'].extend(sub_vel_los[asort])
-                    sub_data['velocity_trans'].extend(sub_vel_trans[asort])
-                    del sub_vel, sub_vel_los, sub_vel_trans
+                    # theta is the angle between the ray vector (i.e. line of 
+                    # sight) and the velocity vectors:
+                    # a dot b = ab cos(theta)
+                    theta = np.arccos(np.dot(line_of_sight, sub_vel) / \
+                                      sub_ray['velocity_magnitude'])
+                    sub_data['theta'].extend(theta[asort])
+                    sub_data['velocity_mag'].extend(sub_ray['velocity_magnitude'][asort])
+                    del sub_vel, sub_vel_los, theta
 
                 sub_ray.clear_data()
                 del sub_ray, asort
@@ -463,7 +469,8 @@ class LightRay(CosmologySplice):
             for key in sub_data:
                 sub_data[key] = ds.arr(sub_data[key]).in_cgs()
 
-            # Get redshift for each lixel.  Assume linear relation between l and z.
+            # Get redshift for each lixel.  Assume linear relation between l 
+            # and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
                 (sub_data['dl'] / vector_length(my_segment['start'],
                                                 my_segment['end']).in_cgs())
@@ -474,33 +481,30 @@ class LightRay(CosmologySplice):
             # (redshift_eff) field by combining cosmological redshift and 
             # doppler redshift.
             
-            # first convert los velocities to comoving frame (ie mult. by (1+z)), 
-            # then calculate los doppler redshift:
-            # 1 + redshift_dopp_los = sqrt((1+v/c) / (1-v/c))
+            # first convert the velocity magnitudes to comoving frame 
+            # (ie mult. by (1+z)), then calculate the doppler redshift:
+            # 1 + redshift_dopp = (1 + v*cos(theta)/c) / sqrt(1 - v**2/c**2)
 
-            # next, convert transverse velocities to comoving frame
-            # then calculate transverse doppler redshift (from time dilation):
-            # 1 + redshift_dopp_trans = 1 / sqrt(1+v**2/c**2)
+            # the bulk of the doppler redshift is from line of sight motion,
+            # but there is a small amount from time dilation of transverse
+            # motion, hence the inclusion of theta (the angle between line of
+            # sight and the velocity). See:
+            # https://en.wikipedia.org/wiki/Redshift
 
             # then to add cosmological redshift and doppler redshifts, follow
             # eqn 3.75 in Peacock's Cosmological Physics:
-            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler_los) * (1 + z_doppler_trans)
+            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler)
             # Alternatively, see eqn 5.49 in Peebles for a similar result.
-            if get_los_velocity:
 
-                velocity_los_cm = (1 + sub_data['redshift']) * \
-                                  sub_data['velocity_los']
-                velocity_trans_cm = (1 + sub_data['redshift']) * \
-                                    sub_data['velocity_trans']
-                redshift_dopp_los = ((1 + velocity_los_cm / speed_of_light_cgs) /
-                                     (1 - velocity_los_cm / speed_of_light_cgs))**0.5 - 1
-                redshift_dopp_trans = (1 / (1 - (velocity_trans_cm**2 / 
-                                                 speed_of_light_cgs**2))**0.5) - 1
-                sub_data['redshift_eff'] = ((1 + redshift_dopp_los) * \
-                                            (1 + redshift_dopp_trans) * \
+            if get_los_velocity:
+                velocity_mag_cm = (1 + sub_data['redshift']) * \
+                                  sub_data['velocity_mag']
+                redshift_dopp = (1 + velocity_mag_cm * \
+                                 np.cos(sub_data['theta']) / speed_of_light_cgs) / \
+                                 np.sqrt(1 - velocity_mag_cm**2 / speed_of_light_cgs**2) - 1
+                sub_data['redshift_eff'] = ((1 + redshift_dopp) * \
                                             (1 + sub_data['redshift'])) - 1
-                del velocity_los_cm, velocity_trans_cm, redshift_dopp_los, \
-                    redshift_dopp_trans
+                del velocity_mag_cm, redshift_dopp
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
