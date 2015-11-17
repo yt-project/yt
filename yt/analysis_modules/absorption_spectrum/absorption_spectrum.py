@@ -114,7 +114,7 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_file, output_file="spectrum.h5",
+    def make_spectrum(self, input_file, output_file=None,
                       line_list_file="lines.txt",
                       use_peculiar_velocity=True, 
                       subgrid_resolution=10, njobs="auto"):
@@ -127,10 +127,10 @@ class AbsorptionSpectrum(object):
         input_file : string or dataset
            path to input ray data or a loaded ray dataset
         output_file : optional, string
-           path for output file.  File formats are chosen based on the
-           filename extension.  ``.h5`` for hdf5, ``.fits`` for fits,
-           and everything else is ASCII.
-           Default: "spectrum.h5"
+           File containing the wavelength, flux, and optical depth fields.
+           File formats are chosen based on the filename extension.  
+           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
+           Default: None
         line_list_file : optional, string
            path to file in which the list of all deposited lines
            will be saved.  If set to None, the line list will not
