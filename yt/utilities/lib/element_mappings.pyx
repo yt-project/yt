@@ -690,6 +690,23 @@ def test_hex_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def test_hex20_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                       np.ndarray[np.float64_t, ndim=1] field_values,
+                       np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    cdef S2Sampler3D sampler = S2Sampler3D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
                        np.ndarray[np.float64_t, ndim=1] field_values,
                        np.ndarray[np.float64_t, ndim=1] physical_x):
