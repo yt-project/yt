@@ -173,36 +173,45 @@ class ExodusIIDataset(Dataset):
 
     def _get_glo_names(self):
         """
-        Returns the names of the global vars, if available
+
+        Returns the names of the global vars, if available.
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_glo_var"]]
-        except (KeyError, TypeError):
+
+        if "name_glo_var" not in self._vars:
             mylog.warning("name_glo_var not found")
             return []
-
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_glo_var"]]
+            
     def _get_elem_names(self):
         """
-        Returns the names of the element vars, if available
+
+        Returns the names of the element vars, if available.
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_elem_var"]]
-        except (KeyError, TypeError):
+
+        if "name_elem_var" not in self._vars:
             mylog.warning("name_elem_var not found")
             return []
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_elem_var"]]
 
     def _get_nod_names(self):
         """
+
         Returns the names of the node vars, if available
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_nod_var"]]
-        except (KeyError, TypeError):
+
+        if "name_nod_var" not in self._vars:
             mylog.warning("name_nod_var not found")
             return []
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_nod_var"]]
 
     def _read_coordinates(self):
         """
