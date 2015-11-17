@@ -36,7 +36,6 @@ def test_projection():
         xf, yf, zf = ds.domain_right_edge.to_ndarray() - \
             1.0 / (ds.domain_dimensions * 2)
         dd = ds.all_data()
-        rho_tot = dd.quantities["TotalQuantity"]("density")
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
         # test if projections inherit the field parameters of their data sources

@@ -15,7 +15,6 @@ A simple periodic table.
 
 import numpy as np
 import numbers
-import types
 from yt.extern.six import string_types
 
 _elements = (

@@ -30,10 +30,10 @@ from yt.utilities.math_utils import \
     get_rotation_matrix, \
     periodic_dist
 from yt.utilities.physical_constants import \
-    mass_sun_cgs, \
-    TINY
+    mass_sun_cgs
 from yt.utilities.physical_ratios import \
-    rho_crit_g_cm3_h2
+    rho_crit_g_cm3_h2, \
+    TINY
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF

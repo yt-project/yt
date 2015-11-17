@@ -1,6 +1,7 @@
-import yt.utilities.lib.bitarray as ba
 import numpy as np
-from yt.testing import *
+
+import yt.utilities.lib.bitarray as ba
+from yt.testing import assert_equal
 
 def test_inout_bitarray():
     # Check that we can do it for bitarrays that are funny-shaped

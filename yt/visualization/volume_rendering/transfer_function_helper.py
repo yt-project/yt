@@ -15,8 +15,9 @@ rendering.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import mylog
-from yt.data_objects.profiles import BinnedProfile1D
-from .transfer_functions import ColorTransferFunction
+from yt.data_objects.profiles import create_profile
+from yt.visualization.volume_rendering.transfer_functions import \
+    ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from yt.extern.six.moves import StringIO
@@ -218,10 +219,10 @@ class TransferFunctionHelper(object):
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
             profile_field = 'cell_volume'
-        prof = BinnedProfile1D(self.ds.all_data(), 128, self.field,
-                               self.bounds[0], self.bounds[1],
-                               log_space=self.log,
-                               end_collect=False)
+        prof = create_profile(self.ds.all_data(), self.field, profile_field,
+                              n_bins=128, extrema={profile_field: self.bounds},
+                              weight_field=profile_weight,
+                              log_space=self.log)
         prof.add_fields([profile_field], fractional=False,
                         weight=profile_weight)
         self.profiles[self.field] = prof

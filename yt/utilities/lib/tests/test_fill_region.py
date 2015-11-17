@@ -1,4 +1,6 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import assert_equal
 from yt.utilities.lib.misc_utilities import fill_region
 
 NDIM = 32

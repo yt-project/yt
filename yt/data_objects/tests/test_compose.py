@@ -1,6 +1,11 @@
-from yt.testing import *
-from yt.fields.local_fields import add_field
-from yt.units.yt_array import YTArray, uintersect1d
+import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_array_equal
+from yt.units.yt_array import \
+    YTArray, \
+    uintersect1d
 
 def setup():
     from yt.config import ytcfg
@@ -72,9 +77,8 @@ def test_compose_no_overlap():
 
 def test_compose_overlap():
     r"""Test to make sure that composed data objects that do
-    overlap behave the way we expect 
+    overlap behave the way we expect
     """
-    empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
         ds.add_field(("index", "ID"), function=_IDFIELD)

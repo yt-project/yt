@@ -18,23 +18,20 @@ import numpy as np
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.fields.field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt.funcs import *
+
+from yt.funcs import mylog
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer
 from yt.units.yt_array import YTArray
 from yt.units.dimensions import length
-from yt.utilities.exceptions import YTInvalidPositionArray
+from yt.utilities.exceptions import \
+    YTInvalidPositionArray, \
+    YTFieldTypeNotFound, \
+    YTParticleDepositionNotImplemented
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):

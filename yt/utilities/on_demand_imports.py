@@ -265,11 +265,10 @@ class h5py_imports:
     def version(self):
         if self._version is None:
             try:
-                import h5py.version as File
+                import h5py.version as version
             except ImportError:
                 version = NotAModule(self._name)
-            self._version = File
+            self._version = version
         return self._version
 
 _h5py = h5py_imports()
-

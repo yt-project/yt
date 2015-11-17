@@ -1,7 +1,12 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    assert_array_equal, \
+    assert_array_almost_equal, \
+    fake_random_ds
 import yt.utilities.linear_interpolators as lin
 from yt.utilities.lib.Interpolators import \
-        ghost_zone_interpolate
+    ghost_zone_interpolate
 
 def setup():
     pass

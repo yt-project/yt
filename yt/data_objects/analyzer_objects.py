@@ -15,7 +15,6 @@ Analyzer objects for time series datasets
 
 import inspect
 
-from yt.funcs import *
 from yt.extern.six import add_metaclass
 
 analysis_task_registry = {}
@@ -23,7 +22,7 @@ analysis_task_registry = {}
 class RegisteredTask(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
-        if hasattr(cls, "skip") and cls.skip == False:
+        if hasattr(cls, "skip") and cls.skip is False:
             return
         analysis_task_registry[cls.__name__] = cls
 

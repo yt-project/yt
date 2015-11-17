@@ -18,7 +18,8 @@ import glob
 import os
 
 from yt.convenience import \
-    load, \
+    load
+from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries

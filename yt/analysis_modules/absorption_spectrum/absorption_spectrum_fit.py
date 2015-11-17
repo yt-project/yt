@@ -281,8 +281,6 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
         errSq=sum(dif**2)
 
         if any(linesP[:,1]==speciesDict['init_b']):
-         #   linesP = prevLinesP
-
             flag = True
             break
             

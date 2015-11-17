@@ -21,6 +21,9 @@ from yt.utilities.exceptions import \
     YTFieldUnitError, \
     YTFieldUnitParseError
 
+base_ds = None
+
+
 def setup():
     global base_ds
     # Make this super teeny tiny
@@ -67,6 +70,7 @@ _base_fields = (("gas", "density"),
 
 def realistic_ds(fields, particle_fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
+    global base_ds
     units = [base_ds._get_field_info(*f).units for f in fields]
     punits = [base_ds._get_field_info('io', f).units for f in particle_fields]
     fields = [_strip_ftype(f) for f in fields]
@@ -111,7 +115,7 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-
+        global base_ds
         field = base_ds._get_field_info(*self.field_name)
         deps = field.get_dependencies(ds = base_ds)
         requested = deps.requested
@@ -174,6 +178,7 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
+    global base_ds
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
             continue
@@ -190,6 +195,7 @@ def test_all_fields():
             yield TestFieldAccess(field, nproc)
 
 def test_add_deposited_particle_field():
+    global base_ds
     fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'count')
     assert_equal(fn, ('deposit', 'io_count_ones'))
     ad = base_ds.all_data()
@@ -206,6 +212,7 @@ def test_add_smoothed_particle_field():
     assert_almost_equal(ret.sum(), 3824750.912653606)
 
 def test_add_gradient_fields():
+    global base_ds
     gfields = base_ds.add_gradient_fields(("gas","density"))
     gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
