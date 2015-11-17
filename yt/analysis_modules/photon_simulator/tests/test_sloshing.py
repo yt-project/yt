@@ -102,8 +102,8 @@ def test_sloshing():
     photons2 = PhotonList.from_file("test_photons.h5")
     events2 = EventList.from_h5_file("test_events.h5")
 
-    convert_old_file("old_photons.h5", "converted_photons.h5")
-    convert_old_file("old_events.h5", "converted_events.h5")
+    convert_old_file(old_photons, "converted_photons.h5")
+    convert_old_file(old_events, "converted_events.h5")
 
     photons3 = PhotonList.from_file("converted_photons.h5")
     events3 = EventList.from_h5_file("converted_events.h5")
