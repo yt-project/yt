@@ -258,8 +258,8 @@ class LightRay(CosmologySplice):
                        trajectory=None,
                        fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       use_peculiar_velocity=True, redshift=None,
-                       njobs=-1):
+                       get_los_velocity=None, use_peculiar_velocity=True, 
+                       redshift=None, njobs=-1):
         """
         make_light_ray(seed=None, start_position=None, end_position=None,
                        trajectory=None, fields=None, setup_function=None,
@@ -353,6 +353,9 @@ class LightRay(CosmologySplice):
         ...                       use_peculiar_velocity=True)
 
         """
+        if get_los_velocity is not None:
+            use_peculiar_velocity = get_los_velocity
+            mylog.warn("'get_los_velocity' kwarg is deprecated. Use 'use_peculiar_velocity' instead.")
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
