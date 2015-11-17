@@ -163,10 +163,7 @@ class ExodusIIDataset(Dataset):
             return []
 
     def _get_unique_identifier(self):
-        try:
-            return self.parameters['info_records']['Version Info']['Executable Timestamp']
-        except (KeyError, TypeError, IndexError):
-            return self.parameter_filename.__hash__()
+        return self.parameter_filename.__hash__()
 
     def _get_current_time(self):
         try:
