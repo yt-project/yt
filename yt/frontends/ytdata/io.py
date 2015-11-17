@@ -14,7 +14,6 @@ YTData data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
 
 from yt.extern.six import \
@@ -27,6 +26,8 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
     compute_morton
+from yt.utilities.on_demand_imports import \
+    _h5py as h5py
 
 class IOHandlerYTNonspatialhdf5(BaseIOHandler):
     _dataset_type = "ytnonspatialhdf5"
@@ -102,7 +103,6 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
         ind = 0
-        h5_type = self._field_dtype
         for chunk in chunks:
             f = None
             for g in chunk.objs:
@@ -202,7 +202,6 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            all_count = self._count_particles(data_file)
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     x = _get_position_array(ptype, f, "x")
@@ -224,7 +223,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         ind = 0
         with h5py.File(data_file.filename, "r") as f:
             for ptype in all_count:
-                if not ptype in f or all_count[ptype] == 0: continue
+                if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
                 pos = data_file.ds.arr(pos, "code_length")
                 if ptype == "grid":
@@ -320,7 +319,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
         ind = 0
         with h5py.File(data_file.filename, "r") as f:
             for ptype in all_count:
-                if not ptype in f or all_count[ptype] == 0: continue
+                if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
                 pos = data_file.ds.arr(pos, "code_length")
                 if ptype == "grid":

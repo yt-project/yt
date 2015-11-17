@@ -14,7 +14,6 @@ Painting zones in a grid
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.units.yt_array import YTQuantity
 
 class FluidOperator(object):
     def apply(self, ds):

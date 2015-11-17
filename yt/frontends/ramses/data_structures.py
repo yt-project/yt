@@ -21,6 +21,7 @@ import stat
 import weakref
 from io import BytesIO
 
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog
 from yt.geometry.oct_geometry_handler import \
@@ -521,7 +522,7 @@ class RAMSESDataset(Dataset):
                  fields = None, storage_filename = None,
                  units_override=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, str):
+        if isinstance(fields, string_types):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file

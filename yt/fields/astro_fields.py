@@ -91,6 +91,20 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        function=_chandra_emissivity,
                        units="") # add correct units here
 
+    def _emission_measure(field, data):
+        if data.has_field_parameter("X_H"):
+            X_H = data.get_field_parameter("X_H")
+        else:
+            X_H = 0.76
+        nenh = data["density"]*data["density"]
+        nenh /= mh*mh
+        nenh *= 0.5*(1.+X_H)*X_H*data["cell_volume"]
+        return nenh
+    
+    registry.add_field((ftype, "emission_measure"),
+                       function=_emission_measure,
+                       units="cm**-3")
+
     def _xray_emissivity(field, data):
         # old scaling coefficient was 2.168e60
         return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2

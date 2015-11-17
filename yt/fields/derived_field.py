@@ -14,6 +14,7 @@ Derived field base class.
 import contextlib
 import inspect
 
+from yt.extern.six import string_types
 from yt.funcs import \
     ensure_list
 from .field_exceptions import \
@@ -99,7 +100,7 @@ class DerivedField(object):
         # handle units
         if units is None:
             self.units = ''
-        elif isinstance(units, str):
+        elif isinstance(units, string_types):
             if units.lower() == 'auto':
                 self.units = None
             else:

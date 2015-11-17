@@ -16,7 +16,7 @@ that SciPy doesn't have that I expected it to
 
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import mylog
 import yt.utilities.lib.Interpolators as lib
 
 class UnilinearFieldInterpolator:

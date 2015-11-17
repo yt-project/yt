@@ -16,6 +16,7 @@ import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
 from . import _colormap_data as _cm
+from yt.extern.six import string_types
 
 def is_colormap(cmap):
     return isinstance(cmap,cc.Colormap)
@@ -365,7 +366,7 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     # Figure out how many intervals there are total.
     rolling_index = 0
     for i, (color, interval) in enumerate(ctuple_list):
-        if isinstance(color, str):
+        if isinstance(color, string_types):
             ctuple_list[i] = (color_dict[color], interval)
         rolling_index += interval
     scale = 256./rolling_index

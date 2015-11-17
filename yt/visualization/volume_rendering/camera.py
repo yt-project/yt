@@ -16,6 +16,7 @@ from yt.utilities.orientation import Orientation
 from yt.units.yt_array import YTArray
 from yt.units.unit_registry import UnitParseError
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.extern.six import string_types
 from .utils import data_source_or_all
 from .lens import lenses
 import numpy as np
@@ -231,7 +232,7 @@ class Camera(Orientation):
                         (zma - zmi) ** 2)
         focus = data_source.get_field_parameter('center')
 
-        if iterable(width) and len(width) > 1 and isinstance(width[1], str):
+        if iterable(width) and len(width) > 1 and isinstance(width[1], string_types):
             width = data_source.ds.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value

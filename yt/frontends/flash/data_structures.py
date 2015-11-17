@@ -27,7 +27,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.file_handler import \
     HDF5FileHandler
-from yt.utilities.physical_constants import cm_per_mpc
+from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
 
 class FLASHGrid(AMRGridPatch):

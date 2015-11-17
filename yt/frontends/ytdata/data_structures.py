@@ -21,7 +21,6 @@ from numbers import \
 import numpy as np
 import os
 import stat
-import time
 import weakref
 
 from .fields import \
@@ -40,7 +39,6 @@ from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
 from yt.extern.six import \
-    iteritems, \
     string_types
 from yt.geometry.grid_geometry_handler import \
     GridIndex
@@ -50,8 +48,6 @@ from yt.units.yt_array import \
     YTQuantity
 from yt.utilities.logger import \
     ytLogger as mylog
-from yt.utilities.cosmology import \
-    Cosmology
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound
 from yt.utilities.on_demand_imports import \
@@ -241,7 +237,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _parse_parameter_file(self):
         super(YTSpatialPlotDataset, self)._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
-            if isinstance(self.parameters["weight_field"], str) and \
+            if isinstance(self.parameters["weight_field"], string_types) and \
               self.parameters["weight_field"] == "None":
                 self.parameters["weight_field"] = None
             elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -422,7 +418,7 @@ class YTNonspatialGrid(AMRGridPatch):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        self.ds._get_field_info(*fields[0])
         return tr
 
     def get_data(self, fields=None):
@@ -461,7 +457,7 @@ class YTNonspatialGrid(AMRGridPatch):
             fields_to_get.append(field)
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
-        elif self._locked == True:
+        elif self._locked is True:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys())
@@ -605,7 +601,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
 
-        if isinstance(self.parameters["weight_field"], str) and \
+        if isinstance(self.parameters["weight_field"], string_types) and \
           self.parameters["weight_field"] == "None":
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -639,7 +635,7 @@ class YTProfileDataset(YTNonspatialDataset):
                              self.parameters[range_name+"_units"]))
 
             bin_field = "%s_field" % ax
-            if isinstance(self.parameters[bin_field], str) and \
+            if isinstance(self.parameters[bin_field], string_types) and \
               self.parameters[bin_field] == "None":
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):

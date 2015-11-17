@@ -1,4 +1,8 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_array_less
 
 def setup():
     from yt.config import ytcfg

@@ -34,11 +34,10 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
-from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-     import periodic_ray
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
+    periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-import warnings
 
 
 from . import _MPL
@@ -2250,7 +2249,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
 
-        if self.texture == None:
+        if self.texture is None:
             self.texture = np.random.rand(nx,ny).astype(np.double)
         elif self.texture.shape != (nx,ny):
             raise SyntaxError("'texture' must have the same shape "

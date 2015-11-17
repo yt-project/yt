@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import os
+import tempfile
+import subprocess
+import shutil
 import pkg_resources
-import setuptools
-import os, sys, os.path, glob, \
-    tempfile, subprocess, shutil
 
 def check_for_openmp():
     # Create a temporary directory
@@ -57,7 +58,7 @@ def check_for_pyembree():
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
-    if check_for_openmp() == True:
+    if check_for_openmp() is True:
         omp_args = ['-fopenmp']
     else:
         omp_args = None
