@@ -13,7 +13,7 @@ Two Point Functions Framework.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.funcs import mylog
@@ -26,7 +26,9 @@ try:
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
-import math, inspect, time
+import math
+import inspect
+import time
 from collections import defaultdict
 
 sep = 12

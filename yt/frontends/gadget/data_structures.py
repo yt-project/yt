@@ -15,12 +15,12 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.extern.six import string_types
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +30,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
@@ -44,7 +42,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], str):
+    if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
 
@@ -132,7 +130,7 @@ class GadgetDataset(ParticleDataset):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
-        f = open(self.parameter_filename)
+        f = open(self.parameter_filename, 'rb')
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:

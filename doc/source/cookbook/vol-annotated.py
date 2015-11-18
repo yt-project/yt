@@ -4,7 +4,7 @@ import numpy as np
 import pylab
 
 import yt
-import yt.visualization.volume_rendering.api as vr
+import yt.visualization.volume_rendering.old_camera as vr
 
 ds = yt.load("maestro_subCh_plt00248")
 
@@ -17,11 +17,11 @@ field = ('boxlib', 'radial_velocity')
 # centered on these with width sigma        
 vals = [-1.e7, -5.e6, -2.5e6, 2.5e6, 5.e6, 1.e7]
 sigma = 2.e5
-        
+
 mi, ma = min(vals), max(vals)
 
 # Instantiate the ColorTransferfunction.
-tf =  vr.ColorTransferFunction((mi, ma))
+tf =  yt.ColorTransferFunction((mi, ma))
 
 for v in vals:
     tf.sample_colormap(v, sigma**2, colormap="coolwarm")
@@ -69,7 +69,7 @@ pylab.text(0.2, 0.85, "{:.3g} s".format(float(ds.current_time.d)),
 
 # tell the camera to use our figure
 cam._render_figure = f
-    
+
 # save annotated -- this added the transfer function values, 
 # and the clear_fig=False ensures it writes onto our existing figure.
 cam.save_annotated("vol_annotated.png", nim, dpi=145, clear_fig=False)

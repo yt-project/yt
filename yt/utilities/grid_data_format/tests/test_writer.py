@@ -15,7 +15,7 @@ Testsuite for writing yt data to GDF
 import tempfile
 import shutil
 import os
-import h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5
 from yt.testing import \
     fake_random_ds, assert_equal
 from yt.utilities.grid_data_format.writer import \

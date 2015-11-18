@@ -13,7 +13,7 @@ AMR kD-Tree Tools
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.funcs import *
+from yt.funcs import mylog
 
 
 def receive_and_reduce(comm, incoming_rank, image, add_to_front):

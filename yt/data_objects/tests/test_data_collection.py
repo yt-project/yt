@@ -1,4 +1,9 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    assert_rel_equal
 
 def setup():
     from yt.config import ytcfg

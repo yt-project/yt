@@ -129,8 +129,8 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = np.abs(a - b)
     
-    p_directions = [i for i,p in enumerate(periodicity) if p == True]
-    np_directions = [i for i,p in enumerate(periodicity) if p == False]
+    p_directions = [i for i,p in enumerate(periodicity) if p is True]
+    np_directions = [i for i,p in enumerate(periodicity) if p is False]
     for d in p_directions:
         c[1,d,:] = period[d,:] - np.abs(a - b)[d,:]
     for d in np_directions:

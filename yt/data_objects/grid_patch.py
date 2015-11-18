@@ -13,25 +13,17 @@ Python-based grid handler, not to be confused with the SWIG-handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import pdb
 import weakref
-import itertools
 import numpy as np
-
-from yt.funcs import *
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.fields.field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
+from yt.utilities.exceptions import \
+    YTFieldTypeNotFound, \
+    YTParticleDepositionNotImplemented
 from yt.utilities.lib.Interpolators import \
     ghost_zone_interpolate
 
@@ -136,6 +128,8 @@ class AMRGridPatch(YTSelectionContainer):
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
+            if not hasattr(self.Parent, 'dds'):
+                self.Parent._setup_dx()
             self.dds = self.Parent.dds.ndarray_view() / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id,:], \
@@ -232,15 +226,12 @@ class AMRGridPatch(YTSelectionContainer):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
-        nr = nl + self.ActiveDimensions + 2 * n_zones
         new_left_edge = nl * self.dds + self.ds.domain_left_edge
-        new_right_edge = nr * self.dds + self.ds.domain_left_edge
 
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
             level = self.index.max_level + 1
-        args = (level, new_left_edge, new_right_edge)
         kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
                   'num_ghost_zones':n_zones,
                   'use_pbar':False, 'fields':fields}

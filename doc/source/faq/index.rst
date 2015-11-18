@@ -329,8 +329,8 @@ Why are the values in my Ray object out of order?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using the Ray objects 
-(:class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` and 
-:class:`~yt.data_objects.selection_data_containers.YTRayBase`) with AMR data 
+(:class:`~yt.data_objects.selection_data_containers.YTOrthoRay` and 
+:class:`~yt.data_objects.selection_data_containers.YTRay`) with AMR data 
 gives non-contiguous cell information in the Ray's data array. The 
 higher-resolution cells are appended to the end of the array.  Unfortunately, 
 due to how data is loaded by chunks for data containers, there is really no 

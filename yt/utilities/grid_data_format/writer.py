@@ -15,7 +15,7 @@ from __future__ import print_function
 
 import os
 import sys
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from contextlib import contextmanager
 
@@ -341,7 +341,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid
         particles_group = grid_group.create_group("particles")
-        pt_group = particles_group.create_group(particle_type_name)
+        particles_group.create_group(particle_type_name)
 
     yield f
     

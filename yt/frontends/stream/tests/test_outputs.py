@@ -19,7 +19,7 @@ import tempfile
 import unittest
 
 from yt.testing import assert_raises
-from yt.utilities.answer_testing.framework import data_dir_load
+from yt.convenience import load
 from yt.utilities.exceptions import YTOutputNotIdentified
 
 class TestEmptyLoad(unittest.TestCase):
@@ -40,6 +40,6 @@ class TestEmptyLoad(unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_load_empty_file(self):
-        assert_raises(YTOutputNotIdentified, data_dir_load, "not_a_file")
-        assert_raises(YTOutputNotIdentified, data_dir_load, "empty_file")
-        assert_raises(YTOutputNotIdentified, data_dir_load, "empty_directory")
+        assert_raises(YTOutputNotIdentified, load, "not_a_file")
+        assert_raises(YTOutputNotIdentified, load, "empty_file")
+        assert_raises(YTOutputNotIdentified, load, "empty_directory")

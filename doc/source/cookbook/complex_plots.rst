@@ -196,9 +196,40 @@ Moving a Volume Rendering Camera
 
 In this recipe, we move a camera through a domain and take multiple volume
 rendering snapshots.
-See :ref:`volume_rendering` for more information.
+See :ref:`camera_movement` for more information.
 
 .. yt_cookbook:: camera_movement.py
+
+Volume Rendering with Custom Camera
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we modify the :ref:`cookbook-simple_volume_rendering` recipe to
+use customized camera properties. See :ref:`volume_rendering` for more
+information.
+
+.. yt_cookbook:: custom_camera_volume_rendering.py
+
+.. _cookbook-custom-transfer-function:
+
+Volume Rendering with a Custom Transfer Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we modify the :ref:`cookbook-simple_volume_rendering` recipe to
+use customized camera properties. See :ref:`volume_rendering` for more
+information.
+
+.. yt_cookbook:: custom_transfer_function_volume_rendering.py
+
+.. _cookbook-sigma_clip:
+
+Volume Rendering with Sigma Clipping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this recipe we output several images with different values of sigma_clip
+set in order to change the contrast of the resulting image.  See 
+:ref:`sigma_clip` for more information.
+
+.. yt_cookbook:: sigma_clip.py
 
 Zooming into an Image
 ~~~~~~~~~~~~~~~~~~~~~
@@ -212,6 +243,15 @@ See :ref:`slice-plots` and :ref:`callbacks` for more information.
 
 .. yt_cookbook:: zoomin_frames.py
 
+.. _cookbook-various_lens:
+
+Various Lens Types for Volume Rendering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example illustrates the usage and feature of different lenses for volume rendering.
+
+.. yt_cookbook:: various_lens.py
+
 .. _cookbook-opaque_rendering:
 
 Opaque Volume Rendering
@@ -220,7 +260,7 @@ Opaque Volume Rendering
 This recipe demonstrates how to make semi-opaque volume renderings, but also
 how to step through and try different things to identify the type of volume
 rendering you want.
-See :ref:`volume_rendering` for more information.
+See :ref:`opaque_rendering` for more information.
 
 .. yt_cookbook:: opaque_rendering.py
 
@@ -235,23 +275,27 @@ See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: amrkdtree_downsampling.py
 
+.. _cookbook-volume_rendering_annotations:
+
 Volume Rendering with Bounding Box and Overlaid Grids
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to overplot a bounding box on a volume rendering
 as well as overplotting grids representing the level of refinement achieved
 in different regions of the code.
-See :ref:`volume_rendering` for more information.
+See :ref:`volume_rendering_annotations` for more information.
 
 .. yt_cookbook:: rendering_with_box_and_grids.py
 
 Volume Rendering with Annotation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to write the simulation time, show an
 axis triad indicating the direction of the coordinate system, and show
-the transfer function on a volume rendering.
-See :ref:`volume_rendering` for more information.
+the transfer function on a volume rendering.  Please note that this 
+recipe relies on the old volume rendering interface.  While one can
+continue to use this interface, it may be incompatible with some of the
+new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 

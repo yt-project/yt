@@ -164,7 +164,7 @@ def configuration(parent_package='', top_path=None):
     config.make_config_py()
     # config.make_svn_version_py()
     config.add_subpackage('yt', 'yt')
-    config.add_scripts("scripts/*")
+    config.add_scripts("scripts/iyt")
 
     return config
 
@@ -200,8 +200,8 @@ def setup_package():
                 'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
             ]
         },
-        author="Matthew J. Turk",
-        author_email="matthewturk@gmail.com",
+        author="The yt project",
+        author_email="yt-dev@lists.spacepope.org",
         url="http://yt-project.org/",
         license="BSD",
         configuration=configuration,

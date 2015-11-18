@@ -15,21 +15,29 @@ Data containers that require processing before they can be utilized.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import math
-import weakref
-import itertools
-import shelve
 from functools import wraps
 import fileinput
 from re import finditer
+from tempfile import TemporaryFile
 import os
+import zipfile
 
 from yt.config import ytcfg
-from yt.funcs import *
-from yt.utilities.logger import ytLogger
-from .data_containers import \
-    YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D, \
-    restore_field_information_state, YTFieldData
+from yt.data_objects.data_containers import \
+    YTSelectionContainer1D, \
+    YTSelectionContainer2D, \
+    YTSelectionContainer3D, \
+    YTFieldData
+from yt.funcs import \
+    ensure_list, \
+    mylog, \
+    get_memory_usage, \
+    iterable, \
+    only_on_root
+from yt.utilities.exceptions import \
+    YTParticleDepositionNotImplemented, \
+    YTNoAPIKey, \
+    YTTooManyVertices
 from yt.utilities.lib.QuadTree import \
     QuadTree
 from yt.utilities.lib.Interpolators import \
@@ -38,8 +46,6 @@ from yt.utilities.lib.misc_utilities import \
     fill_region
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.data_point_utilities import CombineGrids,\
-    DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -47,18 +53,12 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
+from yt.fields.field_exceptions import \
+    NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
 
-from yt.fields.field_exceptions import \
-    NeedsGridType,\
-    NeedsOriginalGrid,\
-    NeedsDataField,\
-    NeedsProperty,\
-    NeedsParameter
-from yt.fields.derived_field import \
-    TranslationFunc
 
-class YTStreamlineBase(YTSelectionContainer1D):
+class YTStreamline(YTSelectionContainer1D):
     """
     This is a streamline, which is a set of points defined as
     being parallel to some vector field.
@@ -152,7 +152,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         return mask
 
 
-class YTQuadTreeProjBase(YTSelectionContainer2D):
+class YTQuadTreeProj(YTSelectionContainer2D):
     """
     This is a data object corresponding to a line integral through the
     simulation domain.
@@ -369,14 +369,13 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         data['pdy'] = self.ds.arr(pdy, code_length)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        fd = data['fields']
         field_data = np.hsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
-            finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
-        for i in list(data.keys()): self[i] = data.pop(i)
+        for i in list(data.keys()):
+            self[i] = data.pop(i)
         mylog.info("Projection completed")
         self.tree = tree
 
@@ -455,7 +454,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
-class YTCoveringGridBase(YTSelectionContainer3D):
+class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
     resolution.  Left edge should align with a cell boundary, but
     defaults to the closest cell boundary.
@@ -736,7 +735,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
                                sim_time=self.ds.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
-class YTArbitraryGridBase(YTCoveringGridBase):
+class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
     In contrast to the Covering Grid, this object accepts a left edge, a right
@@ -806,7 +805,7 @@ class LevelState(object):
     base_dx = None
     dds = None
 
-class YTSmoothedCoveringGridBase(YTCoveringGridBase):
+class YTSmoothedCoveringGrid(YTCoveringGrid):
     """A 3D region with all data extracted and interpolated to a
     single, specified resolution. (Identical to covering_grid,
     except that it interpolates.)
@@ -834,13 +833,13 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
-    @wraps(YTCoveringGridBase.__init__)
+    @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
-        self._base_dx = (
-              (self.ds.domain_right_edge - self.ds.domain_left_edge) /
-               self.ds.domain_dimensions.astype("float64"))
+        ds = kwargs['ds']
+        self._base_dx = ((ds.domain_right_edge - ds.domain_left_edge) /
+                         ds.domain_dimensions.astype("float64"))
         self.global_endindex = None
-        YTCoveringGridBase.__init__(self, *args, **kwargs)
+        YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
@@ -939,7 +938,6 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         ls.current_level += 1
         ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
-        LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex, end_index, ls.current_dims = \
             self._minimal_box(ls.current_dx)
@@ -958,7 +956,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         level_state.fields = new_fields
         self._setup_data_source(ls)
 
-class YTSurfaceBase(YTSelectionContainer3D):
+class YTSurface(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
@@ -1006,14 +1004,13 @@ class YTSurfaceBase(YTSelectionContainer3D):
                          ("index", "y"),
                          ("index", "z"))
     vertices = None
-    def __init__(self, data_source, surface_field, field_value):
+    def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurfaceBase, self).__init__(center = center, ds =
-                    data_source.ds )
+        super(YTSurface, self).__init__(center = center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
@@ -1510,11 +1507,8 @@ class YTSurfaceBase(YTSelectionContainer3D):
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        import io
-        from sys import version
         if plot_index is None:
             plot_index = 0
-            vmax=0
         ftype = [("cind", "uint8"), ("emit", "float")]
         vtype = [("x","float"),("y","float"), ("z","float")]
         #(0) formulate vertices
@@ -1553,7 +1547,7 @@ class YTSurfaceBase(YTSelectionContainer3D):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp
-        return  v, lut, transparency, emiss, f['cind']
+        return v, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
@@ -1735,8 +1729,6 @@ class YTSurfaceBase(YTSelectionContainer3D):
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
-        import zipfile, json
-        from tempfile import TemporaryFile
 
         ply_file = TemporaryFile()
         self.export_ply(ply_file, bounds, color_field, color_map, color_log,

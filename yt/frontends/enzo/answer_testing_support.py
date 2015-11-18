@@ -13,20 +13,22 @@ Answer Testing support for Enzo.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
-from yt.config import ytcfg
-from yt.mods import *
+import numpy as np
+import os
 
+from functools import wraps
+
+from yt.config import ytcfg
+from yt.convenience import load
+from yt.testing import assert_allclose
 from yt.utilities.answer_testing.framework import \
-     AnswerTestingTest, \
-     can_run_ds, \
-     FieldValuesTest, \
-     GridHierarchyTest, \
-     GridValuesTest, \
-     ProjectionValuesTest, \
-     ParentageRelationshipsTest, \
-     temp_cwd, \
-     AssertWrapper
+    AnswerTestingTest, \
+    can_run_ds, \
+    FieldValuesTest, \
+    GridValuesTest, \
+    ProjectionValuesTest, \
+    temp_cwd, \
+    AssertWrapper
 
 def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):
@@ -78,16 +80,17 @@ class ShockTubeTest(object):
 
     def __call__(self):
         # Read in the ds
-        ds = load(self.data_file)  
-        exact = self.get_analytical_solution() 
+        ds = load(self.data_file)
+        ds.setup_deprecated_fields()
+        exact = self.get_analytical_solution()
 
         ad = ds.all_data()
         position = ad['x']
         for k in self.fields:
-            field = ad[k]
+            field = ad[k].d
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin)*(position <= xmax)
-                exact_field = np.interp(position[mask], exact['pos'], exact[k]) 
+                exact_field = np.interp(position[mask], exact['pos'], exact[k])
                 myname = "ShockTubeTest_%s" % k
                 # yield test vs analytical solution 
                 yield AssertWrapper(myname, assert_allclose, field[mask], 

@@ -33,11 +33,10 @@ from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-     import periodic_ray
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
+    periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-import warnings
 
 
 from . import _MPL
@@ -1953,13 +1952,13 @@ class RayCallback(PlotCallback):
     annotate_ray(ray, plot_args=None)
 
     Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
+    The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
 
     Parameters
     ----------
 
-    ray : YTOrthoRayBase, YTRayBase, or LightRay
+    ray : YTOrthoRay, YTRay, or LightRay
         Ray is the object that we want to include.  We overplot the projected
         trajectory of the ray.  If the object is a
         analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
@@ -2052,7 +2051,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRayBase, YTOrthoRayBase, or "
+            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or "
                               "LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting
@@ -2167,7 +2166,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
 
-        if self.texture == None:
+        if self.texture is None:
             self.texture = np.random.rand(nx,ny).astype(np.double)
         elif self.texture.shape != (nx,ny):
             raise SyntaxError("'texture' must have the same shape "

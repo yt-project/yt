@@ -372,7 +372,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     Examples
     --------
 
-    >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
+    >>> image, sc = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
     >>> write_projection(image, 'test.png', 
                          colorbar_label="Column Density (cm$^{-2}$)", 
                          title="Offaxis Projection", limits=(1e-5,1e-3), 

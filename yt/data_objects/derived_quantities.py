@@ -17,18 +17,15 @@ points -- are excluded here, and left to the EnzoDerivedFields.)
 
 import numpy as np
 
-from yt.funcs import *
-
-from yt.config import ytcfg
-from yt.units.yt_array import YTArray, uconcatenate, array_like_field
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.funcs import \
+    camelcase_to_underscore, \
+    ensure_list
+from yt.units.yt_array import array_like_field
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
-from yt.utilities.lib.Octree import Octree
 from yt.utilities.physical_constants import \
-    gravitational_constant_cgs, \
-    HUGE
-from yt.utilities.math_utils import prec_accum
+    gravitational_constant_cgs
+from yt.utilities.physical_ratios import HUGE
 from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}
@@ -202,7 +199,6 @@ class TotalMass(TotalQuantity):
     def __call__(self):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
-        fields = []
         if ("gas", "cell_mass") in fi:
             gas = super(TotalMass, self).__call__([('gas', 'cell_mass')])
         else:
@@ -256,7 +252,8 @@ class CenterOfMass(DerivedQuantity):
           (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
-            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
+            vals += [(data["gas", ax] *
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
@@ -657,7 +654,7 @@ class SpinParameter(DerivedQuantity):
         m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
-                  data["index", "cell_volume"]).sum(dtype=np.float64)
+                  data["gas", "cell_volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "cell_mass"].sum(dtype=np.float64)
         if use_particles:

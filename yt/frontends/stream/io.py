@@ -13,17 +13,13 @@ Enzo-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from collections import defaultdict
-
-import os
 import numpy as np
 
 from yt.utilities.io_handler import \
-    BaseIOHandler, _axis_ids
+    BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.exceptions import *
+from yt.utilities.exceptions import YTDomainOverflow
 
 class IOHandlerStream(BaseIOHandler):
 
@@ -221,7 +217,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
+                    size, [fn for ft, fn in fields], ngrids)
         for field in fields:
             ind = 0
             ftype, fname = field
@@ -255,3 +251,39 @@ class IOHandlerStreamOctree(BaseIOHandler):
                         subset.domain_id - subset._domain_offset][field]
                 subset.fill(field_vals, rv, selector, ind)
         return rv
+
+
+class IOHandlerStreamUnstructured(BaseIOHandler):
+    _dataset_type = "stream_unstructured"
+    _node_types = ("diffused", "convected", "u", "temp")
+
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(IOHandlerStreamUnstructured, self).__init__(ds)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        chunk = chunks[0]
+        mesh_id = chunk.objs[0].mesh_id
+        rv = {}
+        for field in fields:
+            field_name = field[1]
+            nodes_per_element = self.fields[mesh_id][field].shape[1]
+            if field_name in self._node_types:
+                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+            else:
+                rv[field] = np.empty(size, dtype="float64")
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ind = 0
+            ftype, fname = field
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self.fields[g.mesh_id].get(field, None)
+                    if ds is None:
+                        ds = self.fields[g.mesh_id][fname]
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv
+

@@ -35,7 +35,6 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Each domain subset will contain a hydro_offset array, which gives
         # pointers to level-by-level hydro information
         tr = defaultdict(list)
-        cp = 0
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing

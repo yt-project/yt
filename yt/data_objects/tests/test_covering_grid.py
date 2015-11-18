@@ -1,7 +1,9 @@
-from yt.testing import *
-from yt.data_objects.profiles import \
-    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
-from yt.frontends.stream.api import load_particles
+import numpy as np
+
+from yt.frontends.stream.data_structures import load_particles
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal
 
 def setup():
     from yt.config import ytcfg

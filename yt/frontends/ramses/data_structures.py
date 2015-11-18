@@ -21,29 +21,25 @@ import stat
 import weakref
 from io import BytesIO
 
-from yt.funcs import *
+from yt.extern.six import string_types
+from yt.funcs import \
+    mylog
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
-    Index, YTDataChunk
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .definitions import ramses_header, field_aliases
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.utilities.io_handler import \
-    io_registry
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
-from yt.fields.particle_fields import \
-    standard_particle_fields
 from yt.arraytypes import blankRecordArray
 
 class RAMSESDomainFile(object):
@@ -193,8 +189,8 @@ class RAMSESDomainFile(object):
             self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
         else:
             self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )
-        ordering = fpu.read_vector(f, 'c')
+        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
+        ordering = fpu.read_vector(f, 'c')  # NOQA
         fpu.skip(f, 4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
@@ -241,7 +237,7 @@ class RAMSESDomainFile(object):
                 #ng is the number of octs on this level on this domain
                 ng = _ng(cpu, level)
                 if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")
+                ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')
                 pos[:,0] = fpu.read_vector(f, "d") - nx
@@ -507,12 +503,11 @@ class RAMSESIndex(OctreeIndex):
             print("z = %0.8f" % (self.dataset.current_redshift))
         except:
             pass
-        print("t = %0.8e = %0.8e s = %0.8e years" % \
-            (self.ds.current_time.in_units("code_time"),
-             self.ds.current_time.in_units("s"),
-             self.ds.current_time.in_units("yr")))
+        print("t = %0.8e = %0.8e s = %0.8e years" % (
+            self.ds.current_time.in_units("code_time"),
+            self.ds.current_time.in_units("s"),
+            self.ds.current_time.in_units("yr")))
         print("\nSmallest Cell:")
-        u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
             print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
 
@@ -527,7 +522,7 @@ class RAMSESDataset(Dataset):
                  fields = None, storage_filename = None,
                  units_override=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, str):
+        if isinstance(fields, string_types):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file

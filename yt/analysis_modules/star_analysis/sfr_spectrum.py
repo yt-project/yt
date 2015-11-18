@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import math
 
 from yt.config import ytcfg

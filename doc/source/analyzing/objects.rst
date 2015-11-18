@@ -1,4 +1,4 @@
-.. _data-objects:
+.. _Data-objects:
 
 Data Objects
 ============
@@ -97,7 +97,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Point** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTPointBase`    
+    | Class :class:`~yt.data_objects.selection_data_containers.YTPoint`    
     | Usage: ``point(coord, ds=None, field_parameters=None, data_source=None)``
     | A point defined by a single cell at specified coordinates.
 
@@ -105,7 +105,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Ray (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
@@ -113,7 +113,7 @@ for the grid cell to be incorporated.
       :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 **Ray (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRay`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
       Please see this 
@@ -123,13 +123,13 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Slice (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTSliceBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSlice`
     | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None, data_source=None)``
     | A plane normal to one of the axes and intersecting a particular 
       coordinate.
 
 **Slice (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlane`
     | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None, data_source=None)``
     | A plane normal to a specified vector and intersecting a particular 
       coordinate.
@@ -145,7 +145,7 @@ for the grid cell to be incorporated.
       ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
 
 **Box Region** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTRegionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRegion`
     | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
     | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
     | A box-like region aligned with the grid axis orientation.  It is 
@@ -156,14 +156,14 @@ for the grid cell to be incorporated.
       is assumed to be the midpoint between the left and right edges.
 
 **Disk/Cylinder** 
-    | Class: :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
+    | Class: :class:`~yt.data_objects.selection_data_containers.YTDisk`
     | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None, data_source=None)``
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
 **Ellipsoid** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoidBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
     | An ellipsoid with axis magnitudes set by semi_major_axis_length, 
      semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector 
@@ -171,7 +171,7 @@ for the grid cell to be incorporated.
      of the semi-medium and semi_minor axes.
 
 **Sphere** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTSphereBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSphere`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
@@ -194,7 +194,7 @@ See also the section on :ref:`filtering-data`.
     | See :ref:`boolean_data_objects`.
 
 **Filter** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCutRegion`
     | Usage: ``cut_region(base_object, conditionals, ds=None, field_parameters=None)``
     | A ``cut_region`` is a filter which can be applied to any other data 
       object.  The filter is defined by the conditionals present, which 
@@ -203,7 +203,7 @@ See also the section on :ref:`filtering-data`.
       For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTDataCollectionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTDataCollection`
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
       sampled and processed as a whole in a single data object.
@@ -214,13 +214,13 @@ Construction Objects
 ^^^^^^^^^^^^^^^^^^^^
 
 **Fixed-Resolution Region** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTCoveringGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`
     | Usage: ``covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted to a single, specified resolution.
       See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
 **Fixed-Resolution Region with Smoothing** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`
     | Usage: ``smoothed_covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted and interpolated to a single, 
       specified resolution.  Identical to covering_grid, except that it 
@@ -228,7 +228,7 @@ Construction Objects
       :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
 **Fixed-Resolution Region for Particle Deposition** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`
     | Usage: ``arbitrary_grid(left_edge, right_edge, dimensions, ds=None, field_parameters=None)``
     | When particles are deposited on to mesh fields, they use the existing
       mesh structure, but this may have too much or too little resolution
@@ -238,7 +238,7 @@ Construction Objects
       information.
 
 **Projection** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProj`
     | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, method="integrate", field_parameters=None)``
     | A 2D projection of a 3D volume along one of the axis directions.  
       By default, this is a line integral through the entire simulation volume 
@@ -248,14 +248,14 @@ Construction Objects
       of the projection outcome.  See :ref:`projection-types` for more information.
 
 **Streamline** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTStreamline`
     | Usage: ``streamline(coord_list, length, fields=None, ds=None, field_parameters=None)``
     | A ``streamline`` can be traced out by identifying a starting coordinate (or 
       list of coordinates) and allowing it to trace a vector field, like gas
       velocity.  See :ref:`streamlines` for more information.
 
 **Surface** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTSurfaceBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSurface`
     | Usage: ``surface(data_source, field, field_value)``
     | The surface defined by all an isocontour in any mesh field.  An existing 
       data object must be provided as the source, as well as a mesh field
@@ -358,7 +358,7 @@ exactly aligned with the mesh.  This is a
 holdover from the time when yt was used exclusively for data that came in
 regularly structured grid patches, and does not necessarily work as well for
 data that is composed of discrete objects like particles.  To augment this, the
-:class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase` object 
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid` object 
 was created, which enables construction of meshes (onto which particles can be
 deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
 on yt's part about how the data is organized, and will allow for more
@@ -444,7 +444,7 @@ The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
-contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
+contains :class:`~yt.data_objects.selection_data_containers.YTCutRegion`
 objects.  These can be queried just as any other data object.  The clump finder 
 (:ref:`clump_finding`) differs from the above method in that the contour 
 identification is performed recursively within each individual structure, and 
@@ -457,69 +457,9 @@ Storing and Loading Objects
 ---------------------------
 
 Often, when operating interactively or via the scripting interface, it is
-convenient to save an object or multiple objects out to disk and then restart
-the calculation later.  For example, this is useful after clump finding 
-(:ref:`clump_finding`), which can be very time consuming.  
-Typically, the save and load operations are used on 3D data objects.  yt
-has a separate set of serialization operations for 2D objects such as
-projections.
-
-yt will save out objects to disk under the presupposition that the
-construction of the objects is the difficult part, rather than the generation
-of the data -- this means that you can save out an object as a description of
-how to recreate it in space, but not the actual data arrays affiliated with
-that object.  The information that is saved includes the dataset off of
-which the object "hangs."  It is this piece of information that is the most
-difficult; the object, when reloaded, must be able to reconstruct a dataset
-from whatever limited information it has in the save file.
-
-You can save objects to an output file using the function 
-:func:`~yt.data_objects.index.save_object`: 
-
-.. code-block:: python
-
-   import yt
-   ds = yt.load("my_data")
-   sp = ds.sphere([0.5, 0.5, 0.5], (10.0, 'kpc'))
-   sp.save_object("sphere_name", "save_file.cpkl")
-
-This will store the object as ``sphere_name`` in the file
-``save_file.cpkl``, which will be created or accessed using the standard
-python module :mod:`shelve`.  
-
-To re-load an object saved this way, you can use the shelve module directly:
-
-.. code-block:: python
-
-   import yt
-   import shelve
-   ds = yt.load("my_data") 
-   saved_fn = shelve.open("save_file.cpkl")
-   ds, sp = saved_fn["sphere_name"]
-
-Additionally, we can store multiple objects in a single shelve file, so we 
-have to call the sphere by name.
-
-For certain data objects such as projections, serialization can be performed
-automatically if ``serialize`` option is set to ``True`` in :ref:`the
-configuration file <configuration-file>` or set directly in the script:
-
-.. code-block:: python
-
-   from yt.config import ytcfg; ytcfg["yt", "serialize"] = "True"
-
-.. note:: Use serialization with caution. Enabling serialization means that
-   once a projection of a dataset has been created (and stored in the .yt file
-   in the same directory), any subsequent changes to that dataset will be
-   ignored when attempting to create the same projection. So if you take a
-   density projection of your dataset in the 'x' direction, then somehow tweak
-   that dataset significantly, and take the density projection again, yt will
-   default to finding the original projection and 
-   :ref:`not your new one <faq-old-data>`.
-
-.. note:: It's also possible to use the standard :mod:`cPickle` module for
-          loading and storing objects -- so in theory you could even save a
-          list of objects!
-
-This method works for clumps, as well, and the entire clump index will be
-stored and restored upon load.
+convenient to save an object to disk and then restart the calculation later or
+transfer the data from a container to another filesystem.  This can be
+particularly useful when working with extremely large datasets.  Field data
+can be saved to disk in a format that allows for it to be reloaded just like
+a regular dataset.  For information on how to do this, see
+:ref:`saving-data-containers`.

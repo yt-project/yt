@@ -221,6 +221,13 @@ class FieldDetector(defaultdict):
         return self.ds.arr(fc, input_units = "code_length")
 
     @property
+    def fcoords_vertex(self):
+        fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
+        if self.flat:
+            fc.shape = (self.nd*self.nd*self.nd, 8, 3)
+        return self.ds.arr(fc, input_units = "code_length")
+
+    @property
     def icoords(self):
         ic = np.mgrid[0:self.nd-1:self.nd*1j,
                       0:self.nd-1:self.nd*1j,

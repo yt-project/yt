@@ -54,10 +54,13 @@ The buffer arrays can be saved out to disk in either HDF5 or FITS format:
  
 .. code-block:: python
 
-   frb.export_hdf5("my_images.h5", fields=["density","temperature"])
+   frb.save_as_dataset("my_images.h5", fields=["density","temperature"])
    frb.export_fits("my_images.fits", fields=["density","temperature"],
                    clobber=True, units="kpc")
 
+In the HDF5 case, the created file can be reloaded just like a regular dataset with
+``yt.load`` and will, itself, be a first-class dataset.  For more information on
+this, see :ref:`saving-grid-data-containers`.
 In the FITS case, there is an option for setting the ``units`` of the coordinate system in
 the file. If you want to overwrite a file with the same name, set ``clobber=True``. 
 
@@ -173,7 +176,7 @@ Line Queries and Planar Integrals
 ---------------------------------
 
 To calculate the values along a line connecting two points in a simulation, you
-can use the object :class:`~yt.data_objects.selection_data_containers.YTRayBase`,
+can use the object :class:`~yt.data_objects.selection_data_containers.YTRay`,
 accessible as the ``ray`` property on a index.  (See :ref:`data-objects`
 for more information on this.)  To do so, you can supply two points and access
 fields within the returned object.  For instance, this code will generate a ray

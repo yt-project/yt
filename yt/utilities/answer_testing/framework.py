@@ -15,7 +15,9 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import logging
+import numpy as np
 import os
+import time
 import hashlib
 import contextlib
 import sys
@@ -25,19 +27,30 @@ import zlib
 import tempfile
 import glob
 
+from collections import defaultdict
+
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
-from yt.testing import *
+from yt.funcs import \
+    get_pbar
+from yt.testing import \
+    assert_equal, \
+    assert_allclose_units, \
+    assert_rel_equal, \
+    assert_almost_equal
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
+from yt.utilities.exceptions import \
+    YTNoOldAnswer, \
+    YTCloudError, \
+    YTOutputNotIdentified
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.extern.progressbar as progressbar
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -171,7 +184,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError as ex:
+        except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
@@ -305,7 +318,9 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        if isinstance(ds_fn, Dataset):
+        if ds_fn is None:
+            self.ds = None
+        elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
             self.ds = data_dir_load(ds_fn)
@@ -315,7 +330,8 @@ class AnswerTestingTest(object):
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
+                raise YTNoOldAnswer(
+                    "%s : %s" % (self.storage_name, self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -646,10 +662,10 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = ("Analytic halo mass functions not equation for " +
+        err_msg = ("Analytic halo mass functions not equal for " +
                    "fitting function %d.") % self.fitting_function
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
+        assert_almost_equal(new_result, old_result,
+                            err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
@@ -658,9 +674,33 @@ def compare_image_lists(new_result, old_result, decimals):
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
+        assert compare_images(fns[0], fns[1], 10**(-decimals)) is None
         for fn in fns: os.remove(fn)
 
+class VRImageComparisonTest(AnswerTestingTest):
+    _type_name = "VRImageComparison"
+    _attrs = ('desc',)
+
+    def __init__(self, scene, ds, desc, decimals):
+        super(VRImageComparisonTest, self).__init__(None)
+        self.obj_type = ('vr',)
+        self.ds = ds
+        self.scene = scene
+        self.desc = desc
+        self.decimals = decimals
+
+    def run(self):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        self.scene.render()
+        self.scene.save(tmpname, sigma_clip=1.0)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
@@ -769,19 +809,29 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
     else:
         return ftrue
 
+def requires_answer_testing():
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if AnswerTestingTest.result_storage is not None:
+        return ftrue
+    else:
+        return ffalse
+    
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_ds(ds_fn, file_check):
         return ffalse
@@ -805,7 +855,8 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
-    if not can_run_ds(ds_fn): return
+    if not can_run_ds(ds_fn):
+        return
     dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
@@ -825,32 +876,33 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
     if ds_kwargs is None:
         ds_kwargs = {}
     ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
-    yield assert_equal, str(ds), ds_str_repr
+    yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
+                        str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    yield assert_equal, dd["particle_position"].shape, (ds_nparticles, 3)
+    yield AssertWrapper("%s_all_data_part_shape" % str(ds), assert_equal,
+                        dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
-    yield assert_equal, tot, ds_nparticles
+    yield AssertWrapper("%s_all_data_part_total" % str(ds), assert_equal,
+                        tot, ds_nparticles)
     for dobj_name in dso:
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        yield assert_equal, s1, s2
-        for field in fields:
+        yield AssertWrapper("%s_mask_test" % str(ds), assert_equal, s1, s2)
+        for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
             else:
                 particle_type = False
             for axis in [0, 1, 2]:
-                for weight_field in [None, ('gas', 'density')]:
-                    if particle_type is False:
-                        yield PixelizedProjectionValuesTest(
-                            ds_fn, axis, field, weight_field,
-                            dobj_name)
+                if particle_type is False:
+                    yield PixelizedProjectionValuesTest(
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
             yield FieldValuesTest(ds_fn, field, dobj_name,
                                   particle_type=particle_type)
-    return
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

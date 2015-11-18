@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib
 import os
 
+from collections import defaultdict
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
@@ -28,7 +29,7 @@ from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 
 from yt.funcs import \
-    defaultdict, get_image_suffix, \
+    get_image_suffix, \
     get_ipython_api_version, iterable, \
     ensure_list
 from yt.utilities.exceptions import \
@@ -52,6 +53,7 @@ def invalidate_figure(f):
             args[0].plots[field].figure = None
             args[0].plots[field].axes = None
             args[0].plots[field].cax = None
+        args[0]._setup_plots()
         return rv
     return newfunc
 

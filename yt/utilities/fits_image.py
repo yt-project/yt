@@ -13,13 +13,13 @@ from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.data_objects.construction_data_containers import YTCoveringGridBase
+from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.utilities.on_demand_imports import _astropy, NotAModule
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.old_camera import off_axis_projection
 import re
 
 pyfits = _astropy.pyfits
@@ -152,7 +152,7 @@ class FITSImageData(HDUList):
                 yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
                 center = [xctr, yctr]
                 cdelt = [dx,dy]
-            elif isinstance(img_data, YTCoveringGridBase):
+            elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.in_units(units).v
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
             else:
@@ -440,7 +440,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
             nx, ny = image_res
         else:
             nx, ny = image_res, image_res
-    dx, dy = width[0]/nx, width[1]/ny
+    dx = width[0]/nx
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
     if hasattr(ds, "wcs") and not iterable(axis):
         # This is a FITS dataset, so we use it to construct the WCS

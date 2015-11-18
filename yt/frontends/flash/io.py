@@ -14,8 +14,6 @@ FLASH-specific IO functions
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import h5py
-from yt.utilities.math_utils import prec_accum
 from itertools import groupby
 
 from yt.utilities.io_handler import \
@@ -110,7 +108,6 @@ class IOHandlerFLASH(BaseIOHandler):
         rv = {}
         for field in fields:
             ftype, fname = field
-            dt = f["/%s" % fname].dtype
             # Always use *native* 64-bit float.
             rv[field] = np.empty(size, dtype="=f8")
         ng = sum(len(c.objs) for c in chunks)
@@ -149,7 +146,6 @@ class IOHandlerFLASH(BaseIOHandler):
         for field in fluid_fields:
             ftype, fname = field
             ds = f["/%s" % fname]
-            ind = 0
             for gs in grid_sequences(chunk.objs):
                 start = gs[0].id - gs[0]._id_offset
                 end = gs[-1].id - gs[-1]._id_offset + 1

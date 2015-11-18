@@ -14,10 +14,10 @@ GadgetFOF data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.utilities.exceptions import *
+from yt.utilities.exceptions import YTDomainOverflow
 from yt.funcs import mylog
 
 from yt.utilities.io_handler import \

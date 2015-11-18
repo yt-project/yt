@@ -18,7 +18,7 @@ from sympy import \
     Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
 from sympy.core.numbers import One
-from sympy import sympify, latex, symbols
+from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
@@ -28,15 +28,13 @@ from yt.units.dimensions import \
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, cgs_base_units, \
     mks_base_units, latex_prefixes, yt_base_units
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_registry import \
+    UnitRegistry, \
+    UnitParseError
 from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
-import string
 import token
-
-class UnitParseError(Exception):
-    pass
 
 class InvalidUnitOperation(Exception):
     pass
@@ -105,7 +103,10 @@ def auto_positive_symbol(tokens, local_dict, global_dict):
 def get_latex_representation(expr, registry):
     symbol_table = {}
     for ex in expr.free_symbols:
-        symbol_table[ex] = registry.lut[str(ex)][3]
+        try:
+            symbol_table[ex] = registry.lut[str(ex)][3]
+        except:
+            symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
     latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
                        fold_frac_powers=True, fold_short_frac=True)
     if latex_repr == '1':
@@ -215,7 +216,7 @@ class Unit(Expr):
             if dimensions is not None:
                 validate_dimensions(dimensions)
             if latex_repr is None:
-                latex_repr = r"\rm{" + str(unit_expr).replace('_', '\ ') + "}"
+                latex_repr = get_latex_representation(unit_expr, registry)
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
@@ -395,9 +396,15 @@ class Unit(Expr):
         # Use sympy to factor the dimensions into base CGS unit symbols.
         units = []
         my_dims = self.dimensions.expand()
-        for dim in base_units:
+        if my_dims is dimensionless:
+            return ""
+        for factor in my_dims.as_ordered_factors():
+            dim = list(factor.free_symbols)[0]
             unit_string = base_units[dim]
-            power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
+            if factor.is_Pow:
+                power_string = "**(%s)" % factor.as_base_exp()[1]
+            else:
+                power_string = ""
             units.append("".join([unit_string, power_string]))
         return " * ".join(units)
 
@@ -578,8 +585,13 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             return ret
 
     # no dice
-    raise UnitParseError("Could not find unit symbol '%s' in the table of "
-                         "known symbols." % symbol_str)
+    if symbol_str.startswith('code_'):
+        raise UnitParseError(
+            "Code units have not been defined. \n"
+            "Try creating the array or quantity using ds.arr or ds.quan instead.")
+    else:
+        raise UnitParseError("Could not find unit symbol '%s' in the provided " \
+                             "symbols." % symbol_str)
 
 def validate_dimensions(dimensions):
     if isinstance(dimensions, Mul):

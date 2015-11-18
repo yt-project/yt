@@ -14,7 +14,11 @@ Tipsy tests using the AGORA dataset
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import assert_equal, requires_file
+from collections import OrderedDict
+
+from yt.testing import \
+    assert_equal, \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -38,7 +42,7 @@ def test_pkdgrav():
                                 hubble_constant = 0.702)
     kwargs = dict(field_dtypes = {"Coordinates": "d"},
                   cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
+                  unit_base = {'length': (60.0, "Mpccm/h")},
                   n_ref = 64)
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
     yield assert_equal, str(ds), "halo1e11_run1.00400"
@@ -69,7 +73,7 @@ def test_gasoline_dmonly():
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
     kwargs = dict(cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
+                  unit_base = {'length': (60.0, "Mpccm/h")},
                   n_ref = 64)
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     yield assert_equal, str(ds), "agora_1e11.00400"
@@ -92,20 +96,24 @@ def test_gasoline_dmonly():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
 
-tg_fields = (
-    ('gas', 'density'),
-    ('gas', 'temperature'),
-    ('gas', 'velocity_magnitude'),
-    ('gas', 'Fe_fraction'),
-    ('Stars', 'Metals'),
+tg_fields = OrderedDict(
+    [
+        (('gas', 'density'), None),
+        (('gas', 'temperature'), None),
+        (('gas', 'temperature'), ('gas', 'density')),
+        (('gas', 'velocity_magnitude'), None),
+        (('gas', 'Fe_fraction'), None),
+        (('Stars', 'Metals'), None),
+    ]
 )
 
 tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 @requires_ds(tipsy_gal)
 def test_tipsy_galaxy():
     for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
+        test_tipsy_galaxy.__name__ = test.description
         yield test
-        
+
 @requires_file(gasoline_dmonly)
 @requires_file(pkdgrav)
 def test_TipsyDataset():

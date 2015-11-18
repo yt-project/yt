@@ -73,14 +73,20 @@ class ThermalPhotonModel(PhotonModel):
         "invert_cdf": Invert the cumulative distribution function of the spectrum.
         "accept_reject": Acceptance-rejection method using the spectrum. 
         The first method should be sufficient for most cases. 
+    prng : NumPy `RandomState` object or numpy.random                                                                            
+        A pseudo-random number generator. Typically will only be specified                                                            
+        if you have a reason to generate the same set of random numbers, such as for a 
+        test. Default is the numpy.random module.                                                                      
     """
     def __init__(self, spectral_model, X_H=0.75, Zmet=0.3, 
-                 photons_per_chunk=10000000, method="invert_cdf"):
+                 photons_per_chunk=10000000, method="invert_cdf",
+                 prng=np.random):
         self.X_H = X_H
         self.Zmet = Zmet
         self.spectral_model = spectral_model
         self.photons_per_chunk = photons_per_chunk
         self.method = method
+        self.prng = prng
 
     def __call__(self, data_source, parameters):
 
@@ -174,7 +180,7 @@ class ThermalPhotonModel(PhotonModel):
                 tot_ph_c = cspec.d.sum()
                 tot_ph_m = mspec.d.sum()
 
-                u = np.random.random(size=n_current)
+                u = self.prng.uniform(size=n_current)
 
                 cell_norm_c = tot_ph_c*cem
                 cell_norm_m = tot_ph_m*metalZ[ibegin:iend]*cem
@@ -199,16 +205,25 @@ class ThermalPhotonModel(PhotonModel):
                 ei = start_e
                 for cn, Z in zip(number_of_photons[ibegin:iend], metalZ[ibegin:iend]):
                     if cn == 0: continue
+                    # The rather verbose form of the few next statements is a
+                    # result of code optimization and shouldn't be changed
+                    # without checking for perfomance degradation. See
+                    # https://bitbucket.org/yt_analysis/yt/pull-requests/1766
+                    # for details.
                     if self.method == "invert_cdf":
-                        cumspec = cumspec_c + Z*cumspec_m
-                        cumspec /= cumspec[-1]
-                        randvec = np.random.uniform(size=cn)
+                        cumspec = cumspec_c
+                        cumspec += Z * cumspec_m
+                        norm_factor = 1.0 / cumspec[-1]
+                        cumspec *= norm_factor
+                        randvec = self.prng.uniform(size=cn)
                         randvec.sort()
                         cell_e = np.interp(randvec, cumspec, ebins)
                     elif self.method == "accept_reject":
-                        tot_spec = cspec.d+Z*mspec.d
-                        tot_spec /= tot_spec.sum()
-                        eidxs = np.random.choice(nchan, size=cn, p=tot_spec)
+                        tot_spec = cspec.d
+                        tot_spec += Z * mspec.d
+                        norm_factor = 1.0 / tot_spec.sum()
+                        tot_spec *= norm_factor
+                        eidxs = self.prng.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
                     energies[ei:ei+cn] = cell_e
                     cell_counter += 1
@@ -242,5 +257,7 @@ class ThermalPhotonModel(PhotonModel):
 
         mylog.info("Number of photons generated: %d" % int(np.sum(photons["NumberOfPhotons"])))
         mylog.info("Number of cells with photons: %d" % len(photons["x"]))
+
+        self.spectral_model.cleanup_spectrum()
 
         return photons

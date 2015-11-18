@@ -14,7 +14,7 @@ HOP-output data handling
 #-----------------------------------------------------------------------------
 
 import gc
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import math
 import numpy as np
 import glob
@@ -30,10 +30,10 @@ from yt.utilities.math_utils import \
     get_rotation_matrix, \
     periodic_dist
 from yt.utilities.physical_constants import \
-    mass_sun_cgs, \
-    TINY
+    mass_sun_cgs
 from yt.utilities.physical_ratios import \
-    rho_crit_g_cm3_h2
+    rho_crit_g_cm3_h2, \
+    TINY
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
@@ -299,7 +299,7 @@ class Halo(object):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -668,7 +668,7 @@ class RockstarHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -861,7 +861,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -890,7 +890,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
