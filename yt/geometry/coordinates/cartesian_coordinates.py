@@ -24,6 +24,7 @@ from .coordinate_handler import \
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.funcs import mylog
 import yt.visualization._MPL as _MPL
 
 
@@ -85,7 +86,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = np.expand_dims(field_data, 1)
             # if this is a higher-order element, we demote to 1st order
             # here, for now.
-            elif field_data.shape[1] == 27 or field_data.shape[1] == 20:
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning("High order elements not yet supported, " +
                               "dropping to 1st order.")

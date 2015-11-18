@@ -23,6 +23,7 @@ from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
     Q1Sampler3D, \
+    S2Sampler3D, \
     P1Sampler2D, \
     Q1Sampler2D
 
@@ -468,6 +469,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = P1Sampler3D()
     elif ndim == 3 and nvertices == 8:
         sampler = Q1Sampler3D()
+    elif ndim == 3 and nvertices == 20:
+        sampler = S2Sampler3D()
     elif ndim == 2 and nvertices == 3:
         sampler = P1Sampler2D()
     elif ndim == 2 and nvertices == 4:
