@@ -139,11 +139,12 @@ class PhotonList(object):
         parameters["OmegaMatter"] = p["omega_matter"].value
         parameters["OmegaLambda"] = p["omega_lambda"].value
 
-        num_cells = f["/x"][:].shape[0]
+        d = f["/data"]
+
+        num_cells = d["x"][:].shape[0]
         start_c = comm.rank*num_cells//comm.size
         end_c = (comm.rank+1)*num_cells//comm.size
 
-        d = f["/data"]
         photons["x"] = YTArray(d["x"][start_c:end_c], "kpc")
         photons["y"] = YTArray(d["y"][start_c:end_c], "kpc")
         photons["z"] = YTArray(d["z"][start_c:end_c], "kpc")
@@ -455,7 +456,7 @@ class PhotonList(object):
 
             # Data
 
-            d = f.create_group("parameters")
+            d = f.create_group("data")
             d.create_dataset("x", data=x)
             d.create_dataset("y", data=y)
             d.create_dataset("z", data=z)
@@ -918,7 +919,7 @@ class EventList(object):
 
         p = f["/parameters"]
         parameters["ExposureTime"] = YTQuantity(p["exp_time"].value, "s")
-        if isinstance(f["/area"].value, (string_types, bytes)):
+        if isinstance(p["area"].value, (string_types, bytes)):
             parameters["Area"] = p["area"].value.decode("utf8")
         else:
             parameters["Area"] = YTQuantity(p["area"].value, "cm**2")
@@ -1466,15 +1467,12 @@ def merge_files(input_files, output_file, clobber=False,
     exp_time_key = ""
     p_out = f_out.create_group("parameters")
     for key, param in f_in["parameters"].items():
-        if key.endswidth("exp_time"):
+        if key.endswith("exp_time"):
             exp_time_key = key
         else:
             p_out[key] = param.value
 
-    skip = []
-    if add_exposure_times:
-        skip.append(exp_time_key)
-
+    skip = [exp_time_key] if add_exposure_times else []
     for fn in input_files[1:]:
         f = h5py.File(fn, "r")
         validate_parameters(f_in["parameters"], f["parameters"], skip=skip)
@@ -1485,17 +1483,21 @@ def merge_files(input_files, output_file, clobber=False,
     data = defaultdict(list)
     tot_exp_time = 0.0
 
-    for fn in input_files:
+    for i, fn in enumerate(input_files):
         f = h5py.File(fn, "r")
         if add_exposure_times:
             tot_exp_time += f["/parameters"][exp_time_key].value
+        elif i == 0:
+            tot_exp_time = f["/parameters"][exp_time_key].value
         for key in f["/data"]:
             data[key].append(f["/data"][key][:])
         f.close()
 
+    p_out["exp_time"] = tot_exp_time
+
     d = f_out.create_group("data")
     for k in data:
-        d.create_dataset(key, data=np.concatenate(data[k]))
+        d.create_dataset(k, data=np.concatenate(data[k]))
 
     f_out.close()
 
@@ -1517,7 +1519,7 @@ def convert_old_file(input_file, output_file, clobber=False):
     Examples
     --------
     >>> from yt.analysis_modules.photon_simulator.api import convert_old_file
-    >>> merge_files("photons_old.h5", "photons_new.h5", clobber=True)
+    >>> convert_old_file("photons_old.h5", "photons_new.h5", clobber=True)
     """
     if os.path.exists(output_file) and not clobber:
         raise IOError("Cannot overwrite existing file %s. " % output_file +
@@ -1525,11 +1527,11 @@ def convert_old_file(input_file, output_file, clobber=False):
 
     f_in = h5py.File(input_file, "r")
 
-    if "NumberOfPhotons" in f_in:
+    if "num_photons" in f_in:
         params = ["fid_exp_time", "fid_area", "fid_d_a", "fid_redshift",
                   "dimension", "width", "hubble", "omega_matter",
                   "omega_lambda"]
-        data = ["x", "y", "z", "vx", "vy", "vz", "energy", "num_photons"]
+        data = ["x", "y", "z", "dx", "vx", "vy", "vz", "energy", "num_photons"]
     elif "pix_center" in f_in:
         params = ["exp_time", "area", "redshift", "d_a", "arf",
                   "rmf", "channel_type", "mission", "telescope",
