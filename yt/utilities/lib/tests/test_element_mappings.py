@@ -20,7 +20,8 @@ from yt.utilities.lib.element_mappings import \
     test_tetra_sampler, \
     test_hex_sampler, \
     test_tri_sampler, \
-    test_quad_sampler
+    test_quad_sampler, \
+    test_hex20_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
