@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import setuptools
-import os, sys, os.path, glob, \
-    tempfile, subprocess, shutil
+import os
+import sys
+import tempfile
+import subprocess
+import shutil
+import pkg_resources
 
 def check_for_openmp():
+    """Returns True if local setup supports OpenMP, False otherwise"""
+
+    # See https://bugs.python.org/issue25150
+    if sys.version_info[:3] == (3, 5, 0):
+        return False
+
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
