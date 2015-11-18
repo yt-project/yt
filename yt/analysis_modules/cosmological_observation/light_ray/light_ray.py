@@ -374,7 +374,7 @@ class LightRay(CosmologySplice):
         data_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         if use_peculiar_velocity:
             all_fields.extend(['velocity_x', 'velocity_y', 'velocity_z', 
-                               'velocity_los', 'velocity_mag', 'theta',
+                               'velocity_los', 'velocity_magnitude', 'theta',
                                'redshift_eff'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
@@ -465,7 +465,7 @@ class LightRay(CosmologySplice):
                     theta = np.arccos(np.dot(line_of_sight, sub_vel) / \
                                       sub_ray['velocity_magnitude'])
                     sub_data['theta'].extend(theta[asort])
-                    sub_data['velocity_mag'].extend(sub_ray['velocity_magnitude'][asort])
+                    sub_data['velocity_magnitude'].extend(sub_ray['velocity_magnitude'][asort])
                     del sub_vel, sub_vel_los, theta
 
                 sub_ray.clear_data()
@@ -503,7 +503,7 @@ class LightRay(CosmologySplice):
 
             if use_peculiar_velocity:
                 velocity_mag_cm = (1 + sub_data['redshift']) * \
-                                  sub_data['velocity_mag']
+                                  sub_data['velocity_magnitude']
                 redshift_dopp = (1 + velocity_mag_cm * \
                                  np.cos(sub_data['theta']) / speed_of_light_cgs) / \
                                  np.sqrt(1 - velocity_mag_cm**2 / speed_of_light_cgs**2) - 1
