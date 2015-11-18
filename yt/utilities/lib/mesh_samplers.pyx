@@ -20,13 +20,15 @@ from yt.utilities.lib.mesh_construction cimport MeshDataContainer
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
-    Q1Sampler3D
+    Q1Sampler3D, \
+    S2Sampler3D
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmax
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
+cdef ElementSampler S2Sampler = S2Sampler3D()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -116,6 +118,13 @@ cdef void sample_hex(void* userPtr,
     else:
         ray.instID = -1
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void sample_hex20(void* userPtr,
+                       rtcr.RTCRay& ray) nogil:
+        pass
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
