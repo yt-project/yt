@@ -19,36 +19,6 @@ free to hack around, commit changes, and send them upstream.
    <http://bitbucket.org/yt_analysis/yt/pull-requests>`_.  The rest of this
    document is just an explanation of how to do that.
 
-If you're new to Mercurial, these three resources are pretty great for learning
-the ins and outs:
-
-* http://hginit.com/
-* http://hgbook.red-bean.com/read/
-* http://mercurial.selenic.com/
-
-The commands that are essential for using mercurial include:
-
-* ``hg commit`` which commits changes in the working directory to the
-  repository, creating a new "changeset object."
-* ``hg add`` which adds a new file to be tracked by mercurial.  This does
-  not change the working directory.
-* ``hg pull`` which pulls (from an optional path specifier) changeset
-  objects from a remote source.  The working directory is not modified.
-* ``hg push`` which sends (to an optional path specifier) changeset objects
-  to a remote source.  The working directory is not modified.
-* ``hg log`` which shows a log of all changeset objects in the current
-  repository.  Use ``-G`` to show a graph of changeset objects and their
-  relationship.
-* ``hg update`` which (with an optional "revision" specifier) updates the
-  state of the working directory to match a changeset object in the
-  repository.
-* ``hg merge`` which combines two changesets to make a union of their lines
-  of development.  This updates the working directory.
-* ``hg help`` which provides help for any mercurial command. For example, you
-  can learn more about the ``log`` command by doing ``hg help log``. Other useful
-  topics to use with ``hg help`` are ``hg help glossary``, ``hg help config``, 
-  ``hg help extensions``, and ``hg help revsets``.
-
 See :ref:`code-style-guide` for more information about coding style in yt and
 :ref:`docstrings` for an example docstring.  Please read them before hacking on
 the codebase, and feel free to email any of the mailing lists for help with the
@@ -123,12 +93,43 @@ how to structure and write your code.
 How to Use Mercurial with yt
 ++++++++++++++++++++++++++++
 
-This document doesn't cover detailed mercurial use, but on IRC we are happy to
-walk you through any troubles you might have.  Here are some suggestions
-for using mercurial with yt:
+If you're new to Mercurial, these three resources are pretty great for learning
+the ins and outs:
+
+* http://hginit.com/
+* http://hgbook.red-bean.com/read/
+* http://mercurial-scm.org/
+* http://mercurial-scm.org/wiki
+
+The commands that are essential for using mercurial include:
+
+* ``hg commit`` which commits changes in the working directory to the
+  repository, creating a new "changeset object."
+* ``hg add`` which adds a new file to be tracked by mercurial.  This does
+  not change the working directory.
+* ``hg pull`` which pulls (from an optional path specifier) changeset
+  objects from a remote source.  The working directory is not modified.
+* ``hg push`` which sends (to an optional path specifier) changeset objects
+  to a remote source.  The working directory is not modified.
+* ``hg log`` which shows a log of all changeset objects in the current
+  repository.  Use ``-G`` to show a graph of changeset objects and their
+  relationship.
+* ``hg update`` which (with an optional "revision" specifier) updates the
+  state of the working directory to match a changeset object in the
+  repository.
+* ``hg merge`` which combines two changesets to make a union of their lines
+  of development.  This updates the working directory.
+* ``hg help`` which provides help for any mercurial command. For example, you
+  can learn more about the ``log`` command by doing ``hg help log``. Other useful
+  topics to use with ``hg help`` are ``hg help glossary``, ``hg help config``, 
+  ``hg help extensions``, and ``hg help revsets``.
+
+We are happy to asnswers questions about mercurial use on our IRC or slack
+channels or on the mailing list to walk you through any troubles you might have.
+Here are some general suggestions for using mercurial with yt:
 
 * Named branches are to be avoided.  Try using bookmarks (``hg bookmark``) to
-  track work.  (`More <http://mercurial.selenic.com/wiki/Bookmarks>`_)
+  track work.  (`More <http://mercurial-scm.org/wiki/Bookmarks>`_)
 * Make sure you set a username in your ``~/.hgrc`` before you commit any
   changes!  All of the tutorials above will describe how to do this as one of
   the very first steps.
@@ -317,22 +318,23 @@ and your ``hgrc`` file:
    .. code-block:: bash
 
       $ hg pull upstream
-      $ hg update -r "remote(tip,'upstream')"
+      $ hg update -r "remote(yt, 'upstream')"
 
-After the above steps, your local repository should be at the tip of
-the main yt repository.  If you find yourself doing this a lot, it may
-be worth aliasing this task in your ``hgrc`` file by adding something like::
+After the above steps, your local repository should be at the current head of
+the ``yt`` branch in the main yt repository.  If you find yourself doing this a
+lot, it may be worth aliasing this task in your ``hgrc`` file by adding
+something like::
 
   [alias]
-  myupdate = update -r "remote(tip,'upstream')"
+  ytupdate = update -r "remote(yt, 'upstream')"
 
-And then you can just issue ``hg myupdate`` to get at the tip of the main yt repository.
+And then you can just issue ``hg ytupdate`` to get at the current head of the
+``yt`` branch on main yt repository.
 
-Make sure you are on the branch you want to be on, and then you can
-make changes and ``hg commit`` them.  If you prefer working with
-`bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
-want to make a bookmark before committing your changes, such as ``hg
-bookmark mybookmark``.
+Make sure you are on the branch you want to be on, and then you can make changes
+and ``hg commit`` them.  If you prefer working with `bookmarks
+<http://mercurial-scm.org/wiki/Bookmarks>`_, you may want to make a bookmark
+before committing your changes, such as ``hg bookmark mybookmark``.
 
 To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
 
