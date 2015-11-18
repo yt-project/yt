@@ -478,26 +478,26 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
         tm = 1.0 - t
         tp = 1.0 + t
 
-        F = rm*sm*tm*(-r - s - t - 2.0)*vals[0] + \
-            rp*sm*tm*( r - s - t - 2.0)*vals[1] + \
-            rp*sp*tm*( r + s - t - 2.0)*vals[2] + \
-            rm*sp*tm*(-r + s - t - 2.0)*vals[3] + \
-            rm*sm*tp*(-r - s + t - 2.0)*vals[4] + \
-            rp*sm*tp*( r - s + t - 2.0)*vals[5] + \
-            rp*sp*tp*( r + s + t - 2.0)*vals[6] + \
-            rm*sp*tp*(-r + s + t - 2.0)*vals[7] + \
-            2.0*(1.0 - r**2)*sm*tm*vals[8]  + \
-            2.0*rp*(1.0 - s**2)*tm*vals[9]  + \
-            2.0*(1.0 - r**2)*sp*tm*vals[10] + \
-            2.0*rm*(1.0 - s**2)*tm*vals[11] + \
-            2.0*rm*sm*(1.0 - t**2)*vals[12] + \
-            2.0*rp*sm*(1.0 - t**2)*vals[13] + \
-            2.0*rp*sp*(1.0 - t**2)*vals[14] + \
-            2.0*rm*sp*(1.0 - t**2)*vals[15] + \
-            2.0*(1.0 - r**2)*sm*tp*vals[16] + \
-            2.0*rp*(1.0 - s**2)*tp*vals[17] + \
-            2.0*(1.0 - r**2)*sp*tp*vals[18] + \
-            2.0*rm*(1.0 - s**2)*tp*vals[19]
+        F = rm*sm*tm*(-r - s - t - 2.0)*vals[0] \
+          + rp*sm*tm*( r - s - t - 2.0)*vals[1] \
+          + rp*sp*tm*( r + s - t - 2.0)*vals[2] \
+          + rm*sp*tm*(-r + s - t - 2.0)*vals[3] \
+          + rm*sm*tp*(-r - s + t - 2.0)*vals[4] \
+          + rp*sm*tp*( r - s + t - 2.0)*vals[5] \
+          + rp*sp*tp*( r + s + t - 2.0)*vals[6] \
+          + rm*sp*tp*(-r + s + t - 2.0)*vals[7] \
+          + 2.0*(1.0 - r**2)*sm*tm*vals[8]  \
+          + 2.0*rp*(1.0 - s**2)*tm*vals[9]  \
+          + 2.0*(1.0 - r**2)*sp*tm*vals[10] \
+          + 2.0*rm*(1.0 - s**2)*tm*vals[11] \
+          + 2.0*rm*sm*(1.0 - t**2)*vals[12] \
+          + 2.0*rp*sm*(1.0 - t**2)*vals[13] \
+          + 2.0*rp*sp*(1.0 - t**2)*vals[14] \
+          + 2.0*rm*sp*(1.0 - t**2)*vals[15] \
+          + 2.0*(1.0 - r**2)*sm*tp*vals[16] \
+          + 2.0*rp*(1.0 - s**2)*tp*vals[17] \
+          + 2.0*(1.0 - r**2)*sp*tp*vals[18] \
+          + 2.0*rm*(1.0 - s**2)*tp*vals[19]
         return 0.125*F
 
     @cython.boundscheck(False)
@@ -531,7 +531,43 @@ cdef inline void S2Function3D(double* fx,
                               double* x, 
                               double* vertices, 
                               double* phys_x) nogil:
-            pass
+        cdef int i
+        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = x[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = x[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = x[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        for i in range(3):
+            fx[i] = rm*sm*tm*(-r - s - t - 2.0)*vertices[0 + i]  \
+                  + rp*sm*tm*( r - s - t - 2.0)*vertices[3 + i]  \
+                  + rp*sp*tm*( r + s - t - 2.0)*vertices[6 + i]  \
+                  + rm*sp*tm*(-r + s - t - 2.0)*vertices[9 + i]  \
+                  + rm*sm*tp*(-r - s + t - 2.0)*vertices[12 + i] \
+                  + rp*sm*tp*( r - s + t - 2.0)*vertices[15 + i] \
+                  + rp*sp*tp*( r + s + t - 2.0)*vertices[18 + i] \
+                  + rm*sp*tp*(-r + s + t - 2.0)*vertices[21 + i] \
+                  + 2.0*(1.0 - r**2)*sm*tm*vertices[24 + i] \
+                  + 2.0*rp*(1.0 - s**2)*tm*vertices[27 + i] \
+                  + 2.0*(1.0 - r**2)*sp*tm*vertices[30 + i] \
+                  + 2.0*rm*(1.0 - s**2)*tm*vertices[33 + i] \
+                  + 2.0*rm*sm*(1.0 - t**2)*vertices[36 + i] \
+                  + 2.0*rp*sm*(1.0 - t**2)*vertices[39 + i] \
+                  + 2.0*rp*sp*(1.0 - t**2)*vertices[42 + i] \
+                  + 2.0*rm*sp*(1.0 - t**2)*vertices[45 + i] \
+                  + 2.0*(1.0 - r**2)*sm*tp*vertices[48 + i] \
+                  + 2.0*rp*(1.0 - s**2)*tp*vertices[51 + i] \
+                  + 2.0*(1.0 - r**2)*sp*tp*vertices[54 + i] \
+                  + 2.0*rm*(1.0 - s**2)*tp*vertices[57 + i] \
+                  - 8.0*phys_x[i]
 
 
 @cython.boundscheck(False)
