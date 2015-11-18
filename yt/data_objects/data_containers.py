@@ -622,6 +622,30 @@ class YTDataContainer(object):
 
     _extrema_cache = None
     def max(self, field, axis=None):
+        r"""Compute the maximum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the maximum of the
+        given field.  Supplying an axis will result in a return value of a
+        YTProjection, with method 'mip' for maximum intensity.  If the max has
+        already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string, optional
+            If supplied, the axis to project the maximum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> max_temp = reg.max("temperature")
+        >>> max_temp_proj = reg.max("temperature", axis="x")
+        """
         if axis is None:
             rv = ()
             fields = ensure_list(field)
@@ -638,6 +662,28 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
 
     def min(self, field, axis=None):
+        r"""Compute the minimum of a field.
+
+        This will, in a parallel-aware fashion, compute the minimum of the
+        given field.  Supplying an axis is not currently supported.  If the max
+        has already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string, optional
+            If supplied, the axis to compute the minimum along.
+
+        Returns
+        -------
+        Scalar.
+
+        Examples
+        --------
+
+        >>> min_temp = reg.min("temperature")
+        """
         if axis is None:
             rv = ()
             fields = ensure_list(field)
@@ -664,6 +710,34 @@ class YTDataContainer(object):
         raise NotImplementedError
 
     def mean(self, field, axis=None, weight='ones'):
+        r"""Compute the mean of a field, optionally along an axis, with a
+        weight.
+
+        This will, in a parallel-aware fashion, compute the mean of the
+        given field.  If an axis is supplied, it will return a projection,
+        where the weight is also supplied.  By default the weight is "ones",
+        resulting in a strict average.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+        axis : string, optional
+            If supplied, the axis to compute the mean along (i.e., to project
+            along)
+        weight : string, optional
+            The field to use as a weight.
+
+        Returns
+        -------
+        Scalar or YTProjection.
+
+        Examples
+        --------
+
+        >>> avg_rho = reg.mean("density", weight="cell_volume")
+        >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
+        """
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
         elif axis is None:
@@ -676,6 +750,30 @@ class YTDataContainer(object):
         return r
 
     def sum(self, field, axis=None):
+        r"""Compute the sum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the sum of the given
+        field.  If an axis is specified, it will return a projection (using
+        method type "sum", which does not take into account path length) along
+        that axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to sum.
+        axis : string, optional
+            If supplied, the axis to sum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> total_vol = reg.sum("cell_volume")
+        >>> cell_count = reg.sum("ones", axis="x")
+        """
         # Because we're using ``sum`` to specifically mean a sum or a
         # projection with the method="sum", we do not utilize the ``mean``
         # function.
@@ -689,6 +787,26 @@ class YTDataContainer(object):
         return r
 
     def integrate(self, field, axis=None):
+        r"""Compute the integral (projection) of a field along an axis.
+
+        This projects a field along an axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to project.
+        axis : string
+            The axis to project along.
+
+        Returns
+        -------
+        YTProjection
+
+        Examples
+        --------
+
+        >>> column_density = reg.integrate("density", axis="z")
+        """
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self)
         else:
