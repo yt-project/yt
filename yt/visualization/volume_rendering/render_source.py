@@ -381,10 +381,10 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
-#            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
-#                                                               vertices,
-#                                                               indices,
-#                                                               field_data)
+            # self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+            #                                                    vertices,
+            #                                                    indices,
+            #                                                    field_data)
             mylog.warning("High order elements not yet supported, " +
                           "dropping to 1st order.")
             field_data = field_data[:, 0:8]

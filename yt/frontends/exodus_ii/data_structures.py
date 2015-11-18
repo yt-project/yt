@@ -20,8 +20,6 @@ from yt.data_objects.unstructured_mesh import \
     UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.io_handler import \
-    io_registry
 from .io import \
     NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog

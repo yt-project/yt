@@ -21,6 +21,7 @@ from .coordinate_handler import \
     _get_vert_fields, \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
+from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
