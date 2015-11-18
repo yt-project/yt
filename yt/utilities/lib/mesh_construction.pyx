@@ -1,5 +1,3 @@
-# cython: profile=True
-
 """
 This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
