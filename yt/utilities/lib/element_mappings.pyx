@@ -579,7 +579,82 @@ cdef inline void S2Jacobian3D(double* rcol,
                               double* x, 
                               double* vertices, 
                               double* phys_x) nogil:    
-            pass
+        cdef int i
+        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = x[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = x[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = x[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        for i in range(3):
+            rcol[i] = (sm*tm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (sm*tm*(r - s - t - 2.0) + rp*sm*tm)*vertices[3  + i] \
+                    + (sp*tm*(r + s - t - 2.0) + rp*sp*tm)*vertices[6  + i] \
+                    + (sp*tm*(r - s + t + 2.0) - rm*sp*tm)*vertices[9  + i] \
+                    + (sm*tp*(r + s - t + 2.0) - rm*sm*tp)*vertices[12 + i] \
+                    + (sm*tp*(r - s + t - 2.0) + rp*sm*tp)*vertices[15 + i] \
+                    + (sp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (sp*tp*(r - s - t + 2.0) - rm*sp*tp)*vertices[21 + i] \
+                    - 4.0*r*sm*tm*vertices[24 + i] \
+                    + 2.0*(1.0 - s**2)*tm*vertices[27 + i] \
+                    - 4.0*r*sp*tm*vertices[30 + i] \
+                    - 2.0*(1.0 - s**2)*tm*vertices[33 + i] \
+                    - 2.0*sm*(1.0 - t**2)*vertices[36 + i] \
+                    + 2.0*sm*(1.0 - t**2)*vertices[39 + i] \
+                    + 2.0*sp*(1.0 - t**2)*vertices[42 + i] \
+                    - 2.0*sp*(1.0 - t**2)*vertices[45 + i] \
+                    - 4.0*r*sm*tp*vertices[48 + i] \
+                    + 2.0*(1.0 - s**2)*tp*vertices[51 + i] \
+                    - 4.0*r*sp*tp*vertices[54 + i] \
+                    - 2.0*(1.0 - s**2)*tp*vertices[57 + i]
+            scol[i] = ( rm*tm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (-rp*tm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
+                    + ( rp*tm*(r + s - t - 2.0) + rp*sp*tm)*vertices[6  + i] \
+                    + (-rm*tm*(r - s + t + 2.0) + rm*sp*tm)*vertices[9  + i] \
+                    + ( rm*tp*(r + s - t + 2.0) - rm*sm*tp)*vertices[12 + i] \
+                    + (-rp*tp*(r - s + t - 2.0) - rp*sm*tp)*vertices[15 + i] \
+                    + ( rp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (-rm*tp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
+                    - 2.0*(1.0 - r**2)*tm*vertices[24 + i] \
+                    - 4.0*rp*s*tm*vertices[27 + i] \
+                    + 2.0*(1.0 - r**2)*tm*vertices[30 + i] \
+                    - 4.0*rm*s*tm*vertices[33 + i] \
+                    - 2.0*rm*(1.0 - t**2)*vertices[36 + i] \
+                    - 2.0*rp*(1.0 - t**2)*vertices[39 + i] \
+                    + 2.0*rp*(1.0 - t**2)*vertices[42 + i] \
+                    + 2.0*rm*(1.0 - t**2)*vertices[45 + i] \
+                    - 2.0*(1.0 - r**2)*tp*vertices[48 + i] \
+                    - 4.0*rp*s*tp*vertices[51 + i] \
+                    + 2.0*(1.0 - r**2)*tp*vertices[54 + i] \
+                    - 4.0*rm*s*tp*vertices[57 + i]
+            tcol[i] = ( rm*sm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (-rp*sm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
+                    + (-rp*sp*(r + s - t - 2.0) - rp*sp*tm)*vertices[6  + i] \
+                    + ( rm*sp*(r - s + t + 2.0) - rm*sp*tm)*vertices[9  + i] \
+                    + (-rm*sm*(r + s - t + 2.0) + rm*sm*tp)*vertices[12 + i] \
+                    + ( rp*sm*(r - s + t - 2.0) + rp*sm*tp)*vertices[15 + i] \
+                    + ( rp*sp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (-rm*sp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
+                    - 2.0*(1.0 - r**2)*sm*vertices[24 + i] \
+                    - 2.0*rp*(1.0 - s**2)*vertices[27 + i] \
+                    - 2.0*(1.0 - r**2)*sp*vertices[30 + i] \
+                    - 2.0*rm*(1.0 - s**2)*vertices[33 + i] \
+                    - 4.0*rm*sm*t*vertices[36 + i] \
+                    - 4.0*rp*sm*t*vertices[39 + i] \
+                    - 4.0*rp*sp*t*vertices[42 + i] \
+                    - 4.0*rm*sp*t*vertices[45 + i] \
+                    + 2.0*(1.0 - r**2)*sm*vertices[48 + i] \
+                    + 2.0*rp*(1.0 - s**2)*vertices[51 + i] \
+                    + 2.0*(1.0 - r**2)*sp*vertices[54 + i] \
+                    + 2.0*rm*(1.0 - s**2)*vertices[57 + i]
 
 
 cdef class NonlinearSolveSampler2D(ElementSampler):
