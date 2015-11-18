@@ -53,7 +53,7 @@ class AbsorptionSpectrum(object):
         self.n_lambda = n_lambda
         self.tau_field = None
         self.flux_field = None
-        self.spectrum_line_list = None
+        self.absorbers_list = None
         self.lambda_bins = YTArray(np.linspace(lambda_min, lambda_max, n_lambda),
                                    "angstrom")
         self.bin_width = YTQuantity((lambda_max - lambda_min) /
@@ -189,7 +189,7 @@ class AbsorptionSpectrum(object):
         field_data = input_ds.all_data()
 
         self.tau_field = np.zeros(self.lambda_bins.size)
-        self.spectrum_line_list = []
+        self.absorbers_list = []
 
         if njobs == "auto":
             comm = _get_comm(())
@@ -212,7 +212,7 @@ class AbsorptionSpectrum(object):
         else:
             self._write_spectrum_ascii(output_file)
         if output_absorbers_file is not None:
-            self._write_spectrum_line_list(output_absorbers_file)
+            self._write_absorbers_file(output_absorbers_file)
 
         del field_data
         return (self.lambda_bins, self.flux_field)
@@ -253,7 +253,8 @@ class AbsorptionSpectrum(object):
             pbar.finish()
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
-                               save_line_list, subgrid_resolution=10, njobs=-1):
+                               output_absorbers_file, subgrid_resolution=10, 
+                               njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
@@ -383,18 +384,23 @@ class AbsorptionSpectrum(object):
                 EW = np.array(EW)/self.bin_width.d
                 self.tau_field[left_index:right_index] += EW
 
-                if save_line_list and line['label_threshold'] is not None and \
-                        cdens[i] >= line['label_threshold']:
+                # write out absorbers to file if the column density of
+                # an absorber is greater than the specified "label_threshold" 
+                # of that absorption line
+                if output_absorbers_file and \
+                   line['label_threshold'] is not None and \
+                   cdens[i] >= line['label_threshold']:
+
                     if use_peculiar_velocity:
                         peculiar_velocity = vlos[i]
                     else:
                         peculiar_velocity = 0.0
-                    self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (lambda_0 + dlambda[i]),
-                                                    'column_density': column_density[i],
-                                                    'b_thermal': thermal_b[i],
-                                                    'redshift': field_data['redshift'][i],
-                                                    'v_pec': peculiar_velocity})
+                    self.absorbers_list.append({'label': line['label'],
+                                                'wavelength': (lambda_0 + dlambda[i]),
+                                                'column_density': column_density[i],
+                                                'b_thermal': thermal_b[i],
+                                                'redshift': field_data['redshift'][i],
+                                                'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
 
@@ -405,23 +411,23 @@ class AbsorptionSpectrum(object):
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
-        if save_line_list:
-            self.spectrum_line_list = comm.par_combine_object(
-                self.spectrum_line_list, "cat", datatype="list")
+        if output_absorbers_file:
+            self.absorbers_list = comm.par_combine_object(
+                self.absorbers_list, "cat", datatype="list")
 
     @parallel_root_only
-    def _write_spectrum_line_list(self, filename):
+    def _write_absorbers_file(self, filename):
         """
-        Write out list of spectral lines.
+        Write out ASCII list of all substantial absorbers found in spectrum
         """
         if filename is None:
             return
-        mylog.info("Writing spectral line list: %s." % filename)
-        self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
+        mylog.info("Writing absorber list: %s." % filename)
+        self.absorbers_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
         f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
                 ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z', 'v_pec [km/s]'))
-        for line in self.spectrum_line_list:
+        for line in self.absorbers_list:
             f.write('%-14.6f %-14ls %e %e %e %e.\n' % (line['wavelength'], line['label'],
                                                 line['column_density'], line['b_thermal'],
                                                 line['redshift'], line['v_pec']))
