@@ -26,6 +26,29 @@ codebase.
 
 Keep in touch, and happy hacking!
 
+Code of Conduct
+---------------
+
+All contributors to yt are bound by the yt community `code of conduct
+<http://ytep.readthedocs.org/en/latest/YTEPs/YTEP-0023.html>`_. 
+
+The code code of conduct recognizes that open source Scientific projects are made
+up of members from around the globe with a diverse set of skills, personalities,
+and experiences. It is through these differences that our community experiences
+success and continued growth. We expect everyone in our community to follow
+the code of conduct when interacting with others both inside and outside of our
+community. Our goal is to keep ours a positive, inclusive, successful, and
+growing community.
+
+Harrassment of any kind for any reason is expressly forbidden. All community
+interactions should be done with a tone of respect and while acknowledging that
+contributors come from diverse backgrounds. Criticism about code must never be
+personal and must be done with respect.
+
+If you feel that the code of conduct has been violated, please send an e-mail to
+confidential@yt-project.org, where we will begin a formal process to resolve the
+issue
+
 .. _bootstrap-dev:
 
 Submitting Changes
