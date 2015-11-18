@@ -14,7 +14,6 @@ Operation registry class
 #-----------------------------------------------------------------------------
 
 import copy
-import types
 from yt.extern.six import string_types
 
 class OperatorRegistry(dict):

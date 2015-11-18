@@ -13,12 +13,12 @@ Unit test the kD trees in yt.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+import numpy as np
 
+from yt.testing import \
+    assert_array_almost_equal, \
+    assert_array_equal
 from yt.utilities.spatial import cKDTree
-
-def setup():
-    pass
 
 
 def test_cython_tree():

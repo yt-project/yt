@@ -64,12 +64,12 @@ class LightRay(CosmologySplice):
         Default: None
     near_redshift : optional, float
         The near (lowest) redshift for a light ray containing multiple
-        datasets.  Do not use is making a light ray from a single
+        datasets.  Do not use if making a light ray from a single
         dataset.
         Default: None
     far_redshift : optional, float
         The far (highest) redshift for a light ray containing multiple
-        datasets.  Do not use is making a light ray from a single
+        datasets.  Do not use if making a light ray from a single
         dataset.
         Default: None
     use_minimum_datasets : optional, bool
@@ -168,9 +168,9 @@ class LightRay(CosmologySplice):
 
         # If using only one dataset, set start and stop manually.
         if start_position is not None:
-            if len(self.light_ray_solution) > 1:
-                raise RuntimeError("LightRay Error: cannot specify start_position " + \
-                                   "if light ray uses more than one dataset.")
+            if self.near_redshift is not None or self.far_redshift is not None:
+                raise RuntimeError("LightRay Error: cannot specify both " + \
+                                   "start_position and a redshift range.")
             if not ((end_position is None) ^ (trajectory is None)):
                 raise RuntimeError("LightRay Error: must specify either end_position " + \
                                    "or trajectory, but not both.")

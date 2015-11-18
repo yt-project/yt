@@ -14,9 +14,7 @@ from yt.analysis_modules.photon_simulator.api import \
     XSpecThermalModel, XSpecAbsorbModel, \
     ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
-from yt.utilities.answer_testing.framework import \
-    requires_module
-from yt.testing import requires_file
+from yt.testing import requires_file, requires_module
 import numpy as np
 from yt.utilities.physical_ratios import \
     K_per_keV, mass_hydrogen_grams

@@ -13,7 +13,7 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import base64
+
 import numpy as np
 import matplotlib
 import types
@@ -24,8 +24,6 @@ from distutils.version import LooseVersion
 from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
-from ._mpl_imports import FigureCanvasAgg
-from .image_writer import apply_colormap
 from .base_plot_types import ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
@@ -43,8 +41,6 @@ from yt.data_objects.time_series import \
     DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
-from yt.extern.six.moves import \
-    StringIO
 from yt.extern.six import string_types
 from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
@@ -59,8 +55,6 @@ from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.png_writer import \
-    write_png_to_string
 from yt.utilities.definitions import \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
@@ -88,7 +82,6 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    axis_name = ds.coordinates.axis_name[axis]
     width = ds.coordinates.sanitize_width(axis, width, None)
     center, display_center = ds.coordinates.sanitize_center(center, axis)
     xax = ds.coordinates.x_axis[axis]

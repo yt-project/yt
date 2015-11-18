@@ -26,7 +26,9 @@ try:
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
-import math, inspect, time
+import math
+import inspect
+import time
 from collections import defaultdict
 
 sep = 12
