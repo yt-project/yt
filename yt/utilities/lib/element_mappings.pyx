@@ -464,7 +464,41 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
-        pass
+        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = coord[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = coord[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = coord[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        F = rm*sm*tm*(-r - s - t - 2.0)*vals[0] + \
+            rp*sm*tm*( r - s - t - 2.0)*vals[1] + \
+            rp*sp*tm*( r + s - t - 2.0)*vals[2] + \
+            rm*sp*tm*(-r + s - t - 2.0)*vals[3] + \
+            rm*sm*tp*(-r - s + t - 2.0)*vals[4] + \
+            rp*sm*tp*( r - s + t - 2.0)*vals[5] + \
+            rp*sp*tp*( r + s + t - 2.0)*vals[6] + \
+            rm*sp*tp*(-r + s + t - 2.0)*vals[7] + \
+            2.0*(1.0 - r**2)*sm*tm*vals[8]  + \
+            2.0*rp*(1.0 - s**2)*tm*vals[9]  + \
+            2.0*(1.0 - r**2)*sp*tm*vals[10] + \
+            2.0*rm*(1.0 - s**2)*tm*vals[11] + \
+            2.0*rm*sm*(1.0 - t**2)*vals[12] + \
+            2.0*rp*sm*(1.0 - t**2)*vals[13] + \
+            2.0*rp*sp*(1.0 - t**2)*vals[14] + \
+            2.0*rm*sp*(1.0 - t**2)*vals[15] + \
+            2.0*(1.0 - r**2)*sm*tp*vals[16] + \
+            2.0*rp*(1.0 - s**2)*tp*vals[17] + \
+            2.0*(1.0 - r**2)*sp*tp*vals[18] + \
+            2.0*rm*(1.0 - s**2)*tp*vals[19]
+        return 0.125*F
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
