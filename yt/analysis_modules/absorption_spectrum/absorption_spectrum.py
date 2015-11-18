@@ -400,6 +400,7 @@ class AbsorptionSpectrum(object):
                                                 'column_density': column_density[i],
                                                 'b_thermal': thermal_b[i],
                                                 'redshift': field_data['redshift'][i],
+                                                'redshift_eff': field_data['redshift_eff'][i],
                                                 'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
@@ -425,12 +426,13 @@ class AbsorptionSpectrum(object):
         mylog.info("Writing absorber list: %s." % filename)
         self.absorbers_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
-        f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
-                ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z', 'v_pec [km/s]'))
+        f.write('#%-14s %-14s %-12s %-14s %-15s %-9s %-10s\n' %
+                ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z_cosmo', \
+                 'z_eff', 'v_pec [km/s]'))
         for line in self.absorbers_list:
-            f.write('%-14.6f %-14ls %e %e %e %e.\n' % (line['wavelength'], line['label'],
-                                                line['column_density'], line['b_thermal'],
-                                                line['redshift'], line['v_pec']))
+            f.write('%-14.6f %-14ls %e %e % e % e % e\n' % (line['wavelength'], \
+                line['label'], line['column_density'], line['b_thermal'], \
+                line['redshift'], line['redshift_eff'], line['v_pec']))
         f.close()
 
     @parallel_root_only
