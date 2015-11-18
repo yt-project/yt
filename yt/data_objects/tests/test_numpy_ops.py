@@ -1,5 +1,4 @@
 from yt.testing import fake_random_ds, fake_amr_ds, assert_equal
-import numpy as np
 
 
 def setup():
@@ -91,7 +90,3 @@ def test_min_max():
         qrho, qtemp = ad.min(["density", "temperature"])
         yield assert_equal, qrho, ad["density"].min()
         yield assert_equal, qtemp, ad["temperature"].min()
-
-if __name__ == "__main__":
-    for args in test_mean_and_sum():
-        args[0](*args[1:])

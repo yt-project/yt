@@ -116,4 +116,4 @@ def test_arbitrary_grid():
                     2**ref_level * ds.domain_dimensions)
             ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
                     2**ref_level * ds.domain_dimensions)
-            yield assert_almost_equal, cg["density"], ag["density"]
+            yield assert_rel_equal, cg["density"], ag["density"], 7

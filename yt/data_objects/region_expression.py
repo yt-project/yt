@@ -11,11 +11,9 @@ An object that can live on the dataset to facilitate data access.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import weakref
 import types
 
-import yt.units
 from yt.utilities.exceptions import YTDimensionalityError
 
 class RegionExpression(object):
@@ -103,7 +101,7 @@ class RegionExpression(object):
             left_edge.append(l)
             right_edge.append(r)
             dims.append(getattr(b.step, "imag", None))
-        center = [ (l + r)/2.0 for l, r in zip(left_edge, right_edge)]
+        center = [ (cl + cr)/2.0 for cl, cr in zip(left_edge, right_edge)]
         if all(d is not None for d in dims):
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)
