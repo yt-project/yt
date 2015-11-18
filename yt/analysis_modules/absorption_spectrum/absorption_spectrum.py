@@ -115,7 +115,7 @@ class AbsorptionSpectrum(object):
                                     'index': index})
 
     def make_spectrum(self, input_file, output_file=None,
-                      output_absorbers_file=None,
+                      line_list_file=None, output_absorbers_file=None,
                       use_peculiar_velocity=True, 
                       subgrid_resolution=10, njobs="auto"):
         """
@@ -165,6 +165,10 @@ class AbsorptionSpectrum(object):
            spectrum generation.
            Default: "auto"
         """
+        if line_list_file is not None:
+            mylog.info("'line_list_file' keyword is deprecated. Please use " \
+                       "'output_absorbers_file'.")
+            output_absorbers_file = line_list_file
 
         input_fields = ['dl', 'redshift', 'temperature']
         field_units = {"dl": "cm", "redshift": "", "temperature": "K"}
