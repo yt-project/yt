@@ -14,15 +14,26 @@ Dataset and related data structures.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import string, re, gc, time, os, os.path, weakref
 import functools
+import numpy as np
+import os
+import time
+import weakref
 
-from yt.funcs import *
+from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
+from yt.funcs import \
+    mylog, \
+    set_intersection, \
+    ensure_list
 from yt.utilities.cosmology import \
-     Cosmology
+    Cosmology
+from yt.utilities.exceptions import \
+    YTObjectNotImplemented, \
+    YTFieldNotFound, \
+    YTGeometryNotSupported
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -33,8 +44,6 @@ from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
 from yt.fields.fluid_fields import \
     setup_gradient_fields
 from yt.fields.particle_fields import \
@@ -132,7 +141,6 @@ class Dataset(object):
     _instantiated = False
 
     def __new__(cls, filename=None, *args, **kwargs):
-        from yt.frontends.stream.data_structures import StreamHandler
         if not isinstance(filename, string_types):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
@@ -143,7 +151,6 @@ class Dataset(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
-        #if not os.path.exists(apath): raise IOError(filename)
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
         elif apath not in _cached_datasets:
@@ -452,7 +459,7 @@ class Dataset(object):
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
-        rv = self.field_info.find_dependencies(new_fields)
+        self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
         # This requires an index

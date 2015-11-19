@@ -314,12 +314,12 @@ echo "temporarily activate the yt installtion:"
 echo
 echo "    export PATH=$DEST_DIR/bin:\$PATH"
 echo
-echo "and on csh-style shells"
+echo "and on csh-style shells:"
 echo
 echo "    setenv PATH $DEST_DIR/bin:\$PATH"
 echo
-echo "You can also the init file appropriate for your shell to include the same"
-echo "command."
+echo "You can also update the init file appropriate for your shell to include"
+echo "the same command."
 echo
 echo "To get started with yt, check out the orientation:"
 echo

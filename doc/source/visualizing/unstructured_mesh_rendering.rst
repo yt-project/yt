@@ -6,10 +6,10 @@ Unstructured Mesh Rendering
 Beginning with version 3.3, yt has the ability to volume render unstructured
 meshes from, for example, finite element calculations. In order to use this
 capability, a few additional dependencies are required beyond those you get
-when you run the install script. First, `embree <https://embree.github.io>`
+when you run the install script. First, `embree <https://embree.github.io>`_
 (a fast software ray-tracing library from Intel) must be installed, either
 by compiling from source or by using one of the pre-built binaries available
-at Embree's `downloads <https://embree.github.io/downloads.html>` page. Once
+at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. Once
 Embree is installed, you must also create a symlink next to the library. For
 example, if the libraries were installed at /usr/local/lib/, you must do
 
@@ -18,7 +18,7 @@ example, if the libraries were installed at /usr/local/lib/, you must do
     sudo ln -s /usr/local/lib/libembree.2.6.1.dylib /usr/local/lib/libembree.so
 
 Second, the python bindings for embree (called 
-`pyembree <https://github.com/scopatz/pyembree>`) must also be installed. To
+`pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
 do so, first obtain a copy, by .e.g. cloning the repo:
 
 .. code-block:: bash

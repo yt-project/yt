@@ -40,7 +40,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.pyparselibconfig import libconfig

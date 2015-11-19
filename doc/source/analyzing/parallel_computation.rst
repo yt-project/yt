@@ -501,11 +501,7 @@ biggest concern for halo finding is the amount of memory needed.  There is
 subtle art in estimating the amount of memory needed for halo finding, but a
 rule of thumb is that the HOP halo finder is the most memory intensive
 (:func:`HaloFinder`), and Friends of Friends (:func:`FOFHaloFinder`) being the
-most memory-conservative.  It has been found that :func:`parallelHF` needs
-roughly 1 MB of memory per 5,000 particles, although recent work has improved
-this and the memory requirement is now smaller than this. But this is a good
-starting point for beginning to calculate the memory required for halo-finding.
-For more information, see :ref:`halo_finding`.
+most memory-conservative. For more information, see :ref:`halo_finding`.
 
 **Volume Rendering**
 

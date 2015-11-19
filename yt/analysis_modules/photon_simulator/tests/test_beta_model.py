@@ -14,9 +14,7 @@ from yt.analysis_modules.photon_simulator.api import \
     XSpecThermalModel, XSpecAbsorbModel, \
     ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
-from yt.utilities.answer_testing.framework import \
-    requires_module
-from yt.testing import requires_file
+from yt.testing import requires_file, requires_module
 import numpy as np
 from yt.utilities.physical_ratios import \
     K_per_keV, mass_hydrogen_grams
@@ -43,7 +41,7 @@ rmf = os.path.join(xray_data_dir,"ah_sxs_5ev_basefilt_20100712.rmf")
 @requires_file(rmf)
 def test_beta_model():
     import xspec
-    
+
     xspec.Fit.statMethod = "cstat"
     xspec.Xset.addModelString("APECTHERMAL","yes")
     xspec.Fit.query = "yes"
@@ -119,7 +117,7 @@ def test_beta_model():
     norm_sim = float(norm_sim.in_cgs())
 
     events = photons.project_photons("z", responses=[arf,rmf],
-                                     absorb_model=abs_model, 
+                                     absorb_model=abs_model,
                                      convolve_energies=True, prng=my_prng)
     events.write_spectrum("beta_model_evt.pi", clobber=True)
 
@@ -143,7 +141,7 @@ def test_beta_model():
     xspec.Fit.renorm()
     xspec.Fit.nIterations = 100
     xspec.Fit.perform()
-    
+
     kT  = m.bapec.kT.values[0]
     mu = (m.bapec.Redshift.values[0]-redshift)*ckms
     Z = m.bapec.Abundanc.values[0]
@@ -156,10 +154,8 @@ def test_beta_model():
     dsigma = m.bapec.Velocity.sigma
     dnorm = m.bapec.norm.sigma
 
-    print kT, kT_sim, dkT
-
     assert np.abs(mu-mu_sim) < dmu
-    assert np.abs(kT-kT_sim) < dkT    
+    assert np.abs(kT-kT_sim) < dkT
     assert np.abs(Z-Z_sim) < dZ
     assert np.abs(sigma-sigma_sim) < dsigma
     assert np.abs(norm-norm_sim) < dnorm

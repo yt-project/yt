@@ -1,4 +1,4 @@
-from yt.testing import *
+from yt.testing import assert_equal
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.periodic_table import periodic_table
 

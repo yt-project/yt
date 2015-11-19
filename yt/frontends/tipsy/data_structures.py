@@ -31,7 +31,8 @@ from yt.data_objects.static_output import \
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.physical_constants import \
-    G, \
+    G
+from yt.utilities.physical_ratios import \
     cm_per_kpc
 
 from .fields import \

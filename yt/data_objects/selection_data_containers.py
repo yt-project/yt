@@ -14,27 +14,27 @@ Data containers based on geometric selection
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
 import numpy as np
-from contextlib import contextmanager
 
-from yt.funcs import *
-from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
-from yt.utilities.orientation import Orientation
-from .data_containers import \
+from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D
-from yt.data_objects.derived_quantities import \
-    DerivedQuantityCollection
+from yt.funcs import \
+    ensure_list, \
+    iterable, \
+    validate_width_tuple, \
+    fix_length
+from yt.units.yt_array import \
+    YTArray
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTMixedCutRegion
-from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
+    YTMixedCutRegion, \
+    YTEllipsoidOrdering
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
-from yt.units.yt_array import YTQuantity
+from yt.utilities.orientation import Orientation
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -383,7 +383,6 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self._x_vec = self.orienter.unit_vectors[0]
         self._y_vec = self.orienter.unit_vectors[1]
         # First we try all three, see which has the best result:
-        vecs = np.identity(3)
         self._rot_mat = np.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = np.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
