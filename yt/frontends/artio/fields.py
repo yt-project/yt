@@ -105,8 +105,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
         if flag1 or flag2:
             if flag1 and flag2:
                 def _metal_density(field, data):
-                    tr = data["metal_ia_density"]
-                    tr += data["metal_ii_density"]
+                    tr = data['metal_ia_density'].copy()
+                    np.add(tr, data["metal_ii_density"], out=tr)
                     return tr
             elif flag1 and not flag2:
                 def _metal_density(field, data):
