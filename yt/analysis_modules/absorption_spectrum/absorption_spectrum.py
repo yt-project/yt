@@ -52,7 +52,7 @@ class AbsorptionSpectrum(object):
     def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
         # lambda, flux, and tau are wavelength, flux, and optical depth
-        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max, \
+        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max, 
                                     n_lambda), "angstrom")
         self.tau_field = None
         self.flux_field = None
