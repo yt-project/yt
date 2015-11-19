@@ -20,10 +20,10 @@ from yt.fields.field_detector import \
     FieldDetector
 from yt.units.yt_array import \
     YTArray
-
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     amu_cgs
+import numpy as np
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
