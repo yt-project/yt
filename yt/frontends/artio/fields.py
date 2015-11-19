@@ -99,14 +99,27 @@ class ARTIOFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "temperature"), function = _temperature,
                        units = "K")
 
-        def _metal_density(field, data):
-            tr = data["metal_ia_density"]
-            tr += data["metal_ii_density"]
-            return tr
-        self.add_field(("gas","metal_density"),
-                       function=_metal_density,
-                       units="g/cm**3",
-                       take_log=True)
+        # Create a metal_density field as sum of existing metal fields. 
+        flag1 = ("artio", "HVAR_METAL_DENSITY_Ia") in self.field_list
+        flag2 = ("artio", "HVAR_METAL_DENSITY_II") in self.field_list
+        if flag1 or flag2:
+            if flag1 and flag2:
+                def _metal_density(field, data):
+                    tr = data["metal_ia_density"]
+                    tr += data["metal_ii_density"]
+                    return tr
+            elif flag1 and not flag2:
+                def _metal_density(field, data):
+                    tr = data["metal_ia_density"]
+                    return tr
+            else:
+                def _metal_density(field, data):
+                    tr = data["metal_ii_density"]
+                    return tr
+            self.add_field(("gas","metal_density"),
+                           function=_metal_density,
+                           units="g/cm**3",
+                           take_log=True)
 
     def setup_particle_fields(self, ptype):
         if ptype == "STAR":
