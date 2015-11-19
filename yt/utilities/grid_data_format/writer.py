@@ -341,7 +341,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid
         particles_group = grid_group.create_group("particles")
-        pt_group = particles_group.create_group(particle_type_name)
+        particles_group.create_group(particle_type_name)
 
     yield f
     

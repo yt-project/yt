@@ -81,6 +81,36 @@ cdef inline np.float64_t sph_kernel_quintic(np.float64_t x):
         kernel = 0.
     return kernel * C
 
+# Wendland C2
+cdef inline np.float64_t sph_kernel_wendland2(np.float64_t x):
+    cdef np.float64_t kernel
+    cdef np.float64_t C = 21./2/np.pi
+    if x < 1:
+        kernel = (1.-x)**4 * (1+4*x)
+    else:
+        kernel = 0.
+    return kernel * C
+
+# Wendland C4
+cdef inline np.float64_t sph_kernel_wendland4(np.float64_t x):
+    cdef np.float64_t kernel
+    cdef np.float64_t C = 495./32/np.pi
+    if x < 1:
+        kernel = (1.-x)**6 * (1+6*x+35./3*x**2)
+    else:
+        kernel = 0.
+    return kernel * C
+
+# Wendland C6
+cdef inline np.float64_t sph_kernel_wendland6(np.float64_t x):
+    cdef np.float64_t kernel
+    cdef np.float64_t C = 1365./64/np.pi
+    if x < 1:
+        kernel = (1.-x)**8 * (1+8*x+25*x**2+32*x**3)
+    else:
+        kernel = 0.
+    return kernel * C
+
 # I don't know the way to use a dict in a cdef class.
 # So in order to mimic a registry functionality,
 # I manually created a function to lookup the kernel functions.
@@ -92,6 +122,12 @@ cdef inline kernel_func get_kernel_func(str kernel_name):
         return sph_kernel_quartic
     elif kernel_name == 'quintic':
         return sph_kernel_quintic
+    elif kernel_name == 'wendland2':
+        return sph_kernel_wendland2
+    elif kernel_name == 'wendland4':
+        return sph_kernel_wendland4
+    elif kernel_name == 'wendland6':
+        return sph_kernel_wendland6
     else:
         raise NotImplementedError
 

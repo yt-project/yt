@@ -13,7 +13,7 @@ Various definitions for various other modules and routines
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .physical_constants import \
+from .physical_ratios import \
    mpc_per_mpc, kpc_per_mpc, pc_per_mpc, au_per_mpc, rsun_per_mpc, \
    miles_per_mpc, km_per_mpc, cm_per_mpc, sec_per_Gyr, sec_per_Myr, \
    sec_per_year, sec_per_day

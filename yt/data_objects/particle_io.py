@@ -15,7 +15,11 @@ The particle-IO handler
 
 import numpy as np
 
-from yt.funcs import *
+from collections import defaultdict
+
+from yt.funcs import \
+    ensure_list, \
+    mylog
 from yt.extern.six import add_metaclass
 
 particle_handler_registry = defaultdict()

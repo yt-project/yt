@@ -59,7 +59,7 @@ Halo Finding
   from yt.analysis_modules.halo_finding.api import *
 
   ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
-  halo_list = parallelHF(ds)
+  halo_list = HaloFinder(ds)
   halo_list.dump('MyHaloList')
 
 Ellipsoid Parameters

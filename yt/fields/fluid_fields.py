@@ -52,7 +52,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
     def _cell_mass(field, data):
-        return data[ftype, "density"] * data["index", "cell_volume"]
+        return data[ftype, "density"] * data[ftype, "cell_volume"]
 
     registry.add_field((ftype, "cell_mass"),
         function=_cell_mass,
@@ -89,11 +89,11 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
             units = "")
 
     def _courant_time_step(field, data):
-        t1 = data["index", "dx"] / (data[ftype, "sound_speed"]
+        t1 = data[ftype, "dx"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_x"]))
-        t2 = data["index", "dy"] / (data[ftype, "sound_speed"]
+        t2 = data[ftype, "dy"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_y"]))
-        t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
+        t3 = data[ftype, "dz"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_z"]))
         tr = np.minimum(np.minimum(t1, t2), t3)
         return tr
@@ -140,7 +140,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units="Zsun")
 
     def _metal_mass(field, data):
-        return data[ftype, "metal_density"] * data["index", "cell_volume"]
+        return data[ftype, "metal_density"] * data[ftype, "cell_volume"]
     registry.add_field((ftype, "metal_mass"),
                        function=_metal_mass,
                        units="g")
@@ -188,7 +188,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
         def func(field, data):
-            ds = div_fac * data["index", "d%s" % ax]
+            ds = div_fac * data[ftype, "d%s" % ax]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),

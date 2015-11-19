@@ -67,6 +67,9 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTSceneFieldNotFound(YTException):
+    pass
+
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
         return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
@@ -415,9 +418,6 @@ class YTRockstarMultiMassNotSupported(YTException):
         v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
             self.ma)
         return v
-
-class YTEmptyProfileData(Exception):
-    pass
 
 class YTTooParallel(YTException):
     def __str__(self):

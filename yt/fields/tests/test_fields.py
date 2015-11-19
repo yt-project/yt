@@ -15,10 +15,14 @@ from yt.utilities.cosmology import \
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
+    array_like_field, \
     YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTFieldUnitError, \
     YTFieldUnitParseError
+
+base_ds = None
+
 
 def setup():
     global base_ds
@@ -66,6 +70,7 @@ _base_fields = (("gas", "density"),
 
 def realistic_ds(fields, particle_fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
+    global base_ds
     units = [base_ds._get_field_info(*f).units for f in fields]
     punits = [base_ds._get_field_info('io', f).units for f in particle_fields]
     fields = [_strip_ftype(f) for f in fields]
@@ -110,7 +115,7 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-
+        global base_ds
         field = base_ds._get_field_info(*self.field_name)
         deps = field.get_dependencies(ds = base_ds)
         requested = deps.requested
@@ -173,8 +178,12 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
+    global base_ds
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
+            continue
+        if field[1].find("vertex") > -1:
+            # don't test the vertex fields for now
             continue
         if field in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
@@ -186,6 +195,7 @@ def test_all_fields():
             yield TestFieldAccess(field, nproc)
 
 def test_add_deposited_particle_field():
+    global base_ds
     fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'count')
     assert_equal(fn, ('deposit', 'io_count_ones'))
     ad = base_ds.all_data()
@@ -202,6 +212,7 @@ def test_add_smoothed_particle_field():
     assert_almost_equal(ret.sum(), 3824750.912653606)
 
 def test_add_gradient_fields():
+    global base_ds
     gfields = base_ds.add_gradient_fields(("gas","density"))
     gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
@@ -264,9 +275,17 @@ def test_add_field_unit_semantics():
     assert_equal(str(ad['dimensionless_explicit'].units), 'dimensionless')
     assert_raises(YTFieldUnitError, get_data, ds, 'dimensionful')
 
+def test_array_like_field():
+    ds = fake_random_ds(4, particles=64)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
         t()
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
+    test_array_like_field()

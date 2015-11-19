@@ -42,6 +42,9 @@ class SpectralModel(object):
     def get_spectrum(self):
         pass
 
+    def cleanup_spectrum(self):
+        pass
+
 class XSpecThermalModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from PyXspec.
@@ -109,6 +112,10 @@ class XSpecThermalModel(SpectralModel):
         cosmic_spec *= self.norm
         metal_spec *= self.norm
         return YTArray(cosmic_spec, "cm**3/s"), YTArray(metal_spec, "cm**3/s")
+    
+    def cleanup_spectrum(self):
+        del self.thermal_comp
+        del self.model
 
 class XSpecAbsorbModel(SpectralModel):
     r"""
@@ -164,6 +171,9 @@ class XSpecAbsorbModel(SpectralModel):
         m = getattr(self.model,self.model_name)
         m.nH = self.nH
         return np.array(self.model.values(0))
+
+    def cleanup_spectrum(self):
+        del self.model
 
 class TableApecModel(SpectralModel):
     r"""

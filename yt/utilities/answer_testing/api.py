@@ -13,37 +13,5 @@ API for enzo_test
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .runner import \
-    RegressionTestRunner, \
-    RegressionTestStorage, \
-    clear_registry, \
-    registry_entries
+from yt.utilities.answer_testing.framework import AnswerTesting
 
-from .output_tests import \
-    YTDatasetTest, \
-    create_test
-
-from .default_tests import \
-    TestFieldStatistics, \
-    TestAllProjections
-
-from .xunit import \
-    Xunit
-
-from .halo_tests import \
-    TestHaloCompositionHashHOP, \
-    TestHaloCompositionHashFOF, \
-    TestHaloCompositionHashPHOP
-
-from .boolean_region_tests import \
-    TestBooleanANDGridQuantity, \
-    TestBooleanORGridQuantity, \
-    TestBooleanNOTGridQuantity, \
-    TestBooleanANDParticleQuantity, \
-    TestBooleanORParticleQuantity, \
-    TestBooleanNOTParticleQuantity
-
-try:
-    from .framework import AnswerTesting
-except ImportError:
-    raise
