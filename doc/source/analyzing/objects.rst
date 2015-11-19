@@ -68,11 +68,11 @@ dataset you could:
 Slicing Syntax for Selecting Data
 ---------------------------------
 
-yt provides a mechanism for rapidly selecting data from a dataset.  This allows
-for region selection based on the full domain of the object.  Selecting in this
-manner is exposed through a slice-like syntax.  All of these attributes are
-exposed through the ``RegionExpression`` object, which is an attribute of a
-``DataSet`` object, called ``r``.
+yt provides a mechanism for easily selecting data while doing interactive work
+on the command line.  This allows for region selection based on the full domain
+of the object.  Selecting in this manner is exposed through a slice-like
+syntax.  All of these attributes are exposed through the ``RegionExpression``
+object, which is an attribute of a ``DataSet`` object, called ``r``.
 
 Getting All The Data
 ^^^^^^^^^^^^^^^^^^^^
@@ -87,7 +87,14 @@ on the ``.r`` object, like so:
    rho = ds.r["density"]
 
 This will return a *flattened* array of data.  The region expression object
-(``r``) doesn't have any derived quantities on it.
+(``r``) doesn't have any derived quantities on it.  This is completely
+equivalent to this set of statements:
+
+.. code-block:: python
+
+   ds = yt.load("RedshiftOutput0005")
+   dd = ds.all_data()
+   rho = dd["density"]
 
 .. warning::
 
