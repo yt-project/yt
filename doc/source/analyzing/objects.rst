@@ -412,9 +412,18 @@ after ``max`` will be considerably faster.  Here is an example:::
   min_rho = reg.min("density")
   max_rho = reg.max("density")
 
+This is equivalent to:::
+
+  min_rho, max_rho = reg.quantities.extrema("density")
+
 The ``max`` operation can also compute the maximum intensity projection:::
 
   proj = reg.max("density", axis="x")
+  proj.plot()
+
+This is equivalent to:::
+
+  proj = ds.proj("density", "x", data_source=reg, method="mip")
   proj.plot()
 
 The ``min`` operator does not do this, however, as a minimum intensity
@@ -427,6 +436,12 @@ defaults to ``ones``, which performs an arithmetic average.  For instance:::
 
   mean_rho = reg.mean("density")
   rho_by_vol = reg.mean("density", weight="cell_volume")
+
+This is equivalent to:::
+
+  mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
+  rho_by_vol = reg.quantities.weighted_average("density",
+                    weight_field="cell_volume")
 
 If an axis is provided, it will project along that axis and return it to you:::
 
