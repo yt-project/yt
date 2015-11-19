@@ -3,7 +3,8 @@ import numpy as np
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import \
     fake_random_ds, \
-    assert_equal
+    assert_equal, \
+    assert_almost_equal
 
 def setup():
     from yt.config import ytcfg
@@ -118,4 +119,4 @@ def test_arbitrary_grid():
                     2**ref_level * ds.domain_dimensions)
             ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
                     2**ref_level * ds.domain_dimensions)
-            yield assert_rel_equal, cg["density"], ag["density"], 7
+            yield assert_almost_equal, cg["density"], ag["density"]
