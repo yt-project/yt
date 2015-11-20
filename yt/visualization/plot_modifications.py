@@ -1535,19 +1535,23 @@ class MeshLinesCallback(PlotCallback):
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, mesh, thresh=0.1):
+    def __init__(self, thresh=0.1):
         super(MeshLinesCallback, self).__init__()
         self.thresh = thresh
-        self.mesh = mesh
 
     def __call__(self, plot):
-        coords = self.mesh.connectivity_coords
-        indices = self.mesh.connectivity_indices
+
+        ftype, fname = plot.field
+        mesh_id = int(ftype[-1]) - 1
+        mesh = plot.ds.index.meshes[mesh_id]
+
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
 
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        offset = self.mesh._index_offset
+        offset = mesh._index_offset
         ax = plot.data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
