@@ -235,8 +235,7 @@ We can also annotate the mesh lines, as follows:
    import yt
    ds = yt.load('MOOSE_sample_data/out.e-s010')
    sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
-   mesh = ds.index.meshes[0]
-   sl.annotate_mesh_lines(mesh, thresh=0.1)
+   sl.annotate_mesh_lines()
    sl.zoom(0.75)
 
 This annotation is performed by marking the pixels where the mapped coordinate is close
