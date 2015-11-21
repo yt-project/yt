@@ -544,6 +544,11 @@ class LightRay(CosmologySplice):
               self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
+        # Only return LightRay elements with non-zero density
+        if 'density' in data:
+            mask = data['density'] > 0
+            for key in data.keys():
+                data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
