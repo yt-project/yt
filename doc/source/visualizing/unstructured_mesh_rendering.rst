@@ -39,12 +39,27 @@ usr/local. To account for this, you would do:
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-You must also use these flags when building any part of yt from source. For example,
-to run "setup.py develop" from the yt-hg directory, you would do:
+You must also make sure the C++ compilers gets these flags when building yt from source. 
+There are a number of ways to do this. One way is to again manually pass in the flags
+when running the setup script in the yt-hg directory:
 
 .. code-block:: bash
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
+
+You can also set EMBREE_DIR environment variable to '/opt/local', in which case
+you could just run 
+
+.. code-block:: bash
+   
+   python setup.py develop
+
+as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
+the location of the embree installation, the setup script will find this and use it, 
+provided EMBREE_DIR is not set. We recommend one of the later two methods, especially
+if you plan on re-compiling the cython extensions regularly. Note that none of this is
+neccessary if you installed embree into a location that is in your default path, such
+as /usr/local.
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
 much like any other dataset. In particular, a new type of 
