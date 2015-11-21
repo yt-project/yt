@@ -246,6 +246,12 @@ try to triage the issue tracker regularly, it may be the case that issues marked
 "moderate" are actually easier than their milestone label indicates since that
 is the default value.
 
+Here are some predefined issue searches that might be useful:
+
+* Unresolved issues `marked "easy" <https://bitbucket.org/yt_analysis/yt/issues?milestone=easy&status=open&status=new>`_.
+* Unresolved issues `marked "easy" or "moderate" <https://bitbucket.org/yt_analysis/yt/issues?milestone=easy&milestone=moderate&status=open&status=new>`_
+* `All unresolved issues <https://bitbucket.org/yt_analysis/yt/issues?status=open&status=new>`_
+
 Submitting Changes
 ------------------
 
