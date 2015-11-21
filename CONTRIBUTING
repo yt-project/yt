@@ -29,7 +29,8 @@ There are four main communication channels for yt:
    a much lower-traffic mailing list designed to focus on discussions of
    improvements to the code, ideas about planning, development issues, and so
    on.
- * Many yt developers participate in the yt Slack community. Slack is a free chat   service that many teams use to organize development. You can get an
+ * Many yt developers participate in the yt Slack community. Slack is a free 
+   chat service that many teams use to organize development. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
    on this page: http://yt-project.org/community.html
  * `yt-svn <http://lists.spacepope.org/listinfo.cgi/yt-svn-spacepope.org>`_ is
