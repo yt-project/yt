@@ -707,10 +707,10 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     return sds
 
 def load_amr_grids(grid_data, domain_dimensions,
-                   field_units=None, bbox=None, sim_time=0.0, length_unit=None,
+                   bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian", refine_by=2):
+                   geometry="cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -735,9 +735,6 @@ def load_amr_grids(grid_data, domain_dimensions,
         modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
-    field_units : dict
-        A dictionary mapping string field names to string unit specifications.  The field
-        names must correspond to the fields in grid_data.
     length_unit : string or float
         Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
         dimensions are assumed to be in the corresponding units.  If set to a float, the
@@ -785,11 +782,9 @@ def load_amr_grids(grid_data, domain_dimensions,
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...     g["density"] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
     ...
-    >>> units = dict(density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
-    ...                     length_unit=1.0)
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -810,8 +805,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_right_edges[i,:] = g.pop("right_edge")
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
-        if "number_of_particles" in g :
-            number_of_particles[i,:] = g.pop("number_of_particles")  
+        if "number_of_particles" in g:
+            number_of_particles[i,:] = g.pop("number_of_particles")
         update_field_names(g)
         sfh[i] = g
 
@@ -859,7 +854,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         sfh,
         field_units,
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
-        particle_types=particle_types
+        particle_types=particle_types,
+        periodicity=periodicity
     )
 
     handler.name = "AMRGridData"
@@ -871,8 +867,9 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry = geometry)
+    sds = StreamDataset(handler, geometry=geometry)
     return sds
+
 
 def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                callback = None):
