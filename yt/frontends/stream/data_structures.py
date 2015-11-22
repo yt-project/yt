@@ -872,7 +872,7 @@ def load_amr_grids(grid_data, domain_dimensions,
 
 
 def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
-               callback = None):
+               callback=None):
     r"""Given a base dataset, repeatedly apply refinement criteria and
     fluid operators until a maximum level is reached.
 
@@ -908,9 +908,9 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
     number_of_particles = np.sum([grid.NumberOfParticles
                                   for grid in base_ds.index.grids])
 
-    if number_of_particles > 0 :
+    if number_of_particles > 0:
         pdata = {}
-        for field in base_ds.field_list :
+        for field in base_ds.field_list:
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
@@ -918,12 +918,12 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 pdata[field] = uconcatenate([grid[field]
                                                for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
-        
+
     last_gc = base_ds.index.num_grids
     cur_gc = -1
-    ds = base_ds    
-    bbox = np.array( [ (ds.domain_left_edge[i], ds.domain_right_edge[i])
-                       for i in range(3) ])
+    ds = base_ds
+    bbox = np.array([(ds.domain_left_edge[i], ds.domain_right_edge[i])
+                     for i in range(3)])
     while ds.index.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   ds.index.max_level)
@@ -959,9 +959,9 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                     if not fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
-        
-        ds = load_amr_grids(grid_data, ds.domain_dimensions, 1.0,
-                            bbox = bbox)
+
+        ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
+
         if number_of_particles > 0:
             if ("io", "particle_position_x") not in pdata:
                 pdata_ftype = {}
@@ -975,8 +975,6 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             # We need to reassign the field list here.
         cur_gc = ds.index.num_grids
 
-    # Now reassign particle data to grids
-    
     return ds
 
 class StreamParticleIndex(ParticleIndex):

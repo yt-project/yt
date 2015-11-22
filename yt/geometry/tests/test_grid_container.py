@@ -42,8 +42,8 @@ def setup_test_ds():
 
     for grid in grid_data:
         grid["density"] = \
-            np.random.random(grid["dimensions"]) * 2 ** grid["level"]
-    return load_amr_grids(grid_data, [16, 16, 16], 1.0)
+            (np.random.random(grid["dimensions"]) * 2 ** grid["level"], "g/cm**3")
+    return load_amr_grids(grid_data, [16, 16, 16])
 
 
 def test_grid_tree():
