@@ -98,7 +98,7 @@ equivalent to this set of statements:
 
 .. warning::
 
-   One thing to keep in mind with access data in this way is that it is
+   One thing to keep in mind with accessing data in this way is that it is
    *persistent*.  It is loaded into memory, and then retained until the dataset
    is deleted or garbage collected.
 
