@@ -644,7 +644,7 @@ Version 2.1
  * libconfig is now included
  * SQLite3 and Forthon now included by default in the install script
  * Development guide has been lengthened substantially and a development
-   bootstrap script (:ref:`bootstrap-dev`) is now included.
+   bootstrap script is now included.
  * Installation script now installs Python 2.7 and HDF5 1.8.6
  * iyt now tab-completes field names
  * Halos can now be stored on-disk much more easily between HaloFinding runs.
