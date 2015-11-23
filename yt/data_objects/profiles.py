@@ -914,7 +914,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].units
+            bf_units = data_source.ds.field_info[bin_field].output_units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
