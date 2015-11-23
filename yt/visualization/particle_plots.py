@@ -33,6 +33,9 @@ from yt.visualization.profile_plotter import \
 
 class ParticleAxisAlignedDummyDataSource(object):
     _type_name = 'Particle'
+    _dimensionality = 2
+    _con_args = ('center', 'axis', 'width', 'fields', 'weight_field')
+    _tds_attrs = ()
     _key_fields = []
 
     def __init__(self, center, ds, axis, width, fields,
