@@ -87,6 +87,36 @@ class RegisteredDataset(type):
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
 
+class FieldTypeContainer(object):
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
+
+    def __getattr__(self, attr):
+        ds = self.__getattribute__('ds')
+        fnc = FieldNameContainer(ds, attr)
+        if len(dir(fnc)) == 0:
+            return self.__getattribute__(attr)
+        return fnc
+
+    def __dir__(self):
+        return list(set(t for t, n in self.ds.field_info))
+
+class FieldNameContainer(object):
+    def __init__(self, ds, field_type):
+        self.ds = ds
+        self.field_type = field_type
+
+    def __getattr__(self, attr):
+        ft = self.__getattribute__("field_type")
+        ds = self.__getattribute__("ds")
+        if (ft, attr) not in ds.field_info:
+            return self.__getattribute__(attr)
+        return ds.field_info[ft, attr]
+
+    def __dir__(self):
+        return [n for t, n in self.ds.field_info
+                if t == self.field_type]
+
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
@@ -136,6 +166,7 @@ class Dataset(object):
     _index_class = None
     field_units = None
     derived_field_list = requires_index("derived_field_list")
+    fields = requires_index("fields")
     _instantiated = False
 
     def __new__(cls, filename=None, *args, **kwargs):
@@ -391,6 +422,7 @@ class Dataset(object):
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
+        self.fields = FieldTypeContainer(self)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
