@@ -39,11 +39,13 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 #  override some of the plotwindow ATTR_ARGS
-ATTR_ARGS["set_cmap"] = [(('particle_mass', 'RdBu'), {}), 
-                         (('particle_mass', 'kamae'), {})]
-ATTR_ARGS["set_log"] = [(('particle_mass', False), {})]
-ATTR_ARGS["set_zlim"] = [(('particle_mass', 1e-25, 1e-23), {}),
-                         (('particle_mass', 1e-25, None), {'dynamic_range': 4})]
+PARTICLE_ATTR_ARGS = ATTR_ARGS.copy() 
+PARTICLE_ATTR_ARGS["set_cmap"] = [(('particle_mass', 'RdBu'), {}), 
+                                  (('particle_mass', 'kamae'), {})]
+PARTICLE_ATTR_ARGS["set_log"] = [(('particle_mass', False), {})]
+PARTICLE_ATTR_ARGS["set_zlim"] = [(('particle_mass', 1e-25, 1e-23), {}),
+                                  (('particle_mass', 1e-25, None), 
+                                   {'dynamic_range': 4})]
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
@@ -76,9 +78,9 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_particle_projection_answers():
     '''
 
-    This iterates over the all the plot modification functions in ATTR_ARGS.
-    Each time, it compares the images produced by ParticleProjectionPlot to 
-    the gold standard.
+    This iterates over the all the plot modification functions in 
+    PARTICLE_ATTR_ARGS. Each time, it compares the images produced by 
+    ParticleProjectionPlot to the gold standard.
     
 
     '''
@@ -87,8 +89,8 @@ def test_particle_projection_answers():
     decimals = 3
     ds = data_dir_load(g30)
     for ax in 'xyz':
-        for attr_name in ATTR_ARGS.keys():
-            for args in ATTR_ARGS[attr_name]:
+        for attr_name in PARTICLE_ATTR_ARGS.keys():
+            for args in PARTICLE_ATTR_ARGS[attr_name]:
                 test = PlotWindowAttributeTest(ds, plot_field, ax, 
                                                attr_name,
                                                args, decimals, 
