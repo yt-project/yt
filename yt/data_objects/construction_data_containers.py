@@ -43,7 +43,7 @@ from yt.utilities.lib.QuadTree import \
 from yt.utilities.lib.Interpolators import \
     ghost_zone_interpolate
 from yt.utilities.lib.misc_utilities import \
-    fill_region
+    fill_region, fill_region_float
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.minimal_representation import \
@@ -454,6 +454,25 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
+    def plot(self, fields=None):
+        if hasattr(self.data_source, "left_edge") and \
+            hasattr(self.data_source, "right_edge"):
+            left_edge = self.data_source.left_edge
+            right_edge = self.data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Projection')
+        pw.show()
+        return pw
+
 class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
     resolution.  Left edge should align with a cell boundary, but
@@ -783,7 +802,19 @@ class YTArbitraryGrid(YTCoveringGrid):
         self._setup_data_source()
 
     def _fill_fields(self, fields):
-        raise NotImplementedError
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+        assert(len(fields) == 1)
+        field = fields[0]
+        dest = np.zeros(self.ActiveDimensions, dtype="float64")
+        for chunk in self._data_source.chunks(fields, "io"):
+            fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
+                              self.left_edge, self.right_edge, dest, 1,
+                              self.ds.domain_width,
+                              int(any(self.ds.periodicity)))
+        fi = self.ds._get_field_info(field)
+        self[field] = self.ds.arr(dest, fi.units)
+        
 
 class LevelState(object):
     current_dx = None

@@ -295,6 +295,25 @@ class YTSlice(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Slice')
         return pw
 
+    def plot(self, fields=None):
+        if hasattr(self._data_source, "left_edge") and \
+            hasattr(self._data_source, "right_edge"):
+            left_edge = self._data_source.left_edge
+            right_edge = self._data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Slice')
+        pw.show()
+        return pw
+
 class YTCuttingPlane(YTSelectionContainer2D):
     """
     This is a data object corresponding to an oblique slice through the
