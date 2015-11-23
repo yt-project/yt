@@ -925,9 +925,9 @@ def test_h5_io():
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
 
-    warr.write_hdf5('test.h5', group_name='test_group')
+    warr.write_hdf5('test.h5', dataset_name="test_dset", group_name='test_group')
 
-    giarr = YTArray.from_hdf5('test.h5', group_name='test_group')
+    giarr = YTArray.from_hdf5('test.h5', dataset_name="test_dset", group_name='test_group')
 
     yield assert_equal, warr, giarr
 
