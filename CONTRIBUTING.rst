@@ -750,10 +750,14 @@ verify our code. The ``flake8`` tool is a combination of the ``pyflakes`` and
 ``pep8`` tools. To check the coding style of your contributions locally you will
 need to install the ``flake8`` tool from ``pip``:
 
+.. code-block:: bash
+
     $ pip install flake8
 
 And then navigate to the root of the yt repository and run ``flake8`` on the
 ``yt`` folder:
+
+.. code-block:: bash
 
     $ cd $YT_HG
     $ flake8 ./yt
@@ -849,6 +853,8 @@ docstrings in your code and as a guide for how we expect docstrings to look and
 the level of detail we are looking for. Note that we use NumPy style docstrings
 written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
 
+.. code-block:: rest
+
     r"""A one-line summary that does not use variable names or the
     function name.
 
@@ -860,7 +866,7 @@ written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
     var1 : array_like
         Array_like means all those objects -- lists, nested lists, etc. --
         that can be converted to an array.  We can also refer to
-        variables like `var1`.
+        variables like ``var1``.
     var2 : int
         The type above can either refer to an actual Python type
         (e.g. ``int``), or describe the type of the variable in more
