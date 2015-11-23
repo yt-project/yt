@@ -20,9 +20,14 @@ import unittest
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, WIDTH_SPECS
+    assert_fname, WIDTH_SPECS, ATTR_ARGS
 from yt.testing import \
     fake_particle_ds, assert_array_almost_equal
+from yt.utilities.answer_testing.framework import \
+    requires_ds, \
+    data_dir_load, \
+    PlotWindowAttributeTest, \
+    GenericImageTest
 from yt.visualization.api import \
     ParticleProjectionPlot, ParticlePhasePlot
 from yt.units.yt_array import YTArray
@@ -33,6 +38,12 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
+#  override some of the plotwindow ATTR_ARGS
+ATTR_ARGS["set_cmap"] = [(('particle_mass', 'RdBu'), {}), 
+                         (('particle_mass', 'kamae'), {})]
+ATTR_ARGS["set_log"] = [(('particle_mass', False), {})]
+ATTR_ARGS["set_zlim"] = [(('particle_mass', 1e-25, 1e-23), {}),
+                         (('particle_mass', 1e-25, None), {'dynamic_range': 4})]
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
@@ -57,6 +68,62 @@ PHASE_FIELDS = [('particle_velocity_x', 'particle_position_z', 'particle_mass'),
                 ('particle_position_x', 'particle_position_y', 'particle_ones'),
                 ('particle_velocity_x', 'particle_velocity_y',
                  ['particle_mass', 'particle_ones'])]
+
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+@requires_ds(g30, big_data=True)
+def test_particle_projection_answers():
+    '''
+
+    This iterates over the all the plot modification functions in ATTR_ARGS.
+    Each time, it compares the images produced by ParticleProjectionPlot to 
+    the gold standard.
+    
+
+    '''
+
+    plot_field = 'particle_mass'
+    decimals = 3
+    ds = data_dir_load(g30)
+    for ax in 'xyz':
+        for attr_name in ATTR_ARGS.keys():
+            for args in ATTR_ARGS[attr_name]:
+                test = PlotWindowAttributeTest(ds, plot_field, ax, 
+                                               attr_name,
+                                               args, decimals, 
+                                               'ParticleProjectionPlot')
+                test_particle_projection_answers.__name__ = test.description
+                yield test
+
+
+@requires_ds(g30, big_data=True)
+def test_particle_phase_answers():
+    '''
+
+    This iterates over the all the field name combinations in PHASE_FIELDS.
+    Each time, it compares the images produced by ParticlePhasePlot to 
+    the gold standard.
+    
+
+    '''
+
+    decimals = 3
+    ds = data_dir_load(g30)
+
+    for x_field, y_field, z_fields in PHASE_FIELDS:
+        p = ParticlePhasePlot(ds.all_data(),
+                              x_field,
+                              y_field,
+                              z_fields,
+                              x_bins=16,
+                              y_bins=16)
+
+        def prof_image_func(filename_prefix):
+            p.write_png(filename_prefix)
+            
+        test = GenericImageTest(ds, prof_image_func, decimals)
+        test_particle_phase_answers.__name__ = test.description
 
 
 class TestParticlePhasePlotSave(unittest.TestCase):

@@ -51,6 +51,7 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
+import yt.visualization.particle_plots as pp
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -353,7 +354,9 @@ class AnswerTestingTest(object):
         # plot_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError('Must explicitly request a plot type')
-        cls = getattr(pw, plot_type)
+        cls = getattr(pw, plot_type, None)
+        if cls is None:
+            cls = getattr(pp, plot_type)
         plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
         return plot
 
