@@ -190,11 +190,12 @@ class TransferFunctionHelper(object):
             except KeyError:
                 self.setup_profile(profile_field, profile_weight)
                 prof = self.profiles[self.field]
-            if profile_field not in prof.keys():
-                prof.add_fields([profile_field], fractional=False,
-                                weight=profile_weight)
+            try:
+                prof[profile_field]
+            except KeyError:
+                prof.add_fields([profile_field])
             # Strip units, if any, for matplotlib 1.3.1
-            xplot = np.array(prof[self.field])
+            xplot = np.array(prof.x)
             yplot = np.array(prof[profile_field]*tf.funcs[3].y.max() /
                              prof[profile_field].max())
             ax.plot(xplot, yplot, color='w', linewidth=3)
@@ -220,10 +221,8 @@ class TransferFunctionHelper(object):
         if profile_field is None:
             profile_field = 'cell_volume'
         prof = create_profile(self.ds.all_data(), self.field, profile_field,
-                              n_bins=128, extrema={profile_field: self.bounds},
+                              n_bins=128, extrema={self.field: self.bounds},
                               weight_field=profile_weight,
-                              log_space=self.log)
-        prof.add_fields([profile_field], fractional=False,
-                        weight=profile_weight)
+                              logs = {self.field: self.log})
         self.profiles[self.field] = prof
         return
