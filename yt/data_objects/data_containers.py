@@ -712,7 +712,27 @@ class YTDataContainer(object):
         raise NotImplementedError
 
     def ptp(self, field):
-        raise NotImplementedError
+        r"""Compute the range of values (maximum - minimum) of a field.
+
+        This will, in a parallel-aware fashion, compute the "peak-to-peak" of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+
+        Returns
+        -------
+        Scalar
+
+        Examples
+        --------
+
+        >>> rho_range = reg.ptp("density")
+        """
+        ex = self._compute_extrema(field)
+        return ex[1] - ex[0]
 
     def hist(self, field, weight = None, bins = None):
         raise NotImplementedError
