@@ -613,10 +613,78 @@ class YTDataContainer(object):
 
     # Numpy-like Operations
     def argmax(self, field, axis=None):
-        raise NotImplementedError
+        r"""Return the values at which the field is maximized.
+
+        This will, in a parallel-aware fashion, find the maximum value and then
+        return to you the values at that maximum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.
+
+        Returns
+        -------
+        A list of YTQuantities.
+
+        Examples
+        --------
+
+        >>> temp_at_max_rho = reg.argmax("density", axis="temperature")
+        >>> max_rho_xyz = reg.argmax("density")
+        >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+
+        """
+        if axis is None:
+            mv, i, pos0, pos1, pos2 = self.quantities.max_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.max_location_field_value(field, axis)
+        if len(rv) == 3:
+            return rv[2]
+        return rv[2:]
 
     def argmin(self, field, axis=None):
-        raise NotImplementedError
+        r"""Return the values at which the field is minimized.
+
+        This will, in a parallel-aware fashion, find the minimum value and then
+        return to you the values at that minimum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.
+
+        Returns
+        -------
+        A list of YTQuantities.
+
+        Examples
+        --------
+
+        >>> temp_at_min_rho = reg.argmin("density", axis="temperature")
+        >>> min_rho_xyz = reg.argmin("density")
+        >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+
+        """
+        if axis is None:
+            mv, i, pos0, pos1, pos2 = self.quantities.min_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.min_location_field_value(field, axis)
+        if len(rv) == 3:
+            return rv[2]
+        return rv[2:]
 
     def _compute_extrema(self, field):
         if self._extrema_cache is None:
