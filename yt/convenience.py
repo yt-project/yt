@@ -75,7 +75,6 @@ def load(*args ,**kwargs):
             mylog.error("Please check that you have used a correct path")
             raise YTOutputNotIdentified(args, kwargs)
     for n, c in types_to_check.items():
-        print n
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
 
