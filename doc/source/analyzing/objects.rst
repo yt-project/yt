@@ -468,6 +468,15 @@ use the ``integrate`` function:::
 
 All of these projections supply the data object as their base input.
 
+Often, it can be useful to sample a field at the minimum and maximum of a
+different field.  You can use the ``argmax`` and ``argmin`` operations to do
+this.  If you don't specify an ``axis``, it will return the spatial position of
+the maximum value of the queried field.  Here is an example:::
+
+  reg.argmin("density", axis="temperature")
+
+This will return the temperature at the minimum density.
+
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -494,17 +503,27 @@ Available Derived Quantities
     | Usage: ``extrema(fields, non_zero=False)``
     | The extrema of a field or list of fields.
 
-**Maximum Location**
-    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
-    | Usage: ``max_location(fields)``
-    | The maximum of a field or list of fields as well
-      as the x,y,z location of that maximum.
+**Maximum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.MaxLocationFieldValue`
+    | Usage: ``max_location_field_value(fields, sample_fields)``
+    | The value of sample_fields at the maximum value in fields.
+
+**Minimum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.MinLocationFieldValue`
+    | Usage: ``min_location_field_value(fields, sample_fields)``
+    | The value of sample_fields at the minimum value in fields.
 
 **Minimum Location**
     | Class :class:`~yt.data_objects.derived_quantities.MinLocation`
     | Usage: ``min_location(fields)``
     | The minimum of a field or list of fields as well
       as the x,y,z location of that minimum.
+
+**Maximum Location**
+    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
+    | Usage: ``max_location(fields)``
+    | The maximum of a field or list of fields as well
+      as the x,y,z location of that maximum.
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
