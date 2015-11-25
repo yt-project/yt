@@ -27,7 +27,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     PlotWindowAttributeTest, \
-    GenericImageTest
+    PhasePlotAttributeTest
 from yt.visualization.api import \
     ParticleProjectionPlot, ParticlePhasePlot
 from yt.units.yt_array import YTArray
@@ -46,6 +46,14 @@ PROJ_ATTR_ARGS["set_log"] = [(('particle_mass', False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [(('particle_mass', 1e-25, 1e-23), {}),
                                   (('particle_mass', 1e-25, None), 
                                    {'dynamic_range': 4})]
+
+PHASE_ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}), 
+                               (((5e-29, 5e7), "Hello YT"), {'color':'b'})],
+                   "set_title": [(('particle_mass', 'A phase plot.'), {})],
+                   "set_log": [(('particle_mass', False), {})],
+                   "set_unit": [(('particle_mass', 'Msun'), {})],
+                   "set_xlim": [((-4e7, 4e7), {})],
+                   "set_ylim": [((-4e7, 4e7), {})]}
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
@@ -113,20 +121,16 @@ def test_particle_phase_answers():
     decimals = 3
     ds = data_dir_load(g30)
 
-    for x_field, y_field, z_fields in PHASE_FIELDS:
-        p = ParticlePhasePlot(ds.all_data(),
-                              x_field,
-                              y_field,
-                              z_fields,
-                              x_bins=16,
-                              y_bins=16)
-
-        def prof_image_func(filename_prefix):
-            p.write_png(filename_prefix)
-            
-        test = GenericImageTest(ds, prof_image_func, decimals)
-        test_particle_phase_answers.__name__ = test.description
-
+    x_field = 'particle_velocity_x'
+    y_field = 'particle_velocity_y'
+    z_field = 'particle_mass'
+    for attr_name in PHASE_ATTR_ARGS.keys():
+        for args in PHASE_ATTR_ARGS[attr_name]:
+            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field,
+                                          attr_name, args, decimals)
+                
+            test_particle_phase_answers.__name__ = test.description
+            yield test
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 

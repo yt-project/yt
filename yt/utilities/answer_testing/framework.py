@@ -51,8 +51,8 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.visualization.particle_plots as pp
-from yt.visualization.profile_plotter import PhasePlot
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.profile_plotter as profile_plotter
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -356,7 +356,7 @@ class AnswerTestingTest(object):
             raise RuntimeError('Must explicitly request a plot type')
         cls = getattr(pw, plot_type, None)
         if cls is None:
-            cls = getattr(pp, plot_type)
+            cls = getattr(particle_plots, plot_type)
         plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
         return plot
 
@@ -760,9 +760,21 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         self.attr_args = attr_args
         self.decimals = decimals
 
+    def create_plot(self, data_source, x_field, y_field, z_field, 
+                    plot_type, plot_kwargs=None):
+        # plot_type should be a string
+        # plot_kwargs should be a dict
+        if plot_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(profile_plotter, plot_type, None)
+        if cls is None:
+            cls = getattr(particle_plots, plot_type)
+        plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
+        return plot
+
     def run(self):
-        plot = PhasePlot(*(self.data_source, self.x_field, self.y_field, 
-                           self.z_field), **self.plot_kwargs)
+        plot = self.create_plot(self.data_source, self.x_field, self.y_field,
+                                self.z_field, self.plot_type, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
         tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
