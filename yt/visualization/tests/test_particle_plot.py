@@ -126,7 +126,8 @@ def test_particle_phase_answers():
     for attr_name in PHASE_ATTR_ARGS.keys():
         for args in PHASE_ATTR_ARGS[attr_name]:
             test = PhasePlotAttributeTest(ds, x_field, y_field, z_field,
-                                          attr_name, args, decimals)
+                                          attr_name, args, decimals,
+                                          'ParticlePhasePlot')
                 
             test_particle_phase_answers.__name__ = test.description
             yield test
