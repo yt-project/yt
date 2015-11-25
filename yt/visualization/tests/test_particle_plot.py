@@ -111,10 +111,9 @@ def test_particle_projection_answers():
 def test_particle_phase_answers():
     '''
 
-    This iterates over the all the field name combinations in PHASE_FIELDS.
-    Each time, it compares the images produced by ParticlePhasePlot to 
-    the gold standard.
-    
+    This iterates over the all the plot modification functions in 
+    PHASE_ATTR_ARGS. Each time, it compares the images produced by 
+    ParticlePhasePlot to the gold standard.
 
     '''
 
