@@ -745,7 +745,8 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 
 class PhasePlotAttributeTest(AnswerTestingTest):
     _type_name = "PhasePlotAttribute"
-    _attrs = ('plot_type', 'plot_field', 'attr_name', 'attr_args')
+    _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
+              'attr_name', 'attr_args')
     def __init__(self, ds_fn, x_field, y_field, z_field, 
                  attr_name, attr_args, decimals, plot_type='PhasePlot'):
         super(PhasePlotAttributeTest, self).__init__(ds_fn)
