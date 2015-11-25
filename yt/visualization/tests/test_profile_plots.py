@@ -44,7 +44,7 @@ ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @requires_ds(g30, big_data=True)
-def test_profile_attributes():
+def test_phase_plot_attributes():
     '''
 
     This iterates over the all the plot modification functions in 
@@ -64,7 +64,7 @@ def test_profile_attributes():
             for args in ATTR_ARGS[attr_name]:
                 test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
                                                attr_name, args, decimals)
-                test_profile_attributes.__name__ = test.description
+                test_phase_plot_attributes.__name__ = test.description
                 yield test
 
 class TestProfilePlotSave(unittest.TestCase):
