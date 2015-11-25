@@ -57,7 +57,7 @@ def test_phase_plot_attributes():
     x_field = 'density'
     y_field = 'temperature'
     z_field = 'cell_mass'
-    decimals = 3
+    decimals = 12
     ds = data_dir_load(g30)
     for ax in 'xyz':
         for attr_name in ATTR_ARGS.keys():

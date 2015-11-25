@@ -94,7 +94,7 @@ def test_particle_projection_answers():
     '''
 
     plot_field = 'particle_mass'
-    decimals = 3
+    decimals = 12
     ds = data_dir_load(g30)
     for ax in 'xyz':
         for attr_name in PROJ_ATTR_ARGS.keys():
@@ -117,7 +117,7 @@ def test_particle_phase_answers():
 
     '''
 
-    decimals = 3
+    decimals = 12
     ds = data_dir_load(g30)
 
     x_field = 'particle_velocity_x'
