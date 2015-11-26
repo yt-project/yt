@@ -15,10 +15,15 @@ Data structures for a generic SDF frontend
 #-----------------------------------------------------------------------------
 
 
+import h5py
 import numpy as np
 import stat
+import weakref
+import struct
+import glob
 import time
 import os
+import types
 import sys
 import contextlib
 
@@ -27,8 +32,14 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
+from yt.utilities.physical_ratios import \
+    cm_per_kpc, \
+    mass_sun_grams, \
+    sec_per_Gyr
 from .fields import \
     SDFFieldInfo
+from .io import \
+    IOHandlerSDF
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
@@ -105,8 +116,10 @@ class SDFDataset(Dataset):
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
+	    print "HTTPSDFREAD"
             sdf_class = HTTPSDFRead
         else:
+	    print "SDFREAD"
             sdf_class = SDFRead
         self.sdf_container = sdf_class(self.parameter_filename,
                                  header=self.sdf_header)
@@ -133,8 +146,8 @@ class SDFDataset(Dataset):
                     -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
                 self.domain_right_edge = np.array([
                     +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
-            self.domain_left_edge *= self.parameters.get("a", 1.0)
-            self.domain_right_edge *= self.parameters.get("a", 1.0)
+            self.domain_left_edge *= int(self.parameters.get("a", 1.0))
+            self.domain_right_edge *= int(self.parameters.get("a", 1.0))
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
