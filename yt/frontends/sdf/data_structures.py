@@ -116,10 +116,8 @@ class SDFDataset(Dataset):
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
-	    print "HTTPSDFREAD"
             sdf_class = HTTPSDFRead
         else:
-	    print "SDFREAD"
             sdf_class = SDFRead
         self.sdf_container = sdf_class(self.parameter_filename,
                                  header=self.sdf_header)
