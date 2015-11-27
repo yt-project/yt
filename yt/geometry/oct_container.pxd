@@ -20,7 +20,7 @@ from fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
 from .oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct, cind
+    OctVisitor, oct_visitor_function, Oct, cind
 from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
 
@@ -80,7 +80,7 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self,
                         selection_routines.SelectorObject selector,
                         oct_visitor_function *func,
-                        OctVisitorData *data,
+                        OctVisitor visitor,
                         int vc = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)

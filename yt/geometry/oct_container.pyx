@@ -187,21 +187,6 @@ cdef class OctreeContainer:
                 obj.partial_coverage)
         return obj
 
-    cdef void setup_data(self, OctVisitorData *data, int domain_id = -1):
-        cdef int i
-        data.index = 0
-        data.last = -1
-        data.global_index = -1
-        for i in range(3):
-            data.pos[i] = -1
-            data.ind[i] = -1
-        data.array = NULL
-        data.dims = 0
-        data.domain = domain_id
-        data.level = -1
-        data.oref = self.oref
-        data.nz = (1 << (data.oref*3))
-
     def __dealloc__(self):
         free_octs(self.cont)
         if self.root_mesh == NULL: return
