@@ -107,7 +107,7 @@ def test_orientation():
 
     n_frames = 5
     theta = np.pi / n_frames
-    decimals = 3
+    decimals = 12
 
     for lens_type in ['plane-parallel', 'perspective']:
         frame = 0
