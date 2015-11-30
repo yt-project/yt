@@ -26,4 +26,6 @@ from .geographic_coordinates import \
     GeographicCoordinateHandler
 from .spec_cube_coordinates import \
     SpectralCubeCoordinateHandler
+from .custom_coordinates import \
+    CustomCoordinateHandler
 
