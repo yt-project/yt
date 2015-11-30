@@ -22,6 +22,7 @@ from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
+from yt.units import dimensions
 from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks
@@ -405,7 +406,7 @@ class Unit(Expr):
                 power_string = "**(%s)" % factor.as_base_exp()[1]
             else:
                 power_string = ""
-            units.append("".join([unit_string, power_string]))
+            units.append("(%s)%s" % (unit_string, power_string))
         return " * ".join(units)
 
     def get_base_equivalent(self):
@@ -415,7 +416,7 @@ class Unit(Expr):
         units_string = self._get_system_unit_string(yt_base_units)
         return Unit(units_string, base_value=1.0,
                     dimensions=self.dimensions, registry=self.registry)
-    
+
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
@@ -431,6 +432,20 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
         """
         units_string = self._get_system_unit_string(mks_base_units)
+        base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
+        base_value /= get_conversion_factor(self, Unit(units_string))[0]
+        return Unit(units_string, base_value=base_value,
+                    dimensions=self.dimensions, registry=self.registry)
+
+    def get_custom_equivalent(self, base_units):
+        """
+        Create and return dimensionally-equivalent units in a specified base.
+        """
+        bu = yt_base_units.copy() # This ensures we have a full set regardless
+        for key, value in base_units.items():
+            dim = getattr(dimensions, key)
+            bu[dim] = value
+        units_string = self._get_system_unit_string(bu)
         base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
         base_value /= get_conversion_factor(self, Unit(units_string))[0]
         return Unit(units_string, base_value=base_value,

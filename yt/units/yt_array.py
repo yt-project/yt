@@ -472,6 +472,26 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_mks_equivalent())
 
+    def convert_to_custom(self, base_units):
+        """
+        Convert the array and units to the equivalent custom units
+        base.
+
+        Parameters
+        ----------
+        base_units : dict
+            A dictionary which maps the name of the dimension to the
+            base unit requested. Any dimensions omitted from this dict
+            will revert to the default base units in the conversion.
+
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
+        >>> E.convert_to_custom(base_units)
+        """
+        return self.convert_to_units(self.units.get_custom_equivalent(base_units))
+
     def in_units(self, units):
         """
         Creates a copy of this array with the data in the supplied units, and
@@ -541,6 +561,29 @@ class YTArray(np.ndarray):
 
         """
         return self.in_units(self.units.get_mks_equivalent())
+
+    def in_custom(self, base_units):
+        """
+        Creates a copy of this array with the data in a set of custom base units.
+
+        Parameters
+        ----------
+        base_units : dict
+            A dictionary which maps the name of the dimension to the
+            base unit requested. Any dimensions omitted from this dict
+            will revert to the default base units in the conversion.
+
+        Returns
+        -------
+        Quantity object with data converted to the specified units base.
+
+        Examples
+        --------
+        >>> from yt.units import G
+        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
+        >>> my_G = G.in_custom(base_units)
+        """
+        return self.in_units(self.units.get_custom_equivalent(base_units))
 
     def to_equivalent(self, unit, equiv, **kwargs):
         """
@@ -695,7 +738,7 @@ class YTArray(np.ndarray):
             The Pint UnitRegistry to use in the conversion. If one is not
             supplied, the default one will be used. NOTE: This is not
             the same as a yt UnitRegistry object.
-            
+
         Examples
         --------
         >>> a = YTQuantity(4.0, "cm**2/s")
@@ -708,7 +751,7 @@ class YTArray(np.ndarray):
         units = []
         for unit, pow in powers_dict.items():
             # we have to do this because Pint doesn't recognize
-            # "yr" as "year" 
+            # "yr" as "year"
             if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
                 unit = str(unit).replace("yr","year")
             units.append("%s**(%s)" % (unit, Rational(pow)))
