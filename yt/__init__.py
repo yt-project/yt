@@ -106,6 +106,8 @@ from yt.units.yt_array import \
     uunion1d, \
     loadtxt, \
     savetxt
+from yt.units.index_array import \
+    IndexArray
 
 from yt.fields.api import \
     field_plugins, \
