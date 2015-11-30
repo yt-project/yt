@@ -361,12 +361,14 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                 np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
-        code_length = self.ds.domain_width.units
-        data['px'] = self.ds.arr(px, code_length)
-        data['py'] = self.ds.arr(py, code_length)
+        units = self.ds.domain_width.units
+        px_units = units[xax]
+        py_units = units[yax]
+        data['px'] = self.ds.arr(px, px_units)
+        data['py'] = self.ds.arr(py, py_units)
         data['weight_field'] = nwvals
-        data['pdx'] = self.ds.arr(pdx, code_length)
-        data['pdy'] = self.ds.arr(pdy, code_length)
+        data['pdx'] = self.ds.arr(pdx, px_units)
+        data['pdy'] = self.ds.arr(pdy, py_units)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.hsplit(data.pop('fields'), len(fields))

@@ -59,6 +59,8 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.index_array import \
+    IndexArray
 from yt.data_objects.region_expression import \
     RegionExpression
 
@@ -257,10 +259,15 @@ class Dataset(object):
             self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
+        coords = self.coordinates
+        if hasattr(coords, 'axes_units'):
+            units = tuple(coords.axes_units.values())
+        else:
+            units = ('code_length', 'code_length', 'code_length')
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            v = self.arr(v, "code_length")
+            v = IndexArray(v, units, registry=self.unit_registry)
             setattr(self, n, v)
 
     def __reduce__(self):
