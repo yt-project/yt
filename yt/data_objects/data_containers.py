@@ -642,12 +642,12 @@ class YTDataContainer(object):
 
         """
         if axis is None:
-            mv, i, pos0, pos1, pos2 = self.quantities.max_location(field)
+            mv, pos0, pos1, pos2 = self.quantities.max_location(field)
             return pos0, pos1, pos2
         rv = self.quantities.max_location_field_value(field, axis)
-        if len(rv) == 3:
-            return rv[2]
-        return rv[2:]
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
 
     def argmin(self, field, axis=None):
         r"""Return the values at which the field is minimized.
@@ -679,12 +679,12 @@ class YTDataContainer(object):
 
         """
         if axis is None:
-            mv, i, pos0, pos1, pos2 = self.quantities.min_location(field)
+            mv, pos0, pos1, pos2 = self.quantities.min_location(field)
             return pos0, pos1, pos2
         rv = self.quantities.min_location_field_value(field, axis)
-        if len(rv) == 3:
-            return rv[2]
-        return rv[2:]
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
 
     def _compute_extrema(self, field):
         if self._extrema_cache is None:

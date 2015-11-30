@@ -60,7 +60,7 @@ def test_max_location():
         ds = fake_random_ds(16, nprocs = nprocs, fields = ("density", ))
         ad = ds.all_data()
 
-        mv, ind, x, y, z = ad.quantities.max_location(("gas", "density"))
+        mv, x, y, z = ad.quantities.max_location(("gas", "density"))
 
         yield assert_equal, mv, ad["density"].max()
 
@@ -75,7 +75,7 @@ def test_min_location():
         ds = fake_random_ds(16, nprocs = nprocs, fields = ("density", ))
         ad = ds.all_data()
 
-        mv, ind, x, y, z = ad.quantities.min_location(("gas", "density"))
+        mv, x, y, z = ad.quantities.min_location(("gas", "density"))
 
         yield assert_equal, mv, ad["density"].min()
 
@@ -91,7 +91,7 @@ def test_min_location_field_value():
             fields = ("density", "temperature", "velocity_x"))
         ad = ds.all_data()
 
-        mv, ind, temp, vm = ad.quantities.min_location_field_value(
+        mv, temp, vm = ad.quantities.min_location_field_value(
             "density", ["temperature", "velocity_x"])
 
         yield assert_equal, mv, ad["density"].min()
@@ -107,7 +107,7 @@ def test_max_location_field_value():
             fields = ("density", "temperature", "velocity_x"))
         ad = ds.all_data()
 
-        mv, ind, temp, vm = ad.quantities.max_location_field_value(
+        mv, temp, vm = ad.quantities.max_location_field_value(
             "density", ["temperature", "velocity_x"])
 
         yield assert_equal, mv, ad["density"].max()

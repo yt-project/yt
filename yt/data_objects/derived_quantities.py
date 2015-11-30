@@ -524,10 +524,8 @@ class Extrema(DerivedQuantity):
 
 class MaxLocationFieldValue(DerivedQuantity):
     r"""
-    Calculates the maximum value plus the index and returns whichever fields
-    are asked to be sampled.
-
-    The index is not necessarily relevant, and should not be relied upon.
+    Calculates the maximum value and returns whichever fields are asked to be
+    sampled.
 
     Parameters
     ----------
@@ -547,7 +545,7 @@ class MaxLocationFieldValue(DerivedQuantity):
     """
     def count_values(self, field, sample_fields):
         # field itself, then index, then the number of sample fields
-        self.num_vals = 2 + len(sample_fields)
+        self.num_vals = 1 + len(sample_fields)
 
     def __call__(self, field, sample_fields):
         rv = super(MaxLocationFieldValue, self).__call__(field, sample_fields)
@@ -563,7 +561,7 @@ class MaxLocationFieldValue(DerivedQuantity):
             maxi = self._func(data[field])
             ma = data[field][maxi]
             vals = [data[sf][maxi] for sf in sample_fields]
-        return (ma, maxi) + tuple(vals)
+        return (ma,) + tuple(vals)
 
     def reduce_intermediate(self, values):
         i = self._func(values[0]) # ma is values[0]
@@ -574,10 +572,7 @@ class MaxLocationFieldValue(DerivedQuantity):
 
 class MaxLocation(MaxLocationFieldValue):
     r"""
-    Calculates the maximum value plus the index, x, y, and z position
-    of the maximum.
-
-    The index is not necessarily relevant, and should not be relied upon.
+    Calculates the maximum value plus the x, y, and z position of the maximum.
 
     Parameters
     ----------
@@ -600,10 +595,8 @@ class MaxLocation(MaxLocationFieldValue):
 
 class MinLocationFieldValue(MaxLocationFieldValue):
     r"""
-    Calculates the minimum value plus the index and returns whichever fields
-    are asked to be sampled.
-
-    The index is not necessarily relevant, and should not be relied upon.
+    Calculates the minimum value and returns whichever fields are asked to be
+    sampled.
 
     Parameters
     ----------
@@ -626,10 +619,7 @@ class MinLocationFieldValue(MaxLocationFieldValue):
 
 class MinLocation(MinLocationFieldValue):
     r"""
-    Calculates the minimum value plus the index, x, y, and z position
-    of the minimum.
-
-    The index is not necessarily relevant, and should not be relied upon.
+    Calculates the minimum value plus the x, y, and z position of the minimum.
 
     Parameters
     ----------
