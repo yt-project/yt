@@ -136,19 +136,6 @@ class GridIndex(Index):
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
 
-    @property
-    def grid_corners(self):
-        return np.array([
-          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
-        ], dtype='float64')
-
     def lock_grids_to_parents(self):
         r"""This function locks grid edges to their parents.
 
