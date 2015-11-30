@@ -504,13 +504,13 @@ Available Derived Quantities
     | The extrema of a field or list of fields.
 
 **Maximum Location Sampling**
-    | Class :class:`~yt.data_objects.derived_quantities.MaxLocationFieldValue`
-    | Usage: ``max_location_field_value(fields, sample_fields)``
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMaxFieldValues`
+    | Usage: ``sample_at_max_field_values(fields, sample_fields)``
     | The value of sample_fields at the maximum value in fields.
 
 **Minimum Location Sampling**
-    | Class :class:`~yt.data_objects.derived_quantities.MinLocationFieldValue`
-    | Usage: ``min_location_field_value(fields, sample_fields)``
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMinFieldValues`
+    | Usage: ``sample_at_min_field_values(fields, sample_fields)``
     | The value of sample_fields at the minimum value in fields.
 
 **Minimum Location**

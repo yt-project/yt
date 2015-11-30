@@ -644,7 +644,7 @@ class YTDataContainer(object):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.max_location(field)
             return pos0, pos1, pos2
-        rv = self.quantities.max_location_field_value(field, axis)
+        rv = self.quantities.sample_at_max_field_values(field, axis)
         if len(rv) == 2:
             return rv[1]
         return rv[1:]
@@ -681,7 +681,7 @@ class YTDataContainer(object):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.min_location(field)
             return pos0, pos1, pos2
-        rv = self.quantities.min_location_field_value(field, axis)
+        rv = self.quantities.sample_at_min_field_values(field, axis)
         if len(rv) == 2:
             return rv[1]
         return rv[1:]

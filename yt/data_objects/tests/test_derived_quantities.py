@@ -85,13 +85,13 @@ def test_min_location():
         yield assert_equal, ad["y"][mi], y
         yield assert_equal, ad["z"][mi], z
 
-def test_min_location_field_value():
+def test_sample_at_min_field_values():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs = nprocs,
             fields = ("density", "temperature", "velocity_x"))
         ad = ds.all_data()
 
-        mv, temp, vm = ad.quantities.min_location_field_value(
+        mv, temp, vm = ad.quantities.sample_at_min_field_values(
             "density", ["temperature", "velocity_x"])
 
         yield assert_equal, mv, ad["density"].min()
@@ -101,13 +101,13 @@ def test_min_location_field_value():
         yield assert_equal, ad["temperature"][mi], temp
         yield assert_equal, ad["velocity_x"][mi], vm
 
-def test_max_location_field_value():
+def test_sample_at_max_field_values():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs = nprocs,
             fields = ("density", "temperature", "velocity_x"))
         ad = ds.all_data()
 
-        mv, temp, vm = ad.quantities.max_location_field_value(
+        mv, temp, vm = ad.quantities.sample_at_max_field_values(
             "density", ["temperature", "velocity_x"])
 
         yield assert_equal, mv, ad["density"].max()

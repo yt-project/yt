@@ -522,7 +522,7 @@ class Extrema(DerivedQuantity):
         return [self.data_source.ds.arr([mis.min(), mas.max()])
                 for mis, mas in zip(values[::2], values[1::2])]
 
-class MaxLocationFieldValue(DerivedQuantity):
+class SampleAtMaxFieldValues(DerivedQuantity):
     r"""
     Calculates the maximum value and returns whichever fields are asked to be
     sampled.
@@ -539,7 +539,7 @@ class MaxLocationFieldValue(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.max_location_field_value(("gas", "density"),
+    >>> print ad.quantities.sample_at_max_field_values(("gas", "density"),
     ...         ["temperature", "velocity_magnitude"])
 
     """
@@ -548,7 +548,7 @@ class MaxLocationFieldValue(DerivedQuantity):
         self.num_vals = 1 + len(sample_fields)
 
     def __call__(self, field, sample_fields):
-        rv = super(MaxLocationFieldValue, self).__call__(field, sample_fields)
+        rv = super(SampleAtMaxFieldValues, self).__call__(field, sample_fields)
         if len(rv) == 1: rv = rv[0]
         return rv
 
@@ -570,7 +570,7 @@ class MaxLocationFieldValue(DerivedQuantity):
     def _func(self, arr):
         return np.argmax(arr)
 
-class MaxLocation(MaxLocationFieldValue):
+class MaxLocation(SampleAtMaxFieldValues):
     r"""
     Calculates the maximum value plus the x, y, and z position of the maximum.
 
@@ -593,7 +593,7 @@ class MaxLocation(MaxLocationFieldValue):
         if len(rv) == 1: rv = rv[0]
         return rv
 
-class MinLocationFieldValue(MaxLocationFieldValue):
+class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     r"""
     Calculates the minimum value and returns whichever fields are asked to be
     sampled.
@@ -610,14 +610,14 @@ class MinLocationFieldValue(MaxLocationFieldValue):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.min_location_field_value(("gas", "density"),
+    >>> print ad.quantities.sample_at_min_field_values(("gas", "density"),
     ...         ["temperature", "velocity_magnitude"])
 
     """
     def _func(self, arr):
         return np.argmin(arr)
 
-class MinLocation(MinLocationFieldValue):
+class MinLocation(SampleAtMinFieldValues):
     r"""
     Calculates the minimum value plus the x, y, and z position of the minimum.
 
