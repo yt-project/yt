@@ -49,13 +49,17 @@ class IndexArray(np.ndarray):
         # Create an instance of our array subclass
         obj = np.asarray(input_array, dtype=dtype).view(cls)
 
-        if obj.ndim != 2:
-            raise NotImplementedError
+        if len(obj.shape) == 1:
+            ndim = obj.shape[0]
+        elif len(obj.shape) == 2:
+            ndim = obj.shape[-1]
+        else:
+            raise NotImplentedError
 
         if not iterable(input_units):
-            input_units = [input_units]*obj.shape[1]
+            input_units = [input_units]*ndim
 
-        if obj.shape[1] != len(input_units):
+        if ndim != len(input_units):
             raise RuntimeError
 
         obj.units = [Unit(iu, registry=registry) if not isinstance(iu, Unit)
@@ -66,7 +70,13 @@ class IndexArray(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None and hasattr(self, 'unit'):
             return
-        self.units = getattr(obj, 'units', [NULL_UNIT]*obj.shape[1])
+        if len(obj.shape) == 1:
+            ndim = obj.shape[0]
+        elif len(obj.shape) == 2:
+            ndim = obj.shape[-1]
+        else:
+            raise NotImplentedError
+        self.units = getattr(obj, 'units', [NULL_UNIT]*ndim)
 
     def __array_wrap__(self, out_arr, context=None):
         ret = super(IndexArray, self).__array_wrap__(out_arr, context)
