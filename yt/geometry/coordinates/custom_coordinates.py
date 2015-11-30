@@ -20,6 +20,7 @@ from .coordinate_handler import \
 import yt.visualization._MPL as _MPL
 from collections import OrderedDict
 
+
 class CustomCoordinateHandler(CoordinateHandler):
 
     def __init__(self, ds, ordering=(('x', 'code_length'),
@@ -30,7 +31,7 @@ class CustomCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
-            f1, f2 = _get_coord_fields(axi)
+            f1, f2 = _get_coord_fields(axi, self.axes_units[ax])
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
                                units = self.axes_units[ax])
@@ -40,7 +41,7 @@ class CustomCoordinateHandler(CoordinateHandler):
             registry.add_field(("index", "%s" % ax), function = f2,
                                display_field = False,
                                units = self.axes_units[ax])
-            f3 = _get_vert_fields(axi)
+            f3 = _get_vert_fields(axi, self.axes_units[ax])
             registry.add_field(("index", "vertex_%s" % ax), function = f3,
                                display_field = False,
                                units = self.axes_units[ax])
