@@ -470,12 +470,16 @@ All of these projections supply the data object as their base input.
 
 Often, it can be useful to sample a field at the minimum and maximum of a
 different field.  You can use the ``argmax`` and ``argmin`` operations to do
-this.  If you don't specify an ``axis``, it will return the spatial position of
-the maximum value of the queried field.  Here is an example:::
+this.::
 
   reg.argmin("density", axis="temperature")
 
 This will return the temperature at the minimum density.
+
+If you don't specify an ``axis``, it will return the spatial position of
+the maximum value of the queried field.  Here is an example:::
+
+  x, y, z = reg.argmin("density")
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -624,9 +624,11 @@ class YTDataContainer(object):
         ----------
         field : string or tuple of strings
             The field to maximize.
-        axis : string, optional
+        axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
-            to the coordinate fields.
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
 
         Returns
         -------
@@ -639,6 +641,7 @@ class YTDataContainer(object):
         >>> max_rho_xyz = reg.argmax("density")
         >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
         ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmax("density")
 
         """
         if axis is None:
@@ -661,9 +664,11 @@ class YTDataContainer(object):
         ----------
         field : string or tuple of strings
             The field to minimize.
-        axis : string, optional
+        axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
-            to the coordinate fields.
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
 
         Returns
         -------
@@ -676,6 +681,7 @@ class YTDataContainer(object):
         >>> min_rho_xyz = reg.argmin("density")
         >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
         ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmin("density")
 
         """
         if axis is None:
