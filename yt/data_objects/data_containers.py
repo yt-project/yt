@@ -630,7 +630,7 @@ class YTDataContainer(object):
 
         Returns
         -------
-        A list of YTQuantities.
+        A list of YTQuantities as specified by the axis argument.
 
         Examples
         --------
@@ -667,7 +667,7 @@ class YTDataContainer(object):
 
         Returns
         -------
-        A list of YTQuantities.
+        A list of YTQuantities as specified by the axis argument.
 
         Examples
         --------
