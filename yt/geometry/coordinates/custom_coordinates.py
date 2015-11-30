@@ -16,42 +16,41 @@ import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
     _get_coord_fields, \
-    _get_vert_fields, \
-    cartesian_to_cylindrical, \
-    cylindrical_to_cartesian
+    _get_vert_fields
 import yt.visualization._MPL as _MPL
-
+from collections import OrderedDict
 
 class CustomCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, ds, ordering=('x','y','z'),
-                 axes_units=('code_length','code_length','code_length')):
-        super(CustomCoordinateHandler, self).__init__(ds, ordering)
-        self.axes_units = axes_units
+    def __init__(self, ds, ordering=(('x', 'code_length'),
+                                     ('y', 'code_length'),
+                                     ('z', 'code_length'))):
+        self.axes_units = OrderedDict(ordering)
+        super(CustomCoordinateHandler, self).__init__(ds, tuple(self.axes_units.keys()))
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
-                               units = self.axes_units[axi])
+                               units = self.axes_units[ax])
             registry.add_field(("index", "path_element_%s" % ax), function = f1,
                                display_field = False,
-                               units = self.axes_units[axi])
+                               units = self.axes_units[ax])
             registry.add_field(("index", "%s" % ax), function = f2,
                                display_field = False,
-                               units = self.axes_units[axi])
+                               units = self.axes_units[ax])
             f3 = _get_vert_fields(axi)
             registry.add_field(("index", "vertex_%s" % ax), function = f3,
                                display_field = False,
-                               units = self.axes_units[axi])
+                               units = self.axes_units[ax])
         def _cell_volume(field, data):
             rv  = data["index", "d%s" % self.axis_order[0]].copy(order='K')
             rv *= data["index", "d%s" % self.axis_order[1]]
             rv *= data["index", "d%s" % self.axis_order[2]]
             return rv
         registry.add_field(("index", "cell_volume"), function=_cell_volume,
-                           display_field=False, units = "*".join(self.axes_units))
+                           display_field=False, units = "*".join(self.axes_units.values()))
         dfl = [("index", "%s" % ax) for ax in self.axis_order]
         dfl += [("index", "d%s" % ax) for ax in self.axis_order]
         dfl += [("index", "cell_volume")]
@@ -73,7 +72,7 @@ class CustomCoordinateHandler(CoordinateHandler):
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
-            period = period.in_units(self.axes_units).d
+            period = period.in_units(list(self.axes_units.values())).d
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],
