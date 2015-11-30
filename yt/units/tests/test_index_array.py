@@ -35,3 +35,15 @@ def test_index_array_multiplication():
     assert(index.units[0] == (u.km * u.km).units)
     assert(index.units[1] == (u.km * u.g).units)
     assert(index.units[2] == (u.km * u.s).units)
+
+    index2 = index * 2
+
+    assert(index.units[0] == index2.units[0])
+    assert(index.units[1] == index2.units[1])
+    assert(index.units[2] == index2.units[2])
+
+    index3 = 2 * index
+
+    assert(index.units[0] == index3.units[0])
+    assert(index.units[1] == index3.units[1])
+    assert(index.units[2] == index3.units[2])

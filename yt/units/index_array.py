@@ -95,9 +95,9 @@ class IndexArray(np.ndarray):
             ret_class = IndexArray
 
             if unit1 is None:
-                unit1 = unit2
+                unit1 = NULL_UNIT
             if unit2 is None:
-                unit2 = unit1
+                unit2 = NULL_UNIT
             if not iterable(unit1):
                 unit1 = (unit1,) * len(unit2)
             if not iterable(unit2):
