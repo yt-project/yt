@@ -118,7 +118,8 @@ class AbsorptionSpectrum(object):
     def make_spectrum(self, input_file, output_file=None,
                       line_list_file=None, output_absorbers_file=None,
                       use_peculiar_velocity=True, 
-                      subgrid_resolution=10, njobs="auto"):
+                      subgrid_resolution=10, observing_redshift=0., 
+                      njobs="auto"):
         """
         Make spectrum from ray data using the line list.
 
@@ -153,6 +154,10 @@ class AbsorptionSpectrum(object):
            but is more expensive.  A value of 10 yields accuracy to the 4th 
            significant digit in tau.
            Default: 10
+        observing_redshift : optional, float
+           This is the redshift at which the observer is observing
+           the absorption spectrum.  
+           Default: 0
         njobs : optional, int or "auto"
            the number of process groups into which the loop over
            absorption lines will be divided.  If set to -1, each
@@ -179,6 +184,11 @@ class AbsorptionSpectrum(object):
             input_fields.append('redshift_eff')
             field_units["velocity_los"] = "cm/s"
             field_units["redshift_eff"] = ""
+        if observing_redshift != 0.:
+            input_fields.append('redshift_dopp')
+            input_fields.append('redshift')
+            field_units["redshift_dopp"] = ""
+            field_units["redshift"] = ""
         for feature in self.line_list + self.continuum_list:
             if not feature['field_name'] in input_fields:
                 input_fields.append(feature['field_name'])
@@ -219,7 +229,8 @@ class AbsorptionSpectrum(object):
         del field_data
         return (self.lambda_field, self.flux_field)
 
-    def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity):
+    def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity,
+                                  observing_redshift):
         """
         Add continuum features to the spectrum.
         """
