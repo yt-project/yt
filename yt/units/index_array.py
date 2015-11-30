@@ -118,3 +118,21 @@ class IndexArray(np.ndarray):
                         raise NotImplementedError
 
         return ret_class(np.array(out_arr, copy=False), units)
+
+    def ndarray_view(self):
+        """
+        Returns a view into the array, but as an ndarray rather than ytarray.
+
+        Returns
+        -------
+        View of this array's data.
+        """
+        return self.view(np.ndarray)
+
+    @property
+    def ndview(self):
+        """Get a view of the array data."""
+        return self.ndarray_view()
+
+    d = ndview
+
