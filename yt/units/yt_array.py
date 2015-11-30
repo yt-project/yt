@@ -492,6 +492,18 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_custom_equivalent(base_units))
 
+    def convert_to_dataset_units(self, ds):
+        """
+        Convert the array and units to the custom base units of the dataset *ds*.
+
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0100")
+        >>> E.convert_to_dataset_units(ds)
+        """
+        return self.convert_to_units(self.units.get_custom_equivalent(ds.custom_base_units))
+
     def in_units(self, units):
         """
         Creates a copy of this array with the data in the supplied units, and
@@ -584,6 +596,25 @@ class YTArray(np.ndarray):
         >>> my_G = G.in_custom(base_units)
         """
         return self.in_units(self.units.get_custom_equivalent(base_units))
+
+    def in_dataset_units(self, ds):
+        """
+        Creates a copy of this array with the data in the custom base units
+        of the Dataset *ds*.
+
+        Returns
+        -------
+        Quantity object with data converted to the custom units base
+        of a Dataset *ds*.
+
+        Examples
+        --------
+        >>> from yt.units import G
+        >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0100")
+        >>> ds.set_custom_base_units({"length":"km", "time":"yr"})
+        >>> my_G = G.in_dataset_units(ds)
+        """
+        return self.in_units(self.units.get_custom_equivalent(ds.custom_base_units))
 
     def to_equivalent(self, unit, equiv, **kwargs):
         """

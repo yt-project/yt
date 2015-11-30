@@ -40,8 +40,10 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_lookup_table import yt_base_units
 from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.fluid_fields import \
@@ -234,6 +236,7 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
+        self.custom_base_units = yt_base_units.copy()
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -803,6 +806,14 @@ class Dataset(object):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
             self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                    DW.units.dimensions)
+
+    def set_custom_base_units(self, base_units):
+        for key, value in base_units.items():
+            if isinstance(value, string_types):
+                val = value
+            elif isinstance(value, tuple):
+                val = "*".join(value)
+            self.custom_base_units[key] = self.quan(1.0, val).units
 
     def _override_code_units(self):
         if len(self.units_override) == 0:

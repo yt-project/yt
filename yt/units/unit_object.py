@@ -400,8 +400,8 @@ class Unit(Expr):
         if my_dims is dimensionless:
             return ""
         for factor in my_dims.as_ordered_factors():
-            dim = list(factor.free_symbols)[0]
-            unit_string = base_units[dim]
+            dim = str(list(factor.free_symbols)[0]).strip("()")
+            unit_string = str(base_units[dim])
             if factor.is_Pow:
                 power_string = "**(%s)" % factor.as_base_exp()[1]
             else:
@@ -441,11 +441,7 @@ class Unit(Expr):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
-        bu = yt_base_units.copy() # This ensures we have a full set regardless
-        for key, value in base_units.items():
-            dim = getattr(dimensions, key)
-            bu[dim] = value
-        units_string = self._get_system_unit_string(bu)
+        units_string = self._get_system_unit_string(base_units)
         base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
         base_value /= get_conversion_factor(self, Unit(units_string))[0]
         return Unit(units_string, base_value=base_value,
