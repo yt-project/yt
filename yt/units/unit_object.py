@@ -179,6 +179,9 @@ class Unit(Expr):
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
+        elif hasattr(unit_expr, 'units'):
+            if isinstance(unit_expr.units, Unit):
+                unit_expr = unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \
