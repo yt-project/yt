@@ -611,6 +611,216 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
 
+    # Numpy-like Operations
+    def argmax(self, field, axis=None):
+        raise NotImplementedError
+
+    def argmin(self, field, axis=None):
+        raise NotImplementedError
+
+    def _compute_extrema(self, field):
+        if self._extrema_cache is None:
+            self._extrema_cache = {}
+        if field not in self._extrema_cache:
+            # Note we still need to call extrema for each field, as of right
+            # now
+            mi, ma = self.quantities.extrema(field)
+            self._extrema_cache[field] = (mi, ma)
+        return self._extrema_cache[field]
+
+    _extrema_cache = None
+    def max(self, field, axis=None):
+        r"""Compute the maximum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the maximum of the
+        given field.  Supplying an axis will result in a return value of a
+        YTProjection, with method 'mip' for maximum intensity.  If the max has
+        already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string, optional
+            If supplied, the axis to project the maximum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> max_temp = reg.max("temperature")
+        >>> max_temp_proj = reg.max("temperature", axis="x")
+        """
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in fields:
+                rv += (self._compute_extrema(f)[1],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+        elif axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, method="mip")
+            return r
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+
+    def min(self, field, axis=None):
+        r"""Compute the minimum of a field.
+
+        This will, in a parallel-aware fashion, compute the minimum of the
+        given field.  Supplying an axis is not currently supported.  If the max
+        has already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string, optional
+            If supplied, the axis to compute the minimum along.
+
+        Returns
+        -------
+        Scalar.
+
+        Examples
+        --------
+
+        >>> min_temp = reg.min("temperature")
+        """
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in ensure_list(fields):
+                rv += (self._compute_extrema(f)[0],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+            return rv
+        elif axis in self.ds.coordinates.axis_name:
+            raise NotImplementedError("Minimum intensity projection not"
+                                      " implemented.")
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+
+    def std(self, field, weight=None):
+        raise NotImplementedError
+
+    def ptp(self, field):
+        raise NotImplementedError
+
+    def hist(self, field, weight = None, bins = None):
+        raise NotImplementedError
+
+    def mean(self, field, axis=None, weight='ones'):
+        r"""Compute the mean of a field, optionally along an axis, with a
+        weight.
+
+        This will, in a parallel-aware fashion, compute the mean of the
+        given field.  If an axis is supplied, it will return a projection,
+        where the weight is also supplied.  By default the weight is "ones",
+        resulting in a strict average.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+        axis : string, optional
+            If supplied, the axis to compute the mean along (i.e., to project
+            along)
+        weight : string, optional
+            The field to use as a weight.
+
+        Returns
+        -------
+        Scalar or YTProjection.
+
+        Examples
+        --------
+
+        >>> avg_rho = reg.mean("density", weight="cell_volume")
+        >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
+        """
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
+        elif axis is None:
+            if weight is None:
+                r = self.quantities.total_quantity(field)
+            else:
+                r = self.quantities.weighted_average_quantity(field, weight)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def sum(self, field, axis=None):
+        r"""Compute the sum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the sum of the given
+        field.  If an axis is specified, it will return a projection (using
+        method type "sum", which does not take into account path length) along
+        that axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to sum.
+        axis : string, optional
+            If supplied, the axis to sum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> total_vol = reg.sum("cell_volume")
+        >>> cell_count = reg.sum("ones", axis="x")
+        """
+        # Because we're using ``sum`` to specifically mean a sum or a
+        # projection with the method="sum", we do not utilize the ``mean``
+        # function.
+        if axis in self.ds.coordinates.axis_name:
+            with self._field_parameter_state({'axis':axis}):
+                r = self.ds.proj(field, axis, data_source=self, method="sum")
+        elif axis is None:
+            r = self.quantities.total_quantity(field)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def integrate(self, field, axis=None):
+        r"""Compute the integral (projection) of a field along an axis.
+
+        This projects a field along an axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to project.
+        axis : string
+            The axis to project along.
+
+        Returns
+        -------
+        YTProjection
+
+        Examples
+        --------
+
+        >>> column_density = reg.integrate("density", axis="z")
+        """
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
     @property
     def _hash(self):
         s = "%s" % self

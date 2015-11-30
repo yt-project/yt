@@ -231,7 +231,7 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
             gdata[f] = np.random.random(dims)
         data.append(gdata)
     bbox = np.array([LE, RE]).T
-    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
+    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
 
 def fake_particle_ds(
         fields = ("particle_position_x",

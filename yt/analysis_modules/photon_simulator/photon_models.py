@@ -52,14 +52,13 @@ class PhotonModel(object):
 
 class ThermalPhotonModel(PhotonModel):
     r"""
-    Initialize a ThermalPhotonModel from a thermal spectrum. 
+    Initialize a ThermalPhotonModel from a thermal spectrum.
 
     Parameters
     ----------
-
     spectral_model : `SpectralModel`
         A thermal spectral model instance, either of `XSpecThermalModel`
-        or `TableApecModel`. 
+        or `TableApecModel`.
     X_H : float, optional
         The hydrogen mass fraction.
     Zmet : float or string, optional

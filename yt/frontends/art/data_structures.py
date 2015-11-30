@@ -293,6 +293,11 @@ class ARTDataset(Dataset):
                                      self.root_ncells)
             self.iOctFree, self.nOct = fpu.read_vector(f, 'i', '>')
             self.child_grid_offset = f.tell()
+            # lextra needs to be loaded as a string, but it's actually
+            # array values.  So pop it off here, and then re-insert.
+            lextra = amr_header_vals.pop("lextra")
+            amr_header_vals['lextra'] = np.fromstring(
+                lextra, '>f4')
             self.parameters.update(amr_header_vals)
             amr_header_vals = None
             # estimate the root level
@@ -314,6 +319,11 @@ class ARTDataset(Dataset):
                 n = particle_header_vals['Nspecies']
                 wspecies = np.fromfile(fh, dtype='>f', count=10)
                 lspecies = np.fromfile(fh, dtype='>i', count=10)
+                # extras needs to be loaded as a string, but it's actually
+                # array values.  So pop it off here, and then re-insert.
+                extras = particle_header_vals.pop("extras")
+                particle_header_vals['extras'] = np.fromstring(
+                    extras, '>f4')
             self.parameters['wspecies'] = wspecies[:n]
             self.parameters['lspecies'] = lspecies[:n]
             for specie in range(n):

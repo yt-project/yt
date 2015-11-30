@@ -627,3 +627,31 @@ SIMX. They are 200 ks observations of the two example clusters from above
 .. image:: _images/ds9_sloshing.png
 
 .. image:: _images/ds9_bubbles.png
+
+In November 2015, the structure of the photon and event HDF5 files changed. To 
+convert an old-format file to the new format, use the ``convert_old_file`` utility:
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import convert_old_file
+   convert_old_file("old_photons.h5", "new_photons.h5", clobber=True)
+   convert_old_file("old_events.h5", "new_events.h5", clobber=True)
+
+This utility will auto-detect the kind of file (photons or events) and will write 
+the correct replacement for the new version.
+
+At times it may be convenient to write several ``EventLists`` to disk to be merged 
+together later. This can be achieved with the ``merge_files`` utility. It takes a 
+list of 
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import merge_files
+   merge_files(["events_0.h5", "events_1.h5", "events_2.h5"], "merged_events.h5",
+                add_exposure_times=True, clobber=False)
+
+At the current time this utility is very limited, as it only allows merging of 
+``EventLists`` which have the same parameters, with the exception of the exposure
+time. If the ``add_exposure_times`` argument to ``merge_files`` is set to ``True``, 
+the lists will be merged together with the exposure times added. Otherwise, the 
+exposure times of the different files must be equal. 

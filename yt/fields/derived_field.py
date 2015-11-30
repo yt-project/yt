@@ -36,6 +36,7 @@ def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
+    _TranslationFunc.alias_name = field_name
     return _TranslationFunc
 
 def NullFunc(field, data):
@@ -211,6 +212,25 @@ class DerivedField(object):
 
         data_label += r"$"
         return data_label
+
+    def __repr__(self):
+        if self._function == NullFunc:
+            s = "On-Disk Field "
+        elif self._function.func_name == "_TranslationFunc":
+            s = "Alias Field for \"%s\" " % (self._function.alias_name,)
+        else:
+            s = "Derived Field "
+        if isinstance(self.name, tuple):
+            s += "(%s, %s): " % self.name
+        else:
+            s += "%s: " % (self.name)
+        s += "(units: %s" % self.units
+        if self.display_name is not None:
+            s += ", display_name: '%s'" % (self.display_name)
+        if self.particle_type:
+            s += ", particle field"
+        s += ")"
+        return s
 
 class FieldValidator(object):
     pass
