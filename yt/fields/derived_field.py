@@ -88,8 +88,6 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
-        if output_units is None: output_units = units
-        self.output_units = output_units
 
         self._function = function
 
@@ -112,6 +110,9 @@ class DerivedField(object):
             raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
                                   "Please provide a string or Unit " \
                                   "object." % (units, type(units)) )
+        if output_units is None:
+            output_units = self.units
+        self.output_units = output_units
 
     def _copy_def(self):
         dd = {}

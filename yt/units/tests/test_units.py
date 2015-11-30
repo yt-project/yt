@@ -25,6 +25,7 @@ from sympy import Symbol
 from yt.testing import \
     fake_random_ds, assert_allclose_units, \
     assert_almost_equal
+from yt.units import km
 
 # dimensions
 from yt.units.dimensions import \
@@ -474,3 +475,7 @@ def test_latex_repr():
 
     test_unit = Unit('cm**-3', base_value=1.0, registry=ds.unit_registry)
     assert_equal(test_unit.latex_repr, '\\frac{1}{\\rm{cm}^{3}}')
+
+def test_creation_from_ytquantity():
+    u = Unit(km)
+    assert(km.units == u)

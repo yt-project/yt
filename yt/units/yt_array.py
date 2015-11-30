@@ -105,6 +105,9 @@ def bitop_units(unit1, unit2):
     raise TypeError(
         "Bit-twiddling operators are not defined for YTArray instances")
 
+same_unit_operators = (preserve_units, comparison_unit, arctan2_unit)
+commutative_operators = (multiply_units, divide_units)
+
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
         return input_object
@@ -173,6 +176,89 @@ binary_operators = (
     fmax, fmin, copysign, nextafter, ldexp, fmod,
 )
 
+UFUNC_REGISTRY = {
+    add: preserve_units,
+    subtract: preserve_units,
+    multiply: multiply_units,
+    divide: divide_units,
+    logaddexp: return_without_unit,
+    logaddexp2: return_without_unit,
+    true_divide: divide_units,
+    floor_divide: divide_units,
+    negative: passthrough_unit,
+    power: power_unit,
+    remainder: preserve_units,
+    mod: preserve_units,
+    fmod: preserve_units,
+    absolute: passthrough_unit,
+    fabs: passthrough_unit,
+    rint: return_without_unit,
+    sign: return_without_unit,
+    conj: passthrough_unit,
+    exp: return_without_unit,
+    exp2: return_without_unit,
+    log: return_without_unit,
+    log2: return_without_unit,
+    log10: return_without_unit,
+    expm1: return_without_unit,
+    log1p: return_without_unit,
+    sqrt: sqrt_unit,
+    square: square_unit,
+    reciprocal: reciprocal_unit,
+    ones_like: passthrough_unit,
+    sin: return_without_unit,
+    cos: return_without_unit,
+    tan: return_without_unit,
+    sinh: return_without_unit,
+    cosh: return_without_unit,
+    tanh: return_without_unit,
+    arcsin: return_without_unit,
+    arccos: return_without_unit,
+    arctan: return_without_unit,
+    arctan2: arctan2_unit,
+    arcsinh: return_without_unit,
+    arccosh: return_without_unit,
+    arctanh: return_without_unit,
+    hypot: preserve_units,
+    deg2rad: return_without_unit,
+    rad2deg: return_without_unit,
+    bitwise_and: bitop_units,
+    bitwise_or: bitop_units,
+    bitwise_xor: bitop_units,
+    invert: invert_units,
+    left_shift: bitop_units,
+    right_shift: bitop_units,
+    greater: comparison_unit,
+    greater_equal: comparison_unit,
+    less: comparison_unit,
+    less_equal: comparison_unit,
+    not_equal: comparison_unit,
+    equal: comparison_unit,
+    logical_and: comparison_unit,
+    logical_or: comparison_unit,
+    logical_xor: comparison_unit,
+    logical_not: return_without_unit,
+    maximum: preserve_units,
+    minimum: preserve_units,
+    fmax: preserve_units,
+    fmin: preserve_units,
+    isreal: return_without_unit,
+    iscomplex: return_without_unit,
+    isfinite: return_without_unit,
+    isinf: return_without_unit,
+    isnan: return_without_unit,
+    signbit: return_without_unit,
+    copysign: passthrough_unit,
+    nextafter: preserve_units,
+    modf: passthrough_unit,
+    ldexp: bitop_units,
+    frexp: return_without_unit,
+    floor: passthrough_unit,
+    ceil: passthrough_unit,
+    trunc: passthrough_unit,
+}
+
+
 class YTArray(np.ndarray):
     """
     An ndarray subclass that attaches a symbolic unit object to the array data.
@@ -238,88 +324,6 @@ class YTArray(np.ndarray):
     True
 
     """
-    _ufunc_registry = {
-        add: preserve_units,
-        subtract: preserve_units,
-        multiply: multiply_units,
-        divide: divide_units,
-        logaddexp: return_without_unit,
-        logaddexp2: return_without_unit,
-        true_divide: divide_units,
-        floor_divide: divide_units,
-        negative: passthrough_unit,
-        power: power_unit,
-        remainder: preserve_units,
-        mod: preserve_units,
-        fmod: preserve_units,
-        absolute: passthrough_unit,
-        fabs: passthrough_unit,
-        rint: return_without_unit,
-        sign: return_without_unit,
-        conj: passthrough_unit,
-        exp: return_without_unit,
-        exp2: return_without_unit,
-        log: return_without_unit,
-        log2: return_without_unit,
-        log10: return_without_unit,
-        expm1: return_without_unit,
-        log1p: return_without_unit,
-        sqrt: sqrt_unit,
-        square: square_unit,
-        reciprocal: reciprocal_unit,
-        ones_like: passthrough_unit,
-        sin: return_without_unit,
-        cos: return_without_unit,
-        tan: return_without_unit,
-        sinh: return_without_unit,
-        cosh: return_without_unit,
-        tanh: return_without_unit,
-        arcsin: return_without_unit,
-        arccos: return_without_unit,
-        arctan: return_without_unit,
-        arctan2: arctan2_unit,
-        arcsinh: return_without_unit,
-        arccosh: return_without_unit,
-        arctanh: return_without_unit,
-        hypot: preserve_units,
-        deg2rad: return_without_unit,
-        rad2deg: return_without_unit,
-        bitwise_and: bitop_units,
-        bitwise_or: bitop_units,
-        bitwise_xor: bitop_units,
-        invert: invert_units,
-        left_shift: bitop_units,
-        right_shift: bitop_units,
-        greater: comparison_unit,
-        greater_equal: comparison_unit,
-        less: comparison_unit,
-        less_equal: comparison_unit,
-        not_equal: comparison_unit,
-        equal: comparison_unit,
-        logical_and: comparison_unit,
-        logical_or: comparison_unit,
-        logical_xor: comparison_unit,
-        logical_not: return_without_unit,
-        maximum: preserve_units,
-        minimum: preserve_units,
-        fmax: preserve_units,
-        fmin: preserve_units,
-        isreal: return_without_unit,
-        iscomplex: return_without_unit,
-        isfinite: return_without_unit,
-        isinf: return_without_unit,
-        isnan: return_without_unit,
-        signbit: return_without_unit,
-        copysign: passthrough_unit,
-        nextafter: preserve_units,
-        modf: passthrough_unit,
-        ldexp: bitop_units,
-        frexp: return_without_unit,
-        floor: passthrough_unit,
-        ceil: passthrough_unit,
-        trunc: passthrough_unit,
-    }
-
     __array_priority__ = 2.0
 
     def __new__(cls, input_array, input_units=None, registry=None, dtype=None,
@@ -1120,10 +1124,8 @@ class YTArray(np.ndarray):
             else:
                 return ret
         elif context[0] in unary_operators:
-            u = getattr(context[1][0], 'units', None)
-            if u is None:
-                u = NULL_UNIT
-            unit = self._ufunc_registry[context[0]](u)
+            u = getattr(context[1][0], 'units', NULL_UNIT)
+            unit = UFUNC_REGISTRY[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = coerce_iterable_units(context[1][0])
@@ -1146,15 +1148,15 @@ class YTArray(np.ndarray):
                         else:
                             raise YTUnitOperationError(context[0], unit1, unit2)
                     unit2 = 1.0
-            unit_operator = self._ufunc_registry[context[0]]
-            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
+            unit_operator = UFUNC_REGISTRY[context[0]]
+            if unit_operator in same_unit_operators:
                 if unit1 != unit2:
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            unit = self._ufunc_registry[context[0]](unit1, unit2)
-            if unit_operator in (multiply_units, divide_units):
+            unit = unit_operator(unit1, unit2)
+            if unit_operator in commutative_operators:
                 if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
                         if unit1.dimensions == unit2.dimensions:

@@ -73,6 +73,9 @@ def test_min_max():
         q = ad.max("density").v
         yield assert_equal, q, ad["density"].max()
 
+        ptp = ad.ptp("density").v
+        yield assert_equal, ptp, ad["density"].max() - ad["density"].min()
+
         p = ad.max("density", axis=1)
         p1 = ds.proj("density", 1, data_source=ad, method="mip")
         yield assert_equal, p["density"], p1["density"]
