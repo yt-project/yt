@@ -16,7 +16,8 @@ import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
     _get_coord_fields, \
-    _get_vert_fields
+    _get_vert_fields, \
+    _unknown_coord
 import yt.visualization._MPL as _MPL
 from collections import OrderedDict
 
@@ -30,6 +31,10 @@ class CustomCoordinateHandler(CoordinateHandler):
         super(CustomCoordinateHandler, self).__init__(ds, tuple(self.axes_units.keys()))
 
     def setup_fields(self, registry):
+        for ax in 'xyz':
+            if ax not in self.axes_units:
+                registry.add_field(("index", ax), function=_unknown_coord)
+                registry.add_field(("index", "d%s" % ax), function=_unknown_coord)
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi, self.axes_units[ax])
             registry.add_field(("index", "d%s" % ax), function = f1,
