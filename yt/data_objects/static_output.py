@@ -812,8 +812,8 @@ class Dataset(object):
             if isinstance(value, string_types):
                 val = value
             elif isinstance(value, tuple):
-                val = "*".join(value)
-            self.custom_base_units[key] = self.quan(1.0, val).units
+                val = "*".join([str(value[0]), value[1]])
+            self.custom_base_units[key] = val
 
     def _override_code_units(self):
         if len(self.units_override) == 0:
