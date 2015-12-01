@@ -31,6 +31,7 @@ from yt.units.yt_array import \
 from yt.units.unit_object import \
     Unit
 
+ELLIPSIS_TYPE = type(Ellipsis)
 
 class IndexArray(np.ndarray):
     """
@@ -82,9 +83,9 @@ class IndexArray(np.ndarray):
     def __getitem__(self, item):
         ret = super(IndexArray, self).__getitem__(item)
         if iterable(item):
-            if isinstance(item[0], slice):
+            if isinstance(item[0], (slice, ELLIPSIS_TYPE)):
                 ret = YTArray(ret, self.units[item[1]])
-            elif isinstance(item[1], slice):
+            elif isinstance(item[1], (slice, ELLIPSIS_TYPE)):
                 # ret maintains units of original array
                 pass
             else:
