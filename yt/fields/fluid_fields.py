@@ -77,7 +77,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return 0.5*data[ftype, "density"] * ( data[ftype, "velocity_x"]**2.0
                                               + data[ftype, "velocity_y"]**2.0
                                               + data[ftype, "velocity_z"]**2.0 )
-    registry.add_field(("gas", "kinetic_energy"),
+    registry.add_field((ftype, "kinetic_energy"),
                        function = _kin_energy,
                        units = "erg / cm**3")
 
