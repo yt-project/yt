@@ -1133,11 +1133,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = getattr(fd, 'units', '')
-                        if fi.dimensions != Unit(units).dimensions:
+                        units = str(getattr(fd, 'units', ''))
+                        dimensions = Unit(units, registry=self.ds.unit_registry).dimensions
+                        if fi.dimensions != dimensions:
                             raise YTFieldDimensionsError(fi, fd.units)
-                        fi.units = str(units)
+                        fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
+                        self.field_data[field].convert_to_base(base_units=self.ds.base_units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
                         mylog.debug(msg % (fi.name, units))
