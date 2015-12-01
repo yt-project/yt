@@ -236,7 +236,7 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
-        self.custom_base_units = yt_base_units.copy()
+        self.base_units = yt_base_units.copy()
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -807,13 +807,13 @@ class Dataset(object):
             self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                    DW.units.dimensions)
 
-    def set_custom_base_units(self, base_units):
+    def set_base_units(self, base_units):
         for key, value in base_units.items():
             if isinstance(value, string_types):
                 val = value
             elif isinstance(value, tuple):
                 val = "*".join([str(value[0]), value[1]])
-            self.custom_base_units[key] = val
+            self.base_units[key] = val
 
     def _override_code_units(self):
         if len(self.units_override) == 0:
