@@ -148,6 +148,12 @@ class IndexArray(np.ndarray):
             return False
         return np.array(self).__eq__(np.array(other))
 
+    def __str__(self):
+        return super(IndexArray, self).__str__() + ' ' + str(self.units)
+
+    def __repr__(self):
+        return super(IndexArray, self).__repr__() + ' ' + repr(self.units)
+
     def ndarray_view(self):
         """
         Returns a view into the array, but as an ndarray rather than ytarray.

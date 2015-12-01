@@ -71,3 +71,12 @@ def test_slicing():
     assert(type(sl1.units) is Unit)
     assert_equal(sl2, ret2)
     assert(type(sl2.units) is tuple)
+
+def test_str_and_repr():
+    vals = np.arange(6)
+    vals.shape = (2, 3)
+    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+
+    assert_equal(str(index), '[[0 1 2]\n [3 4 5]] (km, g, s)')
+    assert_equal(
+        repr(index), 'IndexArray([[0, 1, 2],\n       [3, 4, 5]]) (km, g, s)')
