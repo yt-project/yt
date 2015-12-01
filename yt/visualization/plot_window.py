@@ -628,6 +628,8 @@ class PWViewerMPL(PlotWindow):
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
+        axes_units = self.ds.coordinates.axes_units
+        names = self.ds.coordinates.axis_name
         if isinstance(origin, string_types):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
@@ -650,8 +652,10 @@ class PWViewerMPL(PlotWindow):
             yllim = self.ds.domain_left_edge[yax]
             yrlim = self.ds.domain_right_edge[yax]
         elif origin[2] == 'native':
-            return (self.ds.quan(0.0, 'code_length'),
-                    self.ds.quan(0.0, 'code_length'))
+            xax = names[self.ds.coordinates.x_axis[axis_index]]
+            yax = names[self.ds.coordinates.y_axis[axis_index]]
+            return (self.ds.quan(0.0, axes_units[xax]),
+                    self.ds.quan(0.0, axes_units[yax]))
         else:
             mylog.warn("origin = {0}".format(origin))
             msg = \
