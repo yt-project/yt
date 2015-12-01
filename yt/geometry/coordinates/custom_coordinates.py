@@ -27,9 +27,10 @@ class CustomCoordinateHandler(CoordinateHandler):
     def __init__(self, ds, ordering=(('x', 'code_length'),
                                      ('y', 'code_length'),
                                      ('z', 'code_length'))):
+        super(CustomCoordinateHandler, self).__init__(ds, 
+            tuple(_[0] for _ in ordering))
+        # Now we now override the axes_units
         self.axes_units = OrderedDict(ordering)
-        # We should be able to specify the axes we use.
-        super(CustomCoordinateHandler, self).__init__(ds, tuple(self.axes_units.keys()))
 
     def setup_fields(self, registry):
         for ax in 'xyz':

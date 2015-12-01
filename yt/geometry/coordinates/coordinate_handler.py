@@ -30,6 +30,7 @@ from yt.units.index_array import \
 from yt.utilities.exceptions import \
     YTCoordinateNotImplemented, \
     YTInvalidWidthError
+from collections import OrderedDict
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
@@ -77,6 +78,9 @@ class CoordinateHandler(object):
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
+        # By default, we use code_length.  This will get overridden in
+        # subclasses.
+        self.axes_units = OrderedDict((ax, 'code_length') for ax in ordering)
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi

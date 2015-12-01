@@ -101,10 +101,7 @@ class GridIndex(Index):
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
         coords = self.ds.coordinates
-        if hasattr(coords, 'axes_units'):
-            units = tuple(coords.axes_units.values())
-        else:
-            units = ('code_length', 'code_length', 'code_length')
+        units = tuple(coords.axes_units.values())
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
         self.grid_left_edge = IndexArray(np.zeros((self.num_grids,3),
                                     self.float_type), units,
@@ -239,10 +236,7 @@ class GridIndex(Index):
 
     def _get_grid_tree(self):
         coords = self.ds.coordinates
-        if hasattr(coords, 'axes_units'):
-            units = tuple(coords.axes_units.values())
-        else:
-            units = ('code_length', 'code_length', 'code_length')
+        units = tuple(coords.axes_units.values())
         left_edge = IndexArray(np.zeros((self.num_grids, 3)),
                                units, registry=self.ds.unit_registry)
         right_edge = IndexArray(np.zeros((self.num_grids, 3)),
