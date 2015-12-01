@@ -418,15 +418,9 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
-            # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
-            # This is done for cases where our path element does not have a CGS
-            # equivalent.  Once "preferred units" have been implemented, this
-            # will not be necessary at all, as the final conversion will occur
-            # at the display layer.
-            if not dl.units.is_dimensionless:
-                dl.convert_to_units("cm")
+            dl.convert_to_base()
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             d = chunk[field] * dl

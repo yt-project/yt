@@ -30,6 +30,7 @@ from yt.units.index_array import \
 from yt.utilities.exceptions import \
     YTCoordinateNotImplemented, \
     YTInvalidWidthError
+from collections import OrderedDict
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
