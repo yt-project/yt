@@ -669,8 +669,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -693,8 +693,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv

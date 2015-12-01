@@ -130,7 +130,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
         if hasattr(data[field], "units"):
             for atom in data[field].units.expr.atoms():
                 if str(atom).startswith("code"):
-                    data[field].convert_to_cgs()
+                    data[field].convert_to_base()
                     break
         if isinstance(field, tuple):
             field_name = field[1]
