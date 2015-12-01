@@ -78,13 +78,26 @@ class IndexArray(np.ndarray):
             raise NotImplementedError
         self.units = getattr(obj, 'units', [NULL_UNIT]*ndim)
 
+    def __getitem__(self, item):
+        ret = super(IndexArray, self).__getitem__(item)
+        if iterable(item):
+            if isinstance(item[0], slice):
+                ret = YTArray(ret, self.units[item[1]])
+            else:
+                # ret maintains units of original array
+                pass
+        return ret
+
     def __array_wrap__(self, out_arr, context=None):
         ret = super(IndexArray, self).__array_wrap__(out_arr, context)
         if context is None:
             return ret
         elif context[0] in unary_operators:
-            # fix this later
-            raise NotImplementedError
+            u = context[1][0].units
+            units = UFUNC_REGISTRY[context[0]](u)
+            if units is None:
+                units = [NULL_UNIT]*len(u)
+            ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = context[1][0]
             oper2 = context[1][1]
@@ -92,7 +105,7 @@ class IndexArray(np.ndarray):
             unit2 = getattr(oper2, 'units', None)
 
             # eventually implement something like get_binary_op_return_class
-            ret_class = IndexArray
+            ret_class = type(self)
 
             if unit1 is None:
                 unit1 = NULL_UNIT
@@ -119,6 +132,17 @@ class IndexArray(np.ndarray):
 
         return ret_class(np.array(out_arr, copy=False), units)
 
+    def __eq__(self, other):
+        """ Test if this is equal to the object on the right. """
+        if other is None:
+            return False
+        if not hasattr(other, 'units'):
+            if not all([u == NULL_UNIT for u in self.units]):
+                return False
+        if not all([u1 == u2 for u1, u2 in zip(self.units, other.units)]):
+            return False
+        return np.array(self).__eq__(np.array(other))
+
     def ndarray_view(self):
         """
         Returns a view into the array, but as an ndarray rather than ytarray.
@@ -135,4 +159,3 @@ class IndexArray(np.ndarray):
         return self.ndarray_view()
 
     d = ndview
-
