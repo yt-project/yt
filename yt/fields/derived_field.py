@@ -80,7 +80,8 @@ class DerivedField(object):
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None, output_units = None):
+                 not_in_all=False, display_name=None, output_units=None,
+                 dimensions=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -101,7 +102,10 @@ class DerivedField(object):
             self.units = ''
         elif isinstance(units, string_types):
             if units.lower() == 'auto':
+                if dimensions is None:
+                    raise RuntimeError("If units='auto', must specify dimensions!")
                 self.units = None
+                self._dimensions = dimensions
             else:
                 self.units = units
         elif isinstance(units, Unit):
@@ -113,6 +117,8 @@ class DerivedField(object):
         if output_units is None:
             output_units = self.units
         self.output_units = output_units
+
+        self._dimensions = dimensions
 
     def _copy_def(self):
         dd = {}
@@ -232,6 +238,13 @@ class DerivedField(object):
             s += ", particle field"
         s += ")"
         return s
+
+    @property
+    def dimensions(self):
+        if self._dimensions is None:
+            return self.get_units().dimensions
+        else:
+            return self._dimensions
 
 class FieldValidator(object):
     pass
