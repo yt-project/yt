@@ -86,6 +86,8 @@ class IndexArray(np.ndarray):
             else:
                 # ret maintains units of original array
                 pass
+        elif isinstance(item, int):
+            ret *= self.units[item]
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
