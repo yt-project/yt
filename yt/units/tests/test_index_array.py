@@ -19,7 +19,7 @@ import numpy as np
 
 from yt.testing import assert_equal
 from yt.units.index_array import IndexArray
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
 
 def test_multiplication():
@@ -55,6 +55,10 @@ def test_multiplication():
     assert_equal(index.units[2], index3.units[2])
     assert(type(index.units) is tuple)
 
+def compare_slicing(desired, actual, unit_type, array_type):
+    assert_equal(desired, actual)
+    assert(type(actual.units) is unit_type)
+    assert(type(actual) is array_type)
 
 def test_slicing():
     vals = np.arange(300)
@@ -63,14 +67,18 @@ def test_slicing():
 
     ret1 = YTArray(3*np.arange(100), 'km')
     ret2 = IndexArray(np.arange(3), [u.km, u.g, u.s])
+    ret3 = YTQuantity(3, 'km')
+    ret4 = YTQuantity(38, 's')
 
     sl1 = index[:, 0]
     sl2 = index[0, :]
+    sl3 = index[1, 0]
+    sl4 = index[12, 2]
 
-    assert_equal(sl1, ret1)
-    assert(type(sl1.units) is Unit)
-    assert_equal(sl2, ret2)
-    assert(type(sl2.units) is tuple)
+    compare_slicing(ret1, sl1, Unit, YTArray)
+    compare_slicing(ret2, sl2, tuple, IndexArray)
+    compare_slicing(ret3, sl3, Unit, YTQuantity)
+    compare_slicing(ret4, sl4, Unit, YTQuantity)
 
 def test_str_and_repr():
     vals = np.arange(6)

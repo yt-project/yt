@@ -84,13 +84,20 @@ class IndexArray(np.ndarray):
         if iterable(item):
             if isinstance(item[0], slice):
                 ret = YTArray(ret, self.units[item[1]])
-            else:
+            elif isinstance(item[1], slice):
                 # ret maintains units of original array
                 pass
+            else:
+                ret = YTQuantity(ret, self.units[item[1]])
         else:
             # If we are just getting *one* item back
-            ret = YTQuantity(ret, self.units[item],
-                             registry=self.units[item].registry)
+            if ret.size == 1:
+                item_ind = item % self.shape[-1]
+                ret = YTQuantity(ret, self.units[item_ind])
+            else:
+                # this case selects a single row, so we maintain the units
+                # of the original array
+                pass
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
@@ -144,6 +151,8 @@ class IndexArray(np.ndarray):
         if not hasattr(other, 'units'):
             if not all([u == NULL_UNIT for u in self.units]):
                 return False
+        if not iterable(other.units):
+            return False
         if not all([u1 == u2 for u1, u2 in zip(self.units, other.units)]):
             return False
         return np.array(self).__eq__(np.array(other))
