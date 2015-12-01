@@ -69,16 +69,19 @@ def test_slicing():
     ret2 = IndexArray(np.arange(3), [u.km, u.g, u.s])
     ret3 = YTQuantity(3, 'km')
     ret4 = YTQuantity(38, 's')
+    ret5 = IndexArray([15, 16, 17], [u.km, u.g, u.s])
 
     sl1 = index[:, 0]
     sl2 = index[0, :]
     sl3 = index[1, 0]
     sl4 = index[12, 2]
+    sl5 = index[5]
 
     compare_slicing(ret1, sl1, Unit, YTArray)
     compare_slicing(ret2, sl2, tuple, IndexArray)
     compare_slicing(ret3, sl3, Unit, YTQuantity)
     compare_slicing(ret4, sl4, Unit, YTQuantity)
+    compare_slicing(ret5, sl5, tuple, IndexArray)
 
 def test_str_and_repr():
     vals = np.arange(6)
