@@ -721,8 +721,8 @@ class PWViewerMPL(PlotWindow):
             if self.aspect is None:
                 aspect = ((self.ds.quan(1.0, unit_y) /
                            self.ds.quan(1.0, unit_x)).in_cgs())
-                # We only update if it's dimensionless, i.e., directly
-                # comparable
+                # Force aspect ratio to 1.0 if the dimensions of x and y are
+                # not the same.
                 if aspect.units.is_dimensionless:
                     self.aspect = float(aspect)
                 else:
