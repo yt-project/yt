@@ -23,6 +23,8 @@ from yt.units.unit_registry import \
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
+from yt.units.unit_lookup_table import \
+    yt_base_units
 
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G, \
@@ -49,6 +51,9 @@ class Cosmology(object):
     omega_curvature : the fraction of the energy density of the Universe in 
         curvature.
         Default: 0.0.
+    base_units : dict, optional 
+        The units base to use when making calculations. If not specified,
+        the default yt_units_base is assumed. 
 
     Examples
     --------
@@ -62,7 +67,8 @@ class Cosmology(object):
                  omega_matter = 0.27,
                  omega_lambda = 0.73,
                  omega_curvature = 0.0,
-                 unit_registry = None):
+                 unit_registry = None,
+                 base_units = None):
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
@@ -76,13 +82,16 @@ class Cosmology(object):
                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
+        self.base_units = yt_base_units.copy()
+        if base_units is not None:
+            self.base_units.update(base_units)
 
     def hubble_distance(self):
         r"""
         The distance corresponding to c / h, where c is the speed of light 
         and h is the Hubble parameter in units of 1 / time.
         """
-        return self.quan((speed_of_light_cgs / self.hubble_constant)).in_cgs()
+        return self.quan((speed_of_light_cgs / self.hubble_constant)).in_base(base_units=self.base_units)
 
     def comoving_radial_distance(self, z_i, z_f):
         r"""
@@ -104,7 +113,7 @@ class Cosmology(object):
         
         """
         return (self.hubble_distance() *
-                trapzint(self.inverse_expansion_factor, z_i, z_f)).in_cgs()
+                trapzint(self.inverse_expansion_factor, z_i, z_f)).in_base(base_units=self.base_units)
 
     def comoving_transverse_distance(self, z_i, z_f):
         r"""
@@ -130,13 +139,13 @@ class Cosmology(object):
             return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
                     np.sinh(np.sqrt(self.omega_curvature) * 
                             self.comoving_radial_distance(z_i, z_f) /
-                            self.hubble_distance())).in_cgs()
+                            self.hubble_distance())).in_base(base_units=self.base_units)
         elif (self.omega_curvature < 0):
             return (self.hubble_distance() /
                     np.sqrt(np.fabs(self.omega_curvature)) * 
                     np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
                            self.comoving_radial_distance(z_i, z_f) /
-                           self.hubble_distance())).in_cgs()
+                           self.hubble_distance())).in_base(base_units=self.base_units)
         else:
             return self.comoving_radial_distance(z_i, z_f)
 
@@ -171,7 +180,7 @@ class Cosmology(object):
                       np.sinh(np.fabs(self.omega_curvature) * 
                             self.comoving_transverse_distance(z_i, z_f) /
                             self.hubble_distance()) /
-                            np.sqrt(self.omega_curvature))).in_cgs()
+                            np.sqrt(self.omega_curvature))).in_base(base_units=self.base_units)
         elif (self.omega_curvature < 0):
              return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      np.fabs(self.omega_curvature) * 
@@ -183,11 +192,11 @@ class Cosmology(object):
                       np.arcsin(np.fabs(self.omega_curvature) * 
                            self.comoving_transverse_distance(z_i, z_f) /
                            self.hubble_distance()) /
-                      np.sqrt(np.fabs(self.omega_curvature)))).in_cgs()
+                      np.sqrt(np.fabs(self.omega_curvature)))).in_base(base_units=self.base_units)
         else:
              return (4 * np.pi *
                      np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
-                     3).in_cgs()
+                     3).in_base(base_units=self.base_units)
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
@@ -210,7 +219,7 @@ class Cosmology(object):
         """
         
         return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
+                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_base(base_units=self.base_units)
 
     def angular_scale(self, z_i, z_f):
         r"""
@@ -232,9 +241,10 @@ class Cosmology(object):
         
         """
 
-        return self.angular_diameter_distance(z_i, z_f) / \
+        scale = self.angular_diameter_distance(z_i, z_f) / \
           self.quan(1, "radian")
-
+        return scale.in_base(base_units=self.base_units)
+    
     def luminosity_distance(self, z_i, z_f):
         r"""
         The distance that would be inferred from the inverse-square law of 
@@ -256,7 +266,7 @@ class Cosmology(object):
         """
 
         return (self.comoving_transverse_distance(0, z_f) * (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_cgs()
+                self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_base(base_units=self.base_units)
 
     def lookback_time(self, z_i, z_f):
         r"""
@@ -278,7 +288,7 @@ class Cosmology(object):
 
         """
         return (trapzint(self.age_integrand, z_i, z_f) / \
-                self.hubble_constant).in_cgs()
+                self.hubble_constant).in_base(base_units=self.base_units)
     
     def hubble_time(self, z, z_inf=1e6):
         r"""
@@ -305,7 +315,7 @@ class Cosmology(object):
 
         """
         return (trapzint(self.age_integrand, z, z_inf) /
-                self.hubble_constant).in_cgs()
+                self.hubble_constant).in_base(base_units=self.base_units)
 
     def critical_density(self, z):
         r"""
@@ -328,7 +338,7 @@ class Cosmology(object):
         return (3.0 / 8.0 / np.pi * 
                 self.hubble_constant**2 / G *
                 ((1 + z)**3.0 * self.omega_matter + 
-                 self.omega_lambda)).in_cgs()
+                 self.omega_lambda)).in_base(base_units=self.base_units)
 
     def hubble_parameter(self, z):
         r"""
@@ -346,7 +356,7 @@ class Cosmology(object):
         >>> print co.hubble_parameter(1.0).in_units("km/s/Mpc")
 
         """
-        return self.hubble_constant * self.expansion_factor(z)
+        return self.hubble_constant.in_base(base_units=self.base_units) * self.expansion_factor(z)
 
     def age_integrand(self, z):
         return (1 / (z + 1) / self.expansion_factor(z))
@@ -522,7 +532,7 @@ class Cosmology(object):
   
         my_time = t0 / self.hubble_constant
     
-        return my_time.in_cgs()
+        return my_time.in_base(base_units=self.base_units)
 
     _arr = None
     @property

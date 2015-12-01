@@ -186,11 +186,11 @@ class YTDataContainer(object):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.in_cgs())
+            self.center = self.ds.arr(center.copy())
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.in_cgs() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center])
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length')
@@ -861,7 +861,7 @@ class YTDataContainer(object):
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_cgs())
+                s += ", %s=%s" % (i, getattr(self, i).in_base(self.ds.custom_base_units))
             except AttributeError:
                 s += ", %s=%s" % (i, getattr(self, i))
         return s
