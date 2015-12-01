@@ -471,9 +471,7 @@ class YTArray(np.ndarray):
         >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
         >>> E.convert_to_base(base_units)
         """
-        if base_units is None:
-            base_units = yt_base_units
-        return self.convert_to_units(self.units.get_base_equivalent(base_units))
+        return self.convert_to_units(self.units.get_base_equivalent(base_units=base_units))
 
     def convert_to_cgs(self):
         """
@@ -543,9 +541,7 @@ class YTArray(np.ndarray):
         >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
         >>> E_new = E.in_base(base_units)
         """
-        if base_units is None:
-            base_units=yt_base_units
-        return self.in_units(self.units.get_base_equivalent(base_units))
+        return self.in_units(self.units.get_base_equivalent(base_units=base_units))
 
     def in_cgs(self):
         """

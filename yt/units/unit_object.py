@@ -409,20 +409,21 @@ class Unit(Expr):
             units.append("(%s)%s" % (unit_string, power_string))
         return " * ".join(units)
 
-    def _get_yt_base_equivalent(self):
-        units_string = self._get_system_unit_string(yt_base_units)
-        return Unit(units_string, base_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
-
-    def get_base_equivalent(self, base_units):
+    def get_base_equivalent(self, base_units=None):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
-        units_string = self._get_system_unit_string(base_units)
-        base_value = get_conversion_factor(self, self._get_yt_base_equivalent())[0]
-        base_value /= get_conversion_factor(self, Unit(units_string))[0]
-        return Unit(units_string, base_value=base_value,
-                    dimensions=self.dimensions, registry=self.registry)
+        yt_base_unit_string = self._get_system_unit_string(yt_base_units)
+        yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
+                            dimensions=self.dimensions, registry=self.registry)
+        if base_units is None:
+            return yt_base_unit
+        else:
+            units_string = self._get_system_unit_string(base_units)
+            base_value = get_conversion_factor(self, yt_base_unit)[0]
+            base_value /= get_conversion_factor(self, Unit(units_string))[0]
+            return Unit(units_string, base_value=base_value,
+                        dimensions=self.dimensions, registry=self.registry)
 
     def get_cgs_equivalent(self):
         """
@@ -430,13 +431,16 @@ class Unit(Expr):
         """
         if current_mks in self.dimensions.free_symbols:
             raise YTUnitsNotReducible(self, "cgs")
-        return self.get_base_equivalent(cgs_base_units)
+        # Note that the following only works because yt_base_units are simply
+        # cgs_base_units plus Amperes. If that is no longer the case, we will
+        # then need to pass cgs_base_units to the get_base_equivalent call here.
+        return self.get_base_equivalent()
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
         """
-        return self.get_base_equivalent(mks_base_units)
+        return self.get_base_equivalent(base_units=mks_base_units)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
