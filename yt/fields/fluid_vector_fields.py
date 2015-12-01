@@ -77,10 +77,10 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     def _vorticity_x(field, data):
         f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
-              / (div_fac*just_one(data["index", "dy"]).in_cgs())
+              / (div_fac*just_one(data["index", "dy"]))
         f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
-              / (div_fac*just_one(data["index", "dz"].in_cgs()))
+              / (div_fac*just_one(data["index", "dz"]))
         new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                               dtype=np.float64),
                                 f.units)
