@@ -49,6 +49,8 @@ flux     = power / area
 specific_flux = flux / rate
 number_density = 1/(length*length*length)
 density = mass * number_density
+angular_momentum = mass*length*velocity
+specific_angular_momentum = angular_momentum / mass
 
 # Gaussian electromagnetic units
 charge_cgs  = (energy * length)**Rational(1, 2)  # proper 1/2 power
