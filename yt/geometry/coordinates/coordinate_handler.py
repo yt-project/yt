@@ -187,25 +187,27 @@ class CoordinateHandler(object):
         return depth
 
     def sanitize_width(self, axis, width, depth):
+        units = self.axes_units
         if width is None:
             # Default to code units
             if not iterable(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
-                w = self.ds.domain_width[[xax, yax]]
+                width = (self.ds.domain_width[xax],
+                         self.ds.domain_width[yax])
             else:
                 # axis is actually the normal vector
                 # for an off-axis data object.
                 mi = np.argmin(self.ds.domain_width)
                 w = self.ds.domain_width[[mi,mi]]
-            width = (w[0], w[1])
+                width = (w[0], w[1])
         elif iterable(width):
             width = validate_iterable_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)
         elif isinstance(width, Number):
-            width = (self.ds.quan(width, 'code_length'),
-                     self.ds.quan(width, 'code_length'))
+            width = (self.ds.quan(width, units[self.x_axis[axis]]),
+                     self.ds.quan(width, units[self.y_axis[axis]]))
         else:
             raise YTInvalidWidthError(width)
         if depth is not None:
