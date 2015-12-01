@@ -87,10 +87,10 @@ class IndexArray(np.ndarray):
             else:
                 # ret maintains units of original array
                 pass
-        # If we are just getting *one* item back
-        elif ret.size == 1:
+        else:
+            # If we are just getting *one* item back
             ret = YTQuantity(ret, self.units[item],
-                registry=self.units[item].registry)
+                             registry=self.units[item].registry)
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
