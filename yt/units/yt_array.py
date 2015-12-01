@@ -32,6 +32,7 @@ from numpy import \
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless, current_mks, em_dimensions
+from yt.units.unit_lookup_table import yt_base_units
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
@@ -451,12 +452,28 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self):
+    def convert_to_base(self, base_units=None):
         """
         Convert the array and units to the equivalent base units.
 
+        Parameters
+        ----------
+        base_units : dict, optional
+            A dictionary which maps the name of the dimension to the
+            base unit requested. Any dimensions omitted from this dict
+            will revert to the default base units in the conversion.
+            If not specified, the default base units in yt_base_units
+            are used.
+
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
+        >>> E.convert_to_base(base_units)
         """
-        return self.convert_to_units(self.units.get_base_equivalent())
+        if base_units is None:
+            base_units = yt_base_units
+        return self.convert_to_units(self.units.get_base_equivalent(base_units))
 
     def convert_to_cgs(self):
         """
@@ -471,38 +488,6 @@ class YTArray(np.ndarray):
 
         """
         return self.convert_to_units(self.units.get_mks_equivalent())
-
-    def convert_to_custom(self, base_units):
-        """
-        Convert the array and units to the equivalent custom units
-        base.
-
-        Parameters
-        ----------
-        base_units : dict
-            A dictionary which maps the name of the dimension to the
-            base unit requested. Any dimensions omitted from this dict
-            will revert to the default base units in the conversion.
-
-        Examples
-        --------
-        >>> E = YTQuantity(2.5, "erg/s")
-        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
-        >>> E.convert_to_custom(base_units)
-        """
-        return self.convert_to_units(self.units.get_custom_equivalent(base_units))
-
-    def convert_to_dataset_units(self, ds):
-        """
-        Convert the array and units to the custom base units of the dataset *ds*.
-
-        Examples
-        --------
-        >>> E = YTQuantity(2.5, "erg/s")
-        >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0100")
-        >>> E.convert_to_dataset_units(ds)
-        """
-        return self.convert_to_units(self.units.get_custom_equivalent(ds.custom_base_units))
 
     def in_units(self, units):
         """
@@ -538,17 +523,29 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self):
+    def in_base(self, base_units=None):
         """
-        Creates a copy of this array with the data in the equivalent base units,
+        Creates a copy of this array with the data in the specified base units,
         and returns it.
 
-        Returns
-        -------
-        Quantity object with data converted to cgs units.
+        Parameters
+        ----------
+        base_units : dict, optional
+            A dictionary which maps the name of the dimension to the
+            base unit requested. Any dimensions omitted from this dict
+            will revert to the default base units in the conversion.
+            If not specified, the default base units in yt_base_units
+            are used.
 
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
+        >>> E_new = E.in_base(base_units)
         """
-        return self.in_units(self.units.get_base_equivalent())
+        if base_units is None:
+            base_units=yt_base_units
+        return self.in_units(self.units.get_base_equivalent(base_units))
 
     def in_cgs(self):
         """
@@ -573,48 +570,6 @@ class YTArray(np.ndarray):
 
         """
         return self.in_units(self.units.get_mks_equivalent())
-
-    def in_custom(self, base_units):
-        """
-        Creates a copy of this array with the data in a set of custom base units.
-
-        Parameters
-        ----------
-        base_units : dict
-            A dictionary which maps the name of the dimension to the
-            base unit requested. Any dimensions omitted from this dict
-            will revert to the default base units in the conversion.
-
-        Returns
-        -------
-        Quantity object with data converted to the specified units base.
-
-        Examples
-        --------
-        >>> from yt.units import G
-        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
-        >>> my_G = G.in_custom(base_units)
-        """
-        return self.in_units(self.units.get_custom_equivalent(base_units))
-
-    def in_dataset_units(self, ds):
-        """
-        Creates a copy of this array with the data in the custom base units
-        of the Dataset *ds*.
-
-        Returns
-        -------
-        Quantity object with data converted to the custom units base
-        of a Dataset *ds*.
-
-        Examples
-        --------
-        >>> from yt.units import G
-        >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0100")
-        >>> ds.set_custom_base_units({"length":"km", "time":"yr"})
-        >>> my_G = G.in_dataset_units(ds)
-        """
-        return self.in_units(self.units.get_custom_equivalent(ds.custom_base_units))
 
     def to_equivalent(self, unit, equiv, **kwargs):
         """
