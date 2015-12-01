@@ -133,9 +133,17 @@ class FixedResolutionBuffer(object):
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
         bounds = []
-        for b in self.bounds:
+        axis = self.data_source.axis
+        names = self.ds.coordinates.axis_name
+        xax = names[self.ds.coordinates.x_axis[axis]]
+        yax = names[self.ds.coordinates.y_axis[axis]]
+        units = (self.ds.coordinates.axes_units[xax],
+                 self.ds.coordinates.axes_units[xax],
+                 self.ds.coordinates.axes_units[yax],
+                 self.ds.coordinates.axes_units[yax])
+        for i, b in enumerate(self.bounds):
             if hasattr(b, "in_units"):
-                b = float(b.in_units("code_length"))
+                b = float(b.in_units(units[i]))
             bounds.append(b)
         buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,

@@ -66,6 +66,7 @@ from yt.utilities.exceptions import \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
     YTPlotCallbackError
+import yt.units.dimensions as dimensions
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -693,12 +694,17 @@ class PWViewerMPL(PlotWindow):
             self._recreate_frb()
             self._data_valid = True
         self._colorbar_valid = True
+        axes_units = self.ds.coordinates.axes_units
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
 
-            if self._axes_unit_names is None:
+            if self.bounds[0].units.dimensions != dimensions.length or \
+               self.bounds[2].units.dimensions != dimensions.length:
+                unit_x = self.bounds[0].units
+                unit_y = self.bounds[2].units
+            elif self._axes_unit_names is None:
                 unit = self.ds.get_smallest_appropriate_unit(
                     self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
@@ -709,8 +715,14 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = float((self.ds.quan(1.0, unit_y) /
-                                     self.ds.quan(1.0, unit_x)).in_cgs())
+                aspect = ((self.ds.quan(1.0, unit_y) /
+                           self.ds.quan(1.0, unit_x)).in_cgs())
+                # We only update if it's dimensionless, i.e., directly
+                # comparable
+                if aspect.units.is_dimensionless:
+                    self.aspect = float(aspect)
+                else:
+                    self.aspect = 1.0
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -1672,7 +1684,11 @@ class WindowPlotMPL(ImagePlotMPL):
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
-        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
+        _aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
+        if _aspect.units.is_dimensionless:
+            self._aspect = _aspect
+        else:
+            self._aspect = 1.0
         self._unit_aspect = aspect
 
         size, axrect, caxrect = self._get_best_layout()
