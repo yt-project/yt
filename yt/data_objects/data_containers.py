@@ -36,6 +36,8 @@ from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.index_array import \
+    IndexArray
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -188,6 +190,8 @@ class YTDataContainer(object):
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
             self.center.convert_to_units('code_length')
+        elif isinstance(center, IndexArray):
+            self.center = center
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
                 self.center = self.ds.arr([c.in_cgs() for c in center])

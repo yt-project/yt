@@ -225,6 +225,8 @@ class CoordinateHandler(object):
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
                 raise RuntimeError('center keyword \"%s\" not recognized' % center)
+        elif isinstance(center, IndexArray):
+            return center, self.convert_to_cartesian(center)
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
