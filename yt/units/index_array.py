@@ -58,13 +58,13 @@ class IndexArray(np.ndarray):
             raise NotImplementedError
 
         if not iterable(input_units):
-            input_units = [input_units]*ndim
+            input_units = (input_units, )*ndim
 
         if ndim != len(input_units):
             raise RuntimeError
 
-        obj.units = [Unit(iu, registry=registry) if not isinstance(iu, Unit)
-                     else iu for iu in input_units]
+        obj.units = tuple(Unit(iu, registry=registry) if not isinstance(iu, Unit)
+                          else iu for iu in input_units)
 
         return obj
 
@@ -77,7 +77,7 @@ class IndexArray(np.ndarray):
             ndim = obj.shape[-1]
         else:
             raise NotImplementedError
-        self.units = getattr(obj, 'units', [NULL_UNIT]*ndim)
+        self.units = getattr(obj, 'units', (NULL_UNIT, )*ndim)
 
     def __getitem__(self, item):
         ret = super(IndexArray, self).__getitem__(item)
@@ -101,7 +101,7 @@ class IndexArray(np.ndarray):
             u = context[1][0].units
             units = UFUNC_REGISTRY[context[0]](u)
             if units is None:
-                units = [NULL_UNIT]*len(u)
+                units = (NULL_UNIT, )*len(u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = context[1][0]
@@ -128,7 +128,7 @@ class IndexArray(np.ndarray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            units = [unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2)]
+            units = tuple(unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2))
             if unit_operator in commutative_operators:
                 for unit in units:
                     if unit.is_dimensionless and unit.base_value != 1.0:

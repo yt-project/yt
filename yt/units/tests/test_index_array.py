@@ -20,6 +20,7 @@ import numpy as np
 from yt.testing import assert_equal
 from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray
+from yt.units.unit_object import Unit
 
 def test_multiplication():
     vals = np.random.random((100, 3))
@@ -29,6 +30,7 @@ def test_multiplication():
     assert_equal(index.units[0], (u.km * u.km).units)
     assert_equal(index.units[1], (u.g * u.g).units)
     assert_equal(index.units[2], (u.s * u.s).units)
+    assert(type(index.units) is tuple)
 
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
 
@@ -37,18 +39,21 @@ def test_multiplication():
     assert_equal(index.units[0], (u.km * u.km).units)
     assert_equal(index.units[1], (u.km * u.g).units)
     assert_equal(index.units[2], (u.km * u.s).units)
+    assert(type(index.units) is tuple)
 
     index2 = index * 2
 
     assert_equal(index.units[0], index2.units[0])
     assert_equal(index.units[1], index2.units[1])
     assert_equal(index.units[2], index2.units[2])
+    assert(type(index.units) is tuple)
 
     index3 = 2 * index
 
     assert_equal(index.units[0], index3.units[0])
     assert_equal(index.units[1], index3.units[1])
     assert_equal(index.units[2], index3.units[2])
+    assert(type(index.units) is tuple)
 
 
 def test_slicing():
@@ -59,5 +64,10 @@ def test_slicing():
     ret1 = YTArray(3*np.arange(100), 'km')
     ret2 = IndexArray(np.arange(3), [u.km, u.g, u.s])
 
-    assert_equal(index[:, 0], ret1)
-    assert_equal(index[0, :], ret2)
+    sl1 = index[:, 0]
+    sl2 = index[0, :]
+
+    assert_equal(sl1, ret1)
+    assert(type(sl1.units) is Unit)
+    assert_equal(sl2, ret2)
+    assert(type(sl2.units) is tuple)
