@@ -260,10 +260,7 @@ class Dataset(object):
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         coords = self.coordinates
-        if hasattr(coords, 'axes_units'):
-            units = tuple(coords.axes_units.values())
-        else:
-            units = ('code_length', 'code_length', 'code_length')
+        units = tuple(coords.axes_units.values())
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
