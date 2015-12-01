@@ -20,7 +20,7 @@ import numpy as np
 from yt.testing import assert_equal
 from yt.units.index_array import IndexArray
 
-def test_index_array_multiplication():
+def test_multiplication():
     vals = np.random.random((100, 3))
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
     index *= index
