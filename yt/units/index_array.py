@@ -54,7 +54,7 @@ class IndexArray(np.ndarray):
         elif len(obj.shape) == 2:
             ndim = obj.shape[-1]
         else:
-            raise NotImplentedError
+            raise NotImplementedError
 
         if not iterable(input_units):
             input_units = [input_units]*ndim
@@ -75,7 +75,7 @@ class IndexArray(np.ndarray):
         elif len(obj.shape) == 2:
             ndim = obj.shape[-1]
         else:
-            raise NotImplentedError
+            raise NotImplementedError
         self.units = getattr(obj, 'units', [NULL_UNIT]*ndim)
 
     def __array_wrap__(self, out_arr, context=None):
