@@ -29,6 +29,7 @@ class UnitSystem(object):
         if current_mks_unit is not None:
             self.units_map[dimensions.current_mks] = current_mks_unit
         self.unit_registry = unit_registry
+        self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
 
     def __getitem__(self, key):

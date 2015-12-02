@@ -209,11 +209,3 @@ default_base_units = {
     dimensions.angle: 'radian',
     dimensions.current_mks: 'A',
 }
-
-cgs_base_units = default_base_units.copy()
-cgs_base_units.pop(dimensions.current_mks)
-
-mks_base_units = default_base_units.copy()
-mks_base_units.update({dimensions.mass: 'kg',
-                       dimensions.length: 'm'})
-

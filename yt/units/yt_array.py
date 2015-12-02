@@ -16,6 +16,7 @@ from __future__ import print_function
 import copy
 import numpy as np
 
+from yt.extern.six import string_types
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
@@ -32,6 +33,7 @@ from numpy import \
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless, current_mks, em_dimensions
+from yt.units.unit_systems import unit_system_registry
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
@@ -451,26 +453,25 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self, base_units=None):
+    def convert_to_base(self, unit_system=None):
         """
-        Convert the array and units to the equivalent base units.
+        Convert the array and units to the equivalent base units in
+        the specified unit system.
 
         Parameters
         ----------
-        base_units : dict, optional
-            A dictionary which maps the name of the dimension to the
-            base unit requested. Any dimensions omitted from this dict
-            will revert to the default base units in the conversion.
-            If not specified, the default base units in yt_base_units
-            are used.
+        unit_system : UnitRegistry object or string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units are used.
 
         Examples
         --------
         >>> E = YTQuantity(2.5, "erg/s")
-        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
-        >>> E.convert_to_base(base_units)
+        >>> E.convert_to_base(unit_system="galactic")
         """
-        return self.convert_to_units(self.units.get_base_equivalent(base_units=base_units))
+        if isinstance(unit_system, string_types):
+            unit_system = unit_system_registry[unit_system]
+        return self.convert_to_units(self.units.get_base_equivalent(unit_system=unit_system))
 
     def convert_to_cgs(self):
         """
@@ -520,27 +521,25 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self, base_units=None):
+    def in_base(self, unit_system=None):
         """
-        Creates a copy of this array with the data in the specified base units,
-        and returns it.
+        Creates a copy of this array with the data in the specified unit system,
+        and returns it in that system's base units.
 
         Parameters
         ----------
-        base_units : dict, optional
-            A dictionary which maps the name of the dimension to the
-            base unit requested. Any dimensions omitted from this dict
-            will revert to the default base units in the conversion.
-            If not specified, the default base units in yt_base_units
-            are used.
+        unit_system : UnitRegistry object or string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units are used.
 
         Examples
         --------
         >>> E = YTQuantity(2.5, "erg/s")
-        >>> base_units = {"length":"kpc","time":"Myr","mass":"Msun"}
-        >>> E_new = E.in_base(base_units)
+        >>> E_new = E.in_base(unit_system="galactic")
         """
-        return self.in_units(self.units.get_base_equivalent(base_units=base_units))
+        if isinstance(unit_system, string_types):
+            unit_system = unit_system_registry[unit_system]
+        return self.in_units(self.units.get_base_equivalent(unit_system=unit_system))
 
     def in_cgs(self):
         """

@@ -861,7 +861,7 @@ class YTDataContainer(object):
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_base(self.ds.base_units))
+                s += ", %s=%s" % (i, getattr(self, i).in_base(unit_system=self.ds.unit_system))
             except AttributeError:
                 s += ", %s=%s" % (i, getattr(self, i))
         return s
