@@ -467,11 +467,10 @@ def test_unit_conversions():
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
-    base_units = {'length':'kpc','time':'Myr','mass':'1.0e14*Msun'}
-    em3_converted = YTQuantity(1.545436840386756e-05, '100000000000000.0*Msun/(Myr**2*kpc)')
-    yield assert_equal, em3.in_base(base_units=base_units), em3
-    yield assert_array_almost_equal, em3.in_base(base_units=base_units), em3_converted
-    yield assert_equal, str(em3.in_base(base_units=base_units).units), '100000000000000.0*Msun/(Myr**2*kpc)'
+    em3_converted = YTQuantity(1545436840.386756, 'Msun/(Myr**2*kpc)')
+    yield assert_equal, em3.in_base(unit_system="galactic"), em3
+    yield assert_array_almost_equal, em3.in_base(unit_system="galactic"), em3_converted
+    yield assert_equal, str(em3.in_base(unit_system="galactic").units), 'Msun/(Myr**2*kpc)'
 
     dimless = YTQuantity(1.0, "")
     yield assert_equal, dimless.in_cgs(), dimless
