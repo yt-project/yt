@@ -32,7 +32,6 @@ from numpy import \
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless, current_mks, em_dimensions
-from yt.units.unit_lookup_table import yt_base_units
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \

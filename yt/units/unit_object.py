@@ -27,8 +27,8 @@ from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks
 from yt.units.unit_lookup_table import \
-    unit_prefixes, prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, yt_base_units
+    unit_prefixes, prefixable_units, mks_base_units, \
+    latex_prefixes, default_base_units
 from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
@@ -400,8 +400,8 @@ class Unit(Expr):
         if my_dims is dimensionless:
             return ""
         for factor in my_dims.as_ordered_factors():
-            dim = str(list(factor.free_symbols)[0]).strip("()")
-            unit_string = str(base_units[dim])
+            dim = list(factor.free_symbols)[0]
+            unit_string = base_units[dim]
             if factor.is_Pow:
                 power_string = "**(%s)" % factor.as_base_exp()[1]
             else:
@@ -413,7 +413,7 @@ class Unit(Expr):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
-        yt_base_unit_string = self._get_system_unit_string(yt_base_units)
+        yt_base_unit_string = self._get_system_unit_string(default_base_units)
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
         if base_units is None:

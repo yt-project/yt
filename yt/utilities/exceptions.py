@@ -242,15 +242,6 @@ class YTFieldUnitError(YTException):
     def __str__(self):
         return self.msg
 
-class YTFieldDimensionsError(YTException):
-    def __init__(self, field_info, returned_units):
-        self.msg = ("The field function associated with the field '%s' returned "
-                    "data with units '%s' but was defined with dimensions of '%s'.")
-        self.msg = self.msg % (field_info.name, returned_units, field_info.dimensions)
-
-    def __str__(self):
-        return self.msg
-
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
         self.msg = ("The field '%s' has unparseable units '%s'.")

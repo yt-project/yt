@@ -197,23 +197,19 @@ prefixable_units = (
     "statohm",
 )
 
-yt_base_units = {
-    'mass': 'g',
-    'length': 'cm',
-    'time': 's',
-    'temperature': 'K',
-    'angle': 'radian',
-    'current_mks': 'A',
+default_base_units = {
+    dimensions.mass: 'g',
+    dimensions.length: 'cm',
+    dimensions.time: 's',
+    dimensions.temperature: 'K',
+    dimensions.angle: 'radian',
+    dimensions.current_mks: 'A',
 }
 
-cgs_base_units = yt_base_units.copy()
-cgs_base_units.pop('current_mks')
+cgs_base_units = default_base_units.copy()
+cgs_base_units.pop(dimensions.current_mks)
 
-mks_base_units = {
-    'mass': 'kg',
-    'length': 'm',
-    'time': 's',
-    'temperature': 'K',
-    'angle': 'radian',
-    'current_mks': 'A',
-}
+mks_base_units = default_base_units.copy()
+mks_base_units.update({dimensions.mass: 'kg',
+                       dimensions.length: 'm'})
+

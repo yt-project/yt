@@ -32,7 +32,7 @@ from yt.funcs import \
     ensure_list, \
     fix_axis, \
     iterable
-from yt.units.unit_object import UnitParseError, Unit
+from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
@@ -45,8 +45,7 @@ from yt.utilities.exceptions import \
     YTFieldNotParseable, \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented, \
-    YTFieldDimensionsError
+    YTDataSelectorNotImplemented
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -1134,15 +1133,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # from the field function and use these units for future
                         # field accesses
                         units = str(getattr(fd, 'units', ''))
-                        dimensions = Unit(units, registry=self.ds.unit_registry).dimensions
-                        if fi.dimensions != dimensions:
-                            raise YTFieldDimensionsError(fi, fd.units)
                         fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
-                        self.field_data[field].convert_to_base(base_units=self.ds.base_units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
-                        mylog.debug(msg % (fi.name, units))
+                        mylog.warn(msg % (fi.name, units))
                         continue
                     try:
                         fd.convert_to_units(fi.units)
