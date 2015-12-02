@@ -37,13 +37,15 @@ def configuration(parent_package='',top_path=None):
                          "yt/geometry/selection_routines.pxd"])
     config.add_extension("particle_oct_container", 
                 ["yt/geometry/particle_oct_container.pyx"],
-                include_dirs=["yt/utilities/lib/"],
+                include_dirs=["yt/utilities/lib/",
+                              "yt/utilities/lib/ewahboolarray"],
                 libraries=["m"],
                 language="c++",
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/geometry_utils.pxd",
                          "yt/geometry/oct_container.pxd",
-                         "yt/geometry/selection_routines.pxd"])
+                         "yt/geometry/selection_routines.pxd",
+                         "yt/utilities/lib/ewah_bool_array.pxd"])
     config.add_extension("selection_routines", 
                 ["yt/geometry/selection_routines.pyx"],
                 include_dirs=["yt/utilities/lib/"],
