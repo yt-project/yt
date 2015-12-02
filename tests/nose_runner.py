@@ -16,8 +16,9 @@ base_argv = ['fake', '--local-dir=%s' % answers_dir, '-v', '-s', '--nologcapture
              '--with-answer-testing', '--answer-big-data', '--local']
 
 def run_job(answer):
-    global base_argv, answers_dir
-    argv = base_argv
+    global base_argv, answers_dir, tests
+    argv = []
+    argv += base_argv
     argv.append('--xunit-file=%s.xml' % answer)
     argv.append('--answer-name=%s' % answer)
     argv += tests[answer]
