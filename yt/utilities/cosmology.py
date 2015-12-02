@@ -24,7 +24,7 @@ from yt.units.unit_registry import \
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
-from yt.units.unit_systems import unit_system_registry
+from yt.units.unit_object import unit_system_registry
 
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G, \

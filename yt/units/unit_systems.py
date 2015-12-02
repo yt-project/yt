@@ -13,9 +13,7 @@ Unit system class.
 
 from yt.extern.six import string_types
 from yt.units import dimensions
-from yt.units.unit_object import Unit
-
-unit_system_registry = {}
+from yt.units.unit_object import Unit, unit_system_registry
 
 class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,

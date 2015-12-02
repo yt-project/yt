@@ -40,9 +40,8 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
-from yt.units.unit_systems import unit_system_registry
 from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.fluid_fields import \

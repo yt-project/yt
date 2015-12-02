@@ -31,7 +31,6 @@ from yt.units.unit_lookup_table import \
 from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
-from yt.units.unit_systems import unit_system_registry
 from yt.utilities.exceptions import YTUnitsNotReducible
 
 import copy
@@ -51,6 +50,8 @@ global_dict = {
     'Rational': Rational,
     'sqrt': sqrt
 }
+
+unit_system_registry = {}
 
 def auto_positive_symbol(tokens, local_dict, global_dict):
     """
