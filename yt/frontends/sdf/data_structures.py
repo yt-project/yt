@@ -125,17 +125,19 @@ class SDFDataset(Dataset):
         if None in (self.domain_left_edge, self.domain_right_edge):
             R0 = self.parameters['R0']
             if 'offset_center' in self.parameters and self.parameters['offset_center']:
-                self.domain_left_edge = np.array([0, 0, 0])
+                self.domain_left_edge = np.array([0, 0, 0], dtype=np.float64)
                 self.domain_right_edge = np.array([
-                 2.0 * self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    2.0 * self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
             else:
                 self.domain_left_edge = np.array([
-                    -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
                 self.domain_right_edge = np.array([
-                    +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
             self.domain_left_edge *= self.parameters.get("a", 1.0)
             self.domain_right_edge *= self.parameters.get("a", 1.0)
-
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         if "do_periodic" in self.parameters and self.parameters["do_periodic"]:

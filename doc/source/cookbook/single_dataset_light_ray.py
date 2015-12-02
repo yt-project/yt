@@ -13,8 +13,7 @@ lr.make_light_ray(start_position=[0., 0., 0.],
                   end_position=[1., 1., 1.],
                   solution_filename='lightraysolution.txt',
                   data_filename='lightray.h5',
-                  fields=['temperature', 'density'],
-                  get_los_velocity=True)
+                  fields=['temperature', 'density'])
 
 # Optionally, we can now overplot this ray on a projection of the source 
 # dataset
