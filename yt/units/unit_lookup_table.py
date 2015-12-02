@@ -21,7 +21,8 @@ from yt.utilities.physical_ratios import \
     cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams, \
     kelvin_per_rankine, speed_of_light_cm_per_s, planck_length_cm, \
     planck_charge_esu, planck_energy_erg, planck_mass_grams, \
-    planck_temperature_K, planck_time_s, mass_hydrogen_grams
+    planck_temperature_K, planck_time_s, mass_hydrogen_grams, \
+    grams_per_pound, standard_gravity_cm_per_s2, pascal_per_atm
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -57,12 +58,15 @@ default_unit_symbol_lut = {
     "V": (1.0e7, dimensions.electric_potential_mks, 0.0, r"\rm{V}"),
     "ohm": (1.0e7, dimensions.resistance_mks, 0.0, r"\Omega"),
 
-    # Imperial units
+    # Imperial and other non-metric units
     "ft": (30.48, dimensions.length, 0.0, r"\rm{ft}"),
     "mile": (160934, dimensions.length, 0.0, r"\rm{mile}"),
     "degF": (kelvin_per_rankine, dimensions.temperature, -459.67,
              "^\circ\rm{F}"),
     "R": (kelvin_per_rankine, dimensions.temperature, 0.0, r"^\circ\rm{R}"),
+    "lbf": (grams_per_pound*standard_gravity_cm_per_s2, dimensions.force, 0.0, r"\rm{lbf}"),
+    "lbm": (grams_per_pound, dimensions.mass, 0.0, r"\rm{lbm}"),
+    "atm": (pascal_per_atm*10., dimensions.pressure, 0.0, r"\rm{atm}"),
 
     # dimensionless stuff
     "h": (1.0, dimensions.dimensionless, 0.0, r"h"),  # needs to be added for rho_crit_now

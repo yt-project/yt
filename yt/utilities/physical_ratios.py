@@ -70,8 +70,9 @@ sec_per_hr   = 3600.0
 sec_per_min  = 60.0
 day_per_year = 365.25
 
-# velocities
+# velocities, accelerations
 speed_of_light_cm_per_s = 2.99792458e10
+standard_gravity_cm_per_s2 = 9.80665e2
 
 # temperature / energy
 boltzmann_constant_erg_per_K = 1.3806488e-16
@@ -120,3 +121,7 @@ planck_time_s = planck_length_cm / speed_of_light_cm_per_s
 planck_energy_erg = planck_mass_grams * speed_of_light_cm_per_s * speed_of_light_cm_per_s
 planck_temperature_K = planck_energy_erg / boltzmann_constant_erg_per_K
 planck_charge_esu = 5.62274532302e-09
+
+# Imperial and other non-metric units
+grams_per_pound = 453.59237
+pascal_per_atm = 101325.0

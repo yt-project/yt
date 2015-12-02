@@ -20,7 +20,8 @@ from yt.utilities.physical_ratios import \
     planck_time_s, \
     planck_energy_erg, \
     planck_charge_esu, \
-    planck_temperature_K
+    planck_temperature_K, \
+    standard_gravity_cm_per_s2
 from yt.units.yt_array import YTQuantity
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
@@ -130,3 +131,8 @@ T_pl = planck_temperature = YTQuantity(planck_temperature_K, "K")
 # MKS E&M units
 mu_0 = YTQuantity(4.0e-7*pi, "N/A**2")
 eps_0 = (1.0/(clight.in_mks()**2*mu_0)).in_units("C**2/N/m**2")
+
+# Misc
+standard_gravity_cgs = YTQuantity(standard_gravity_cm_per_s2, "cm/s**2")
+standard_gravity = standard_gravity_cgs
+
