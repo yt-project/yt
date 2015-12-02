@@ -52,7 +52,7 @@ class UnitSystem(object):
 
 def create_code_unit_system(ds):
     code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
-                                  "code_temperature", "radian")
+                                  "code_temperature", "radian", registry=ds.unit_registry)
     code_unit_system[dimensions.velocity] = "code_velocity"
 
 cgs_unit_system = UnitSystem("cgs", "cm", "g", "s", "K", "radian")

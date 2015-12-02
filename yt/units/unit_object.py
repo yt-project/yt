@@ -421,8 +421,9 @@ class Unit(Expr):
             return yt_base_unit
         else:
             units_string = self._get_system_unit_string(unit_system.base_units)
+            u = Unit(units_string, registry=self.registry)
             base_value = get_conversion_factor(self, yt_base_unit)[0]
-            base_value /= get_conversion_factor(self, Unit(units_string))[0]
+            base_value /= get_conversion_factor(self, u)[0]
             return Unit(units_string, base_value=base_value,
                         dimensions=self.dimensions, registry=self.registry)
 

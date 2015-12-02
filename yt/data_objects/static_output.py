@@ -59,6 +59,7 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
 
@@ -235,6 +236,9 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
+        create_code_unit_system(self)
+        if unit_system == "code":
+            unit_system = str(self)
         self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
