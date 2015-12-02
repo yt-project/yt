@@ -30,6 +30,7 @@ base_dimensions = [mass, length, time, temperature, angle, current_mks,
 #
 
 rate = 1 / time
+frequency = rate
 
 velocity     = length / time
 acceleration = length / time**2

@@ -402,7 +402,7 @@ class Unit(Expr):
             return ""
         for factor in my_dims.as_ordered_factors():
             dim = list(factor.free_symbols)[0]
-            unit_string = base_units[dim]
+            unit_string = str(base_units[dim])
             if factor.is_Pow:
                 power_string = "**(%s)" % factor.as_base_exp()[1]
             else:

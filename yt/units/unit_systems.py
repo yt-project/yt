@@ -19,16 +19,18 @@ class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,
                  temperature_unit, angle_unit, current_mks_unit=None,
                  registry=None):
-        self.units_map = {dimensions.length: length_unit,
-                          dimensions.mass: mass_unit,
-                          dimensions.time: time_unit,
-                          dimensions.temperature: temperature_unit,
-                          dimensions.angle: angle_unit}
+        self.registry = registry
+        self.units_map = {dimensions.length: Unit(length_unit, registry=self.registry),
+                          dimensions.mass: Unit(mass_unit, registry=self.registry),
+                          dimensions.time: Unit(time_unit, registry=self.registry),
+                          dimensions.temperature: Unit(temperature_unit, registry=self.registry),
+                          dimensions.angle: Unit(angle_unit, registry=self.registry)}
         if current_mks_unit is not None:
-            self.units_map[dimensions.current_mks] = current_mks_unit
+            self.units_map[dimensions.current_mks] = Unit(current_mks_unit, registry=self.registry)
         self.registry = registry
         self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
+        self.name = name
 
     def __getitem__(self, key):
         if isinstance(key, string_types):
@@ -49,6 +51,9 @@ class UnitSystem(object):
         if isinstance(key, string_types):
             key = getattr(dimensions, key)
         self.units_map[key] = Unit(value, registry=self.registry)
+
+    def __str__(self):
+        return self.name
 
 def create_code_unit_system(ds):
     code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
