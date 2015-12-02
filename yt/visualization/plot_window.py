@@ -698,7 +698,6 @@ class PWViewerMPL(PlotWindow):
             self._recreate_frb()
             self._data_valid = True
         self._colorbar_valid = True
-        axes_units = self.ds.coordinates.axes_units
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
