@@ -40,10 +40,9 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
-from yt.units.unit_lookup_table import yt_base_units
+from yt.units.unit_systems import unit_system_registry
 from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.fluid_fields import \
@@ -194,7 +193,8 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, 
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -236,7 +236,7 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
-        self.base_units = yt_base_units.copy()
+        self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -806,14 +806,6 @@ class Dataset(object):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
             self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                                    DW.units.dimensions)
-
-    def set_base_units(self, base_units):
-        for key, value in base_units.items():
-            if isinstance(value, string_types):
-                val = value
-            elif isinstance(value, tuple):
-                val = "*".join([str(value[0]), value[1]])
-            self.base_units[key] = val
 
     def _override_code_units(self):
         if len(self.units_override) == 0:
