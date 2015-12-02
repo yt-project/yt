@@ -311,7 +311,8 @@ class FITSDataset(Dataset):
                  z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
 
         if parameters is None:
             parameters = {}
@@ -417,7 +418,8 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, fn, dataset_type, units_override=units_override)
+        Dataset.__init__(self, fn, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

@@ -18,7 +18,7 @@ from yt.units.unit_object import Unit, unit_system_registry
 class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,
                  temperature_unit, angle_unit, current_mks_unit=None,
-                 unit_registry=None):
+                 registry=None):
         self.units_map = {dimensions.length: length_unit,
                           dimensions.mass: mass_unit,
                           dimensions.time: time_unit,
@@ -26,7 +26,7 @@ class UnitSystem(object):
                           dimensions.angle: angle_unit}
         if current_mks_unit is not None:
             self.units_map[dimensions.current_mks] = current_mks_unit
-        self.unit_registry = unit_registry
+        self.registry = registry
         self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
 
@@ -48,7 +48,7 @@ class UnitSystem(object):
     def __setitem__(self, key, value):
         if isinstance(key, string_types):
             key = getattr(dimensions, key)
-        self.units_map[key] = Unit(value, unit_registry=self.unit_registry)
+        self.units_map[key] = Unit(value, registry=self.registry)
 
 def create_code_unit_system(ds):
     code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
