@@ -20,7 +20,7 @@ from pyembree.rtcore cimport Vec3f
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
-
+from yt.utilities.lib.mesh_samplers cimport sample_hex20
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -225,5 +225,8 @@ cdef void patchIntersectFunc(Patch* patches,
         ray.geomID = patch.geomID
         ray.primID = item
         cross(Su, Sv, ray.Ng)
+
+    # we have a hit, so now we sample the solution at the calculated point
+    sample_hex20(patches, ray)
 
     return

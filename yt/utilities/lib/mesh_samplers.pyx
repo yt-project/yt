@@ -16,7 +16,10 @@ a ray. These can be used with pyembree in the form of "filter feedback functions
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
-from yt.utilities.lib.mesh_construction cimport MeshDataContainer
+from yt.utilities.lib.mesh_construction cimport \
+    MeshDataContainer, \
+    Patch
+from yt.utilities.lib.mesh_intersection cimport patchSurfaceFunc
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -124,7 +127,58 @@ cdef void sample_hex(void* userPtr,
 @cython.cdivision(True)
 cdef void sample_hex20(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
-        pass
+    cdef int ray_id, elem_id, i
+    cdef double val
+    cdef double[20] field_data
+    cdef int[20] element_indices
+    cdef double[60] vertices
+    cdef double[3] position
+    cdef float[3] pos
+    cdef Patch* data
+
+    data = <Patch*> userPtr
+    ray_id = ray.primID
+    if ray_id == -1:
+        return
+    cdef Patch patch = data[ray_id]
+
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are patches. Here,
+    # we convert this to the element id by dividing by the
+    # number of patches per element.
+    elem_id = ray_id / 6
+
+    # fills "position" with the physical position of the hit
+    patchSurfaceFunc(data[ray_id], ray.u, ray.v, pos)
+    for i in range(3):
+        position[i] = <double> pos[i]
+ 
+    for i in range(20):
+        field_data[i] = patch.field_data[elem_id, i]
+        vertices[i*3    ] = patch.vertices[patch.indices[elem_id, i]][0]
+        vertices[i*3 + 1] = patch.vertices[patch.indices[elem_id, i]][1]
+        vertices[i*3 + 2] = patch.vertices[patch.indices[elem_id, i]][2]
+
+    # we use ray.time to pass the value of the field
+    cdef double mapped_coord[3]
+    S2Sampler.map_real_to_unit(mapped_coord, vertices, position)
+    val = S2Sampler.sample_at_unit_point(mapped_coord, field_data)
+    ray.time = val
+
+    # we use ray.instID to pass back whether the ray is near the
+    # element boundary or not (used to annotate mesh lines)
+    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+        ray.instID = 1
+    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+        ray.instID = 1
+    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
+          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+        ray.instID = 1
+    else:
+        ray.instID = -1
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

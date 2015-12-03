@@ -22,9 +22,10 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from mesh_samplers cimport sample_hex
-from mesh_samplers cimport sample_tetra
-from mesh_samplers cimport sample_element
+from mesh_samplers cimport \
+    sample_hex, \
+    sample_tetra, \
+    sample_element
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -237,7 +238,7 @@ cdef class QuadraticElementMesh:
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
                  np.ndarray indices,
-                 np.ndarray data):
+                 np.ndarray field_data):
 
         # only 20-point hexes are supported right now.
         if indices.shape[1] == 20:
@@ -245,11 +246,12 @@ cdef class QuadraticElementMesh:
         else:
             raise NotImplementedError
 
-        self._build_from_indices(scene, vertices, indices)
+        self._build_from_indices(scene, vertices, indices, field_data)
 
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
-                                  np.ndarray indices_in):
+                                  np.ndarray indices_in,
+                                  np.ndarray field_data):
         cdef int i, j, ind, idim
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
@@ -269,6 +271,9 @@ cdef class QuadraticElementMesh:
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
                 self._set_bounding_sphere(patch)
+                patch.indices = indices_in
+                patch.vertices = vertices_in
+                patch.field_data = field_data
 
         self.patches = patches
         self.mesh = mesh
@@ -276,7 +281,7 @@ cdef class QuadraticElementMesh:
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, self.patches)
         rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
-        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
 
     cdef void _set_bounding_sphere(self, Patch* patch):
@@ -303,4 +308,3 @@ cdef class QuadraticElementMesh:
 
     def __dealloc__(self):
         free(self.patches)
-

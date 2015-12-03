@@ -16,3 +16,6 @@ ctypedef struct Patch:
     float[3] center
     float radius
     unsigned int geomID
+    long [:,:] indices
+    double [:,:] vertices
+    double [:,:] field_data
