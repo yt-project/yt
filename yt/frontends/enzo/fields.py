@@ -140,7 +140,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             return data["Electron_Density"] * (me/mp)
         self.add_field(("gas", "El_density"),
                        function = _electron_density,
-                       units = "g/cm**3")
+                       units = self.ds.unit_registry["density"])
         for sp in species_names:
             self.add_species_field(sp)
             self.species_names.append(known_species_names[sp])
@@ -158,6 +158,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         self.setup_energy_field()
 
     def setup_energy_field(self):
+        unit_system = self.ds.unit_system
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
@@ -192,7 +193,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.alias(
                 ("gas", "thermal_energy"),
                 ("enzo", ge_name),
-                units = "erg/g")
+                units = unit_system["specific_energy"])
         elif hydro_method in (4, 6):
             self.add_output_field(
                 ("enzo", te_name),
@@ -208,7 +209,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 return ret
             self.add_field(
                 ("gas", "thermal_energy"),
-                function=_sub_b, units = "erg/g")
+                function=_sub_b, units = unit_system["specific_energy"])
         else: # Otherwise, we assume TotalEnergy is kinetic+thermal
             self.add_output_field(
                 ("enzo", te_name),
@@ -224,14 +225,14 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "thermal_energy"),
                 function = _tot_minus_kin,
-                units = "erg/g")
+                units = unit_system["specific_energy"])
         if multi_species == 0 and 'Mu' in params:
             def _number_density(field, data):
                 return data['gas', 'density']/(mp*params['Mu'])
             self.add_field(
                 ("gas", "number_density"),
                 function = _number_density,
-                units="1/cm**3")
+                units=unit_system["number_density"])
 
     def setup_particle_fields(self, ptype):
 

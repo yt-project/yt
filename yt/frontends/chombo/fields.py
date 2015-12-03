@@ -79,6 +79,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
     )
 
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         def _thermal_energy_density(field, data):
             try:
                 return data['energy-density'] - data['kinetic_energy_density'] - \
@@ -123,27 +124,27 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
         for ax in 'xyz':
             self.add_field(("gas", "velocity_%s" % ax), function = _get_vel(ax),
-                           units = "cm/s")
+                           units = unit_system["velocity"])
         self.add_field(("gas", "thermal_energy"),
                        function = _thermal_energy,
-                       units = "erg/g")
+                       units = unit_system["specific_energy"])
         self.add_field(("gas", "thermal_energy_density"),
                        function = _thermal_energy_density,
-                       units = "erg/cm**3")
+                       units = unit_system["pressure"])
         self.add_field(("gas", "kinetic_energy"),
                        function = _kinetic_energy,
-                       units = "erg/g")
+                       units = unit_system["specific_energy"])
         self.add_field(("gas", "kinetic_energy_density"),
                        function = _kinetic_energy_density,
-                       units = "erg/cm**3")
+                       units = unit_system["pressure"])
         self.add_field(("gas", "magnetic_energy"),
                        function = _magnetic_energy,
-                       units = "erg/g")
+                       units = unit_system["specific_energy"])
         self.add_field(("gas", "magnetic_energy_density"),
                        function = _magnetic_energy_density,
-                       units = "erg/cm**3")
+                       units = unit_system["pressure"])
         self.add_field(("gas", "temperature"), function=_temperature,
-                       units="K")
+                       units=unit_system["temperature"])
 
 
 class ChomboPICFieldInfo3D(FieldInfoContainer):
