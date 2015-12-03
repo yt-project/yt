@@ -798,6 +798,8 @@ def fill_region(input_fields, output_fields,
     cdef int offsets[3][3]
     cdef np.int64_t off
     for i in range(3):
+        # Offsets here is a way of accounting for periodicity.  It keeps track
+        # of how to offset our grid as we loop over the icoords.
         dim[i] = output_fields[0].shape[i]
         offsets[i][0] = offsets[i][2] = 0
         offsets[i][1] = 1

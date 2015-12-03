@@ -596,6 +596,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
             self.left_edge, self.right_edge)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
+        # This triggers "special" behavior in the RegionSelector to ensure we
+        # select *cells* whose bounding boxes overlap with our region, not just
+        # their cell centers.
         self._data_source.loose_selection = True
 
     def get_data(self, fields = None):
