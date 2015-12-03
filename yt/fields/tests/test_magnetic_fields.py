@@ -1,7 +1,6 @@
 import numpy as np
-from yt.frontends.stream.api import load_uniform_grid
 from yt.utilities.physical_constants import mu_0
-from yt.testing import assert_array_almost_equal_nulp
+from yt.testing import assert_almost_equal, fake_random_ds
 
 def setup():
     from yt.config import ytcfg
@@ -9,17 +8,13 @@ def setup():
 
 def test_magnetic_fields():
 
-    ddims = (32,32,32)
+    fields = ("magnetic_field_x", "magnetic_field_y", "magnetic_field_z")
+    cgs_units = ("gauss",)*3
+    mks_units = ("T",)*3
 
-    data_cgs = {"magnetic_field_x":(np.random.random(size=ddims), "gauss"),
-                "magnetic_field_y":(np.random.random(size=ddims), "gauss"),
-                "magnetic_field_z":(np.random.random(size=ddims), "gauss")}
-    data_mks = {"magnetic_field_x":(np.random.random(size=ddims), "T"),
-                "magnetic_field_y":(np.random.random(size=ddims), "T"),
-                "magnetic_field_z":(np.random.random(size=ddims), "T")}
-
-    ds_cgs = load_uniform_grid(data_cgs, ddims)
-    ds_mks = load_uniform_grid(data_mks, ddims, unit_system="mks")
+    ds_cgs = fake_random_ds(16, fields=fields, units=cgs_units, nprocs=16)
+    ds_mks = fake_random_ds(16, fields=fields, units=mks_units, nprocs=16,
+                            unit_system="mks")
 
     ds_cgs.index
     ds_mks.index
@@ -38,15 +33,15 @@ def test_magnetic_fields():
                 dd_cgs["magnetic_field_y"]**2 +
                 dd_cgs["magnetic_field_z"]**2)/(8.0*np.pi)
     emag_cgs.convert_to_units("dyne/cm**2")
-    
+
     emag_mks = (dd_mks["magnetic_field_x"]**2 +
                 dd_mks["magnetic_field_y"]**2 +
                 dd_mks["magnetic_field_z"]**2)/(2.0*mu_0)
     emag_mks.convert_to_units("Pa")
-    
-    yield assert_array_almost_equal_nulp, emag_cgs, dd_cgs["magnetic_energy"], 2
-    yield assert_array_almost_equal_nulp, emag_mks, dd_mks["magnetic_energy"], 2
-    
+
+    yield assert_almost_equal, emag_cgs, dd_cgs["magnetic_energy"]
+    yield assert_almost_equal, emag_mks, dd_mks["magnetic_energy"]
+
     assert str(emag_cgs.units) == str(dd_cgs["magnetic_energy"].units)
     assert str(emag_mks.units) == str(dd_mks["magnetic_energy"].units)
 
