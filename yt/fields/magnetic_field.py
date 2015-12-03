@@ -15,6 +15,9 @@ Magnetic field ... er, fields.
 
 import numpy as np
 
+from yt.units import dimensions
+from yt.units.unit_object import Unit
+
 from yt.fields.derived_field import \
     ValidateParameter
 
@@ -29,17 +32,17 @@ from yt.utilities.math_utils import \
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     from yt.utilities.physical_constants import mu_0
     unit_system = registry.ds.unit_system
-    if str(unit_system) == "mks":
-        mag_units = unit_system["magnetic_field_mks"]
-        mag_fac = 1.0/mu_0
+    mag_units = registry.ds.field_info[ftype,"magnetic_field_x"].units
+    mag_dims = Unit(mag_units).dimensions
+    if mag_dims is dimensions.magnetic_field_mks:
+        mag_fac = mu_0
     else:
-        mag_fac = 1.0/(4.0*np.pi)
-        mag_units = unit_system["magnetic_field_cgs"]
+        mag_fac = 4.0*np.pi
 
     def _magnetic_energy(field,data):
-        return 0.5*mag_fac*(data[ftype,"magnetic_field_x"]**2 +
-                            data[ftype,"magnetic_field_y"]**2 +
-                            data[ftype,"magnetic_field_z"]**2)
+        return 0.5*(data[ftype,"magnetic_field_x"]**2 +
+                    data[ftype,"magnetic_field_y"]**2 +
+                    data[ftype,"magnetic_field_z"]**2)/mag_fac
     registry.add_field((ftype, "magnetic_energy"),
              function=_magnetic_energy,
              units=unit_system["pressure"])
