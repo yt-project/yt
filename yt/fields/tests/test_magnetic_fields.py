@@ -37,10 +37,16 @@ def test_magnetic_fields():
     emag_cgs = (dd_cgs["magnetic_field_x"]**2 +
                 dd_cgs["magnetic_field_y"]**2 +
                 dd_cgs["magnetic_field_z"]**2)/(8.0*np.pi)
-
+    emag_cgs.convert_to_units("dyne/cm**2")
+    
     emag_mks = (dd_mks["magnetic_field_x"]**2 +
                 dd_mks["magnetic_field_y"]**2 +
                 dd_mks["magnetic_field_z"]**2)/(2.0*mu_0)
-
+    emag_mks.convert_to_units("Pa")
+    
     yield assert_array_almost_equal_nulp, emag_cgs, dd_cgs["magnetic_energy"], 2
     yield assert_array_almost_equal_nulp, emag_mks, dd_mks["magnetic_energy"], 2
+    
+    assert str(emag_cgs.units) == str(dd_cgs["magnetic_energy"].units)
+    assert str(emag_mks.units) == str(dd_mks["magnetic_energy"].units)
+
