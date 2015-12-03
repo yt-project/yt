@@ -101,7 +101,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _alfven_speed(field,data):
         return data[ftype,'magnetic_field_strength']/np.sqrt(mag_fac*data[ftype,'density'])
     registry.add_field((ftype, "alfven_speed"), function=_alfven_speed,
-                       units=mag_units)
+                       units=unit_system["velocity"])
 
     def _mach_alfven(field,data):
         return data[ftype,'velocity_magnitude']/data[ftype,'alfven_speed']
