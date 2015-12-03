@@ -122,17 +122,6 @@ def coerce_iterable_units(input_object):
     else:
         return input_object
 
-def sanitize_units_mul(this_object, other_object):
-    inp = coerce_iterable_units(this_object)
-    ret = coerce_iterable_units(other_object)
-    # If the other object is a YTArray and has the same dimensions as the object
-    # under consideration, convert so we don't mix units with the same
-    # dimensions.
-    if isinstance(ret, YTArray):
-        if inp.units.same_dimensions_as(ret.units):
-            ret.in_units(inp.units)
-    return ret
-
 def sanitize_units_add(this_object, other_object, op_string):
     inp = coerce_iterable_units(this_object)
     ret = coerce_iterable_units(other_object)
@@ -892,75 +881,6 @@ class YTArray(np.ndarray):
     def __pos__(self):
         """ Posify the data. """
         return YTArray(super(YTArray, self).__pos__(), self.units)
-
-    def __mul__(self, right_object):
-        """
-        Multiply this YTArray by the object on the right of the `*` operator.
-        The unit objects handle being multiplied.
-
-        """
-        ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__mul__(ro))
-
-    def __rmul__(self, left_object):
-        """ See __mul__. """
-        lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rmul__(lo))
-
-    def __imul__(self, other):
-        """ See __mul__. """
-        oth = sanitize_units_mul(self, other)
-        np.multiply(self, oth, out=self)
-        return self
-
-    def __div__(self, right_object):
-        """
-        Divide this YTArray by the object on the right of the `/` operator.
-
-        """
-        ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__div__(ro))
-
-    def __rdiv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rdiv__(lo))
-
-    def __idiv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.divide(self, oth, out=self)
-        return self
-
-    def __truediv__(self, right_object):
-        ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__truediv__(ro))
-
-    def __rtruediv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rtruediv__(lo))
-
-    def __itruediv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.true_divide(self, oth, out=self)
-        return self
-
-    def __floordiv__(self, right_object):
-        ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__floordiv__(ro))
-
-    def __rfloordiv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rfloordiv__(lo))
-
-    def __ifloordiv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.floor_divide(self, oth, out=self)
-        return self
 
     #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
