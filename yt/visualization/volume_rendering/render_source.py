@@ -390,13 +390,13 @@ class MeshSource(OpaqueSource):
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("27-node hexes not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
             elif indices.shape[1] == 10:
                 # tetrahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("10-node tetrahedral elements not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
