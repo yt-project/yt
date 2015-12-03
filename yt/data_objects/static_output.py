@@ -236,8 +236,9 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
-        create_code_unit_system(self)
+
         if unit_system == "code":
+            create_code_unit_system(self)
             unit_system = str(self)
         self.unit_system = unit_system_registry[unit_system]
 
