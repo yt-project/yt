@@ -55,6 +55,15 @@ def iterable(obj):
         return False
     return True
 
+# slightly modified from the implementation in yt.funcs, since we don't need
+# to check if obj is a list or ndarray
+def ensure_tuple(obj):
+    if isinstance(obj, tuple):
+        return obj
+    else:
+        return (obj, )
+
+
 def return_arr(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
