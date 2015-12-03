@@ -246,19 +246,16 @@ class TableApecModel(SpectralModel):
         self.maxlam = self.wvbins.max()
         self.scale_factor = 1.0/(1.+zobs)
 
-    def _make_spectrum(self, kT, element, tindex):
+    def _make_spectrum(self, kT, element, tindex, line_fields, coco_fields):
 
         tmpspec = np.zeros(self.nchan)
 
-        line_data = self.line_handle[tindex].data
-        coco_data = self.coco_handle[tindex].data
+        i = np.where((line_fields['element'] == element) &
+                     (line_fields['lambda'] > self.minlam) &
+                     (line_fields['lambda'] < self.maxlam))[0]
 
-        i = np.where((line_data.field('element') == element) &
-                     (line_data.field('lambda') > self.minlam) &
-                     (line_data.field('lambda') < self.maxlam))[0]
-
-        E0 = hc/line_data.field('lambda')[i].astype("float64")*self.scale_factor
-        amp = line_data.field('epsilon')[i].astype("float64")
+        E0 = hc/line_fields['lambda'][i].astype("float64")*self.scale_factor
+        amp = line_fields['epsilon'][i].astype("float64")
         ebins = self.ebins.d
         de = self.de.d
         emid = self.emid.d
@@ -269,22 +266,22 @@ class TableApecModel(SpectralModel):
             vec = np.histogram(E0, ebins, weights=amp)[0]
         tmpspec += vec
 
-        ind = np.where((coco_data.field('Z') == element) &
-                       (coco_data.field('rmJ') == 0))[0]
+        ind = np.where((coco_fields['Z'] == element) &
+                       (coco_fields['rmJ'] == 0))[0]
         if len(ind) == 0:
             return tmpspec
         else:
             ind = ind[0]
 
-        n_cont = coco_data.field('N_Cont')[ind]
-        e_cont = coco_data.field('E_Cont')[ind][:n_cont]
-        continuum = coco_data.field('Continuum')[ind][:n_cont]
+        n_cont = coco_fields['N_Cont'][ind]
+        e_cont = coco_fields['E_Cont'][ind][:n_cont]
+        continuum = coco_fields['Continuum'][ind][:n_cont]
 
         tmpspec += np.interp(emid, e_cont*self.scale_factor, continuum)*de/self.scale_factor
 
-        n_pseudo = coco_data.field('N_Pseudo')[ind]
-        e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]
-        pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
+        n_pseudo = coco_fields['N_Pseudo'][ind]
+        e_pseudo = coco_fields['E_Pseudo'][ind][:n_pseudo]
+        pseudo = coco_fields['Pseudo'][ind][:n_pseudo]
 
         tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de/self.scale_factor
 
@@ -302,14 +299,26 @@ class TableApecModel(SpectralModel):
         if tindex >= self.Tvals.shape[0]-1 or tindex < 0:
             return YTArray(cspec_l, "cm**3/s"), YTArray(mspec_l, "cm**3/s")
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
+        # preload data to avoid astropy IO in _make_spectrum
+        line_data = self.line_handle[tindex].data
+        coco_data = self.coco_handle[tindex].data
+        line_fields = ('element', 'lambda', 'epsilon')
+        coco_fields = ('Z', 'rmJ', 'N_Cont', 'E_Cont', 'Continuum', 'N_Pseudo',
+                       'E_Pseudo', 'Pseudo')
+        line_fields = {el: line_data.field(el) for el in line_fields}
+        coco_fields = {el: coco_data.field(el) for el in coco_fields}
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
-            cspec_l += self._make_spectrum(kT, elem, tindex+2)
-            cspec_r += self._make_spectrum(kT, elem, tindex+3)
+            cspec_l += self._make_spectrum(
+                kT, elem, tindex+2, line_fields, coco_fields)
+            cspec_r += self._make_spectrum(
+                kT, elem, tindex+3, line_fields, coco_fields)
         # Next do the metals
         for elem in self.metal_elem:
-            mspec_l += self._make_spectrum(kT, elem, tindex+2)
-            mspec_r += self._make_spectrum(kT, elem, tindex+3)
+            mspec_l += self._make_spectrum(
+                kT, elem, tindex+2, line_fields, coco_fields)
+            mspec_r += self._make_spectrum(
+                kT, elem, tindex+3, line_fields, coco_fields)
         cosmic_spec = YTArray(cspec_l*(1.-dT)+cspec_r*dT, "cm**3/s")
         metal_spec = YTArray(mspec_l*(1.-dT)+mspec_r*dT, "cm**3/s")
         return cosmic_spec, metal_spec
