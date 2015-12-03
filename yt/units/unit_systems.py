@@ -25,10 +25,10 @@ class UnitSystem(object):
                           dimensions.time: Unit(time_unit, registry=self.registry),
                           dimensions.temperature: Unit(temperature_unit, registry=self.registry),
                           dimensions.angle: Unit(angle_unit, registry=self.registry)}
-        self._keys = ["length","mass","time","temperature","angle"]
+        self._dims = ["length","mass","time","temperature","angle"]
         if current_mks_unit is not None:
             self.units_map[dimensions.current_mks] = Unit(current_mks_unit, registry=self.registry)
-            self._keys.append("current_mks")
+            self._dims.append("current_mks")
         self.registry = registry
         self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
@@ -36,8 +36,8 @@ class UnitSystem(object):
 
     def __getitem__(self, key):
         if isinstance(key, string_types):
-            if key not in self._keys:
-                self._keys.append(key)
+            if key not in self._dims:
+                self._dims.append(key)
             key = getattr(dimensions, key)
         if key not in self.units_map:
             dims = key.expand()
@@ -53,13 +53,10 @@ class UnitSystem(object):
 
     def __setitem__(self, key, value):
         if isinstance(key, string_types):
-            if key not in self._keys:
-                self._keys.append(key)
+            if key not in self._dims:
+                self._dims.append(key)
             key = getattr(dimensions, key)
         self.units_map[key] = Unit(value, registry=self.registry)
-
-    def keys(self):
-        return self._keys
 
     def __str__(self):
         return self.name
@@ -70,7 +67,7 @@ class UnitSystem(object):
         for dim in self.base_units:
             repr += "  %s: %s\n" % (str(dim).strip("()"), self.base_units[dim])
         repr += " Other Units:\n"
-        for key in self.keys():
+        for key in self._dims:
             dim = getattr(dimensions, key)
             if dim not in self.base_units:
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
