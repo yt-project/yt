@@ -140,7 +140,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             return data["Electron_Density"] * (me/mp)
         self.add_field(("gas", "El_density"),
                        function = _electron_density,
-                       units = self.ds.unit_registry["density"])
+                       units = self.ds.unit_system["density"])
         for sp in species_names:
             self.add_species_field(sp)
             self.species_names.append(known_species_names[sp])

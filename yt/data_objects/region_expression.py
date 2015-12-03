@@ -11,8 +11,8 @@ An object that can live on the dataset to facilitate data access.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.extern.six import string_types
 import weakref
-import types
 
 from yt.utilities.exceptions import YTDimensionalityError
 
@@ -31,11 +31,11 @@ class RegionExpression(object):
         # At first, we will only implement this as accepting a slice that is
         # (optionally) unitful corresponding to a specific set of coordinates
         # that result in a rectangular prism or a slice.
-        if isinstance(item, types.StringTypes):
+        if isinstance(item, string_types):
             # This is some field; we will instead pass this back to the
             # all_data object.
             return self.all_data[item]
-        if isinstance(item, tuple) and isinstance(item[1], types.StringTypes):
+        if isinstance(item, tuple) and isinstance(item[1], string_types):
             return self.all_data[item]
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
