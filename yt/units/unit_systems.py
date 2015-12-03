@@ -17,16 +17,15 @@ from yt.units.unit_object import Unit, unit_system_registry
 
 class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,
-                 temperature_unit, angle_unit, current_mks_unit=None,
+                 temperature_unit, angle_unit, current_mks_unit="A",
                  registry=None):
         self.registry = registry
         self.units_map = {dimensions.length: Unit(length_unit, registry=self.registry),
                           dimensions.mass: Unit(mass_unit, registry=self.registry),
                           dimensions.time: Unit(time_unit, registry=self.registry),
                           dimensions.temperature: Unit(temperature_unit, registry=self.registry),
-                          dimensions.angle: Unit(angle_unit, registry=self.registry)}
-        if current_mks_unit is not None:
-            self.units_map[dimensions.current_mks] = Unit(current_mks_unit, registry=self.registry)
+                          dimensions.angle: Unit(angle_unit, registry=self.registry),
+                          dimensions.current_mks: Unit(current_mks_unit, registry=self.registry)}
         self.registry = registry
         self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
