@@ -59,10 +59,6 @@ def test_multiplication():
     assert_equal(result.ndview, 2*vals)
     assert(type(result.units) is tuple)
 
-#def test_addition():
-#    vals = np.arange((100, 3))
-#    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
-
 def compare_slicing(desired, actual, unit_type, array_type):
     assert_equal(desired, actual)
     assert(type(actual.units) is unit_type)
