@@ -25,35 +25,43 @@ from yt.units.unit_object import Unit
 def test_multiplication():
     vals = np.random.random((100, 3))
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
-    index *= index
+    result = index*index
 
-    assert_equal(index.units[0], (u.km * u.km).units)
-    assert_equal(index.units[1], (u.g * u.g).units)
-    assert_equal(index.units[2], (u.s * u.s).units)
-    assert(type(index.units) is tuple)
+    assert_equal(result.units, ((u.km**2).units, (u.g**2).units, (u.s**2).units))
+    assert_equal(result.ndview, vals**2)
+    assert(type(result.units) is tuple)
 
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
 
-    index *= u.km
+    result = index * u.km
 
-    assert_equal(index.units[0], (u.km * u.km).units)
-    assert_equal(index.units[1], (u.km * u.g).units)
-    assert_equal(index.units[2], (u.km * u.s).units)
-    assert(type(index.units) is tuple)
+    assert_equal(
+        result.units, ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
+    assert_equal(result.ndview, vals)
+    assert(type(result.units) is tuple)
 
-    index2 = index * 2
+    result = u.km * index
 
-    assert_equal(index.units[0], index2.units[0])
-    assert_equal(index.units[1], index2.units[1])
-    assert_equal(index.units[2], index2.units[2])
-    assert(type(index.units) is tuple)
+    assert_equal(
+        result.units, ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
+    assert_equal(result.ndview, vals)
+    assert(type(result.units) is tuple)
 
-    index3 = 2 * index
+    result = index * 2
 
-    assert_equal(index.units[0], index3.units[0])
-    assert_equal(index.units[1], index3.units[1])
-    assert_equal(index.units[2], index3.units[2])
-    assert(type(index.units) is tuple)
+    assert_equal(result.units, index.units)
+    assert_equal(result.ndview, 2*vals)
+    assert(type(result.units) is tuple)
+
+    result = 2 * index
+
+    assert_equal(result.units, index.units)
+    assert_equal(result.ndview, 2*vals)
+    assert(type(result.units) is tuple)
+
+#def test_addition():
+#    vals = np.arange((100, 3))
+#    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
 
 def compare_slicing(desired, actual, unit_type, array_type):
     assert_equal(desired, actual)
