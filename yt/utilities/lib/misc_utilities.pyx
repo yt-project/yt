@@ -815,27 +815,36 @@ def fill_region(input_fields, output_fields,
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))
                 iind[0] = ipos[i, 0] * rf - off
+                # rf here is the "refinement factor", or, the number of zones
+                # that this zone could potentially contribute to our filled
+                # grid.
                 for oi in range(rf):
                     # Now we need to apply our offset
                     oind[0] = oi + iind[0]
-                    if oind[0] < 0 or oind[0] >= dim[0]:
+                    if oind[0] < 0:
                         continue
+                    elif oind[0] >= dim[0]:
+                        break
                     for wj in range(3):
                         if offsets[1][wj] == 0: continue
                         off = (left_index[1] + level_dims[1]*(wj-1))
                         iind[1] = ipos[i, 1] * rf - off
                         for oj in range(rf):
                             oind[1] = oj + iind[1]
-                            if oind[1] < 0 or oind[1] >= dim[1]:
+                            if oind[1] < 0:
                                 continue
+                            elif oind[1] >= dim[1]:
+                                break
                             for wk in range(3):
                                 if offsets[2][wk] == 0: continue
                                 off = (left_index[2] + level_dims[2]*(wk-1))
                                 iind[2] = ipos[i, 2] * rf - off
                                 for ok in range(rf):
                                     oind[2] = ok + iind[2]
-                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                    if oind[2] < 0:
                                         continue
+                                    elif oind[2] >= dim[2]:
+                                        break
                                     ofield[oind[0], oind[1], oind[2]] = \
                                         ifield[i]
                                     tot += 1
