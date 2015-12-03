@@ -49,8 +49,10 @@ NULL_UNIT = Unit()
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
-    try: len(obj)
-    except: return False
+    try:
+        len(obj)
+    except:
+        return False
     return True
 
 def return_arr(func):
