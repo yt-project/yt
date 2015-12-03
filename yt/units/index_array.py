@@ -33,10 +33,12 @@ from yt.units.unit_object import \
 
 ELLIPSIS_TYPE = type(Ellipsis)
 
-class IndexArray(np.ndarray):
+class IndexArray(YTArray):
     """
     An ndarray subclass useful for indexing along dimensions that have units
     """
+
+    __array_priority__ = 3.0
 
     def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
         if input_array is NotImplemented:
@@ -84,7 +86,7 @@ class IndexArray(np.ndarray):
         ret = super(IndexArray, self).__getitem__(item)
         if iterable(item):
             if isinstance(item[0], (slice, ELLIPSIS_TYPE)):
-                ret = YTArray(ret, self.units[item[1]])
+                ret = YTArray(ret.view(np.ndarray), self.units[item[1]])
             elif isinstance(item[1], (slice, ELLIPSIS_TYPE)):
                 # ret maintains units of original array
                 pass
@@ -102,7 +104,8 @@ class IndexArray(np.ndarray):
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
-        ret = super(IndexArray, self).__array_wrap__(out_arr, context)
+        # note that we explicitly call YTArray's superclass, not IndexArray
+        ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if context is None:
             return ret
         elif context[0] in unary_operators:
@@ -144,39 +147,3 @@ class IndexArray(np.ndarray):
                         raise NotImplementedError
 
         return ret_class(np.array(out_arr, copy=False), units)
-
-    def __eq__(self, other):
-        """ Test if this is equal to the object on the right. """
-        if other is None:
-            return False
-        if not hasattr(other, 'units'):
-            if not all([u == NULL_UNIT for u in self.units]):
-                return False
-        if not iterable(other.units):
-            return False
-        if not all([u1 == u2 for u1, u2 in zip(self.units, other.units)]):
-            return False
-        return np.array(self).__eq__(np.array(other))
-
-    def __str__(self):
-        return super(IndexArray, self).__str__() + ' ' + str(self.units)
-
-    def __repr__(self):
-        return super(IndexArray, self).__repr__() + ' ' + repr(self.units)
-
-    def ndarray_view(self):
-        """
-        Returns a view into the array, but as an ndarray rather than ytarray.
-
-        Returns
-        -------
-        View of this array's data.
-        """
-        return self.view(np.ndarray)
-
-    @property
-    def ndview(self):
-        """Get a view of the array data."""
-        return self.ndarray_view()
-
-    d = ndview

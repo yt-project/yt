@@ -152,9 +152,11 @@ def sanitize_units_add(this_object, other_object, op_string):
 def validate_comparison_units(this, other, op_string):
     # Check that other is a YTArray.
     if hasattr(other, 'units'):
-        if this.units.expr is other.units.expr:
+        tu = ensure_tuple(this.units)
+        ou = ensure_tuple(other.units)
+        if all([u1.expr is u2.expr for u1, u2 in zip(tu, ou)]):
             return other
-        if not this.units.same_dimensions_as(other.units):
+        if not all([u1.same_dimensions_as(u2) for u1, u2 in zip(tu, ou)]):
             raise YTUnitOperationError(op_string, this.units, other.units)
         return other.in_units(this.units)
 
