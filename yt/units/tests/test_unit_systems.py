@@ -11,14 +11,24 @@ Test unit systems.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.units.unit_object import unit_system_registry
+from yt.units.unit_object import Unit, unit_system_registry
+from yt.units.unit_systems import UnitSystem
+from yt.units import dimensions
 from yt.convenience import load
-from yt.testing import fake_random_ds, assert_almost_equal, requires_file
+from yt.testing import assert_almost_equal, requires_file
 from yt.config import ytcfg
 import numpy as np
 
 def test_unit_systems():
-    pass
+    goofy_unit_system = UnitSystem("goofy", "ly", "lbm", "hr", "R",
+                                   "arcsec", current_mks_unit="mA")
+    assert goofy_unit_system["temperature"] == Unit("R")
+    assert goofy_unit_system[dimensions.solid_angle] == Unit("arcsec**2")
+    assert goofy_unit_system["energy"] == Unit("lbm*ly**2/hr**2")
+    goofy_unit_system["energy"] = "eV"
+    assert goofy_unit_system["energy"] == Unit("eV")
+    assert goofy_unit_system["magnetic_field_mks"] == Unit("lbm/(hr**2*mA)")
+    assert "goofy" in unit_system_registry
 
 gslr = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_file(gslr)
@@ -56,6 +66,5 @@ def test_fields_diff_systems():
         for field in test_fields:
             v1 = dd_cgs[field].in_base(us)
             v2 = dd[field]
-            print(field)
             assert_almost_equal(v1.v, v2.v)
             assert str(v2.units) == test_units[us][field]
