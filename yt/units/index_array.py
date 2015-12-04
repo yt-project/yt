@@ -40,7 +40,8 @@ class IndexArray(YTArray):
 
     __array_priority__ = 3.0
 
-    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+    def __new__(cls, input_array, input_units=None, registry=None,
+                dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
         if isinstance(input_array, YTArray):
