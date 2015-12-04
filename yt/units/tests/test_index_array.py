@@ -101,6 +101,7 @@ def test_str_and_repr():
     vals.shape = (2, 3)
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
 
-    assert_equal(str(index), '[[0 1 2]\n [3 4 5]] (km, g, s)')
+    assert_equal(str(index), '[[ 0.  1.  2.]\n [ 3.  4.  5.]] (km, g, s)')
     assert_equal(
-        repr(index), 'IndexArray([[0, 1, 2],\n       [3, 4, 5]]) (km, g, s)')
+        repr(index),
+        'IndexArray([[ 0.,  1.,  2.],\n       [ 3.,  4.,  5.]]) (km, g, s)')
