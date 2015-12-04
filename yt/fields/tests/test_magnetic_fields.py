@@ -12,8 +12,8 @@ def test_magnetic_fields():
     cgs_units = ("gauss",)*3
     mks_units = ("T",)*3
 
-    ds_cgs = fake_random_ds(16, fields=fields, units=cgs_units, nprocs=16)
-    ds_mks = fake_random_ds(16, fields=fields, units=mks_units, nprocs=16,
+    ds_cgs = fake_random_ds(16, fields=fields, units=cgs_units, nprocs=4)
+    ds_mks = fake_random_ds(16, fields=fields, units=mks_units, nprocs=4,
                             unit_system="mks")
 
     ds_cgs.index
