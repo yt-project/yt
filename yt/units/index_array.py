@@ -200,12 +200,18 @@ class IndexArray(YTArray):
 
         new_units = []
         new_values = self.v
+        ndim = len(new_values.shape)
 
         for i, (sunit, unit) in enumerate(zip(self.units, units)):
             nu = sunit._unit_repr_check_same(unit)
             new_units.append(nu)
             conversion_factor, offset = sunit.get_conversion_factor(nu)
-            new_values[:, i] *= conversion_factor
+            if ndim == 2:
+                new_values[:, i] *= conversion_factor
+            elif ndim == 1:
+                new_values[i] *= conversion_factor
+            else:
+                raise NotImplementedError
 
         new_array = IndexArray(new_values, new_units)
 
