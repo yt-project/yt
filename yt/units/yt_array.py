@@ -456,8 +456,7 @@ class YTArray(np.ndarray):
 
     def in_units(self, units):
         """
-        Creates a copy of this array with the data in the supplied units, and
-        returns it.
+        Returns a copy of this array with the data in the supplied units.
 
         Parameters
         ----------
