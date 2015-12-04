@@ -115,8 +115,6 @@ class IndexArray(YTArray):
         elif context[0] in unary_operators:
             u = context[1][0].units
             units = UFUNC_REGISTRY[context[0]](u)
-            if units is None:
-                units = (NULL_UNIT, )*len(u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = context[1][0]
@@ -149,7 +147,9 @@ class IndexArray(YTArray):
                     if unit.is_dimensionless and unit.base_value != 1.0:
                         # fix this later
                         raise NotImplementedError
-
+        if units is None:
+            out_arr = np.array(out_arr, copy=False)
+            return out_arr
         return ret_class(np.array(out_arr, copy=False), units)
 
     def convert_to_units(self, units):

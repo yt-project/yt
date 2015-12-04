@@ -96,6 +96,14 @@ def test_slicing():
     compare_slicing(index[:], index, tuple, IndexArray)
     compare_slicing(index[...], index, tuple, IndexArray)
 
+def test_boolean_unary_ops():
+    vals = np.arange(30)
+    vals.shape = (10, 3)
+    index = IndexArray(vals, [u.km, u.km, u.km])
+
+    assert_equal(np.isnan(index), np.isnan(vals))
+    assert(all([i is np.bool_(False) for i in np.isnan(index).ravel()]))
+
 def test_str_and_repr():
     vals = np.arange(6)
     vals.shape = (2, 3)
