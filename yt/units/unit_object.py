@@ -24,14 +24,18 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless, current_mks
+    dimensionless, current_mks, \
+    em_dimensions
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, cgs_base_units, \
     mks_base_units, latex_prefixes, yt_base_units
 from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
-from yt.utilities.exceptions import YTUnitsNotReducible
+from yt.utilities.exceptions import \
+    YTUnitsNotReducible, \
+    YTEquivalentDimsError, \
+    YTUnitConversionError
 
 import copy
 import token
@@ -393,6 +397,30 @@ class Unit(Expr):
             else:
                 return False
         return True
+
+    def _unit_repr_check_same(self, units):
+        """
+        Takes a Unit object, or string of known unit symbol, and check that it
+        is compatible with this unit. Returns Unit object.
+
+        """
+        # let Unit() handle units arg if it's not already a Unit obj.
+        if not isinstance(units, Unit):
+            units = Unit(units, registry=self.registry)
+
+        equiv_dims = em_dimensions.get(self.dimensions, None)
+        if equiv_dims == units.dimensions:
+            if current_mks in equiv_dims.free_symbols:
+                base = "SI"
+            else:
+                base = "CGS"
+            raise YTEquivalentDimsError(self, units, base)
+
+        if not self.same_dimensions_as(units):
+            raise YTUnitConversionError(
+                self, self.dimensions, units, units.dimensions)
+
+        return units
 
     def _get_system_unit_string(self, base_units):
         # The dimensions of a unit object is the product of the base dimensions.
