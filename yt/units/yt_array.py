@@ -133,19 +133,34 @@ def coerce_iterable_units(input_object):
     else:
         return input_object
 
+def sanitize_unit_tuples(unit1, unit2):
+    """Return tuples of the same length containing unit1 and unit2"""
+    u1 = ensure_tuple(unit1)
+    u2 = ensure_tuple(unit2)
+
+    # pad tuples if their sizes don't match
+    if len(u1) > len(u2):
+        u2 = u2*len(u1)
+    else:
+        u1 = u1*len(u2)
+
+    return u1, u2
+
 def sanitize_units_add(this_object, other_object, op_string):
     inp = coerce_iterable_units(this_object)
     ret = coerce_iterable_units(other_object)
+    i_units, r_units = sanitize_unit_tuples(
+        getattr(inp, 'units', None), getattr(ret, 'units', None))
     # Make sure the other object is a YTArray before we use the `units`
     # attribute.
     if isinstance(ret, YTArray):
-        if not inp.units.same_dimensions_as(ret.units):
+        if not all(i.same_dimensions_as(r) for i, r in zip(i_units, r_units)):
             raise YTUnitOperationError(op_string, inp.units, ret.units)
         ret = ret.in_units(inp.units)
     # If the other object is not a YTArray, the only valid case is adding
     # dimensionless things.
     else:
-        if not inp.units.is_dimensionless:
+        if not all(i.is_dimensionless for i in i_units):
             raise YTUnitOperationError(op_string, inp.units, dimensionless)
     return ret
 

@@ -19,6 +19,7 @@ import numpy as np
 from yt.units.yt_array import \
     binary_operators, \
     commutative_operators, \
+    ensure_tuple, \
     iterable, \
     NULL_UNIT, \
     same_unit_operators, \
@@ -179,3 +180,79 @@ class IndexArray(YTArray):
         """
         YTImmutableUnitsError('in_mks')
 
+    def in_units(self, units):
+        """
+        Retuns a copy of this array with the data in the supplied units.
+
+        Parameters
+        ----------
+        units : Unit object or string
+            The units you want to get a new quantity in.
+
+        Returns
+        -------
+        IndexArray
+
+        """
+        units = ensure_tuple(units)
+        if len(units) == 1:
+            units = units * len(self.units)
+
+        new_units = []
+        new_values = self.v
+
+        for i, (sunit, unit) in enumerate(zip(self.units, units)):
+            nu = sunit._unit_repr_check_same(unit)
+            new_units.append(nu)
+            conversion_factor, offset = sunit.get_conversion_factor(nu)
+            new_values[:, i] *= conversion_factor
+
+        new_array = IndexArray(new_values, new_units)
+
+        if offset:
+            # punt on this for now
+            raise NotImplementedError
+
+        return new_array
+
+    def in_base(self):
+        """
+        Creates a copy of this array with the data in the equivalent base units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to cgs units.
+
+        """
+        return self.in_units(
+            tuple([u.get_base_equivalent() for u in self.units])
+        )
+
+    def in_cgs(self):
+        """
+        Creates a copy of this array with the data in the equivalent cgs units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to cgs units.
+
+        """
+        return self.in_units(
+            tuple([u.get_cgs_equivalent() for u in self.units])
+        )
+
+    def in_mks(self):
+        """
+        Creates a copy of this array with the data in the equivalent mks units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to mks units.
+
+        """
+        return self.in_units(
+            tuple([u.get_mks_equivalent() for u in self.units])
+        )
