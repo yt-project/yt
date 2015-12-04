@@ -17,7 +17,9 @@ Test ndarray subclass that handles indexing along dimensions with units.
 import yt.units as u
 import numpy as np
 
-from yt.testing import assert_equal
+from yt.testing import \
+    assert_equal, \
+    assert_almost_equal
 from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
@@ -58,6 +60,58 @@ def test_multiplication():
     assert_equal(result.units, index.units)
     assert_equal(result.ndview, 2*vals)
     assert(type(result.units) is tuple)
+
+def test_addition():
+    vals = np.random.random((100, 3))
+    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+
+    row_vals = np.random.random(3)
+    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
+
+    ret1 = index + index
+
+    assert_equal(ret1.units, index.units)
+    assert_equal(ret1.d, vals+vals)
+    assert(type(ret1.units) is tuple)
+
+    ret2 = index + row_index
+
+    assert_equal(ret2.units, index.units)
+    assert_equal(ret2.d, vals+row_vals)
+    assert(type(ret2.units) is tuple)
+
+    ret3 = row_index + index
+
+    assert_equal(ret3.units, index.units)
+    assert_equal(ret3.d, vals+row_vals)
+    assert(type(ret3.units) is tuple)
+
+def test_unit_conversions():
+    vals = np.random.random((100, 3))
+    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+
+    converted = index.in_units(('m', 'kg', 'min'))
+    correct_result = np.copy(vals)
+    correct_result[:, 0] *= 1000
+    correct_result[:, 1] /= 1000
+    correct_result[:, 2] /= 60
+
+    assert_equal(converted.units, (Unit('m'), Unit('kg'), Unit('min')))
+    assert_almost_equal(correct_result, converted.d)
+    assert(type(converted.units) is tuple)
+
+    row_vals = np.random.random(3)
+    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
+
+    converted = row_index.in_units(('m', 'kg', 'min'))
+    correct_result = np.copy(row_vals)
+    correct_result[0] *= 1000
+    correct_result[1] /= 1000
+    correct_result[2] /= 60
+
+    assert_equal(converted.units, (Unit('m'), Unit('kg'), Unit('min')))
+    assert_almost_equal(correct_result, converted.d)
+    assert(type(converted.units) is tuple)
 
 def compare_slicing(desired, actual, unit_type, array_type):
     assert_equal(desired, actual)
