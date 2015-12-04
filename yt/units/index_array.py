@@ -30,6 +30,8 @@ from yt.units.yt_array import \
     YTQuantity
 from yt.units.unit_object import \
     Unit
+from yt.utilities.exceptions import \
+    YTImmutableUnitsError
 
 ELLIPSIS_TYPE = type(Ellipsis)
 
@@ -148,3 +150,32 @@ class IndexArray(YTArray):
                         raise NotImplementedError
 
         return ret_class(np.array(out_arr, copy=False), units)
+
+    def convert_to_units(self, units):
+        """
+        This function raises a RuntimeError, use in_units instead.
+
+        """
+        raise YTImmutableUnitsError('in_units')
+
+    def convert_to_base(self):
+        """
+        This function raises a RuntimeError, use in_base instead.
+
+        """
+        raise YTImmutableUnitsError('in_base')
+
+    def convert_to_cgs(self):
+        """
+        This function raises a RuntimeError, use in_cgs instead.
+
+        """
+        raise YTImmutableUnitsError('in_cgs')
+
+    def convert_to_mks(self):
+        """
+        This function raises a RuntimeError, use in_mks instead.
+
+        """
+        YTImmutableUnitsError('in_mks')
+
