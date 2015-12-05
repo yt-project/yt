@@ -1089,6 +1089,8 @@ class YTArray(np.ndarray):
         else:
             raise RuntimeError("Support for the %s ufunc has not been added "
                                "to YTArray." % str(context[0]))
+        # Deal with units for functions like isnan, which should always return
+        # ndarray instances
         if unit is None:
             out_arr = np.array(out_arr, copy=False)
             return out_arr

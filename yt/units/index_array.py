@@ -147,6 +147,8 @@ class IndexArray(YTArray):
                     if unit.is_dimensionless and unit.base_value != 1.0:
                         # fix this later
                         raise NotImplementedError
+        # Deal with units for functions like isnan, which should always return
+        # ndarray instances
         if units is None:
             out_arr = np.array(out_arr, copy=False)
             return out_arr
