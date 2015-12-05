@@ -901,7 +901,7 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, width=0.06, starting_pos=None, 
+    annotate_arrow(pos, length=0.03, width=0.03, starting_pos=None, 
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
@@ -920,7 +920,7 @@ class ArrowCallback(PlotCallback):
 
     width : float, optional
         The width, in axis units, of the arrow.
-        Default: 0.06
+        Default: 0.03
 
     starting_pos : 2- or 3-element tuple, list, or array, optional
         These are the coordinates from which the arrow starts towards its
@@ -965,7 +965,7 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, width=0.06, 
+    def __init__(self, pos, code_size=None, length=0.03, width=0.03, 
                  starting_pos=None, coord_system='data', plot_args=None):
         def_plot_args = {'color':'white', 'linewidth':2}
         self.pos = pos
@@ -1005,8 +1005,6 @@ class ArrowCallback(PlotCallback):
                 dy = (yy1-yy0) * 2**(0.5) * self.length
         plot._axes.hold(True)
         from matplotlib.patches import Arrow
-        print "length = %f" % self.length
-        print "width = %f" % self.width
         arrow = Arrow(x-dx, y-dy, dx, dy, width=self.width,
                       transform=self.transform, **self.plot_args)
         plot._axes.add_patch(arrow)
