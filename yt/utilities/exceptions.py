@@ -167,9 +167,10 @@ class YTUnitOperationError(YTException, ValueError):
         YTException.__init__(self)
 
     def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
+        err = "The %s operator for YTArrays with units (%s) " \
+              % (self.operation, self.unit1, )
         if self.unit2 is not None:
-            err += "and (%s) " % self.unit2
+            err += "and (%s) " % (self.unit2, )
         err += "is not well defined."
         return err
 
