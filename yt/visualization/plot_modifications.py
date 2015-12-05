@@ -156,6 +156,9 @@ class PlotCallback(object):
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
+            # Convert coordinates from a tuple of ndarray to a tuple of floats
+            # since not all callbacks are OK with ndarrays as coords (eg arrow)
+            coord = (coord[0][0], coord[1][0])
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
@@ -2117,7 +2120,6 @@ class RayCallback(PlotCallback):
 
         for segment in segments:
             if self.arrow:
-                #import pdb; pdb.set_trace()
                 cb = ArrowCallback(segment[1], starting_pos=segment[0], 
                                    coord_system='data',
                                    plot_args=self.plot_args)
