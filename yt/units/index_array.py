@@ -31,8 +31,6 @@ from yt.units.yt_array import \
     YTQuantity
 from yt.units.unit_object import \
     Unit
-from yt.utilities.exceptions import \
-    YTImmutableUnitsError
 
 ELLIPSIS_TYPE = type(Ellipsis)
 
