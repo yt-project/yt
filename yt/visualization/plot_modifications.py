@@ -901,11 +901,13 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
+    annotate_arrow(pos, length=0.03, width=0.06, starting_pos=None, 
+                   coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
     feature.  Arrow points from lower left to the designated position with
-    arrow length "length".
+    arrow length "length" unless starting_pos is set to specify tail location 
+    of arrow.
 
     Parameters
     ----------
@@ -914,6 +916,15 @@ class ArrowCallback(PlotCallback):
 
     length : float, optional
         The length, in axis units, of the arrow.
+        Default: 0.03
+
+    width : float, optional
+        The width, in axis units, of the arrow.
+        Default: 0.06
+
+    starting_pos : 2- or 3-element tuple, list, or array, optional
+        These are the coordinates from which the arrow starts towards its
+        point.  Not compatible with 'length' kwarg.
 
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
@@ -948,18 +959,20 @@ class ArrowCallback(PlotCallback):
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_arrow([0.1, -0.1, length=0.06, coord_system='plot',
+    >>> s.annotate_arrow([0.1, -0.1], length=0.06, coord_system='plot',
     ...                  plot_args={'color':'red'})
     >>> s.save()
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, coord_system='data',
-                 plot_args=None):
+    def __init__(self, pos, code_size=None, length=0.03, width=0.06, 
+                 starting_pos=None, coord_system='data', plot_args=None):
         def_plot_args = {'color':'white', 'linewidth':2}
         self.pos = pos
         self.code_size = code_size
         self.length = length
+        self.width = width
+        self.starting_pos = starting_pos
         self.coord_system = coord_system
         self.transform = None
         if plot_args is None: plot_args = def_plot_args
@@ -981,11 +994,20 @@ class ArrowCallback(PlotCallback):
             self.code_size = self.code_size * self.pixel_scale(plot)[0]
             dx = dy = self.code_size
         else:
-            dx = (xx1-xx0) * self.length
-            dy = (yy1-yy0) * self.length
+            if self.starting_pos is not None:
+                start_x,start_y = self.sanitize_coord_system(plot, \
+                                       self.starting_pos, \
+                                       coord_system=self.coord_system)
+                dx = x - start_x
+                dy = y - start_y
+            else:
+                dx = (xx1-xx0) * 2**(0.5) * self.length
+                dy = (yy1-yy0) * 2**(0.5) * self.length
         plot._axes.hold(True)
         from matplotlib.patches import Arrow
-        arrow = Arrow(x-dx, y-dy, dx, dy, width=dx,
+        print "length = %f" % self.length
+        print "width = %f" % self.width
+        arrow = Arrow(x-dx, y-dy, dx, dy, width=self.width,
                       transform=self.transform, **self.plot_args)
         plot._axes.add_patch(arrow)
         plot._axes.set_xlim(xx0,xx1)
