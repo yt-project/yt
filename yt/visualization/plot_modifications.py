@@ -1992,6 +1992,9 @@ class RayCallback(PlotCallback):
     Adds a line representing the projected path of a ray across the plot.
     The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
+    If arrow is set to True, uses the MPL.pyplot.arrow function, otherwise
+    uses the MPL.pyplot.plot function to plot a normal line.  Adjust 
+    plot_args accordingly.
 
     Parameters
     ----------
@@ -2002,6 +2005,11 @@ class RayCallback(PlotCallback):
         analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
         object, it will only plot the segment of the LightRay that intersects
         the dataset currently displayed.
+
+    arrow : boolean, optional
+        Whether or not to place an arrowhead on the front of the ray as it
+        traverses the box.
+        Default: False
 
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -2033,10 +2041,11 @@ class RayCallback(PlotCallback):
 
     """
     _type_name = "ray"
-    def __init__(self, ray, plot_args=None):
+    def __init__(self, ray, arrow=False, plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'white', 'linewidth':2}
         self.ray = ray
+        self.arrow = arrow
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
@@ -2107,10 +2116,16 @@ class RayCallback(PlotCallback):
             segments = [[start_coord, end_coord]]
 
         for segment in segments:
-            lcb = LinePlotCallback(segment[0], segment[1],
+            if self.arrow:
+                #import pdb; pdb.set_trace()
+                cb = ArrowCallback(segment[1], starting_pos=segment[0], 
                                    coord_system='data',
                                    plot_args=self.plot_args)
-            lcb(plot)
+            else:
+                cb = LinePlotCallback(segment[0], segment[1],
+                                   coord_system='data',
+                                   plot_args=self.plot_args)
+            cb(plot)
 
         return plot
 
