@@ -118,7 +118,7 @@ class AbsorptionSpectrum(object):
     def make_spectrum(self, input_file, output_file=None,
                       line_list_file=None, output_absorbers_file=None,
                       use_peculiar_velocity=True, 
-                      subgrid_resolution=10, observing_redshift=0., 
+                      subgrid_resolution=10, observing_redshift=0.,
                       njobs="auto"):
         """
         Make spectrum from ray data using the line list.
@@ -140,7 +140,9 @@ class AbsorptionSpectrum(object):
            is recommended to set to None in such circumstances.
            Default: None
         use_peculiar_velocity : optional, bool
-           if True, include line of sight velocity for shifting lines.
+           if True, include peculiar velocity for calculating doppler redshift
+           to shift lines.  Requires similar flag to be set in LightRay 
+           generation.
            Default: True
         subgrid_resolution : optional, int
            When a line is being added that is unresolved (ie its thermal
@@ -186,9 +188,7 @@ class AbsorptionSpectrum(object):
             field_units["redshift_eff"] = ""
         if observing_redshift != 0.:
             input_fields.append('redshift_dopp')
-            input_fields.append('redshift')
             field_units["redshift_dopp"] = ""
-            field_units["redshift"] = ""
         for feature in self.line_list + self.continuum_list:
             if not feature['field_name'] in input_fields:
                 input_fields.append(feature['field_name'])
@@ -210,8 +210,10 @@ class AbsorptionSpectrum(object):
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
                                     output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
+                                    observing_redshift=observing_redshift,
                                     njobs=njobs)
-        self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
+        self._add_continua_to_spectrum(field_data, use_peculiar_velocity,
+                                       observing_redshift=observing_redshift)
 
         self.flux_field = np.exp(-self.tau_field)
 
@@ -230,7 +232,7 @@ class AbsorptionSpectrum(object):
         return (self.lambda_field, self.flux_field)
 
     def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity,
-                                  observing_redshift):
+                                  observing_redshift=0.):
         """
         Add continuum features to the spectrum.
         """
@@ -239,11 +241,32 @@ class AbsorptionSpectrum(object):
 
         for continuum in self.continuum_list:
             column_density = field_data[continuum['field_name']] * field_data['dl']
+            if observing_redshift == 0.:
+                # This is already assumed in the generation of the LightRay
+                redshift = field_data['redshift']
+                if use_peculiar_velocity:
+                    redshift_eff = field_data['redshift_eff']
+            else:
+                # The intermediate redshift that is seen by an observer
+                # at a redshift other than z=0 is z12, where z1 is the 
+                # observing redshift and z2 is the emitted photon's redshift
+                # Hogg (2000) eq. 13:
+                # 1 + z12 = (1 + z2) / (1 + z1)
+                redshift = ((1 + field_data['redshift']) / \
+                            (1 + observing_redshift)) - 1.
+                # Combining cosmological redshift and doppler redshift 
+                # into an effective redshift is found in Peacock's 
+                # Cosmological Physics eqn 3.75:
+                # 1 + z_eff = (1 + z_cosmo) * (1 + z_doppler)
+                if use_peculiar_velocity:
+                    redshift_eff = ((1 + redshift) * \
+                                    (1 + field_data['redshift_dopp'])) - 1.
+
             # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
-                delta_lambda = continuum['wavelength'] * field_data['redshift_eff']
+                delta_lambda = continuum['wavelength'] * redshift_eff
             else:
-                delta_lambda = continuum['wavelength'] * field_data['redshift']
+                delta_lambda = continuum['wavelength'] * redshift
             this_wavelength = delta_lambda + continuum['wavelength']
             right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
@@ -267,7 +290,7 @@ class AbsorptionSpectrum(object):
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
                                output_absorbers_file, subgrid_resolution=10, 
-                               njobs=-1):
+                               observing_redshift=0., njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
@@ -281,13 +304,34 @@ class AbsorptionSpectrum(object):
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
 
+            if observing_redshift == 0.:
+                # This is already assumed in the generation of the LightRay
+                redshift = field_data['redshift']
+                if use_peculiar_velocity:
+                    redshift_eff = field_data['redshift_eff']
+            else:
+                # The intermediate redshift that is seen by an observer
+                # at a redshift other than z=0 is z12, where z1 is the 
+                # observing redshift and z2 is the emitted photon's redshift
+                # Hogg (2000) eq. 13:
+                # 1 + z12 = (1 + z2) / (1 + z1)
+                redshift = ((1 + field_data['redshift']) / \
+                            (1 + observing_redshift)) - 1.
+                # Combining cosmological redshift and doppler redshift 
+                # into an effective redshift is found in Peacock's 
+                # Cosmological Physics eqn 3.75:
+                # 1 + z_eff = (1 + z_cosmo) * (1 + z_doppler)
+                if use_peculiar_velocity:
+                    redshift_eff = ((1 + redshift) * \
+                                    (1 + field_data['redshift_dopp'])) - 1.
+
             # redshift_eff field combines cosmological and velocity redshifts
             # so delta_lambda gives the offset in angstroms from the rest frame
             # wavelength to the observed wavelength of the transition 
             if use_peculiar_velocity:
-                delta_lambda = line['wavelength'] * field_data['redshift_eff']
+                delta_lambda = line['wavelength'] * redshift_eff
             else:
-                delta_lambda = line['wavelength'] * field_data['redshift']
+                delta_lambda = line['wavelength'] * redshift
             # lambda_obs is central wavelength of line after redshift
             lambda_obs = line['wavelength'] + delta_lambda
             # bin index in lambda_field of central wavelength of line after z
@@ -413,8 +457,8 @@ class AbsorptionSpectrum(object):
                                                 'wavelength': (lambda_0 + dlambda[i]),
                                                 'column_density': column_density[i],
                                                 'b_thermal': thermal_b[i],
-                                                'redshift': field_data['redshift'][i],
-                                                'redshift_eff': field_data['redshift_eff'][i],
+                                                'redshift': redshift[i],
+                                                'redshift_eff': redshift_eff[i],
                                                 'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
