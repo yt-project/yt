@@ -901,7 +901,8 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, width=0.03, starting_pos=None, 
+    annotate_arrow(pos, length=0.03, width=0.003, head_length=None, 
+                   head_width=0.02, starting_pos=None, 
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
@@ -919,8 +920,17 @@ class ArrowCallback(PlotCallback):
         Default: 0.03
 
     width : float, optional
-        The width, in axis units, of the arrow.
-        Default: 0.03
+        The width, in axis units, of the tail line of the arrow.
+        Default: 0.003
+
+    head_length : float, optional
+        The length, in axis units, of the head of the arrow.  If set
+        to None, use 1.5*head_width
+        Default: None
+
+    head_width : float, optional
+        The width, in axis units, of the head of the arrow.
+        Default: 0.02
 
     starting_pos : 2- or 3-element tuple, list, or array, optional
         These are the coordinates from which the arrow starts towards its
@@ -942,7 +952,7 @@ class ArrowCallback(PlotCallback):
 
     plot_args : dictionary, optional
         This dictionary is passed to the MPL arrow function for generating
-        the arrow.  By default, it is: {'color':'white', 'linewidth':2}
+        the arrow.  By default, it is: {'color':'white'}
 
     Examples
     --------
@@ -965,13 +975,16 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, width=0.03, 
+    def __init__(self, pos, code_size=None, length=0.03, width=0.003, 
+                 head_width=0.02, head_length=None,
                  starting_pos=None, coord_system='data', plot_args=None):
-        def_plot_args = {'color':'white', 'linewidth':2}
+        def_plot_args = {'color':'white'}
         self.pos = pos
         self.code_size = code_size
         self.length = length
         self.width = width
+        self.head_width = head_width
+        self.head_length = head_length
         self.starting_pos = starting_pos
         self.coord_system = coord_system
         self.transform = None
@@ -1003,11 +1016,16 @@ class ArrowCallback(PlotCallback):
             else:
                 dx = (xx1-xx0) * 2**(0.5) * self.length
                 dy = (yy1-yy0) * 2**(0.5) * self.length
+        # If the arrow is 0 length
+        if dx == dy == 0:
+            warnings.warn("The arrow has zero length.  Not annotating.")
+            return
         plot._axes.hold(True)
-        from matplotlib.patches import Arrow
-        arrow = Arrow(x-dx, y-dy, dx, dy, width=self.width,
-                      transform=self.transform, **self.plot_args)
-        plot._axes.add_patch(arrow)
+        plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width, 
+                         head_width=self.head_width, 
+                         head_length=self.head_length, 
+                         transform=self.transform, 
+                         length_includes_head=True, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
