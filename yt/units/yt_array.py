@@ -139,10 +139,21 @@ def sanitize_unit_tuples(unit1, unit2):
     u2 = ensure_tuple(unit2)
 
     # pad tuples if their sizes don't match
-    if len(u1) > len(u2):
-        u2 = u2*len(u1)
+    lu1 = len(u1)
+    lu2 = len(u2)
+
+    if lu1 == lu2:
+        pass
+    elif lu1 > lu2 and lu2 == 1:
+        u2 = u2 * lu1
+    elif lu2 > lu1 and lu1 == 1:
+        u1 = u1 * lu2
     else:
-        u1 = u1*len(u2)
+        # we raise a ValueError here instead of a custom exception so operations
+        # like operator.add and np.add raise the same exception when passed
+        # arrays with mismatching shapes
+        msg = 'Operations between arrays with units %s and %s are not supported'
+        raise ValueError(msg % (unit1, unit2))
 
     return u1, u2
 

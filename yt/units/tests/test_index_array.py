@@ -16,10 +16,12 @@ Test ndarray subclass that handles indexing along dimensions with units.
 
 import yt.units as u
 import numpy as np
+import operator
 
 from yt.testing import \
     assert_equal, \
-    assert_almost_equal
+    assert_almost_equal, \
+    assert_raises
 from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
@@ -167,3 +169,10 @@ def test_str_and_repr():
     assert_equal(
         repr(index),
         'IndexArray([[ 0.,  1.,  2.],\n       [ 3.,  4.,  5.]]) (km, g, s)')
+
+def test_incompatible_unit_operations():
+    index1 = IndexArray(np.random.random((6, 2)), [u.km, u.g])
+    index2 = IndexArray(np.random.random((6, 3)), [u.km, u.s, u.g])
+
+    assert_raises(ValueError, operator.add, index1, index2)
+    assert_raises(ValueError, np.add, index1, index2)
