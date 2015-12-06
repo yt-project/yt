@@ -978,8 +978,8 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, width=0.003, 
-                 head_width=0.02, head_length=None,
+    def __init__(self, pos, code_size=None, length=0.03, width=0.0001, 
+                 head_width=0.01, head_length=0.01,
                  starting_pos=None, coord_system='data', plot_args=None):
         def_plot_args = {'color':'white'}
         self.pos = pos
@@ -999,7 +999,13 @@ class ArrowCallback(PlotCallback):
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-
+        # normalize all of the kwarg lengths to the plot size
+        plot_diag = ((yy1-yy0)**2 + (xx1-xx0)**2)**(0.5)
+        self.length *= plot_diag
+        self.width *= plot_diag
+        self.head_width *= plot_diag
+        if self.head_length is not None:
+            self.head_length *= plot_diag
         if self.code_size is not None:
             warnings.warn("The code_size keyword is deprecated.  Please use "
                           "the length keyword in 'axis' units instead. "
@@ -2118,17 +2124,24 @@ class RayCallback(PlotCallback):
         else:
             segments = [[start_coord, end_coord]]
 
-        for segment in segments:
-            if self.arrow:
-                cb = ArrowCallback(segment[1], starting_pos=segment[0], 
-                                   coord_system='data',
-                                   plot_args=self.plot_args)
-            else:
-                cb = LinePlotCallback(segment[0], segment[1],
-                                   coord_system='data',
-                                   plot_args=self.plot_args)
+        # To assure that the last ray segment has an arrow if so desired
+        # and all other ray segments are lines
+        for segment in segments[:-1]:
+            cb = LinePlotCallback(segment[0], segment[1],
+                                  coord_system='data',
+                                  plot_args=self.plot_args)
             cb(plot)
-
+        segment = segments[-1]
+        if self.arrow:
+            cb = ArrowCallback(segment[1], starting_pos=segment[0], 
+                               coord_system='data',
+                               plot_args=self.plot_args)
+        else:
+           cb = LinePlotCallback(segment[0], segment[1],
+                               coord_system='data',
+                               plot_args=self.plot_args)
+        cb(plot)
+ 
         return plot
 
 class LineIntegralConvolutionCallback(PlotCallback):
