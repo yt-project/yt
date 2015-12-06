@@ -56,6 +56,11 @@ def test_fields_diff_systems():
                               "velocity_magnitude":"kpc/Myr",
                               "velocity_divergence":"1/Myr",
                               "density_gradient_x":"Msun/kpc**4"}
+    test_units["code"] = {"density":"code_mass/code_length**3",
+                          "kinetic_energy":"code_mass/(code_length*code_time**2)",
+                          "velocity_magnitude":"code_velocity",
+                          "velocity_divergence":"code_velocity/code_length",
+                          "density_gradient_x":"code_mass/code_length**4"}
 
     ds_cgs = load(gslr)
     dd_cgs = ds_cgs.sphere("c", (100., "kpc"))
@@ -64,7 +69,10 @@ def test_fields_diff_systems():
         ds = load(gslr, unit_system=us)
         dd = ds.sphere("c", (100.,"kpc"))
         for field in test_fields:
-            v1 = dd_cgs[field].in_base(us)
+            if us == "code":
+                v1 = dd_cgs[field]
+            else:
+                v1 = dd_cgs[field].in_base(us)
             v2 = dd[field]
             assert_almost_equal(v1.v, v2.v)
             assert str(v2.units) == test_units[us][field]

@@ -41,7 +41,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     if (ftype,"magnetic_field_x") not in registry.ds.field_info:
         return
 
-    u = Unit(registry.ds.field_info[ftype,"magnetic_field_x"].units)
+    u = Unit(registry.ds.field_info[ftype,"magnetic_field_x"].units,
+             registry=registry.ds.unit_registry)
     mag_dims = u.dimensions
 
     def _magnetic_field_strength(field,data):
