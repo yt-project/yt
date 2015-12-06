@@ -16,7 +16,6 @@ from __future__ import print_function
 import copy
 import numpy as np
 
-from yt.extern.six import string_types
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
