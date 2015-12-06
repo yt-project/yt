@@ -137,7 +137,7 @@ default_unit_symbol_lut = {
     # Planck units
     "m_pl": (planck_mass_grams, dimensions.mass, 0.0, r"m_{\rm{P}}"),
     "l_pl": (planck_length_cm, dimensions.length, 0.0, r"\ell_\rm{P}"),
-    "t_pl": (planck_time_s, dimensions.time, 0.0, r"r_{\rm{P}}"),
+    "t_pl": (planck_time_s, dimensions.time, 0.0, r"t_{\rm{P}}"),
     "T_pl": (planck_temperature_K, dimensions.temperature, 0.0, r"T_{\rm{P}}"),
     "q_pl": (planck_charge_esu, dimensions.charge_cgs, 0.0, r"q_{\rm{P}}"),
     "E_pl": (planck_energy_erg, dimensions.energy, 0.0, r"E_{\rm{P}}"),
