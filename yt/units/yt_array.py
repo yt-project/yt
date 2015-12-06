@@ -1516,9 +1516,9 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     Examples
     --------
     >>> sp = ds.sphere("c", (100,"kpc"))
-    >>> a = sphere["density"]
-    >>> b = sphere["temperature"]
-    >>> c = sphere["velocity_x"]
+    >>> a = sp["density"]
+    >>> b = sp["temperature"]
+    >>> c = sp["velocity_x"]
     >>> yt.savetxt("sphere.dat", [a,b,c], header='My sphere stuff', delimiter="\t")
     """
     if not isinstance(arrays, list):
