@@ -101,6 +101,3 @@ imperial_unit_system["pressure"] = "lbf/ft**2"
 galactic_unit_system = UnitSystem("galactic", "kpc", "Msun", "Myr", "K", "radian")
 galactic_unit_system["energy"] = "keV"
 galactic_unit_system["magnetic_field_cgs"] = "uG"
-
-geographic_unit_system = UnitSystem("geographic", "mile", "lbm", "s", "K", "deg")
-geographic_unit_system["pressure"] = "atm"
