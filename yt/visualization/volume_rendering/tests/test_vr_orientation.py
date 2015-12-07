@@ -84,7 +84,7 @@ def setup_ds():
 
         arr[idx] = 0.6
 
-    data = dict(Density=arr)
+    data = dict(density=(arr, "g/cm**3"))
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
 
     return ds
@@ -96,7 +96,7 @@ def test_orientation():
 
     sc = Scene()
 
-    vol = VolumeSource(ds, field=('gas', 'Density'))
+    vol = VolumeSource(ds, field=('gas', 'density'))
 
     tf = vol.transfer_function
     tf = ColorTransferFunction((0.1, 1.0))
