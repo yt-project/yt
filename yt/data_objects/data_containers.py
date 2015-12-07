@@ -187,12 +187,13 @@ class YTDataContainer(object):
         if center is None:
             self.center = None
             return
+        elif isinstance(center, IndexArray):
+            self.center = center
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
             self.center.convert_to_units('code_length')
-        elif isinstance(center, IndexArray):
-            self.center = center
         elif isinstance(center, (list, tuple, np.ndarray)):
+            # TODO make this DTRT for nonspatial data
             if isinstance(center[0], YTQuantity):
                 self.center = self.ds.arr([c.in_cgs() for c in center])
                 self.center.convert_to_units('code_length')
@@ -207,7 +208,11 @@ class YTDataContainer(object):
             elif center.startswith("max_"):
                 self.center = self.ds.find_max(center[4:])[1]
         else:
+            # TODO make this DTRT for nonspatial data
             self.center = self.ds.arr(center, 'code_length', dtype='float64')
+        # ensure the center attribute is an IndexArray to properly handle
+        # nonspatial data
+        self.center = IndexArray(self.center)
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):
