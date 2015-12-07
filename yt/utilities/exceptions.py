@@ -520,3 +520,11 @@ class YTDimensionalityError(YTException):
     def __str__(self):
         return 'Dimensionality specified was %s but we need %s' % (
             self.wrong, self.right)
+
+class YTImmutableUnitsError(YTException):
+    def __init__(self, replacement):
+        self.replacement = replacement
+
+    def __str__(self):
+        return ('IndexArray does not support in-place unit conversions. '
+                'Use %s instead.' % self.replacement)
