@@ -45,12 +45,8 @@ class IndexArray(YTArray):
                 dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
-        if isinstance(input_array, YTArray):
-            raise NotImplementedError
-        elif iterable(input_array):
-            pass
-        else:
-            raise NotImplementedError
+        if input_units is None:
+            input_units = getattr(input_array, 'units', '')
 
         # Create an instance of our array subclass
         obj = np.asarray(input_array, dtype=dtype).view(cls)

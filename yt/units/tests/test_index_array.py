@@ -26,6 +26,15 @@ from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
 
+def test_creation():
+    # Test creation from YTArray (broadcasts units)
+    arr = YTArray([1, 2, 3], 'g')
+    iarr = IndexArray(arr)
+
+    assert_equal(iarr.units, (u.g.units, )*3)
+    assert_equal(iarr.ndview, np.array([1, 2, 3]))
+    assert(type(iarr.units) is tuple)
+
 def test_multiplication():
     vals = np.random.random((100, 3))
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
