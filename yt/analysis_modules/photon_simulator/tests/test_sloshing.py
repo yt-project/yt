@@ -87,7 +87,7 @@ def test_sloshing():
         events1 = photons1.project_photons([1.0,-0.5,0.2], responses=[arf,rmf],
                                           absorb_model=tbabs_model, 
                                           convolve_energies=True, prng=prng)
-
+        events1['xsky']
         return_events = return_data(events1.events)
 
         tests.append(GenericArrayTest(ds, return_events, args=[a]))
