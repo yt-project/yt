@@ -122,12 +122,13 @@ class IndexArray(YTArray):
             ret_class = type(self)
 
             if unit1 is None:
-                unit1 = NULL_UNIT
-            if unit2 is None:
-                unit2 = NULL_UNIT
+                unit1 = Unit(registry=getattr(unit2[0], 'registry', None))
+            elif unit2 is None:
+                unit2 = Unit(registry=getattr(unit1[0], 'registry', None))
+
             if not iterable(unit1):
                 unit1 = (unit1,) * len(unit2)
-            if not iterable(unit2):
+            elif not iterable(unit2):
                 unit2 = (unit2,) * len(unit1)
 
             unit_operator = UFUNC_REGISTRY[context[0]]

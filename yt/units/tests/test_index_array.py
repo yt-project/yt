@@ -21,19 +21,27 @@ import operator
 from yt.testing import \
     assert_equal, \
     assert_almost_equal, \
-    assert_raises
+    assert_raises, \
+    fake_random_ds
 from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
 
-def test_creation():
-    # Test creation from YTArray (broadcasts units)
+def test_creation_from_ytarray():
     arr = YTArray([1, 2, 3], 'g')
     iarr = IndexArray(arr)
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
+
+def test_registry_association():
+    ds = fake_random_ds(64)
+
+    arr = IndexArray([1, 2, 3], ('g', 'km', 's'), registry=ds.unit_registry)
+
+    assert(all([u.registry is ds.unit_registry for u in (3*arr).units]))
+    assert(all([u.registry is ds.unit_registry for u in (arr*3).units]))
 
 def test_multiplication():
     vals = np.random.random((100, 3))

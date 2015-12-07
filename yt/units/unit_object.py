@@ -183,6 +183,8 @@ class Unit(Expr):
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
+            if registry is not None:
+                registry = unit_expr.registry
         elif hasattr(unit_expr, 'units'):
             if isinstance(unit_expr.units, Unit):
                 unit_expr = unit_expr.units.expr
