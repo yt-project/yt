@@ -139,7 +139,6 @@ class AMRGridPatch(YTSelectionContainer):
             self.dds[1] = self.ds.domain_right_edge[1] - self.ds.domain_left_edge[1]
         if self.ds.dimensionality < 3:
             self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
-        self.dds = self.ds.arr(self.dds, "code_length")
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
