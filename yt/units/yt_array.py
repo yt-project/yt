@@ -720,7 +720,7 @@ class YTArray(np.ndarray):
     #
 
     def write_hdf5(self, filename, dataset_name=None, info=None, group_name=None):
-        r"""Writes ImageArray to hdf5 file.
+        r"""Writes a YTArray to hdf5 file.
 
         Parameters
         ----------
