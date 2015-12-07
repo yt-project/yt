@@ -134,6 +134,7 @@ def test_unit_conversions():
 
 def compare_slicing(desired, actual, unit_type, array_type):
     assert_equal(desired, actual)
+    assert_equal(desired.units, actual.units)
     assert(type(actual.units) is unit_type)
     assert(type(actual) is array_type)
 
@@ -166,6 +167,9 @@ def test_slicing():
     index = IndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
     compare_slicing(index[0], YTQuantity(0, 'km'), Unit, YTQuantity)
     compare_slicing(index[2], YTQuantity(2, 's'), Unit, YTQuantity)
+    compare_slicing(index[:2], IndexArray([0, 1], [u.km, u.g]), tuple,
+                    IndexArray)
+    compare_slicing(index[1:2], YTQuantity(1, 'g'), Unit, YTQuantity)
     compare_slicing(index[:], index, tuple, IndexArray)
     compare_slicing(index[...], index, tuple, IndexArray)
 

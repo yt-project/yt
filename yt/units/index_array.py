@@ -80,7 +80,13 @@ class IndexArray(YTArray):
             ndim = obj.shape[-1]
         else:
             raise NotImplementedError
-        self.units = getattr(obj, 'units', (NULL_UNIT, )*ndim)
+        units = getattr(obj, 'units', (NULL_UNIT, )*ndim)
+        self.units = units
+
+    def __getslice__(self, i, j):
+        # This is only called under python2. It is needed because py2 extension
+        # types (like ndarray) still implicitly call __getslice__
+        return self[slice(i, j)]
 
     def __getitem__(self, item):
         ret = super(IndexArray, self).__getitem__(item)
@@ -91,16 +97,24 @@ class IndexArray(YTArray):
                 # ret maintains units of original array
                 pass
             else:
-                ret = YTQuantity(ret, self.units[item[1]])
+                ret = YTQuantity(ret.view(np.ndarray), self.units[item[1]])
         else:
             # If we are just getting *one* item back
             if ret.size == 1:
+                if isinstance(item, slice):
+                    item = item.start
                 item_ind = item % self.shape[-1]
-                ret = YTQuantity(ret, self.units[item_ind])
+                ret = YTQuantity(ret.view(np.ndarray), self.units[item_ind])
             else:
-                # this case selects a single row, so we maintain the units
-                # of the original array
-                pass
+                if len(self.shape) == 2:
+                    # this case selects a single row, so we maintain the units
+                    # of the original array
+                    pass
+                else:
+                    if isinstance(item, ELLIPSIS_TYPE):
+                        pass
+                    else:
+                        ret.units = self.units[item]
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
