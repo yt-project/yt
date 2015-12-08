@@ -162,6 +162,6 @@ class FLASHFieldInfo(FieldInfoContainer):
         self.add_field(("gas","number_density"), function=_number_density,
                        units=unit_system["number_density"])
 
-        setup_magnetic_field_aliases(self, [("flash","mag%s" % ax) for ax in "xyz"])
+        setup_magnetic_field_aliases(self, ["mag%s" % ax for ax in "xyz"])
 
 

@@ -48,9 +48,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("Y-momentum", (mom_units, ["momentum_y"], None)),
         ("Z-momentum", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
-        ("X-magnfield", (b_units, ["magnetic_field_x"], None)),
-        ("Y-magnfield", (b_units, ["magnetic_field_y"], None)),
-        ("Z-magnfield", (b_units, ["magnetic_field_z"], None)),
+        ("X-magnfield", (b_units, [], None)),
+        ("Y-magnfield", (b_units, [], None)),
+        ("Z-magnfield", (b_units, [], None)),
         ("directrad-dedt-density", (eden_units, ["directrad-dedt-density"], None)),
         ("directrad-dpxdt-density", (mom_units, ["directrad-dpxdt-density"], None)),
         ("directrad-dpydt-density", (mom_units, ["directrad-dpydt-density"], None)),
@@ -79,6 +79,8 @@ class Orion2FieldInfo(ChomboFieldInfo):
     )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         def _thermal_energy_density(field, data):
             try:
@@ -145,6 +147,8 @@ class Orion2FieldInfo(ChomboFieldInfo):
                        units = unit_system["pressure"])
         self.add_field(("gas", "temperature"), function=_temperature,
                        units=unit_system["temperature"])
+
+        setup_magnetic_field_aliases(self, ["%s-magnfield" % ax for ax in "XYZ"])
 
 
 class ChomboPICFieldInfo3D(FieldInfoContainer):
@@ -299,9 +303,15 @@ class PlutoFieldInfo(ChomboFieldInfo):
         ("vx1", (vel_units, ["velocity_x"], None)),
         ("vx2", (vel_units, ["velocity_y"], None)),
         ("vx3", (vel_units, ["velocity_z"], None)),
-        ("bx1", (b_units, ["magnetic_field_x"], None)),
-        ("bx2", (b_units, ["magnetic_field_y"], None)),
-        ("bx3", (b_units, ["magnetic_field_z"], None)),
+        ("bx1", (b_units, [], None)),
+        ("bx2", (b_units, [], None)),
+        ("bx3", (b_units, [], None)),
     )
 
     known_particle_fields = ()
+
+    def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
+        setup_magnetic_field_aliases(self, ["bx%s" % ax for ax in [1,2,3]])
+

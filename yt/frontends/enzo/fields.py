@@ -158,7 +158,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         if multi_species > 0 or dengo == 1:
             self.setup_species_fields()
         self.setup_energy_field()
-        setup_magnetic_field_aliases(self, [("enzo","B%s" % ax) for ax in "xyz"])
+        setup_magnetic_field_aliases(self, ["B%s" % ax for ax in "xyz"])
 
     def setup_energy_field(self):
         unit_system = self.ds.unit_system

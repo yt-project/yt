@@ -126,6 +126,6 @@ class AthenaFieldInfo(FieldInfoContainer):
         self.add_field(("gas","temperature"), function=_temperature,
                        units=unit_system["temperature"])
 
-        setup_magnetic_field_aliases(self, [("athena","cell_centered_B_%s" % ax) for ax in "xyz"])
+        setup_magnetic_field_aliases(self, ["cell_centered_B_%s" % ax for ax in "xyz"])
 
 
