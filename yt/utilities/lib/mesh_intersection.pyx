@@ -139,7 +139,7 @@ cdef void patchBoundsFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item):
 
     cdef Patch patch = patches[item]
 
@@ -171,25 +171,25 @@ cdef void patchIntersectFunc(Patch* patches,
         N1[2] =-n[1]
     cross(N1, n, N2)
 
-    cdef float d1 = - dot(N1, ray.org, 3)
-    cdef float d2 = - dot(N2, ray.org, 3)
+    cdef float d1 = -dot(N1, ray.org, 3)
+    cdef float d2 = -dot(N2, ray.org, 3)
 
     # the initial guess is set to zero
     cdef float u = 0.0
     cdef float v = 0.0
     cdef float[3] S
     patchSurfaceFunc(patch, u, v, S)
-    cdef double fu = dot(N1, S, 3) + d1
-    cdef double fv = dot(N2, S, 3) + d2
-    cdef double err = fmax(fabs(fu), fabs(fv))
+    cdef float fu = dot(N1, S, 3) + d1
+    cdef float fv = dot(N2, S, 3) + d2
+    cdef float err = fmax(fabs(fu), fabs(fv))
     
     # begin Newton interation
-    cdef double tol = 1.0e-6
+    cdef float tol = 1.0e-6
     cdef int iterations = 0
-    cdef int max_iter = 5
+    cdef int max_iter = 10
     cdef float[3] Su
     cdef float[3] Sv
-    cdef double J11, J12, J21, J22, det
+    cdef float J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
         patchSurfaceDerivU(patch, u, v, Su)
@@ -211,14 +211,19 @@ cdef void patchIntersectFunc(Patch* patches,
         err = fmax(fabs(fu), fabs(fv))
         iterations += 1
 
+    # only count this as a hit if it's within the current ray endpoints
     cdef float t = 0.0
     for i in range(3):
         t += (S[i] - ray.org[i])**2
     t = sqrt(t)
     if (t < ray.tnear or t > ray.tfar):
         return
+
+    patchSurfaceDerivU(patch, u, v, Su)
+    patchSurfaceDerivV(patch, u, v, Sv)
     
     if (fabs(u) <= 1.0 and fabs(v) <= 1.0 and iterations < max_iter):
+        # we have a hit, so update ray information
         ray.u = u
         ray.v = v
         ray.tfar = t
@@ -226,7 +231,7 @@ cdef void patchIntersectFunc(Patch* patches,
         ray.primID = item
         cross(Su, Sv, ray.Ng)
 
-    # we have a hit, so now we sample the solution at the calculated point
-    sample_hex20(patches, ray)
-
+        # sample the solution at the calculated point
+        sample_hex20(patches, ray)
+        ray.time = (item % 6)
     return

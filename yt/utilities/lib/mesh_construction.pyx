@@ -304,7 +304,7 @@ cdef class QuadraticElementMesh:
                 d += (patch.v[j][i] - patch.center[i])**2
             d = sqrt(d)
             r = fmax(r, d)
-        patch.radius = 1.05*r
+        patch.radius = 1.01*r
 
     def __dealloc__(self):
         free(self.patches)
