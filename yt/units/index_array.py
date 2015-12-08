@@ -102,7 +102,6 @@ class IndexArray(YTArray):
             else:
                 ret = YTQuantity(ret.view(np.ndarray), self.units[item[1]])
         else:
-            # If we are just getting *one* item back
             if ret.size == 1:
                 if isinstance(item, slice):
                     item = item.start
