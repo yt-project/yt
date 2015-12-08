@@ -114,9 +114,9 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "mach_alfven"), function=_mach_alfven,
                        units="dimensionless")
 
-def setup_magnetic_field_aliases(registry, ds_fields, ftype="gas"):
+def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     unit_system = registry.ds.unit_system
-    ds_fields = [(registry.ds.dataset_type, fd) for fd in ds_fields]
+    ds_fields = [(ds_ftype, fd) for fd in ds_fields]
     from_units = Unit(registry[ds_fields[0]].units,
                       registry=registry.ds.unit_registry)
     if dimensions.current_mks in unit_system.base_units:

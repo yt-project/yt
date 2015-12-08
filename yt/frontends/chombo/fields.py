@@ -148,7 +148,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         self.add_field(("gas", "temperature"), function=_temperature,
                        units=unit_system["temperature"])
 
-        setup_magnetic_field_aliases(self, ["%s-magnfield" % ax for ax in "XYZ"])
+        setup_magnetic_field_aliases(self, "chombo", ["%s-magnfield" % ax for ax in "XYZ"])
 
 
 class ChomboPICFieldInfo3D(FieldInfoContainer):
@@ -313,5 +313,5 @@ class PlutoFieldInfo(ChomboFieldInfo):
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
-        setup_magnetic_field_aliases(self, ["bx%s" % ax for ax in [1,2,3]])
+        setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
 

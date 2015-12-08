@@ -37,4 +37,4 @@ class GDFFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
-        setup_magnetic_field_aliases(self, ["magnetic_field_%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "gdf", ["magnetic_field_%s" % ax for ax in "xyz"])
