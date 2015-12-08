@@ -129,7 +129,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         convert = lambda x: x.in_units(to_units)
     else:
         convert = lambda x: x.to_equivalent(to_units, equiv)
-    def mag_field(ax, fd):
+    def mag_field(fd):
         def _mag_field(field, data):
             return convert(data[fd])
         return _mag_field
