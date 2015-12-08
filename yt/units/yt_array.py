@@ -155,19 +155,22 @@ def sanitize_unit_tuples(unit1, unit2):
         msg = 'Operations between arrays with units %s and %s are not supported'
         raise ValueError(msg % (unit1, unit2))
 
-    return u1, u2
+    return (lu1, u1), (lu2, u2)
 
 def sanitize_units_add(this_object, other_object, op_string):
     inp = coerce_iterable_units(this_object)
     ret = coerce_iterable_units(other_object)
-    i_units, r_units = sanitize_unit_tuples(
+    (li_units, i_units), (lr_units, r_units) = sanitize_unit_tuples(
         getattr(inp, 'units', None), getattr(ret, 'units', None))
     # Make sure the other object is a YTArray before we use the `units`
     # attribute.
     if isinstance(ret, YTArray):
         if not all(i.same_dimensions_as(r) for i, r in zip(i_units, r_units)):
             raise YTUnitOperationError(op_string, inp.units, ret.units)
-        ret = ret.in_units(inp.units)
+        if li_units <= lr_units:
+            ret = ret.in_units(inp.units)
+        elif li_units > lr_units:
+            ret = ret.in_units(inp.units[0])
     # If the other object is not a YTArray, the only valid case is adding
     # dimensionless things.
     else:

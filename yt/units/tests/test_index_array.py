@@ -48,42 +48,66 @@ def test_registry_association():
     assert(all([u.registry is ds.unit_registry for u in (3*arr).units]))
     assert(all([u.registry is ds.unit_registry for u in (arr*3).units]))
 
+def assert_binary_op(oper1, oper2, operation, expected_value, expected_type,
+                     expected_units):
+
+    actual_result = operation(oper1, oper2)
+
+    assert_equal(actual_result.ndview, expected_value)
+    assert_equal(actual_result.units, expected_units)
+    assert(type(actual_result) is expected_type)
+    assert(type(actual_result.units) is type(expected_units))
+
+def assert_commutative_binary_op(oper1, oper2, operation, expected_value,
+                                 expected_type, expected_units):
+
+    assert_binary_op(oper1, oper2, operation, expected_value, expected_type,
+                     expected_units)
+    assert_binary_op(oper2, oper1, operation, expected_value, expected_type,
+                     expected_units)
+
 def test_multiplication():
     vals = np.random.random((100, 3))
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
-    result = index*index
+    row_index = index[0]
 
-    assert_equal(result.units, ((u.km**2).units, (u.g**2).units, (u.s**2).units))
-    assert_equal(result.ndview, vals**2)
-    assert(type(result.units) is tuple)
+    for operand, value in zip((index, row_index), (vals, vals[0])):
+        for operation in (np.multiply, operator.mul):
+            assert_commutative_binary_op(
+                operand, index, operation, value * vals, IndexArray,
+                ((u.km**2).units, (u.g**2).units, (u.s**2).units))
+            assert_commutative_binary_op(
+                operand, u.km, operation, value, IndexArray,
+                ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
+            assert_commutative_binary_op(
+                operand, 2, operation, 2 * value, IndexArray, index.units)
 
+def test_division():
+    vals = np.random.random((100, 3))
     index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    row_index = index[0]
 
-    result = index * u.km
+    for operand, value in zip((index, row_index), (vals, vals[0])):
+        for operation in (np.divide, operator.div):
+            assert_binary_op(
+                operand, index, operation, value / vals, IndexArray,
+                (Unit(), Unit(), Unit()))
+            assert_binary_op(
+                index, operand, operation, vals / value, IndexArray,
+                (Unit(), Unit(), Unit()))
 
-    assert_equal(
-        result.units, ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
-    assert_equal(result.ndview, vals)
-    assert(type(result.units) is tuple)
+            assert_binary_op(
+                operand, u.km, operation, value, IndexArray,
+                (Unit(), (u.g/u.km).units, (u.s/u.km).units))
+            assert_binary_op(
+                u.km, operand, operation, 1/value, IndexArray,
+                (Unit(), (u.km/u.g).units, (u.km/u.s).units))
 
-    result = u.km * index
-
-    assert_equal(
-        result.units, ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
-    assert_equal(result.ndview, vals)
-    assert(type(result.units) is tuple)
-
-    result = index * 2
-
-    assert_equal(result.units, index.units)
-    assert_equal(result.ndview, 2*vals)
-    assert(type(result.units) is tuple)
-
-    result = 2 * index
-
-    assert_equal(result.units, index.units)
-    assert_equal(result.ndview, 2*vals)
-    assert(type(result.units) is tuple)
+            assert_binary_op(
+                operand, 2, operation, value / 2, IndexArray, index.units)
+            assert_binary_op(
+                2, operand, operation, 2 / value, IndexArray,
+                (Unit('1/km'), Unit('1/g'), Unit('1/s')))
 
 def test_addition():
     vals = np.random.random((100, 3))
@@ -92,23 +116,64 @@ def test_addition():
     row_vals = np.random.random(3)
     row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
 
-    ret1 = index + index
+    for operand, value in zip((index, row_index), (vals, row_vals)):
+        for operation in (np.add, operator.add):
+            assert_commutative_binary_op(
+                operand, index, operation, value + vals, IndexArray, index.units)
+            assert_commutative_binary_op(
+                operand, row_index, operation, value + row_vals, IndexArray,
+                index.units)
 
-    assert_equal(ret1.units, index.units)
-    assert_equal(ret1.d, vals+vals)
-    assert(type(ret1.units) is tuple)
+def test_subtraction():
+    vals = np.random.random((100, 3))
+    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
 
-    ret2 = index + row_index
+    row_vals = np.random.random(3)
+    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
 
-    assert_equal(ret2.units, index.units)
-    assert_equal(ret2.d, vals+row_vals)
-    assert(type(ret2.units) is tuple)
+    for operand, value in zip((index, row_index), (vals, row_vals)):
+        for operation in (np.subtract, operator.sub):
+            assert_binary_op(
+                operand, index, operation, value - vals, IndexArray, index.units)
+            assert_binary_op(
+                index, operand, operation, vals - value, IndexArray, index.units)
+            assert_binary_op(
+                operand, row_index, operation, value - row_vals, IndexArray,
+                index.units)
+            assert_binary_op(
+                row_index, operand, operation, row_vals - value, IndexArray,
+                index.units)
 
-    ret3 = row_index + index
+def test_homogenous_unit_operations():
+    vals = np.random.random((100, 3))
+    index = IndexArray(vals, input_units=[u.km, u.km, u.km])
+    row_index = index[0]
+    arr = YTArray(vals, input_units=u.km)
+    row_arr = arr[0]
+    quantity = row_arr[0]
 
-    assert_equal(ret3.units, index.units)
-    assert_equal(ret3.d, vals+row_vals)
-    assert(type(ret3.units) is tuple)
+    assert_equal(index, arr)
+
+    for operand, value in zip((index, row_index), (vals, vals[0])):
+        for operation in (np.add, operator.add):
+            assert_commutative_binary_op(
+                operand, arr, operation, value + vals, IndexArray, index.units)
+            assert_commutative_binary_op(
+                operand, row_arr, operation, value + vals[0], IndexArray,
+                index.units)
+            assert_commutative_binary_op(
+                operand, quantity, operation, value + vals[0, 0], IndexArray,
+                index.units)
+        for operation in (np.multiply, operator.mul):
+            assert_commutative_binary_op(
+                operand, arr, operation, value * vals, IndexArray,
+                ((u.km**2).units, )*3)
+            assert_commutative_binary_op(
+                operand, row_arr, operation, value * vals[0], IndexArray,
+                ((u.km**2).units, )*3)
+            assert_commutative_binary_op(
+                operand, quantity, operation, value * vals[0, 0], IndexArray,
+                ((u.km**2).units, )*3)
 
 def test_unit_conversions():
     vals = np.random.random((100, 3))
