@@ -93,7 +93,7 @@ class IndexArray(YTArray):
 
     def __getitem__(self, item):
         ret = super(IndexArray, self).__getitem__(item)
-        if iterable(item):
+        if isinstance(item, tuple):
             if isinstance(item[0], (slice, ELLIPSIS_TYPE)):
                 ret = YTArray(ret.view(np.ndarray), self.units[item[1]])
             elif isinstance(item[1], (slice, ELLIPSIS_TYPE)):
@@ -115,6 +115,8 @@ class IndexArray(YTArray):
                 else:
                     if isinstance(item, ELLIPSIS_TYPE):
                         pass
+                    elif iterable(item):
+                        ret.units = tuple([self.units[i] for i in item])
                     else:
                         ret.units = self.units[item]
         return ret

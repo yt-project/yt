@@ -154,6 +154,7 @@ def test_slicing():
     ret4 = YTQuantity(3, 'km')
     ret5 = YTQuantity(38, 's')
     ret6 = IndexArray([15, 16, 17], [u.km, u.g, u.s])
+    ret7 = IndexArray(vals[[5, 7]], [u.km, u.g, u.s])
 
     sl1 = index[:, 0]
     sl2 = index[0, :]
@@ -161,6 +162,7 @@ def test_slicing():
     sl4 = index[1, 0]
     sl5 = index[12, 2]
     sl6 = index[5]
+    sl7 = index[[5, 7]]
 
     compare_slicing(ret1, sl1, Unit, YTArray)
     compare_slicing(ret2, sl2, tuple, IndexArray)
@@ -168,6 +170,7 @@ def test_slicing():
     compare_slicing(ret4, sl4, Unit, YTQuantity)
     compare_slicing(ret5, sl5, Unit, YTQuantity)
     compare_slicing(ret6, sl6, tuple, IndexArray)
+    compare_slicing(ret7, sl7, tuple, IndexArray)
 
     index = IndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
     compare_slicing(index[0], YTQuantity(0, 'km'), Unit, YTQuantity)
@@ -177,6 +180,8 @@ def test_slicing():
     compare_slicing(index[1:2], YTQuantity(1, 'g'), Unit, YTQuantity)
     compare_slicing(index[:], index, tuple, IndexArray)
     compare_slicing(index[...], index, tuple, IndexArray)
+    compare_slicing(index[[1, 2]], IndexArray([1, 2], [u.g, u.s]), tuple,
+                    IndexArray)
 
 def test_boolean_unary_ops():
     vals = np.arange(30)
