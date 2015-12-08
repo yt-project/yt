@@ -52,11 +52,12 @@ def assert_binary_op(oper1, oper2, operation, expected_value, expected_type,
                      expected_units):
 
     actual_result = operation(oper1, oper2)
+    aunits = getattr(actual_result, 'units', None)
 
-    assert_equal(actual_result.ndview, expected_value)
-    assert_equal(actual_result.units, expected_units)
+    assert_equal(actual_result.view(np.ndarray), expected_value)
+    assert_equal(aunits, expected_units)
     assert(type(actual_result) is expected_type)
-    assert(type(actual_result.units) is type(expected_units))
+    assert(type(aunits) is type(expected_units))
 
 def assert_commutative_binary_op(oper1, oper2, operation, expected_value,
                                  expected_type, expected_units):
@@ -143,6 +144,17 @@ def test_subtraction():
             assert_binary_op(
                 row_index, operand, operation, row_vals - value, IndexArray,
                 index.units)
+
+def test_comparisons():
+    vals = np.random.random((100, 3))
+    index = IndexArray(vals, input_units=[u.km, u.km, u.km])
+    arr = YTArray(vals, input_units=u.km)
+
+    for operation in (np.equal, operator.eq, np.greater, operator.gt,
+                      np.less, operator.lt, np.greater_equal, operator.ge,
+                      np.less_equal, operator.le):
+        assert_commutative_binary_op(
+            index, arr, operation, operation(vals, vals), np.ndarray, None)
 
 def test_homogenous_unit_operations():
     vals = np.random.random((100, 3))

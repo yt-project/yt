@@ -169,7 +169,7 @@ def sanitize_units_add(this_object, other_object, op_string):
             raise YTUnitOperationError(op_string, inp.units, ret.units)
         if li_units <= lr_units:
             ret = ret.in_units(inp.units)
-        elif li_units > lr_units:
+        else:
             ret = ret.in_units(inp.units[0])
     # If the other object is not a YTArray, the only valid case is adding
     # dimensionless things.
@@ -181,14 +181,17 @@ def sanitize_units_add(this_object, other_object, op_string):
 def validate_comparison_units(this, other, op_string):
     # Check that other is a YTArray.
     if hasattr(other, 'units'):
-        tu = ensure_tuple(this.units)
-        ou = ensure_tuple(other.units)
-        if all([u1.expr is u2.expr for u1, u2 in zip(tu, ou)]):
+        (lt_units, t_units), (lo_units, o_units) = sanitize_unit_tuples(
+            this.units, other.units)
+        if all([u1.expr is u2.expr for u1, u2 in zip(t_units, o_units)]):
             return other
-        if not all([u1.same_dimensions_as(u2) for u1, u2 in zip(tu, ou)]):
+        if not all([u1.same_dimensions_as(u2)
+                    for u1, u2 in zip(t_units, o_units)]):
             raise YTUnitOperationError(op_string, this.units, other.units)
-        return other.in_units(this.units)
-
+        if lt_units <= lo_units:
+            return other.in_units(this.units)
+        else:
+            return other.in_units(this.units[0])
     return other
 
 unary_operators = (
