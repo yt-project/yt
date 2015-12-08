@@ -41,7 +41,7 @@ class UnitSystem(object):
             key = getattr(dimensions, key)
         if key not in self.units_map:
             dims = key.expand()
-            units = Unit("")
+            units = Unit("", registry=self.registry)
             for factor in dims.as_ordered_factors():
                 dim = list(factor.free_symbols)[0]
                 u = self.units_map[dim]
