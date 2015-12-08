@@ -1,4 +1,5 @@
 from yt.testing import fake_random_ds, fake_amr_ds, assert_equal
+import numpy as np
 
 
 def setup():
@@ -93,3 +94,51 @@ def test_min_max():
         qrho, qtemp = ad.min(["density", "temperature"])
         yield assert_equal, qrho, ad["density"].min()
         yield assert_equal, qtemp, ad["temperature"].min()
+
+def test_argmin():
+    for nprocs in [-1, 1, 2, 16]:
+        if nprocs == -1:
+            ds = fake_amr_ds(fields=("density","temperature"))
+        else:
+            ds = fake_random_ds(32, nprocs=nprocs,
+                fields=("density","temperature"))
+
+        ad = ds.all_data()
+
+        q = ad.argmin("density", axis=["density"])
+        yield assert_equal, q, ad["density"].min()
+
+        q1, q2 = ad.argmin("density", axis=["density", "temperature"])
+        mi = np.argmin(ad["density"])
+        yield assert_equal, q1, ad["density"].min()
+        yield assert_equal, q2, ad["temperature"][mi]
+
+        pos = ad.argmin("density")
+        mi = np.argmin(ad["density"])
+        yield assert_equal, pos[0], ad["x"][mi]
+        yield assert_equal, pos[1], ad["y"][mi]
+        yield assert_equal, pos[2], ad["z"][mi]
+
+def test_argmax():
+    for nprocs in [-1, 1, 2, 16]:
+        if nprocs == -1:
+            ds = fake_amr_ds(fields=("density","temperature"))
+        else:
+            ds = fake_random_ds(32, nprocs=nprocs,
+                fields=("density","temperature"))
+
+        ad = ds.all_data()
+
+        q = ad.argmax("density", axis=["density"])
+        yield assert_equal, q, ad["density"].max()
+
+        q1, q2 = ad.argmax("density", axis=["density", "temperature"])
+        mi = np.argmax(ad["density"])
+        yield assert_equal, q1, ad["density"].max()
+        yield assert_equal, q2, ad["temperature"][mi]
+
+        pos = ad.argmax("density")
+        mi = np.argmax(ad["density"])
+        yield assert_equal, pos[0], ad["x"][mi]
+        yield assert_equal, pos[1], ad["y"][mi]
+        yield assert_equal, pos[2], ad["z"][mi]

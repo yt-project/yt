@@ -123,7 +123,7 @@ def sphere_field_max_recenter(halo, field):
     s_ds = halo.data_object.ds
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
-    new_center = s_ds.arr(max_vals[2:])
+    new_center = s_ds.arr(max_vals[1:])
     new_sphere = s_ds.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,

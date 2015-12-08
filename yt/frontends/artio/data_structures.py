@@ -199,7 +199,7 @@ class ARTIOIndex(Index):
         if finest_levels is not False:
             source.min_level = self.max_level - finest_levels
         mylog.debug("Searching for maximum value of %s", field)
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
                    max_val, mx, my, mz)
