@@ -70,9 +70,12 @@ class StreamFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         for field in self.ds.stream_handler.field_units:
             units = self.ds.stream_handler.field_units[field]
             if units != '': self.add_output_field(field, units=units)
+        setup_magnetic_field_aliases(self, ["magnetic_field_%s" % ax for ax in "xyz"])
 
     def add_output_field(self, name, **kwargs):
         if name in self.ds.stream_handler.field_units:
