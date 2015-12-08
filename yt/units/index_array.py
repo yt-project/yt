@@ -16,6 +16,8 @@ IndexArray class.
 
 import numpy as np
 
+from six import string_types
+
 from yt.units.yt_array import \
     binary_operators, \
     commutative_operators, \
@@ -60,7 +62,7 @@ class IndexArray(YTArray):
         else:
             raise NotImplementedError
 
-        if not iterable(input_units):
+        if not iterable(input_units) or isinstance(input_units, string_types):
             input_units = (input_units, )*ndim
 
         if ndim != len(input_units):

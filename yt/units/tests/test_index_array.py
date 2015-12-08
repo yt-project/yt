@@ -27,9 +27,33 @@ from yt.units.index_array import IndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
 
-def test_creation_from_ytarray():
+def test_creation():
     arr = YTArray([1, 2, 3], 'g')
     iarr = IndexArray(arr)
+
+    assert_equal(iarr.units, (u.g.units, )*3)
+    assert_equal(iarr.ndview, np.array([1, 2, 3]))
+    assert(type(iarr.units) is tuple)
+
+    iarr = IndexArray([1, 2, 3], 'g')
+
+    assert_equal(iarr.units, (u.g.units, )*3)
+    assert_equal(iarr.ndview, np.array([1, 2, 3]))
+    assert(type(iarr.units) is tuple)
+
+    iarr = IndexArray([1, 2, 3], Unit('g'))
+
+    assert_equal(iarr.units, (u.g.units, )*3)
+    assert_equal(iarr.ndview, np.array([1, 2, 3]))
+    assert(type(iarr.units) is tuple)
+
+    iarr = IndexArray([1, 2, 3], ['g']*3)
+
+    assert_equal(iarr.units, (u.g.units, )*3)
+    assert_equal(iarr.ndview, np.array([1, 2, 3]))
+    assert(type(iarr.units) is tuple)
+
+    iarr = IndexArray([1, 2, 3], [Unit('g')]*3)
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
