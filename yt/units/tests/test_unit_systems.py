@@ -70,6 +70,7 @@ def test_fields_diff_systems():
         dd = ds.sphere("c", (100.,"kpc"))
         for field in test_fields:
             if us == "code":
+                # For this dataset code units are cgs
                 v1 = dd_cgs[field]
             else:
                 v1 = dd_cgs[field].in_base(us)

@@ -410,16 +410,17 @@ class Unit(Expr):
             units.append("(%s)%s" % (unit_string, power_string))
         return " * ".join(units)
 
-    def get_base_equivalent(self, unit_system=None):
+    def get_base_equivalent(self, unit_system="cgs"):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
         yt_base_unit_string = self._get_system_unit_string(default_base_units)
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
-        if unit_system is None:
+        if unit_system == "cgs":
             return yt_base_unit
         else:
+            unit_system = unit_system_registry[unit_system]
             units_string = self._get_system_unit_string(unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
             base_value = get_conversion_factor(self, yt_base_unit)[0]
@@ -433,17 +434,13 @@ class Unit(Expr):
         """
         if current_mks in self.dimensions.free_symbols:
             raise YTUnitsNotReducible(self, "cgs")
-        # Note that the following call only works because the default base units
-        # are simply cgs units plus Amperes. If that is no longer the case, we will
-        # then need to pass "unit_system=unit_system_registry['cgs']" to the
-        # get_base_equivalent call here.
-        return self.get_base_equivalent()
+        return self.get_base_equivalent(unit_system="cgs")
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
         """
-        return self.get_base_equivalent(unit_system=unit_system_registry["mks"])
+        return self.get_base_equivalent(unit_system="mks")
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)

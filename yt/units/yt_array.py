@@ -451,7 +451,7 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self, unit_system=None):
+    def convert_to_base(self, unit_system="cgs"):
         """
         Convert the array and units to the equivalent base units in
         the specified unit system.
@@ -460,15 +460,14 @@ class YTArray(np.ndarray):
         ----------
         unit_system : string, optional
             The unit system to be used in the conversion. If not specified,
-            the default base units are used.
+            the default base units of cgs are used.
 
         Examples
         --------
         >>> E = YTQuantity(2.5, "erg/s")
         >>> E.convert_to_base(unit_system="galactic")
         """
-        unit_system = unit_system_registry[unit_system]
-        return self.convert_to_units(self.units.get_base_equivalent(unit_system=unit_system))
+        return self.convert_to_units(self.units.get_base_equivalent(unit_system))
 
     def convert_to_cgs(self):
         """
@@ -518,7 +517,7 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self, unit_system=None):
+    def in_base(self, unit_system="cgs"):
         """
         Creates a copy of this array with the data in the specified unit system,
         and returns it in that system's base units.
@@ -527,15 +526,14 @@ class YTArray(np.ndarray):
         ----------
         unit_system : string, optional
             The unit system to be used in the conversion. If not specified,
-            the default base units are used.
+            the default base units of cgs are used.
 
         Examples
         --------
         >>> E = YTQuantity(2.5, "erg/s")
         >>> E_new = E.in_base(unit_system="galactic")
         """
-        unit_system = unit_system_registry[unit_system]
-        return self.in_units(self.units.get_base_equivalent(unit_system=unit_system))
+        return self.in_units(self.units.get_base_equivalent(unit_system))
 
     def in_cgs(self):
         """
