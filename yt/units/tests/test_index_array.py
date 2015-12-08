@@ -35,6 +35,11 @@ def test_creation_from_ytarray():
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
+def test_creation_errors():
+    assert_raises(RuntimeError, IndexArray, [1, 2, 3, 4], ['g', 'cm', 's'])
+    assert_raises(NotImplementedError, IndexArray, np.random.random((10, 10, 3)),
+                  'g')
+
 def test_registry_association():
     ds = fake_random_ds(64)
 

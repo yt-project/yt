@@ -64,7 +64,10 @@ class IndexArray(YTArray):
             input_units = (input_units, )*ndim
 
         if ndim != len(input_units):
-            raise RuntimeError
+            raise RuntimeError(
+                'Cannot create index array with shape %s and units %s'
+                % (obj.shape, input_units)
+            )
 
         obj.units = tuple(Unit(iu, registry=registry) if not isinstance(iu, Unit)
                           else iu for iu in input_units)
