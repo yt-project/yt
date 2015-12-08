@@ -227,6 +227,7 @@ plot element-centered fields:
    ds = yt.load('MOOSE_sample_data/out.e-s010')
    sl = yt.SlicePlot(ds, 'y', ('connect1', 'conv_indicator'))
    sl.zoom(0.75)
+   sl.save()
 
 We can also annotate the mesh lines, as follows:
 
@@ -237,6 +238,7 @@ We can also annotate the mesh lines, as follows:
    sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
    sl.annotate_mesh_lines()
    sl.zoom(0.75)
+   sl.save()
 
 This annotation is performed by marking the pixels where the mapped coordinate is close
 to the element boundary. What counts as 'close' (in the mapped coordinate system) is 
@@ -252,6 +254,7 @@ an example using another MOOSE dataset:
    import yt
    ds = yt.load('MOOSE_sample_data/ex10_aux/out.e')
    yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
 
 .. _off-axis-slices:
 

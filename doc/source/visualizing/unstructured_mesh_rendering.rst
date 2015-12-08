@@ -244,7 +244,7 @@ with two meshes on it:
     from yt.visualization.volume_rendering.scene import Scene
     import yt.utilities.png_writer as pw
 
-    ds = yt.load("~/FEMRender/data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
     # this time we create an empty scene and add sources to it one-by-one
     sc = Scene()
