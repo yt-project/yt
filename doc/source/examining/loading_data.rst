@@ -332,7 +332,7 @@ Exodus II Data
 
 Exodus II is a file format for Finite Element datasets that is used by the MOOSE
 framework for file IO. Support for this format (and for unstructured mesh data in 
-general) is a new feature in yt, so while we aim to fully support it, we also expect 
+general) is a new feature as of yt 3.3, so while we aim to fully support it, we also expect 
 there to be some buggy features at present. Currently, yt can visualize first-order
 mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
 Development of higher-order visualization capability is a work in progress.
@@ -371,10 +371,10 @@ objects. To see all the fields found in a particlular dataset, you can do:
    ds = yt.load("out.e-s010", step=0)
    print ds.field_list
 
-This will give you a list of field names like ('connect1', 'diffused') and 
-('connect2', 'convected'). Here, fields labelled with 'connect1' correspond to the
-first mesh, and those with 'connect2' to the second, and so on. To grab the value
-of the 'convected' variable at all the nodes in the first mesh, for example, you
+This will give you a list of field names like ``('connect1', 'diffused')`` and 
+``('connect2', 'convected')``. Here, fields labelled with ``'connect1'`` correspond to the
+first mesh, and those with ``'connect2'`` to the second, and so on. To grab the value
+of the ``'convected'`` variable at all the nodes in the first mesh, for example, you
 would do:
 
 .. code-block:: python
@@ -384,7 +384,7 @@ would do:
    ad = ds.all_data()  # geometric selection, this just grabs everything
    print ad['connect1', 'convected']
 
-In this dataset, ('connect1', 'convected') is nodal field, meaning that the field values
+In this dataset, ``('connect1', 'convected')`` is nodal field, meaning that the field values
 are defined at the vertices of the elements. If we examine the shape of the returned array:
 
 .. code-block:: python
@@ -405,7 +405,7 @@ can do, for instance:
    ad = ds.all_data()
    print ad['connect1', 'vertex_x']
 
-If we instead look at an element-centered field, like ('connect1', 'conv_indicator'),
+If we instead look at an element-centered field, like ``('connect1', 'conv_indicator')``,
 we get:
 
 .. code-block:: python
