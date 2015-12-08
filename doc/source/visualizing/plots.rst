@@ -422,7 +422,7 @@ an example using another MOOSE dataset:
 .. python-script::
 
    import yt
-   ds = yt.load('MOOSE_sample_data/ex10_aux/out.e')
+   ds = yt.load('MOOSE_sample_data/out.e')
    yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
    sl.save()
 
