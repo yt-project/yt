@@ -417,6 +417,9 @@ we get:
 
 we instead get only one field value per element.
 
+For information about visualizing unstructured mesh data, including Exodus II datasets, 
+please see :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`. 
+
 
 FITS Data
 ---------
