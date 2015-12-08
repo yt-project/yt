@@ -132,6 +132,8 @@ As with slices, you can visualize different meshes and different fields. For exa
 Here is a script similar to the above that plots the "diffused" variable 
 using the mesh labelled by "connect2":
 
+.. python-script::
+
    import yt
    from yt.visualization.volume_rendering.render_source import MeshSource
    from yt.visualization.volume_rendering.camera import Camera
