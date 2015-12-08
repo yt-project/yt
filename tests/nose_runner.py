@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     base_argv = ['--local-dir=%s' % answers_dir, '-v', '-s', '--nologcapture',
                  '--with-answer-testing', '--answer-big-data', '--local']
-    args = []
+    args = [['unittests', '-v', '-s', '--nologcapture']]
     for answer in list(tests.keys()):
         argv = [answer]
         argv += base_argv
