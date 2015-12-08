@@ -41,7 +41,10 @@ if __name__ == "__main__":
     for p in processes:
         p.start()
     for p in processes:
-        p.join()
+        p.join(timeout=7200)
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=30)
     for fname in glob.glob("*.out"):
         with open(fname, 'r') as fin:
             print(fin.read())
