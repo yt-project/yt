@@ -38,6 +38,3 @@ def test_surface_mesh_render():
         images.append(im)
 
     return images
-
-if __name__ == "__main__":
-    images = test_surface_mesh_render()
