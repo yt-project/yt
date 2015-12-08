@@ -31,9 +31,9 @@ def velocity_field(comp):
 class AthenaFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", ("code_mass/code_length**3", ["density"], None)),
-        ("cell_centered_B_x", (b_units, ["magnetic_field_x"], None)),
-        ("cell_centered_B_y", (b_units, ["magnetic_field_y"], None)),
-        ("cell_centered_B_z", (b_units, ["magnetic_field_z"], None)),
+        ("cell_centered_B_x", (b_units, [], None)),
+        ("cell_centered_B_y", (b_units, [], None)),
+        ("cell_centered_B_z", (b_units, [], None)),
     )
 
 # In Athena, conservative or primitive variables may be written out.
@@ -42,6 +42,8 @@ class AthenaFieldInfo(FieldInfoContainer):
 # case that the file contains the conservative ones.
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         # Add velocity fields
         for comp in "xyz":
@@ -123,3 +125,7 @@ class AthenaFieldInfo(FieldInfoContainer):
             return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
         self.add_field(("gas","temperature"), function=_temperature,
                        units=unit_system["temperature"])
+
+        setup_magnetic_field_aliases(self, [("athena","cell_centered_B_%s" % ax) for ax in "xyz"])
+
+

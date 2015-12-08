@@ -79,9 +79,9 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("targ", ("", [], "Target Material Fraction")),
         ("sumy", ("", [], None)),
         ("mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
-        ("magx", (b_units, ["magnetic_field_x"], "B_x")),
-        ("magy", (b_units, ["magnetic_field_y"], "B_y")),
-        ("magz", (b_units, ["magnetic_field_z"], "B_z")),
+        ("magx", (b_units, [], "B_x")),
+        ("magy", (b_units, [], "B_y")),
+        ("magz", (b_units, [], "B_z")),
     )
 
     known_particle_fields = (
@@ -96,6 +96,8 @@ class FLASHFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)), 
@@ -159,5 +161,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             return (data["nele"]+data["nion"])
         self.add_field(("gas","number_density"), function=_number_density,
                        units=unit_system["number_density"])
+
+        setup_magnetic_field_aliases(self, [("flash","mag%s" % ax) for ax in "xyz"])
 
 

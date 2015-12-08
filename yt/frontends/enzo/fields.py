@@ -57,9 +57,9 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("HeI_kph", ("1/code_time", [], None)),
         ("HeII_kph", ("1/code_time", [], None)),
         ("H2I_kdiss", ("1/code_time", [], None)),
-        ("Bx", (b_units, ["magnetic_field_x"], None)),
-        ("By", (b_units, ["magnetic_field_y"], None)),
-        ("Bz", (b_units, ["magnetic_field_z"], None)),
+        ("Bx", (b_units, [], None)),
+        ("By", (b_units, [], None)),
+        ("Bz", (b_units, [], None)),
         ("RadAccel1", (ra_units, ["radiation_acceleration_x"], None)),
         ("RadAccel2", (ra_units, ["radiation_acceleration_y"], None)),
         ("RadAccel3", (ra_units, ["radiation_acceleration_z"], None)),
@@ -147,6 +147,8 @@ class EnzoFieldInfo(FieldInfoContainer):
         self.species_names.sort()  # bb #1059
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         # Now we conditionally load a few other things.
         params = self.ds.parameters
         multi_species = params.get("MultiSpecies", None)
@@ -156,6 +158,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         if multi_species > 0 or dengo == 1:
             self.setup_species_fields()
         self.setup_energy_field()
+        setup_magnetic_field_aliases(self, [("enzo","B%s" % ax) for ax in "xyz"])
 
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
