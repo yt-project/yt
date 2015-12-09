@@ -28,7 +28,7 @@ from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
 from yt.units.yt_array import YTArray
 from yt.units.index_array import \
-    IndexArray
+    YTIndexArray
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
@@ -103,10 +103,10 @@ class GridIndex(Index):
         coords = self.ds.coordinates
         units = tuple(coords.axes_units.values())
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = IndexArray(np.zeros((self.num_grids,3),
+        self.grid_left_edge = YTIndexArray(np.zeros((self.num_grids,3),
                                     self.float_type), units,
                                     registry = self.ds.unit_registry)
-        self.grid_right_edge = IndexArray(np.ones((self.num_grids,3),
+        self.grid_right_edge = YTIndexArray(np.ones((self.num_grids,3),
                                     self.float_type), units,
                                     registry = self.ds.unit_registry)
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
@@ -237,9 +237,9 @@ class GridIndex(Index):
     def _get_grid_tree(self):
         coords = self.ds.coordinates
         units = tuple(coords.axes_units.values())
-        left_edge = IndexArray(np.zeros((self.num_grids, 3)),
+        left_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
                                units, registry=self.ds.unit_registry)
-        right_edge = IndexArray(np.zeros((self.num_grids, 3)),
+        right_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
                                 units, registry=self.ds.unit_registry)
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')

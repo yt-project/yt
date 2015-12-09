@@ -107,7 +107,7 @@ from yt.units.yt_array import \
     loadtxt, \
     savetxt
 from yt.units.index_array import \
-    IndexArray
+    YTIndexArray
 
 from yt.fields.api import \
     field_plugins, \

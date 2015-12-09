@@ -1,5 +1,5 @@
 """
-IndexArray class.
+YTIndexArray class.
 
 
 
@@ -38,7 +38,7 @@ from yt.utilities.exceptions import \
 
 ELLIPSIS_TYPE = type(Ellipsis)
 
-class IndexArray(YTArray):
+class YTIndexArray(YTArray):
     """
     An ndarray subclass useful for indexing along dimensions that have units
     """
@@ -94,7 +94,7 @@ class IndexArray(YTArray):
         return self[slice(i, j)]
 
     def __getitem__(self, item):
-        ret = super(IndexArray, self).__getitem__(item)
+        ret = super(YTIndexArray, self).__getitem__(item)
         if isinstance(item, tuple):
             if isinstance(item[0], (slice, ELLIPSIS_TYPE)):
                 ret = YTArray(ret.view(np.ndarray), self.units[item[1]])
@@ -124,7 +124,7 @@ class IndexArray(YTArray):
         return ret
 
     def __array_wrap__(self, out_arr, context=None):
-        # note that we explicitly call YTArray's superclass, not IndexArray
+        # note that we explicitly call YTArray's superclass, not YTIndexArray
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if context is None:
             return ret
@@ -212,7 +212,7 @@ class IndexArray(YTArray):
 
         Returns
         -------
-        IndexArray
+        YTIndexArray
 
         """
         units = ensure_tuple(units)
@@ -228,7 +228,7 @@ class IndexArray(YTArray):
             conversion_factor, offset = sunit.get_conversion_factor(nu)
             new_values[..., i] *= conversion_factor
 
-        new_array = IndexArray(new_values, new_units)
+        new_array = YTIndexArray(new_values, new_units)
 
         if offset:
             # punt on this for now

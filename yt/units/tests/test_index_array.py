@@ -23,51 +23,51 @@ from yt.testing import \
     assert_almost_equal, \
     assert_raises, \
     fake_random_ds
-from yt.units.index_array import IndexArray
+from yt.units.index_array import YTIndexArray
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units.unit_object import Unit
 
 def test_creation():
     arr = YTArray([1, 2, 3], 'g')
-    iarr = IndexArray(arr)
+    iarr = YTIndexArray(arr)
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
-    iarr = IndexArray([1, 2, 3], 'g')
+    iarr = YTIndexArray([1, 2, 3], 'g')
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
-    iarr = IndexArray([1, 2, 3], Unit('g'))
+    iarr = YTIndexArray([1, 2, 3], Unit('g'))
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
-    iarr = IndexArray([1, 2, 3], ['g']*3)
+    iarr = YTIndexArray([1, 2, 3], ['g']*3)
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
-    iarr = IndexArray([1, 2, 3], [Unit('g')]*3)
+    iarr = YTIndexArray([1, 2, 3], [Unit('g')]*3)
 
     assert_equal(iarr.units, (u.g.units, )*3)
     assert_equal(iarr.ndview, np.array([1, 2, 3]))
     assert(type(iarr.units) is tuple)
 
 def test_creation_errors():
-    assert_raises(RuntimeError, IndexArray, [1, 2, 3, 4], ['g', 'cm', 's'])
-    assert_raises(NotImplementedError, IndexArray, np.random.random((10, 10, 3)),
+    assert_raises(RuntimeError, YTIndexArray, [1, 2, 3, 4], ['g', 'cm', 's'])
+    assert_raises(NotImplementedError, YTIndexArray, np.random.random((10, 10, 3)),
                   'g')
 
 def test_registry_association():
     ds = fake_random_ds(64)
 
-    arr = IndexArray([1, 2, 3], ('g', 'km', 's'), registry=ds.unit_registry)
+    arr = YTIndexArray([1, 2, 3], ('g', 'km', 's'), registry=ds.unit_registry)
 
     assert(all([u.registry is ds.unit_registry for u in (3*arr).units]))
     assert(all([u.registry is ds.unit_registry for u in (arr*3).units]))
@@ -93,85 +93,85 @@ def assert_commutative_binary_op(oper1, oper2, operation, expected_value,
 
 def test_multiplication():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
     row_index = index[0]
 
     for operand, value in zip((index, row_index), (vals, vals[0])):
         for operation in (np.multiply, operator.mul):
             assert_commutative_binary_op(
-                operand, index, operation, value * vals, IndexArray,
+                operand, index, operation, value * vals, YTIndexArray,
                 ((u.km**2).units, (u.g**2).units, (u.s**2).units))
             assert_commutative_binary_op(
-                operand, u.km, operation, value, IndexArray,
+                operand, u.km, operation, value, YTIndexArray,
                 ((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
             assert_commutative_binary_op(
-                operand, 2, operation, 2 * value, IndexArray, index.units)
+                operand, 2, operation, 2 * value, YTIndexArray, index.units)
 
 def test_division():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
     row_index = index[0]
 
     for operand, value in zip((index, row_index), (vals, vals[0])):
         for operation in (np.divide, operator.div):
             assert_binary_op(
-                operand, index, operation, value / vals, IndexArray,
+                operand, index, operation, value / vals, YTIndexArray,
                 (Unit(), Unit(), Unit()))
             assert_binary_op(
-                index, operand, operation, vals / value, IndexArray,
+                index, operand, operation, vals / value, YTIndexArray,
                 (Unit(), Unit(), Unit()))
 
             assert_binary_op(
-                operand, u.km, operation, value, IndexArray,
+                operand, u.km, operation, value, YTIndexArray,
                 (Unit(), (u.g/u.km).units, (u.s/u.km).units))
             assert_binary_op(
-                u.km, operand, operation, 1/value, IndexArray,
+                u.km, operand, operation, 1/value, YTIndexArray,
                 (Unit(), (u.km/u.g).units, (u.km/u.s).units))
 
             assert_binary_op(
-                operand, 2, operation, value / 2, IndexArray, index.units)
+                operand, 2, operation, value / 2, YTIndexArray, index.units)
             assert_binary_op(
-                2, operand, operation, 2 / value, IndexArray,
+                2, operand, operation, 2 / value, YTIndexArray,
                 (Unit('1/km'), Unit('1/g'), Unit('1/s')))
 
 def test_addition():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
 
     row_vals = np.random.random(3)
-    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
+    row_index = YTIndexArray(row_vals, input_units=[u.km, u.g, u.s])
 
     for operand, value in zip((index, row_index), (vals, row_vals)):
         for operation in (np.add, operator.add):
             assert_commutative_binary_op(
-                operand, index, operation, value + vals, IndexArray, index.units)
+                operand, index, operation, value + vals, YTIndexArray, index.units)
             assert_commutative_binary_op(
-                operand, row_index, operation, value + row_vals, IndexArray,
+                operand, row_index, operation, value + row_vals, YTIndexArray,
                 index.units)
 
 def test_subtraction():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
 
     row_vals = np.random.random(3)
-    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
+    row_index = YTIndexArray(row_vals, input_units=[u.km, u.g, u.s])
 
     for operand, value in zip((index, row_index), (vals, row_vals)):
         for operation in (np.subtract, operator.sub):
             assert_binary_op(
-                operand, index, operation, value - vals, IndexArray, index.units)
+                operand, index, operation, value - vals, YTIndexArray, index.units)
             assert_binary_op(
-                index, operand, operation, vals - value, IndexArray, index.units)
+                index, operand, operation, vals - value, YTIndexArray, index.units)
             assert_binary_op(
-                operand, row_index, operation, value - row_vals, IndexArray,
+                operand, row_index, operation, value - row_vals, YTIndexArray,
                 index.units)
             assert_binary_op(
-                row_index, operand, operation, row_vals - value, IndexArray,
+                row_index, operand, operation, row_vals - value, YTIndexArray,
                 index.units)
 
 def test_comparisons():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.km, u.km])
+    index = YTIndexArray(vals, input_units=[u.km, u.km, u.km])
     arr = YTArray(vals, input_units=u.km)
 
     for operation in (np.equal, operator.eq, np.greater, operator.gt,
@@ -182,7 +182,7 @@ def test_comparisons():
 
 def test_homogenous_unit_operations():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.km, u.km])
+    index = YTIndexArray(vals, input_units=[u.km, u.km, u.km])
     row_index = index[0]
     arr = YTArray(vals, input_units=u.km)
     row_arr = arr[0]
@@ -193,27 +193,27 @@ def test_homogenous_unit_operations():
     for operand, value in zip((index, row_index), (vals, vals[0])):
         for operation in (np.add, operator.add):
             assert_commutative_binary_op(
-                operand, arr, operation, value + vals, IndexArray, index.units)
+                operand, arr, operation, value + vals, YTIndexArray, index.units)
             assert_commutative_binary_op(
-                operand, row_arr, operation, value + vals[0], IndexArray,
+                operand, row_arr, operation, value + vals[0], YTIndexArray,
                 index.units)
             assert_commutative_binary_op(
-                operand, quantity, operation, value + vals[0, 0], IndexArray,
+                operand, quantity, operation, value + vals[0, 0], YTIndexArray,
                 index.units)
         for operation in (np.multiply, operator.mul):
             assert_commutative_binary_op(
-                operand, arr, operation, value * vals, IndexArray,
+                operand, arr, operation, value * vals, YTIndexArray,
                 ((u.km**2).units, )*3)
             assert_commutative_binary_op(
-                operand, row_arr, operation, value * vals[0], IndexArray,
+                operand, row_arr, operation, value * vals[0], YTIndexArray,
                 ((u.km**2).units, )*3)
             assert_commutative_binary_op(
-                operand, quantity, operation, value * vals[0, 0], IndexArray,
+                operand, quantity, operation, value * vals[0, 0], YTIndexArray,
                 ((u.km**2).units, )*3)
 
 def test_unit_conversions():
     vals = np.random.random((100, 3))
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
 
     converted = index.in_units(('m', 'kg', 'min'))
     correct_result = np.copy(vals)
@@ -226,7 +226,7 @@ def test_unit_conversions():
     assert(type(converted.units) is tuple)
 
     row_vals = np.random.random(3)
-    row_index = IndexArray(row_vals, input_units=[u.km, u.g, u.s])
+    row_index = YTIndexArray(row_vals, input_units=[u.km, u.g, u.s])
 
     converted = row_index.in_units(('m', 'kg', 'min'))
     correct_result = np.copy(row_vals)
@@ -247,15 +247,15 @@ def compare_slicing(desired, actual, unit_type, array_type):
 def test_slicing():
     vals = np.arange(300)
     vals.shape = (100, 3)
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
 
     ret1 = YTArray(3*np.arange(100), 'km')
-    ret2 = IndexArray(np.arange(3), [u.km, u.g, u.s])
+    ret2 = YTIndexArray(np.arange(3), [u.km, u.g, u.s])
     ret3 = ret1
     ret4 = YTQuantity(3, 'km')
     ret5 = YTQuantity(38, 's')
-    ret6 = IndexArray([15, 16, 17], [u.km, u.g, u.s])
-    ret7 = IndexArray(vals[[5, 7]], [u.km, u.g, u.s])
+    ret6 = YTIndexArray([15, 16, 17], [u.km, u.g, u.s])
+    ret7 = YTIndexArray(vals[[5, 7]], [u.km, u.g, u.s])
 
     sl1 = index[:, 0]
     sl2 = index[0, :]
@@ -266,28 +266,28 @@ def test_slicing():
     sl7 = index[[5, 7]]
 
     compare_slicing(ret1, sl1, Unit, YTArray)
-    compare_slicing(ret2, sl2, tuple, IndexArray)
+    compare_slicing(ret2, sl2, tuple, YTIndexArray)
     compare_slicing(ret3, sl3, Unit, YTArray)
     compare_slicing(ret4, sl4, Unit, YTQuantity)
     compare_slicing(ret5, sl5, Unit, YTQuantity)
-    compare_slicing(ret6, sl6, tuple, IndexArray)
-    compare_slicing(ret7, sl7, tuple, IndexArray)
+    compare_slicing(ret6, sl6, tuple, YTIndexArray)
+    compare_slicing(ret7, sl7, tuple, YTIndexArray)
 
-    index = IndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
+    index = YTIndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
     compare_slicing(index[0], YTQuantity(0, 'km'), Unit, YTQuantity)
     compare_slicing(index[2], YTQuantity(2, 's'), Unit, YTQuantity)
-    compare_slicing(index[:2], IndexArray([0, 1], [u.km, u.g]), tuple,
-                    IndexArray)
+    compare_slicing(index[:2], YTIndexArray([0, 1], [u.km, u.g]), tuple,
+                    YTIndexArray)
     compare_slicing(index[1:2], YTQuantity(1, 'g'), Unit, YTQuantity)
-    compare_slicing(index[:], index, tuple, IndexArray)
-    compare_slicing(index[...], index, tuple, IndexArray)
-    compare_slicing(index[[1, 2]], IndexArray([1, 2], [u.g, u.s]), tuple,
-                    IndexArray)
+    compare_slicing(index[:], index, tuple, YTIndexArray)
+    compare_slicing(index[...], index, tuple, YTIndexArray)
+    compare_slicing(index[[1, 2]], YTIndexArray([1, 2], [u.g, u.s]), tuple,
+                    YTIndexArray)
 
 def test_boolean_unary_ops():
     vals = np.arange(30)
     vals.shape = (10, 3)
-    index = IndexArray(vals, [u.km, u.km, u.km])
+    index = YTIndexArray(vals, [u.km, u.km, u.km])
 
     assert_equal(np.isnan(index), np.isnan(vals))
     assert(all([i is np.bool_(False) for i in np.isnan(index).ravel()]))
@@ -295,16 +295,16 @@ def test_boolean_unary_ops():
 def test_str_and_repr():
     vals = np.arange(6)
     vals.shape = (2, 3)
-    index = IndexArray(vals, input_units=[u.km, u.g, u.s])
+    index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
 
     assert_equal(str(index), '[[ 0.  1.  2.]\n [ 3.  4.  5.]] (km, g, s)')
     assert_equal(
         repr(index),
-        'IndexArray([[ 0.,  1.,  2.],\n       [ 3.,  4.,  5.]]) (km, g, s)')
+        'YTIndexArray([[ 0.,  1.,  2.],\n       [ 3.,  4.,  5.]]) (km, g, s)')
 
 def test_incompatible_unit_operations():
-    index1 = IndexArray(np.random.random((6, 2)), [u.km, u.g])
-    index2 = IndexArray(np.random.random((6, 3)), [u.km, u.s, u.g])
+    index1 = YTIndexArray(np.random.random((6, 2)), [u.km, u.g])
+    index2 = YTIndexArray(np.random.random((6, 3)), [u.km, u.s, u.g])
 
     assert_raises(ValueError, operator.add, index1, index2)
     assert_raises(ValueError, np.add, index1, index2)

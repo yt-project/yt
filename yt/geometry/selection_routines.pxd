@@ -32,7 +32,7 @@ cdef inline _ensure_code(arr):
                 return arr
             else:
                 raise RuntimeError(
-                    '_ensure_code was passed an IndexArray not in code units'
+                    '_ensure_code was passed an YTIndexArray not in code units'
                 )
         except TypeError:
             pass

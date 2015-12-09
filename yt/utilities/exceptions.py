@@ -526,5 +526,5 @@ class YTImmutableUnitsError(YTException):
         self.replacement = replacement
 
     def __str__(self):
-        return ('IndexArray does not support in-place unit conversions. '
+        return ('YTIndexArray does not support in-place unit conversions. '
                 'Use %s instead.' % self.replacement)

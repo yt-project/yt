@@ -37,7 +37,7 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 from yt.units.index_array import \
-    IndexArray
+    YTIndexArray
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -187,7 +187,7 @@ class YTDataContainer(object):
         if center is None:
             self.center = None
             return
-        elif isinstance(center, IndexArray):
+        elif isinstance(center, YTIndexArray):
             self.center = center
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
@@ -210,9 +210,9 @@ class YTDataContainer(object):
         else:
             # TODO make this DTRT for nonspatial data
             self.center = self.ds.arr(center, 'code_length', dtype='float64')
-        # ensure the center attribute is an IndexArray to properly handle
+        # ensure the center attribute is an YTIndexArray to properly handle
         # nonspatial data
-        self.center = IndexArray(self.center)
+        self.center = YTIndexArray(self.center)
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):

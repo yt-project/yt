@@ -60,7 +60,7 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 from yt.units.index_array import \
-    IndexArray
+    YTIndexArray
 from yt.data_objects.region_expression import \
     RegionExpression
 
@@ -264,7 +264,7 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            v = IndexArray(v, units, registry=self.unit_registry)
+            v = YTIndexArray(v, units, registry=self.unit_registry)
             setattr(self, n, v)
 
     def __reduce__(self):

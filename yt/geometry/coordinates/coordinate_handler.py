@@ -26,7 +26,7 @@ from yt.funcs import \
 from yt.units.yt_array import \
     YTArray, YTQuantity
 from yt.units.index_array import \
-    IndexArray
+    YTIndexArray
 from yt.utilities.exceptions import \
     YTCoordinateNotImplemented, \
     YTInvalidWidthError
@@ -223,13 +223,13 @@ class CoordinateHandler(object):
         if isinstance(center, string_types):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
-                center = IndexArray(center, self.ds.domain_width.units,
+                center = YTIndexArray(center, self.ds.domain_width.units,
                     registry = self.ds.unit_registry)
             elif center.lower() == "c" or center.lower() == "center":
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
                 raise RuntimeError('center keyword \"%s\" not recognized' % center)
-        elif isinstance(center, IndexArray):
+        elif isinstance(center, YTIndexArray):
             return center, self.convert_to_cartesian(center)
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
