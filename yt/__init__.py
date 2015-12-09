@@ -178,3 +178,4 @@ from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
 from yt.units.unit_systems import UnitSystem
+from yt.units.unit_object import unit_system_registry
