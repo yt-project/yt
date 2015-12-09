@@ -207,7 +207,7 @@ MOOSE dataset:
    pw.write_png(im, 'hex20_render.png')
 
 As with other volume renderings in yt, you can swap out different lenses. Here is 
-an example that uses a "perpective" lens, for which the rays diverge from the 
+an example that uses a "perspective" lens, for which the rays diverge from the 
 camera position according to some opening angle:
 
 .. python-script::
@@ -238,7 +238,7 @@ will keep track of the depth information for each source separately, and composi
 the final image accordingly. In the next example, we show how to render a scene 
 with two meshes on it:
 
-.. code-block:: python
+.. python-script::
 
     import yt
     from yt.visualization.volume_rendering.render_source import MeshSource
