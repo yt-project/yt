@@ -20,6 +20,7 @@ import fileinput
 from re import finditer
 from tempfile import TemporaryFile
 import os
+import sys
 import zipfile
 
 from yt.config import ytcfg
@@ -1278,14 +1279,13 @@ class YTSurface(YTSelectionContainer3D):
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr,
                            color_field_max, color_field_min, color_field,
                            emit_field_max, emit_field_min, emit_field): # this now holds for obj files
-        from sys import version
         if color_field is not None:
             if color_log: cs = np.log10(cs)
         if emit_field is not None:
             if emit_log: em = np.log10(em)
         if color_field is not None:
             if color_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 mi = cs.min()
@@ -1293,7 +1293,7 @@ class YTSurface(YTSelectionContainer3D):
                 mi = color_field_min
                 if color_log: mi = np.log10(mi)
             if color_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 ma = cs.max()
@@ -1311,7 +1311,7 @@ class YTSurface(YTSelectionContainer3D):
         # now, get emission
         if emit_field is not None:
             if emit_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 emi = em.min()
@@ -1319,7 +1319,7 @@ class YTSurface(YTSelectionContainer3D):
                 emi = emit_field_min
                 if emit_log: emi = np.log10(emi)
             if emit_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 ema = em.max()
@@ -1339,12 +1339,11 @@ class YTSurface(YTSelectionContainer3D):
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        from sys import version
         from io import IOBase
         if plot_index is None:
             plot_index = 0
-        if version < '3':
-            checker = file
+        if sys.version_info < (3, ):
+            checker = file   # noqa
         else:
             checker = IOBase
         if isinstance(filename, checker):
