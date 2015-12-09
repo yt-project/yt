@@ -19,11 +19,12 @@ cimport numpy
 import numpy
 from fp_utils cimport *
 from libc.stdlib cimport malloc, free
+from yt.geometry.oct_container cimport OctreeContainer
 
 # Now some visitor functions
 
-cdef class OctVisitor
-    cdef __init__(self, OctreeContainer octree, int domain_id = -1):
+cdef class OctVisitor:
+    def __init__(self, OctreeContainer octree, int domain_id = -1):
         cdef int i
         self.index = 0
         self.last = -1
@@ -31,17 +32,16 @@ cdef class OctVisitor
         for i in range(3):
             self.pos[i] = -1
             self.ind[i] = -1
-        self.array = NULL
         self.dims = 0
         self.domain = domain_id
         self.level = -1
         self.oref = self.oref
         self.nz = (1 << (self.oref*3))
 
-    cdef void visit(self, Oct* o, np.uint8_t, selected):
+    cdef void visit(self, Oct* o, np.uint8_t selected):
         raise NotImplementedError
 
-cdef class CopyArray[numpy_dt](OctVisitor):
+cdef class CopyArrayI64(OctVisitor):
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
@@ -50,7 +50,21 @@ cdef class CopyArray[numpy_dt](OctVisitor):
         # There are this many records between "octs"
         cdef np.int64_t index = (self.global_index * self.nz)*self.dims
         # We may want to change the way this is structured to be N,2,2,2,dim
-        index += oind(data)*self.dims
+        index += self.oind()*self.dims
+        for i in range(self.dims):
+            self.dest[self.index, i] = self.source[index, i]
+        self.index += self.dims
+
+cdef class CopyArrayF64(OctVisitor):
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        # We should always have global_index less than our source.
+        # "last" here tells us the dimensionality of the array.
+        if selected == 0: return
+        cdef int i
+        # There are this many records between "octs"
+        cdef np.int64_t index = (self.global_index * self.nz)*self.dims
+        # We may want to change the way this is structured to be N,2,2,2,dim
+        index += self.oind()*self.dims
         for i in range(self.dims):
             self.dest[self.index, i] = self.source[index, i]
         self.index += self.dims
@@ -119,7 +133,7 @@ cdef class FCoordsOcts(OctVisitor):
             self.fcoords[self.index,i] = (c + 0.5) * dx
         self.index += 1
 
-cdef class FCoordsOcts(OctVisitor):
+cdef class FWidthOcts(OctVisitor):
     @cython.cdivision(True)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Note that this does not actually give the correct floating point
@@ -153,7 +167,7 @@ cdef class FillFileIndicesO(OctVisitor):
         if selected == 0: return
         self.levels[self.index] = self.level
         self.file_inds[self.index] = o.file_ind
-        self.cell_inds[self.index] = oind(data)
+        self.cell_inds[self.index] = self.oind()
         self.index +=1
 
 cdef class FillFileIndicesR(OctVisitor):
@@ -163,7 +177,7 @@ cdef class FillFileIndicesR(OctVisitor):
         if selected == 0: return
         self.levels[self.index] = self.level
         self.file_inds[self.index] = o.file_ind
-        self.cell_inds[self.index] = rind(data)
+        self.cell_inds[self.index] = self.rind()
         self.index +=1
 
 cdef class CountByDomain(OctVisitor):
@@ -186,7 +200,6 @@ cdef class StoreOctree(OctVisitor):
 
 cdef class LoadOctree(OctVisitor):
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        cdef np.int64_t *nfinest = <np.int64_t*> p[3]
         cdef int i, ii
         ii = cind(self.ind[0], self.ind[1], self.ind[2])
         if self.ref_mask[self.index] == 0:
@@ -194,9 +207,9 @@ cdef class LoadOctree(OctVisitor):
             # nfinest for our tastes.
             if o.file_ind == -1:
                 o.children = NULL
-                o.file_ind = self.nfinest
+                o.file_ind = self.nfinest[0]
                 o.domain = 1
-                self.nfinest += 1
+                self.nfinest[0] += 1
         elif self.ref_mask[self.index] > 0:
             if self.ref_mask[self.index] != 1 and self.ref_mask[self.index] != 8:
                 print "ARRAY CLUE: ", self.ref_mask[self.index], "UNKNOWN"
@@ -206,12 +219,12 @@ cdef class LoadOctree(OctVisitor):
                 for i in range(8):
                     o.children[i] = NULL
             for i in range(8):
-                o.children[ii + i] = &self.octs[self.nocts]
-                o.children[ii + i].domain_ind = self.nocts
+                o.children[ii + i] = &self.octs[self.nocts[0]]
+                o.children[ii + i].domain_ind = self.nocts[0]
                 o.children[ii + i].file_ind = -1
                 o.children[ii + i].domain = -1
                 o.children[ii + i].children = NULL
-                self.nocts += 1
+                self.nocts[0] += 1
         else:
             print "SOMETHING IS AMISS", self.index
             raise RuntimeError
