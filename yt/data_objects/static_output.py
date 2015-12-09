@@ -238,7 +238,8 @@ class Dataset(object):
         self._setup_coordinate_handler()
 
         create_code_unit_system(self)
-        unit_system = str(self)
+        if unit_system == "code":
+            unit_system = str(self)
         self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
