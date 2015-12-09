@@ -114,11 +114,11 @@ class MultipartParam(object):
                 except:
                     raise ValueError("Could not determine filesize")
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
         attrs = ['name', 'value', 'filename', 'filetype', 'filesize', 'fileobj']
         myattrs = [getattr(self, a) for a in attrs]
         oattrs = [getattr(other, a) for a in attrs]
-        return cmp(myattrs, oattrs)
+        return myattrs < oattrs
 
     def reset(self):
         if self.fileobj is not None:
