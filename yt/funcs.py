@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
-from yt.extern.moves import input
+from yt.extern.six.moves import input
 import time
 import inspect
 import traceback
