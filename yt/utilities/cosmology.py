@@ -82,9 +82,7 @@ class Cosmology(object):
                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
-        if isinstance(unit_system, string_types):
-            unit_system = unit_system_registry[unit_system]
-        self.unit_system = unit_system
+        self.unit_system = unit_system_registry[str(unit_system)]
 
     def hubble_distance(self):
         r"""
