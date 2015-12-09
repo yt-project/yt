@@ -42,6 +42,8 @@ cdef class OctVisitor:
         raise NotImplementedError
 
 cdef class CopyArrayI64(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
@@ -56,6 +58,8 @@ cdef class CopyArrayI64(OctVisitor):
         self.index += self.dims
 
 cdef class CopyArrayF64(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
@@ -70,6 +74,8 @@ cdef class CopyArrayF64(OctVisitor):
         self.index += self.dims
 
 cdef class CountTotalOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Count even if not selected.
         # Number of *octs* visited.
@@ -78,11 +84,15 @@ cdef class CountTotalOcts(OctVisitor):
             self.last = o.domain_ind
 
 cdef class CountTotalCells(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Number of *cells* visited and selected.
         self.index += selected
 
 cdef class MarkOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We mark them even if they are not selected
         if self.last != o.domain_ind:
@@ -91,11 +101,15 @@ cdef class MarkOcts(OctVisitor):
         self.mark[self.index, self.ind[0], self.ind[1], self.ind[2]] = 1
 
 cdef class MaskOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         if selected == 0: return
         self.mask[self.global_index, self.ind[0], self.ind[1], self.ind[2]] = 1
 
 cdef class IndexOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Note that we provide an index even if the cell is not selected.
         cdef np.int64_t *arr
@@ -105,14 +119,18 @@ cdef class IndexOcts(OctVisitor):
             self.index += 1
 
 cdef class ICoordsOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         if selected == 0: return
         cdef int i
         for i in range(3):
-            self.coords[self.index,i] = (self.pos[i] << self.oref) + self.ind[i]
+            self.icoords[self.index,i] = (self.pos[i] << self.oref) + self.ind[i]
         self.index += 1
 
 cdef class IResOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         if selected == 0: return
         self.ires[self.index] = self.level
@@ -120,6 +138,8 @@ cdef class IResOcts(OctVisitor):
 
 cdef class FCoordsOcts(OctVisitor):
     @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Note that this does not actually give the correct floating point
         # coordinates.  It gives them in some unit system where the domain is 1.0
@@ -135,6 +155,8 @@ cdef class FCoordsOcts(OctVisitor):
 
 cdef class FWidthOcts(OctVisitor):
     @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Note that this does not actually give the correct floating point
         # coordinates.  It gives them in some unit system where the domain is 1.0
@@ -148,6 +170,8 @@ cdef class FWidthOcts(OctVisitor):
         self.index += 1
 
 cdef class IdentifyOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We assume that our domain has *already* been selected by, which means
         # we'll get all cells within the domain for a by-domain selector and all
@@ -156,11 +180,15 @@ cdef class IdentifyOcts(OctVisitor):
         self.domain_mask[o.domain - 1] = 1
 
 cdef class AssignDomainInd(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         o.domain_ind = self.global_index
         self.index += 1
 
 cdef class FillFileIndicesO(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We fill these arrays, then inside the level filler we use these as
         # indices as we fill a second array from the self.
@@ -171,6 +199,8 @@ cdef class FillFileIndicesO(OctVisitor):
         self.index +=1
 
 cdef class FillFileIndicesR(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We fill these arrays, then inside the level filler we use these as
         # indices as we fill a second array from the self.
@@ -181,12 +211,16 @@ cdef class FillFileIndicesR(OctVisitor):
         self.index +=1
 
 cdef class CountByDomain(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         if selected == 0: return
         # NOTE: We do this for every *cell*.
         self.domain_counts[o.domain - 1] += 1
 
 cdef class StoreOctree(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         cdef np.uint8_t res, ii
         ii = cind(self.ind[0], self.ind[1], self.ind[2])
@@ -199,6 +233,8 @@ cdef class StoreOctree(OctVisitor):
         self.index += 1
 
 cdef class LoadOctree(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         cdef int i, ii
         ii = cind(self.ind[0], self.ind[1], self.ind[2])

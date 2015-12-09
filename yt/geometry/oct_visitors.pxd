@@ -76,7 +76,7 @@ cdef class ICoordsOcts(OctVisitor):
     cdef np.int64_t[:,:] icoords
 
 cdef class IResOcts(OctVisitor):
-    cdef np.int64_t[:,:] ires
+    cdef np.int64_t[:] ires
 
 cdef class FCoordsOcts(OctVisitor):
     cdef np.float64_t[:,:] fcoords
