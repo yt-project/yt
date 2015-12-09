@@ -90,7 +90,7 @@ def configuration(parent_package='',top_path=None):
         omp_args = ['-fopenmp']
     else:
         omp_args = None
-    if check_for_pyembree is not None:
+    if check_for_pyembree() is not None:
         loc = read_embree_location()
         embree_include_dir = loc + '/include'
         embree_lib_dir = loc + '/lib'
