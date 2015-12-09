@@ -632,7 +632,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
@@ -644,7 +644,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, maxi, mx, my, mz = \
+        min_val, mx, my, mz = \
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)

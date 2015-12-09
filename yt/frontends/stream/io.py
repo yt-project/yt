@@ -44,7 +44,7 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype not in ("gas",) for ftype, fname in fields)):
+        if any((ftype not in self.ds.fluid_types for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:

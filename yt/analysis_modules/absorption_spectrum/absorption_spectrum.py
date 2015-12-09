@@ -139,7 +139,9 @@ class AbsorptionSpectrum(object):
            is recommended to set to None in such circumstances.
            Default: None
         use_peculiar_velocity : optional, bool
-           if True, include line of sight velocity for shifting lines.
+           if True, include peculiar velocity for calculating doppler redshift
+           to shift lines.  Requires similar flag to be set in LightRay 
+           generation.
            Default: True
         subgrid_resolution : optional, int
            When a line is being added that is unresolved (ie its thermal

@@ -293,7 +293,7 @@ class StreamDataset(Dataset):
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
         #self._conversion_override = conversion_override
-
+        self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
@@ -376,7 +376,7 @@ def update_field_names(data):
         if len(s) == 1:
             field = ("io", k)
         elif len(s) == 3:
-            field = ("gas", k)
+            field = ("stream", k)
         elif len(s) == 0:
             continue
         else:
@@ -502,7 +502,7 @@ def unitify_data(data):
         elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
         elif len(data[field].shape) == 3:
-            new_field = ("gas", field)
+            new_field = ("stream", field)
         else:
             raise RuntimeError
         new_data[new_field] = data[field]
