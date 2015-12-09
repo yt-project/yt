@@ -424,7 +424,8 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef oct_visitors.MaskOcts visitor
         visitor = oct_visitors.MaskOcts(self, domain_id)
-        mask = np.zeros((num_cells*visitor.nz), dtype="uint8")
+        cdef int ns = 1 << self.oref
+        mask = np.zeros((num_cells, ns, ns, ns), dtype="uint8")
         visitor.mask = mask
         self.visit_all_octs(selector, visitor)
         return mask.astype("bool")
