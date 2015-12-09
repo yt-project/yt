@@ -225,7 +225,7 @@ camera position according to some opening angle:
    cam = Camera(ds, lens_type='perspective')
    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
 
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
+   cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')  # the camera location
    north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
    cam.set_position(cam_pos, north_vector)
 
