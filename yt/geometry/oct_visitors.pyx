@@ -35,7 +35,7 @@ cdef class OctVisitor:
         self.dims = 0
         self.domain = domain_id
         self.level = -1
-        self.oref = self.oref
+        self.oref = octree.oref
         self.nz = (1 << (self.oref*3))
 
     cdef void visit(self, Oct* o, np.uint8_t selected):

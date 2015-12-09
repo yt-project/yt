@@ -174,7 +174,7 @@ cdef class OctreeContainer:
                     # Always visit covered
                     selector.recursively_visit_octs(
                         obj.root_mesh[i][j][k],
-                        pos, dds, 0, oct_visitors.load_octree, 1)
+                        pos, dds, 0, visitor, 1)
                     pos[2] += dds[2]
                 pos[1] += dds[1]
             pos[0] += dds[0]
