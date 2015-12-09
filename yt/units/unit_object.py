@@ -420,7 +420,10 @@ class Unit(Expr):
         if unit_system == "cgs":
             return yt_base_unit
         else:
-            unit_system = unit_system_registry[unit_system]
+            if unit_system == "code":
+                raise RuntimeError("To convert to a \"code\" unit system, "
+                                   "specify a dataset with \"unit_system\" == ds!")
+            unit_system = unit_system_registry[str(unit_system)]
             units_string = self._get_system_unit_string(unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
             base_value = get_conversion_factor(self, yt_base_unit)[0]
