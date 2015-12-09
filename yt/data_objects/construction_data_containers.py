@@ -17,6 +17,7 @@ Data containers that require processing before they can be utilized.
 import numpy as np
 from functools import wraps
 import fileinput
+import io
 from re import finditer
 from tempfile import TemporaryFile
 import os
@@ -1339,14 +1340,9 @@ class YTSurface(YTSelectionContainer3D):
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        from io import IOBase
         if plot_index is None:
             plot_index = 0
-        if sys.version_info < (3, ):
-            checker = file   # noqa
-        else:
-            checker = IOBase
-        if isinstance(filename, checker):
+        if isinstance(filename, io.IOBase):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
@@ -1638,7 +1634,7 @@ class YTSurface(YTSelectionContainer3D):
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
-        if isinstance(filename, file):
+        if isinstance(filename, io.IOBase):
             f = filename
         else:
             f = open(filename, "wb")
