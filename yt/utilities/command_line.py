@@ -325,7 +325,7 @@ def _get_yt_stack_date():
     if not os.path.exists(date_file):
         print("Could not determine when yt stack was last updated.")
         return
-    print("".join(file(date_file, 'r').readlines()))
+    print("".join(open(date_file, 'r').readlines()))
     print("To update all dependencies, run \"yt update --all\".")
 
 def _update_yt_stack(path):
