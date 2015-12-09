@@ -72,6 +72,11 @@ class Cosmology(object):
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
+        self.unit_system = unit_system_registry[str(unit_system)]
+        # The following will only be true if the unit system is
+        # associated with a specific dataset
+        if self.unit_system.registry is not None:
+            unit_registry = self.unit_system.registry
         if unit_registry is None:
             unit_registry = UnitRegistry()
             unit_registry.modify("h", hubble_constant)
@@ -82,7 +87,6 @@ class Cosmology(object):
                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
-        self.unit_system = unit_system_registry[str(unit_system)]
 
     def hubble_distance(self):
         r"""
@@ -217,7 +221,7 @@ class Cosmology(object):
         """
         
         return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_units(self.unit_system["volume"])
+                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_units(self.unit_system["length"])
 
     def angular_scale(self, z_i, z_f):
         r"""
