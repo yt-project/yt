@@ -421,7 +421,7 @@ cdef class OctreeContainer:
              int domain_id = -1):
         if num_cells == -1:
             num_cells = selector.count_octs(self, domain_id)
-        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef np.ndarray[np.uint8_t, ndim=4] mask
         cdef oct_visitors.MaskOcts visitor
         visitor = oct_visitors.MaskOcts(self, domain_id)
         cdef int ns = 1 << self.oref

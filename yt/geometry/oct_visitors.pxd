@@ -93,7 +93,7 @@ cdef class CopyArrayF64(OctVisitor):
     cdef np.int64_t[:,:] dest
 
 cdef class IdentifyOcts(OctVisitor):
-    cdef np.uint64_t[:] domain_mask
+    cdef np.uint8_t[:] domain_mask
 
 cdef class AssignDomainInd(OctVisitor):
     pass
