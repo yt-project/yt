@@ -61,8 +61,47 @@ def test_creation():
 
 def test_creation_errors():
     assert_raises(RuntimeError, YTIndexArray, [1, 2, 3, 4], ['g', 'cm', 's'])
-    assert_raises(NotImplementedError, YTIndexArray, np.random.random((10, 10, 3)),
-                  'g')
+    assert_raises(NotImplementedError, YTIndexArray,
+                  np.random.random((10, 10, 3)), 'g')
+
+def test_helper_methods():
+    vals = np.random.random((10, 3))
+    ones = np.ones(vals.shape)
+    arr = YTIndexArray(vals, ['km', 'g', 's'])
+    homog_arr = YTIndexArray(vals, ['km', 'km', 'km'])
+
+    assert_raises(NotImplementedError, YTIndexArray.from_astropy)
+    assert_raises(NotImplementedError, arr.to_astropy)
+    assert_raises(NotImplementedError, YTIndexArray.from_pint)
+    assert_raises(NotImplementedError, arr.to_pint)
+    assert_raises(NotImplementedError, YTIndexArray.from_hdf5)
+    assert_raises(NotImplementedError, arr.write_hdf5)
+
+    assert_equal(homog_arr.unit_quantity, YTQuantity(1, 'km'))
+    assert_equal(homog_arr.uq, YTQuantity(1, 'km'))
+    assert_raises(RuntimeError, getattr, arr, 'unit_quantity')
+
+    assert_equal(homog_arr.unit_array, YTIndexArray(ones, ['km', 'km', 'km']))
+    assert_equal(homog_arr.ua, YTIndexArray(ones, ['km', 'km', 'km']))
+    assert_equal(arr.unit_array, YTIndexArray(ones, ['km', 'g', 's']))
+    assert_equal(arr.ua, YTIndexArray(ones, ['km', 'g', 's']))
+
+    assert_equal(arr.sqrt(),
+                 YTIndexArray(np.sqrt(vals), ['km**0.5', 'g**0.5', 's**0.5']))
+    assert_equal(arr.prod(), YTQuantity(vals.prod(), '(km*g*s)**10'))
+    assert_equal(arr.prod(axis=0),
+                 YTIndexArray(
+                     vals.prod(axis=0),
+                     UnitTuple(Unit('km**10'), Unit('g**10'), Unit('s**10'))))
+    assert_equal(arr.prod(axis=1), YTArray(vals.prod(axis=1), 'km*g*s'))
+
+    assert_raises(RuntimeError, arr.sum)
+    assert_equal(homog_arr.sum(), YTQuantity(vals.sum(), 'km'))
+    assert_equal(arr.sum(axis=0),
+                 YTIndexArray(vals.sum(axis=0), ['km', 'g', 's']))
+    assert_equal(homog_arr.sum(axis=0), YTArray(vals.sum(axis=0), 'km'))
+    assert_raises(RuntimeError, arr.sum, 1)
+    assert_equal(homog_arr.sum(axis=1), YTArray(vals.sum(axis=1), 'km'))
 
 def test_registry_association():
     ds = fake_random_ds(64)

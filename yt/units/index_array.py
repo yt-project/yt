@@ -15,8 +15,10 @@ YTIndexArray class.
 
 
 import numpy as np
+import operator
 
 from six import string_types
+from six.moves import reduce
 
 from yt.units.yt_array import \
     binary_operators, \
@@ -24,6 +26,7 @@ from yt.units.yt_array import \
     ensure_tuple, \
     iterable, \
     NULL_UNIT, \
+    return_arr, \
     same_unit_operators, \
     UFUNC_REGISTRY, \
     unary_operators, \
@@ -174,6 +177,10 @@ class YTIndexArray(YTArray):
             return out_arr
         return ret_class(np.array(out_arr, copy=False), units)
 
+    #
+    # Begin unit conversion methods
+    #
+
     def convert_to_units(self, units):
         """
         This function raises a RuntimeError, use in_units instead.
@@ -278,3 +285,81 @@ class YTIndexArray(YTArray):
         return self.in_units(
             tuple([u.get_mks_equivalent() for u in self.units])
         )
+
+    #
+    # End unit conversion methods
+    #
+
+    #
+    # Begin helper methods
+    #
+
+    @classmethod
+    def from_astropy(cls, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not support conversions to and from astropy"
+        )
+
+    def to_astropy(self, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not support conversions to and from astropy"
+        )
+
+    @classmethod
+    def from_pint(cls, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not support conversions to and from pint"
+        )
+
+    def to_pint(self, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not support conversions to and from pint"
+        )
+
+    def write_hdf5(self, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not yet support native HDF5 I/O"
+        )
+
+    @classmethod
+    def from_hdf5(cls, *args, **kwargs):
+        raise NotImplementedError(
+            "YTIndexArray does not yet support native HDF5 I/O"
+        )
+
+    @property
+    def unit_quantity(self):
+        if self.units.is_homogenous:
+            return YTQuantity(1.0, self.units[0])
+        msg = "Cannot convert IndexArray with units '%s' to a quantity"
+        raise RuntimeError(msg % (self.units, ))
+
+    uq = unit_quantity
+
+    @return_arr
+    def prod(self, axis=None, dtype=None, out=None):
+        if len(self.shape) == 2:
+            nrows = self.shape[0]
+        else:
+            nrows = 1
+        if axis is None:
+            units = reduce(operator.mul, self.units)**nrows
+        elif axis == 0:
+            units = self.units**nrows
+        elif axis == 1:
+            units = reduce(operator.mul, self.units)
+        return np.asarray(self).prod(axis, dtype, out), units
+
+    @return_arr
+    def sum(self, axis=None, dtype=None, out=None):
+        if axis in (None, 1):
+            if self.units.is_homogenous:
+                units = self.units[0]
+            else:
+                raise RuntimeError(
+                    'Cannot use the sum method with "axis=None" for arrays '
+                    'with units %s' % (self.units, )
+                )
+        elif axis == 0:
+            units = self.units
+        return np.asarray(self).sum(axis, dtype, out), units
