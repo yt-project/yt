@@ -26,7 +26,6 @@ import tempfile
 import json
 import pprint
 
-
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
@@ -1098,6 +1097,29 @@ class YTUploadImageCmd(YTCommand):
             print()
             pprint.pprint(rv)
 
+class YTSearchCmd(YTCommand):
+    args = (dict(short="output", type=str),)
+    description = \
+        """
+        Attempt to find outputs that yt can recognize in directories.
+        """
+    name = "search"
+    def __call__(self, args):
+        from yt.utilities.parameter_file_storage import \
+            output_type_registry
+        output = args.output
+        cwd = os.getcwd()
+        types_to_check = output_type_registry
+        candidates = []
+        for base, dirs, files in os.walk(".", followlinks=True):
+            print( base)
+            recurse = []
+            for name, otr in sorted(output_type_registry.items()):
+                c, r = otr._guess_candidates(base, dirs, files)
+                candidates.extend([os.path.join(base, _) for _ in c])
+                recurse.append(r)
+            if len(recurse) > 0 and not all(recurse):
+                del dirs[:]
 
 def run_main():
     args = parser.parse_args()
