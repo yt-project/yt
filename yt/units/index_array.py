@@ -32,7 +32,7 @@ from yt.units.yt_array import \
     YTUnitOperationError, \
     YTQuantity
 from yt.units.unit_object import \
-    Unit
+    Unit, UnitTuple
 from yt.utilities.exceptions import \
     YTImmutableUnitsError
 
@@ -71,8 +71,9 @@ class YTIndexArray(YTArray):
                 % (obj.shape, input_units)
             )
 
-        obj.units = tuple(Unit(iu, registry=registry) if not isinstance(iu, Unit)
-                          else iu for iu in input_units)
+        obj.units = UnitTuple(
+            (Unit(iu, registry=registry) if not isinstance(iu, Unit)
+             else iu for iu in input_units))
 
         return obj
 
@@ -118,7 +119,7 @@ class YTIndexArray(YTArray):
                     if isinstance(item, ELLIPSIS_TYPE):
                         pass
                     elif iterable(item):
-                        ret.units = tuple([self.units[i] for i in item])
+                        ret.units = UnitTuple([self.units[i] for i in item])
                     else:
                         ret.units = self.units[item]
         return ret
@@ -158,7 +159,8 @@ class YTIndexArray(YTArray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            units = tuple(unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2))
+            units = UnitTuple(
+                (unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2)))
             if all([u is None for u in units]):
                 units = None
             if unit_operator in commutative_operators:
