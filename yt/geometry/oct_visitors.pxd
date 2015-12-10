@@ -85,12 +85,12 @@ cdef class FWidthOcts(OctVisitor):
     cdef np.float64_t[:,:] fwidth
 
 cdef class CopyArrayI64(OctVisitor):
-    cdef np.int64_t[:,:] source
+    cdef np.int64_t[:,:,:,:,:] source
     cdef np.int64_t[:,:] dest
 
 cdef class CopyArrayF64(OctVisitor):
-    cdef np.int64_t[:,:] source
-    cdef np.int64_t[:,:] dest
+    cdef np.float64_t[:,:,:,:] source
+    cdef np.float64_t[:,:] dest
 
 cdef class IdentifyOcts(OctVisitor):
     cdef np.uint8_t[:] domain_mask

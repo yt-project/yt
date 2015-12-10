@@ -50,27 +50,23 @@ cdef class CopyArrayI64(OctVisitor):
         if selected == 0: return
         cdef int i
         # There are this many records between "octs"
-        cdef np.int64_t index = (self.global_index * self.nz)*self.dims
-        # We may want to change the way this is structured to be N,2,2,2,dim
-        index += self.oind()*self.dims
-        for i in range(self.dims):
-            self.dest[self.index, i] = self.source[index, i]
+        self.dest[self.index] = self.source[
+                self.ind[0], self.ind[1], self.ind[2],
+                self.global_index]
         self.index += self.dims
 
 cdef class CopyArrayF64(OctVisitor):
-    @cython.boundscheck(False)
-    @cython.initializedcheck(False)
+    #@cython.boundscheck(False)
+    #@cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
         if selected == 0: return
         cdef int i
         # There are this many records between "octs"
-        cdef np.int64_t index = (self.global_index * self.nz)*self.dims
-        # We may want to change the way this is structured to be N,2,2,2,dim
-        index += self.oind()*self.dims
-        for i in range(self.dims):
-            self.dest[self.index, i] = self.source[index, i]
+        self.dest[self.index] = self.source[
+                self.ind[0], self.ind[1], self.ind[2],
+                self.global_index]
         self.index += self.dims
 
 cdef class CountTotalOcts(OctVisitor):

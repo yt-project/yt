@@ -541,11 +541,11 @@ cdef class OctreeContainer:
             # means we actually do want the number of Octs, not the number of
             # cells.
             num_cells = selector.count_oct_cells(self, domain_id)
-            if dims > 1:
-                dest = np.zeros((num_cells, dims), dtype=source.dtype,
-                    order='C')
-            else:
-                dest = np.zeros(num_cells, dtype=source.dtype, order='C')
+            dest = np.zeros((num_cells, dims), dtype=source.dtype,
+                            order='C')
+        dest = np.atleast_2d(dest)
+        if dims != 1:
+            raise RuntimeError
         cdef OctVisitor visitor
         cdef oct_visitors.CopyArrayI64 visitor_i64
         cdef oct_visitors.CopyArrayF64 visitor_f64
