@@ -100,10 +100,10 @@ def test_multiplication():
         for operation in (np.multiply, operator.mul):
             assert_commutative_binary_op(
                 operand, index, operation, value * vals, YTIndexArray,
-                UnitTuple(((u.km**2).units, (u.g**2).units, (u.s**2).units)))
+                UnitTuple((u.km**2).units, (u.g**2).units, (u.s**2).units))
             assert_commutative_binary_op(
                 operand, u.km, operation, value, YTIndexArray,
-                UnitTuple(((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units)))
+                UnitTuple((u.km**2).units, (u.g*u.km).units, (u.s*u.km).units))
             assert_commutative_binary_op(
                 operand, 2, operation, 2 * value, YTIndexArray, index.units)
 
@@ -116,23 +116,23 @@ def test_division():
         for operation in (np.divide, operator.div):
             assert_binary_op(
                 operand, index, operation, value / vals, YTIndexArray,
-                UnitTuple((Unit(), Unit(), Unit())))
+                UnitTuple(Unit(), Unit(), Unit()))
             assert_binary_op(
                 index, operand, operation, vals / value, YTIndexArray,
-                UnitTuple((Unit(), Unit(), Unit())))
+                UnitTuple(Unit(), Unit(), Unit()))
 
             assert_binary_op(
                 operand, u.km, operation, value, YTIndexArray,
-                UnitTuple((Unit(), (u.g/u.km).units, (u.s/u.km).units)))
+                UnitTuple(Unit(), (u.g/u.km).units, (u.s/u.km).units))
             assert_binary_op(
                 u.km, operand, operation, 1/value, YTIndexArray,
-                UnitTuple((Unit(), (u.km/u.g).units, (u.km/u.s).units)))
+                UnitTuple(Unit(), (u.km/u.g).units, (u.km/u.s).units))
 
             assert_binary_op(
                 operand, 2, operation, value / 2, YTIndexArray, index.units)
             assert_binary_op(
                 2, operand, operation, 2 / value, YTIndexArray,
-                UnitTuple((Unit('1/km'), Unit('1/g'), Unit('1/s'))))
+                UnitTuple(Unit('1/km'), Unit('1/g'), Unit('1/s')))
 
 def test_addition():
     vals = np.random.random((100, 3))
@@ -221,7 +221,7 @@ def test_unit_conversions():
     correct_result[:, 1] /= 1000
     correct_result[:, 2] /= 60
 
-    assert_equal(converted.units, (Unit('m'), Unit('kg'), Unit('min')))
+    assert_equal(converted.units, UnitTuple(Unit('m'), Unit('kg'), Unit('min')))
     assert_almost_equal(correct_result, converted.d)
     assert(type(converted.units) is UnitTuple)
 
@@ -234,7 +234,7 @@ def test_unit_conversions():
     correct_result[1] /= 1000
     correct_result[2] /= 60
 
-    assert_equal(converted.units, (Unit('m'), Unit('kg'), Unit('min')))
+    assert_equal(converted.units, UnitTuple(Unit('m'), Unit('kg'), Unit('min')))
     assert_almost_equal(correct_result, converted.d)
     assert(type(converted.units) is UnitTuple)
 

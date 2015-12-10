@@ -647,4 +647,9 @@ def validate_dimensions(dimensions):
         raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
 
 class UnitTuple(tuple):
-    pass
+
+    def __new__(cls, *args):
+        if len(args) == 1:
+            return super(UnitTuple, cls).__new__(cls, *args)
+        else:
+            return super(UnitTuple, cls).__new__(cls, args)
