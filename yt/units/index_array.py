@@ -159,8 +159,7 @@ class YTIndexArray(YTArray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            units = UnitTuple(
-                (unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2)))
+            units = tuple(unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2))
             if all([u is None for u in units]):
                 units = None
             if unit_operator in commutative_operators:

@@ -29,7 +29,10 @@ from numpy import \
     isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
     modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
 
-from yt.units.unit_object import Unit, UnitParseError
+from yt.units.unit_object import \
+    Unit, \
+    UnitTuple, \
+    UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
@@ -135,8 +138,8 @@ def coerce_iterable_units(input_object):
 
 def sanitize_unit_tuples(unit1, unit2):
     """Return tuples of the same length containing unit1 and unit2"""
-    u1 = ensure_tuple(unit1)
-    u2 = ensure_tuple(unit2)
+    u1 = UnitTuple(ensure_tuple(unit1))
+    u2 = UnitTuple(ensure_tuple(unit2))
 
     # pad tuples if their sizes don't match
     lu1 = len(u1)
@@ -165,7 +168,7 @@ def sanitize_units_add(this_object, other_object, op_string):
     # Make sure the other object is a YTArray before we use the `units`
     # attribute.
     if isinstance(ret, YTArray):
-        if not all(i.same_dimensions_as(r) for i, r in zip(i_units, r_units)):
+        if not i_units.same_dimensions_as(r_units):
             raise YTUnitOperationError(op_string, inp.units, ret.units)
         if li_units <= lr_units:
             ret = ret.in_units(inp.units)
@@ -174,7 +177,7 @@ def sanitize_units_add(this_object, other_object, op_string):
     # If the other object is not a YTArray, the only valid case is adding
     # dimensionless things.
     else:
-        if not all(i.is_dimensionless for i in i_units):
+        if not i_units.is_dimensionless:
             raise YTUnitOperationError(op_string, inp.units, dimensionless)
     return ret
 
@@ -185,8 +188,7 @@ def validate_comparison_units(this, other, op_string):
             this.units, other.units)
         if all([u1.expr is u2.expr for u1, u2 in zip(t_units, o_units)]):
             return other
-        if not all([u1.same_dimensions_as(u2)
-                    for u1, u2 in zip(t_units, o_units)]):
+        if not t_units.same_dimensions_as(o_units):
             raise YTUnitOperationError(op_string, this.units, other.units)
         if lt_units <= lo_units:
             return other.in_units(this.units)
@@ -394,7 +396,7 @@ class YTArray(np.ndarray):
             pass
         elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
-                return YTArray(np.array(input_array, dtype=dtype),
+                return YTArray(np.asarray(input_array, dtype=dtype),
                                input_array[0].units)
 
         # Input array is an already formed ndarray instance
@@ -968,8 +970,7 @@ class YTArray(np.ndarray):
         take the 1/2 power of the units.
 
         """
-        return YTArray(super(YTArray, self).sqrt(),
-                       input_units=self.units**0.5)
+        return np.sqrt(self)
 
     #
     # Start comparison operators.
@@ -979,12 +980,12 @@ class YTArray(np.ndarray):
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
         oth = validate_comparison_units(self, other, 'less_than')
-        return np.array(self).__lt__(np.array(oth))
+        return np.asarray(self).__lt__(np.asarray(oth))
 
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
         oth = validate_comparison_units(self, other, 'less_than or equal')
-        return np.array(self).__le__(np.array(oth))
+        return np.asarray(self).__le__(np.asarray(oth))
 
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
@@ -993,7 +994,7 @@ class YTArray(np.ndarray):
             # self is a YTArray, so it can't be None.
             return False
         oth = validate_comparison_units(self, other, 'equal')
-        return np.array(self).__eq__(np.array(oth))
+        return np.asarray(self).__eq__(np.asarray(oth))
 
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
@@ -1001,19 +1002,19 @@ class YTArray(np.ndarray):
         if other is None:
             return True
         oth = validate_comparison_units(self, other, 'not equal')
-        return np.array(self).__ne__(np.array(oth))
+        return np.asarray(self).__ne__(np.asarray(oth))
 
     def __ge__(self, other):
         """ Test if this is greater than or equal to other. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than or equal')
-        return np.array(self).__ge__(np.array(oth))
+        return np.asarray(self).__ge__(np.asarray(oth))
 
     def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than')
-        return np.array(self).__gt__(np.array(oth))
+        return np.asarray(self).__gt__(np.asarray(oth))
 
     #
     # End comparison operators

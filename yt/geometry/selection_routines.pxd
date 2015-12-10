@@ -26,16 +26,7 @@ ctypedef fused anyfloat:
 
 cdef inline _ensure_code(arr):
     # If it's a YTArray, convert it.  If not, don't.
-    if hasattr(arr, "units") and hasattr(arr, "convert_to_units"):
-        try:
-            if all([u.is_code_unit for u in arr.units]):
-                return arr
-            else:
-                raise RuntimeError(
-                    '_ensure_code was passed an YTIndexArray not in code units'
-                )
-        except TypeError:
-            pass
+    if hasattr(arr, "units"):
         if arr.units.is_code_unit:
             return arr
         arr.convert_to_units("code_length")

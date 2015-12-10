@@ -33,7 +33,11 @@ from yt.units.dimensions import \
 # functions
 from yt.units.unit_object import get_conversion_factor
 # classes
-from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
+from yt.units.unit_object import \
+    Unit, \
+    UnitTuple, \
+    UnitParseError, \
+    InvalidUnitOperation
 # objects
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
@@ -479,3 +483,25 @@ def test_latex_repr():
 def test_creation_from_ytquantity():
     u = Unit(km)
     assert(km.units == u)
+
+def test_unit_tuple():
+    ds = fake_random_ds(64)
+
+    u1 = UnitTuple((Unit('km'), Unit('km'), Unit('km')))
+    u2 = UnitTuple((Unit('km'), Unit('g'), Unit('s')))
+    u3 = UnitTuple(Unit('km'), Unit('km'), Unit('km'))
+    u4 = UnitTuple(Unit('code_length', registry=ds.unit_registry),
+                   Unit('code_mass', registry=ds.unit_registry),
+                   Unit('code_time', registry=ds.unit_registry))
+    u5 = UnitTuple(Unit('km'))
+
+    assert(u1.is_homogenous)
+    assert(not u2.is_homogenous)
+    assert_equal(u1, u3)
+    assert(u4.is_code_unit)
+    assert(not u1.is_code_unit)
+    assert(u2.same_dimensions_as(u4))
+    assert(not u1.same_dimensions_as(u2))
+    assert_equal(u5*3, u3)
+    assert(type(u5*3) is UnitTuple)
+    assert_equal(u1**2, UnitTuple(Unit('km')**2, Unit('km')**2, Unit('km')**2))

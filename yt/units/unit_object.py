@@ -182,9 +182,9 @@ class Unit(Expr):
                                        transformations=unit_text_transform)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
-            unit_expr = unit_expr.expr
             if registry is not None:
                 registry = unit_expr.registry
+            unit_expr = unit_expr.expr
         elif hasattr(unit_expr, 'units'):
             if isinstance(unit_expr.units, Unit):
                 unit_expr = unit_expr.units.expr
@@ -650,6 +650,32 @@ class UnitTuple(tuple):
 
     def __new__(cls, *args):
         if len(args) == 1:
-            return super(UnitTuple, cls).__new__(cls, *args)
-        else:
-            return super(UnitTuple, cls).__new__(cls, args)
+            try:
+                return super(UnitTuple, cls).__new__(cls, *args)
+            except TypeError:
+                # whatever we were handed isn't iterable
+                pass
+        return super(UnitTuple, cls).__new__(cls, args)
+
+    @property
+    def is_homogenous(self):
+        s0 = self[0]
+        return all(s0 == u for u in self)
+
+    @property
+    def is_code_unit(self):
+        return all(u.is_code_unit for u in self)
+
+    @property
+    def is_dimensionless(self):
+        return all(u.is_dimensionless for u in self)
+
+    def same_dimensions_as(self, other):
+        return all(u.same_dimensions_as(o) for u, o in zip(self, other))
+
+    def __mul__(self, other):
+        ret = super(UnitTuple, self).__mul__(other)
+        return UnitTuple(ret)
+
+    def __pow__(self, power):
+        return UnitTuple(u**power for u in self)
