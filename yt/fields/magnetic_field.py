@@ -117,6 +117,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     unit_system = registry.ds.unit_system
     ds_fields = [(ds_ftype, fd) for fd in ds_fields]
+    if ds_fields[0] not in registry:
+        return
     from_units = Unit(registry[ds_fields[0]].units,
                       registry=registry.ds.unit_registry)
     if dimensions.current_mks in unit_system.base_units:
