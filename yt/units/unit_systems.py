@@ -122,7 +122,7 @@ galactic_unit_system["magnetic_field_cgs"] = "uG"
 
 solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr", "K", "radian")
 
-geometrized_unit_system = UnitSystem("geometrized", "L_geom", "M_geom", "T_geom", "K", "radian")
+geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom", "K", "radian")
 
 planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", "T_pl", "radian")
 cgs_unit_system["energy"] = "E_pl"
