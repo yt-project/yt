@@ -72,11 +72,6 @@ class Cosmology(object):
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
-        self.unit_system = unit_system_registry[str(unit_system)]
-        # The following will only be true if the unit system is
-        # associated with a specific dataset
-        if self.unit_system.registry is not None:
-            unit_registry = self.unit_system.registry
         if unit_registry is None:
             unit_registry = UnitRegistry()
             unit_registry.modify("h", hubble_constant)
@@ -87,6 +82,12 @@ class Cosmology(object):
                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
+        # This is a hack, but we have problems with the unit registry
+        # if we don't do it
+        unit_system = unit_system_registry[str(unit_system)]
+        self.unit_system = {}
+        for dim in ["length","volume","density","time","angle","frequency"]:
+            self.unit_system[dim] = str(unit_system[dim])
 
     def hubble_distance(self):
         r"""
