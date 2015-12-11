@@ -42,6 +42,7 @@ cdef int Neighbor_compare(void *on1, void *on2) nogil:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.initializedcheck(False)
 cdef np.float64_t r2dist(np.float64_t ppos[3],
                          np.float64_t cpos[3],
                          np.float64_t DW[3],
@@ -95,6 +96,7 @@ cdef class ParticleSmoothOperation:
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     def process_octree(self, OctreeContainer mesh_octree,
                      np.int64_t [:] mdom_ind,
                      np.float64_t[:,:] positions,
@@ -268,6 +270,7 @@ cdef class ParticleSmoothOperation:
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     def process_particles(self, OctreeContainer particle_octree,
                      np.ndarray[np.int64_t, ndim=1] pdom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
@@ -452,6 +455,7 @@ cdef class ParticleSmoothOperation:
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     def process_grid(self, gobj,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):
@@ -508,6 +512,10 @@ cdef class ParticleSmoothOperation:
         if self.curn < self.maxn:
             self.curn += 1
 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
                             np.int64_t *nind,
@@ -568,6 +576,10 @@ cdef class ParticleSmoothOperation:
                     pos[j] = ppos[pn, j]
                 self.neighbor_eval(pn, pos, cpos)
 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t[:,:] ppos,
                                np.float64_t **fields,
@@ -610,6 +622,10 @@ cdef class ParticleSmoothOperation:
                 cpos[1] += dds[1]
             cpos[0] += dds[0]
 
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void neighbor_process_particle(self, np.float64_t cpos[3],
                                np.float64_t[:,:] ppos,
                                np.float64_t **fields,
@@ -670,6 +686,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
@@ -728,6 +745,7 @@ cdef class NearestNeighborSmooth(ParticleSmoothOperation):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
@@ -761,6 +779,7 @@ cdef class IDWInterpolationSmooth(ParticleSmoothOperation):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
@@ -796,6 +815,7 @@ cdef class NthNeighborDistanceSmooth(ParticleSmoothOperation):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
@@ -816,6 +836,7 @@ cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
