@@ -27,6 +27,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.index_array import \
+    YTIndexArray
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
@@ -391,7 +393,7 @@ class AthenaHierarchy(GridIndex):
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 dxs.append(dx)
 
-            dx = self.ds.arr(dxs, "code_length")
+            YTIndexArray(dxs, "code_length", registry=self.ds.unit_registry)
             self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12),
                                               "code_length")
             self.grid_dimensions = gdims.astype("int32")
