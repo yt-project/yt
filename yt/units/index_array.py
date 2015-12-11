@@ -17,6 +17,7 @@ YTIndexArray class.
 import numpy as np
 import operator
 
+from numbers import Number as numeric_type
 from six import string_types
 from six.moves import reduce
 
@@ -98,34 +99,44 @@ class YTIndexArray(YTArray):
         return self[slice(i, j)]
 
     def __getitem__(self, item):
-        ret = super(YTIndexArray, self).__getitem__(item)
-        if isinstance(item, tuple):
-            if isinstance(item[0], (slice, ELLIPSIS_TYPE)):
-                ret = YTArray(ret.view(np.ndarray), self.units[item[1]])
-            elif isinstance(item[1], (slice, ELLIPSIS_TYPE)):
-                # ret maintains units of original array
-                pass
+        ret = self.view(np.ndarray)[item]
+        item_type = type(item)
+        if ret.size == 1:
+            if item_type is slice:
+                item_ind = item.start
+                item_ind = item_ind % self.shape[-1]
+            elif item_type is tuple:
+                item_ind = item[1]
             else:
-                ret = YTQuantity(ret.view(np.ndarray), self.units[item[1]])
-        else:
-            if ret.size == 1:
-                if isinstance(item, slice):
-                    item = item.start
                 item_ind = item % self.shape[-1]
-                ret = YTQuantity(ret.view(np.ndarray), self.units[item_ind])
-            else:
-                if len(self.shape) == 2:
-                    # this case selects a single row, so we maintain the units
-                    # of the original array
-                    pass
+            ret_class = YTQuantity
+            ret_units = self.units[item_ind]
+        else:
+            if item_type is ELLIPSIS_TYPE:
+                ret_class = YTIndexArray
+                ret_units = self.units
+            elif item_type is tuple:
+                if isinstance(item[0], numeric_type):
+                    ret_class = YTIndexArray
                 else:
-                    if isinstance(item, ELLIPSIS_TYPE):
-                        pass
-                    elif iterable(item):
-                        ret.units = UnitTuple([self.units[i] for i in item])
+                    if len(ret.shape) == 1 or ret.shape[1] == 1:
+                        ret_class = YTArray
                     else:
-                        ret.units = self.units[item]
-        return ret
+                        ret_class = YTIndexArray
+                ret_units = self.units[item[1]]
+            elif item_type is list or issubclass(item_type, np.ndarray):
+                ret_class = YTIndexArray
+                if len(self.shape) == 2:
+                    ret_units = self.units
+                else:
+                    ret_units = UnitTuple([self.units[i] for i in item])
+            else:
+                ret_class = YTIndexArray
+                if len(self.shape) == 1 and item_type is slice:
+                    ret_units = self.units[item]
+                else:
+                    ret_units = self.units
+        return ret_class(ret, input_units=ret_units)
 
     def __array_wrap__(self, out_arr, context=None):
         # note that we explicitly call YTArray's superclass, not YTIndexArray

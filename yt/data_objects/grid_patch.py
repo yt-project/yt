@@ -141,8 +141,8 @@ class AMRGridPatch(YTSelectionContainer):
         if self.ds.dimensionality < 3:
             self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
         # TODO update units appropriately for non-spatial data
-        self.dds = YTIndexArray(self.dds, ('code_length', )*self.ds.dimensionality,
-                              registry=self.ds.unit_registry)
+        self.dds = YTIndexArray(self.dds, ('code_length', ) * 3,
+                                registry=self.ds.unit_registry)
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)

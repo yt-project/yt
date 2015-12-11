@@ -475,6 +475,10 @@ class Unit(Expr):
     def latex_representation(self):
         return self.latex_repr
 
+    @property
+    def is_homogenous(self):
+        return True
+
 #
 # Unit manipulation functions
 #
@@ -656,6 +660,14 @@ class UnitTuple(tuple):
                 # whatever we were handed isn't iterable
                 pass
         return super(UnitTuple, cls).__new__(cls, args)
+
+    def __getitem__(self, item):
+        if item is Ellipsis:
+            item = slice(None, None, None)
+        ret = super(UnitTuple, self).__getitem__(item)
+        if isinstance(ret, tuple):
+            ret = UnitTuple(ret)
+        return ret
 
     @property
     def is_homogenous(self):

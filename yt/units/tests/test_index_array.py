@@ -277,51 +277,39 @@ def test_unit_conversions():
     assert_almost_equal(correct_result, converted.d)
     assert(type(converted.units) is UnitTuple)
 
-def compare_slicing(desired, actual, unit_type, array_type):
+def compare_slicing(desired, actual):
     assert_equal(desired, actual)
     assert_equal(desired.units, actual.units)
-    assert(type(actual.units) is unit_type)
-    assert(type(actual) is array_type)
+    assert(type(actual.units) is type(actual.units))
+    assert(type(actual) is type(actual))
 
 def test_slicing():
     vals = np.arange(300)
     vals.shape = (100, 3)
     index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
+    row_index = YTIndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
+    homog_index = YTIndexArray(vals, input_units=[u.km, u.km, u.km])
 
-    ret1 = YTArray(3*np.arange(100), 'km')
-    ret2 = YTIndexArray(np.arange(3), [u.km, u.g, u.s])
-    ret3 = ret1
-    ret4 = YTQuantity(3, 'km')
-    ret5 = YTQuantity(38, 's')
-    ret6 = YTIndexArray([15, 16, 17], [u.km, u.g, u.s])
-    ret7 = YTIndexArray(vals[[5, 7]], [u.km, u.g, u.s])
-
-    sl1 = index[:, 0]
-    sl2 = index[0, :]
-    sl3 = index[..., 0]
-    sl4 = index[1, 0]
-    sl5 = index[12, 2]
-    sl6 = index[5]
-    sl7 = index[[5, 7]]
-
-    compare_slicing(ret1, sl1, Unit, YTArray)
-    compare_slicing(ret2, sl2, UnitTuple, YTIndexArray)
-    compare_slicing(ret3, sl3, Unit, YTArray)
-    compare_slicing(ret4, sl4, Unit, YTQuantity)
-    compare_slicing(ret5, sl5, Unit, YTQuantity)
-    compare_slicing(ret6, sl6, UnitTuple, YTIndexArray)
-    compare_slicing(ret7, sl7, UnitTuple, YTIndexArray)
-
-    index = YTIndexArray([0, 1, 2], input_units=[u.km, u.g, u.s])
-    compare_slicing(index[0], YTQuantity(0, 'km'), Unit, YTQuantity)
-    compare_slicing(index[2], YTQuantity(2, 's'), Unit, YTQuantity)
-    compare_slicing(index[:2], YTIndexArray([0, 1], [u.km, u.g]), UnitTuple,
-                    YTIndexArray)
-    compare_slicing(index[1:2], YTQuantity(1, 'g'), Unit, YTQuantity)
-    compare_slicing(index[:], index, UnitTuple, YTIndexArray)
-    compare_slicing(index[...], index, UnitTuple, YTIndexArray)
-    compare_slicing(index[[1, 2]], YTIndexArray([1, 2], [u.g, u.s]), UnitTuple,
-                    YTIndexArray)
+    compare_slicing(index[:], index)
+    compare_slicing(index[...], index)
+    compare_slicing(index[:, 0], YTArray(3*np.arange(100), 'km'))
+    compare_slicing(index[0, :], YTIndexArray(np.arange(3), [u.km, u.g, u.s]))
+    compare_slicing(index[..., 0], YTArray(3*np.arange(100), 'km'))
+    compare_slicing(index[0, ...], YTIndexArray(np.arange(3), [u.km, u.g, u.s]))
+    compare_slicing(index[1, 0], YTQuantity(3, 'km'))
+    compare_slicing(index[12, 2], YTQuantity(38, 's'))
+    compare_slicing(index[5], YTIndexArray([15, 16, 17], [u.km, u.g, u.s]))
+    compare_slicing(index[[5, 7]], YTIndexArray(vals[[5, 7]], [u.km, u.g, u.s]))
+    compare_slicing(index[1:3, 0:2], YTIndexArray(vals[1:3, 0:2], [u.km, u.g]))
+    compare_slicing(index[1:3, 1], YTArray(index[1:3, 1], u.g))
+    compare_slicing(index[2, 0:2], YTIndexArray(vals[2, 0:2], [u.km, u.g]))
+    compare_slicing(row_index[0], YTQuantity(0, 'km'))
+    compare_slicing(row_index[2], YTQuantity(2, 's'))
+    compare_slicing(row_index[:2], YTIndexArray([0, 1], [u.km, u.g]))
+    compare_slicing(row_index[:], row_index)
+    compare_slicing(row_index[...], row_index)
+    compare_slicing(row_index[[1, 2]], YTIndexArray([1, 2], [u.g, u.s]))
+    compare_slicing(homog_index[0], YTIndexArray([0, 1, 2], [u.km, u.km, u.km]))
 
 def test_boolean_unary_ops():
     vals = np.arange(30)
