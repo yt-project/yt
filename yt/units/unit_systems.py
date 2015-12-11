@@ -14,6 +14,20 @@ Unit system class.
 from yt.extern.six import string_types
 from yt.units import dimensions
 from yt.units.unit_object import Unit, unit_system_registry
+from yt.utilities import physical_constants as pc
+
+class UnitSystemConstants(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return "Physical constants in %s units." % self.name
+
+    def __str__(self):
+        return self.name
+
+    def __getattr__(self, item):
+        return getattr(pc, item).in_base(self.name)
 
 class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,
@@ -33,6 +47,7 @@ class UnitSystem(object):
         self.base_units = self.units_map.copy()
         unit_system_registry[name] = self
         self.name = name
+        self.constants = UnitSystemConstants(self.name)
 
     def __getitem__(self, key):
         if isinstance(key, string_types):
