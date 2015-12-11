@@ -84,6 +84,8 @@ cgs_unit_system["specific_energy"] = "erg/g"
 cgs_unit_system["pressure"] = "dyne/cm**2"
 cgs_unit_system["force"] = "dyne"
 cgs_unit_system["magnetic_field_cgs"] = "gauss"
+cgs_unit_system["charge_cgs"] = "esu"
+cgs_unit_system["current_cgs"] = "statA"
 
 mks_unit_system = UnitSystem("mks", "m", "kg", "s", "K", "radian",
                              current_mks_unit="A")
@@ -92,6 +94,7 @@ mks_unit_system["specific_energy"] = "J/kg"
 mks_unit_system["pressure"] = "Pa"
 mks_unit_system["force"] = "N"
 mks_unit_system["magnetic_field_mks"] = "T"
+cgs_unit_system["charge_mks"] = "C"
 
 imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", "R", "radian")
 imperial_unit_system["force"] = "lbf"
@@ -103,3 +106,9 @@ galactic_unit_system["energy"] = "keV"
 galactic_unit_system["magnetic_field_cgs"] = "uG"
 
 solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr", "K", "radian")
+
+geometrized_unit_system = UnitSystem("geometrized", "L_geom", "M_geom", "T_geom", "K", "radian")
+
+planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", "T_pl", "radian")
+cgs_unit_system["energy"] = "E_pl"
+cgs_unit_system["charge_cgs"] = "q_pl"

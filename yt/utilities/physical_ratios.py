@@ -73,6 +73,7 @@ day_per_year = 365.25
 # velocities, accelerations
 speed_of_light_cm_per_s = 2.99792458e10
 standard_gravity_cm_per_s2 = 9.80665e2
+newton_constant_cgs = 6.67384e-8
 
 # temperature / energy
 boltzmann_constant_erg_per_K = 1.3806488e-16
