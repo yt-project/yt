@@ -144,7 +144,6 @@ default_unit_symbol_lut = {
     "E_pl": (planck_energy_erg, dimensions.energy, 0.0, r"E_{\rm{P}}"),
 
     # Geometrized units
-
     "M_geom": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
     "L_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**2, dimensions.length, 0.0, r"M_\odot"),
     "T_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**3, dimensions.time, 0.0, r"M_\odot"),
