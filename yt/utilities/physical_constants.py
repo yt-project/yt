@@ -22,7 +22,8 @@ from yt.utilities.physical_ratios import \
     planck_charge_esu, \
     planck_temperature_K, \
     standard_gravity_cm_per_s2, \
-    newton_constant_cgs
+    newton_cgs, \
+    planck_cgs
 from yt.units.yt_array import YTQuantity
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
@@ -64,11 +65,11 @@ boltzmann_constant = boltzmann_constant_cgs
 kboltz = boltzmann_constant_cgs
 kb = kboltz
 
-gravitational_constant_cgs = YTQuantity(newton_constant_cgs, 'cm**3/g/s**2')
+gravitational_constant_cgs = YTQuantity(newton_cgs, 'cm**3/g/s**2')
 gravitational_constant = gravitational_constant_cgs
 G = gravitational_constant_cgs
 
-planck_constant_cgs = YTQuantity(6.62606957e-27, 'erg*s')
+planck_constant_cgs = YTQuantity(planck_cgs, 'erg*s')
 planck_constant = planck_constant_cgs
 hcgs = planck_constant_cgs
 hbar = 0.5*hcgs/pi

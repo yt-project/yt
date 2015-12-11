@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import \
     planck_charge_esu, planck_energy_erg, planck_mass_grams, \
     planck_temperature_K, planck_time_s, mass_hydrogen_grams, \
     grams_per_pound, standard_gravity_cm_per_s2, pascal_per_atm, \
-    newton_constant_cgs
+    newton_cgs
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -146,8 +146,8 @@ default_unit_symbol_lut = {
     # Geometrized units
 
     "M_geom": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
-    "L_geom": (newton_constant_cgs*mass_sun_grams/speed_of_light_cm_per_s**2, dimensions.length, 0.0, r"M_\odot"),
-    "T_geom": (newton_constant_cgs*mass_sun_grams/speed_of_light_cm_per_s**3, dimensions.time, 0.0, r"M_\odot"),
+    "L_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**2, dimensions.length, 0.0, r"M_\odot"),
+    "T_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**3, dimensions.time, 0.0, r"M_\odot"),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
