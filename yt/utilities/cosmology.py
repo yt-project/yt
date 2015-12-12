@@ -17,14 +17,12 @@ from __future__ import print_function
 import functools
 import numpy as np
 
-from yt.extern.six import string_types
 from yt.units import dimensions
 from yt.units.unit_registry import \
      UnitRegistry
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
-from yt.units.unit_object import unit_system_registry
 
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G, \

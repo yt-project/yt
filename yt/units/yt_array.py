@@ -29,7 +29,7 @@ from numpy import \
     isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
     modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
 
-from yt.units.unit_object import Unit, UnitParseError, unit_system_registry
+from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless, current_mks, em_dimensions
 from yt.utilities.exceptions import \

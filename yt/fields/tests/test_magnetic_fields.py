@@ -1,6 +1,6 @@
 import numpy as np
 from yt.utilities.physical_constants import mu_0
-from yt.testing import assert_almost_equal, fake_random_ds
+from yt.testing import assert_almost_equal
 from yt.frontends.stream.api import load_uniform_grid
 
 def setup():
