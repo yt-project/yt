@@ -780,8 +780,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
     def _vol_weight(field, data):
         pos = data[ptype, coord_name]
         pos = pos.convert_to_units("code_length")
-        mass = data[ptype, mass_name].in_units(unit_system["mass"])
-        dens = data[ptype, density_name].in_units(unit_system["density"])
+        mass = data[ptype, mass_name].in_base(unit_system.name)
+        dens = data[ptype, density_name].in_base(unit_system.name)
         quan = data[ptype, smoothed_field]
         quan = quan.convert_to_units(field_units)
 
@@ -806,7 +806,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         # This should be used when seeking a non-normalized value:
-        rv /= hsml.uq**3 / hsml.uq.in_units(unit_system["length"]).uq**3
+        rv /= hsml.uq**3 / hsml.uq.in_base(unit_system.name).uq**3
         rv = data.apply_units(rv, field_units)
         return rv
     registry.add_field(field_name, function = _vol_weight,

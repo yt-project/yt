@@ -107,7 +107,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         parameter.
         """
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_sph_r(coords), "code_length").in_units(unit_system["length"])
+        return data.ds.arr(get_sph_r(coords), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "spherical_radius"),
                        function=_spherical_radius,
@@ -169,7 +169,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_units(unit_system["length"])
+        return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "cylindrical_radius"),
                        function=_cylindrical_radius,
@@ -194,7 +194,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_units(unit_system["length"])
+        return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "cylindrical_z"),
                        function=_cylindrical_z,
