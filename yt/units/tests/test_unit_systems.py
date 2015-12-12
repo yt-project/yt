@@ -17,7 +17,6 @@ from yt.units import dimensions
 from yt.convenience import load
 from yt.testing import assert_almost_equal, requires_file
 from yt.config import ytcfg
-import numpy as np
 
 def test_unit_systems():
     goofy_unit_system = UnitSystem("goofy", "ly", "lbm", "hr", "R",

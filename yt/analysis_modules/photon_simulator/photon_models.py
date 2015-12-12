@@ -133,9 +133,8 @@ class ThermalPhotonModel(PhotonModel):
             if num_cells == 0:
                 continue
             vol = chunk["cell_volume"].in_cgs().v
-            EM = (chunk["density"]/mp).v**2
+            EM = (chunk["density"]/mp).in_cgs().v**2
             EM *= 0.5*(1.+self.X_H)*self.X_H*vol
-            EM.convert_to_cgs()
 
             if isinstance(self.Zmet, string_types):
                 metalZ = chunk[self.Zmet].v
