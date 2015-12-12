@@ -19,8 +19,8 @@ from yt.testing import assert_almost_equal, requires_file
 from yt.config import ytcfg
 
 def test_unit_systems():
-    goofy_unit_system = UnitSystem("goofy", "ly", "lbm", "hr", "R",
-                                   "arcsec", current_mks_unit="mA")
+    goofy_unit_system = UnitSystem("goofy", "ly", "lbm", "hr", temperature_unit="R",
+                                   angle_unit="arcsec", current_mks_unit="mA")
     assert goofy_unit_system["temperature"] == Unit("R")
     assert goofy_unit_system[dimensions.solid_angle] == Unit("arcsec**2")
     assert goofy_unit_system["energy"] == Unit("lbm*ly**2/hr**2")

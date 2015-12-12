@@ -31,9 +31,13 @@ class UnitSystemConstants(object):
 
 class UnitSystem(object):
     def __init__(self, name, length_unit, mass_unit, time_unit,
-                 temperature_unit, angle_unit, current_mks_unit=None,
+                 temperature_unit=None, angle_unit=None, current_mks_unit=None,
                  registry=None):
         self.registry = registry
+        if temperature_unit is None:
+            temperature_unit = "K"
+        if angle_unit is None:
+            angle_unit = "rad"
         self.units_map = {dimensions.length: Unit(length_unit, registry=self.registry),
                           dimensions.mass: Unit(mass_unit, registry=self.registry),
                           dimensions.time: Unit(time_unit, registry=self.registry),
@@ -90,10 +94,10 @@ class UnitSystem(object):
 
 def create_code_unit_system(ds):
     code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
-                                  "code_temperature", "radian", registry=ds.unit_registry)
+                                  "code_temperature", registry=ds.unit_registry)
     code_unit_system["velocity"] = "code_velocity"
 
-cgs_unit_system = UnitSystem("cgs", "cm", "g", "s", "K", "radian")
+cgs_unit_system = UnitSystem("cgs", "cm", "g", "s")
 cgs_unit_system["energy"] = "erg"
 cgs_unit_system["specific_energy"] = "erg/g"
 cgs_unit_system["pressure"] = "dyne/cm**2"
@@ -102,8 +106,7 @@ cgs_unit_system["magnetic_field_cgs"] = "gauss"
 cgs_unit_system["charge_cgs"] = "esu"
 cgs_unit_system["current_cgs"] = "statA"
 
-mks_unit_system = UnitSystem("mks", "m", "kg", "s", "K", "radian",
-                             current_mks_unit="A")
+mks_unit_system = UnitSystem("mks", "m", "kg", "s", current_mks_unit="A")
 mks_unit_system["energy"] = "J"
 mks_unit_system["specific_energy"] = "J/kg"
 mks_unit_system["pressure"] = "Pa"
@@ -111,19 +114,19 @@ mks_unit_system["force"] = "N"
 mks_unit_system["magnetic_field_mks"] = "T"
 cgs_unit_system["charge_mks"] = "C"
 
-imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", "R", "radian")
+imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", temperature_unit="R")
 imperial_unit_system["force"] = "lbf"
 imperial_unit_system["energy"] = "ft*lbf"
 imperial_unit_system["pressure"] = "lbf/ft**2"
 
-galactic_unit_system = UnitSystem("galactic", "kpc", "Msun", "Myr", "K", "radian")
+galactic_unit_system = UnitSystem("galactic", "kpc", "Msun", "Myr")
 galactic_unit_system["energy"] = "keV"
 galactic_unit_system["magnetic_field_cgs"] = "uG"
 
-solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr", "K", "radian")
+solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr")
 
-geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom", "K", "radian")
+geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom")
 
-planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", "T_pl", "radian")
+planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", temperature_unit="T_pl")
 cgs_unit_system["energy"] = "E_pl"
 cgs_unit_system["charge_cgs"] = "q_pl"
