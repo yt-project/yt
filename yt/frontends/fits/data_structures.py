@@ -540,6 +540,13 @@ class FITSDataset(Dataset):
             else:
                 self._setup_spec_cube()
 
+        # Now we can set up some of our parameters for convenience.
+        #self.parameters['wcs'] = dict(self.wcs.to_header())
+        for k, v in self.primary_header.items():
+            self.parameters[k] = v
+        # Remove potential default keys
+        self.parameters.pop('', None)
+
     def _setup_spec_cube(self):
 
         self.spec_cube = True
