@@ -1128,6 +1128,7 @@ class YTSearchCmd(YTCommand):
                  "hubble_constant", "dataset_type")
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):
+            print("(% 10i candidates) Examining %s" % (len(candidates), base))
             recurse = []
             if args.check_all:
                 candidates.extend([os.path.join(base, _) for _ in files])
@@ -1140,13 +1141,13 @@ class YTSearchCmd(YTCommand):
         # Now we have a ton of candidates.  We're going to do something crazy
         # and try to load each one.
         records = []
-        for c in sorted(candidates):
-            print("Evaluating %s" % c)
+        for i, c in enumerate(sorted(candidates)):
+            print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
                 ds = load(c)
             except YTOutputNotIdentified as e:
                 continue
-            record = {}
+            record = {'filename': c}
             for a in attrs:
                 v = getattr(ds, a, None)
                 if v is None:
