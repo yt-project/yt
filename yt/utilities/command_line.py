@@ -1163,6 +1163,7 @@ class YTSearchCmd(YTCommand):
                     params[p] = v
                 record['params'] = params
             records.append(record)
+            ds.close()
         with open(args.output, "w") as f:
             json.dump(records, f, indent=4)
         print("Identified %s records output to %s" % (

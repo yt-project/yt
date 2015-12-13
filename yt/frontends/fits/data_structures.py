@@ -664,3 +664,5 @@ class FITSDataset(Dataset):
         # FITS files don't preclude subdirectories
         return candidates, True
 
+    def close(self):
+        self._handle.close()

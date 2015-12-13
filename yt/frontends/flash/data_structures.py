@@ -418,3 +418,6 @@ class FLASHDataset(Dataset):
                       ("_hdf5_chk_" in _)]
         # Typically, Flash won't have nested outputs.
         return candidates, (len(candidates) == 0)
+
+    def close(self):
+        self._handle.close()

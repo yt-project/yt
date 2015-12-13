@@ -306,6 +306,9 @@ class Dataset(object):
         """
         return [], True
 
+    def close(self):
+        pass
+
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
