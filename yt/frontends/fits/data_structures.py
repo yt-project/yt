@@ -626,7 +626,7 @@ class FITSDataset(Dataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         ext = args[0].rsplit(".", 1)[-1]
-        if ext.upper() == "GZ":
+        if ext.upper() in ("GZ", "FZ"):
             # We don't know for sure that there will be > 1
             ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
         if ext.upper() not in ("FITS", "FTS"):
@@ -645,3 +645,15 @@ class FITSDataset(Dataset):
         except:
             pass
         return False
+
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = []
+        for fn, fnl in ((_, _.lower()) for _ in files):
+            if fnl.endswith(".fits") or \
+               fnl.endswith(".fits.gz") or \
+               fnl.endswith(".fits.fz"):
+                candidates.append(fn)
+        # FITS files don't preclude subdirectories
+        return candidates, True
+
