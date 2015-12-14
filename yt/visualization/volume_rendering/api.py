@@ -26,5 +26,6 @@ from .volume_rendering import volume_render, create_scene
 from .off_axis_projection import off_axis_projection
 from .scene import Scene
 from .render_source import VolumeSource, OpaqueSource, LineSource, \
-    BoxSource, PointSource, CoordinateVectorSource, GridSource
+    BoxSource, PointSource, CoordinateVectorSource, GridSource, \
+    MeshSource
 from .zbuffer_array import ZBuffer
