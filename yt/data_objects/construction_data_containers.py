@@ -592,20 +592,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        LE = self.left_edge - self.base_dds
-        RE = self.right_edge + self.base_dds
-        if not all(self.ds.periodicity):
-            for i in range(3):
-                if self.ds.periodicity[i]: continue
-                LE[i] = max(LE[i], self.ds.domain_left_edge[i])
-                RE[i] = min(RE[i], self.ds.domain_right_edge[i])
-        self._data_source = self.ds.region(self.center, LE, RE)
+        self._data_source = self.ds.region(self.center,
+            self.left_edge, self.right_edge)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
-        self._pdata_source = self.ds.region(self.center,
-            self.left_edge, self.right_edge)
-        self._pdata_source.min_level = 0
-        self._pdata_source.max_level = self.level
+        # This triggers "special" behavior in the RegionSelector to ensure we
+        # select *cells* whose bounding boxes overlap with our region, not just
+        # their cell centers.
+        self._data_source.loose_selection = True
 
     def get_data(self, fields = None):
         if fields is None: return
@@ -644,7 +638,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _fill_particles(self, part):
         for p in part:
-            self[p] = self._pdata_source[p]
+            self[p] = self._data_source[p]
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
