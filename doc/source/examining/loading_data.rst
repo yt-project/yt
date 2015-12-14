@@ -343,7 +343,7 @@ file:
 .. code-block:: python
 
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
 
 Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
 picard iterations, non-linear solve iterations, etc...), you can also specify a step
@@ -355,7 +355,7 @@ You can access the connectivity information directly by doing:
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    print ds.index.meshes[0].connectivity_coords
    print ds.index.meshes[0].connectivity_indices
    print ds.index.meshes[1].connectivity_coords
@@ -368,7 +368,7 @@ objects. To see all the fields found in a particlular dataset, you can do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    print ds.field_list
 
 This will give you a list of field names like ``('connect1', 'diffused')`` and 
@@ -380,7 +380,7 @@ would do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()  # geometric selection, this just grabs everything
    print ad['connect1', 'convected']
 
@@ -390,7 +390,7 @@ are defined at the vertices of the elements. If we examine the shape of the retu
 .. code-block:: python
 
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
    print ad['connect1', 'convected'].shape
 
@@ -401,7 +401,7 @@ can do, for instance:
 .. code-block:: python
 
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
    print ad['connect1', 'vertex_x']
 
@@ -411,7 +411,7 @@ we get:
 .. code-block:: python
 
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
    print ad['connect1', 'conv_indicator'].shape
 
