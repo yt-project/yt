@@ -31,6 +31,7 @@ from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.index_array import YTIndexArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
@@ -574,8 +575,8 @@ class GridBoundaryCallback(PlotCallback):
             levels.append(block.Level)
         if len(GLE) == 0: return
         # Retain both units and registry
-        GLE = YTArray(GLE, input_units = GLE[0].units)
-        GRE = YTArray(GRE, input_units = GRE[0].units)
+        GLE = YTIndexArray(GLE, input_units=GLE[0].units)
+        GRE = YTIndexArray(GRE, input_units=GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()

@@ -30,6 +30,8 @@ from yt.extern.six import add_metaclass, string_types, b
 from yt.utilities.exceptions import \
     YTHubRegisterError
 from yt.utilities.logger import ytLogger as mylog
+from yt.units.index_array import \
+    YTIndexArray
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
@@ -59,9 +61,13 @@ def _sanitize_list(flist):
 
 def _serialize_to_h5(g, cdict):
     for item in cdict:
-        if isinstance(cdict[item], (YTQuantity, YTArray)):
+        if isinstance(cdict[item], YTArray):
             g[item] = cdict[item].d
-            g[item].attrs["units"] = str(cdict[item].units)
+            if isinstance(cdict[item], YTIndexArray):
+                units = str(cdict[item].units[0])
+            else:
+                units = str(cdict[item].units)
+            g[item].attrs["units"] = units
         elif isinstance(cdict[item], dict):
             _serialize_to_h5(g.create_group(item), cdict[item])
         elif cdict[item] is None:
