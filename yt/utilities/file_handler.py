@@ -32,9 +32,6 @@ class HDF5FileHandler(object):
             if LooseVersion(h5py.__version__) < '2.4.0':
                 self.handle.close()
 
-    def close(self):
-        self.__del__()
-
     def __getitem__(self, key):
         return self.handle[key]
 
@@ -75,6 +72,5 @@ class FITSFileHandler(HDF5FileHandler):
         self.handle = None
         super(FITSFileHandler, self).__del__()
 
-    def close(Self):
-        for f in self._fits_files:
-            f.close()
+    def close(self):
+        self.handle.close()
