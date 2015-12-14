@@ -356,10 +356,10 @@ You can access the connectivity information directly by doing:
     
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
-   print ds.index.meshes[0].connectivity_coords
-   print ds.index.meshes[0].connectivity_indices
-   print ds.index.meshes[1].connectivity_coords
-   print ds.index.meshes[1].connectivity_indices
+   print(ds.index.meshes[0].connectivity_coords)
+   print(ds.index.meshes[0].connectivity_indices)
+   print(ds.index.meshes[1].connectivity_coords)
+   print(ds.index.meshes[1].connectivity_indices)
 
 This particular dataset has two meshes in it, both of which are made of 8-node hexes.
 yt uses a field name convention to access these different meshes in plots and data
@@ -369,7 +369,7 @@ objects. To see all the fields found in a particlular dataset, you can do:
     
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
-   print ds.field_list
+   print(ds.field_list)
 
 This will give you a list of field names like ``('connect1', 'diffused')`` and 
 ``('connect2', 'convected')``. Here, fields labelled with ``'connect1'`` correspond to the
@@ -382,7 +382,7 @@ would do:
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()  # geometric selection, this just grabs everything
-   print ad['connect1', 'convected']
+   print(ad['connect1', 'convected'])
 
 In this dataset, ``('connect1', 'convected')`` is nodal field, meaning that the field values
 are defined at the vertices of the elements. If we examine the shape of the returned array:
@@ -392,7 +392,7 @@ are defined at the vertices of the elements. If we examine the shape of the retu
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
-   print ad['connect1', 'convected'].shape
+   print(ad['connect1', 'convected'].shape)
 
 we see that this mesh has 12480 8-node hexahedral elements, and that we get 8 field values
 for each element. To get the vertex positions at which these field values are defined, we
@@ -403,7 +403,7 @@ can do, for instance:
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
-   print ad['connect1', 'vertex_x']
+   print(ad['connect1', 'vertex_x'])
 
 If we instead look at an element-centered field, like ``('connect1', 'conv_indicator')``,
 we get:
@@ -413,7 +413,7 @@ we get:
    import yt
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()
-   print ad['connect1', 'conv_indicator'].shape
+   print(ad['connect1', 'conv_indicator'].shape)
 
 we instead get only one field value per element.
 
