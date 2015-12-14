@@ -83,8 +83,7 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -107,8 +106,7 @@ You can also overplot the mesh boundaries:
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -135,8 +133,7 @@ using the mesh labelled by "connect2":
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -161,8 +158,7 @@ that we want to look at the last one.
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    filename = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
@@ -186,8 +182,7 @@ MOOSE dataset:
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)  # we load the last time frame
@@ -213,8 +208,7 @@ camera position according to some opening angle:
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -241,9 +235,7 @@ with two meshes on it:
 .. python-script::
 
     import yt
-    from yt.visualization.volume_rendering.render_source import MeshSource
-    from yt.visualization.volume_rendering.camera import Camera
-    from yt.visualization.volume_rendering.scene import Scene
+    from yt.visualization.volume_rendering.api import MeshSource, Camera, Scene
     import yt.utilities.png_writer as pw
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -284,8 +276,7 @@ disk each time.
 .. code-block:: python
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -315,8 +306,7 @@ file with a fixed camera position:
 .. code-block:: python
 
     import yt
-    from yt.visualization.volume_rendering.render_source import MeshSource
-    from yt.visualization.volume_rendering.camera import Camera
+    from yt.visualization.volume_rendering.api import MeshSource, Camera
     import pylab as plt
 
     NUM_STEPS = 127
@@ -373,4 +363,3 @@ file with a fixed camera position:
 	ax.axes.get_yaxis().set_visible(False)
 
 	plt.savefig('movie_frames/test_%.3d' % step)
-
