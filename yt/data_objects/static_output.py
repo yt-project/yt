@@ -284,7 +284,7 @@ class Dataset(object):
 
     @property
     def _skip_cache(self):
-        return True
+        return False
 
     def hub_upload(self):
         self._mrep.upload()
