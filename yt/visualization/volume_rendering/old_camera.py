@@ -180,8 +180,8 @@ class Camera(ParallelAnalysisInterface):
             center = self.ds.arr(center, input_units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
-        width.convert_to_units("code_length")
-        center.convert_to_units("code_length")
+        width = width.in_units("code_length")
+        center = center.in_units("code_length")
         self.orienter = Orientation(normal_vector, north_vector=north_vector, steady_north=steady_north)
         if not steady_north:
             self.rotation_vector = self.orienter.unit_vectors[1]
@@ -226,11 +226,11 @@ class Camera(ParallelAnalysisInterface):
         pass
 
     def project_to_plane(self, pos, res=None):
-        if res is None: 
+        if res is None:
             res = self.resolution
-        dx = np.dot(pos - self.origin, self.orienter.unit_vectors[1])
-        dy = np.dot(pos - self.origin, self.orienter.unit_vectors[0])
-        dz = np.dot(pos - self.center, self.orienter.unit_vectors[2])
+        dx = np.dot((pos - self.origin).d, self.orienter.unit_vectors[1])
+        dy = np.dot((pos - self.origin).d, self.orienter.unit_vectors[0])
+        dz = np.dot((pos - self.center).d, self.orienter.unit_vectors[2])
         # Transpose into image coords.
         py = (res[0]*(dx/self.width[0])).astype('int')
         px = (res[1]*(dy/self.width[1])).astype('int')
@@ -599,7 +599,8 @@ class Camera(ParallelAnalysisInterface):
         return image
 
     def get_sampler_args(self, image):
-        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F').d,
+                               self.back_center.ravel().d])
         args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
                 self.back_center,
                 (-self.width[0]/2.0, self.width[0]/2.0,
@@ -1860,7 +1861,8 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F').d,
+                               self.back_center.ravel().d])
         args = (np.atleast_3d(rotp), np.atleast_3d(self.box_vectors[2]),
                 self.back_center,
             (-self.width[0]/2., self.width[0]/2.,
