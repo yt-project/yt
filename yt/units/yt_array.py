@@ -363,7 +363,7 @@ class YTArray(np.ndarray):
     __array_priority__ = 2.0
 
     def __new__(cls, input_array, input_units=None, registry=None, dtype=None,
-                bypass_validation=False):
+                bypass_validation=False, preserve_subclass=False):
         if dtype is None:
             dtype = getattr(input_array, 'dtype', np.float64)
         if bypass_validation is True:
@@ -383,6 +383,11 @@ class YTArray(np.ndarray):
                     )
         if isinstance(input_array, YTArray):
             if input_units is None:
+                iau = input_array.units
+                if iterable(iau) and iau.is_homogenous:
+                    # catch YTIndexArray
+                    if preserve_subclass is False:
+                        input_array.units = input_array.units[0]
                 if registry is None:
                     pass
                 else:
@@ -391,7 +396,10 @@ class YTArray(np.ndarray):
                 input_array.units = input_units
             else:
                 input_array.units = Unit(input_units, registry=registry)
-            return input_array
+            if preserve_subclass is False:
+                return input_array.view(YTArray)
+            else:
+                return input_array
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
@@ -863,12 +871,13 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "addition")
-        return YTArray(super(YTArray, self).__add__(ro))
+        return YTArray(super(YTArray, self).__add__(ro), preserve_subclass=True)
 
     def __radd__(self, left_object):
         """ See __add__. """
         lo = sanitize_units_add(self, left_object, "addition")
-        return YTArray(super(YTArray, self).__radd__(lo))
+        return YTArray(super(YTArray, self).__radd__(lo),
+                       preserve_subclass=True)
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -883,12 +892,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "subtraction")
-        return YTArray(super(YTArray, self).__sub__(ro))
+        return YTArray(super(YTArray, self).__sub__(ro), preserve_subclass=True)
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         lo = sanitize_units_add(self, left_object, "subtraction")
-        return YTArray(super(YTArray, self).__rsub__(lo))
+        return YTArray(super(YTArray, self).__rsub__(lo), preserve_subclass=True)
 
     def __isub__(self, other):
         """ See __sub__. """
@@ -898,11 +907,12 @@ class YTArray(np.ndarray):
 
     def __neg__(self):
         """ Negate the data. """
-        return YTArray(super(YTArray, self).__neg__())
+        return YTArray(super(YTArray, self).__neg__(), preserve_subclass=True)
 
     def __pos__(self):
         """ Posify the data. """
-        return YTArray(super(YTArray, self).__pos__(), self.units)
+        return YTArray(super(YTArray, self).__pos__(), self.units,
+                       preserve_subclass=True)
 
     #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
@@ -956,13 +966,14 @@ class YTArray(np.ndarray):
         # dimensionless Unit object.
         if self.units.is_dimensionless and power == -1:
             ret = super(YTArray, self).__pow__(power)
-            return YTArray(ret, input_units='')
+            return YTArray(ret, input_units='', preserve_subclass=True)
 
-        return YTArray(super(YTArray, self).__pow__(power))
+        return YTArray(super(YTArray, self).__pow__(power),
+                       preserve_subclass=True)
 
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """
-        return YTArray(super(YTArray, self).__abs__())
+        return YTArray(super(YTArray, self).__abs__(), preserve_subclass=True)
 
     def sqrt(self):
         """

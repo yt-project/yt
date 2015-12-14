@@ -69,7 +69,7 @@ class YTIndexArray(YTArray):
         if not iterable(input_units) or isinstance(input_units, string_types):
             input_units = (input_units, )*ndim
 
-        if ndim != len(input_units):
+        if ndim != len(input_units) and obj.shape != (0,):
             raise RuntimeError(
                 'Cannot create index array with shape %s and units %s'
                 % (obj.shape, input_units)
@@ -110,6 +110,8 @@ class YTIndexArray(YTArray):
             else:
                 item_ind = item % self.shape[-1]
             ret_class = YTQuantity
+            if isinstance(item_ind, np.ndarray):
+                item_ind = np.where(item_ind)[0]
             ret_units = self.units[item_ind]
         else:
             if item_type is ELLIPSIS_TYPE:
@@ -129,7 +131,11 @@ class YTIndexArray(YTArray):
                 if len(self.shape) == 2:
                     ret_units = self.units
                 else:
-                    ret_units = UnitTuple([self.units[i] for i in item])
+                    if isinstance(item, np.ndarray):
+                        wh_item = np.where(item)[0]
+                        ret_units = UnitTuple([self.units[i] for i in wh_item])
+                    else:
+                        ret_units = UnitTuple([self.units[i] for i in item])
             else:
                 ret_class = YTIndexArray
                 if len(self.shape) == 1 and item_type is slice:
@@ -408,3 +414,12 @@ class YTIndexArray(YTArray):
         units = self._get_reduction_units_from_axis(axis, 'std')
         return np.asarray(self).std(
             axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims), units
+
+    @return_arr
+    def dot(self, b, out=None):
+        if self.units.is_homogenous:
+            return super(YTArray, self).dot(b), self.units[0]*b.units
+        else:
+            raise RuntimeError(
+                "Dot product is not defined for arrays with inhomogenous units"
+            )

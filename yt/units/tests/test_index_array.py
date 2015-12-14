@@ -335,6 +335,11 @@ def test_slicing():
     compare_slicing(row_index[:2], YTIndexArray([0, 1], [u.km, u.g]))
     compare_slicing(row_index[:], row_index)
     compare_slicing(row_index[...], row_index)
+    compare_slicing(row_index[np.array([True, True, True])], row_index)
+    compare_slicing(row_index[np.array([True, True, False])],
+                    YTIndexArray([0, 1], [u.km, u.g]))
+    compare_slicing(row_index[np.array([True, False, False])],
+                    YTQuantity(0, 'km'))
     compare_slicing(row_index[[1, 2]], YTIndexArray([1, 2], [u.g, u.s]))
     compare_slicing(homog_index[0], YTIndexArray([0, 1, 2], [u.km, u.km, u.km]))
 
