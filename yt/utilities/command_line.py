@@ -1145,7 +1145,7 @@ class YTSearchCmd(YTCommand):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
                 ds = load(c)
-            except YTOutputNotIdentified as e:
+            except YTOutputNotIdentified:
                 continue
             record = {'filename': c}
             for a in attrs:
