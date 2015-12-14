@@ -210,8 +210,8 @@ class CoordinateHandler(object):
         elif isinstance(width, YTQuantity):
             width = (width, width)
         elif isinstance(width, Number):
-            width = (self.ds.quan(width, units[self.x_axis[axis]]),
-                     self.ds.quan(width, units[self.y_axis[axis]]))
+            width = (self.ds.quan(width, units[self.axis_name[axis]]),
+                     self.ds.quan(width, units[self.axis_name[axis]]))
         else:
             raise YTInvalidWidthError(width)
         if depth is not None:
