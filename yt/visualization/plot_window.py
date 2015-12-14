@@ -710,7 +710,7 @@ class PWViewerMPL(PlotWindow):
             # setting plot aspect.
             if self.aspect is None:
                 self.aspect = float((self.ds.quan(1.0, unit_y) /
-                                     self.ds.quan(1.0, unit_x)))
+                                     self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -1672,7 +1672,7 @@ class WindowPlotMPL(ImagePlotMPL):
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
-        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
+        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
         self._unit_aspect = aspect
 
         size, axrect, caxrect = self._get_best_layout()
