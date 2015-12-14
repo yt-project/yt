@@ -359,18 +359,52 @@ class YTIndexArray(YTArray):
             units = self.units**nrows
         elif axis == 1:
             units = reduce(operator.mul, self.units)
-        return np.asarray(self).prod(axis, dtype, out), units
+        return np.asarray(self).prod(axis=axis, dtype=dtype, out=out), units
 
-    @return_arr
-    def sum(self, axis=None, dtype=None, out=None):
+    def _get_reduction_units_from_axis(self, axis, method):
         if axis in (None, 1):
             if self.units.is_homogenous:
                 units = self.units[0]
             else:
                 raise RuntimeError(
-                    'Cannot use the sum method with "axis=None" for arrays '
-                    'with units %s' % (self.units, )
+                    'Cannot use the %s method with "axis=%s" for arrays '
+                    'with units %s' % (method, axis, self.units, )
                 )
         elif axis == 0:
             units = self.units
-        return np.asarray(self).sum(axis, dtype, out), units
+        return units
+
+    @return_arr
+    def sum(self, axis=None, dtype=None, out=None):
+        units = self._get_reduction_units_from_axis(axis, 'sum')
+        return np.asarray(self).sum(axis=axis, dtype=dtype, out=out), units
+
+    @return_arr
+    def min(self, axis=None, out=None, keepdims=False):
+        units = self._get_reduction_units_from_axis(axis, 'min')
+        return np.asarray(self).min(axis=axis, out=out, keepdims=keepdims), units
+
+    def argmin(self, axis=None, out=None):
+        self._get_reduction_units_from_axis(axis, 'argmin')
+        return np.asarray(self).argmin(axis=axis, out=out)
+
+    @return_arr
+    def max(self, axis=None, out=None, keepdims=False):
+        units = self._get_reduction_units_from_axis(axis, 'max')
+        return np.asarray(self).max(axis=axis, out=out, keepdims=keepdims), units
+
+    def argmax(self, axis=None, out=None):
+        self._get_reduction_units_from_axis(axis, 'argmax')
+        return np.asarray(self).argmax(axis=axis, out=out)
+
+    @return_arr
+    def mean(self, axis=None, dtype=None, out=None, keepdims=False):
+        units = self._get_reduction_units_from_axis(axis, 'max')
+        return np.asarray(self).mean(
+            axis=axis, dtype=dtype, out=out, keepdims=keepdims), units
+
+    @return_arr
+    def std(self, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
+        units = self._get_reduction_units_from_axis(axis, 'std')
+        return np.asarray(self).std(
+            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims), units

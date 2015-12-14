@@ -95,13 +95,40 @@ def test_helper_methods():
                      UnitTuple(Unit('km**10'), Unit('g**10'), Unit('s**10'))))
     assert_equal(arr.prod(axis=1), YTArray(vals.prod(axis=1), 'km*g*s'))
 
-    assert_raises(RuntimeError, arr.sum)
-    assert_equal(homog_arr.sum(), YTQuantity(vals.sum(), 'km'))
-    assert_equal(arr.sum(axis=0),
-                 YTIndexArray(vals.sum(axis=0), ['km', 'g', 's']))
-    assert_equal(homog_arr.sum(axis=0), YTArray(vals.sum(axis=0), 'km'))
-    assert_raises(RuntimeError, arr.sum, 1)
-    assert_equal(homog_arr.sum(axis=1), YTArray(vals.sum(axis=1), 'km'))
+    def assert_reduction_operator(operator):
+        assert_raises(RuntimeError, getattr(arr, operator))
+        assert_equal(getattr(homog_arr, operator)(),
+                     YTQuantity(getattr(vals, operator)(), 'km'))
+        assert_equal(
+            getattr(arr, operator)(axis=0),
+            YTIndexArray(getattr(vals, operator)(axis=0), ['km', 'g', 's']))
+        assert_equal(getattr(homog_arr, operator)(axis=0),
+                     YTArray(getattr(vals, operator)(axis=0), 'km'))
+        assert_raises(RuntimeError, getattr(arr, operator), 1)
+        assert_equal(getattr(homog_arr, operator)(axis=1),
+                     YTArray(getattr(vals, operator)(axis=1), 'km'))
+
+    assert_reduction_operator('sum')
+    assert_reduction_operator('min')
+    assert_reduction_operator('max')
+    assert_reduction_operator('mean')
+    assert_reduction_operator('std')
+
+    def assert_unitless_reduction_operator(operator):
+        assert_raises(RuntimeError, getattr(arr, operator))
+        assert_equal(getattr(homog_arr, operator)(),
+                     getattr(vals, operator)())
+        assert_equal(getattr(arr, operator)(axis=0),
+                     getattr(vals, operator)(axis=0))
+        assert_equal(getattr(homog_arr, operator)(axis=0),
+                     getattr(vals, operator)(axis=0))
+        assert_raises(RuntimeError, getattr(arr, operator), 1)
+        assert_equal(getattr(homog_arr, operator)(axis=1),
+                     getattr(vals, operator)(axis=1))
+
+    assert_unitless_reduction_operator('argmin')
+    assert_unitless_reduction_operator('argmax')
+
 
 def test_registry_association():
     ds = fake_random_ds(64)
