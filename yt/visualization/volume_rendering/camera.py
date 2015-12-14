@@ -520,7 +520,7 @@ class Camera(Orientation):
         """
 
         dtheta = (1.0*theta)/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector, rot_center=rot_center)
             yield i
 
@@ -561,7 +561,7 @@ class Camera(Orientation):
             dx = position_diff**(1.0/n_steps)
         else:
             dx = (final - self.position)*1.0/n_steps
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             if exponential:
                 self.set_position(self.position * dx)
             else:
@@ -621,7 +621,7 @@ class Camera(Orientation):
 
         """
         f = final**(1.0/n_steps)
-        for i in xrange(n_steps):
+        for i in range(n_steps):
             self.zoom(f)
             yield i
 
