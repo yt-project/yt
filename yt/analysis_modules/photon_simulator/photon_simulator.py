@@ -929,7 +929,7 @@ class EventList(object):
         if isinstance(area, string_types):
             parameters["Area"] = area
         else:
-            parameters["Agea"] = YTQuantity(area, "cm**2")
+            parameters["Area"] = YTQuantity(area, "cm**2")
         parameters["Redshift"] = p["redshift"].value
         parameters["AngularDiameterDistance"] = YTQuantity(p["d_a"].value, "Mpc")
         parameters["sky_center"] = YTArray(p["sky_center"][:], "deg")
