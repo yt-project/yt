@@ -7,19 +7,12 @@ Installation
 ^^^^^^^^^^^^
 
 Beginning with version 3.3, yt has the ability to volume render unstructured
-meshes from, for example, finite element calculations. In order to use this
-capability, a few additional dependencies are required beyond those you get
-when you run the install script. First, `embree <https://embree.github.io>`_
+mesh data - like that created by finite element calculations, for example. 
+In order to use this capability, a few additional dependencies are required 
+beyond those you get when you run the install script. First, `embree <https://embree.github.io>`_
 (a fast software ray-tracing library from Intel) must be installed, either
 by compiling from source or by using one of the pre-built binaries available
-at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. Once
-Embree is installed, you must also create a symlink next to the library. For
-example, if the libraries were installed at /opt/local/lib/ (the location
-that the OS X .pkg installer puts them), you must do
-
-.. code-block:: bash
-
-    sudo ln -s /opt/local/lib/libembree.2.6.1.dylib /opt/local/lib/libembree.so
+at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. 
 
 Second, the python bindings for embree (called 
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
@@ -32,14 +25,16 @@ do so, first obtain a copy, by .e.g. cloning the repo:
 To install, navigate to the root directory and run the setup script.
 If Embree was installed to some location that is not in your path by default,
 you will need to pass in CFLAGS and LDFLAGS to the setup.py script. For example,
-the Mac OS package installer puts the installation at /opt/local/ instead of 
+the Mac OS X package installer puts the installation at /opt/local/ instead of 
 usr/local. To account for this, you would do:
 
 .. code-block:: bash
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-You must also make sure the C++ compilers gets these flags when building yt from source. 
+Once embree and pyembree are installed, you must rebuild yt from source in order to use
+the unstructured mesh rendering capability. Once again, if embree is installed in a 
+location that is not part of your default search path, you must tell yt where to find it.
 There are a number of ways to do this. One way is to again manually pass in the flags
 when running the setup script in the yt-hg directory:
 
