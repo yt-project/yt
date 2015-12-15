@@ -152,10 +152,7 @@ class AthenaHierarchy(GridIndex):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
-        if PY2:
-            self._fhandle = file(self.index_filename,'rb')
-        else:
-            self._fhandle = open(self.index_filename,'rb')
+        self._fhandle = open(self.index_filename,'rb')
         GridIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()

@@ -14,6 +14,7 @@ An object that can live on the dataset to facilitate data access.
 from yt.extern.six import string_types
 import weakref
 
+from yt.extern.six import string_types
 from yt.utilities.exceptions import YTDimensionalityError
 
 class RegionExpression(object):
