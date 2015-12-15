@@ -385,7 +385,7 @@ class Profile1D(ProfileND):
     def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log,
                  weight_field = None):
         super(Profile1D, self).__init__(data_source, weight_field)
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
@@ -469,14 +469,18 @@ class Profile2D(ProfileND):
                  weight_field = None):
         super(Profile2D, self).__init__(data_source, weight_field)
         # X
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
-        self.y_field = y_field
+        self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
+        self.field_info[self.y_field] = \
+            self.data_source.ds.field_info[self.y_field]
+        y_min, y_max = _sanitize_min_max_units(
+            y_min, y_max, self.field_info[self.y_field], self.ds.unit_registry)
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
@@ -700,19 +704,19 @@ class Profile3D(ProfileND):
                  weight_field = None):
         super(Profile3D, self).__init__(data_source, weight_field)
         # X
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
-        self.y_field = y_field
+        self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
         # Z
-        self.z_field = z_field
+        self.z_field = data_source._determine_fields(z_field)[0]
         self.z_log = z_log
         self.z_bins = array_like_field(data_source,
                                        self._get_bins(z_min, z_max, z_n, z_log),
