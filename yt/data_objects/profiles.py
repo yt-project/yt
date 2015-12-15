@@ -67,6 +67,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.data_source = data_source
         self.ds = data_source.ds
         self.field_map = {}
+        self.field_info = {}
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
@@ -85,6 +86,8 @@ class ProfileND(ParallelAnalysisInterface):
         
         """
         fields = self.data_source._determine_fields(fields)
+        for f in fields:
+            self.field_info[f] = self.data_source.ds.field_info[f]
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         citer = self.data_source.chunks([], "io")
         for chunk in parallel_objects(citer):
@@ -386,6 +389,8 @@ class Profile1D(ProfileND):
                  weight_field = None):
         super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = data_source._determine_fields(x_field)[0]
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
         self.x_log = x_log
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
@@ -471,6 +476,8 @@ class Profile2D(ProfileND):
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
@@ -479,8 +486,6 @@ class Profile2D(ProfileND):
         self.y_log = y_log
         self.field_info[self.y_field] = \
             self.data_source.ds.field_info[self.y_field]
-        y_min, y_max = _sanitize_min_max_units(
-            y_min, y_max, self.field_info[self.y_field], self.ds.unit_registry)
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
@@ -706,18 +711,24 @@ class Profile3D(ProfileND):
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
         self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
+        self.field_info[self.y_field] = \
+            self.data_source.ds.field_info[self.y_field]
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
         # Z
         self.z_field = data_source._determine_fields(z_field)[0]
         self.z_log = z_log
+        self.field_info[self.z_field] = \
+            self.data_source.ds.field_info[self.z_field]
         self.z_bins = array_like_field(data_source,
                                        self._get_bins(z_min, z_max, z_n, z_log),
                                        self.z_field)
