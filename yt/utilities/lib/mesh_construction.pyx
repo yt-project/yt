@@ -1,5 +1,7 @@
+# cython: profile=True
+
 """
-This file contains the ElementMesh, which represents the target that the 
+This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
 the interface between the internal representation of the mesh and the pyembree
 representation.
@@ -15,22 +17,26 @@ representation.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-cimport numpy as np
+import numpy as np
 cimport cython
 cimport pyembree.rtcore as rtc 
 from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from mesh_samplers cimport \
-    sample_hex, \
-    sample_tetra
+from mesh_samplers cimport sample_hex
+from mesh_samplers cimport sample_tetra
+from mesh_samplers cimport sample_element
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
     Vec3f
+from mesh_intersection cimport \
+    patchIntersectFunc, \
+    patchBoundsFunc
 from libc.stdlib cimport malloc, free
-import numpy as np
+from libc.math cimport fmax, sqrt
+cimport numpy as np
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -42,11 +48,13 @@ cdef extern from "mesh_construction.h":
     int TETRA_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
+    int hex20_faces[6][8]
 
 
-cdef class ElementMesh:
+cdef class LinearElementMesh:
     r'''
 
+    This creates a 1st-order mesh to be ray-traced with embree.
     Currently, we handle non-triangular mesh types by converting them 
     to triangular meshes. This class performs this transformation.
     Currently, this is implemented for hexahedral and tetrahedral
@@ -80,7 +88,9 @@ cdef class ElementMesh:
     cdef unsigned int mesh
     cdef double* field_data
     cdef rtcg.RTCFilterFunc filter_func
-    cdef int tpe, vpe
+    # triangles per element, vertices per element, and field points per 
+    # element, respectively:
+    cdef int tpe, vpe, fpe
     cdef int[MAX_NUM_TRI][3] tri_array
     cdef int* element_indices
     cdef MeshDataContainer datac
@@ -150,11 +160,13 @@ cdef class ElementMesh:
                               np.ndarray data_in):
 
         cdef int ne = data_in.shape[0]
-        cdef double* field_data = <double *> malloc(ne * self.vpe * sizeof(double))
+        self.fpe = data_in.shape[1]
+
+        cdef double* field_data = <double *> malloc(ne * self.fpe * sizeof(double))
 
         for i in range(ne):
-            for j in range(self.vpe):
-                field_data[i*self.vpe+j] = data_in[i][j]
+            for j in range(self.fpe):
+                field_data[i*self.fpe+j] = data_in[i][j]
 
         self.field_data = field_data
 
@@ -171,10 +183,12 @@ cdef class ElementMesh:
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene):
 
-        if self.vpe == 8:
-            self.filter_func = <rtcg.RTCFilterFunc> sample_hex
-        elif self.vpe == 4:
+        if self.fpe == 1:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_element
+        elif self.fpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
+        elif self.fpe == 8:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
             print "Error - sampler type not implemented."
             raise NotImplementedError
@@ -188,3 +202,107 @@ cdef class ElementMesh:
         free(self.element_indices)
         free(self.vertices)
         free(self.indices)
+
+
+cdef class QuadraticElementMesh:
+    r'''
+
+    This creates a mesh of quadratic patches corresponding to the faces
+    of 2nd-order Lagrange elements for direct rendering via embree.
+    Currently, this is implemented for 20-point hexahedral meshes only.
+
+    Parameters
+    ----------
+
+    scene : EmbreeScene
+        This is the scene to which the constructed patches will be
+        added.
+    vertices : a np.ndarray of floats. 
+        This specifies the x, y, and z coordinates of the vertices in 
+        the mesh. This should either have the shape 
+        (num_vertices, 3). For example, vertices[2][1] should give the 
+        y-coordinate of the 3rd vertex in the mesh.
+    indices : a np.ndarray of ints
+        This should have the shape (num_elements, 20). Each hex will be
+        represented in the scene by 6 bi-quadratic patches. We assume that 
+        the node ordering is as defined here: 
+        http://homepages.cae.wisc.edu/~tautges/papers/cnmev3.pdf
+            
+    '''
+
+    cdef Patch* patches
+    cdef unsigned int mesh
+    # patches per element, vertices per element, and field points per 
+    # element, respectively:
+    cdef int ppe, vpe, fpe
+
+    def __init__(self, YTEmbreeScene scene,
+                 np.ndarray vertices, 
+                 np.ndarray indices,
+                 np.ndarray data):
+
+        # only 20-point hexes are supported right now.
+        if indices.shape[1] == 20:
+            self.vpe = 20
+        else:
+            raise NotImplementedError
+
+        self._build_from_indices(scene, vertices, indices)
+
+    cdef void _build_from_indices(self, YTEmbreeScene scene,
+                                  np.ndarray vertices_in,
+                                  np.ndarray indices_in):
+        cdef int i, j, ind, idim
+        cdef int nv = vertices_in.shape[0]
+        cdef int ne = indices_in.shape[0]
+        cdef int npatch = 6*ne;
+
+        cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
+        cdef np.ndarray[np.float64_t, ndim=2] element_vertices
+        cdef Patch* patches = <Patch*> malloc(npatch * sizeof(Patch));
+        cdef Patch* patch
+        for i in range(ne):  # for each element
+            element_vertices = vertices_in[indices_in[i]]
+            for j in range(6):  # for each face
+                patch = &(patches[i*6+j])
+                patch.geomID = mesh
+                for k in range(8):  # for each vertex
+                    ind = hex20_faces[j][k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        patch.v[k][idim] = element_vertices[ind][idim]
+                self._set_bounding_sphere(patch)
+
+        self.patches = patches
+        self.mesh = mesh
+
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, self.patches)
+        rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
+                                   <rtcgu.RTCBoundsFunc> patchBoundsFunc)
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
+                                      <rtcgu.RTCIntersectFunc> patchIntersectFunc)
+
+    cdef void _set_bounding_sphere(self, Patch* patch):
+
+        # set the center to be the centroid of the patch vertices
+        cdef int i, j
+        for j in range(8):
+            for i in range(3):
+                patch.center[i] += patch.v[j][i]
+        for i in range(3):
+            patch.center[i] /= 8.0
+
+        # set the radius to be slightly larger than the distance between
+        # the center and the farthest vertex
+        cdef float r = 0.0
+        cdef float d
+        for j in range(8):
+            d = 0.0
+            for i in range(3):
+                d += (patch.v[j][i] - patch.center[i])**2
+            d = sqrt(d)
+            r = fmax(r, d)
+        patch.radius = 1.05*r
+
+    def __dealloc__(self):
+        free(self.patches)
+

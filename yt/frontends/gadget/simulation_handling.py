@@ -375,7 +375,7 @@ class GadgetSimulation(SimulationTimeSeries):
         else:
             if self.parameters["OutputListOn"]:
                 a_values = [float(a) for a in 
-                           file(self.parameters["OutputListFilename"], "r").readlines()]
+                            open(self.parameters["OutputListFilename"], "r").readlines()]
             else:
                 a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
                 time_max = float(self.parameters["TimeMax"])

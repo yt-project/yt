@@ -19,7 +19,9 @@ import numpy as np
 from yt.testing import assert_almost_equal
 from yt.utilities.lib.element_mappings import \
     test_tetra_sampler, \
-    test_hex_sampler
+    test_hex_sampler, \
+    test_tri_sampler, \
+    test_quad_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -32,6 +34,14 @@ def check_all_vertices(sampler, vertices, field_values):
         assert_almost_equal(val, field_values[i])
 
 
+def test_P1Sampler2D():
+
+    vertices = np.array([[0.1, 0.2], [0.6, 0.3], [0.2, 0.7]])
+    field_values = np.array([ 1.,  2.,  3.])
+
+    check_all_vertices(test_tri_sampler, vertices, field_values)
+
+
 def test_P1Sampler3D():
     vertices = np.array([[0.1,  0.1,  0.1],
                          [0.6,  0.3,  0.2],
@@ -41,6 +51,18 @@ def test_P1Sampler3D():
     field_values = np.array([1.0, 2.0, 3.0, 4.0])
 
     check_all_vertices(test_tetra_sampler, vertices, field_values)
+
+
+def test_Q1Sampler2D():
+
+    vertices = np.array([[0.1, 0.2],
+                         [0.6, 0.3],
+                         [0.7, 0.9],
+                         [0.2, 0.7]])
+
+    field_values = np.array([1.,  2.,  3.,  4.])
+
+    check_all_vertices(test_quad_sampler, vertices, field_values)
 
 
 def test_Q1Sampler3D():

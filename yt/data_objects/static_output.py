@@ -1157,5 +1157,5 @@ class ParticleFile(object):
     def _calculate_offsets(self, fields):
         pass
 
-    def __cmp__(self, other):
-        return cmp(self.filename, other.filename)
+    def __lt__(self, other):
+        return self.filename < other.filename

@@ -292,7 +292,7 @@ class SDFRead(dict):
             self.load_memmaps()
 
     def write(self, filename):
-        f = file(filename, 'w')
+        f = open(filename, 'w')
         f.write("# SDF 1.0\n")
         f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
         for c in self.comments:
