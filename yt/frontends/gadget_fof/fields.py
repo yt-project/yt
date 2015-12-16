@@ -56,3 +56,11 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
         ("",      "particle_number"),
         ("",      "particle_ones"),
     )
+
+class GadgetFOFHaloFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+    )
+
+    known_particle_fields = (
+        ("ID", ("", ["Group", "particle_identifier"], None)),
+    )
