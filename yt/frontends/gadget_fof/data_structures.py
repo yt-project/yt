@@ -23,7 +23,8 @@ import glob
 import os
 
 from yt.frontends.gadget_fof.fields import \
-    GadgetFOFFieldInfo
+    GadgetFOFFieldInfo, \
+    GadgetFOFHaloFieldInfo
 
 from yt.utilities.cosmology import \
     Cosmology
@@ -72,6 +73,21 @@ class GadgetFOFParticleIndex(ParticleIndex):
         for i, data_file in enumerate(self.data_files):
             data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
 
+    def _create_halo_id_table(self):
+        """
+        Create a list of halo start ids so we know which file
+        contains particles for a given halo.
+        """
+        self._halo_index_start = \
+          dict([(ptype, np.array([dom.index_start[ptype]
+                                  for dom in self.data_files]))
+                for ptype in self.ds.particle_types_raw])
+        self._halo_index_end = \
+          dict([(ptype, np.array([dom.total_particles[ptype]
+                                  for dom in self.data_files]) +
+                        self._halo_index_start[ptype])
+                for ptype in self.ds.particle_types_raw])
+
     def _detect_output_fields(self):
         # TODO: Add additional fields
         dsl = []
@@ -89,11 +105,13 @@ class GadgetFOFParticleIndex(ParticleIndex):
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
         ds.particle_types_raw = tuple(sorted(ds.particle_types))
-            
+
     def _setup_geometry(self):
         super(GadgetFOFParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
+        self.data_files = sorted(self.data_files)
+        self._create_halo_id_table()
     
 class GadgetFOFHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -245,19 +263,82 @@ class GadgetFOFDataset(Dataset):
             pass
         return valid
 
+class GadgetFOFHaloParticleIndex(ParticleIndex):
+    def __init__(self, ds, dataset_type):
+        super(GadgetFOFHaloParticleIndex, self).__init__(ds, dataset_type)
+
+    def _initialize_particle_handler(self):
+        "Find the file that has the data for this halo."
+        ptype = self.ds.ptype
+        if self.ds.particle_identifier >= self.ds.ds.index._halo_index_end[ptype][-1]:
+            raise RuntimeError("Halo %d is out of bounds of catalog with %d halos." %
+                               (self.ds.particle_identifier,
+                                self.ds.ds.index._halo_index_end[ptype][-1]))
+        file_index = \
+          (self.ds.particle_identifier >=
+           self.ds.ds.index._halo_index_start[ptype]) & \
+          (self.ds.particle_identifier <
+           self.ds.ds.index._halo_index_end[ptype])
+        self.data_file = self.ds.ds.index.data_files[np.where(file_index)[0]]
+
+    def _calculate_particle_index_starts(self):
+        # Halo indices are not saved in the file, so we must count by hand.
+        # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
+        particle_count = defaultdict(int)
+        offset_count = 0
+        for data_file in self.data_files:
+            data_file.index_start = dict([(ptype, particle_count[ptype]) for
+                                           ptype in data_file.total_particles])
+            data_file.offset_start = offset_count
+            for ptype in data_file.total_particles:
+                particle_count[ptype] += data_file.total_particles[ptype]
+            offset_count += data_file.total_offset
+
+    def _detect_output_fields(self):
+        dsl, units = self.io._identify_fields(self.data_file)
+        self.field_list = dsl
+        ds = self.dataset
+        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.field_units.update(units)
+
 class GadgetFOFHaloDataset(Dataset):
-    _index_class = GadgetFOFParticleIndex
+    _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
-    _field_info_class = GadgetFOFFieldInfo
+    _field_info_class = GadgetFOFHaloFieldInfo
     _suffix = ".hdf5"
 
-    def __init__(self, ds, ptype, particle_identifier):
+    def __init__(self, ds, ptype, particle_identifier,
+                 dataset_type="gadget_fof_halo_hdf5"):
         self.ds = ds
+        self.ds.index
         if ptype not in ds.particle_types_raw:
             raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
                                (ds.particle_types_raw, ptype))
+        if ptype == "Subhalo":
+            raise NotImplementedError()
         self.ptype = ptype
+        self.particle_types_raw = (self.ptype,)
+        self.particle_types = self.particle_types_raw
         self.particle_identifier = particle_identifier
+
+        super(GadgetFOFHaloDataset, self).__init__(ds.parameter_filename, dataset_type)
+
+    def print_key_parameters(self):
+        pass
+
+    def _set_derived_attrs(self):
+        pass
+
+    def _parse_parameter_file(self):
+        self.current_time = self.ds.current_time
+        self.unique_identifier = self.ds.unique_identifier
+        self.dimensionality = self.ds.dimensionality
+
+    def set_code_units(self):
+        for unit in ["length", "time", "mass",
+                     "velocity", "magnetic", "temperature"]:
+            my_unit = "%s_unit" % unit
+            setattr(self, my_unit, getattr(self.ds, my_unit, None))
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

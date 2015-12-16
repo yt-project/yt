@@ -168,6 +168,87 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 fields.extend(my_fields)
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
+class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
+    _dataset_type = "gadget_fof_halo_hdf5"
+
+    def __init__(self, ds):
+        super(IOHandlerGadgetFOFHaloHDF5, self).__init__(ds)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        raise NotImplementedError
+
+    def _read_particle_coords(self, chunks, ptf):
+        # This will read chunks and yield the results.
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in sorted(data_files):
+            with h5py.File(data_file.filename, "r") as f:
+                for ptype, field_list in sorted(ptf.items()):
+                    pcount = data_file.total_particles[ptype]
+                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
+                    coords = np.resize(coords, (pcount, 3))
+                    x = coords[:, 0]
+                    y = coords[:, 1]
+                    z = coords[:, 2]
+                    yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # Now we have all the sizes, and we can allocate
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in sorted(data_files):
+            with h5py.File(data_file.filename, "r") as f:
+                for ptype, field_list in sorted(ptf.items()):
+                    pcount = data_file.total_particles[ptype]
+                    if pcount == 0: continue
+                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
+                    coords = np.resize(coords, (pcount, 3))
+                    x = coords[:, 0]
+                    y = coords[:, 1]
+                    z = coords[:, 2]
+                    mask = selector.select_points(x, y, z, 0.0)
+                    del x, y, z
+                    if mask is None: continue
+                    for field in field_list:
+                        if field in self.offset_fields:
+                            field_data = \
+                              self._read_offset_particle_field(field, data_file, f)
+                        else:
+                            if field == "particle_identifier":
+                                field_data = \
+                                  np.arange(data_file.total_particles[ptype]) + \
+                                  data_file.index_start[ptype]
+                            elif field in f[ptype]:
+                                field_data = f[ptype][field].value.astype("float64")
+                            else:
+                                fname = field[:field.rfind("_")]
+                                field_data = f[ptype][fname].value.astype("float64")
+                                my_div = field_data.size / pcount
+                                if my_div > 1:
+                                    field_data = np.resize(field_data, (pcount, my_div))
+                                    findex = int(field[field.rfind("_") + 1:])
+                                    field_data = field_data[:, findex]
+                        data = field_data[mask]
+                        yield (ptype, field), data
+
+    def _identify_fields(self, data_file):
+        fields = []
+        pcount = data_file.total_particles
+        if sum(pcount.values()) == 0: return fields, {}
+        with h5py.File(data_file.filename, "r") as f:
+            if "IDs" not in f:
+                return fields, {}
+            for ptype in self.ds.particle_types_raw:
+                if ptype == "Subhalo": continue
+                if data_file.total_particles[ptype] == 0: continue
+                fields.extend([(ptype, field) for field in f["IDs"]])
+        return fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []
