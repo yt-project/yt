@@ -13,7 +13,8 @@ def test_flake8():
     if os.path.exists(output_file):
         os.remove(output_file)
     output_string = "--output-file=%s" % output_file
-    config_string = "--config=%s" % os.path.join(yt_dir, 'setup.cfg')
+    config_string = "--config=%s" % os.path.join(os.path.dirname(yt_dir), 
+                                                 'setup.cfg')
     subprocess.call(['flake8', output_string, config_string, yt_dir])
     
     with open(output_file) as f:
