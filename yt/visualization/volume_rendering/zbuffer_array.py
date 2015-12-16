@@ -68,6 +68,12 @@ class ZBuffer(object):
         z = np.min([self.z, other.z], axis=0)
         return ZBuffer(rgba, z)
 
+    def __iadd__(self, other):
+        tmp = self + other
+        self.rgba = tmp.rgba
+        self.z = tmp.z
+        return self    
+
     def __eq__(self, other):
         equal = True
         equal *= np.all(self.rgba == other.rgba)

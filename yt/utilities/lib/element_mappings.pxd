@@ -10,6 +10,7 @@ cdef class ElementSampler:
     # to get counted as "inside". This is in the
     # mapped coordinates of the element.
     cdef np.float64_t inclusion_tol
+    cdef int num_mapped_coords
 
     cdef void map_real_to_unit(self,
                                double* mapped_x, 
@@ -29,6 +30,31 @@ cdef class ElementSampler:
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
+
+cdef class P1Sampler2D(ElementSampler):
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x, 
+                               double* vertices,
+                               double* physical_x) nogil
+
+
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil
+
+    cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
 
 cdef class P1Sampler3D(ElementSampler):
 
@@ -43,6 +69,12 @@ cdef class P1Sampler3D(ElementSampler):
                                      double* vals) nogil
 
     cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
 
 # This typedef defines a function pointer that defines the system
 # of equations that will be solved by the NonlinearSolveSamplers.
@@ -63,7 +95,7 @@ ctypedef void (*func_type)(double* fx,
                            double* phys_x) nogil
 
 # This typedef defines a function pointer that defines the Jacobian
-# matrix used by the NonlinearSolveSamplers. Subclasses needed to 
+# matrix used by the NonlinearSolveSampler3D. Subclasses needed to 
 # define a Jacobian function in this form.
 # 
 # inputs:
@@ -77,20 +109,41 @@ ctypedef void (*func_type)(double* fx,
 #     scol     - the second column of the jacobian
 #     tcol     - the third column of the jaocobian
 #
-ctypedef void (*jac_type)(double* rcol, 
-                          double* scol, 
-                          double* tcol, 
-                          double* x, 
-                          double* vertices, 
-                          double* phys_x) nogil
+ctypedef void (*jac_type3D)(double* rcol, 
+                            double* scol, 
+                            double* tcol, 
+                            double* x, 
+                            double* vertices, 
+                            double* phys_x) nogil
 
-cdef class NonlinearSolveSampler(ElementSampler):
+
+# This typedef defines a function pointer that defines the Jacobian
+# matrix used by the NonlinearSolveSampler2D. Subclasses needed to 
+# define a Jacobian function in this form.
+# 
+# inputs:
+#     x        - pointer to the mapped coordinate
+#     vertices - pointer to the element vertices
+#     phys_x   - pointer to the physical coordinate
+#
+# outputs:
+#
+#     A        - A flattened array storing the Jacobian matrix
+#                The order of this array is [J11, J12, J21, J22]
+#
+ctypedef void (*jac_type2D)(double* A,
+                            double* x,
+                            double* vertices,
+                            double* phys_x) nogil
+
+
+cdef class NonlinearSolveSampler3D(ElementSampler):
 
     cdef int dim
     cdef int max_iter
     cdef np.float64_t tolerance
     cdef func_type func 
-    cdef jac_type jac
+    cdef jac_type3D jac
 
     cdef void map_real_to_unit(self,
                                double* mapped_x, 
@@ -98,7 +151,7 @@ cdef class NonlinearSolveSampler(ElementSampler):
                                double* physical_x) nogil
     
 
-cdef class Q1Sampler3D(NonlinearSolveSampler):
+cdef class Q1Sampler3D(NonlinearSolveSampler3D):
 
     cdef void map_real_to_unit(self,
                                double* mapped_x, 
@@ -111,3 +164,41 @@ cdef class Q1Sampler3D(NonlinearSolveSampler):
                                      double* vals) nogil
 
     cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil
+
+cdef class NonlinearSolveSampler2D(ElementSampler):
+
+    cdef int dim
+    cdef int max_iter
+    cdef np.float64_t tolerance
+    cdef func_type func 
+    cdef jac_type2D jac
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x, 
+                               double* vertices,
+                               double* physical_x) nogil
+    
+
+cdef class Q1Sampler2D(NonlinearSolveSampler2D):
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x, 
+                               double* vertices,
+                               double* physical_x) nogil
+
+
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil
+
+    cdef int check_inside(self, double* mapped_coord) nogil
+
+    cdef int check_near_edge(self,
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil

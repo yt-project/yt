@@ -14,7 +14,7 @@ Derived field base class.
 import contextlib
 import inspect
 
-from yt.extern.six import string_types
+from yt.extern.six import string_types, PY2
 from yt.funcs import \
     ensure_list
 from .field_exceptions import \
@@ -215,9 +215,14 @@ class DerivedField(object):
         return data_label
 
     def __repr__(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
+
         if self._function == NullFunc:
             s = "On-Disk Field "
-        elif self._function.func_name == "_TranslationFunc":
+        elif func_name == "_TranslationFunc":
             s = "Alias Field for \"%s\" " % (self._function.alias_name,)
         else:
             s = "Derived Field "

@@ -139,7 +139,7 @@ class StreamHandler(object):
         self.io = io
         self.particle_types = particle_types
         self.periodicity = periodicity
-            
+
     def get_fields(self):
         return self.fields.all_fields
 
@@ -149,7 +149,7 @@ class StreamHandler(object):
             return self.particle_types[field]
         else :
             return False
-        
+
 class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
@@ -293,7 +293,7 @@ class StreamDataset(Dataset):
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
         #self._conversion_override = conversion_override
-
+        self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
@@ -375,7 +375,7 @@ def update_field_names(data):
         if len(s) == 1:
             field = ("io", k)
         elif len(s) == 3:
-            field = ("gas", k)
+            field = ("stream", k)
         elif len(s) == 0:
             continue
         else:
@@ -501,7 +501,7 @@ def unitify_data(data):
         elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
         elif len(data[field].shape) == 3:
-            new_field = ("gas", field)
+            new_field = ("stream", field)
         else:
             raise RuntimeError
         new_data[new_field] = data[field]
@@ -1517,9 +1517,9 @@ def load_octree(octree_mask, data,
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
-    
+
     particle_types = set_particle_types(data)
-    
+
     sfh.update({0:data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
@@ -1603,12 +1603,13 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
-def load_unstructured_mesh(data, connectivity, coordinates,
-                         length_unit = None, bbox=None, sim_time=0.0,
-                         mass_unit = None, time_unit = None,
-                         velocity_unit = None, magnetic_unit = None,
-                         periodicity=(False, False, False),
-                         geometry = "cartesian"):
+
+def load_unstructured_mesh(connectivity, coordinates, node_data=None,
+                           elem_data=None, length_unit=None, bbox=None,
+                           sim_time=0.0, mass_unit=None, time_unit=None,
+                           velocity_unit=None, magnetic_unit=None,
+                           periodicity=(False, False, False),
+                           geometry = "cartesian"):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1622,10 +1623,6 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     Parameters
     ----------
-    data : dict or list of dicts
-        This is a list of dicts of numpy arrays, where each element in the list
-        is a different mesh, and where the keys of dicts are the field names.
-        If a dict is supplied, this will be assumed to be the only mesh.
     connectivity : list of array_like or array_like
         This is the connectivity array for the meshes; this should either be a
         list where each element in the list is a numpy array or a single numpy
@@ -1635,6 +1632,18 @@ def load_unstructured_mesh(data, connectivity, coordinates,
     coordinates : array_like
         This should be of size (L,3) where L is the number of vertices
         indicated in the connectivity matrix.
+    node_data : dict or list of dicts
+        This is a list of dicts of numpy arrays, where each element in the list
+        is a different mesh, and where the keys of dicts are the field names.
+        If a dict is supplied, this will be assumed to be the only mesh. These
+        data fields are assumed to be node-centered, i.e. there must be one
+        value for every node in the mesh.
+    elem_data : dict or list of dicts
+        This is a list of dicts of numpy arrays, where each element in the list
+        is a different mesh, and where the keys of dicts are the field names.
+        If a dict is supplied, this will be assumed to be the only mesh. These
+        data fields are assumed to be element-centered, i.e. there must be only
+        one value for every element in the mesh.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units of the length unit.
     sim_time : float, optional
@@ -1662,8 +1671,33 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
-    data = ensure_list(data)
+
+    if elem_data is None and node_data is None:
+        raise RuntimeError("No data supplied in load_unstructured_mesh.")
+
+    if isinstance(connectivity, list):
+        num_meshes = len(connectivity)
+    else:
+        num_meshes = 1
     connectivity = ensure_list(connectivity)
+
+    if elem_data is None:
+        elem_data = [{} for i in range(num_meshes)]
+    elem_data = ensure_list(elem_data)
+
+    if node_data is None:
+        node_data = [{} for i in range(num_meshes)]
+    node_data = ensure_list(node_data)
+
+    data = [{} for i in range(num_meshes)]
+    for elem_dict, data_dict in zip(elem_data, data):
+        for field, values in elem_dict.items():
+            data_dict[field] = values
+    for node_dict, data_dict in zip(node_data, data):
+        for field, values in node_dict.items():
+            data_dict[field] = values
+    data = ensure_list(data)
+
     if bbox is None:
         bbox = np.array([[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
                           coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
@@ -1733,5 +1767,12 @@ def load_unstructured_mesh(data, connectivity, coordinates,
 
     sds = StreamUnstructuredMeshDataset(handler, geometry = geometry)
 
-    return sds
+    fluid_types = ()
+    for i in range(1, num_meshes + 1):
+        fluid_types += ('connect%d' % i,)
+    sds.fluid_types = fluid_types
 
+    sds._node_fields = node_data[0].keys()
+    sds._elem_fields = elem_data[0].keys()
+
+    return sds

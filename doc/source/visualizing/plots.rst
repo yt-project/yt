@@ -355,6 +355,78 @@ OffAxisProjectionPlots can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
 
+.. _unstructured-mesh-slices:
+
+Unstructured Mesh Slices
+------------------------
+
+Unstructured Mesh datasets can be sliced using the same syntax as above.
+Here is an example script using a publically available MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'x', ('connect1', 'diffused'))
+   sl.zoom(0.75)
+   sl.save()
+
+Here, we plot the ``'diffused'`` variable, using a slice normal to the ``'x'`` direction, 
+through the meshed labelled by ``'connect1'``. By default, the slice goes through the
+center of the domain. We have also zoomed out a bit to get a better view of the 
+resulting structure. To instead plot the ``'convected'`` variable, using a slice normal
+to the ``'z'`` direction through the mesh labelled by ``'connect2'``, we do:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'z', ('connect2', 'convected'))
+   sl.zoom(0.75)
+   sl.save()
+
+These slices are made by sampling the finite element solution at the points corresponding 
+to each pixel of the image. The ``'convected'`` and ``'diffused'`` variables are node-centered,
+so this interpolation is performed by converting the sample point the reference coordinate
+system of the element and evaluating the appropriate shape functions. You can also
+plot element-centered fields:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'y', ('connect1', 'conv_indicator'))
+   sl.zoom(0.75)
+   sl.save()
+
+We can also annotate the mesh lines, as follows:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
+   sl.annotate_mesh_lines(thresh=0.1)
+   sl.zoom(0.75)
+   sl.save()
+
+This annotation is performed by marking the pixels where the mapped coordinate is close
+to the element boundary. What counts as 'close' (in the mapped coordinate system) is 
+determined by the ``thresh`` parameter, which can be varied to make the lines thicker or
+thinner.
+
+Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
+an example using another MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e')
+   sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
+
 Plot Customization: Recentering, Resizing, Colormaps, and More
 --------------------------------------------------------------
 
