@@ -4,19 +4,22 @@ import yaml
 import multiprocessing as mp
 import nose
 import glob
+from contextlib import closing
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 
+
 def run_job(argv):
-    cur_stderr = sys.stderr
-    sys.stderr = open(str(os.getpid()) + ".out", "w")
-    answer = argv[0]
-    test_dir = ytcfg.get("yt", "test_data_dir")
-    answers_dir = os.path.join(test_dir, "answers")
-    if not os.path.isdir(os.path.join(answers_dir, answer)):
-        nose.run(argv=argv + ['--answer-store'],
-                 addplugins=[AnswerTesting()], exit=False)
-    nose.run(argv=argv, addplugins=[AnswerTesting()], exit=False)
+    with closing(open(str(os.getpid()) + ".out", "w")) as fstderr:
+        cur_stderr = sys.stderr
+        sys.stderr = fstderr
+        answer = argv[0]
+        test_dir = ytcfg.get("yt", "test_data_dir")
+        answers_dir = os.path.join(test_dir, "answers")
+        if not os.path.isdir(os.path.join(answers_dir, answer)):
+            nose.run(argv=argv + ['--answer-store'],
+                     addplugins=[AnswerTesting()], exit=False)
+        nose.run(argv=argv, addplugins=[AnswerTesting()], exit=False)
     sys.stderr = cur_stderr
 
 if __name__ == "__main__":
