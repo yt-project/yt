@@ -591,9 +591,7 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        ds = profile.data_source.ds
-        yf, = profile.data_source._determine_fields([field_y])
-        yfi = ds._get_field_info(*yf)
+        yfi = profile.field_info[field_y]
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -624,12 +622,9 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
-        xf, yf = profile.data_source._determine_fields(
-            [field_x, field_y])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
@@ -753,14 +748,11 @@ class PhasePlot(ImagePlotContainer):
         return obj
 
     def _get_field_title(self, field_z, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
-        xf, yf, zf = profile.data_source._determine_fields(
-            [field_x, field_y, field_z])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
-        zfi = ds._get_field_info(*zf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
+        zfi = profile.field_info[field_z]
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
@@ -791,9 +783,7 @@ class PhasePlot(ImagePlotContainer):
         return label
 
     def _get_field_log(self, field_z, profile):
-        ds = profile.data_source.ds
-        zf, = profile.data_source._determine_fields([field_z])
-        zfi = ds._get_field_info(*zf)
+        zfi = profile.field_info[field_z]
         if self.x_log is None:
             x_log = profile.x_log
         else:
