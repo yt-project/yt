@@ -13,7 +13,8 @@ Exodus II frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import assert_equal, \
+from yt.testing import \
+    assert_equal, \
     assert_array_equal, \
     requires_file
 from yt.utilities.answer_testing.framework import \

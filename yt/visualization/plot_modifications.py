@@ -1513,41 +1513,42 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    annotate_mesh_lines(mesh, thresh=0.01)
+    annotate_mesh_lines(thresh=0.01)
 
-    Adds the outline of the mesh lines to the plot.
+    Adds the mesh lines to the plot.
 
-    Uses the connectivity and coordinate information from the input
-    mesh to add the outline of the element boundaries to the plot.
     This is done by marking the pixels where the mapped coordinate
     is within some threshold distance of one of the element boundaries.
     If the mesh lines are too thick or too thin, try varying thresh.
 
     Parameters
     ----------
-    mesh : UnstructuredIndex
-        The mesh you want to add to the image
 
     thresh : float
         The threshold distance, in mapped coordinates, within which the
         pixels will be marked as part of the element boundary.
+        Default is 0.01.
 
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, mesh, thresh=0.1):
+    def __init__(self, thresh=0.1):
         super(MeshLinesCallback, self).__init__()
         self.thresh = thresh
-        self.mesh = mesh
 
     def __call__(self, plot):
-        coords = self.mesh.connectivity_coords
-        indices = self.mesh.connectivity_indices
+
+        ftype, fname = plot.field
+        mesh_id = int(ftype[-1]) - 1
+        mesh = plot.ds.index.meshes[mesh_id]
+
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
 
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        offset = self.mesh._index_offset
+        offset = mesh._index_offset
         ax = plot.data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]

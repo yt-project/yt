@@ -12,13 +12,12 @@ ExodusII-specific IO functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import numpy as np
 
+import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.file_handler import \
     NetCDF4FileHandler
-from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerExodusII(BaseIOHandler):

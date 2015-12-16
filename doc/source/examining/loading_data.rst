@@ -332,8 +332,10 @@ Exodus II Data
 
 Exodus II is a file format for Finite Element datasets that is used by the MOOSE
 framework for file IO. Support for this format (and for unstructured mesh data in 
-general) is a new feature in yt, so while we aim to fully support it, we also expect 
-there to be some buggy features at present. 
+general) is a new feature as of yt 3.3, so while we aim to fully support it, we also expect 
+there to be some buggy features at present. Currently, yt can visualize first-order
+mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
+Development of higher-order visualization capability is a work in progress.
 
 To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
 file:
@@ -341,7 +343,7 @@ file:
 .. code-block:: python
 
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
 
 Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
 picard iterations, non-linear solve iterations, etc...), you can also specify a step
@@ -353,11 +355,11 @@ You can access the connectivity information directly by doing:
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
-   print ds.index.meshes[0].connectivity_coords
-   print ds.index.meshes[0].connectivity_indices
-   print ds.index.meshes[1].connectivity_coords
-   print ds.index.meshes[1].connectivity_indices
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   print(ds.index.meshes[0].connectivity_coords)
+   print(ds.index.meshes[0].connectivity_indices)
+   print(ds.index.meshes[1].connectivity_coords)
+   print(ds.index.meshes[1].connectivity_indices)
 
 This particular dataset has two meshes in it, both of which are made of 8-node hexes.
 yt uses a field name convention to access these different meshes in plots and data
@@ -366,21 +368,58 @@ objects. To see all the fields found in a particlular dataset, you can do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
-   print ds.field_list
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   print(ds.field_list)
 
-This will give you a list of field names like ('connect1', 'diffused') and 
-('connect2', 'convected'). Here, fields labelled with 'connect1' correspond to the
-first mesh, and those with 'connect2' to the second, and so on. To grab the value
-of the 'convected' variable at all the nodes in the first mesh, for example, you
+This will give you a list of field names like ``('connect1', 'diffused')`` and 
+``('connect2', 'convected')``. Here, fields labelled with ``'connect1'`` correspond to the
+first mesh, and those with ``'connect2'`` to the second, and so on. To grab the value
+of the ``'convected'`` variable at all the nodes in the first mesh, for example, you
 would do:
 
 .. code-block:: python
     
    import yt
-   ds = yt.load("out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
    ad = ds.all_data()  # geometric selection, this just grabs everything
-   print ad['connect1', 'convected']
+   print(ad['connect1', 'convected'])
+
+In this dataset, ``('connect1', 'convected')`` is nodal field, meaning that the field values
+are defined at the vertices of the elements. If we examine the shape of the returned array:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'convected'].shape)
+
+we see that this mesh has 12480 8-node hexahedral elements, and that we get 8 field values
+for each element. To get the vertex positions at which these field values are defined, we
+can do, for instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'vertex_x'])
+
+If we instead look at an element-centered field, like ``('connect1', 'conv_indicator')``,
+we get:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'conv_indicator'].shape)
+
+we instead get only one field value per element.
+
+For information about visualizing unstructured mesh data, including Exodus II datasets, 
+please see :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`. 
+
 
 FITS Data
 ---------

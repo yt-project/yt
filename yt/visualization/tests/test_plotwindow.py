@@ -182,7 +182,7 @@ CALLBACK_TESTS = (
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(M7)
     for ax in 'xyz':
@@ -200,7 +200,7 @@ def test_attributes():
 @requires_ds(WT)
 def test_attributes_wt():
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(WT)
     ax = 'z'

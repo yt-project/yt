@@ -20,8 +20,6 @@ from yt.data_objects.unstructured_mesh import \
     UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.io_handler import \
-    io_registry
 from .io import \
     NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -49,9 +47,6 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
                        for mesh_id, conn_ind in
                        enumerate(self.ds._read_connectivity())]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.ds)
-
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
         node_names = self.dataset.parameters['nod_names']
@@ -75,8 +70,8 @@ class ExodusIIDataset(Dataset):
         self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
         self.step = step
-        Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+        super(ExodusIIDataset, self).__init__(filename, dataset_type,
+                                              units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
 
@@ -176,54 +171,62 @@ class ExodusIIDataset(Dataset):
 
     def _get_glo_names(self):
         """
-        Returns the names of the global vars, if available
+
+        Returns the names of the global vars, if available.
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_glo_var"]]
-        except (KeyError, TypeError):
+
+        if "name_glo_var" not in self._vars:
             mylog.warning("name_glo_var not found")
             return []
-
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_glo_var"]]
+            
     def _get_elem_names(self):
         """
-        Returns the names of the element vars, if available
+
+        Returns the names of the element vars, if available.
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_elem_var"]]
-        except (KeyError, TypeError):
+
+        if "name_elem_var" not in self._vars:
             mylog.warning("name_elem_var not found")
             return []
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_elem_var"]]
 
     def _get_nod_names(self):
         """
+
         Returns the names of the node vars, if available
+
         """
-        try:
-            return [sanitize_string(v.tostring()) for v in
-                    self._vars["name_nod_var"]]
-        except (KeyError, TypeError):
+
+        if "name_nod_var" not in self._vars:
             mylog.warning("name_nod_var not found")
             return []
+        else:
+            return [sanitize_string(v.tostring()) for v in
+                    self._vars["name_nod_var"]]
 
     def _read_coordinates(self):
         """
+
         Loads the coordinates for the mesh
+
         """
-        if self.dimensionality == 3:
-            coord_axes = 'xyz'
-        elif self.dimensionality == 2:
-            coord_axes = 'xy'
+        
+        coord_axes = 'xyz'[:self.dimensionality]
 
         mylog.info("Loading coordinates")
-
-        try:
-            return np.array([coord for coord in
-                             self._vars["coord"][:]]).transpose().copy()
-        except KeyError:
+        if "coord" not in self._vars:
             return np.array([self._vars["coord%s" % ax][:]
                              for ax in coord_axes]).transpose().copy()
+        else:
+            return np.array([coord for coord in
+                             self._vars["coord"][:]]).transpose().copy()
 
     def _read_connectivity(self):
         """

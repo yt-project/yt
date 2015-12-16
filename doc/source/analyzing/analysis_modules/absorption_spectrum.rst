@@ -11,8 +11,8 @@ densities are calculated multiplying the number density within a grid cell
 with the path length of the ray through the cell.  Line profiles are 
 generated using a voigt profile based on the temperature field.  The lines 
 are then shifted according to the redshift recorded by the light ray tool 
-and (optionally) the line of sight peculiar velocity.  Inclusion of the 
-peculiar velocity requires setting ``get_los_velocity`` to True in the call to 
+and (optionally) the peculiar velocity of gas along the ray.  Inclusion of the 
+peculiar velocity requires setting ``use_peculiar_velocity`` to True in the call to 
 :meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
 
 The spectrum generator will output a file containing the wavelength and 

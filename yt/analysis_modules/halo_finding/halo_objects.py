@@ -1344,7 +1344,8 @@ class LoadedHaloList(HaloList):
 
     def _retrieve_halos(self):
         # First get the halo particulars.
-        lines = file("%s.out" % self.basename)
+        with open("%s.out" % self.basename, 'r') as fh:
+            lines = fh.readlines()
         # The location of particle data for each halo.
         locations = self._collect_halo_data_locations()
         halo = 0
@@ -1395,7 +1396,8 @@ class LoadedHaloList(HaloList):
 
     def _collect_halo_data_locations(self):
         # The halos are listed in order in the file.
-        lines = file("%s.txt" % self.basename)
+        with open("%s.txt" % self.basename, 'r') as fh:
+            lines = fh.readlines()
         locations = []
         realpath = path.realpath("%s.txt" % self.basename)
         for line in lines:
@@ -1408,7 +1410,6 @@ class LoadedHaloList(HaloList):
                 item = item.split("/")
                 temp.append(path.join(path.dirname(realpath), item[-1]))
             locations.append(temp)
-        lines.close()
         return locations
 
 class TextHaloList(HaloList):
@@ -1422,7 +1423,8 @@ class TextHaloList(HaloList):
 
     def _retrieve_halos(self, fname, columns, comment):
         # First get the halo particulars.
-        lines = file(fname)
+        with open(fname, 'r') as fh:
+            lines = fh.readlines()
         halo = 0
         base_set = ['x', 'y', 'z', 'r']
         keys = columns.keys()

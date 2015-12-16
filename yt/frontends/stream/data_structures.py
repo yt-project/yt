@@ -293,7 +293,7 @@ class StreamDataset(Dataset):
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
         #self._conversion_override = conversion_override
-
+        self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
@@ -367,36 +367,33 @@ class StreamDictFieldHandler(dict):
         return fields
 
 def update_field_names(data):
-    orig_names = data.keys()
+    orig_names = list(data.keys())
     for k in orig_names:
-        if isinstance(k, tuple): continue
+        if isinstance(k, tuple):
+            continue
         s = getattr(data[k], "shape", ())
         if len(s) == 1:
             field = ("io", k)
         elif len(s) == 3:
-            field = ("gas", k)
+            field = ("stream", k)
         elif len(s) == 0:
             continue
         else:
             raise NotImplementedError
         data[field] = data.pop(k)
 
-def set_particle_types(data) :
-
+def set_particle_types(data):
     particle_types = {}
-    
-    for key in data.keys() :
-
-        if key == "number_of_particles": continue
-        
+    for key in data.keys():
+        if key == "number_of_particles":
+            continue
         if len(data[key].shape) == 1:
             particle_types[key] = True
-        else :
+        else:
             particle_types[key] = False
-    
     return particle_types
 
-def assign_particle_data(ds, pdata) :
+def assign_particle_data(ds, pdata):
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
@@ -504,7 +501,7 @@ def unitify_data(data):
         elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
         elif len(data[field].shape) == 3:
-            new_field = ("gas", field)
+            new_field = ("stream", field)
         else:
             raise RuntimeError
         new_data[new_field] = data[field]
@@ -519,11 +516,12 @@ def unitify_data(data):
     data = new_data
     return field_units, data
 
+
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
                       velocity_unit=None, magnetic_unit=None,
                       periodicity=(True, True, True),
-                      geometry = "cartesian"):
+                      geometry="cartesian"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -538,7 +536,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     Particle fields are detected as one-dimensional fields. The number of
     particles is set by the "number_of_particles" key in data.
-    
+
     Parameters
     ----------
     data : dict
@@ -580,19 +578,19 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
 
-    >>> data = dict(density = arr)
+    >>> data = dict(density=arr)
     >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
-                               bbox=bbox, nprocs=12)
+    ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['Density']
+    >>> dd['density']
 
     #FIXME
     YTArray[123.2856, 123.854, ..., 123.456, 12.42] (code_mass/code_length^3)
 
-    >>> data = dict(density = (arr, 'g/cm**3'))
+    >>> data = dict(density=(arr, 'g/cm**3'))
     >>> ds = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['Density']
+    >>> dd['density']
 
     #FIXME
     YTArray[123.2856, 123.854, ..., 123.456, 12.42] (g/cm**3)
@@ -706,11 +704,12 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     return sds
 
+
 def load_amr_grids(grid_data, domain_dimensions,
-                   field_units=None, bbox=None, sim_time=0.0, length_unit=None,
+                   bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian", refine_by=2):
+                   geometry="cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -735,9 +734,6 @@ def load_amr_grids(grid_data, domain_dimensions,
         modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
-    field_units : dict
-        A dictionary mapping string field names to string unit specifications.  The field
-        names must correspond to the fields in grid_data.
     length_unit : string or float
         Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
         dimensions are assumed to be in the corresponding units.  If set to a float, the
@@ -785,11 +781,9 @@ def load_amr_grids(grid_data, domain_dimensions,
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...     g["density"] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
     ...
-    >>> units = dict(density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
-    ...                     length_unit=1.0)
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -810,10 +804,11 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_right_edges[i,:] = g.pop("right_edge")
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
-        if "number_of_particles" in g :
-            number_of_particles[i,:] = g.pop("number_of_particles")  
-        update_field_names(g)
-        sfh[i] = g
+        if "number_of_particles" in g:
+            number_of_particles[i,:] = g.pop("number_of_particles")
+        field_units, data = unitify_data(g)
+        update_field_names(data)
+        sfh[i] = data
 
     # We now reconstruct our parent ids, so that our particle assignment can
     # proceed.
@@ -828,10 +823,6 @@ def load_amr_grids(grid_data, domain_dimensions,
         for ci in ids:
             parent_ids[ci] = gi
 
-    for i, g_data in enumerate(grid_data):
-        field_units, data = unitify_data(g_data)
-        grid_data[i] = data
-
     if length_unit is None:
         length_unit = 'code_length'
     if mass_unit is None:
@@ -845,7 +836,7 @@ def load_amr_grids(grid_data, domain_dimensions,
 
     particle_types = {}
 
-    for grid in grid_data:
+    for grid in sfh.values():
         particle_types.update(set_particle_types(grid))
 
     handler = StreamHandler(
@@ -859,7 +850,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         sfh,
         field_units,
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
-        particle_types=particle_types
+        particle_types=particle_types,
+        periodicity=periodicity
     )
 
     handler.name = "AMRGridData"
@@ -871,11 +863,12 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry = geometry)
+    sds = StreamDataset(handler, geometry=geometry)
     return sds
 
+
 def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
-               callback = None):
+               callback=None):
     r"""Given a base dataset, repeatedly apply refinement criteria and
     fluid operators until a maximum level is reached.
 
@@ -911,9 +904,9 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
     number_of_particles = np.sum([grid.NumberOfParticles
                                   for grid in base_ds.index.grids])
 
-    if number_of_particles > 0 :
+    if number_of_particles > 0:
         pdata = {}
-        for field in base_ds.field_list :
+        for field in base_ds.field_list:
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
@@ -921,12 +914,12 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 pdata[field] = uconcatenate([grid[field]
                                                for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
-        
+
     last_gc = base_ds.index.num_grids
     cur_gc = -1
-    ds = base_ds    
-    bbox = np.array( [ (ds.domain_left_edge[i], ds.domain_right_edge[i])
-                       for i in range(3) ])
+    ds = base_ds
+    bbox = np.array([(ds.domain_left_edge[i], ds.domain_right_edge[i])
+                     for i in range(3)])
     while ds.index.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   ds.index.max_level)
@@ -962,9 +955,9 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                     if not fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
-        
-        ds = load_amr_grids(grid_data, ds.domain_dimensions, 1.0,
-                            bbox = bbox)
+
+        ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
+
         if number_of_particles > 0:
             if ("io", "particle_position_x") not in pdata:
                 pdata_ftype = {}
@@ -978,8 +971,6 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             # We need to reassign the field list here.
         cur_gc = ds.index.num_grids
 
-    # Now reassign particle data to grids
-    
     return ds
 
 class StreamParticleIndex(ParticleIndex):

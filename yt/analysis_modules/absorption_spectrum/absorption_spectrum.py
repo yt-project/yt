@@ -51,11 +51,12 @@ class AbsorptionSpectrum(object):
 
     def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
+        # lambda, flux, and tau are wavelength, flux, and optical depth
+        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max, 
+                                    n_lambda), "angstrom")
         self.tau_field = None
         self.flux_field = None
-        self.spectrum_line_list = None
-        self.lambda_bins = YTArray(np.linspace(lambda_min, lambda_max, n_lambda),
-                                   "angstrom")
+        self.absorbers_list = None
         self.bin_width = YTQuantity((lambda_max - lambda_min) /
                                     float(n_lambda - 1), "angstrom")
         self.line_list = []
@@ -114,8 +115,8 @@ class AbsorptionSpectrum(object):
                                     'normalization': normalization,
                                     'index': index})
 
-    def make_spectrum(self, input_file, output_file="spectrum.h5",
-                      line_list_file="lines.txt",
+    def make_spectrum(self, input_file, output_file=None,
+                      line_list_file=None, output_absorbers_file=None,
                       use_peculiar_velocity=True, 
                       subgrid_resolution=10, njobs="auto"):
         """
@@ -127,31 +128,32 @@ class AbsorptionSpectrum(object):
         input_file : string or dataset
            path to input ray data or a loaded ray dataset
         output_file : optional, string
-           path for output file.  File formats are chosen based on the
-           filename extension.  ``.h5`` for hdf5, ``.fits`` for fits,
-           and everything else is ASCII.
-           Default: "spectrum.h5"
-        line_list_file : optional, string
-           path to file in which the list of all deposited lines
-           will be saved.  If set to None, the line list will not
-           be saved.  Note, when running in parallel, combining the
-           line lists can be quite slow, so it is recommended to set
-           this to None when running in parallel unless you really
-           want them.
-           Default: "lines.txt"
+           Option to save a file containing the wavelength, flux, and optical 
+           depth fields.  File formats are chosen based on the filename extension.  
+           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
+           Default: None
+        output_absorbers_file : optional, string
+           Option to save a text file containing all of the absorbers and 
+           corresponding wavelength and redshift information.
+           For parallel jobs, combining the lines lists can be slow so it
+           is recommended to set to None in such circumstances.
+           Default: None
         use_peculiar_velocity : optional, bool
-           if True, include line of sight velocity for shifting lines.
+           if True, include peculiar velocity for calculating doppler redshift
+           to shift lines.  Requires similar flag to be set in LightRay 
+           generation.
            Default: True
         subgrid_resolution : optional, int
            When a line is being added that is unresolved (ie its thermal
            width is less than the spectral bin width), the voigt profile of
-           the line is deposited into an array of virtual bins at higher
-           resolution.  The optical depth from these virtual bins is integrated
-           and then added to the coarser spectral bin.  The subgrid_resolution
-           value determines the ratio between the thermal width and the 
-           bin width of the virtual bins.  Increasing this value yields smaller
-           virtual bins, which increases accuracy, but is more expensive.
-           A value of 10 yields accuracy to the 4th significant digit.
+           the line is deposited into an array of virtual wavelength bins at 
+           higher resolution.  The optical depth from these virtual bins is 
+           integrated and then added to the coarser spectral wavelength bin.  
+           The subgrid_resolution value determines the ratio between the 
+           thermal width and the bin width of the virtual bins.  Increasing 
+           this value yields smaller virtual bins, which increases accuracy, 
+           but is more expensive.  A value of 10 yields accuracy to the 4th 
+           significant digit in tau.
            Default: 10
         njobs : optional, int or "auto"
            the number of process groups into which the loop over
@@ -167,6 +169,10 @@ class AbsorptionSpectrum(object):
            spectrum generation.
            Default: "auto"
         """
+        if line_list_file is not None:
+            mylog.info("'line_list_file' keyword is deprecated. Please use " \
+                       "'output_absorbers_file'.")
+            output_absorbers_file = line_list_file
 
         input_fields = ['dl', 'redshift', 'temperature']
         field_units = {"dl": "cm", "redshift": "", "temperature": "K"}
@@ -186,32 +192,34 @@ class AbsorptionSpectrum(object):
             input_ds = input_file
         field_data = input_ds.all_data()
 
-        self.tau_field = np.zeros(self.lambda_bins.size)
-        self.spectrum_line_list = []
+        self.tau_field = np.zeros(self.lambda_field.size)
+        self.absorbers_list = []
 
         if njobs == "auto":
             comm = _get_comm(())
             njobs = min(comm.size, len(self.line_list))
 
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
-                                    line_list_file is not None, 
+                                    output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
                                     njobs=njobs)
         self._add_continua_to_spectrum(field_data, use_peculiar_velocity)
 
         self.flux_field = np.exp(-self.tau_field)
 
-        if output_file.endswith('.h5'):
+        if output_file is None:
+            pass
+        elif output_file.endswith('.h5'):
             self._write_spectrum_hdf5(output_file)
         elif output_file.endswith('.fits'):
             self._write_spectrum_fits(output_file)
         else:
             self._write_spectrum_ascii(output_file)
-        if line_list_file is not None:
-            self._write_spectrum_line_list(line_list_file)
+        if output_absorbers_file is not None:
+            self._write_absorbers_file(output_absorbers_file)
 
         del field_data
-        return (self.lambda_bins, self.flux_field)
+        return (self.lambda_field, self.flux_field)
 
     def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity):
         """
@@ -228,11 +236,11 @@ class AbsorptionSpectrum(object):
             else:
                 delta_lambda = continuum['wavelength'] * field_data['redshift']
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = np.digitize(this_wavelength, self.lambda_bins).clip(0, self.n_lambda)
+            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
                                      np.power((min_tau * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
-                                    self.lambda_bins).clip(0, self.n_lambda)
+                                    self.lambda_field).clip(0, self.n_lambda)
 
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
@@ -241,7 +249,7 @@ class AbsorptionSpectrum(object):
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
-                line_tau = np.power((self.lambda_bins[left_index[lixel]:right_index[lixel]] /
+                line_tau = np.power((self.lambda_field[left_index[lixel]:right_index[lixel]] /
                                      this_wavelength[lixel]), continuum['index']) * \
                                      column_density[lixel] / continuum['normalization']
                 self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
@@ -249,7 +257,8 @@ class AbsorptionSpectrum(object):
             pbar.finish()
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
-                               save_line_list, subgrid_resolution=10, njobs=-1):
+                               output_absorbers_file, subgrid_resolution=10, 
+                               njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
@@ -272,8 +281,8 @@ class AbsorptionSpectrum(object):
                 delta_lambda = line['wavelength'] * field_data['redshift']
             # lambda_obs is central wavelength of line after redshift
             lambda_obs = line['wavelength'] + delta_lambda
-            # bin index in lambda_bins of central wavelength of line after z
-            center_index = np.digitize(lambda_obs, self.lambda_bins)
+            # bin index in lambda_field of central wavelength of line after z
+            center_index = np.digitize(lambda_obs, self.lambda_field)
 
             # thermal broadening b parameter
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
@@ -294,10 +303,11 @@ class AbsorptionSpectrum(object):
 
             # When we actually deposit the voigt profile, sometimes we will
             # have underresolved lines (ie lines with smaller widths than
-            # the spectral bin size).  Here, we create virtual bins small
-            # enough in width to well resolve each line, deposit the voigt 
-            # profile into them, then numerically integrate their tau values
-            # and sum them to redeposit them into the actual spectral bins.
+            # the spectral bin size).  Here, we create virtual wavelength bins 
+            # small enough in width to well resolve each line, deposit the 
+            # voigt profile into them, then numerically integrate their tau 
+            # values and sum them to redeposit them into the actual spectral 
+            # bins.
 
             # virtual bins (vbins) will be:
             # 1) <= the bin_width; assures at least as good as spectral bins
@@ -355,7 +365,7 @@ class AbsorptionSpectrum(object):
                     my_n_vbins *= 2
 
                 # identify the extrema of the vbin_window so as to speed
-                # up searching over the entire lambda_bins array
+                # up searching over the entire lambda_field array
                 bins_from_center = np.ceil((my_vbin_window_width/2.) / \
                                            self.bin_width.d) + 1
                 left_index = (center_index[i] - bins_from_center).clip(0, self.n_lambda)
@@ -368,7 +378,7 @@ class AbsorptionSpectrum(object):
                 # this has the effect of assuring np.digitize will place 
                 # the vbins in the closest bin center.
                 binned = np.digitize(vbins, 
-                                     self.lambda_bins[left_index:right_index] \
+                                     self.lambda_field[left_index:right_index] \
                                      + (0.5 * self.bin_width))
 
                 # numerically integrate the virtual bins to calculate a
@@ -379,18 +389,24 @@ class AbsorptionSpectrum(object):
                 EW = np.array(EW)/self.bin_width.d
                 self.tau_field[left_index:right_index] += EW
 
-                if save_line_list and line['label_threshold'] is not None and \
-                        cdens[i] >= line['label_threshold']:
+                # write out absorbers to file if the column density of
+                # an absorber is greater than the specified "label_threshold" 
+                # of that absorption line
+                if output_absorbers_file and \
+                   line['label_threshold'] is not None and \
+                   cdens[i] >= line['label_threshold']:
+
                     if use_peculiar_velocity:
                         peculiar_velocity = vlos[i]
                     else:
                         peculiar_velocity = 0.0
-                    self.spectrum_line_list.append({'label': line['label'],
-                                                    'wavelength': (lambda_0 + dlambda[i]),
-                                                    'column_density': column_density[i],
-                                                    'b_thermal': thermal_b[i],
-                                                    'redshift': field_data['redshift'][i],
-                                                    'v_pec': peculiar_velocity})
+                    self.absorbers_list.append({'label': line['label'],
+                                                'wavelength': (lambda_0 + dlambda[i]),
+                                                'column_density': column_density[i],
+                                                'b_thermal': thermal_b[i],
+                                                'redshift': field_data['redshift'][i],
+                                                'redshift_eff': field_data['redshift_eff'][i],
+                                                'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
 
@@ -401,26 +417,27 @@ class AbsorptionSpectrum(object):
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
-        if save_line_list:
-            self.spectrum_line_list = comm.par_combine_object(
-                self.spectrum_line_list, "cat", datatype="list")
+        if output_absorbers_file:
+            self.absorbers_list = comm.par_combine_object(
+                self.absorbers_list, "cat", datatype="list")
 
     @parallel_root_only
-    def _write_spectrum_line_list(self, filename):
+    def _write_absorbers_file(self, filename):
         """
-        Write out list of spectral lines.
+        Write out ASCII list of all substantial absorbers found in spectrum
         """
         if filename is None:
             return
-        mylog.info("Writing spectral line list: %s." % filename)
-        self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
+        mylog.info("Writing absorber list: %s." % filename)
+        self.absorbers_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
-        f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
-                ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z', 'v_pec [km/s]'))
-        for line in self.spectrum_line_list:
-            f.write('%-14.6f %-14ls %e %e %e %e.\n' % (line['wavelength'], line['label'],
-                                                line['column_density'], line['b_thermal'],
-                                                line['redshift'], line['v_pec']))
+        f.write('#%-14s %-14s %-12s %-14s %-15s %-9s %-10s\n' %
+                ('Wavelength', 'Line', 'N [cm^-2]', 'b [km/s]', 'z_cosmo', \
+                 'z_eff', 'v_pec [km/s]'))
+        for line in self.absorbers_list:
+            f.write('%-14.6f %-14ls %e %e % e % e % e\n' % (line['wavelength'], \
+                line['label'], line['column_density'], line['b_thermal'], \
+                line['redshift'], line['redshift_eff'], line['v_pec']))
         f.close()
 
     @parallel_root_only
@@ -431,8 +448,8 @@ class AbsorptionSpectrum(object):
         mylog.info("Writing spectrum to ascii file: %s." % filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
-        for i in range(self.lambda_bins.size):
-            f.write("%e %e %e\n" % (self.lambda_bins[i],
+        for i in range(self.lambda_field.size):
+            f.write("%e %e %e\n" % (self.lambda_field[i],
                                     self.tau_field[i], self.flux_field[i]))
         f.close()
 
@@ -442,7 +459,7 @@ class AbsorptionSpectrum(object):
         Write spectrum to a fits file.
         """
         mylog.info("Writing spectrum to fits file: %s." % filename)
-        col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_bins)
+        col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_field)
         col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
@@ -456,7 +473,7 @@ class AbsorptionSpectrum(object):
         """
         mylog.info("Writing spectrum to hdf5 file: %s." % filename)
         output = h5py.File(filename, 'w')
-        output.create_dataset('wavelength', data=self.lambda_bins)
+        output.create_dataset('wavelength', data=self.lambda_field)
         output.create_dataset('tau', data=self.tau_field)
         output.create_dataset('flux', data=self.flux_field)
         output.close()

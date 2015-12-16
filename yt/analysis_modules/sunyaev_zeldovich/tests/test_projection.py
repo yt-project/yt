@@ -127,7 +127,7 @@ def test_M7_onaxis():
     def onaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
     for test in [GenericArrayTest(ds, onaxis_array_func),
-                 GenericImageTest(ds, onaxis_image_func, 3)]:
+                 GenericImageTest(ds, onaxis_image_func, 12)]:
         test_M7_onaxis.__name__ = test.description
         yield test
 
@@ -142,6 +142,6 @@ def test_M7_offaxis():
     def offaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
     for test in [GenericArrayTest(ds, offaxis_array_func),
-                 GenericImageTest(ds, offaxis_image_func, 3)]:
+                 GenericImageTest(ds, offaxis_image_func, 12)]:
         test_M7_offaxis.__name__ = test.description
         yield test

@@ -3,7 +3,8 @@ import numpy as np
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import \
     fake_random_ds, \
-    assert_equal
+    assert_equal, \
+    assert_almost_equal
 
 def setup():
     from yt.config import ytcfg
@@ -108,3 +109,14 @@ def test_arbitrary_grid():
             deposited_mass = obj["deposit", "all_density"].sum() * volume
 
             yield assert_equal, deposited_mass, ds.quan(1.0, 'g')
+
+    # Test that we get identical results to the covering grid for unigrid data.
+    # Testing AMR data is much harder.
+    for nprocs in [1, 2, 4, 8]:
+        ds = fake_random_ds(32, nprocs = nprocs)
+        for ref_level in [0, 1, 2]:
+            cg = ds.covering_grid(ref_level, [0.0, 0.0, 0.0],
+                    2**ref_level * ds.domain_dimensions)
+            ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
+                    2**ref_level * ds.domain_dimensions)
+            yield assert_almost_equal, cg["density"], ag["density"]

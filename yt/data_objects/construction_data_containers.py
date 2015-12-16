@@ -17,9 +17,11 @@ Data containers that require processing before they can be utilized.
 import numpy as np
 from functools import wraps
 import fileinput
+import io
 from re import finditer
 from tempfile import TemporaryFile
 import os
+import sys
 import zipfile
 
 from yt.config import ytcfg
@@ -43,7 +45,7 @@ from yt.utilities.lib.QuadTree import \
 from yt.utilities.lib.Interpolators import \
     ghost_zone_interpolate
 from yt.utilities.lib.misc_utilities import \
-    fill_region
+    fill_region, fill_region_float
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.minimal_representation import \
@@ -454,6 +456,25 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Projection')
         return pw
 
+    def plot(self, fields=None):
+        if hasattr(self.data_source, "left_edge") and \
+            hasattr(self.data_source, "right_edge"):
+            left_edge = self.data_source.left_edge
+            right_edge = self.data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Projection')
+        pw.show()
+        return pw
+
 class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
     resolution.  Left edge should align with a cell boundary, but
@@ -573,20 +594,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        LE = self.left_edge - self.base_dds
-        RE = self.right_edge + self.base_dds
-        if not all(self.ds.periodicity):
-            for i in range(3):
-                if self.ds.periodicity[i]: continue
-                LE[i] = max(LE[i], self.ds.domain_left_edge[i])
-                RE[i] = min(RE[i], self.ds.domain_right_edge[i])
-        self._data_source = self.ds.region(self.center, LE, RE)
+        self._data_source = self.ds.region(self.center,
+            self.left_edge, self.right_edge)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
-        self._pdata_source = self.ds.region(self.center,
-            self.left_edge, self.right_edge)
-        self._pdata_source.min_level = 0
-        self._pdata_source.max_level = self.level
+        # This triggers "special" behavior in the RegionSelector to ensure we
+        # select *cells* whose bounding boxes overlap with our region, not just
+        # their cell centers.
+        self._data_source.loose_selection = True
 
     def get_data(self, fields = None):
         if fields is None: return
@@ -625,7 +640,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _fill_particles(self, part):
         for p in part:
-            self[p] = self._pdata_source[p]
+            self[p] = self._data_source[p]
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -783,7 +798,19 @@ class YTArbitraryGrid(YTCoveringGrid):
         self._setup_data_source()
 
     def _fill_fields(self, fields):
-        raise NotImplementedError
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+        assert(len(fields) == 1)
+        field = fields[0]
+        dest = np.zeros(self.ActiveDimensions, dtype="float64")
+        for chunk in self._data_source.chunks(fields, "io"):
+            fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
+                              self.left_edge, self.right_edge, dest, 1,
+                              self.ds.domain_width,
+                              int(any(self.ds.periodicity)))
+        fi = self.ds._get_field_info(field)
+        self[field] = self.ds.arr(dest, fi.units)
+        
 
 class LevelState(object):
     current_dx = None
@@ -1247,14 +1274,13 @@ class YTSurface(YTSelectionContainer3D):
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr,
                            color_field_max, color_field_min, color_field,
                            emit_field_max, emit_field_min, emit_field): # this now holds for obj files
-        from sys import version
         if color_field is not None:
             if color_log: cs = np.log10(cs)
         if emit_field is not None:
             if emit_log: em = np.log10(em)
         if color_field is not None:
             if color_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 mi = cs.min()
@@ -1262,7 +1288,7 @@ class YTSurface(YTSelectionContainer3D):
                 mi = color_field_min
                 if color_log: mi = np.log10(mi)
             if color_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 ma = cs.max()
@@ -1280,7 +1306,7 @@ class YTSurface(YTSelectionContainer3D):
         # now, get emission
         if emit_field is not None:
             if emit_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 emi = em.min()
@@ -1288,7 +1314,7 @@ class YTSurface(YTSelectionContainer3D):
                 emi = emit_field_min
                 if emit_log: emi = np.log10(emi)
             if emit_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 ema = em.max()
@@ -1308,15 +1334,9 @@ class YTSurface(YTSelectionContainer3D):
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        from sys import version
-        from io import IOBase
         if plot_index is None:
             plot_index = 0
-        if version < '3':
-            checker = file
-        else:
-            checker = IOBase
-        if isinstance(filename, checker):
+        if isinstance(filename, io.IOBase):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
@@ -1608,7 +1628,7 @@ class YTSurface(YTSelectionContainer3D):
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
-        if isinstance(filename, file):
+        if isinstance(filename, io.IOBase):
             f = filename
         else:
             f = open(filename, "wb")

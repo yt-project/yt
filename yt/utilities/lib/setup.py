@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os
+import sys
 import tempfile
 import subprocess
 import shutil
 import pkg_resources
 
 def check_for_openmp():
+    """Returns True if local setup supports OpenMP, False otherwise"""
+
+    # See https://bugs.python.org/issue25150
+    if sys.version_info[:3] == (3, 5, 0):
+        return False
+
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -55,6 +62,33 @@ def check_for_pyembree():
         return None
     return os.path.dirname(fn)
 
+
+def read_embree_location():
+    '''
+
+    Attempts to locate the embree installation. First, we check for an
+    EMBREE_DIR environment variable. If one is not defined, we look for
+    an embree.cfg file in the root yt source directory. Finally, if that 
+    is not present, we default to /usr/local. If embree is installed in a
+    non-standard location and none of the above are set, the compile will
+    not succeed. This only gets called if check_for_pyembree() returns 
+    something other than None.
+
+    '''
+
+    rd = os.environ.get('EMBREE_DIR')
+    if rd is not None:
+        return rd
+    print("EMBREE_DIR not set. Attempting to read embree.cfg")
+    try:
+        rd = open("embree.cfg").read().strip()
+        return rd
+    except IOError:
+        print("Reading Embree location from embree.cfg failed.")
+        print("If compilation fails, please place the base directory")
+        print("of your Embree install in embree.cfg and restart.")
+        return '/usr/local'
+
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
@@ -62,6 +96,13 @@ def configuration(parent_package='',top_path=None):
         omp_args = ['-fopenmp']
     else:
         omp_args = None
+    if check_for_pyembree() is not None:
+        loc = read_embree_location()
+        embree_include_dir = loc + '/include'
+        embree_lib_dir = loc + '/lib'
+        embree_args = ['-I/' + embree_include_dir, '-L/' + embree_lib_dir]
+    else:
+        embree_args = None
     # Because setjmp.h is included by lots of things, and because libpng hasn't
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
@@ -182,17 +223,23 @@ def configuration(parent_package='',top_path=None):
                              ["yt/utilities/lib/mesh_construction.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("mesh_traversal",
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_traversal.pxd",
                                       "yt/utilities/lib/grid_traversal.pxd"])
         config.add_extension("mesh_samplers",
                              ["yt/utilities/lib/mesh_samplers.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_samplers.pxd",
                                       "yt/utilities/lib/element_mappings.pxd",
                                       "yt/utilities/lib/mesh_construction.pxd"])
@@ -200,9 +247,10 @@ def configuration(parent_package='',top_path=None):
                              ["yt/utilities/lib/mesh_intersection.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", "embree"], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_intersection.pxd",
                                       "yt/utilities/lib/mesh_construction.pxd"])
-
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

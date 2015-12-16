@@ -40,7 +40,7 @@ def test_mesh_slices():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             sl = yt.SlicePlot(ds, idir, field)
-            sl.annotate_mesh_lines(ds.index.meshes[0])
+            sl.annotate_mesh_lines()
             sl.save()
 
     # hexahedral ds
@@ -49,7 +49,7 @@ def test_mesh_slices():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             sl = yt.SlicePlot(ds, idir, field)
-#            sl.annotate_mesh_lines(ds.index.meshes[0])
+            sl.annotate_mesh_lines()
             sl.save()
 
     os.chdir(curdir)

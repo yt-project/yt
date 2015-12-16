@@ -805,6 +805,7 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
+    cdef bint loose_selection
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -819,6 +820,9 @@ cdef class RegionSelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=1] DRE = _ensure_code(dobj.ds.domain_right_edge)
         cdef np.float64_t region_width[3]
         cdef bint p[3]
+        # This is for if we want to include zones that overlap and whose
+        # centers are not strictly included.
+        self.loose_selection = getattr(dobj, "loose_selection", False)
 
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
@@ -878,6 +882,13 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef np.float64_t left_edge[3], right_edge[3]
+        cdef int i
+        if self.loose_selection:
+            for i in range(3):
+                left_edge[i] = pos[i] - dds[i]*0.5
+                right_edge[i] = pos[i] + dds[i]*0.5
+            return self.select_bbox(left_edge, right_edge)
         return self.select_point(pos)
 
     @cython.boundscheck(False)

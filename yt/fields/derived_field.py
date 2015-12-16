@@ -14,7 +14,7 @@ Derived field base class.
 import contextlib
 import inspect
 
-from yt.extern.six import string_types
+from yt.extern.six import string_types, PY2
 from yt.funcs import \
     ensure_list
 from .field_exceptions import \
@@ -36,6 +36,7 @@ def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
+    _TranslationFunc.alias_name = field_name
     return _TranslationFunc
 
 def NullFunc(field, data):
@@ -87,8 +88,6 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
-        if output_units is None: output_units = units
-        self.output_units = output_units
 
         self._function = function
 
@@ -111,6 +110,9 @@ class DerivedField(object):
             raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
                                   "Please provide a string or Unit " \
                                   "object." % (units, type(units)) )
+        if output_units is None:
+            output_units = self.units
+        self.output_units = output_units
 
     def _copy_def(self):
         dd = {}
@@ -211,6 +213,30 @@ class DerivedField(object):
 
         data_label += r"$"
         return data_label
+
+    def __repr__(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
+
+        if self._function == NullFunc:
+            s = "On-Disk Field "
+        elif func_name == "_TranslationFunc":
+            s = "Alias Field for \"%s\" " % (self._function.alias_name,)
+        else:
+            s = "Derived Field "
+        if isinstance(self.name, tuple):
+            s += "(%s, %s): " % self.name
+        else:
+            s += "%s: " % (self.name)
+        s += "(units: %s" % self.units
+        if self.display_name is not None:
+            s += ", display_name: '%s'" % (self.display_name)
+        if self.particle_type:
+            s += ", particle field"
+        s += ")"
+        return s
 
 class FieldValidator(object):
     pass

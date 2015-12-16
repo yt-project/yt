@@ -50,7 +50,6 @@ def test_absorption_spectrum_cosmo():
 
     lr.make_light_ray(seed=1234567,
                       fields=['temperature', 'density', 'H_number_density'],
-                      get_los_velocity=True,
                       data_filename='lightray.h5')
 
     sp = AbsorptionSpectrum(900.0, 1800.0, 10000)

@@ -258,13 +258,13 @@ class LightRay(CosmologySplice):
                        trajectory=None,
                        fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       get_los_velocity=True, redshift=None,
-                       njobs=-1):
+                       get_los_velocity=None, use_peculiar_velocity=True, 
+                       redshift=None, njobs=-1):
         """
         make_light_ray(seed=None, start_position=None, end_position=None,
                        trajectory=None, fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       get_los_velocity=True, redshift=None,
+                       use_peculiar_velocity=True, redshift=None,
                        njobs=-1)
 
         Create a light ray and get field values for each lixel.  A light
@@ -305,9 +305,10 @@ class LightRay(CosmologySplice):
         data_filename : optional, string
             Path to output file for ray data.
             Default: None.
-        get_los_velocity : optional, bool
-            If True, the line of sight velocity is calculated for
-            each point in the ray.
+        use_peculiar_velocity : optional, bool
+            If True, the peculiar velocity along the ray will be sampled for
+            calculating the effective redshift combining the cosmological
+            redshift and the doppler redshift.
             Default: True.
         redshift : optional, float
             Used with light rays made from single datasets to specify a
@@ -335,7 +336,7 @@ class LightRay(CosmologySplice):
         ...                       solution_filename="solution.txt",
         ...                       data_filename="my_ray.h5",
         ...                       fields=["temperature", "density"],
-        ...                       get_los_velocity=True)
+        ...                       use_peculiar_velocity=True)
 
         Make a light ray from a single dataset:
 
@@ -349,9 +350,12 @@ class LightRay(CosmologySplice):
         ...                       solution_filename="solution.txt",
         ...                       data_filename="my_ray.h5",
         ...                       fields=["temperature", "density"],
-        ...                       get_los_velocity=True)
+        ...                       use_peculiar_velocity=True)
 
         """
+        if get_los_velocity is not None:
+            use_peculiar_velocity = get_los_velocity
+            mylog.warn("'get_los_velocity' kwarg is deprecated. Use 'use_peculiar_velocity' instead.")
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
@@ -368,9 +372,10 @@ class LightRay(CosmologySplice):
         all_fields.extend(['dl', 'dredshift', 'redshift'])
         all_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         data_fields.extend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        if get_los_velocity:
-            all_fields.extend(['velocity_x', 'velocity_y',
-                               'velocity_z', 'velocity_los', 'redshift_eff'])
+        if use_peculiar_velocity:
+            all_fields.extend(['velocity_x', 'velocity_y', 'velocity_z', 
+                               'velocity_los', 'redshift_eff', 
+                               'redshift_dopp'])
             data_fields.extend(['velocity_x', 'velocity_y', 'velocity_z'])
 
         all_ray_storage = {}
@@ -444,16 +449,43 @@ class LightRay(CosmologySplice):
                 for field in data_fields:
                     sub_data[field].extend(sub_ray[field][asort])
 
-                if get_los_velocity:
-                    line_of_sight = sub_segment[1] - sub_segment[0]
+                if use_peculiar_velocity:
+                    line_of_sight = sub_segment[0] - sub_segment[1]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
                     sub_vel = ds.arr([sub_ray['velocity_x'],
                                       sub_ray['velocity_y'],
                                       sub_ray['velocity_z']])
-                    # line of sight velocity is reversed relative to ray
-                    sub_data['velocity_los'].extend(-1*(np.rollaxis(sub_vel, 1) *
-                                                     line_of_sight).sum(axis=1)[asort])
-                    del sub_vel
+                    # Line of sight velocity = vel_los
+                    sub_vel_los = (np.rollaxis(sub_vel, 1) * \
+                                   line_of_sight).sum(axis=1)
+                    sub_data['velocity_los'].extend(sub_vel_los[asort])
+
+                    # doppler redshift:
+                    # See https://en.wikipedia.org/wiki/Redshift and 
+                    # Peebles eqns: 5.48, 5.49
+
+                    # 1 + redshift_dopp = (1 + v*cos(theta)/c) / 
+                    # sqrt(1 - v**2/c**2)
+
+                    # where v is the peculiar velocity (ie physical velocity
+                    # without the hubble flow, but no hubble flow in sim, so
+                    # just the physical velocity).
+
+                    # the bulk of the doppler redshift is from line of sight 
+                    # motion, but there is a small amount from time dilation 
+                    # of transverse motion, hence the inclusion of theta (the 
+                    # angle between line of sight and the velocity). 
+                    # theta is the angle between the ray vector (i.e. line of 
+                    # sight) and the velocity vectors: a dot b = ab cos(theta)
+
+                    sub_vel_mag = sub_ray['velocity_magnitude']
+                    cos_theta = np.dot(line_of_sight, sub_vel) / sub_vel_mag
+                    redshift_dopp = \
+                        (1 + sub_vel_mag * cos_theta / speed_of_light_cgs) / \
+                         np.sqrt(1 - sub_vel_mag**2 / speed_of_light_cgs**2) - 1
+                    sub_data['redshift_dopp'].extend(redshift_dopp[asort])
+                    del sub_vel, sub_vel_los, sub_vel_mag, cos_theta, \
+                        redshift_dopp
 
                 sub_ray.clear_data()
                 del sub_ray, asort
@@ -461,34 +493,25 @@ class LightRay(CosmologySplice):
             for key in sub_data:
                 sub_data[key] = ds.arr(sub_data[key]).in_cgs()
 
-            # Get redshift for each lixel.  Assume linear relation between l and z.
+            # Get redshift for each lixel.  Assume linear relation between l 
+            # and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
                 (sub_data['dl'] / vector_length(my_segment['start'],
                                                 my_segment['end']).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
 
-            # When velocity_los is present, add effective redshift 
-            # (redshift_eff) field by combining cosmological redshift and 
+            # When using the peculiar velocity, create effective redshift 
+            # (redshift_eff) field combining cosmological redshift and 
             # doppler redshift.
             
-            # first convert los velocities to comoving frame (ie mult. by (1+z)), 
-            # then calculate doppler redshift:
-            # 1 + redshift_dopp = sqrt((1+v/c) / (1-v/c))
-
-            # then to add cosmological redshift and doppler redshift, follow
+            # then to add cosmological redshift and doppler redshifts, follow
             # eqn 3.75 in Peacock's Cosmological Physics:
-            # 1 + z_obs = (1 + z_cosmo) * (1 + z_doppler)
-            # Alternatively, see eqn 5.49 in Peebles for a similar result.
-            if get_los_velocity:
+            # 1 + z_eff = (1 + z_cosmo) * (1 + z_doppler)
 
-                velocity_los_cm = (1 + sub_data['redshift']) * \
-                                  sub_data['velocity_los']
-                redshift_dopp = ((1 + velocity_los_cm / speed_of_light_cgs) /
-                                (1 - velocity_los_cm / speed_of_light_cgs))**(0.5) - 1
-                sub_data['redshift_eff'] = ((1 + redshift_dopp) * \
-                                           (1 + sub_data['redshift'])) - 1
-                del velocity_los_cm, redshift_dopp
+            if use_peculiar_velocity:
+               sub_data['redshift_eff'] = ((1 + sub_data['redshift_dopp']) * \
+                                            (1 + sub_data['redshift'])) - 1
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
@@ -544,6 +567,11 @@ class LightRay(CosmologySplice):
               self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
+        # Only return LightRay elements with non-zero density
+        if 'density' in data:
+            mask = data['density'] > 0
+            for key in data.keys():
+                data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 

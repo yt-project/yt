@@ -7,19 +7,12 @@ Installation
 ^^^^^^^^^^^^
 
 Beginning with version 3.3, yt has the ability to volume render unstructured
-meshes from, for example, finite element calculations. In order to use this
-capability, a few additional dependencies are required beyond those you get
-when you run the install script. First, `embree <https://embree.github.io>`_
+mesh data - like that created by finite element calculations, for example. 
+In order to use this capability, a few additional dependencies are required 
+beyond those you get when you run the install script. First, `embree <https://embree.github.io>`_
 (a fast software ray-tracing library from Intel) must be installed, either
 by compiling from source or by using one of the pre-built binaries available
-at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. Once
-Embree is installed, you must also create a symlink next to the library. For
-example, if the libraries were installed at /opt/local/lib/ (the location
-that the OS X .pkg installer puts them), you must do
-
-.. code-block:: bash
-
-    sudo ln -s /opt/local/lib/libembree.2.6.1.dylib /opt/local/lib/libembree.so
+at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. 
 
 Second, the python bindings for embree (called 
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
@@ -32,19 +25,36 @@ do so, first obtain a copy, by .e.g. cloning the repo:
 To install, navigate to the root directory and run the setup script.
 If Embree was installed to some location that is not in your path by default,
 you will need to pass in CFLAGS and LDFLAGS to the setup.py script. For example,
-the Mac OS package installer puts the installation at /opt/local/ instead of 
+the Mac OS X package installer puts the installation at /opt/local/ instead of 
 usr/local. To account for this, you would do:
 
 .. code-block:: bash
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-You must also use these flags when building any part of yt from source. For example,
-to run "setup.py develop" from the yt-hg directory, you would do:
+Once embree and pyembree are installed, you must rebuild yt from source in order to use
+the unstructured mesh rendering capability. Once again, if embree is installed in a 
+location that is not part of your default search path, you must tell yt where to find it.
+There are a number of ways to do this. One way is to again manually pass in the flags
+when running the setup script in the yt-hg directory:
 
 .. code-block:: bash
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
+
+You can also set EMBREE_DIR environment variable to '/opt/local', in which case
+you could just run 
+
+.. code-block:: bash
+   
+   python setup.py develop
+
+as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
+the location of the embree installation, the setup script will find this and use it, 
+provided EMBREE_DIR is not set. We recommend one of the later two methods, especially
+if you plan on re-compiling the cython extensions regularly. Note that none of this is
+neccessary if you installed embree into a location that is in your default path, such
+as /usr/local.
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
 much like any other dataset. In particular, a new type of 
@@ -68,8 +78,7 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -92,8 +101,7 @@ You can also overplot the mesh boundaries:
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -117,9 +125,10 @@ As with slices, you can visualize different meshes and different fields. For exa
 Here is a script similar to the above that plots the "diffused" variable 
 using the mesh labelled by "connect2":
 
+.. python-script::
+
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -144,8 +153,7 @@ that we want to look at the last one.
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    filename = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
@@ -169,8 +177,7 @@ MOOSE dataset:
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)  # we load the last time frame
@@ -190,14 +197,13 @@ MOOSE dataset:
    pw.write_png(im, 'hex20_render.png')
 
 As with other volume renderings in yt, you can swap out different lenses. Here is 
-an example that uses a "perpective" lens, for which the rays diverge from the 
+an example that uses a "perspective" lens, for which the rays diverge from the 
 camera position according to some opening angle:
 
 .. python-script::
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -208,7 +214,7 @@ camera position according to some opening angle:
    cam = Camera(ds, lens_type='perspective')
    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
 
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
+   cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')  # the camera location
    north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
    cam.set_position(cam_pos, north_vector)
 
@@ -221,15 +227,13 @@ will keep track of the depth information for each source separately, and composi
 the final image accordingly. In the next example, we show how to render a scene 
 with two meshes on it:
 
-.. code-block:: python
+.. python-script::
 
     import yt
-    from yt.visualization.volume_rendering.render_source import MeshSource
-    from yt.visualization.volume_rendering.camera import Camera
-    from yt.visualization.volume_rendering.scene import Scene
+    from yt.visualization.volume_rendering.api import MeshSource, Camera, Scene
     import yt.utilities.png_writer as pw
 
-    ds = yt.load("~/FEMRender/data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
     # this time we create an empty scene and add sources to it one-by-one
     sc = Scene()
@@ -267,8 +271,7 @@ disk each time.
 .. code-block:: python
 
    import yt
-   from yt.visualization.volume_rendering.render_source import MeshSource
-   from yt.visualization.volume_rendering.camera import Camera
+   from yt.visualization.volume_rendering.api import MeshSource, Camera
    import yt.utilities.png_writer as pw
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
@@ -298,8 +301,7 @@ file with a fixed camera position:
 .. code-block:: python
 
     import yt
-    from yt.visualization.volume_rendering.render_source import MeshSource
-    from yt.visualization.volume_rendering.camera import Camera
+    from yt.visualization.volume_rendering.api import MeshSource, Camera
     import pylab as plt
 
     NUM_STEPS = 127
@@ -356,4 +358,3 @@ file with a fixed camera position:
 	ax.axes.get_yaxis().set_visible(False)
 
 	plt.savefig('movie_frames/test_%.3d' % step)
-

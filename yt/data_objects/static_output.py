@@ -59,6 +59,8 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.data_objects.region_expression import \
+    RegionExpression
 
 from yt.geometry.coordinates.api import \
     CoordinateHandler, \
@@ -86,6 +88,36 @@ class RegisteredDataset(type):
         type.__init__(cls, name, b, d)
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
+
+class FieldTypeContainer(object):
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
+
+    def __getattr__(self, attr):
+        ds = self.__getattribute__('ds')
+        fnc = FieldNameContainer(ds, attr)
+        if len(dir(fnc)) == 0:
+            return self.__getattribute__(attr)
+        return fnc
+
+    def __dir__(self):
+        return list(set(t for t, n in self.ds.field_info))
+
+class FieldNameContainer(object):
+    def __init__(self, ds, field_type):
+        self.ds = ds
+        self.field_type = field_type
+
+    def __getattr__(self, attr):
+        ft = self.__getattribute__("field_type")
+        ds = self.__getattribute__("ds")
+        if (ft, attr) not in ds.field_info:
+            return self.__getattribute__(attr)
+        return ds.field_info[ft, attr]
+
+    def __dir__(self):
+        return [n for t, n in self.ds.field_info
+                if t == self.field_type]
 
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
@@ -136,6 +168,7 @@ class Dataset(object):
     _index_class = None
     field_units = None
     derived_field_list = requires_index("derived_field_list")
+    fields = requires_index("fields")
     _instantiated = False
 
     def __new__(cls, filename=None, *args, **kwargs):
@@ -171,6 +204,7 @@ class Dataset(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
+        self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
@@ -391,6 +425,7 @@ class Dataset(object):
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
+        self.fields = FieldTypeContainer(self)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -590,7 +625,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
@@ -602,7 +637,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, maxi, mx, my, mz = \
+        min_val, mx, my, mz = \
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
@@ -1106,5 +1141,5 @@ class ParticleFile(object):
     def _calculate_offsets(self, fields):
         pass
 
-    def __cmp__(self, other):
-        return cmp(self.filename, other.filename)
+    def __lt__(self, other):
+        return self.filename < other.filename
