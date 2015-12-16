@@ -47,6 +47,12 @@ axes_lookup = {"x":("y","z"),
                "y":("z","x"),
                "z":("x","y")}
 
+def force_unicode(value):
+    if hasattr(value, 'decode'):
+        return value.decode('utf8')
+    else:
+        return value
+
 def parse_value(value, default_units):
     if isinstance(value, YTQuantity):
         return value.in_units(default_units)
@@ -919,27 +925,28 @@ class EventList(object):
 
         p = f["/parameters"]
         parameters["ExposureTime"] = YTQuantity(p["exp_time"].value, "s")
-        if isinstance(p["area"].value, (string_types, bytes)):
-            parameters["Area"] = p["area"].value.decode("utf8")
+        area = force_unicode(p['area'].value)
+        if isinstance(area, string_types):
+            parameters["Area"] = area
         else:
-            parameters["Area"] = YTQuantity(p["area"].value, "cm**2")
+            parameters["Area"] = YTQuantity(area, "cm**2")
         parameters["Redshift"] = p["redshift"].value
         parameters["AngularDiameterDistance"] = YTQuantity(p["d_a"].value, "Mpc")
         parameters["sky_center"] = YTArray(p["sky_center"][:], "deg")
         parameters["dtheta"] = YTQuantity(p["dtheta"].value, "deg")
         parameters["pix_center"] = p["pix_center"][:]
         if "rmf" in p:
-            parameters["RMF"] = p["rmf"].value.decode("utf8")
+            parameters["RMF"] = force_unicode(p["rmf"].value)
         if "arf" in p:
-            parameters["ARF"] = p["arf"].value.decode("utf8")
+            parameters["ARF"] = force_unicode(p["arf"].value)
         if "channel_type" in p:
-            parameters["ChannelType"] = p["channel_type"].value.decode("utf8")
+            parameters["ChannelType"] = force_unicode(p["channel_type"].value)
         if "mission" in p:
-            parameters["Mission"] = p["mission"].value.decode("utf8")
+            parameters["Mission"] = force_unicode(p["mission"].value)
         if "telescope" in p:
-            parameters["Telescope"] = p["telescope"].value.decode("utf8")
+            parameters["Telescope"] = force_unicode(p["telescope"].value)
         if "instrument" in p:
-            parameters["Instrument"] = p["instrument"].value.decode("utf8")
+            parameters["Instrument"] = force_unicode(p["instrument"].value)
 
         d = f["/data"]
         events["xpix"] = d["xpix"][:]
