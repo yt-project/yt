@@ -15,6 +15,7 @@ Data structures for GadgetFOF frontend.
 #-----------------------------------------------------------------------------
 
 from collections import defaultdict
+from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
@@ -123,6 +124,10 @@ class GadgetFOFDataset(Dataset):
         super(GadgetFOFDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override)
 
+    def _setup_classes(self):
+        super(GadgetFOFDataset, self)._setup_classes()
+        self.halo = partial(GadgetFOFHaloDataset, self)
+
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         hvals = {}
@@ -222,6 +227,9 @@ class GadgetFOFDataset(Dataset):
             time_unit = (1., "s")        
         self.time_unit = self.quan(time_unit[0], time_unit[1])
 
+    def __repr__(self):
+        return self.basename.split(".", 1)[0]
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
@@ -236,3 +244,23 @@ class GadgetFOFDataset(Dataset):
             valid = False
             pass
         return valid
+
+class GadgetFOFHaloDataset(Dataset):
+    _index_class = GadgetFOFParticleIndex
+    _file_class = GadgetFOFHDF5File
+    _field_info_class = GadgetFOFFieldInfo
+    _suffix = ".hdf5"
+
+    def __init__(self, ds, ptype, particle_identifier):
+        self.ds = ds
+        if ptype not in ds.particle_types_raw:
+            raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
+                               (ds.particle_types_raw, ptype))
+        self.ptype = ptype
+        self.particle_identifier = particle_identifier
+
+    def __repr__(self):
+        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+
+    def _setup_classes(self):
+        pass
