@@ -476,7 +476,7 @@ class Unit(Expr):
         return self.latex_repr
 
     @property
-    def is_homogenous(self):
+    def is_homogeneous(self):
         return True
 
 #
@@ -670,7 +670,7 @@ class UnitTuple(tuple):
         return ret
 
     @property
-    def is_homogenous(self):
+    def is_homogeneous(self):
         s0 = self[0]
         return all(s0 == u for u in self)
 

@@ -495,8 +495,8 @@ def test_unit_tuple():
                    Unit('code_time', registry=ds.unit_registry))
     u5 = UnitTuple(Unit('km'))
 
-    assert(u1.is_homogenous)
-    assert(not u2.is_homogenous)
+    assert(u1.is_homogeneous)
+    assert(not u2.is_homogeneous)
     assert_equal(u1, u3)
     assert(u4.is_code_unit)
     assert(not u1.is_code_unit)

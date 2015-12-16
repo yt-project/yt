@@ -384,7 +384,7 @@ class YTArray(np.ndarray):
         if isinstance(input_array, YTArray):
             if input_units is None:
                 iau = input_array.units
-                if iterable(iau) and iau.is_homogenous:
+                if iterable(iau) and iau.is_homogeneous:
                     # catch YTIndexArray
                     if preserve_subclass is False:
                         input_array.units = input_array.units[0]

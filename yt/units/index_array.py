@@ -346,7 +346,7 @@ class YTIndexArray(YTArray):
 
     @property
     def unit_quantity(self):
-        if self.units.is_homogenous:
+        if self.units.is_homogeneous:
             return YTQuantity(1.0, self.units[0])
         msg = "Cannot convert IndexArray with units '%s' to a quantity"
         raise RuntimeError(msg % (self.units, ))
@@ -369,7 +369,7 @@ class YTIndexArray(YTArray):
 
     def _get_reduction_units_from_axis(self, axis, method):
         if axis in (None, 1):
-            if self.units.is_homogenous:
+            if self.units.is_homogeneous:
                 units = self.units[0]
             else:
                 raise RuntimeError(
@@ -417,9 +417,9 @@ class YTIndexArray(YTArray):
 
     @return_arr
     def dot(self, b, out=None):
-        if self.units.is_homogenous:
+        if self.units.is_homogeneous:
             return super(YTArray, self).dot(b), self.units[0]*b.units
         else:
             raise RuntimeError(
-                "Dot product is not defined for arrays with inhomogenous units"
+                "Dot product is not defined for arrays with inhomogeneous units"
             )

@@ -246,7 +246,7 @@ def test_comparisons():
         assert_commutative_binary_op(
             index, arr, operation, operation(vals, vals), np.ndarray, None)
 
-def test_homogenous_unit_operations():
+def test_homogeneous_unit_operations():
     vals = np.random.random((100, 3))
     index = YTIndexArray(vals, input_units=[u.km, u.km, u.km])
     row_index = index[0]
