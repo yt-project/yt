@@ -286,6 +286,7 @@ class Scene(object):
 
         for k, source in self._iter_transparent_sources():
             im = source.render(camera, zbuffer=opaque)
+
         return im
 
     def camera():

@@ -57,6 +57,11 @@ yt/utilities/lib/grid_traversal.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h
 yt/utilities/lib/write_array.c
+yt/utilities/lib/element_mappings.c
+yt/utilities/lib/mesh_construction.cpp
+yt/utilities/lib/mesh_samplers.cpp
+yt/utilities/lib/mesh_traversal.cpp
+yt/utilities/lib/mesh_intersection.cpp
 syntax: glob
 *.pyc
 .*.swp

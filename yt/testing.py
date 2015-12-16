@@ -266,6 +266,50 @@ def fake_particle_ds(
     return ds
 
 
+def fake_tetrahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
+        _connectivity, _coordinates
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
+def fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.hexahedral_mesh import \
+        _connectivity, _coordinates
+
+    _connectivity -= 1  # this mesh has an offset of 1
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
