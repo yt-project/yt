@@ -434,8 +434,7 @@ class FITSDataset(Dataset):
         file_units = []
         cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
         for i, unit in enumerate(cunits):
-            if unit == "deg": continue
-            if unit in default_length_units:
+            if unit.name in default_length_units:
                 file_units.append(unit.name)
         if len(set(file_units)) == 1:
             length_factor = self.wcs.wcs.cdelt[0]
