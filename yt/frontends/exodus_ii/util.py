@@ -1,12 +1,15 @@
 import sys
+import string
 from itertools import takewhile
 from collections import OrderedDict
 import re
 
+_printable = set([ord(_) for _ in string.printable])
+
 def sanitize_string(s):
     if sys.version_info > (3, ):
-        return "".join([chr(_) for _ in takewhile(lambda a: a, s)])
-    return "".join([_ for _ in takewhile(lambda a: a, s)])
+        return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
+    return "".join([_ for _ in takewhile(lambda a: a in string.printable, s)])
 
 def load_info_records(info_records):
     info_records_parsed = [sanitize_string(line_chars) for line_chars in info_records]
