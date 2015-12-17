@@ -21,11 +21,6 @@ from yt.testing import assert_almost_equal
 import numpy as np
 from unittest import TestCase
 
-np.random.seed(0)
-
-# This toggles using a temporary directory. Turn off to examine images.
-use_tmpdir = True
-
 
 def setup():
     """Test specific setup."""
@@ -34,8 +29,12 @@ def setup():
 
 
 class ZBufferTest(TestCase):
+    # This toggles using a temporary directory. Turn off to examine images.
+    use_tmpdir = True
+
     def setUp(self):
-        if use_tmpdir:
+        np.random.seed(0)
+        if self.use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
             self.tmpdir = tempfile.mkdtemp()
@@ -44,7 +43,7 @@ class ZBufferTest(TestCase):
             self.curdir, self.tmpdir = None, None
 
     def tearDown(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
 
