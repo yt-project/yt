@@ -28,7 +28,6 @@ def test_out():
     ds = data_dir_load(out)
     yield assert_equal, str(ds), "out.e"
     yield assert_equal, ds.dimensionality, 3
-    yield assert_equal, ds.unique_identifier, 5081193338833632556
     yield assert_equal, ds.current_time, 0.0
     yield assert_array_equal, ds.parameters['nod_names'], ['convected', 'diffused']
     yield assert_equal, ds.parameters['num_meshes'], 2
