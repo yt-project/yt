@@ -11,7 +11,6 @@ An object that can live on the dataset to facilitate data access.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import string_types
 import weakref
 
 from yt.extern.six import string_types
