@@ -590,18 +590,19 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
                                bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['Density']
+    >>> dd['density']
 
-    #FIXME
-    YTArray[123.2856, 123.854, ..., 123.456, 12.42] (code_mass/code_length^3)
+    YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
+            0.97506269,  0.03047113]) g/cm**3
 
-    >>> data = dict(density = (arr, 'g/cm**3'))
-    >>> ds = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
+    >>> data = dict(density=(arr, 'kg/m**3'))
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit=3.03e24,
+    ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['Density']
+    >>> dd['density']
 
-    #FIXME
-    YTArray[123.2856, 123.854, ..., 123.456, 12.42] (g/cm**3)
+    YTArray([  8.75680644e-04,   3.36864527e-04,   7.04671886e-04, ...,
+             7.04399160e-04,   9.75062693e-04,   3.04711295e-05]) g/cm**3
 
     """
 
