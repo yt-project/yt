@@ -158,7 +158,7 @@ class ExodusIIDataset(Dataset):
             return []
 
     def _get_unique_identifier(self):
-        return self.parameter_filename.__hash__()
+        return self.parameter_filename
 
     def _get_current_time(self):
         try:
