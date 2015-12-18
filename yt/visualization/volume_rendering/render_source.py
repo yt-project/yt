@@ -22,6 +22,7 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler
 from yt.visualization.image_writer import apply_colormap
+from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
@@ -69,6 +70,7 @@ class OpaqueSource(RenderSource):
 
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
+
 
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
@@ -305,8 +307,8 @@ class VolumeSource(RenderSource):
         return disp
 
 
-class MeshSource(RenderSource):
-    """A source for unstructured mesh data
+class MeshSource(OpaqueSource):
+    """A source for unstructured mesh data.
 
     This functionality requires the embree ray-tracing engine and the
     associated pyembree python bindings to be installed in order to
@@ -325,7 +327,7 @@ class MeshSource(RenderSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('all', 'convected'))
+    >>> source = MeshSource(ds, ('connect1', 'convected'))
     """
 
     _image = None
@@ -362,18 +364,53 @@ class MeshSource(RenderSource):
         This constructs the mesh that will be ray-traced.
 
         """
-        field_data = self.data_source[self.field]
-        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
 
-        # convert the indices to zero-based indexing
-        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
 
-        self.mesh = mesh_construction.ElementMesh(self.scene,
-                                                  vertices,
-                                                  indices,
-                                                  field_data.d)
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
 
-    def render(self, camera, zbuffer=None):
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry. Right now, high-order geometry is only
+        # implemented for 20-point hexes.
+        if indices.shape[1] == 20:
+            mylog.warning("High order elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+                                                            vertices,
+                                                            indices,
+                                                            field_data)
+        else:
+            # if this is another type of higher-order element, we demote
+            # to 1st order here, for now.
+            if indices.shape[1] == 27:
+                # hexahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+            elif indices.shape[1] == 10:
+                # tetrahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:4]
+                indices = indices[:, 0:4]
+
+            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+                                                            vertices,
+                                                            indices,
+                                                            field_data)
+
+    def render(self, camera, zbuffer=None, cmap='algae', color_bounds=None):
         """Renders an image using the provided camera
 
         Parameters
@@ -392,15 +429,102 @@ class MeshSource(RenderSource):
         the rendered image.
 
         """
- 
+
+        shape = (camera.resolution[0], camera.resolution[1], 4)
+        if zbuffer is None:
+            empty = np.empty(shape, dtype='float64')
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        elif zbuffer.rgba.shape != shape:
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
+                              zbuffer.z.reshape(shape[:2]))
+
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.sampler.aimage
+        self.finalize_image(camera, self.sampler.aimage)
 
+        self.data = self.sampler.aimage
+        self.current_image = self.apply_colormap(cmap=cmap,
+                                                 color_bounds=color_bounds)
+
+        zbuffer += ZBuffer(self.current_image.astype('float64'),
+                           self.sampler.zbuffer)
+        zbuffer.rgba = ImageArray(zbuffer.rgba.astype('uint8'))
+        self.zbuffer = zbuffer
+        self.zbuffer.rgba = self.zbuffer.rgba.astype('uint8')
+        self.current_image = self.zbuffer.rgba
+        return self.current_image
+
+    def finalize_image(self, camera, image):
+        sam = self.sampler
+        Nx = camera.resolution[0]
+        Ny = camera.resolution[1]
+        sam.aimage = sam.aimage.reshape(Nx, Ny)
+        sam.image_used = sam.image_used.reshape(Nx, Ny)
+        sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
+        sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+
+    def annotate_mesh_lines(self, color=None, alpha=255):
+        r"""
+
+        Modifies this MeshSource by drawing the mesh lines.
+        This modifies the current image by drawing the element
+        boundaries and returns the modified image.
+
+        Parameters
+        ----------
+        colors: array of ints, shape (4), optional
+            The RGBA value to use to draw the mesh lines.
+            Default is black.
+        alpha : float, optional
+            The opacity of the mesh lines. Default is 255 (solid).
+
+        """
+
+        if color is None:
+            color = np.array([0, 0, 0, alpha])
+
+        locs = [self.sampler.mesh_lines == 1]
+
+        self.current_image[:, :, 0][locs] = color[0]
+        self.current_image[:, :, 1][locs] = color[1]
+        self.current_image[:, :, 2][locs] = color[2]
+        self.current_image[:, :, 3][locs] = color[3]
+
+        return self.current_image
+
+    def apply_colormap(self, cmap='algae', color_bounds=None):
+        self.current_image = apply_colormap(self.data,
+                                            color_bounds=color_bounds,
+                                            cmap_name=cmap)
+        '''
+
+        Applies a colormap to the current image without re-rendering.
+
+        Parameters
+        ----------
+        cmap_name : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        color_bounds : tuple of floats, optional
+            The min and max to scale between.  Outlying values will be clipped.
+
+        Returns
+        -------
+        current_image : A new image with the specified color scale applied to
+            the underlying data.
+
+
+        '''
+        alpha = self.current_image[:, :, 3]
+        alpha[self.sampler.image_used == -1] = 0.0
+        self.current_image[:, :, 3] = alpha        
         return self.current_image
 
     def __repr__(self):
@@ -764,6 +888,7 @@ class GridSource(LineSource):
     >>> im = sc.render()
 
     """
+
     def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
         data_source = data_source_or_all(data_source)

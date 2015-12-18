@@ -588,7 +588,7 @@ class YTDataContainer(object):
                         extra_attrs=extra_attrs)
 
         return filename
-        
+
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to

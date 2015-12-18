@@ -671,7 +671,11 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
                             err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
-    fns = ['old.png', 'new.png']
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
     num_images = len(old_result)
     assert(num_images > 0)
     for i in range(num_images):

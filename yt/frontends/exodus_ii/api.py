@@ -1,5 +1,5 @@
 """
-API for yt.frontends.stream
+API for yt.frontends.exodus_ii
 
 
 
@@ -14,25 +14,14 @@ API for yt.frontends.stream
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      StreamGrid, \
-      StreamHierarchy, \
-      StreamDataset, \
-      StreamHandler, \
-      load_uniform_grid, \
-      load_amr_grids, \
-      load_particles, \
-      load_hexahedral_mesh, \
-      hexahedral_connectivity, \
-      load_octree, \
-      refine_amr, \
-      load_unstructured_mesh
+    ExodusIIUnstructuredMesh, \
+    ExodusIIUnstructuredIndex, \
+    ExodusIIDataset
 
 from .fields import \
-      StreamFieldInfo
+    ExodusIIFieldInfo
 
 from .io import \
-      IOHandlerStream
+    IOHandlerExodusII
 
 from . import tests
-
-from . import sample_data
