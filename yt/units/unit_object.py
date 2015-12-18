@@ -401,6 +401,8 @@ class Unit(Expr):
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
         if unit_system == "cgs":
+            if current_mks in self.dimensions.free_symbols:
+                raise YTUnitsNotReducible(self, "cgs")
             return yt_base_unit
         else:
             if unit_system == "code":
@@ -418,8 +420,6 @@ class Unit(Expr):
         """
         Create and return dimensionally-equivalent cgs units.
         """
-        if current_mks in self.dimensions.free_symbols:
-            raise YTUnitsNotReducible(self, "cgs")
         return self.get_base_equivalent(unit_system="cgs")
 
     def get_mks_equivalent(self):
