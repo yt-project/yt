@@ -14,6 +14,8 @@ GadgetFOF data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from collections import defaultdict
+
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
@@ -168,6 +170,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 fields.extend(my_fields)
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
+
 class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
     _dataset_type = "gadget_fof_halo_hdf5"
 
@@ -178,64 +181,80 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
-            with h5py.File(data_file.filename, "r") as f:
-                for ptype, field_list in sorted(ptf.items()):
-                    pcount = data_file.total_particles[ptype]
-                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
-                    coords = np.resize(coords, (pcount, 3))
-                    x = coords[:, 0]
-                    y = coords[:, 1]
-                    z = coords[:, 2]
-                    yield ptype, (x, y, z)
+        pass
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
-            with h5py.File(data_file.filename, "r") as f:
-                for ptype, field_list in sorted(ptf.items()):
-                    pcount = data_file.total_particles[ptype]
-                    if pcount == 0: continue
-                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
-                    coords = np.resize(coords, (pcount, 3))
-                    x = coords[:, 0]
-                    y = coords[:, 1]
-                    z = coords[:, 2]
-                    mask = selector.select_points(x, y, z, 0.0)
-                    del x, y, z
-                    if mask is None: continue
-                    for field in field_list:
-                        if field in self.offset_fields:
-                            field_data = \
-                              self._read_offset_particle_field(field, data_file, f)
-                        else:
-                            if field == "particle_identifier":
-                                field_data = \
-                                  np.arange(data_file.total_particles[ptype]) + \
-                                  data_file.index_start[ptype]
-                            elif field in f[ptype]:
-                                field_data = f[ptype][field].value.astype("float64")
-                            else:
-                                fname = field[:field.rfind("_")]
-                                field_data = f[ptype][fname].value.astype("float64")
-                                my_div = field_data.size / pcount
-                                if my_div > 1:
-                                    field_data = np.resize(field_data, (pcount, my_div))
-                                    findex = int(field[field.rfind("_") + 1:])
-                                    field_data = field_data[:, findex]
-                        data = field_data[mask]
-                        yield (ptype, field), data
+    def _read_particle_selection(self, fields):
+        rv = {}
+        ind = {}
+        # We first need a set of masks for each particle type
+        ptf = defaultdict(list)        # ON-DISK TO READ
+        fsize = defaultdict(lambda: 0) # COUNT RV
+        field_maps = defaultdict(list) # ptypes -> fields
+        unions = self.ds.particle_unions
+        # What we need is a mapping from particle types to return types
+        for field in fields:
+            ftype, fname = field
+            fsize[field] = 0
+            # We should add a check for p.fparticle_unions or something here
+            if ftype in unions:
+                for pt in unions[ftype]:
+                    ptf[pt].append(fname)
+                    field_maps[pt, fname].append(field)
+            else:
+                ptf[ftype].append(fname)
+                field_maps[field].append(field)
+
+        # Now we allocate
+        psize = {self.ds.ptype: self.ds.index.psize}
+        for field in fields:
+            if field[0] in unions:
+                for pt in unions[field[0]]:
+                    fsize[field] += psize.get(pt, 0)
+            else:
+                fsize[field] += psize.get(field[0], 0)
+        for field in fields:
+            if field[1] in self._vector_fields:
+                shape = (fsize[field], self._vector_fields[field[1]])
+            elif field[1] in self._array_fields:
+                shape = (fsize[field],)+self._array_fields[field[1]]
+            else:
+                shape = (fsize[field], )
+            rv[field] = np.empty(shape, dtype="float64")
+            ind[field] = 0
+        # Now we read.
+        for field_r, vals in self._read_particle_fields(ptf):
+            # Note that we now need to check the mappings
+            for field_f in field_maps[field_r]:
+                my_ind = ind[field_f]
+                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                ind[field_f] += vals.shape[0]
+        # Now we need to truncate all our fields, since we allow for
+        # over-estimating.
+        for field_f in ind:
+            rv[field_f] = rv[field_f][:ind[field_f]]
+        return rv
+
+    def _read_particle_fields(self, ptf):
+        data_file = self.ds.index.data_file
+        start_index = self.ds.index.field_index
+        end_index = start_index + self.ds.index.psize
+        with h5py.File(data_file.filename, "r") as f:
+            for ptype, field_list in sorted(ptf.items()):
+                pcount = data_file.total_particles[ptype]
+                if pcount == 0: continue
+                for field in field_list:
+                    if field in f["IDs"]:
+                        field_data = f["IDs"][field][start_index:end_index].astype("float64")
+                    else:
+                        fname = field[:field.rfind("_")]
+                        field_data = f["IDs"][fname][start_index:end_index].astype("float64")
+                        my_div = field_data.size / pcount
+                        if my_div > 1:
+                            field_data = np.resize(field_data, (pcount, my_div))
+                            findex = int(field[field.rfind("_") + 1:])
+                            field_data = field_data[:, findex]
+                    data = field_data
+                    yield (ptype, field), data
 
     def _identify_fields(self, data_file):
         fields = []

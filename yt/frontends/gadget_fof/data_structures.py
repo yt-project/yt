@@ -22,9 +22,15 @@ import stat
 import glob
 import os
 
+from yt.data_objects.data_containers import \
+    YTSelectionContainer
 from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
+from yt.geometry.geometry_handler import \
+    Index
+from yt.geometry.selection_routines import \
+    AlwaysSelector
 
 from yt.utilities.cosmology import \
     Cosmology
@@ -281,6 +287,16 @@ class GadgetFOFHaloParticleIndex(ParticleIndex):
            self.ds.ds.index._halo_index_end[ptype])
         self.data_file = self.ds.ds.index.data_files[np.where(file_index)[0]]
 
+        # index within halo arrays that corresponds to this halo
+        self.scalar_index = self.ds.particle_identifier - \
+          self.ds.ds.index._halo_index_start[ptype][file_index][0]
+
+        # find start and end index for halo member particles
+        with h5py.File(self.data_file.filename, "r") as f:
+            halo_size = f[ptype]["GroupLen"].value
+            self.psize = halo_size[self.scalar_index]
+            self.field_index = halo_size[:self.scalar_index].sum()
+
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
         # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
@@ -300,6 +316,25 @@ class GadgetFOFHaloParticleIndex(ParticleIndex):
         ds = self.dataset
         ds.particle_types = tuple(set(pt for pt, ds in dsl))
         ds.field_units.update(units)
+
+    def _identify_base_chunk(self, dobj):
+        pass
+
+    def _read_particle_fields(self, fields, dobj, chunk = None):
+        if len(fields) == 0: return {}, []
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+        fields_to_return = self.io._read_particle_selection(
+            fields_to_read)
+        return fields_to_return, fields_to_generate
+
+class GagdetFOFHaloContainer(YTSelectionContainer):
+    _spatial = False
+    _selector = AlwaysSelector
+
+    def __init__(self, ds):
+        super(GagdetFOFHaloContainer, self).__init__(ds, {})
 
 class GadgetFOFHaloDataset(Dataset):
     _index_class = GadgetFOFHaloParticleIndex
@@ -323,6 +358,10 @@ class GadgetFOFHaloDataset(Dataset):
 
         super(GadgetFOFHaloDataset, self).__init__(ds.parameter_filename, dataset_type)
 
+    @property
+    def data(self):
+        return GagdetFOFHaloContainer(self)
+
     def print_key_parameters(self):
         pass
 
@@ -344,4 +383,4 @@ class GadgetFOFHaloDataset(Dataset):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
 
     def _setup_classes(self):
-        pass
+        self.objects = []
