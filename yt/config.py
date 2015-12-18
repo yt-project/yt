@@ -61,7 +61,6 @@ ytcfg_defaults = dict(
     ignore_invalid_unit_operation_errors = 'False',
     chunk_size = '1000',
     xray_data_dir = '/does/not/exist',
-    default_unit_system = 'cgs',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

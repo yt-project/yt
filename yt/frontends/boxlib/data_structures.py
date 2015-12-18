@@ -370,7 +370,7 @@ class BoxlibDataset(Dataset):
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -729,7 +729,7 @@ class OrionDataset(BoxlibDataset):
                  dataset_type='orion_native',
                  storage_filename=None,
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
 
         BoxlibDataset.__init__(self, output_dir,
                                cparam_filename, fparam_filename,

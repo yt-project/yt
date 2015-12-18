@@ -194,7 +194,7 @@ class Dataset(object):
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None, 
-                 units_override=None, unit_system=None):
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -238,9 +238,7 @@ class Dataset(object):
         self._setup_coordinate_handler()
 
         create_code_unit_system(self)
-        if unit_system is None:
-            unit_system = ytcfg.get("yt","default_unit_system")
-        elif unit_system == "code":
+        if unit_system == "code":
             unit_system = str(self)
         self.unit_system = unit_system_registry[unit_system]
 

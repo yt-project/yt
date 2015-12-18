@@ -79,7 +79,7 @@ class GadgetDataset(ParticleDataset):
                  field_spec = "default",
                  ptype_spec = "default",
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -344,7 +344,7 @@ class GadgetHDF5Dataset(GadgetDataset):
                  over_refine_factor=1,
                  bounding_box = None,
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:

@@ -32,7 +32,6 @@ from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
 from yt.utilities.exceptions import YTUnitsNotReducible
-from yt.config import ytcfg
 
 import copy
 import token
@@ -411,15 +410,13 @@ class Unit(Expr):
             units.append("(%s)%s" % (unit_string, power_string))
         return " * ".join(units)
 
-    def get_base_equivalent(self, unit_system=None):
+    def get_base_equivalent(self, unit_system="cgs"):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
         yt_base_unit_string = self._get_system_unit_string(default_base_units)
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
-        if unit_system is None:
-            unit_system = ytcfg.get("yt", "default_unit_system")
         if unit_system == "cgs":
             return yt_base_unit
         else:

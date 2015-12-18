@@ -51,7 +51,7 @@ class RockstarDataset(Dataset):
 
     def __init__(self, filename, dataset_type="rockstar_binary",
                  n_ref = 16, over_refine_factor = 1,
-                 units_override=None, unit_system=None):
+                 units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(RockstarDataset, self).__init__(filename, dataset_type,

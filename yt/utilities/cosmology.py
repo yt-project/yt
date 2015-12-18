@@ -28,8 +28,6 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs as G, \
     speed_of_light_cgs
 
-from yt.config import ytcfg
-
 class Cosmology(object):
     r"""
     Create a cosmology calculator to compute cosmological distances and times.
@@ -53,7 +51,7 @@ class Cosmology(object):
         Default: 0.0.
     unit_system : UnitSystem, optional 
         The units system to use when making calculations. If not specified,
-        the default unit system is assumed.
+        cgs units are assumed.
 
     Examples
     --------
@@ -68,7 +66,7 @@ class Cosmology(object):
                  omega_lambda = 0.73,
                  omega_curvature = 0.0,
                  unit_registry = None,
-                 unit_system = None):
+                 unit_system = "cgs"):
         self.omega_matter = omega_matter
         self.omega_lambda = omega_lambda
         self.omega_curvature = omega_curvature
@@ -82,8 +80,6 @@ class Cosmology(object):
                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
-        if unit_system is None:
-            unit_system = ytcfg.get("yt","default_unit_system")
         self.unit_system = unit_system
 
     def hubble_distance(self):

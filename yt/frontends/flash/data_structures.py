@@ -183,7 +183,7 @@ class FLASHDataset(Dataset):
                  storage_filename = None,
                  particle_filename = None, 
                  units_override = None,
-                 unit_system = None):
+                 unit_system = "cgs"):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return

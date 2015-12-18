@@ -162,7 +162,7 @@ class ARTDataset(Dataset):
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_data=None, file_particle_stars=None,
-                 units_override=None, unit_system=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
@@ -421,7 +421,7 @@ class DarkMatterARTDataset(ARTDataset):
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_stars=None, units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
         self.over_refine_factor = 1
         self.n_ref = 64
         self.particle_types += ("all",)

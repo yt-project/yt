@@ -288,7 +288,7 @@ class StreamDataset(Dataset):
     _dataset_type = 'stream'
 
     def __init__(self, stream_handler, storage_filename=None,
-                 geometry="cartesian", unit_system=None):
+                 geometry="cartesian", unit_system="cgs"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -522,7 +522,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
                       velocity_unit=None, magnetic_unit=None,
                       periodicity=(True, True, True),
-                      geometry="cartesian", unit_system=None):
+                      geometry="cartesian", unit_system="cgs"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -710,7 +710,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry="cartesian", refine_by=2, unit_system=None):
+                   geometry="cartesian", refine_by=2, unit_system="cgs"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -1005,7 +1005,7 @@ def load_particles(data, length_unit = None, bbox=None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
                    n_ref = 64, over_refine_factor = 1, geometry = "cartesian",
-                   unit_system=None):
+                   unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1233,7 +1233,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
                          mass_unit = None, time_unit = None,
                          velocity_unit = None, magnetic_unit = None,
                          periodicity=(True, True, True),
-                         geometry = "cartesian", unit_system=None):
+                         geometry = "cartesian", unit_system="cgs"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1463,7 +1463,7 @@ def load_octree(octree_mask, data,
                 velocity_unit=None, magnetic_unit=None,
                 periodicity=(True, True, True),
                 over_refine_factor = 1, partial_coverage = 1,
-                unit_system=None):
+                unit_system="cgs"):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1611,7 +1611,7 @@ def load_unstructured_mesh(data, connectivity, coordinates,
                          mass_unit = None, time_unit = None,
                          velocity_unit = None, magnetic_unit = None,
                          periodicity=(False, False, False),
-                         geometry = "cartesian", unit_system=None):
+                         geometry = "cartesian", unit_system="cgs"):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 

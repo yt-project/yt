@@ -666,7 +666,7 @@ class EnzoDataset(Dataset):
                  conversion_override = None,
                  storage_filename = None,
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the index.  *dataset_type* gets passed

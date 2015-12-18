@@ -312,7 +312,7 @@ class FITSDataset(Dataset):
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None,
-                 unit_system=None):
+                 unit_system="cgs"):
 
         if parameters is None:
             parameters = {}
