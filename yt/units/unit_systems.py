@@ -112,7 +112,7 @@ mks_unit_system["specific_energy"] = "J/kg"
 mks_unit_system["pressure"] = "Pa"
 mks_unit_system["force"] = "N"
 mks_unit_system["magnetic_field_mks"] = "T"
-cgs_unit_system["charge_mks"] = "C"
+mks_unit_system["charge_mks"] = "C"
 
 imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", temperature_unit="R")
 imperial_unit_system["force"] = "lbf"
@@ -128,5 +128,5 @@ solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr")
 geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom")
 
 planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", temperature_unit="T_pl")
-cgs_unit_system["energy"] = "E_pl"
-cgs_unit_system["charge_cgs"] = "q_pl"
+planck_unit_system["energy"] = "E_pl"
+planck_unit_system["charge_cgs"] = "q_pl"
