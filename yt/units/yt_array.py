@@ -451,7 +451,7 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self, unit_system="cgs"):
+    def convert_to_base(self, unit_system=None):
         """
         Convert the array and units to the equivalent base units in
         the specified unit system.
@@ -460,7 +460,8 @@ class YTArray(np.ndarray):
         ----------
         unit_system : string, optional
             The unit system to be used in the conversion. If not specified,
-            the default base units of cgs are used.
+            the default base units are used ("cgs" unless configured
+            differently).
 
         Examples
         --------
@@ -517,7 +518,7 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self, unit_system="cgs"):
+    def in_base(self, unit_system=None):
         """
         Creates a copy of this array with the data in the specified unit system,
         and returns it in that system's base units.
@@ -526,7 +527,8 @@ class YTArray(np.ndarray):
         ----------
         unit_system : string, optional
             The unit system to be used in the conversion. If not specified,
-            the default base units of cgs are used.
+            the default base units are used ("cgs" unless configured 
+            differently).
 
         Examples
         --------

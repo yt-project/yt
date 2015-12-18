@@ -61,12 +61,13 @@ class UnitSystem(object):
         if key not in self.units_map:
             dims = key.expand()
             units = Unit("", registry=self.registry)
-            for factor in dims.as_ordered_factors():
-                dim = list(factor.free_symbols)[0]
-                u = self.units_map[dim]
-                if factor.is_Pow:
-                    u = u ** factor.as_base_exp()[1]
-                units *= u
+            if dims != dimensions.dimensionless:
+                for factor in dims.as_ordered_factors():
+                    dim = list(factor.free_symbols)[0]
+                    u = self.units_map[dim]
+                    if factor.is_Pow:
+                        u = u ** factor.as_base_exp()[1]
+                    units *= u
             self.units_map[key] = units
         return self.units_map[key]
 
