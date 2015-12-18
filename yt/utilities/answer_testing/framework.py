@@ -921,12 +921,9 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
-    if not can_run_ds(ds_fn):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    if not can_run_ds(ds):
         return
-    if ds_kwargs is None:
-        ds_kwargs = {}
-    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
     yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
                         str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
