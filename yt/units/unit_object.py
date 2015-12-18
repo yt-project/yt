@@ -406,8 +406,9 @@ class Unit(Expr):
             return yt_base_unit
         else:
             if unit_system == "code":
-                raise RuntimeError("To convert to a \"code\" unit system, "
-                                   "specify a dataset with \"unit_system\" == ds!")
+                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
+                                   r'code unit system. Try again with unit_system=ds instead, '
+                                   r'where \'ds\' is your dataset.')
             unit_system = unit_system_registry[str(unit_system)]
             units_string = get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
