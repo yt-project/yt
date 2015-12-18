@@ -950,9 +950,9 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
             for axis in [0, 1, 2]:
                 if particle_type is False:
                     yield PixelizedProjectionValuesTest(
-                        ds_fn, axis, field, weight_field,
+                        ds, axis, field, weight_field,
                         dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name,
+            yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
 
 def create_obj(ds, obj_type):

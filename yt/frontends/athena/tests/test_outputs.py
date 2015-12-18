@@ -34,7 +34,7 @@ cloud = "ShockCloud/id0/Cloud.0050.vtk"
 def test_cloud():
     ds = data_dir_load(cloud)
     yield assert_equal, str(ds), "Cloud.0050"
-    for test in small_patch_amr(cloud, _fields_cloud):
+    for test in small_patch_amr(ds, _fields_cloud):
         test_cloud.__name__ = test.description
         yield test
 
@@ -45,7 +45,7 @@ blast = "MHDBlast/id0/Blast.0100.vtk"
 def test_blast():
     ds = data_dir_load(blast)
     yield assert_equal, str(ds), "Blast.0100"
-    for test in small_patch_amr(blast, _fields_blast):
+    for test in small_patch_amr(ds, _fields_blast):
         test_blast.__name__ = test.description
         yield test
 
@@ -58,9 +58,11 @@ _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping, big_data=True)
 def test_stripping():
-    ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
+    #ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
+    # this is intentionally read without proper units to check if current answer test will pass
+    ds = data_dir_load(stripping)
     yield assert_equal, str(ds), "rps.0062"
-    for test in small_patch_amr(stripping, _fields_stripping):
+    for test in small_patch_amr(ds, _fields_stripping):
         test_stripping.__name__ = test.description
         yield test
 
