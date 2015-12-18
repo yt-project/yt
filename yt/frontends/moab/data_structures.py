@@ -66,7 +66,7 @@ class MoabHex8Dataset(Dataset):
 
     def __init__(self, filename, dataset_type='moab_hex8',
                  storage_filename = None, units_override=None,
-                 unit_system="cgs"):
+                 unit_system=None):
         self.fluid_types += ("moab",)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
@@ -148,7 +148,7 @@ class PyneMoabHex8Dataset(Dataset):
 
     def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
                  storage_filename = None, units_override=None,
-                 unit_system="cgs"):
+                 unit_system=None):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh

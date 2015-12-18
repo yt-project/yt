@@ -520,7 +520,7 @@ class RAMSESDataset(Dataset):
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]

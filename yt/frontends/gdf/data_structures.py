@@ -174,7 +174,7 @@ class GDFDataset(Dataset):
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None, geometry=None,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system=None):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
         Dataset.__init__(self, filename, dataset_type,

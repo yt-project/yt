@@ -109,7 +109,7 @@ class GadgetFOFDataset(Dataset):
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
                  n_ref=16, over_refine_factor=1,
-                 unit_base=None, units_override=None, unit_system="cgs"):
+                 unit_base=None, units_override=None, unit_system=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if unit_base is not None and "UnitLength_in_cm" in unit_base:

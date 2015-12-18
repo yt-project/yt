@@ -76,7 +76,7 @@ class SDFDataset(Dataset):
                  midx_level = None,
                  field_map = None,
                  units_override=None,
-                 unit_system="cgs"):
+                 unit_system=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
