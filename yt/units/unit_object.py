@@ -393,28 +393,11 @@ class Unit(Expr):
                 return False
         return True
 
-    def _get_system_unit_string(self, base_units):
-        # The dimensions of a unit object is the product of the base dimensions.
-        # Use sympy to factor the dimensions into base CGS unit symbols.
-        units = []
-        my_dims = self.dimensions.expand()
-        if my_dims is dimensionless:
-            return ""
-        for factor in my_dims.as_ordered_factors():
-            dim = list(factor.free_symbols)[0]
-            unit_string = str(base_units[dim])
-            if factor.is_Pow:
-                power_string = "**(%s)" % factor.as_base_exp()[1]
-            else:
-                power_string = ""
-            units.append("(%s)%s" % (unit_string, power_string))
-        return " * ".join(units)
-
     def get_base_equivalent(self, unit_system="cgs"):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
-        yt_base_unit_string = self._get_system_unit_string(default_base_units)
+        yt_base_unit_string = get_system_unit_string(self.dimensions, default_base_units)
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
         if unit_system == "cgs":
@@ -424,7 +407,7 @@ class Unit(Expr):
                 raise RuntimeError("To convert to a \"code\" unit system, "
                                    "specify a dataset with \"unit_system\" == ds!")
             unit_system = unit_system_registry[str(unit_system)]
-            units_string = self._get_system_unit_string(unit_system.base_units)
+            units_string = get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
             base_value = get_conversion_factor(self, yt_base_unit)[0]
             base_value /= get_conversion_factor(self, u)[0]
@@ -621,3 +604,20 @@ def validate_dimensions(dimensions):
                                  "allowed.  Got dimensions '%s'" % dimensions)
     elif not isinstance(dimensions, Basic):
         raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
+
+def get_system_unit_string(dimensions, base_units):
+    # The dimensions of a unit object is the product of the base dimensions.
+    # Use sympy to factor the dimensions into base CGS unit symbols.
+    units = []
+    my_dims = dimensions.expand()
+    if my_dims is dimensionless:
+        return ""
+    for factor in my_dims.as_ordered_factors():
+        dim = list(factor.free_symbols)[0]
+        unit_string = str(base_units[dim])
+        if factor.is_Pow:
+            power_string = "**(%s)" % factor.as_base_exp()[1]
+        else:
+            power_string = ""
+        units.append("(%s)%s" % (unit_string, power_string))
+    return " * ".join(units)
