@@ -318,7 +318,7 @@ class ARTIODataset(Dataset):
 
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system=None):
         from sys import version
         if self._handle is not None:
             return

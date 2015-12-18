@@ -444,7 +444,7 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1, unit_system="cgs"):
+                 units_override=None, nprocs=1, unit_system=None):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
         if parameters is None:

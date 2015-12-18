@@ -246,7 +246,7 @@ class ChomboDataset(Dataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system=None):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
@@ -447,7 +447,7 @@ class PlutoDataset(ChomboDataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system=None):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                                storage_filename, ini_filename,
