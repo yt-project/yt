@@ -22,7 +22,7 @@ from libc.math cimport copysign
 from yt.utilities.exceptions import YTDomainOverflow
 
 DEF ORDER_MAX=20
-DEF INDEX_MAX=2097151
+DEF INDEX_MAX_64=2097151
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -319,8 +319,8 @@ def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
     morton_indices = np.zeros(left_index.shape[0], 'uint64')
     for i in range(left_index.shape[0]):
         for j in range(3):
-            if left_index[i, j] >= INDEX_MAX:
-                raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX)+
+            if left_index[i, j] >= INDEX_MAX_64:
+                raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
                                  "for 64bit interleave.")
             p[j] = left_index[i, j]
         morton_indices[i] = point_to_morton(p)
@@ -340,6 +340,10 @@ def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
         p[0] = left_x[i]
         p[1] = left_y[i]
         p[2] = left_z[i]
+        for j in range(3):
+            if p[j] >= INDEX_MAX_64:
+                raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                                 "for 64 bit interleave.")
         morton_indices[i] = point_to_morton(p)
     return morton_indices
 

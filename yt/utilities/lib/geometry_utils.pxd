@@ -39,7 +39,7 @@ cdef inline np.int64_t msdb(np.int64_t a, np.int64_t b):
     cdef np.int64_t c, ndx
     c = a ^ b
     ndx = 0
-    while (1 < c):
+    while (0 < c):
         c = (c >> 1)
         ndx+=1
     return ndx
@@ -55,18 +55,19 @@ cdef inline np.int64_t xor_msb(np.float64_t a, np.float64_t b):
     a_e = 0
     a_m = ifrexp(a,&a_e)
     b_m = ifrexp(b,&b_e)
-    x = a_e
-    y = b_e
+    x = (a_e+1)*DBL_MANT_DIG
+    y = (b_e+1)*DBL_MANT_DIG
     # Compare mantissa if exponents equal
     if x == y:
+        #if a_m == b_m: return 0
         z = msdb(a_m,b_m)
-        x = x - z
+        x = x - z# + DBL_MANT_DIG
         return x
     # Otherwise return largest exponent
     if y < x:
-        return x
+        return x# + DBL_MANT_DIG
     else:
-        return y
+        return y# + DBL_MANT_DIG
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -74,7 +75,7 @@ cdef inline np.int64_t xor_msb(np.float64_t a, np.float64_t b):
 cdef inline int compare_floats_morton(np.float64_t p[3], np.float64_t q[3]):
     cdef int j, out, dim
     cdef np.int64_t x, y
-    x = -308
+    x = -9999999999
     y = 0
     dim = 0
     for j in range(3):#[::-1]:
