@@ -1639,8 +1639,9 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         L is the number of vertices. When loading more than one mesh, the data
         for each mesh should be concatenated into a single coordinates array.
     node_data : dict or list of dicts
-        For a single mesh, a dict mapping field names to data defined at element
-        verticies. For multiple meshes, this must be a list of dicts.
+        For a single mesh, a dict mapping field names to 1D numpy arrays,
+        representing  data defined at element vertices. For multiple meshes,
+        this must be a list of dicts.
     elem_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 1D numpy arrays, where
         each array has a length equal to the number of elements. The data
