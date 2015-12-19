@@ -94,16 +94,16 @@ For more information, see :ref:`creating-derived-fields`.
 
 There is a third, borderline class of field in yt, as well.  This is the
 "alias" type, where a field on disk (for example, (frontend, ``Density``)) is 
-aliased into an internal yt-name (for example, (``gas``, ``density``)).  The 
+aliased into an internal yt-name (for example, (``gas``, ``density``)). The 
 aliasing process allows universally-defined derived fields to take advantage of 
 internal names, and it also provides an easy way to address what units something 
 should be returned in.  If an aliased field is requested (and aliased fields 
 will always be lowercase, with underscores separating words) it will be returned 
-in CGS units (future versions will enable global defaults to be set for MKS and 
-other unit systems), whereas if the frontend-specific field is requested, it 
-will not undergo any unit conversions from its natural units.  (This rule is 
-occasionally violated for fields which are mesh-dependent, specifically particle 
-masses in some cosmology codes.)
+in the units specified by the unit system of the database (see :ref:`unit_systems`
+for a guide to using the different unit systems in yt), whereas if the 
+frontend-specific field is requested, it will not undergo any unit conversions 
+from its natural units.  (This rule is occasionally violated for fields which 
+are mesh-dependent, specifically particle masses in some cosmology codes.)
 
 .. _known-field-types:
 
@@ -125,7 +125,8 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in CGS.
+  codes.  Default units are in the unit system of the dataset (see 
+  :ref:`unit_systems` for more information).
 * particle type -- These are particle fields that exist on-disk as written 
   by individual frontends.  If the frontend designates names for these particles
   (i.e. particle type) those names are the field types. 
@@ -237,6 +238,36 @@ field, like its default units or the source code for it.
    ds.index
    print ds.field_info["gas", "pressure"].get_units()
    print ds.field_info["gas", "pressure"].get_source()
+
+.. _bfields:
+
+Special Handling for Magnetic Fields
+------------------------------------
+
+Magnetic fields require special handling, because their dimensions are different in
+different systems of units, in particular between the CGS and MKS (SI) systems of units.
+Superficially, it would appear that it is easy to convert between the two, since the units 
+of the magnetic field in the CGS and MKS system are gauss (:math:`\rm{G}`) and tesla 
+(:math:`\rm{T}`), respectively, and numerically :math:`1~\rm{G} = 10^{-4}~\rm{T}`. However, 
+if we examine the base units, we find that they have different dimensions:
+
+.. math::
+
+    \rm{1~G = 1~\frac{\sqrt{g}}{\sqrt{cm}\cdot{s}}} \\
+    \rm{1~T = 1~\frac{kg}{A\cdot{s^2}}}
+
+It is easier to see the difference between the dimensionality of the magnetic field in the two
+systems in terms of the definition of the magnetic pressure:
+
+.. math::
+
+    p_B = \frac{B^2}{8\pi}~\rm{(cgs)} \\
+    p_B = \frac{B^2}{2\mu_0}~\rm{(MKS)}
+
+where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
+detects on a per-frontend basis what units the magnetic should be in, and allows conversion between 
+different magnetic field units in the different :ref:`unit_systems` as well. To determine how to
+set up special magnetic field handling when designing a new frontend, check out :ref:`bfields_frontend`.
 
 Particle Fields
 ---------------

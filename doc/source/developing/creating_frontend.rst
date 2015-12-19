@@ -104,6 +104,43 @@ a plot; this can be LaTeX code, for example the density field could
 have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
 will result in using a capitalized version of the ``"name"``.
 
+.. _bfields:
+
+Special Handling for Magnetic Fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Setting up access to the magnetic fields in your dataset requires special
+handling, because in different unit systems magnetic fields have different
+dimensions (see :ref:`bfields` for an explanation). If your dataset includes 
+magnetic fields, you should include them in ``known_other_fields``, but do
+not set up aliases for them--instead use the special handling function 
+:meth:`~yt.fields.magnetic_fields.setup_magnetic_field_aliases`. It takes
+as arguments the ``FieldInfoContainer`` instance, the field type of the 
+frontend, and the list of magnetic fields from the frontend. Here is an
+example of how this is implemented in the FLASH frontend:
+
+.. code-block:: python
+
+    class FLASHFieldInfo(FieldInfoContainer):
+        known_other_fields = (
+            ...
+            ("magx", (b_units, [], "B_x")), # Note there is no alias here
+            ("magy", (b_units, [], "B_y")),
+            ("magz", (b_units, [], "B_z")),
+            ...
+        )
+
+        def setup_fluid_fields(self):
+            from yt.fields.magnetic_field import \
+                setup_magnetic_field_aliases
+            ...
+            setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])    
+
+This function should always be imported and called from within the 
+``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this 
+function is used, converting between magnetic fields in different 
+:ref:`unit_systems` will be handled automatically. 
+
 Data Localization Structures
 ----------------------------
 
