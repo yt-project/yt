@@ -241,15 +241,15 @@ field, like its default units or the source code for it.
 
 .. _bfields:
 
-Special Handling for Magnetic Fields
-------------------------------------
+Magnetic Fields
+---------------
 
 Magnetic fields require special handling, because their dimensions are different in
 different systems of units, in particular between the CGS and MKS (SI) systems of units.
-Superficially, it would appear that it is easy to convert between the two, since the units 
+Superficially, it would appear that they are in the same dimensions, since the units 
 of the magnetic field in the CGS and MKS system are gauss (:math:`\rm{G}`) and tesla 
 (:math:`\rm{T}`), respectively, and numerically :math:`1~\rm{G} = 10^{-4}~\rm{T}`. However, 
-if we examine the base units, we find that they have different dimensions:
+if we examine the base units, we find that they do indeed have different dimensions:
 
 .. math::
 
@@ -266,8 +266,9 @@ systems in terms of the definition of the magnetic pressure:
 
 where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
 detects on a per-frontend basis what units the magnetic should be in, and allows conversion between 
-different magnetic field units in the different :ref:`unit_systems` as well. To determine how to
-set up special magnetic field handling when designing a new frontend, check out :ref:`bfields_frontend`.
+different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To 
+determine how to set up special magnetic field handling when designing a new frontend, check out 
+:ref:`bfields_frontend`.
 
 Particle Fields
 ---------------

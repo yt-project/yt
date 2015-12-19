@@ -104,9 +104,9 @@ a plot; this can be LaTeX code, for example the density field could
 have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
 will result in using a capitalized version of the ``"name"``.
 
-.. _bfields:
+.. _bfields_frontend:
 
-Special Handling for Magnetic Fields
+Creating Aliases for Magnetic Fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Setting up access to the magnetic fields in your dataset requires special
@@ -139,7 +139,7 @@ example of how this is implemented in the FLASH frontend:
 This function should always be imported and called from within the 
 ``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this 
 function is used, converting between magnetic fields in different 
-:ref:`unit_systems` will be handled automatically. 
+:ref:`unit systems <unit_systems>` will be handled automatically. 
 
 Data Localization Structures
 ----------------------------

@@ -62,7 +62,7 @@ a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 
 Field definitions return array data with units. If the field function returns
-data in a dimensionally equivalent unit (e.g. a ``dyne`` versus a ``N``), the
+data in a dimensionally equivalent unit (e.g. a ``"dyne"`` versus a ``"N"``), the
 field data will be converted to the units specified in ``add_field`` before
 being returned in a data object selection. If the field function returns data
 with dimensions that are incompatibible with units specified in ``add_field``,
@@ -275,7 +275,7 @@ For instance, if you had defined this derived field:
 
 .. code-block:: python
 
-   @yt.derived_field(name = "funthings")
+   @yt.derived_field(name = ("gas","funthings"))
    def funthings(field, data):
        return data["sillythings"] + data["humorousthings"]**2.0
 
@@ -283,7 +283,7 @@ And you wanted to debug it, you could do:
 
 .. code-block:: python
 
-   @yt.derived_field(name = "funthings")
+   @yt.derived_field(name = ("gas","funthings"))
    def funthings(field, data):
        data._debug()
        return data["sillythings"] + data["humorousthings"]**2.0
