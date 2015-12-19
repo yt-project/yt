@@ -45,7 +45,8 @@ from yt.utilities.exceptions import \
     YTFieldNotParseable, \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented
+    YTDataSelectorNotImplemented, \
+    YTDimensionalityError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -1206,8 +1207,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = str(getattr(fd, 'units', ''))
-                        fi.units = units
+                        units = getattr(fd, 'units', '')
+                        if fi.dimensions != units.dimensions:
+                            raise YTDimensionalityError(fi.dimensions, units.dimensions)
+                        fi.units = str(units)
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
