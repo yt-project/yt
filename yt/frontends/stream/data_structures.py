@@ -1639,8 +1639,8 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         L is the number of vertices. When loading more than one mesh, the data
         for each mesh should be concatenated into a single coordinates array.
     node_data : dict or list of dicts
-        For a single mesh, a dict mapping field names to 1D numpy arrays,
-        representing  data defined at element vertices. For multiple meshes,
+        For a single mesh, a dict mapping field names to 2D numpy arrays,
+        representing data defined at element vertices. For multiple meshes,
         this must be a list of dicts.
     elem_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 1D numpy arrays, where
@@ -1675,13 +1675,24 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5], [0.5, 1, 0.5],
                                 [0.5, 0.5, 0.0], [0.5, 0.5, 1.0]])
 
-    >>> # The indices in the coordinates array of mesh vertices. This mesh has two elements.
+    >>> # The indices in the coordinates array of mesh vertices.
+    >>> # This mesh has two elements.
     >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
 
     >>> # Field data defined at the centers of the two mesh elements.
-    >>> elem_data = {('connect1', 'my_field'): np.array([1, 2])}
+    >>> elem_data = {
+    ...     ('connect1', 'elem_field'): np.array([1, 2])
+    ... }
 
-    >>> ds = yt.load_unstructured_mesh(connectivity, coordinates, elem_data=elem_data)
+    >>> # Field data defined at node vertices
+    >>> node_data = {
+    ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
+    ...                                           [0.0, 1.0, 2.0, 3.0]])
+    ... }
+
+    >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
+    ...                                elem_data=elem_data,
+    ...                                node_data=node_data)
 
     """
 
