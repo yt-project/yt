@@ -268,7 +268,7 @@ where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability.
 detects on a per-frontend basis what units the magnetic should be in, and allows conversion between 
 different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To 
 determine how to set up special magnetic field handling when designing a new frontend, check out 
-:ref:`bfields_frontend`.
+:ref:`bfields-frontend`.
 
 Particle Fields
 ---------------

@@ -104,7 +104,7 @@ a plot; this can be LaTeX code, for example the density field could
 have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
 will result in using a capitalized version of the ``"name"``.
 
-.. _bfields_frontend:
+.. _bfields-frontend:
 
 Creating Aliases for Magnetic Fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
