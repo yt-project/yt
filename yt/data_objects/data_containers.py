@@ -1211,7 +1211,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         units = getattr(fd, 'units', '')
                         if units == '':
                             dimensions = ytdims.dimensionless
-                            units = 'dimensionless'
                         else:
                             dimensions = units.dimensions
                             units = str(units.get_base_equivalent(self.ds.unit_system.name))
