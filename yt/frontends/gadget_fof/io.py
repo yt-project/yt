@@ -183,6 +183,13 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         pass
 
+    def _count_particles(self, data_file):
+        with h5py.File(data_file.filename, "r") as f:
+            pcount = {"Group": f["Header"].attrs["Ngroups_ThisFile"],
+                      "Subhalo": f["Header"].attrs["Nsubgroups_ThisFile"]}
+            data_file.total_offset = 0 # need to figure out how subfind works here
+            return pcount
+
     def _read_particle_selection(self, fields):
         rv = {}
         ind = {}
