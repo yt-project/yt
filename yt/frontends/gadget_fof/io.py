@@ -190,7 +190,7 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
             data_file.total_offset = 0 # need to figure out how subfind works here
             return pcount
 
-    def _read_particle_selection(self, fields):
+    def _read_particle_selection(self, dobj, fields):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
@@ -212,7 +212,7 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
                 field_maps[field].append(field)
 
         # Now we allocate
-        psize = {self.ds.ptype: self.ds.index.psize}
+        psize = {dobj.ptype: dobj.psize}
         for field in fields:
             if field[0] in unions:
                 for pt in unions[field[0]]:
@@ -229,7 +229,7 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         # Now we read.
-        for field_r, vals in self._read_particle_fields(ptf):
+        for field_r, vals in self._read_particle_fields(dobj, ptf):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
@@ -241,20 +241,22 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
-    def _read_particle_fields(self, ptf):
-        data_file = self.ds.index.data_file
-        start_index = self.ds.index.field_index
-        end_index = start_index + self.ds.index.psize
+    def _read_particle_fields(self, dobj, ptf):
+        data_file = dobj.data_file
+        start_index = dobj.field_index
+        end_index = start_index + dobj.psize
         with h5py.File(data_file.filename, "r") as f:
             for ptype, field_list in sorted(ptf.items()):
                 pcount = data_file.total_particles[ptype]
                 if pcount == 0: continue
                 for field in field_list:
                     if field in f["IDs"]:
-                        field_data = f["IDs"][field][start_index:end_index].astype("float64")
+                        field_data = \
+                          f["IDs"][field][start_index:end_index].astype("float64")
                     else:
                         fname = field[:field.rfind("_")]
-                        field_data = f["IDs"][fname][start_index:end_index].astype("float64")
+                        field_data = \
+                          f["IDs"][fname][start_index:end_index].astype("float64")
                         my_div = field_data.size / pcount
                         if my_div > 1:
                             field_data = np.resize(field_data, (pcount, my_div))

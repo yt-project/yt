@@ -30,8 +30,6 @@ from yt.frontends.gadget_fof.fields import \
     GadgetFOFHaloFieldInfo
 from yt.geometry.geometry_handler import \
     Index
-from yt.geometry.selection_routines import \
-    AlwaysSelector
 
 from yt.utilities.cosmology import \
     Cosmology
@@ -330,14 +328,13 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(
-            fields_to_read)
+            dobj, fields_to_read)
         return fields_to_return, fields_to_generate
 
 class GadgetFOFHaloDataset(Dataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFHaloFieldInfo
-    _suffix = ".hdf5"
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
         self.real_ds = ds
@@ -372,7 +369,6 @@ class GadgetFOFHaloDataset(Dataset):
 
 class GagdetFOFHaloContainer(YTSelectionContainer):
     _spatial = False
-    _selector = AlwaysSelector
 
     def __init__(self, ds, ptype, particle_identifier):
         if ptype not in ds.particle_types_raw:
@@ -406,3 +402,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
             halo_size = f[ptype]["GroupLen"].value
             self.psize = halo_size[self.scalar_index]
             self.field_index = halo_size[:self.scalar_index].sum()
+
+    def __repr__(self):
+        return "%s_%s_%09d" % \
+          (self.ds, self.ptype, self.particle_identifier)
