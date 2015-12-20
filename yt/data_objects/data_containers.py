@@ -1211,11 +1211,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         units = getattr(fd, 'units', '')
                         if units == '':
                             dimensions = ytdims.dimensionless
+                            units = 'dimensionless'
                         else:
                             dimensions = units.dimensions
+                            units = str(units.get_base_equivalent(self.ds.unit_system.name))
                         if fi.dimensions != dimensions:
                             raise YTDimensionalityError(fi.dimensions, dimensions)
-                        fi.units = str(units.get_base_equivalent(self.ds.unit_system.name))
+                        fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
