@@ -36,6 +36,7 @@ from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -1208,8 +1209,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # from the field function and use these units for future
                         # field accesses
                         units = getattr(fd, 'units', '')
-                        if fi.dimensions != units.dimensions:
-                            raise YTDimensionalityError(fi.dimensions, units.dimensions)
+                        if units == '':
+                            dimensions = ytdims.dimensionless
+                        else:
+                            dimensions = units.dimensions
+                        if fi.dimensions != dimensions:
+                            raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = str(units.get_base_equivalent(self.ds.unit_system.name))
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
