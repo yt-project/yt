@@ -58,9 +58,7 @@ _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping, big_data=True)
 def test_stripping():
-    #ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
-    # this is intentionally read without proper units to check if current answer test will pass
-    ds = data_dir_load(stripping)
+    ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
     yield assert_equal, str(ds), "rps.0062"
     for test in small_patch_amr(ds, _fields_stripping):
         test_stripping.__name__ = test.description
