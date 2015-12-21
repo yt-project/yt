@@ -293,19 +293,6 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
                         self._halo_index_start[ptype])
                 for ptype in self.ds.particle_types_raw])
 
-    def _calculate_particle_index_starts(self):
-        # Halo indices are not saved in the file, so we must count by hand.
-        # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
-        particle_count = defaultdict(int)
-        offset_count = 0
-        for data_file in self.data_files:
-            data_file.index_start = dict([(ptype, particle_count[ptype]) for
-                                           ptype in data_file.total_particles])
-            data_file.offset_start = offset_count
-            for ptype in data_file.total_particles:
-                particle_count[ptype] += data_file.total_particles[ptype]
-            offset_count += data_file.total_offset
-
     def _detect_output_fields(self):
         dsl = []
         units = {}
