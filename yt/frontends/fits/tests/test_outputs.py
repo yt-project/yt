@@ -30,7 +30,7 @@ grs = "radio_fits/grs-50-cube.fits"
 def test_grs():
     ds = data_dir_load(grs, cls=FITSDataset, kwargs={"nan_mask":0.0})
     yield assert_equal, str(ds), "grs-50-cube.fits"
-    for test in small_patch_amr(grs, _fields_grs, input_center="c", input_weight="ones"):
+    for test in small_patch_amr(ds, _fields_grs, input_center="c", input_weight="ones"):
         test_grs.__name__ = test.description
         yield test
 
@@ -41,7 +41,7 @@ vf = "UnigridData/velocity_field_20.fits"
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)
     yield assert_equal, str(ds), "velocity_field_20.fits"
-    for test in small_patch_amr(vf, _fields_vels, input_center="c", input_weight="ones"):
+    for test in small_patch_amr(ds, _fields_vels, input_center="c", input_weight="ones"):
         test_velocity_field.__name__ = test.description
         yield test
 
