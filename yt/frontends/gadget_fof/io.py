@@ -247,7 +247,7 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
         end_index = start_index + dobj.psize
         with h5py.File(data_file.filename, "r") as f:
             for ptype, field_list in sorted(ptf.items()):
-                pcount = data_file.total_particles[ptype]
+                pcount = dobj.psize
                 if pcount == 0: continue
                 for field in field_list:
                     if field in f["IDs"]:
@@ -270,6 +270,7 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
         pcount = data_file.total_particles
         if sum(pcount.values()) == 0: return fields, {}
         with h5py.File(data_file.filename, "r") as f:
+            data_file.total_ids = {"Group": f["Header"].attrs["Nids_ThisFile"]}
             if "IDs" not in f:
                 return fields, {}
             for ptype in self.ds.particle_types_raw:
