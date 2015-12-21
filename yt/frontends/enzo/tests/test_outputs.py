@@ -74,7 +74,7 @@ def test_galaxy0030():
     ds = data_dir_load(g30)
     yield check_color_conservation(ds)
     yield assert_equal, str(ds), "galaxy0030"
-    for test in big_patch_amr(g30, _fields):
+    for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
 

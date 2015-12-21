@@ -58,14 +58,14 @@ def test_GadgetDataset():
 
 @requires_ds(isothermal_h5)
 def test_iso_collapse():
-    for test in sph_answer(isothermal_h5, 'snap_505', 2**17,
-                           iso_fields, ds_kwargs=iso_kwargs):
+    ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
+    for test in sph_answer(ds, 'snap_505', 2**17, iso_fields):
         test_iso_collapse.__name__ = test.description
         yield test
 
 @requires_ds(g64, big_data=True)
 def test_gizmo_64():
-    for test in sph_answer(g64, 'snap_N64L16_135', 524288, g64_fields,
-                           ds_kwargs=g64_kwargs):
+    ds = data_dir_load(g64, kwargs=g64_kwargs)
+    for test in sph_answer(ds, 'snap_N64L16_135', 524288, g64_fields):
         test_gizmo_64.__name__ = test.description
         yield test

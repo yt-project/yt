@@ -30,7 +30,7 @@ sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 def test_sloshing():
     ds = data_dir_load(sloshing)
     yield assert_equal, str(ds), "sloshing_low_res_hdf5_plt_cnt_0300"
-    for test in small_patch_amr(sloshing, _fields):
+    for test in small_patch_amr(ds, _fields):
         test_sloshing.__name__ = test.description
         yield test
 
@@ -41,7 +41,7 @@ wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 def test_wind_tunnel():
     ds = data_dir_load(wt)
     yield assert_equal, str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030"
-    for test in small_patch_amr(wt, _fields_2d):
+    for test in small_patch_amr(ds, _fields_2d):
         test_wind_tunnel.__name__ = test.description
         yield test
 
