@@ -21,7 +21,9 @@ from yt.funcs import \
     get_output_filename, \
     ensure_list, \
     iterable
-from yt.units.yt_array import array_like_field
+from yt.units.yt_array import \
+    array_like_field, \
+    YTQuantity
 from yt.units.unit_object import Unit
 from yt.data_objects.data_containers import YTFieldData
 from yt.utilities.lib.misc_utilities import \
@@ -34,6 +36,22 @@ from yt.utilities.lib.CICDeposit import \
     CICDeposit_2, \
     NGPDeposit_2
 
+
+def _sanitize_min_max_units(amin, amax, finfo, registry):
+    # returns a copy of amin and amax, converted to finfo's output units
+    umin = getattr(amin, 'units', None)
+    umax = getattr(amax, 'units', None)
+    if umin is None:
+        umin = Unit(finfo.output_units, registry=registry)
+        rmin = YTQuantity(amin, umin)
+    else:
+        rmin = amin.in_units(finfo.output_units)
+    if umax is None:
+        umax = Unit(finfo.output_units, registry=registry)
+        rmax = YTQuantity(amax, umax)
+    else:
+        rmax = amax.in_units(finfo.output_units)
+    return rmin, rmax
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -67,6 +85,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.data_source = data_source
         self.ds = data_source.ds
         self.field_map = {}
+        self.field_info = {}
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
@@ -85,6 +104,8 @@ class ProfileND(ParallelAnalysisInterface):
         
         """
         fields = self.data_source._determine_fields(fields)
+        for f in fields:
+            self.field_info[f] = self.data_source.ds.field_info[f]
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         citer = self.data_source.chunks([], "io")
         for chunk in parallel_objects(citer):
@@ -372,9 +393,11 @@ class Profile1D(ProfileND):
     x_n : integer
         The number of bins along the x direction.
     x_min : float
-        The minimum value of the x profile field.
+        The minimum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_max : float
-        The maximum value of the x profile field.
+        The maximum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -385,8 +408,12 @@ class Profile1D(ProfileND):
     def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log,
                  weight_field = None):
         super(Profile1D, self).__init__(data_source, weight_field)
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
         self.x_log = x_log
+        x_min, x_max = _sanitize_min_max_units(
+            x_min, x_max, self.field_info[self.x_field], self.ds.unit_registry)
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
@@ -442,9 +469,11 @@ class Profile2D(ProfileND):
     x_n : integer
         The number of bins along the x direction.
     x_min : float
-        The minimum value of the x profile field.
+        The minimum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_max : float
-        The maximum value of the x profile field.
+        The maximum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -453,9 +482,11 @@ class Profile2D(ProfileND):
     y_n : integer
         The number of bins along the y direction.
     y_min : float
-        The minimum value of the y profile field.
+        The minimum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     y_max : float
-        The maximum value of the y profile field.
+        The maximum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -469,14 +500,22 @@ class Profile2D(ProfileND):
                  weight_field = None):
         super(Profile2D, self).__init__(data_source, weight_field)
         # X
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
+        x_min, x_max = _sanitize_min_max_units(
+            x_min, x_max, self.field_info[self.x_field], self.ds.unit_registry)
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
-        self.y_field = y_field
+        self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
+        self.field_info[self.y_field] = \
+            self.data_source.ds.field_info[self.y_field]
+        y_min, y_max = _sanitize_min_max_units(
+            y_min, y_max, self.field_info[self.y_field], self.ds.unit_registry)
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
@@ -550,17 +589,21 @@ class ParticleProfile(Profile2D):
     x_n : integer
         The number of bins along the x direction.
     x_min : float
-        The minimum value of the x profile field.
+        The minimum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_max : float
-        The maximum value of the x profile field.
+        The maximum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     y_field : string field name
         The field to profile as a function of along the y axis
     y_n : integer
         The number of bins along the y direction.
     y_min : float
-        The minimum value of the y profile field.
+        The minimum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     y_max : float
-        The maximum value of the y profile field.
+        The maximum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     weight_field : string field name
         The field to use for weighting. Default is None.
     deposition : string, optional
@@ -661,9 +704,11 @@ class Profile3D(ProfileND):
     x_n : integer
         The number of bins along the x direction.
     x_min : float
-        The minimum value of the x profile field.
+        The minimum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_max : float
-        The maximum value of the x profile field.
+        The maximum value of the x profile field. If supplied without units,
+        assumed to be in the output units for x_field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.
@@ -672,9 +717,11 @@ class Profile3D(ProfileND):
     y_n : integer
         The number of bins along the y direction.
     y_min : float
-        The minimum value of the y profile field.
+        The minimum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     y_max : float
-        The maximum value of the y profile field.
+        The maximum value of the y profile field. If supplied without units,
+        assumed to be in the output units for y_field.
     y_log : boolean
         Controls whether or not the bins for the y field are evenly
         spaced in linear (False) or log (True) space.
@@ -683,9 +730,11 @@ class Profile3D(ProfileND):
     z_n : integer
         The number of bins along the z direction.
     z_min : float
-        The minimum value of the z profile field.
+        The minimum value of the z profile field. If supplied without units,
+        assumed to be in the output units for z_field.
     z_max : float
-        The maximum value of thee z profile field.
+        The maximum value of thee z profile field. If supplied without units,
+        assumed to be in the output units for z_field.
     z_log : boolean
         Controls whether or not the bins for the z field are evenly
         spaced in linear (False) or log (True) space.
@@ -700,20 +749,32 @@ class Profile3D(ProfileND):
                  weight_field = None):
         super(Profile3D, self).__init__(data_source, weight_field)
         # X
-        self.x_field = x_field
+        self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
+        self.field_info[self.x_field] = \
+            self.data_source.ds.field_info[self.x_field]
+        x_min, x_max = _sanitize_min_max_units(
+            x_min, x_max, self.field_info[self.x_field], self.ds.unit_registry)
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
         # Y
-        self.y_field = y_field
+        self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
+        self.field_info[self.y_field] = \
+            self.data_source.ds.field_info[self.y_field]
+        y_min, y_max = _sanitize_min_max_units(
+            y_min, y_max, self.field_info[self.y_field], self.ds.unit_registry)
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
         # Z
-        self.z_field = z_field
+        self.z_field = data_source._determine_fields(z_field)[0]
         self.z_log = z_log
+        self.field_info[self.z_field] = \
+            self.data_source.ds.field_info[self.z_field]
+        z_min, z_max = _sanitize_min_max_units(
+            z_min, z_max, self.field_info[self.z_field], self.ds.unit_registry)
         self.z_bins = array_like_field(data_source,
                                        self._get_bins(z_min, z_max, z_n, z_log),
                                        self.z_field)
