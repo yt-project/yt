@@ -6,6 +6,8 @@ import tempfile
 import subprocess
 import shutil
 import pkg_resources
+from sys import platform as _platform
+
 
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise"""
@@ -101,6 +103,10 @@ def configuration(parent_package='',top_path=None):
         embree_include_dir = loc + '/include'
         embree_lib_dir = loc + '/lib'
         embree_args = ['-I/' + embree_include_dir, '-L/' + embree_lib_dir]
+        if _platform == "darwin":
+            embree_lib_name = "embree.2"
+        else:
+            embree_lib_name = "embree"
     else:
         embree_args = None
     # Because setjmp.h is included by lots of things, and because libpng hasn't
@@ -222,14 +228,14 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("mesh_construction",
                              ["yt/utilities/lib/mesh_construction.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["m", "embree"], language="c++",
+                             libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("mesh_traversal",
                              ["yt/utilities/lib/mesh_traversal.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["m", "embree"], language="c++",
+                             libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_traversal.pxd",
@@ -237,7 +243,7 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("mesh_samplers",
                              ["yt/utilities/lib/mesh_samplers.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["m", "embree"], language="c++",
+                             libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_samplers.pxd",
@@ -245,7 +251,7 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("mesh_intersection",
                              ["yt/utilities/lib/mesh_intersection.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
-                             libraries=["m", "embree"], language="c++",
+                             libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_intersection.pxd"])
