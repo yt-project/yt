@@ -1619,32 +1619,36 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     visualization will be present, and some analysis functions may not yet have
     been implemented.
 
-    Particle fields are detected as one-dimensional fields. The number of particles
-    is set by the "number_of_particles" key in data.
+    Particle fields are detected as one-dimensional fields. The number of
+    particles is set by the "number_of_particles" key in data.
+
+    In the parameter descriptions below, a "vertex" is a 3D point in space, an
+    "element" is a single polyhedron whose location is defined by a set of
+    vertices, and a "mesh" is a set of polyhedral elements, each with the same
+    number of vertices.
 
     Parameters
     ----------
     connectivity : list of array_like or array_like
-        This is the connectivity array for the meshes; this should either be a
-        list where each element in the list is a numpy array or a single numpy
-        array.  Each array in the list can have different connectivity length
-        and should be of shape (N,M) where N is the number of elements and M is
-        the connectivity length.
+        This should either be a single 2D array or list of 2D arrays.  If this
+        is a list, each element in the list corresponds to the connectivity
+        information for a distinct mesh. Each array can have different
+        connectivity length and should be of shape (N,M) where N is the number
+        of elements and M is the number of vertices per element.
     coordinates : array_like
-        This should be of size (L,3) where L is the number of vertices
-        indicated in the connectivity matrix.
+        The 3D coordinates of mesh vertices. This should be of size (L,3) where
+        L is the number of vertices. When loading more than one mesh, the data
+        for each mesh should be concatenated into a single coordinates array.
     node_data : dict or list of dicts
-        This is a list of dicts of numpy arrays, where each element in the list
-        is a different mesh, and where the keys of dicts are the field names.
-        If a dict is supplied, this will be assumed to be the only mesh. These
-        data fields are assumed to be node-centered, i.e. there must be one
-        value for every node in the mesh.
+        For a single mesh, a dict mapping field names to 2D numpy arrays,
+        representing data defined at element vertices. For multiple meshes,
+        this must be a list of dicts.
     elem_data : dict or list of dicts
-        This is a list of dicts of numpy arrays, where each element in the list
-        is a different mesh, and where the keys of dicts are the field names.
-        If a dict is supplied, this will be assumed to be the only mesh. These
-        data fields are assumed to be element-centered, i.e. there must be only
-        one value for every element in the mesh.
+        For a single mesh, a dict mapping field names to 1D numpy arrays, where
+        each array has a length equal to the number of elements. The data
+        must be defined at the center of each mesh element and there must be
+        only one data value for each element. For multiple meshes, this must be
+        a list of dicts, with one dict for each mesh.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units of the length unit.
     sim_time : float, optional
@@ -1665,8 +1669,31 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+
+    >>> # Coordinates for vertices of two tetrahedra
+    >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5], [0.5, 1, 0.5],
+                                [0.5, 0.5, 0.0], [0.5, 0.5, 1.0]])
+
+    >>> # The indices in the coordinates array of mesh vertices.
+    >>> # This mesh has two elements.
+    >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
+
+    >>> # Field data defined at the centers of the two mesh elements.
+    >>> elem_data = {
+    ...     ('connect1', 'elem_field'): np.array([1, 2])
+    ... }
+
+    >>> # Field data defined at node vertices
+    >>> node_data = {
+    ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
+    ...                                           [0.0, 1.0, 2.0, 3.0]])
+    ... }
+
+    >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
+    ...                                elem_data=elem_data,
+    ...                                node_data=node_data)
 
     """
 
