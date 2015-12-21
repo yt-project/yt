@@ -18,10 +18,6 @@ from yt.visualization.volume_rendering.api import Scene, Camera, VolumeSource
 import numpy as np
 from unittest import TestCase
 
-# This toggles using a temporary directory. Turn off to examine images.
-use_tmpdir = True
-
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -29,8 +25,11 @@ def setup():
 
 
 class LensTest(TestCase):
+    # This toggles using a temporary directory. Turn off to examine images.
+    use_tmpdir = True
+
     def setUp(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
             self.tmpdir = tempfile.mkdtemp()
@@ -42,7 +41,7 @@ class LensTest(TestCase):
         self.ds = fake_random_ds(32, fields=self.field)
 
     def tearDown(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
 
