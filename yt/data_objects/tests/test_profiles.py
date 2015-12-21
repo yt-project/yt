@@ -22,48 +22,54 @@ def test_profiles():
         ["density", "temperature", "dinosaurs"])
     rt, tt, dt = dd.quantities["TotalQuantity"](
         ["density", "temperature", "dinosaurs"])
-    # First we look at the 
+
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
-        # We log all the fields or don't log 'em all.  No need to do them
-        # individually.
-        for lf in [True, False]:
-            direct_profile = Profile1D(
-                dd, "density", nb, rmi*e1, rma*e2, lf, weight_field = None)
-            direct_profile.add_fields(["ones", "temperature"])
+        for input_units in ['mks', 'cgs']:
+            for ex in [rmi, rma, tmi, tma, dmi, dma]:
+                getattr(ex, 'convert_to_%s' % input_units)()
+            # We log all the fields or don't log 'em all.  No need to do them
+            # individually.
+            for lf in [True, False]:
+                direct_profile = Profile1D(
+                    dd, "density", nb, rmi*e1, rma*e2, lf, weight_field=None)
+                direct_profile.add_fields(["ones", "temperature"])
 
-            indirect_profile_s = create_profile(
-                dd, "density", ["ones", "temperature"], n_bins=nb,
-                extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf}, 
-                weight_field=None)
+                indirect_profile_s = create_profile(
+                    dd, "density", ["ones", "temperature"], n_bins=nb,
+                    extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf},
+                    weight_field=None)
 
-            indirect_profile_t = create_profile(
-                dd, ("gas", "density"),
-                [("index", "ones"), ("gas", "temperature")], n_bins=nb,
-                extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf}, 
-                weight_field=None)
+                indirect_profile_t = create_profile(
+                    dd, ("gas", "density"),
+                    [("index", "ones"), ("gas", "temperature")], n_bins=nb,
+                    extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf},
+                    weight_field=None)
 
-            for p1d in [direct_profile, indirect_profile_s,
-                        indirect_profile_t]:
-                yield assert_equal, p1d["index", "ones"].sum(), nv
-                yield assert_rel_equal, tt, p1d["gas", "temperature"].sum(), 7
+                for p1d in [direct_profile, indirect_profile_s,
+                            indirect_profile_t]:
+                    yield assert_equal, p1d["index", "ones"].sum(), nv
+                    yield assert_rel_equal, tt, \
+                        p1d["gas", "temperature"].sum(), 7
 
-            p2d = Profile2D(dd, 
-                "density",     nb, rmi*e1, rma*e2, lf,
-                "temperature", nb, tmi*e1, tma*e2, lf,
-                weight_field = None)
-            p2d.add_fields(["ones", "temperature"])
-            yield assert_equal, p2d["ones"].sum(), nv
-            yield assert_rel_equal, tt, p2d["temperature"].sum(), 7
+                p2d = Profile2D(
+                    dd,
+                    "density",     nb, rmi*e1, rma*e2, lf,
+                    "temperature", nb, tmi*e1, tma*e2, lf,
+                    weight_field=None)
+                p2d.add_fields(["ones", "temperature"])
+                yield assert_equal, p2d["ones"].sum(), nv
+                yield assert_rel_equal, tt, p2d["temperature"].sum(), 7
 
-            p3d = Profile3D(dd, 
-                "density",     nb, rmi*e1, rma*e2, lf,
-                "temperature", nb, tmi*e1, tma*e2, lf,
-                "dinosaurs",   nb, dmi*e1, dma*e2, lf,
-                weight_field = None)
-            p3d.add_fields(["ones", "temperature"])
-            yield assert_equal, p3d["ones"].sum(), nv
-            yield assert_rel_equal, tt, p3d["temperature"].sum(), 7
+                p3d = Profile3D(
+                    dd,
+                    "density",     nb, rmi*e1, rma*e2, lf,
+                    "temperature", nb, tmi*e1, tma*e2, lf,
+                    "dinosaurs",   nb, dmi*e1, dma*e2, lf,
+                    weight_field=None)
+                p3d.add_fields(["ones", "temperature"])
+                yield assert_equal, p3d["ones"].sum(), nv
+                yield assert_rel_equal, tt, p3d["temperature"].sum(), 7
 
         p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False,
                         weight_field = None)
