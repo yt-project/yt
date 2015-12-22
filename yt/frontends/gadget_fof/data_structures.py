@@ -47,6 +47,12 @@ class GadgetFOFParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):
         super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
 
+    def _calculate_particle_count(self):
+        "Calculate the total number of each type of particle."
+        self.particle_count = \
+          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
+                 for ptype in self.ds.particle_types_raw])
+
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
         # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
@@ -94,6 +100,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
 
     def _setup_geometry(self):
         super(GadgetFOFParticleIndex, self)._setup_geometry()
+        self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
@@ -103,7 +110,8 @@ class GadgetFOFHDF5File(ParticleFile):
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
-        self.total_ids = {"Group": self.header["Nids_ThisFile"]}
+        self.total_ids = {"Group": self.header["Nids_ThisFile"],
+                          "Subhalo": 0} # subhalos not yet supported
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
@@ -271,24 +279,29 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         else:
             self.data_files = self.real_ds.index.data_files
 
-        self._calculate_particle_index_starts()
+        self._calculate_particle_count()
         self._create_halo_id_table()
 
     def _create_halo_id_table(self):
         """
         Create a list of halo start ids so we know which file
-        contains particles for a given halo.
+        contains particles for a given halo.  Note, the halo ids
+        are distributed over all files and so the ids for a given
+        halo are likely stored in a different file than the halo
+        itself.
         """
 
-        self._halo_index_start = \
-          dict([(ptype, np.array([dom.index_start[ptype]
+        all_ids = \
+          dict([(ptype, np.array([dom.total_ids[ptype]
                                   for dom in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
+
         self._halo_index_end = \
-          dict([(ptype, np.array([dom.total_particles[ptype]
-                                  for dom in self.data_files]) +
-                        self._halo_index_start[ptype])
-                for ptype in self.ds.particle_types_raw])
+          dict([(ptype, val.cumsum())
+                for ptype, val in all_ids.items()])
+        self._halo_index_start = \
+          dict([(ptype, val - all_ids[ptype])
+                for ptype, val in self._halo_index_end.items()])
 
     def _detect_output_fields(self):
         dsl = []
