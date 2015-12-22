@@ -151,11 +151,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
-            pcount = {"Group": f["Header"].attrs["Ngroups_ThisFile"],
-                      "Subhalo": f["Header"].attrs["Nsubgroups_ThisFile"]}
-            data_file.total_offset = 0 # need to figure out how subfind works here
-            return pcount
+        return data_file.total_particles
 
     def _identify_fields(self, data_file):
         fields = []
@@ -171,7 +167,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
-class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
+class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
     _dataset_type = "gadget_fof_halo_hdf5"
 
     def __init__(self, ds):
@@ -182,13 +178,6 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         pass
-
-    def _count_particles(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
-            pcount = {"Group": f["Header"].attrs["Ngroups_ThisFile"],
-                      "Subhalo": f["Header"].attrs["Nsubgroups_ThisFile"]}
-            data_file.total_offset = 0 # need to figure out how subfind works here
-            return pcount
 
     def _read_particle_selection(self, dobj, fields):
         rv = {}
@@ -270,7 +259,6 @@ class IOHandlerGadgetFOFHaloHDF5(BaseIOHandler):
         pcount = data_file.total_particles
         if sum(pcount.values()) == 0: return fields, {}
         with h5py.File(data_file.filename, "r") as f:
-            data_file.total_ids = {"Group": f["Header"].attrs["Nids_ThisFile"]}
             if "IDs" not in f:
                 return fields, {}
             for ptype in self.ds.particle_types_raw:

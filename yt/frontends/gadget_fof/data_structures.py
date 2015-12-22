@@ -64,8 +64,8 @@ class GadgetFOFParticleIndex(ParticleIndex):
             offset_count += data_file.total_offset
 
     def _calculate_file_offset_map(self):
-        # After the FOF  is performed, a load-balancing step redistributes halos 
-        # and then writes more fields.  Here, for each file, we create a list of 
+        # After the FOF is performed, a load-balancing step redistributes halos
+        # and then writes more fields.  Here, for each file, we create a list of
         # files which contain the rest of the redistributed particles.
         ifof = np.array([data_file.total_particles["Group"]
                          for data_file in self.data_files])
@@ -102,11 +102,16 @@ class GadgetFOFParticleIndex(ParticleIndex):
     
 class GadgetFOFHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
         with h5py.File(filename, "r") as f:
-            self.header = dict((field, f.attrs[field]) \
-                               for field in f.attrs.keys())
-    
+            self.header = \
+              dict((field, val) for field, val in f["Header"].attrs.items())
+        self.total_ids = {"Group": self.header["Nids_ThisFile"]}
+        self.total_particles = \
+          {"Group": self.header["Ngroups_ThisFile"],
+           "Subhalo": self.header["Nsubgroups_ThisFile"]}
+        self.total_offset = 0 # need to figure out how subfind works here
+        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
