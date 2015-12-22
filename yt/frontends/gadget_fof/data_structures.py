@@ -24,26 +24,24 @@ import weakref
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
+from yt.data_objects.static_output import \
+    Dataset, \
+    ParticleFile
+from yt.frontends.gadget.data_structures import \
+    _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
 from yt.geometry.geometry_handler import \
     Index
-
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
     mylog
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
-from yt.frontends.gadget.data_structures import \
-    _fix_unit_ordering
-
 
 class GadgetFOFParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):
@@ -98,7 +96,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         super(GadgetFOFParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
-    
+
 class GadgetFOFHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
@@ -267,10 +265,11 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
             template = self.real_ds.filename_template
             ndoms = self.real_ds.file_count
             cls = self.real_ds._file_class
-            self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
-                               for i in range(ndoms)]
+            self.data_files = \
+              [cls(self.dataset, self.io, template % {'num':i}, i)
+               for i in range(ndoms)]
         else:
-            self.data_files = self.read_ds.index.data_files
+            self.data_files = self.real_ds.index.data_files
 
         self._calculate_particle_index_starts()
         self._create_halo_id_table()
