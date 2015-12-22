@@ -57,7 +57,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["Group"], dtype="float64")
-        fofindex = np.arange(data_file.total_particles["Group"]) + data_file.index_start["Group"]
+        fofindex = np.arange(data_file.total_particles["Group"]) + \
+          data_file.index_start["Group"]
         for offset_file in data_file.offset_files:
             if fh.filename == offset_file.filename:
                 ofh = fh
@@ -169,12 +170,6 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
 
 class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
     _dataset_type = "gadget_fof_halo_hdf5"
-
-    def __init__(self, ds):
-        super(IOHandlerGadgetFOFHaloHDF5, self).__init__(ds)
-
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
         pass

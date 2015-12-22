@@ -19,7 +19,6 @@ from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
-import glob
 import os
 import weakref
 
@@ -104,7 +103,8 @@ class GadgetFOFHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = \
-              dict((field, val) for field, val in f["Header"].attrs.items())
+              dict((str(field), val)
+                   for field, val in f["Header"].attrs.items())
         self.total_ids = {"Group": self.header["Nids_ThisFile"]}
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
@@ -116,7 +116,6 @@ class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFFieldInfo
-    _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
                  n_ref=16, over_refine_factor=1,
@@ -146,10 +145,10 @@ class GadgetFOFDataset(Dataset):
         self.halo = partial(GagdetFOFHaloContainer, self._halos_ds)
 
     def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFiles"]
+        with h5py.File(self.parameter_filename,"r") as f:
+            self.parameters = \
+              dict((str(field), val)
+                   for field, val in f["Header"].attrs.items())
 
         self.dimensionality = 3
         self.refine_by = 2
@@ -158,35 +157,29 @@ class GadgetFOFDataset(Dataset):
 
         # Set standard values
         self.domain_left_edge = np.zeros(3, "float64")
-        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        self.domain_right_edge = np.ones(3, "float64") * \
+          self.parameters["BoxSize"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
-
+        self.current_redshift = self.parameters["Redshift"]
+        self.omega_lambda = self.parameters["OmegaLambda"]
+        self.omega_matter = self.parameters["Omega0"]
+        self.hubble_constant = self.parameters["HubbleParam"]
         cosmology = Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda)
         self.current_time = cosmology.t_from_z(self.current_redshift)
 
-        self.parameters = hvals
         prefix = os.path.abspath(
             os.path.join(os.path.dirname(self.parameter_filename), 
                          os.path.basename(self.parameter_filename).split(".", 1)[0]))
-        
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.file_count = len(glob.glob(prefix + "*" + self._suffix))
-        if self.file_count == 0:
-            raise YTException(message="No data files found.", ds=self)
+        self.file_count = self.parameters["NumFiles"]
         self.particle_types = ("Group", "Subhalo")
         self.particle_types_raw = ("Group", "Subhalo")
-        
-        handle.close()
 
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
