@@ -447,6 +447,9 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
                max=self.index._halo_id_end[ptype][i_start:i_end+1])
         self.all_id_start = all_id_start
 
+        for attr in ["mass", "position", "velocity"]:
+            setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
+
     def __repr__(self):
         return "%s_%s_%09d" % \
           (self.ds, self.ptype, self.particle_identifier)
