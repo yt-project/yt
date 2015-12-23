@@ -6,7 +6,7 @@ cimport cython
 
 cdef void patchIntersectFunc(Patch* patches, 
                              rtcr.RTCRay& ray, 
-                             size_t item)
+                             size_t item) nogil
 
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item, 
