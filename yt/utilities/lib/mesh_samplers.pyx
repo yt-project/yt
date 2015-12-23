@@ -124,6 +124,7 @@ cdef void sample_hex(void* userPtr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.initializedcheck(False)
 @cython.cdivision(True)
 cdef void sample_hex20(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
