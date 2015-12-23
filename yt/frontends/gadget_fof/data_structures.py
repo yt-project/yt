@@ -87,7 +87,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
             data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
 
     def _detect_output_fields(self):
-        dsl = []
+        field_list = []
         units = {}
         found_fields = \
           dict([(ptype, False)
@@ -97,15 +97,14 @@ class GadgetFOFParticleIndex(ParticleIndex):
         for data_file in self.data_files:
             fl, _units = self.io._identify_fields(data_file)
             units.update(_units)
-            data_file._calculate_offsets(fl)
-            dsl.extend([f for f in fl if f not in dsl])
+            field_list.extend([f for f in fl if f not in field_list])
             for ptype in found_fields:
                 found_fields[ptype] |= data_file.total_particles[ptype]
             if all(found_fields.values()): break
 
-        self.field_list = dsl
+        self.field_list = field_list
         ds = self.dataset
-        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.particle_types = tuple(set(pt for pt, ds in field_list))
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
@@ -316,7 +315,8 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
                 for ptype, val in self._halo_id_end.items()])
 
     def _detect_output_fields(self):
-        dsl = []
+        field_list = []
+        scalar_field_list = []
         units = {}
         found_fields = \
           dict([(ptype, False)
@@ -324,16 +324,20 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
                 if pnum > 0])
 
         for data_file in self.data_files:
-            fl, _units = self.io._identify_fields(data_file)
+            fl, sl, _units = self.io._identify_fields(data_file)
             units.update(_units)
-            dsl.extend([f for f in fl if f not in dsl])
+            field_list.extend([f for f in fl
+                               if f not in field_list])
+            scalar_field_list.extend([f for f in sl
+                                      if f not in scalar_field_list])
             for ptype in found_fields:
                 found_fields[ptype] |= data_file.total_particles[ptype]
             if all(found_fields.values()): break
 
-        self.field_list = dsl
+        self.field_list = field_list
+        self.scalar_field_list = scalar_field_list
         ds = self.dataset
-        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.particle_types = tuple(set(pt for pt, ds in field_list))
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 

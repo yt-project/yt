@@ -257,16 +257,22 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
 
     def _identify_fields(self, data_file):
         fields = []
+        scalar_fields = []
         pcount = data_file.total_particles
-        if sum(pcount.values()) == 0: return fields, {}
+        if sum(pcount.values()) == 0: return fields, scalar_fields, {}
         with h5py.File(data_file.filename, "r") as f:
-            if "IDs" not in f:
-                return fields, {}
             for ptype in self.ds.particle_types_raw:
-                if ptype == "Subhalo": continue
                 if data_file.total_particles[ptype] == 0: continue
+                fields.append((ptype, "particle_identifier"))
+                my_fields, my_offset_fields = \
+                  subfind_field_list(f[ptype], ptype, data_file.total_particles)
+                fields.extend(my_fields)
+                scalar_fields.extend(my_fields)
+
+                if "IDs" not in f: continue
+                if ptype == "Subhalo": continue
                 fields.extend([(ptype, field) for field in f["IDs"]])
-        return fields, {}
+        return fields, scalar_fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []
@@ -286,12 +292,12 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
-            elif ptype == "Subfind" and \
-              not fh[field].size % fh["/Subfind"].attrs["Number_of_groups"]:
+            elif ptype == "Subhalo" and \
+              not fh[field].size % fh["/Subhalo"].attrs["Number_of_groups"]:
                 # These are actually Group fields, but they were written after 
                 # a load balancing step moved halos around and thus they do not
                 # correspond to the halos stored in the Group group.
-                my_div = fh[field].size / fh["/Subfind"].attrs["Number_of_groups"]
+                my_div = fh[field].size / fh["/Subhalo"].attrs["Number_of_groups"]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
                     for i in range(int(my_div)):
