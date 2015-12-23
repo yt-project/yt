@@ -15,17 +15,16 @@ GadgetFOF data-file handling function
 #-----------------------------------------------------------------------------
 
 from collections import defaultdict
-
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.funcs import mylog
-
+from yt.utilities.exceptions import \
+    YTDomainOverflow
 from yt.utilities.io_handler import \
     BaseIOHandler
-
-from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.lib.geometry_utils import \
+    compute_morton
 
 class IOHandlerGadgetFOFHDF5(BaseIOHandler):
     _dataset_type = "gadget_fof_hdf5"
