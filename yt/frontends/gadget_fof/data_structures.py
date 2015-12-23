@@ -429,12 +429,12 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         with h5py.File(self.scalar_data_file.filename, "r") as f:
             halo_size = f[ptype]["GroupLen"].value
             all_id_start += int(halo_size[:self.scalar_index].sum())
-            self.psize = halo_size[self.scalar_index]
+            self.particle_number = halo_size[self.scalar_index]
 
         i_start = np.digitize([all_id_start],
                               self.index._halo_id_start[ptype],
                               right=False)[0] - 1
-        i_end = np.digitize([all_id_start+self.psize],
+        i_end = np.digitize([all_id_start+self.particle_number],
                             self.index._halo_id_end[ptype],
                             right=True)[0]
         self.field_data_files = self.index.data_files[i_start:i_end+1]
@@ -442,7 +442,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
           (all_id_start -
            self.index._halo_id_start[ptype][i_start:i_end+1]).clip(min=0)
         self.field_data_end = \
-          (all_id_start + self.psize -
+          (all_id_start + self.particle_number -
            self.index._halo_id_start[ptype][i_start:i_end+1]).clip(
                max=self.index._halo_id_end[ptype][i_start:i_end+1])
         self.all_id_start = all_id_start

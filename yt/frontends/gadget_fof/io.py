@@ -195,7 +195,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                 field_maps[field].append(field)
 
         # Now we allocate
-        psize = {dobj.ptype: dobj.psize}
+        psize = {dobj.ptype: dobj.particle_number}
         for field in fields:
             if field[0] in unions:
                 for pt in unions[field[0]]:
@@ -253,7 +253,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
 
     def _read_member_fields(self, dobj, member_fields):
         def field_array():
-            return np.empty(dobj.psize, dtype=np.float64)
+            return np.empty(dobj.particle_number, dtype=np.float64)
         all_data = defaultdict(field_array)
         if not member_fields: return all_data
         field_start = 0
