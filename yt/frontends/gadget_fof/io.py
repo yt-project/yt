@@ -207,6 +207,8 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                 shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
                 shape = (fsize[field],)+self._array_fields[field[1]]
+            elif field in self.ds.scalar_field_list:
+                shape = (1,)
             else:
                 shape = (fsize[field], )
             rv[field] = np.empty(shape, dtype="float64")
@@ -224,19 +226,44 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
-    def _read_particle_fields(self, dobj, ptf):
+    def _read_scalar_fields(self, dobj, scalar_fields):
+        all_data = {}
+        if not scalar_fields: return all_data
+        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+            for ptype, field_list in sorted(scalar_fields.items()):
+                for field in field_list:
+                    if field == "particle_identifier":
+                        field_data = \
+                          np.arange(dobj.scalar_data_file.total_particles[ptype]) + \
+                          dobj.scalar_data_file.index_start[ptype]
+                    elif field in f[ptype]:
+                        field_data = f[ptype][field].value.astype("float64")
+                    else:
+                        fname = field[:field.rfind("_")]
+                        field_data = f[ptype][fname].value.astype("float64")
+                        my_div = field_data.size / pcount
+                        if my_div > 1:
+                            field_data = np.resize(field_data, (pcount, my_div))
+                            findex = int(field[field.rfind("_") + 1:])
+                            field_data = field_data[:, findex]
+                    data = np.array([field_data[dobj.scalar_index]])
+                    all_data[(ptype, field)] = data
+        return all_data
+
+    def _read_member_fields(self, dobj, member_fields):
         def field_array():
             return np.empty(dobj.psize, dtype=np.float64)
-        data = defaultdict(field_array)
+        all_data = defaultdict(field_array)
+        if not member_fields: return all_data
         field_start = 0
         for i, data_file in enumerate(dobj.field_data_files):
             start_index = dobj.field_data_start[i]
             end_index = dobj.field_data_end[i]
             field_end = field_start + end_index - start_index
             with h5py.File(data_file.filename, "r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
-                        field_data = data[(ptype, field)]
+                        field_data = all_data[(ptype, field)]
                         if field in f["IDs"]:
                             my_data = \
                               f["IDs"][field][start_index:end_index].astype("float64")
@@ -251,8 +278,23 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                                 my_data = my_data[:, findex]
                         field_data[field_start:field_end] = my_data
             field_start = field_end
+        return all_data
 
-        for field, field_data in data.items():
+    def _read_particle_fields(self, dobj, ptf):
+        # separate member particle fields from scalar fields
+        scalar_fields = defaultdict(list)
+        member_fields = defaultdict(list)
+        for ptype, field_list in sorted(ptf.items()):
+            for field in field_list:
+                if (ptype, field) in self.ds.scalar_field_list:
+                    scalar_fields[ptype].append(field)
+                else:
+                    member_fields[ptype].append(field)
+
+        all_data = self._read_scalar_fields(dobj, scalar_fields)
+        all_data.update(self._read_member_fields(dobj, member_fields))
+
+        for field, field_data in all_data.items():
             yield field, field_data
 
     def _identify_fields(self, data_file):
@@ -264,6 +306,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
                 fields.append((ptype, "particle_identifier"))
+                scalar_fields.append((ptype, "particle_identifier"))
                 my_fields, my_offset_fields = \
                   subfind_field_list(f[ptype], ptype, data_file.total_particles)
                 fields.extend(my_fields)

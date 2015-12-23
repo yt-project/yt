@@ -337,6 +337,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         self.field_list = field_list
         self.scalar_field_list = scalar_field_list
         ds = self.dataset
+        ds.scalar_field_list = scalar_field_list
         ds.particle_types = tuple(set(pt for pt, ds in field_list))
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
