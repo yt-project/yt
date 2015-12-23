@@ -67,8 +67,8 @@ class GadgetFOFParticleIndex(ParticleIndex):
             offset_count += data_file.total_offset
 
         self._halo_index_start = \
-          dict([(ptype, np.array([dom.index_start[ptype]
-                                  for dom in self.data_files]))
+          dict([(ptype, np.array([data_file.index_start[ptype]
+                                  for data_file in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
 
     def _calculate_file_offset_map(self):
@@ -89,19 +89,25 @@ class GadgetFOFParticleIndex(ParticleIndex):
     def _detect_output_fields(self):
         dsl = []
         units = {}
-        for dom in self.data_files:
-            fl, _units = self.io._identify_fields(dom)
+        found_fields = \
+          dict([(ptype, False)
+                for ptype, pnum in self.particle_count.items()
+                if pnum > 0])
+
+        for data_file in self.data_files:
+            fl, _units = self.io._identify_fields(data_file)
             units.update(_units)
-            dom._calculate_offsets(fl)
-            for f in fl:
-                if f not in dsl: dsl.append(f)
+            data_file._calculate_offsets(fl)
+            dsl.extend([f for f in fl if f not in dsl])
+            for ptype in found_fields:
+                found_fields[ptype] |= data_file.total_particles[ptype]
+            if all(found_fields.values()): break
+
         self.field_list = dsl
         ds = self.dataset
         ds.particle_types = tuple(set(pt for pt, ds in dsl))
-        # This is an attribute that means these particle types *actually*
-        # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
-        ds.particle_types_raw = tuple(sorted(ds.particle_types))
+        ds.particle_types_raw = ds.particle_types
 
     def _setup_geometry(self):
         super(GadgetFOFParticleIndex, self)._setup_geometry()
@@ -298,8 +304,8 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         """
 
         all_ids = \
-          dict([(ptype, np.array([dom.total_ids[ptype]
-                                  for dom in self.data_files]))
+          dict([(ptype, np.array([data_file.total_ids[ptype]
+                                  for data_file in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
 
         self._halo_id_end = \
@@ -312,10 +318,19 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def _detect_output_fields(self):
         dsl = []
         units = {}
-        for dom in self.data_files:
-            if sum(dom.total_particles.values()) > 0:
-                dsl, units = self.io._identify_fields(dom)
-                break
+        found_fields = \
+          dict([(ptype, False)
+                for ptype, pnum in self.particle_count.items()
+                if pnum > 0])
+
+        for data_file in self.data_files:
+            fl, _units = self.io._identify_fields(data_file)
+            units.update(_units)
+            dsl.extend([f for f in fl if f not in dsl])
+            for ptype in found_fields:
+                found_fields[ptype] |= data_file.total_particles[ptype]
+            if all(found_fields.values()): break
+
         self.field_list = dsl
         ds = self.dataset
         ds.particle_types = tuple(set(pt for pt, ds in dsl))
