@@ -66,6 +66,16 @@ class GadgetFOFParticleIndex(ParticleIndex):
                 particle_count[ptype] += data_file.total_particles[ptype]
             offset_count += data_file.total_offset
 
+        self._halo_index_start = \
+          dict([(ptype, np.array([dom.index_start[ptype]
+                                  for dom in self.data_files]))
+                for ptype in self.ds.particle_types_raw])
+        self._halo_index_end = \
+          dict([(ptype, np.array([dom.total_particles[ptype]
+                                  for dom in self.data_files]) +
+                                  self._halo_index_start[ptype])
+                for ptype in self.ds.particle_types_raw])
+
     def _calculate_file_offset_map(self):
         # After the FOF is performed, a load-balancing step redistributes halos
         # and then writes more fields.  Here, for each file, we create a list of
@@ -279,6 +289,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         else:
             self.data_files = self.real_ds.index.data_files
 
+        self._calculate_particle_index_starts()
         self._calculate_particle_count()
         self._create_halo_id_table()
 
@@ -296,12 +307,12 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
                                   for dom in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
 
-        self._halo_index_end = \
+        self._halo_id_end = \
           dict([(ptype, val.cumsum())
                 for ptype, val in all_ids.items()])
-        self._halo_index_start = \
+        self._halo_id_start = \
           dict([(ptype, val - all_ids[ptype])
-                for ptype, val in self._halo_index_end.items()])
+                for ptype, val in self._halo_id_end.items()])
 
     def _detect_output_fields(self):
         dsl = []
@@ -378,27 +389,40 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.particle_identifier = particle_identifier
         super(GagdetFOFHaloContainer, self).__init__(ds, {})
 
-        # Find the file that has the data for this halo.
-        if self.particle_identifier >= self.ds.index._halo_index_end[ptype][-1]:
-            raise RuntimeError("Halo %d is out of bounds of catalog with %d halos." %
-                               (self.particle_identifier,
-                                self.ds.index._halo_index_end[ptype][-1]))
-        file_index = \
-          (self.particle_identifier >=
-           self.ds.index._halo_index_start[ptype]) & \
-          (self.particle_identifier <
-           self.ds.index._halo_index_end[ptype])
-        self.data_file = self.ds.index.data_files[np.where(file_index)[0]]
+        if self.particle_identifier >= self.index.particle_count[ptype]:
+            raise RuntimeError("%s %d requested, but only %d %s objects exist." %
+                               (ptype, particle_identifier,
+                                self.index.particle_count[ptype], ptype))
+
+        # Find the file that has the scalar values for this halo.
+        i_scalar = np.digitize([particle_identifier],
+                               self.index._halo_index_start[ptype],
+                               right=False)[0] - 1
 
         # index within halo arrays that corresponds to this halo
         self.scalar_index = self.particle_identifier - \
-          self.ds.index._halo_index_start[ptype][file_index][0]
+          self.ds.index._halo_index_start[ptype][i_scalar]
+        self.scalar_data_file = self.ds.index.data_files[i_scalar]
 
-        # find start and end index for halo member particles
-        with h5py.File(self.data_file.filename, "r") as f:
+        # Find the files that have the member particles for this halo.
+        all_id_start = 0
+        for d in self.index.data_files[:i_scalar]:
+            with h5py.File(d.filename, "r") as f:
+                all_id_start += int(f[ptype]["GroupLen"].value.sum())
+
+        with h5py.File(self.scalar_data_file.filename, "r") as f:
             halo_size = f[ptype]["GroupLen"].value
+            all_id_start += int(halo_size[:self.scalar_index].sum())
             self.psize = halo_size[self.scalar_index]
-            self.field_index = halo_size[:self.scalar_index].sum()
+
+        i_start = np.digitize([all_id_start],
+                              self.index._halo_id_start[ptype],
+                              right=False)[0] - 1
+        i_end = np.digitize([all_id_start+self.psize],
+                            self.index._halo_id_end[ptype],
+                            right=True)[0]
+        self.field_data_files = self.ds.index.data_files[i_start:i_end+1]
+        self.all_id_start = all_id_start
 
     def __repr__(self):
         return "%s_%s_%09d" % \
