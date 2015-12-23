@@ -383,6 +383,7 @@ class GadgetFOFHaloDataset(Dataset):
                      "velocity", "magnetic", "temperature"]:
             my_unit = "%s_unit" % unit
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
+        self.unit_registry = self.real_ds.unit_registry
 
     def __repr__(self):
         return "%s" % self.real_ds

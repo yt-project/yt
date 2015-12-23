@@ -229,6 +229,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
     def _read_scalar_fields(self, dobj, scalar_fields):
         all_data = {}
         if not scalar_fields: return all_data
+        pcount = 1
         with h5py.File(dobj.scalar_data_file.filename, "r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
