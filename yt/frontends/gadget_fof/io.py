@@ -226,28 +226,35 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         return rv
 
     def _read_particle_fields(self, dobj, ptf):
-        data_file = dobj.data_file
-        start_index = dobj.field_index
-        end_index = start_index + dobj.psize
-        with h5py.File(data_file.filename, "r") as f:
-            for ptype, field_list in sorted(ptf.items()):
-                pcount = dobj.psize
-                if pcount == 0: continue
-                for field in field_list:
-                    if field in f["IDs"]:
-                        field_data = \
-                          f["IDs"][field][start_index:end_index].astype("float64")
-                    else:
-                        fname = field[:field.rfind("_")]
-                        field_data = \
-                          f["IDs"][fname][start_index:end_index].astype("float64")
-                        my_div = field_data.size / pcount
-                        if my_div > 1:
-                            field_data = np.resize(field_data, (pcount, my_div))
-                            findex = int(field[field.rfind("_") + 1:])
-                            field_data = field_data[:, findex]
-                    data = field_data
-                    yield (ptype, field), data
+        def field_array():
+            return np.empty(dobj.psize, dtype=np.float64)
+        data = defaultdict(field_array)
+        field_start = 0
+        for i, data_file in enumerate(dobj.field_data_files):
+            start_index = dobj.field_data_start[i]
+            end_index = dobj.field_data_end[i]
+            field_end = field_start + end_index - start_index
+            with h5py.File(data_file.filename, "r") as f:
+                for ptype, field_list in sorted(ptf.items()):
+                    for field in field_list:
+                        field_data = data[(ptype, field)]
+                        if field in f["IDs"]:
+                            my_data = \
+                              f["IDs"][field][start_index:end_index].astype("float64")
+                        else:
+                            fname = field[:field.rfind("_")]
+                            my_data = \
+                              f["IDs"][fname][start_index:end_index].astype("float64")
+                            my_div = my_data.size / pcount
+                            if my_div > 1:
+                                my_data = np.resize(my_data, (pcount, my_div))
+                                findex = int(field[field.rfind("_") + 1:])
+                                my_data = my_data[:, findex]
+                        field_data[field_start:field_end] = my_data
+            field_start = field_end
+
+        for field, field_data in data.items():
+            yield field, field_data
 
     def _identify_fields(self, data_file):
         fields = []

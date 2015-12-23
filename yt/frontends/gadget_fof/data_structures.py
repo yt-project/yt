@@ -70,11 +70,6 @@ class GadgetFOFParticleIndex(ParticleIndex):
           dict([(ptype, np.array([dom.index_start[ptype]
                                   for dom in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
-        self._halo_index_end = \
-          dict([(ptype, np.array([dom.total_particles[ptype]
-                                  for dom in self.data_files]) +
-                                  self._halo_index_start[ptype])
-                for ptype in self.ds.particle_types_raw])
 
     def _calculate_file_offset_map(self):
         # After the FOF is performed, a load-balancing step redistributes halos
@@ -401,13 +396,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         # index within halo arrays that corresponds to this halo
         self.scalar_index = self.particle_identifier - \
-          self.ds.index._halo_index_start[ptype][i_scalar]
-        self.scalar_data_file = self.ds.index.data_files[i_scalar]
+          self.index._halo_index_start[ptype][i_scalar]
+        self.scalar_data_file = self.index.data_files[i_scalar]
 
         # Find the files that have the member particles for this halo.
         all_id_start = 0
-        for d in self.index.data_files[:i_scalar]:
-            with h5py.File(d.filename, "r") as f:
+        for data_file in self.index.data_files[:i_scalar]:
+            with h5py.File(data_file.filename, "r") as f:
                 all_id_start += int(f[ptype]["GroupLen"].value.sum())
 
         with h5py.File(self.scalar_data_file.filename, "r") as f:
@@ -421,7 +416,14 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         i_end = np.digitize([all_id_start+self.psize],
                             self.index._halo_id_end[ptype],
                             right=True)[0]
-        self.field_data_files = self.ds.index.data_files[i_start:i_end+1]
+        self.field_data_files = self.index.data_files[i_start:i_end+1]
+        self.field_data_start = \
+          (all_id_start -
+           self.index._halo_id_start[ptype][i_start:i_end+1]).clip(min=0)
+        self.field_data_end = \
+          (all_id_start + self.psize -
+           self.index._halo_id_start[ptype][i_start:i_end+1]).clip(
+               max=self.index._halo_id_end[ptype][i_start:i_end+1])
         self.all_id_start = all_id_start
 
     def __repr__(self):
