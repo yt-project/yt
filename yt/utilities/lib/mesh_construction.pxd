@@ -13,8 +13,6 @@ ctypedef struct MeshDataContainer:
 
 ctypedef struct Patch:
     float[8][3] v
-    float[3] center
-    float radius
     unsigned int geomID
     long [:,:] indices
     double [:,:] vertices

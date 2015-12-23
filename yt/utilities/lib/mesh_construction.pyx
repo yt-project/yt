@@ -270,7 +270,6 @@ cdef class QuadraticElementMesh:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
-                self._set_bounding_sphere(patch)
                 patch.indices = indices_in
                 patch.vertices = vertices_in
                 patch.field_data = field_data
@@ -283,28 +282,6 @@ cdef class QuadraticElementMesh:
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
         rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
-
-    cdef void _set_bounding_sphere(self, Patch* patch):
-
-        # set the center to be the centroid of the patch vertices
-        cdef int i, j
-        for j in range(8):
-            for i in range(3):
-                patch.center[i] += patch.v[j][i]
-        for i in range(3):
-            patch.center[i] /= 8.0
-
-        # set the radius to be slightly larger than the distance between
-        # the center and the farthest vertex
-        cdef float r = 0.0
-        cdef float d
-        for j in range(8):
-            d = 0.0
-            for i in range(3):
-                d += (patch.v[j][i] - patch.center[i])**2
-            d = sqrt(d)
-            r = fmax(r, d)
-        patch.radius = 1.01*r
 
     def __dealloc__(self):
         free(self.patches)
