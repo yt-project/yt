@@ -22,6 +22,7 @@ cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
 from yt.utilities.lib.mesh_samplers cimport sample_hex20
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -199,26 +200,24 @@ cdef void patchIntersectFunc(Patch* patches,
         err = fmax(fabs(fu), fabs(fv))
         iterations += 1
 
-    # only count this as a hit if it's within the current ray endpoints
+    # t is the distance along the ray to this hit
     cdef float t = 0.0
     for i in range(3):
         t += (S[i] - ray.org[i])**2
     t = sqrt(t)
-    if (t < ray.tnear or t > ray.tfar):
+
+    # only count this is it's the closest hit
+    if (t < ray.tnear or t > ray.Ng[0]):
         return
 
-    patchSurfaceDerivU(patch, u, v, Su)
-    patchSurfaceDerivV(patch, u, v, Sv)
-    
     if (fabs(u) <= 1.0 and fabs(v) <= 1.0 and iterations < max_iter):
 
         # we have a hit, so update ray information
         ray.u = u
         ray.v = v
-        ray.tfar = t
         ray.geomID = patch.geomID
         ray.primID = item
-        cross(Su, Sv, ray.Ng)
+        ray.Ng[0] = t
         
         # sample the solution at the calculated point
         sample_hex20(patches, ray)
