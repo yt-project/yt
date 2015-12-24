@@ -336,6 +336,18 @@ def insert_ipython(num_up=1):
 # Our progress bar types and how to get one
 #
 
+class TqdmProgressBar(object):
+    # This is a drop in replacement for pbar
+    # called tqdm
+    def __init__(self,title, maxval):
+        from yt.extern.tqdm import tqdm
+        self._pbar = tqdm(leave=True,total=maxval,desc=title)
+
+    def update(self,*args,**kwargs):
+        self._pbar.update()
+    def finish(self):
+        self._pbar.close()
+
 class DummyProgressBar(object):
     # This progressbar gets handed if we don't
     # want ANY output
@@ -387,12 +399,7 @@ def get_pbar(title, maxval):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+    pbar = TqdmProgressBar(title,maxval)
     return pbar
 
 def only_on_root(func, *args, **kwargs):
