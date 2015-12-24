@@ -214,10 +214,10 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def lines(np.ndarray[np.float64_t, ndim=3] image,
-          np.ndarray[np.int64_t, ndim=1] xs,
-          np.ndarray[np.int64_t, ndim=1] ys,
-          np.ndarray[np.float64_t, ndim=2] colors,
+def lines(np.float64_t[:,:,:] image,
+          np.int64_t[:] xs,
+          np.int64_t[:] ys,
+          np.float64_t[:,:] colors,
           int points_per_color=1,
           int thick=1,
 	      int flip=0,
