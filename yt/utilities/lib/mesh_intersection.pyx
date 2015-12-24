@@ -173,7 +173,7 @@ cdef void patchIntersectFunc(Patch* patches,
     cdef float err = fmax(fabs(fu), fabs(fv))
     
     # begin Newton interation
-    cdef float tol = 1.0e-6
+    cdef float tol = 1.0e-5
     cdef int iterations = 0
     cdef int max_iter = 10
     cdef float[3] Su
