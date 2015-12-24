@@ -25,7 +25,6 @@ from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-from yt.funcs import mylog
 import yt.visualization._MPL as _MPL
 
 
