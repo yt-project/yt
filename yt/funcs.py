@@ -38,7 +38,7 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import builtins, urllib
+from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.extern.tqdm import tqdm
