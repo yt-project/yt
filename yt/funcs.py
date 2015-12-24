@@ -41,7 +41,7 @@ from numbers import Number as numeric_type
 from yt.extern.six.moves import builtins, urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.exceptions import YTInvalidWidthError
-import yt.extern.progressbar as pb
+from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
 
@@ -340,7 +340,6 @@ class TqdmProgressBar(object):
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self,title, maxval):
-        from yt.extern.tqdm import tqdm
         self._pbar = tqdm(leave=True,total=maxval,desc=title)
 
     def update(self,*args,**kwargs):
