@@ -543,9 +543,14 @@ cdef class OctreeContainer:
             num_cells = selector.count_oct_cells(self, domain_id)
             dest = np.zeros((num_cells, dims), dtype=source.dtype,
                             order='C')
-        dest = np.atleast_2d(dest)
         if dims != 1:
             raise RuntimeError
+        # Just make sure that we're in the right shape.  Ideally this will not
+        # duplicate memory.  Since we're in Cython, we want to avoid modifying
+        # the .shape attributes directly.
+        dest = dest.reshape((num_cells, 1))
+        source = source.reshape((source.shape[0], source.shape[1],
+                    source.shape[2], source.shape[3], dims))
         cdef OctVisitor visitor
         cdef oct_visitors.CopyArrayI64 visitor_i64
         cdef oct_visitors.CopyArrayF64 visitor_f64
