@@ -106,7 +106,6 @@ cdef class IndexOcts(OctVisitor):
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # Note that we provide an index even if the cell is not selected.
-        cdef np.int64_t *arr
         if self.last != o.domain_ind:
             self.last = o.domain_ind
             self.oct_index[o.domain_ind] = self.index

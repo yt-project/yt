@@ -90,10 +90,11 @@ class OctreeSubset(YTSelectionContainer):
         return self._num_zones + 2*self._num_ghost_zones
 
     def _reshape_vals(self, arr):
-        if len(arr.shape) == 4 and arr.flags["F_CONTIGUOUS"]:
-            return arr
         nz = self.nz
-        n_oct = arr.shape[0] / (nz**3.0)
+        if len(arr.shape) <= 2:
+            n_oct = arr.shape[0] / (nz**3.0)
+        else:
+            n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
@@ -115,10 +116,9 @@ class OctreeSubset(YTSelectionContainer):
 
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
-        mask = self._reshape_vals(mask)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
-            yield sl, mask[:,:,:,i]
+            yield sl, mask[i,...]
 
     def select_tcoords(self, dobj):
         # These will not be pre-allocated, which can be a problem for speed and
