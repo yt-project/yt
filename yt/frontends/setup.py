@@ -11,6 +11,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("athena")
     config.add_subpackage("boxlib")
     config.add_subpackage("chombo")
+    config.add_subpackage("exodus_ii")
     config.add_subpackage("eagle")
     config.add_subpackage("enzo")
     config.add_subpackage("fits")
@@ -37,6 +38,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("chombo/tests")
     config.add_subpackage("eagle/tests")
     config.add_subpackage("enzo/tests")
+    config.add_subpackage("exodus_ii/tests")
     config.add_subpackage("fits/tests")
     config.add_subpackage("flash/tests")
     config.add_subpackage("gadget/tests")
@@ -47,6 +49,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("ramses/tests")
     config.add_subpackage("rockstar/tests")
     config.add_subpackage("stream/tests")
+    config.add_subpackage("stream/sample_data")
     config.add_subpackage("tipsy/tests")
     config.add_subpackage("ytdata/tests")
     return config

@@ -925,6 +925,12 @@ def test_h5_io():
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
 
+    warr.write_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    giarr = YTArray.from_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    yield assert_equal, warr, giarr
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 

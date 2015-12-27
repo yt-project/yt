@@ -625,7 +625,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
@@ -637,7 +637,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, maxi, mx, my, mz = \
+        min_val, mx, my, mz = \
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
@@ -1141,5 +1141,5 @@ class ParticleFile(object):
     def _calculate_offsets(self, fields):
         pass
 
-    def __cmp__(self, other):
-        return cmp(self.filename, other.filename)
+    def __lt__(self, other):
+        return self.filename < other.filename

@@ -25,7 +25,7 @@ from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
-gdg = "GadgetDiskGalaxy/snapshot_200.hdf5"
+g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -42,9 +42,9 @@ iso_fields = OrderedDict(
 )
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
-gdg_fields = iso_fields.copy()
-gdg_fields["deposit", "PartType4_density"] = None
-gdg_kwargs = dict(bounding_box=[[-1e5, 1e5], [-1e5, 1e5], [-1e5, 1e5]])
+g64_fields = iso_fields.copy()
+g64_fields["deposit", "PartType4_density"] = None
+g64_kwargs = dict(bounding_box=[[-1e5, 1e5], [-1e5, 1e5], [-1e5, 1e5]])
 
 
 @requires_file(isothermal_h5)
@@ -58,14 +58,14 @@ def test_GadgetDataset():
 
 @requires_ds(isothermal_h5)
 def test_iso_collapse():
-    for test in sph_answer(isothermal_h5, 'snap_505', 2**17,
-                           iso_fields, ds_kwargs=iso_kwargs):
+    ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
+    for test in sph_answer(ds, 'snap_505', 2**17, iso_fields):
         test_iso_collapse.__name__ = test.description
         yield test
 
-@requires_ds(gdg, big_data=True)
-def test_gadget_disk_galaxy():
-    for test in sph_answer(gdg, 'snapshot_200', 11907080, gdg_fields,
-                           ds_kwargs=gdg_kwargs):
-        test_gadget_disk_galaxy.__name__ = test.description
+@requires_ds(g64, big_data=True)
+def test_gizmo_64():
+    ds = data_dir_load(g64, kwargs=g64_kwargs)
+    for test in sph_answer(ds, 'snap_N64L16_135', 524288, g64_fields):
+        test_gizmo_64.__name__ = test.description
         yield test

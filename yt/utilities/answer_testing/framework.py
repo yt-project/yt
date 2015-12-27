@@ -671,7 +671,11 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
                             err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
-    fns = ['old.png', 'new.png']
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
     num_images = len(old_result)
     assert(num_images > 0)
     for i in range(num_images):
@@ -917,12 +921,9 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
-    if not can_run_ds(ds_fn):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    if not can_run_ds(ds):
         return
-    if ds_kwargs is None:
-        ds_kwargs = {}
-    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
     yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
                         str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
@@ -946,9 +947,9 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
             for axis in [0, 1, 2]:
                 if particle_type is False:
                     yield PixelizedProjectionValuesTest(
-                        ds_fn, axis, field, weight_field,
+                        ds, axis, field, weight_field,
                         dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name,
+            yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
 
 def create_obj(ds, obj_type):

@@ -17,12 +17,15 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax
+from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
-    Q1Sampler3D
+    Q1Sampler3D, \
+    P1Sampler2D, \
+    Q1Sampler2D
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -433,14 +436,16 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=2] field,
-                          extents, int index_offset = 0):
+                          extents, 
+                          int index_offset = 0,
+                          double thresh = -1.0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
     # Second is more intensive.  It will convert the element vertices to the
-    # mapped coordinate system, and checking whether the result in in-bounds or not
+    # mapped coordinate system, and check whether the result in in-bounds or not
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
     cdef np.float64_t pLE[3], pRE[3]
@@ -452,23 +457,49 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
+    cdef int ndim = coords.shape[1]
+    cdef int num_field_vals = field.shape[1]
     cdef double* mapped_coord
+    cdef int num_mapped_coords
     cdef ElementSampler sampler
 
-    # Allocate storage for the mapped coordinate
-    if nvertices == 4:
-        mapped_coord = <double*> alloca(sizeof(double) * 4)
+    # Pick the right sampler and allocate storage for the mapped coordinate
+    if ndim == 3 and nvertices == 4:
         sampler = P1Sampler3D()
-    elif nvertices == 8:
-        mapped_coord = <double*> alloca(sizeof(double) * 3)
+    elif ndim == 3 and nvertices == 8:
         sampler = Q1Sampler3D()
+    elif ndim == 2 and nvertices == 3:
+        sampler = P1Sampler2D()
+    elif ndim == 2 and nvertices == 4:
+        sampler = Q1Sampler2D()
     else:
         raise RuntimeError
 
-    vertices = <np.float64_t *> alloca(3 * sizeof(np.float64_t) * nvertices)
-    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * nvertices)
-
+    # if we are in 2D land, the 1 cell thick dimension had better be 'z'
+    if ndim == 2:
+        assert(buff_size[2] == 1)
+    
     for i in range(3):
+        if buff_size[i] == 1:
+            ax = i
+    if ax == 0:
+        xax = 1
+        yax = 2
+    elif ax == 1:
+        xax = 1
+        yax = 2
+    elif ax == 2:
+        xax = 0
+        yax = 1
+
+    # allocate temporary storage
+    num_mapped_coords = sampler.num_mapped_coords
+    mapped_coord = <double*> alloca(sizeof(double) * num_mapped_coords)
+    vertices = <np.float64_t *> alloca(ndim * sizeof(np.float64_t) * nvertices)
+    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * num_field_vals)
+
+    # fill the image bounds and pixel size informaton here
+    for i in range(ndim):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
         dds[i] = (pRE[i] - pLE[i])/buff_size[i]
@@ -476,26 +507,39 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             idds[i] = 0.0
         else:
             idds[i] = 1.0 / dds[i]
+
     for ci in range(conn.shape[0]):
+
         # Fill the vertices
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
-        for n in range(nvertices): # 8
-            cj = conn[ci, n] - index_offset
+
+        for n in range(num_field_vals):
             field_vals[n] = field[ci, n]
-            for i in range(3):
-                vertices[3*n + i] = coords[cj, i]
-                LE[i] = fmin(LE[i], vertices[3*n+i])
-                RE[i] = fmax(RE[i], vertices[3*n+i])
+
+        for n in range(nvertices):
+            cj = conn[ci, n] - index_offset
+            for i in range(ndim):
+                vertices[ndim*n + i] = coords[cj, i]
+                LE[i] = fmin(LE[i], vertices[ndim*n+i])
+                RE[i] = fmax(RE[i], vertices[ndim*n+i])
+
         use = 1
-        for i in range(3):
+        for i in range(ndim):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
                 use = 0
                 break
             pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
             pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+
+        # override for the 2D case
+        if ndim == 2:
+            pstart[2] = 0
+            pend[2] = 0
+
         if use == 0:
             continue
+
         # Now our bounding box intersects, so we get the extents of our pixel
         # region which overlaps with the bounding box, and we'll check each
         # pixel in there.
@@ -510,8 +554,17 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
                     if not sampler.check_inside(mapped_coord):
                         continue
-                    # Else, we deposit!
-                    img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
-                                                                   field_vals)
-
+                    # if thresh is negative, we do the normal sample operation
+                    if thresh < 0.0:
+                        if (num_field_vals == 1):
+                            img[pi, pj, pk] = field_vals[0]
+                        else:
+                            img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
+                                                                           field_vals)
+                    else:
+                        # otherwise, we draw the element boundaries
+                        if sampler.check_near_edge(mapped_coord, thresh, xax):
+                            img[pi, pj, pk] = 1.0
+                        elif sampler.check_near_edge(mapped_coord, thresh, yax):
+                            img[pi, pj, pk] = 1.0
     return img

@@ -21,7 +21,7 @@ def new_mesh_sampler(camera, render_source):
         np.atleast_3d(params['vp_dir']),
         params['center'],
         params['bounds'],
-        np.atleast_3d(params['image']),
+        np.atleast_3d(params['image']).astype('float64'),
         params['x_vec'],
         params['y_vec'],
         params['width'],

@@ -396,6 +396,7 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef int i, j, k, selected
         cdef int npoints, nv = mesh._connectivity_length
+        cdef int ndim = mesh.connectivity_coords.shape[1]
         cdef int total = 0
         cdef int offset = mesh._index_offset
         coords = _ensure_code(mesh.connectivity_coords)
@@ -404,11 +405,11 @@ cdef class SelectorObject:
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(3):
+            for k in range(ndim):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
-                for k in range(3):
+                for k in range(ndim):
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
@@ -803,6 +804,7 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
+    cdef bint loose_selection
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -817,6 +819,9 @@ cdef class RegionSelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=1] DRE = _ensure_code(dobj.ds.domain_right_edge)
         cdef np.float64_t region_width[3]
         cdef bint p[3]
+        # This is for if we want to include zones that overlap and whose
+        # centers are not strictly included.
+        self.loose_selection = getattr(dobj, "loose_selection", False)
 
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
@@ -876,6 +881,13 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef np.float64_t left_edge[3], right_edge[3]
+        cdef int i
+        if self.loose_selection:
+            for i in range(3):
+                left_edge[i] = pos[i] - dds[i]*0.5
+                right_edge[i] = pos[i] + dds[i]*0.5
+            return self.select_bbox(left_edge, right_edge)
         return self.select_point(pos)
 
     @cython.boundscheck(False)

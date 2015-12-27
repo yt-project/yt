@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
+from yt.extern.six.moves import input
 import time
 import inspect
 import traceback
@@ -586,7 +587,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
@@ -604,7 +605,7 @@ def get_yt_supp():
         print("*** is a delicate act, I require you to respond   ***")
         print("*** to the prompt with the word 'yes'.            ***")
         print()
-        response = raw_input("Do you want me to try to check it out? ")
+        response = input("Do you want me to try to check it out? ")
         if response != "yes":
             print()
             print("Okay, I understand.  You can check it out yourself.")
