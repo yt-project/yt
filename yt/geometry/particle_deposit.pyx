@@ -27,13 +27,13 @@ from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
 from yt.utilities.lib.misc_utilities import OnceIndirect
 
-cdef prepend_axes(np.ndarray arr, int naxes):
+cdef append_axes(np.ndarray arr, int naxes):
     if arr.ndim == naxes:
         return arr
     # Avoid copies
     arr2 = arr.view()
-    arr2.shape = (1,) * (naxes - arr2.ndim) + arr2.shape
-    return arr
+    arr2.shape = arr2.shape + (1,) * (naxes - arr2.ndim)
+    return arr2
 
 cdef class ParticleDepositOperation:
     def __init__(self, nvals, kernel_name):
@@ -96,7 +96,7 @@ cdef class ParticleDepositOperation:
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Note that this has to be our local index, not our in-file index.
-            offset = dom_ind[oct.domain_ind - moff] * nz
+            offset = dom_ind[oct.domain_ind - moff]
             if offset < 0: continue
             # Check that we found the oct ...
             self.process(dims, oi.left_edge, oi.dds,
@@ -147,7 +147,7 @@ cdef class CountParticles(ParticleDepositOperation):
     cdef np.int64_t[:,:,:,:] count
     def initialize(self):
         # Create a numpy array accessible to python
-        self.count = prepend_axes(
+        self.count = append_axes(
             np.zeros(self.nvals, dtype="int64", order='F'), 4)
 
     @cython.cdivision(True)
@@ -164,7 +164,7 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        self.count[offset, ii[0], ii[1], ii[2]] += 1
+        self.count[ii[0], ii[1], ii[2], offset] += 1
 
     def finalize(self):
         arr = np.asarray(self.count)
@@ -181,10 +181,10 @@ cdef class SimpleSmooth(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] temp
 
     def initialize(self):
-        self.data = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
-        self.temp = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
+        self.data = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
+        self.temp = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
@@ -224,14 +224,14 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]
-                    self.temp[offset,i,j,k] = self.sph_kernel(dist)
-                    kernel_sum += self.temp[offset,i,j,k]
+                    self.temp[i,j,k,offset] = self.sph_kernel(dist)
+                    kernel_sum += self.temp[i,j,k,offset]
         # Having found the kernel, deposit accordingly into gdata
         for i from ib0[0] <= i <= ib1[0]:
             for j from ib0[1] <= j <= ib1[1]:
                 for k from ib0[2] <= k <= ib1[2]:
-                    dist = self.temp[offset,i,j,k] / kernel_sum
-                    self.data[offset,i,j,k] += fields[1] * dist
+                    dist = self.temp[i,j,k,offset] / kernel_sum
+                    self.data[i,j,k,offset] += fields[1] * dist
 
     def finalize(self):
         return self.odata
@@ -241,8 +241,8 @@ deposit_simple_smooth = SimpleSmooth
 cdef class SumParticleField(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] sum
     def initialize(self):
-        self.temp = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
+        self.sum = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
@@ -257,11 +257,11 @@ cdef class SumParticleField(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
-        self.sum[offset, ii[0], ii[1], ii[2]] += fields[0]
+        self.sum[ii[0], ii[1], ii[2], offset] += fields[0]
         return
 
     def finalize(self):
-        sum = self.sum
+        sum = np.asarray(self.sum)
         sum.shape = self.nvals
         return sum
 
@@ -279,12 +279,12 @@ cdef class StdParticleField(ParticleDepositOperation):
         # per cell, M_k, and Q_k and also the number of particles
         # deposited into each one
         # the M_k term
-        self.mk = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
-        self.qk = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
-        self.i = prepend_axes(
-            np.zeros(self.nvals, dtype="int64", order='F'), 4)
+        self.mk = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
+        self.qk = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
+        self.i = append_axes(
+            np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
@@ -300,18 +300,18 @@ cdef class StdParticleField(ParticleDepositOperation):
         cdef float k, mk, qk
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        k = self.i[offset, ii[0], ii[1], ii[2]]
-        mk = self.mk[offset, ii[0], ii[1], ii[2]]
-        qk = self.qk[offset, ii[0], ii[1], ii[2]]
+        k = self.i[ii[0], ii[1], ii[2], offset]
+        mk = self.mk[ii[0], ii[1], ii[2], offset]
+        qk = self.qk[ii[0], ii[1], ii[2], offset]
         #print k, mk, qk, cell_index
         if k == 0.0:
             # Initialize cell values
-            self.mk[offset, ii[0], ii[1], ii[2]] = fields[0]
+            self.mk[ii[0], ii[1], ii[2], offset] = fields[0]
         else:
-            self.mk[offset, ii[0], ii[1], ii[2]] = mk + (fields[0] - mk) / k
-            self.qk[offset, ii[0], ii[1], ii[2]] = \
+            self.mk[ii[0], ii[1], ii[2], offset] = mk + (fields[0] - mk) / k
+            self.qk[ii[0], ii[1], ii[2], offset] = \
                 qk + (k - 1.0) * (fields[0] - mk)**2.0 / k
-        self.i[offset, ii[0], ii[1], ii[2]] += 1
+        self.i[ii[0], ii[1], ii[2], offset] += 1
 
     def finalize(self):
         # This is the standard variance
@@ -328,7 +328,7 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] field
     cdef public object ofield
     def initialize(self):
-        self.field = prepend_axes(
+        self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
@@ -362,7 +362,7 @@ cdef class CICDeposit(ParticleDepositOperation):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    self.field[offset, ind[0] - i, ind[1] - j, ind[2] - k] += \
+                    self.field[ind[0] - i, ind[1] - j, ind[2] - k, offset] += \
                         fields[0]*rdds[0][i]*rdds[1][j]*rdds[2][k]
 
     def finalize(self):
@@ -378,9 +378,9 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] wf
     cdef np.float64_t[:,:,:,:] w
     def initialize(self):
-        self.wf = prepend_axes(
+        self.wf = append_axes(
             np.zeros(self.nvals, dtype='float64', order='F'), 4)
-        self.w = prepend_axes(
+        self.w = append_axes(
             np.zeros(self.nvals, dtype='float64', order='F'), 4)
 
     @cython.cdivision(True)
@@ -396,8 +396,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
-        self.w[offset, ii[0], ii[1], ii[2]] += fields[1]
-        self.wf[offset, ii[0], ii[1], ii[2]] += fields[0] * fields[1]
+        self.w[ii[0], ii[1], ii[2], offset] += fields[1]
+        self.wf[ii[0], ii[1], ii[2], offset] += fields[0] * fields[1]
 
     def finalize(self):
         wf = np.asarray(self.owf)
@@ -435,9 +435,9 @@ cdef class NNParticleField(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] nnfield
     cdef np.float64_t[:,:,:,:] distfield
     def initialize(self):
-        self.nnfield = prepend_axes(
+        self.nnfield = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
-        self.distfield = prepend_axes(
+        self.distfield = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
         self.distfield[:] = np.inf
 
@@ -465,9 +465,9 @@ cdef class NNParticleField(ParticleDepositOperation):
                     r2 = ((ppos[0] - gpos[0])*(ppos[0] - gpos[0]) +
                           (ppos[1] - gpos[1])*(ppos[1] - gpos[1]) +
                           (ppos[2] - gpos[2])*(ppos[2] - gpos[2]))
-                    if r2 < self.distfield[offset,i,j,k]:
-                        self.distfield[offset,i,j,k] = r2
-                        self.nnfield[offset,i,j,k] = fields[0]
+                    if r2 < self.distfield[i,j,k,offset]:
+                        self.distfield[i,j,k,offset] = r2
+                        self.nnfield[i,j,k,offset] = fields[0]
                     gpos[2] += dds[2]
                 gpos[1] += dds[1]
             gpos[0] += dds[0]

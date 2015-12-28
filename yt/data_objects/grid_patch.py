@@ -327,12 +327,12 @@ class AMRGridPatch(YTSelectionContainer):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
+        op = cls(tuple(self.ActiveDimensions), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.copy(order="C")
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)
