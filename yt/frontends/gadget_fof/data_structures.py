@@ -120,8 +120,7 @@ class GadgetFOFHDF5File(ParticleFile):
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
-        self.total_ids = {"Group": self.header["Nids_ThisFile"],
-                          "Subhalo": 0} # subhalos not yet supported
+        self.total_ids = self.header["Nids_ThisFile"]
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
@@ -302,17 +301,11 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         itself.
         """
 
-        all_ids = \
-          dict([(ptype, np.array([data_file.total_ids[ptype]
-                                  for data_file in self.data_files]))
-                for ptype in self.ds.particle_types_raw])
+        all_ids = np.array([data_file.total_ids
+                            for data_file in self.data_files])
 
-        self._halo_id_end = \
-          dict([(ptype, val.cumsum())
-                for ptype, val in all_ids.items()])
-        self._halo_id_start = \
-          dict([(ptype, val - all_ids[ptype])
-                for ptype, val in self._halo_id_end.items()])
+        self._halo_id_end = all_ids.cumsum()
+        self._halo_id_start = self._halo_id_end - all_ids
 
     def _detect_output_fields(self):
         field_list = []
@@ -432,19 +425,19 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
             self.particle_number = halo_size[self.scalar_index]
 
         i_start = np.digitize([all_id_start],
-                              self.index._halo_id_start[ptype],
+                              self.index._halo_id_start,
                               right=False)[0] - 1
         i_end = np.digitize([all_id_start+self.particle_number],
-                            self.index._halo_id_end[ptype],
+                            self.index._halo_id_end,
                             right=True)[0]
         self.field_data_files = self.index.data_files[i_start:i_end+1]
         self.field_data_start = \
           (all_id_start -
-           self.index._halo_id_start[ptype][i_start:i_end+1]).clip(min=0)
+           self.index._halo_id_start[i_start:i_end+1]).clip(min=0)
         self.field_data_end = \
           (all_id_start + self.particle_number -
-           self.index._halo_id_start[ptype][i_start:i_end+1]).clip(
-               max=self.index._halo_id_end[ptype][i_start:i_end+1])
+           self.index._halo_id_start[i_start:i_end+1]).clip(
+               max=self.index._halo_id_end[i_start:i_end+1])
         self.all_id_start = all_id_start
 
         for attr in ["mass", "position", "velocity"]:
