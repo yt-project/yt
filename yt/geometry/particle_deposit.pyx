@@ -19,10 +19,21 @@ import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
 from libc.math cimport sqrt
-
+from cpython cimport PyObject
 from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
+from cpython.array cimport array, clone
+from cython.view cimport memoryview as cymemview
+from yt.utilities.lib.misc_utilities import OnceIndirect
+
+cdef prepend_axes(np.ndarray arr, int naxes):
+    if arr.ndim == naxes:
+        return arr
+    # Avoid copies
+    arr2 = arr.view()
+    arr2.shape = (1,) * (naxes - arr2.ndim) + arr2.shape
+    return arr
 
 cdef class ParticleDepositOperation:
     def __init__(self, nvals, kernel_name):
@@ -47,15 +58,10 @@ cdef class ParticleDepositOperation:
         if fields is None:
             fields = []
         nf = len(fields)
-        cdef np.float64_t **field_pointers
-        cdef np.float64_t *field_vals
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t pos[3]
-        cdef np.ndarray[np.float64_t, ndim=1] tarr
-        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
-        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
-        for i in range(nf):
-            tarr = fields[i]
-            field_pointers[i] = <np.float64_t *> tarr.data
+        cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = (1 << octree.oref)
         cdef int nz = dims[0] * dims[1] * dims[2]
@@ -67,7 +73,7 @@ cdef class ParticleDepositOperation:
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
-                field_vals[j] = field_pointers[j][i]
+                field_vals[j] = field_pointers[j,i]
             for j in range(3):
                 pos[j] = positions[i, j]
             # This line should be modified to have it return the index into an
@@ -108,16 +114,11 @@ cdef class ParticleDepositOperation:
         if fields is None:
             fields = []
         nf = len(fields)
-        cdef np.float64_t **field_pointers
-        cdef np.float64_t *field_vals
+        cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t pos[3]
-        cdef np.ndarray[np.float64_t, ndim=1] tarr
-        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
-        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
         cdef np.int64_t gid = getattr(gobj, "id", -1)
-        for i in range(nf):
-            tarr = fields[i]
-            field_pointers[i] = <np.float64_t *> tarr.data
         cdef np.float64_t dds[3]
         cdef np.float64_t left_edge[3]
         cdef int dims[3]
@@ -128,7 +129,7 @@ cdef class ParticleDepositOperation:
         for i in range(positions.shape[0]):
             # Now we process
             for j in range(nf):
-                field_vals[j] = field_pointers[j][i]
+                field_vals[j] = field_pointers[j,i]
             for j in range(3):
                 pos[j] = positions[i, j]
             self.process(dims, left_edge, dds, 0, pos, field_vals, gid)
@@ -138,19 +139,16 @@ cdef class ParticleDepositOperation:
 
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,
-                      np.float64_t ppos[3], np.float64_t *fields,
+                      np.float64_t ppos[3], np.float64_t[:] fields,
                       np.int64_t domain_ind):
         raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
-    cdef np.int64_t *count # float, for ease
-    cdef public object ocount
+    cdef np.int64_t[:,:,:,:] count
     def initialize(self):
         # Create a numpy array accessible to python
-        self.ocount = np.zeros(self.nvals, dtype="int64", order='F')
-        cdef np.ndarray arr = self.ocount
-        # alias the C-view for use in cython
-        self.count = <np.int64_t*> arr.data
+        self.count = prepend_axes(
+            np.zeros(self.nvals, dtype="int64", order='F'), 4)
 
     @cython.cdivision(True)
     cdef void process(self, int dim[3],
@@ -158,7 +156,7 @@ cdef class CountParticles(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, # offset into IO field
                       np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         # here we do our thing; this is the kernel
@@ -166,10 +164,12 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        self.count[gind(ii[0], ii[1], ii[2], dim) + offset] += 1
+        self.count[offset, ii[0], ii[1], ii[2]] += 1
 
     def finalize(self):
-        return self.ocount.astype('f8')
+        arr = np.asarray(self.count)
+        arr.shape = self.nvals
+        return arr.astype("float64")
 
 deposit_count = CountParticles
 
@@ -196,7 +196,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         cdef int ii[3]
@@ -256,7 +256,7 @@ cdef class SumParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         cdef int ii[3]
@@ -304,7 +304,7 @@ cdef class StdParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         cdef int ii[3]
@@ -348,7 +348,7 @@ cdef class CICDeposit(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset, # offset into IO field
                       np.float64_t ppos[3], # this particle's position
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
 
@@ -403,7 +403,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         cdef int ii[3]
@@ -431,7 +431,7 @@ cdef class MeshIdentifier(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         fields[0] = domain_ind
@@ -462,7 +462,7 @@ cdef class NNParticleField(ParticleDepositOperation):
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
-                      np.float64_t *fields,
+                      np.float64_t[:] fields,
                       np.int64_t domain_ind
                       ):
         # This one is a bit slow.  Every grid cell is going to be iterated
