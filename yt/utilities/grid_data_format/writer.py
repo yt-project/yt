@@ -188,7 +188,7 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
 
                 # set field parameters, if specified
                 if field_parameters is not None:
-                    for k, v in field_parameters.iteritems():
+                    for k, v in field_parameters.items():
                         grid.set_field_parameter(k, v)
 
                 grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
