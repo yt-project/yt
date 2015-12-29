@@ -311,7 +311,6 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                 scalar_fields.extend(my_fields)
 
                 if "IDs" not in f: continue
-                if ptype == "Subhalo": continue
                 fields.extend([(ptype, field) for field in f["IDs"]])
         return fields, scalar_fields, {}
 

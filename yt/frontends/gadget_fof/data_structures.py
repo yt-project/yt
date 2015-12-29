@@ -355,6 +355,42 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
             dobj, fields_to_read)
         return fields_to_return, fields_to_generate
 
+    def _get_halo_values(self, ptype, identifiers, fields,
+                         f=None):
+        """
+        Get field values for halos.  IDs are likely to be
+        sequential (or at least monotonic), but not necessarily
+        all within the same file.
+
+        This does not do much to minimize file i/o, but with
+        halos randomly distributed across files, there's not
+        much more we can do.
+        """
+
+        # if a file is already open, don't open it again
+        filename = None if f is None \
+          else f.filename
+
+        data = defaultdict(lambda: np.empty(identifiers.size))
+        i_scalars = np.digitize(identifiers,
+            self._halo_index_start[ptype], right=False) - 1
+        for i_scalar in np.unique(i_scalars):
+            target = i_scalars == i_scalar
+            scalar_indices = identifiers - \
+              self._halo_index_start[ptype][i_scalar]
+
+            # only open file if it's not already open
+            my_f = f if self.data_files[i_scalar].filename == filename \
+              else h5py.File(self.data_files[i_scalar].filename, "r")
+
+            for field in fields:
+                data[field][target] = \
+                  my_f[os.path.join(ptype, field)].value[scalar_indices[target]]
+
+            if self.data_files[i_scalar].filename != filename: my_f.close()
+
+        return data
+
 class GadgetFOFHaloDataset(Dataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
@@ -424,13 +460,37 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         all_id_start = self.index._group_length_sum[:i_scalar].sum()
         with h5py.File(self.scalar_data_file.filename, "r") as f:
             halo_size = f[ptype]["%sLen" % ptype].value
-            all_id_start += int(halo_size[:self.scalar_index].sum())
+            all_id_start += np.int64(halo_size[:self.scalar_index].sum())
             self.particle_number = halo_size[self.scalar_index]
 
-            # If a subhalo, find the index of the parent
+            # If a subhalo, find the index of the parent.
             if ptype == "Subhalo":
                 self.group_identifier = \
                   f["Subhalo/SubhaloGrNr"][self.scalar_index]
+
+                # Find the file that has the scalar values for the parent.
+                ip_scalar = np.digitize([self.group_identifier],
+                                        self.index._halo_index_start["Group"],
+                                        right=False)[0] - 1
+
+                p_data = self.index._get_halo_values(
+                    "Group", np.array([self.group_identifier]),
+                    ["GroupNsubs", "GroupFirstSub"], f=f)
+                self.subgroup_identifier = self.particle_identifier - \
+                  np.int64(p_data["GroupFirstSub"][0])
+                parent_subhalos = p_data["GroupNsubs"][0]
+
+                mylog.debug("Subhalo %d is subgroup %s of %d in group %d." % \
+                            (self.particle_identifier, self.subgroup_identifier,
+                            parent_subhalos, self.group_identifier))
+
+                sub_ids = np.arange(self.particle_identifier -
+                                    self.subgroup_identifier,
+                                    self.particle_identifier)
+                sub_data = self.index._get_halo_values(
+                    "Subhalo", sub_ids, ["SubhaloLen"], f=f)
+                id_offset = np.int64(sub_data["SubhaloLen"].sum())
+                all_id_start += id_offset
 
         i_start = np.digitize([all_id_start],
                               self.index._halo_id_start,
@@ -442,11 +502,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.field_data_start = \
           (all_id_start -
            self.index._halo_id_start[i_start:i_end+1]).clip(min=0)
+        self.field_data_start = self.field_data_start.astype(np.int64)
         self.field_data_end = \
           (all_id_start + self.particle_number -
            self.index._halo_id_start[i_start:i_end+1]).clip(
                max=self.index._halo_id_end[i_start:i_end+1])
-        self.all_id_start = all_id_start
+        self.field_data_end = self.field_data_end.astype(np.int64)
+        self.all_id_start = np.int64(all_id_start)
 
         for attr in ["mass", "position", "velocity"]:
             setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
