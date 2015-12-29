@@ -250,9 +250,8 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         return all_data
 
     def _read_member_fields(self, dobj, member_fields):
-        def field_array():
-            return np.empty(dobj.particle_number, dtype=np.float64)
-        all_data = defaultdict(field_array)
+        all_data = defaultdict(lambda: np.empty(dobj.particle_number,
+                                                dtype=np.float64))
         if not member_fields: return all_data
         field_start = 0
         for i, data_file in enumerate(dobj.field_data_files):
