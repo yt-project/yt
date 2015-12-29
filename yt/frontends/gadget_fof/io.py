@@ -107,7 +107,6 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                                 field_data = f[ptype][fname].value.astype("float64")
                                 my_div = field_data.size / pcount
                                 if my_div > 1:
-                                    field_data = np.resize(field_data, (pcount, my_div))
                                     findex = int(field[field.rfind("_") + 1:])
                                     field_data = field_data[:, findex]
                         data = field_data[mask]
@@ -244,7 +243,6 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                         field_data = f[ptype][fname].value.astype("float64")
                         my_div = field_data.size / pcount
                         if my_div > 1:
-                            field_data = np.resize(field_data, (pcount, my_div))
                             findex = int(field[field.rfind("_") + 1:])
                             field_data = field_data[:, findex]
                     data = np.array([field_data[dobj.scalar_index]])
@@ -274,7 +272,6 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                               f["IDs"][fname][start_index:end_index].astype("float64")
                             my_div = my_data.size / pcount
                             if my_div > 1:
-                                my_data = np.resize(my_data, (pcount, my_div))
                                 findex = int(field[field.rfind("_") + 1:])
                                 my_data = my_data[:, findex]
                         field_data[field_start:field_end] = my_data
