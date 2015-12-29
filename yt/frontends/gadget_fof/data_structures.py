@@ -120,11 +120,15 @@ class GadgetFOFHDF5File(ParticleFile):
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
+            self.group_length_sum = f["Group/GroupLen"].value.sum() \
+              if "Group/GroupLen" in f else 0
+            self.group_subs_sum = f["Group/GroupNsubs"].value.sum() \
+              if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
-        self.total_offset = 0 # need to figure out how subfind works here
+        self.total_offset = 0 # I think this is no longer needed
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
 class GadgetFOFDataset(Dataset):
@@ -307,6 +311,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         self._halo_id_end = all_ids.cumsum()
         self._halo_id_start = self._halo_id_end - all_ids
 
+        self._group_length_sum = \
+          np.array([data_file.group_length_sum
+                    for data_file in self.data_files])
+
     def _detect_output_fields(self):
         field_list = []
         scalar_field_list = []
@@ -391,10 +399,9 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         if ptype not in ds.particle_types_raw:
             raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
                                (ds.particle_types_raw, ptype))
-        if ptype == "Subhalo":
-            raise NotImplementedError()
 
         self.ptype = ptype
+        self._current_particle_type = ptype
         self.particle_identifier = particle_identifier
         super(GagdetFOFHaloContainer, self).__init__(ds, {})
 
@@ -414,15 +421,16 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.scalar_data_file = self.index.data_files[i_scalar]
 
         # Find the files that have the member particles for this halo.
-        all_id_start = 0
-        for data_file in self.index.data_files[:i_scalar]:
-            with h5py.File(data_file.filename, "r") as f:
-                all_id_start += int(f[ptype]["GroupLen"].value.sum())
-
+        all_id_start = self.index._group_length_sum[:i_scalar].sum()
         with h5py.File(self.scalar_data_file.filename, "r") as f:
-            halo_size = f[ptype]["GroupLen"].value
+            halo_size = f[ptype]["%sLen" % ptype].value
             all_id_start += int(halo_size[:self.scalar_index].sum())
             self.particle_number = halo_size[self.scalar_index]
+
+            # If a subhalo, find the index of the parent
+            if ptype == "Subhalo":
+                self.group_identifier = \
+                  f["Subhalo/SubhaloGrNr"][self.scalar_index]
 
         i_start = np.digitize([all_id_start],
                               self.index._halo_id_start,
