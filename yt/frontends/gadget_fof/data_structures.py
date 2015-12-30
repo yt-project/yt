@@ -463,9 +463,11 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.scalar_index = self.index._get_halo_scalar_index(
             ptype, self.particle_identifier)
 
+        halo_fields = ["%sLen" % ptype]
+        if ptype == "Subhalo": halo_fields.append("SubhaloGrNr")
         my_data = self.index._get_halo_values(
             ptype, np.array([particle_identifier]),
-            ["%sLen" % ptype])
+            halo_fields)
         self.particle_number = my_data["%sLen" % ptype]
 
         if ptype == "Group":
@@ -477,9 +479,6 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         # If a subhalo, find the index of the parent.
         elif ptype == "Subhalo":
-            my_data = self.index._get_halo_values(
-                "Subhalo", np.array([particle_identifier]),
-                ["SubhaloGrNr"])
             self.group_identifier = np.int64(my_data["SubhaloGrNr"])
 
             # Find the file that has the scalar values for the parent group.
