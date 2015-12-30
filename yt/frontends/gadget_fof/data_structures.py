@@ -446,8 +446,18 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        self.particle_identifier = particle_identifier
         super(GagdetFOFHaloContainer, self).__init__(ds, {})
+
+        if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
+            self.group_identifier, self.subgroup_identifier = \
+              particle_identifier
+            my_data = self.index._get_halo_values(
+                "Group", np.array([self.group_identifier]),
+                ["GroupFirstSub"])
+            self.particle_identifier = \
+              np.int64(my_data["GroupFirstSub"] + self.subgroup_identifier)
+        else:
+            self.particle_identifier = particle_identifier
 
         if self.particle_identifier >= self.index.particle_count[ptype]:
             raise RuntimeError("%s %d requested, but only %d %s objects exist." %
@@ -456,7 +466,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         # Find the file that has the scalar values for this halo.
         i_scalar = self.index._get_halo_file_indices(
-            ptype, [particle_identifier])[0]
+            ptype, [self.particle_identifier])[0]
         self.scalar_data_file = self.index.data_files[i_scalar]
 
         # index within halo arrays that corresponds to this halo
@@ -466,7 +476,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         halo_fields = ["%sLen" % ptype]
         if ptype == "Subhalo": halo_fields.append("SubhaloGrNr")
         my_data = self.index._get_halo_values(
-            ptype, np.array([particle_identifier]),
+            ptype, np.array([self.particle_identifier]),
             halo_fields)
         self.particle_number = my_data["%sLen" % ptype]
 
