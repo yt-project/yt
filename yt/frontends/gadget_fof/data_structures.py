@@ -305,11 +305,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         itself.
         """
 
-        all_ids = np.array([data_file.total_ids
+        self._halo_id_number = np.array([data_file.total_ids
                             for data_file in self.data_files])
-
-        self._halo_id_end = all_ids.cumsum()
-        self._halo_id_start = self._halo_id_end - all_ids
+        self._halo_id_end = self._halo_id_number.cumsum()
+        self._halo_id_start = self._halo_id_end - self._halo_id_number
 
         self._group_length_sum = \
           np.array([data_file.group_length_sum
@@ -455,7 +454,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
                 "Group", np.array([self.group_identifier]),
                 ["GroupFirstSub"])
             self.particle_identifier = \
-              np.int64(my_data["GroupFirstSub"] + self.subgroup_identifier)
+              np.int64(my_data["GroupFirstSub"][0] + self.subgroup_identifier)
         else:
             self.particle_identifier = particle_identifier
 
@@ -478,7 +477,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         my_data = self.index._get_halo_values(
             ptype, np.array([self.particle_identifier]),
             halo_fields)
-        self.particle_number = my_data["%sLen" % ptype]
+        self.particle_number = np.int64(my_data["%sLen" % ptype][0])
 
         if ptype == "Group":
             self.group_identifier = self.particle_identifier
@@ -489,7 +488,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         # If a subhalo, find the index of the parent.
         elif ptype == "Subhalo":
-            self.group_identifier = np.int64(my_data["SubhaloGrNr"])
+            self.group_identifier = np.int64(my_data["SubhaloGrNr"][0])
 
             # Find the file that has the scalar values for the parent group.
             g_scalar = self.index._get_halo_file_indices(
@@ -546,7 +545,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.field_data_end = \
           (all_id_start + self.particle_number -
            self.index._halo_id_start[i_start:i_end+1]).clip(
-               max=self.index._halo_id_end[i_start:i_end+1])
+               max=self.index._halo_id_number[i_start:i_end+1])
         self.field_data_end = self.field_data_end.astype(np.int64)
 
         for attr in ["mass", "position", "velocity"]:
