@@ -61,12 +61,12 @@ def test_subhalos():
     total_sub = 0
     total_int = 0
     for hid in range(0, ds.index.particle_count["Group"]):
-    my_h = ds.halo("Group", hid)
-    h_ids = my_h["ID"]
-    for sid in range(my_h["subhalo_number"]):
-        my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
-        total_sub += my_s["ID"].size
-        total_int += np.intersect1d(h_ids, my_s["ID"]).size
+        my_h = ds.halo("Group", hid)
+        h_ids = my_h["ID"]
+        for sid in range(my_h["subhalo_number"]):
+            my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
+            total_sub += my_s["ID"].size
+            total_int += np.intersect1d(h_ids, my_s["ID"]).size
 
     # Test that all subhalo particles are contained within
     # their parent group.
