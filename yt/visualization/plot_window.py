@@ -1030,6 +1030,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_colorbar()
+        return self
 
     def show_colorbar(self, field=None):
         """
@@ -1048,6 +1049,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_colorbar()
+        return self
 
     def hide_axes(self, field=None):
         """
@@ -1086,6 +1088,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_axes()
+        return self
 
     def show_axes(self, field=None):
         """
@@ -1104,6 +1107,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_axes()
+        return self
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset

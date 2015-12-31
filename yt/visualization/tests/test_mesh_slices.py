@@ -32,7 +32,7 @@ def test_mesh_slices():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    np.random.seed(0451)
+    np.random.seed(0x4d3d3d3)
 
     # tetrahedral ds
     ds = fake_tetrahedral_ds()

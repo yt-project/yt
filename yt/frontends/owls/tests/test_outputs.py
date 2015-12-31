@@ -45,7 +45,8 @@ _fields = OrderedDict(
 
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
-    for test in sph_answer(os33, 'snap_033', 2*128**3, _fields):
+    ds = data_dir_load(os33)
+    for test in sph_answer(ds, 'snap_033', 2*128**3, _fields):
         test_snapshot_033.__name__ = test.description
         yield test
 

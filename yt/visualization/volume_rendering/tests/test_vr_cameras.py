@@ -28,9 +28,6 @@ from yt.visualization.volume_rendering.api import ColorTransferFunction, \
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
-# This toggles using a temporary directory. Turn off to examine images.
-use_tmpdir = True
-
 
 def setup():
     """Test specific setup."""
@@ -39,8 +36,11 @@ def setup():
 
 
 class CameraTest(TestCase):
+    # This toggles using a temporary directory. Turn off to examine images.
+    use_tmpdir = True
+
     def setUp(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
             self.tmpdir = tempfile.mkdtemp()
@@ -56,7 +56,7 @@ class CameraTest(TestCase):
         self.field = ("gas", "density")
 
     def tearDown(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
 
