@@ -51,3 +51,23 @@ def test_fields_g42():
 @requires_file(g42)
 def test_GadgetFOFDataset():
     assert isinstance(data_dir_load(g42), GadgetFOFDataset)
+
+# fof/subhalo catalog with member particles
+g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
+
+@requires_ds(g298)
+def test_subhalos():
+    ds = data_dir_load(g298)
+    total_sub = 0
+    total_int = 0
+    for hid in range(0, ds.index.particle_count["Group"]):
+    my_h = ds.halo("Group", hid)
+    h_ids = my_h["ID"]
+    for sid in range(my_h["subhalo_number"]):
+        my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
+        total_sub += my_s["ID"].size
+        total_int += np.intersect1d(h_ids, my_s["ID"]).size
+
+    # Test that all subhalo particles are contained within
+    # their parent group.
+    yield assert_equal, total_sub, total_int
