@@ -152,6 +152,14 @@ class GadgetFOFDataset(Dataset):
         super(GadgetFOFDataset, self).__init__(filename, dataset_type,
                                                units_override=units_override)
 
+    @property
+    def halos_field_list(self):
+        return self._halos_ds.field_list
+
+    @property
+    def halos_derived_field_list(self):
+        return self._halos_ds.derived_field_list
+
     _instantiated_halo_ds = None
     @property
     def _halos_ds(self):
@@ -161,7 +169,7 @@ class GadgetFOFDataset(Dataset):
 
     def _setup_classes(self):
         super(GadgetFOFDataset, self)._setup_classes()
-        self.halo = partial(GagdetFOFHaloContainer, self._halos_ds)
+        self.halo = partial(GagdetFOFHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename,"r") as f:
@@ -436,9 +444,83 @@ class GadgetFOFHaloDataset(Dataset):
         self.objects = []
 
 class GagdetFOFHaloContainer(YTSelectionContainer):
+    """
+    Create a data container to get member particles and individual
+    values from halos and subhalos.  Halo mass, position, and
+    velocity are set as attributes.  Halo IDs are accessible
+    through the field, "member_ids".  Other fields that are one
+    value per halo are accessible as normal.  The field list for
+    halo objects can be seen in `ds.halos_field_list`.
+
+    Parameters
+    ----------
+    ptype : string
+        The type of halo, either "Group" for the main halo or
+        "Subhalo" for subhalos.
+    particle_identifier : int or tuple of (int, int)
+        The halo or subhalo id.  If requesting a subhalo, the id
+        can also be given as a tuple of the main halo id and
+        subgroup id, such as (1, 4) for subgroup 4 of halo 1.
+
+    Halo Container Attributes
+    -------------------------
+    particle_identifier : int
+        The id of the halo or subhalo.
+    group_identifier : int
+        For subhalos, the id of the enclosing halo.
+    subgroup_identifier : int
+        For subhalos, the relative id of the subhalo within
+        the enclosing halo.
+    particle_number : int
+        Number of particles in the halo.
+    mass : float
+        Halo mass.
+    position : array of floats
+        Halo position.
+    velocity : array of floats
+        Halo velocity.
+
+    Relevant Fields
+    ---------------
+    particle_number :
+        number of particles
+    subhalo_number :
+        number of subhalos
+    group_identifier :
+        id of parent group for subhalos
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
+    >>>
+    >>> halo = ds.halo("Group", 0)
+    >>> print halo.mass
+    13256.5517578 code_mass
+    >>> print halo.position
+    [ 16.18603706   6.95965052  12.52694607] code_length
+    >>> print halo.velocity
+    [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
+    >>> print halo["Group_R_Crit200"]
+    [ 0.79668683] code_length
+    >>>
+    >>> # particle ids for this halo
+    >>> print halo["member_ids"]
+    >>>
+    >>> # get the first subhalo of this halo
+    >>> subhalo = ds.halo("Subhalo", (0, 0))
+    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
+    >>> print subhalo["member_ids"]
+    [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
+
+    """
+
+    _type_name = "halo"
+    _con_args = ("ptype", "particle_identifier")
     _spatial = False
 
-    def __init__(self, ds, ptype, particle_identifier):
+    def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
             raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
                                (ds.particle_types_raw, ptype))
