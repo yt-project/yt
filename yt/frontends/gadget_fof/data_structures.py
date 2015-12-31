@@ -507,10 +507,10 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     >>>
     >>> # particle ids for this halo
     >>> print halo["member_ids"]
+    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
     >>>
     >>> # get the first subhalo of this halo
     >>> subhalo = ds.halo("Subhalo", (0, 0))
-    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
     >>> print subhalo["member_ids"]
     [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
 
