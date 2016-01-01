@@ -13,7 +13,11 @@ GadgetFOF frontend tests using gadget_fof datasets
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os.path
+import numpy as np
+import os
+
+from yt.frontends.gadget_fof.api import \
+    GadgetFOFDataset
 from yt.testing import \
     requires_file, \
     assert_equal
@@ -21,7 +25,6 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
     data_dir_load
-from yt.frontends.gadget_fof.api import GadgetFOFDataset
 
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_velocity_x",
