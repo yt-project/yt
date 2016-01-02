@@ -18,7 +18,6 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     get_output_filename, \
     mylog
-from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
