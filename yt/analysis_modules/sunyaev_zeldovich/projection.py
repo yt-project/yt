@@ -250,8 +250,8 @@ class SZProjection(object):
             less notable when the transfer function is smooth and
             broad. Default: True
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
-            If specified, this will be the data source used for selecting regions to project.
-            Currently unsupported in yt 2.x.
+            If specified, this will be the data source used for selecting regions 
+            to project.
 
         Examples
         --------
@@ -263,30 +263,29 @@ class SZProjection(object):
         ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
         res = (nx, nx, nz)
 
-        if source is not None:
-            mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
-            raise NotImplementedError
+        if source is None:
+            source = self.ds
 
         beta_par = generate_beta_par(L)
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens = off_axis_projection(self.ds, ctr, L, w, res, "density",
+        dens = off_axis_projection(source, ctr, L, w, res, "density",
                                    north_vector=north_vector, no_ghost=no_ghost)
-        Te = off_axis_projection(self.ds, ctr, L, w, res, "t_sz",
+        Te = off_axis_projection(source, ctr, L, w, res, "t_sz",
                                  north_vector=north_vector, no_ghost=no_ghost)/dens
-        bpar = off_axis_projection(self.ds, ctr, L, w, res, "beta_par",
+        bpar = off_axis_projection(source, ctr, L, w, res, "beta_par",
                                    north_vector=north_vector, no_ghost=no_ghost)/dens
-        omega1 = off_axis_projection(self.ds, ctr, L, w, res, "t_squared",
+        omega1 = off_axis_projection(source, ctr, L, w, res, "t_squared",
                                      north_vector=north_vector, no_ghost=no_ghost)/dens
         omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2 = off_axis_projection(self.ds, ctr, L, w, res, "beta_perp_squared", 
+            bperp2 = off_axis_projection(source, ctr, L, w, res, "beta_perp_squared", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
-            sigma1 = off_axis_projection(self.ds, ctr, L, w, res, "t_beta_par", 
+            sigma1 = off_axis_projection(source, ctr, L, w, res, "t_beta_par", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
             sigma1 = sigma1/Te - bpar
-            kappa1 = off_axis_projection(self.ds, ctr, L, w, res, "beta_par_squared", 
+            kappa1 = off_axis_projection(source, ctr, L, w, res, "beta_par_squared", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
             kappa1 -= bpar
         else:
