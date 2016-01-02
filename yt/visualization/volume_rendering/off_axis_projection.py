@@ -193,5 +193,6 @@ def off_axis_projection(data_source, center, normal_vector,
             image *= dl
         else:
             image[:,:,0] /= image[:,:,1]
+            image[:,:,0] = np.nan_to_num(image[:,:,0])
 
     return image[:,:,0], sc
