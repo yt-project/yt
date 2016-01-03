@@ -19,7 +19,7 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.funcs import fix_axis, mylog, get_pbar
+from yt.funcs import fix_axis, get_pbar
 from yt.visualization.volume_rendering.off_axis_projection import \
     off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
