@@ -532,7 +532,7 @@ cdef inline void S2Function3D(double* fx,
                               double* vertices, 
                               double* phys_x) nogil:
         cdef int i
-        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+        cdef double r, s, t, rm, rp, sm, sp, tm, tp
 
         r = x[0]
         rm = 1.0 - r
@@ -580,7 +580,7 @@ cdef inline void S2Jacobian3D(double* rcol,
                               double* vertices, 
                               double* phys_x) nogil:    
         cdef int i
-        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+        cdef double r, s, t, rm, rp, sm, sp, tm, tp
 
         r = x[0]
         rm = 1.0 - r
