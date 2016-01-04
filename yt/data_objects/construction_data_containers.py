@@ -1641,27 +1641,27 @@ class YTSurface(YTSelectionContainer3D):
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
         fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
-        f.write("ply\n")
-        f.write("format binary_little_endian 1.0\n")
-        f.write("element vertex %s\n" % (nv))
-        f.write("property float x\n")
-        f.write("property float y\n")
-        f.write("property float z\n")
+        f.write(b"ply\n")
+        f.write(b"format binary_little_endian 1.0\n")
+        f.write(b"element vertex %s\n" % (nv))
+        f.write(b"property float x\n")
+        f.write(b"property float y\n")
+        f.write(b"property float z\n")
         if color_field is not None and sample_type == "vertex":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
             self._color_samples(cs, color_log, color_map, v)
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        f.write("element face %s\n" % (nv/3))
-        f.write("property list uchar int vertex_indices\n")
+        f.write(b"element face %s\n" % (nv/3))
+        f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
@@ -1676,7 +1676,7 @@ class YTSurface(YTSelectionContainer3D):
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
             v[ax][:] = tmp
-        f.write("end_header\n")
+        f.write(b"end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
         vi = np.arange(nv, dtype="<i")
