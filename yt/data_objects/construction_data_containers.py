@@ -1643,7 +1643,7 @@ class YTSurface(YTSelectionContainer3D):
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
         f.write(b"ply\n")
         f.write(b"format binary_little_endian 1.0\n")
-        f.write(b"element vertex %s\n" % (nv))
+        f.write(b"element vertex %i\n" % (nv))
         f.write(b"property float x\n")
         f.write(b"property float y\n")
         f.write(b"property float z\n")
@@ -1656,7 +1656,7 @@ class YTSurface(YTSelectionContainer3D):
             self._color_samples(cs, color_log, color_map, v)
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        f.write(b"element face %s\n" % (nv/3))
+        f.write(b"element face %f\n" % (nv/3))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
             f.write(b"property uchar red\n")
