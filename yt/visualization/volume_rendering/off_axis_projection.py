@@ -192,7 +192,8 @@ def off_axis_projection(data_source, center, normal_vector,
             dl = width[2].in_units("cm")
             image *= dl
         else:
+            mask = image[:,:,1] == 0
             image[:,:,0] /= image[:,:,1]
-            image[:,:,0] = np.nan_to_num(image[:,:,0])
+            image[mask] = 0
 
     return image[:,:,0], sc
