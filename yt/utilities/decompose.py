@@ -82,12 +82,12 @@ def get_psize(n_d, pieces):
     fac = factorize_number(pieces)
     nfactors = len(fac[:, 2])
     best = 0.0
-    p_size = np.ones(3, dtype=np.int)
+    p_size = np.ones(3, dtype=np.int64)
     if pieces == 1:
         return p_size
 
     while np.all(fac[:, 2] > 0):
-        ldom = np.ones(3, dtype=np.int)
+        ldom = np.ones(3, dtype=np.int64)
         for nfac in range(nfactors):
             i = int(np.sqrt(0.25 + 2 * (fac[nfac, 2] - 1)) - 0.5)
             k = fac[nfac, 2] - (1 + i * (i + 1) // 2)
