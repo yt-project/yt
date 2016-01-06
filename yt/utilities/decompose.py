@@ -71,7 +71,7 @@ def factorize_number(pieces):
     temp = np.bincount(factors)
     return np.array(
         [(prime, temp[prime], (temp[prime] + 1) * (temp[prime] + 2) // 2)
-         for prime in np.unique(factors)])
+         for prime in np.unique(factors)]).astype(np.int64)
 
 
 def get_psize(n_d, pieces):
