@@ -433,9 +433,9 @@ class FITSDataset(Dataset):
         default_length_units += more_length_units
         file_units = []
         cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for i, unit in enumerate(cunits):
-            if unit.name in default_length_units:
-                file_units.append(unit.name)
+        for unit in (_.to_string() for _ in cunits):
+            if unit in default_length_units:
+                file_units.append(unit)
         if len(set(file_units)) == 1:
             length_factor = self.wcs.wcs.cdelt[0]
             length_unit = str(file_units[0])
