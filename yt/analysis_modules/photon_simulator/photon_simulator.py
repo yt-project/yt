@@ -25,6 +25,7 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
+from collections import defaultdict
 import numpy as np
 from yt.funcs import mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
@@ -38,12 +39,19 @@ from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import _astropy
 import warnings
+import os
 
 comm = communication_system.communicators[-1]
 
 axes_lookup = {"x":("y","z"),
                "y":("z","x"),
                "z":("x","y")}
+
+def force_unicode(value):
+    if hasattr(value, 'decode'):
+        return value.decode('utf8')
+    else:
+        return value
 
 def parse_value(value, default_units):
     if isinstance(value, YTQuantity):
@@ -52,6 +60,25 @@ def parse_value(value, default_units):
         return YTQuantity(value[0], value[1]).in_units(default_units)
     else:
         return YTQuantity(value, default_units)
+
+def validate_parameters(first, second, skip=[]):
+    keys1 = list(first.keys())
+    keys2 = list(first.keys())
+    keys1.sort()
+    keys2.sort()
+    if keys1 != keys2:
+        raise RuntimeError("The two inputs do not have the same parameters!")
+    for k1, k2 in zip(keys1, keys2):
+        if k1 not in skip:
+            v1 = first[k1]
+            v2 = second[k2]
+            if isinstance(v1, string_types) or isinstance(v2, string_types):
+                check_equal = v1 == v2
+            else:
+                check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
+            if not check_equal:
+                raise RuntimeError("The values for the parameter '%s' in the two inputs" % k1 +
+                                   " are not identical (%s vs. %s)!" % (v1, v2))
 
 class PhotonList(object):
 
@@ -90,6 +117,9 @@ class PhotonList(object):
         else:
             return self.photons[key]
 
+    def __contains__(self, key):
+        return key in self.photons
+
     def __repr__(self):
         return self.photons.__repr__()
 
@@ -104,29 +134,32 @@ class PhotonList(object):
 
         f = h5py.File(filename, "r")
 
-        parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
-        parameters["FiducialArea"] = YTQuantity(f["/fid_area"].value, "cm**2")
-        parameters["FiducialRedshift"] = f["/fid_redshift"].value
-        parameters["FiducialAngularDiameterDistance"] = YTQuantity(f["/fid_d_a"].value, "Mpc")
-        parameters["Dimension"] = f["/dimension"].value
-        parameters["Width"] = YTQuantity(f["/width"].value, "kpc")
-        parameters["HubbleConstant"] = f["/hubble"].value
-        parameters["OmegaMatter"] = f["/omega_matter"].value
-        parameters["OmegaLambda"] = f["/omega_lambda"].value
+        p = f["/parameters"]
+        parameters["FiducialExposureTime"] = YTQuantity(p["fid_exp_time"].value, "s")
+        parameters["FiducialArea"] = YTQuantity(p["fid_area"].value, "cm**2")
+        parameters["FiducialRedshift"] = p["fid_redshift"].value
+        parameters["FiducialAngularDiameterDistance"] = YTQuantity(p["fid_d_a"].value, "Mpc")
+        parameters["Dimension"] = p["dimension"].value
+        parameters["Width"] = YTQuantity(p["width"].value, "kpc")
+        parameters["HubbleConstant"] = p["hubble"].value
+        parameters["OmegaMatter"] = p["omega_matter"].value
+        parameters["OmegaLambda"] = p["omega_lambda"].value
 
-        num_cells = f["/x"][:].shape[0]
+        d = f["/data"]
+
+        num_cells = d["x"][:].shape[0]
         start_c = comm.rank*num_cells//comm.size
         end_c = (comm.rank+1)*num_cells//comm.size
 
-        photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
-        photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
-        photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
-        photons["dx"] = YTArray(f["/dx"][start_c:end_c], "kpc")
-        photons["vx"] = YTArray(f["/vx"][start_c:end_c], "km/s")
-        photons["vy"] = YTArray(f["/vy"][start_c:end_c], "km/s")
-        photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
+        photons["x"] = YTArray(d["x"][start_c:end_c], "kpc")
+        photons["y"] = YTArray(d["y"][start_c:end_c], "kpc")
+        photons["z"] = YTArray(d["z"][start_c:end_c], "kpc")
+        photons["dx"] = YTArray(d["dx"][start_c:end_c], "kpc")
+        photons["vx"] = YTArray(d["vx"][start_c:end_c], "km/s")
+        photons["vy"] = YTArray(d["vy"][start_c:end_c], "km/s")
+        photons["vz"] = YTArray(d["vz"][start_c:end_c], "km/s")
 
-        n_ph = f["/num_photons"][:]
+        n_ph = d["num_photons"][:]
 
         if comm.rank == 0:
             start_e = np.uint64(0)
@@ -139,7 +172,7 @@ class PhotonList(object):
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
 
-        photons["Energy"] = YTArray(f["/energy"][start_e:end_e], "keV")
+        photons["Energy"] = YTArray(d["energy"][start_e:end_e], "keV")
 
         f.close()
 
@@ -160,7 +193,6 @@ class PhotonList(object):
 
         Parameters
         ----------
-
         data_source : `yt.data_objects.data_containers.YTSelectionContainer`
             The data source from which the photons will be generated.
         redshift : float
@@ -174,9 +206,9 @@ class PhotonList(object):
             dictionary and returns a *photons* dictionary. Must be of the
             form: photon_model(data_source, parameters)
         parameters : dict, optional
-            A dictionary of parameters to be passed to the user function. 
+            A dictionary of parameters to be passed to the user function.
         center : string or array_like, optional
-            The origin of the photons. Accepts "c", "max", or a coordinate.                
+            The origin of the photons. Accepts "c", "max", or a coordinate.
         dist : tuple, optional
             The angular diameter distance in the form (value, unit), used
             mainly for nearby sources. This may be optionally supplied
@@ -188,7 +220,6 @@ class PhotonList(object):
 
         Examples
         --------
-
         This is the simplest possible example, where we call the built-in thermal model:
 
         >>> thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
@@ -224,7 +255,7 @@ class PhotonList(object):
 
         >>> import numpy as np
         >>> import yt
-        >>> from yt.analysis_modules.photon_simulator import *
+        >>> from yt.analysis_modules.photon_simulator.api import PhotonList
         >>> def line_func(source, parameters):
         ...
         ...     ds = source.ds
@@ -254,7 +285,7 @@ class PhotonList(object):
         >>> ddims = (128,128,128)
         >>> random_data = {"density":(np.random.random(ddims),"g/cm**3")}
         >>> ds = yt.load_uniform_grid(random_data, ddims)
-        >>> dd = ds.all_data
+        >>> dd = ds.all_data()
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
         ...                                         time, line_func,
         ...                                         parameters=parameters)
@@ -354,7 +385,7 @@ class PhotonList(object):
 
             if comm.rank == 0:
                 num_cells = sum(sizes_c)
-                num_photons = sum(sizes_p)        
+                num_photons = sum(sizes_p)
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
                 disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
                 x = np.zeros(num_cells)
@@ -398,7 +429,7 @@ class PhotonList(object):
             comm.comm.Gatherv([self.photons["NumberOfPhotons"], local_num_cells, mpi_long],
                               [n_ph, (sizes_c, disps_c), mpi_long], root=0)
             comm.comm.Gatherv([self.photons["Energy"].d, local_num_photons, mpi_double],
-                              [e, (sizes_p, disps_p), mpi_double], root=0) 
+                              [e, (sizes_p, disps_p), mpi_double], root=0)
 
         else:
 
@@ -416,46 +447,47 @@ class PhotonList(object):
 
             f = h5py.File(photonfile, "w")
 
-            # Scalars
+            # Parameters
 
-            f.create_dataset("fid_area", data=float(self.parameters["FiducialArea"]))
-            f.create_dataset("fid_exp_time", data=float(self.parameters["FiducialExposureTime"]))
-            f.create_dataset("fid_redshift", data=self.parameters["FiducialRedshift"])
-            f.create_dataset("hubble", data=self.parameters["HubbleConstant"])
-            f.create_dataset("omega_matter", data=self.parameters["OmegaMatter"])
-            f.create_dataset("omega_lambda", data=self.parameters["OmegaLambda"])
-            f.create_dataset("fid_d_a", data=float(self.parameters["FiducialAngularDiameterDistance"]))
-            f.create_dataset("dimension", data=self.parameters["Dimension"])
-            f.create_dataset("width", data=float(self.parameters["Width"]))
+            p = f.create_group("parameters")
+            p.create_dataset("fid_area", data=float(self.parameters["FiducialArea"]))
+            p.create_dataset("fid_exp_time", data=float(self.parameters["FiducialExposureTime"]))
+            p.create_dataset("fid_redshift", data=self.parameters["FiducialRedshift"])
+            p.create_dataset("hubble", data=self.parameters["HubbleConstant"])
+            p.create_dataset("omega_matter", data=self.parameters["OmegaMatter"])
+            p.create_dataset("omega_lambda", data=self.parameters["OmegaLambda"])
+            p.create_dataset("fid_d_a", data=float(self.parameters["FiducialAngularDiameterDistance"]))
+            p.create_dataset("dimension", data=self.parameters["Dimension"])
+            p.create_dataset("width", data=float(self.parameters["Width"]))
 
-            # Arrays
+            # Data
 
-            f.create_dataset("x", data=x)
-            f.create_dataset("y", data=y)
-            f.create_dataset("z", data=z)
-            f.create_dataset("vx", data=vx)
-            f.create_dataset("vy", data=vy)
-            f.create_dataset("vz", data=vz)
-            f.create_dataset("dx", data=dx)
-            f.create_dataset("num_photons", data=n_ph)
-            f.create_dataset("energy", data=e)
+            d = f.create_group("data")
+            d.create_dataset("x", data=x)
+            d.create_dataset("y", data=y)
+            d.create_dataset("z", data=z)
+            d.create_dataset("vx", data=vx)
+            d.create_dataset("vy", data=vy)
+            d.create_dataset("vz", data=vz)
+            d.create_dataset("dx", data=dx)
+            d.create_dataset("num_photons", data=n_ph)
+            d.create_dataset("energy", data=e)
 
             f.close()
 
         comm.barrier()
 
-    def project_photons(self, normal, area_new=None, exp_time_new=None, 
+    def project_photons(self, normal, area_new=None, exp_time_new=None,
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None,
                         convolve_energies=False, no_shifting=False,
-                        north_vector=None):
+                        north_vector=None, prng=np.random):
         r"""
         Projects photons onto an image plane given a line of sight.
 
         Parameters
         ----------
-
         normal : character or array_like
             Normal vector to the plane of projection. If "x", "y", or "z", will
             assume to be along that axis (and will probably be faster). Otherwise, 
@@ -489,6 +521,11 @@ class PhotonList(object):
             the plane of projection. If not set, an arbitrary grid-aligned north_vector 
             is chosen. Ignored in the case where a particular axis (e.g., "x", "y", or
             "z") is explicitly specified.
+        prng : NumPy `RandomState` object or numpy.random                                                                              
+            A pseudo-random number generator. Typically will only be specified if you
+            have a reason to generate the same set of random numbers, such as for a                                    
+            test. Default is the numpy.random module.                                                                            
+
         Examples
         --------
         >>> L = np.array([0.1,-0.2,0.3])
@@ -612,14 +649,14 @@ class PhotonList(object):
         if my_n_obs == n_ph_tot:
             idxs = np.arange(my_n_obs,dtype='uint64')
         else:
-            idxs = np.random.permutation(n_ph_tot)[:my_n_obs].astype("uint64")
+            idxs = prng.permutation(n_ph_tot)[:my_n_obs].astype("uint64")
         obs_cells = np.searchsorted(self.p_bins, idxs, side='right')-1
         delta = dx[obs_cells]
 
         if isinstance(normal, string_types):
 
-            xsky = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            ysky = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            xsky = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            ysky = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
             xsky *= delta
             ysky *= delta
             xsky += self.photons[axes_lookup[normal][0]][obs_cells]
@@ -629,9 +666,9 @@ class PhotonList(object):
                 vz = self.photons["v%s" % normal]
 
         else:
-            x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-            z = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            x = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            y = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
+            z = prng.uniform(low=-0.5,high=0.5,size=my_n_obs)
 
             if not no_shifting:
                 vz = self.photons["vx"]*z_hat[0] + \
@@ -664,15 +701,16 @@ class PhotonList(object):
             emid = absorb_model.emid
             aspec = absorb_model.get_spectrum()
             absorb = np.interp(eobs, emid, aspec, left=0.0, right=0.0)
-            randvec = aspec.max()*np.random.random(eobs.shape)
+            randvec = aspec.max()*prng.uniform(size=eobs.shape)
             not_abs = randvec < absorb
+            absorb_model.cleanup_spectrum()
 
         if eff_area is None:
             detected = np.ones(eobs.shape, dtype='bool')
         else:
             mylog.info("Applying energy-dependent effective area.")
             earea = np.interp(eobs, earf, eff_area, left=0.0, right=0.0)
-            randvec = eff_area.max()*np.random.random(eobs.shape)
+            randvec = eff_area.max()*prng.uniform(size=eobs.shape)
             detected = randvec < earea
 
         detected = np.logical_and(not_abs, detected)
@@ -689,8 +727,8 @@ class PhotonList(object):
         events = comm.par_combine_object(events, datatype="dict", op="cat")
 
         if psf_sigma is not None:
-            events["xpix"] += np.random.normal(sigma=psf_sigma/dtheta)
-            events["ypix"] += np.random.normal(sigma=psf_sigma/dtheta)
+            events["xpix"] += prng.normal(sigma=psf_sigma/dtheta)
+            events["ypix"] += prng.normal(sigma=psf_sigma/dtheta)
 
         num_events = len(events["xpix"])
 
@@ -698,7 +736,8 @@ class PhotonList(object):
             mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
-            events, info = self._convolve_with_rmf(parameters["RMF"], events, mat_key)
+            events, info = self._convolve_with_rmf(parameters["RMF"], events, 
+                                                   mat_key, prng)
             for k, v in info.items():
                 parameters[k] = v
 
@@ -725,7 +764,7 @@ class PhotonList(object):
         rmf.close()
         return weights
 
-    def _convolve_with_rmf(self, respfile, events, mat_key):
+    def _convolve_with_rmf(self, respfile, events, mat_key, prng):
         """
         Convolve the events with a RMF file.
         """
@@ -780,7 +819,7 @@ class PhotonList(object):
             if len(trueChannel) > 0:
                 for q in range(fcurr,last):
                     if phEE[q] >= low and phEE[q] < high:
-                        channelInd = np.random.choice(len(weights), p=weights)
+                        channelInd = prng.choice(len(weights), p=weights)
                         fcurr += 1
                         detectedChannels.append(trueChannel[channelInd])
                     if phEE[q] >= high:
@@ -804,7 +843,7 @@ class PhotonList(object):
 
         return events, info
 
-class EventList(object) :
+class EventList(object):
 
     def __init__(self, events, parameters):
         self.events = events
@@ -845,22 +884,7 @@ class EventList(object) :
 
     def __add__(self, other):
         assert_same_wcs(self.wcs, other.wcs)
-        keys1 = list(self.parameters.keys())
-        keys2 = list(other.parameters.keys())
-        keys1.sort()
-        keys2.sort()
-        if keys1 != keys2:
-            raise RuntimeError("The two EventLists do not have the same parameters!")
-        for k1, k2 in zip(keys1, keys2):
-            v1 = self.parameters[k1]
-            v2 = other.parameters[k2]
-            if isinstance(v1, string_types) or isinstance(v2, string_types):
-                check_equal = v1 == v2
-            else:
-                check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
-            if not check_equal:
-                raise RuntimeError("The values for the parameter '%s' in the two EventLists" % k1 +
-                                   " are not identical (%s vs. %s)!" % (v1, v2))
+        validate_parameters(self.parameters, other.parameters)
         events = {}
         for item1, item2 in zip(self.items(), other.items()):
             k1, v1 = item1
@@ -870,7 +894,7 @@ class EventList(object) :
 
     def filter_events(self, region):
         """
-        Filter events using a ds9 region. Requires the pyregion package.
+        Filter events using a ds9 *region*. Requires the pyregion package.
         Returns a new EventList.
         """
         import pyregion
@@ -899,36 +923,39 @@ class EventList(object) :
 
         f = h5py.File(h5file, "r")
 
-        parameters["ExposureTime"] = YTQuantity(f["/exp_time"].value, "s")
-        if isinstance(f["/area"].value, (string_types, bytes)):
-            parameters["Area"] = f["/area"].value.decode("utf8")
+        p = f["/parameters"]
+        parameters["ExposureTime"] = YTQuantity(p["exp_time"].value, "s")
+        area = force_unicode(p['area'].value)
+        if isinstance(area, string_types):
+            parameters["Area"] = area
         else:
-            parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
-        parameters["Redshift"] = f["/redshift"].value
-        parameters["AngularDiameterDistance"] = YTQuantity(f["/d_a"].value, "Mpc")
-        if "rmf" in f:
-            parameters["RMF"] = f["/rmf"].value.decode("utf8")
-        if "arf" in f:
-            parameters["ARF"] = f["/arf"].value.decode("utf8")
-        if "channel_type" in f:
-            parameters["ChannelType"] = f["/channel_type"].value.decode("utf8")
-        if "mission" in f:
-            parameters["Mission"] = f["/mission"].value.decode("utf8")
-        if "telescope" in f:
-            parameters["Telescope"] = f["/telescope"].value.decode("utf8")
-        if "instrument" in f:
-            parameters["Instrument"] = f["/instrument"].value.decode("utf8")
+            parameters["Area"] = YTQuantity(area, "cm**2")
+        parameters["Redshift"] = p["redshift"].value
+        parameters["AngularDiameterDistance"] = YTQuantity(p["d_a"].value, "Mpc")
+        parameters["sky_center"] = YTArray(p["sky_center"][:], "deg")
+        parameters["dtheta"] = YTQuantity(p["dtheta"].value, "deg")
+        parameters["pix_center"] = p["pix_center"][:]
+        if "rmf" in p:
+            parameters["RMF"] = force_unicode(p["rmf"].value)
+        if "arf" in p:
+            parameters["ARF"] = force_unicode(p["arf"].value)
+        if "channel_type" in p:
+            parameters["ChannelType"] = force_unicode(p["channel_type"].value)
+        if "mission" in p:
+            parameters["Mission"] = force_unicode(p["mission"].value)
+        if "telescope" in p:
+            parameters["Telescope"] = force_unicode(p["telescope"].value)
+        if "instrument" in p:
+            parameters["Instrument"] = force_unicode(p["instrument"].value)
 
-        events["xpix"] = f["/xpix"][:]
-        events["ypix"] = f["/ypix"][:]
-        events["eobs"] = YTArray(f["/eobs"][:], "keV")
-        if "pi" in f:
-            events["PI"] = f["/pi"][:]
-        if "pha" in f:
-            events["PHA"] = f["/pha"][:]
-        parameters["sky_center"] = YTArray(f["/sky_center"][:], "deg")
-        parameters["dtheta"] = YTQuantity(f["/dtheta"].value, "deg")
-        parameters["pix_center"] = f["/pix_center"][:]
+        d = f["/data"]
+        events["xpix"] = d["xpix"][:]
+        events["ypix"] = d["ypix"][:]
+        events["eobs"] = YTArray(d["eobs"][:], "keV")
+        if "pi" in d:
+            events["PI"] = d["pi"][:]
+        if "pha" in d:
+            events["PHA"] = d["pha"][:]
 
         f.close()
 
@@ -1021,10 +1048,10 @@ class EventList(object) :
 
              time = np.random.uniform(size=self.num_events, low=0.0,
                                       high=float(self.parameters["ExposureTime"]))
-             col_t = pyfits.Column(name="TIME", format='1D', unit='s', 
+             col_t = pyfits.Column(name="TIME", format='1D', unit='s',
                                    array=time)
              cols.append(col_t)
-        
+
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.BinTableHDU.from_columns(coldefs)
         tbhdu.update_ext_name("EVENTS")
@@ -1113,7 +1140,6 @@ class EventList(object) :
 
         Parameters
         ----------
-
         prefix : string
             The filename prefix.
         clobber : boolean, optional
@@ -1197,38 +1223,40 @@ class EventList(object) :
         """
         f = h5py.File(h5file, "w")
 
-        f.create_dataset("/exp_time", data=float(self.parameters["ExposureTime"]))
+        p = f.create_group("parameters")
+        p.create_dataset("exp_time", data=float(self.parameters["ExposureTime"]))
         area = self.parameters["Area"]
         if not isinstance(area, string_types):
             area = float(area)
-        f.create_dataset("/area", data=area)
-        f.create_dataset("/redshift", data=self.parameters["Redshift"])
-        f.create_dataset("/d_a", data=float(self.parameters["AngularDiameterDistance"]))
+        p.create_dataset("area", data=area)
+        p.create_dataset("redshift", data=self.parameters["Redshift"])
+        p.create_dataset("d_a", data=float(self.parameters["AngularDiameterDistance"]))
         if "ARF" in self.parameters:
-            f.create_dataset("/arf", data=self.parameters["ARF"])
+            p.create_dataset("arf", data=self.parameters["ARF"])
         if "RMF" in self.parameters:
-            f.create_dataset("/rmf", data=self.parameters["RMF"])
+            p.create_dataset("rmf", data=self.parameters["RMF"])
         if "ChannelType" in self.parameters:
-            f.create_dataset("/channel_type", data=self.parameters["ChannelType"])
+            p.create_dataset("channel_type", data=self.parameters["ChannelType"])
         if "Mission" in self.parameters:
-            f.create_dataset("/mission", data=self.parameters["Mission"]) 
+            p.create_dataset("mission", data=self.parameters["Mission"])
         if "Telescope" in self.parameters:
-            f.create_dataset("/telescope", data=self.parameters["Telescope"])
+            p.create_dataset("telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
-            f.create_dataset("/instrument", data=self.parameters["Instrument"])
+            p.create_dataset("instrument", data=self.parameters["Instrument"])
+        p.create_dataset("sky_center", data=self.parameters["sky_center"].d)
+        p.create_dataset("pix_center", data=self.parameters["pix_center"])
+        p.create_dataset("dtheta", data=float(self.parameters["dtheta"]))
 
-        f.create_dataset("/xpix", data=self["xpix"])
-        f.create_dataset("/ypix", data=self["ypix"])
-        f.create_dataset("/xsky", data=self["xsky"].d)
-        f.create_dataset("/ysky", data=self["ysky"].d)
-        f.create_dataset("/eobs", data=self["eobs"].d)
-        if "PI" in self:
-            f.create_dataset("/pi", data=self["PI"])
-        if "PHA" in self:
-            f.create_dataset("/pha", data=self["PHA"])                  
-        f.create_dataset("/sky_center", data=self.parameters["sky_center"].d)
-        f.create_dataset("/pix_center", data=self.parameters["pix_center"])
-        f.create_dataset("/dtheta", data=float(self.parameters["dtheta"]))
+        d = f.create_group("data")
+        d.create_dataset("xpix", data=self["xpix"])
+        d.create_dataset("ypix", data=self["ypix"])
+        d.create_dataset("xsky", data=self["xsky"].d)
+        d.create_dataset("ysky", data=self["ysky"].d)
+        d.create_dataset("eobs", data=self["eobs"].d)
+        if "PI" in self.events:
+            d.create_dataset("pi", data=self.events["PI"])
+        if "PHA" in self.events:
+            d.create_dataset("pha", data=self.events["PHA"])
 
         f.close()
 
@@ -1240,7 +1268,6 @@ class EventList(object) :
 
         Parameters
         ----------
-
         imagefile : string
             The name of the image file to write.
         clobber : boolean, optional
@@ -1299,7 +1326,6 @@ class EventList(object) :
 
         Parameters
         ----------
-
         specfile : string
             The name of the FITS file to be written.
         bin_type : string, optional
@@ -1349,6 +1375,8 @@ class EventList(object) :
                 bins = 0.5*(ee[1:]+ee[:-1])
                 spectype = "energy"
             else:
+                mylog.info("Events haven't been convolved with an RMF, so assuming "
+                           "a perfect response and %d PI channels." % nchan)
                 bins = (np.arange(nchan)+1).astype("int32")
                 spectype = "pi"
 
@@ -1405,3 +1433,130 @@ class EventList(object) :
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
 
         hdulist.writeto(specfile, clobber=clobber)
+
+def merge_files(input_files, output_file, clobber=False,
+                add_exposure_times=False):
+    r"""
+    Helper function for merging PhotonList or EventList HDF5 files.
+
+    Parameters
+    ----------
+    input_files : list of strings
+        List of filenames that will be merged together.
+    output_file : string
+        Name of the merged file to be outputted.
+    clobber : boolean, default False
+        If a the output file already exists, set this to True to
+        overwrite it.
+    add_exposure_times : boolean, default False
+        If set to True, exposure times will be added together. Otherwise,
+        the exposure times of all of the files must be the same.
+
+    Examples
+    --------
+    >>> from yt.analysis_modules.photon_simulator.api import merge_files
+    >>> merge_files(["events_0.h5","events_1.h5","events_3.h5"], "events.h5",
+    ...             clobber=True, add_exposure_times=True)
+
+    Notes
+    -----
+    Currently, to merge files it is mandated that all of the parameters have the
+    same values, with the possible exception of the exposure time parameter "exp_time"
+    if add_exposure_times=False.
+    """
+    if os.path.exists(output_file) and not clobber:
+        raise IOError("Cannot overwrite existing file %s. " % output_file +
+                      "If you want to do this, set clobber=True.")
+
+    f_in = h5py.File(input_files[0], "r")
+    f_out = h5py.File(output_file, "w")
+
+    exp_time_key = ""
+    p_out = f_out.create_group("parameters")
+    for key, param in f_in["parameters"].items():
+        if key.endswith("exp_time"):
+            exp_time_key = key
+        else:
+            p_out[key] = param.value
+
+    skip = [exp_time_key] if add_exposure_times else []
+    for fn in input_files[1:]:
+        f = h5py.File(fn, "r")
+        validate_parameters(f_in["parameters"], f["parameters"], skip=skip)
+        f.close()
+
+    f_in.close()
+
+    data = defaultdict(list)
+    tot_exp_time = 0.0
+
+    for i, fn in enumerate(input_files):
+        f = h5py.File(fn, "r")
+        if add_exposure_times:
+            tot_exp_time += f["/parameters"][exp_time_key].value
+        elif i == 0:
+            tot_exp_time = f["/parameters"][exp_time_key].value
+        for key in f["/data"]:
+            data[key].append(f["/data"][key][:])
+        f.close()
+
+    p_out["exp_time"] = tot_exp_time
+
+    d = f_out.create_group("data")
+    for k in data:
+        d.create_dataset(k, data=np.concatenate(data[k]))
+
+    f_out.close()
+
+def convert_old_file(input_file, output_file, clobber=False):
+    r"""
+    Helper function for converting old PhotonList or EventList HDF5
+    files (pre yt v3.3) to their new versions.
+
+    Parameters
+    ----------
+    input_file : list of strings
+        The filename of the old-versioned file to be converted.
+    output_file : string
+        Name of the new file to be outputted.
+    clobber : boolean, default False
+        If a the output file already exists, set this to True to
+        overwrite it.
+
+    Examples
+    --------
+    >>> from yt.analysis_modules.photon_simulator.api import convert_old_file
+    >>> convert_old_file("photons_old.h5", "photons_new.h5", clobber=True)
+    """
+    if os.path.exists(output_file) and not clobber:
+        raise IOError("Cannot overwrite existing file %s. " % output_file +
+                      "If you want to do this, set clobber=True.")
+
+    f_in = h5py.File(input_file, "r")
+
+    if "num_photons" in f_in:
+        params = ["fid_exp_time", "fid_area", "fid_d_a", "fid_redshift",
+                  "dimension", "width", "hubble", "omega_matter",
+                  "omega_lambda"]
+        data = ["x", "y", "z", "dx", "vx", "vy", "vz", "energy", "num_photons"]
+    elif "pix_center" in f_in:
+        params = ["exp_time", "area", "redshift", "d_a", "arf",
+                  "rmf", "channel_type", "mission", "telescope",
+                  "instrument", "sky_center", "pix_center", "dtheta"]
+        data = ["xsky", "ysky", "xpix", "ypix", "eobs", "pi", "pha"]
+
+    f_out = h5py.File(output_file, "w")
+
+    p = f_out.create_group("parameters")
+    d = f_out.create_group("data")
+
+    for key in params:
+        if key in f_in:
+            p.create_dataset(key, data=f_in[key].value)
+
+    for key in data:
+        if key in f_in:
+            d.create_dataset(key, data=f_in[key].value)
+
+    f_in.close()
+    f_out.close()

@@ -42,7 +42,7 @@ def test_pkdgrav():
                                 hubble_constant = 0.702)
     kwargs = dict(field_dtypes = {"Coordinates": "d"},
                   cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
+                  unit_base = {'length': (60.0, "Mpccm/h")},
                   n_ref = 64)
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
     yield assert_equal, str(ds), "halo1e11_run1.00400"
@@ -73,7 +73,7 @@ def test_gasoline_dmonly():
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
     kwargs = dict(cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
+                  unit_base = {'length': (60.0, "Mpccm/h")},
                   n_ref = 64)
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     yield assert_equal, str(ds), "agora_1e11.00400"
@@ -110,7 +110,8 @@ tg_fields = OrderedDict(
 tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 @requires_ds(tipsy_gal)
 def test_tipsy_galaxy():
-    for test in sph_answer(tipsy_gal, 'galaxy.00300', 315372, tg_fields):
+    ds = data_dir_load(tipsy_gal)
+    for test in sph_answer(ds, 'galaxy.00300', 315372, tg_fields):
         test_tipsy_galaxy.__name__ = test.description
         yield test
 

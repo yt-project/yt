@@ -11,9 +11,11 @@ ImageArray Class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import warnings
 import numpy as np
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.units.yt_array import YTArray
+
 
 class ImageArray(YTArray):
     r"""A custom Numpy ndarray used for images.
@@ -237,15 +239,16 @@ class ImageArray(YTArray):
         np.clip(out, 0.0, 1.0, out)
         return out
 
-    def write_png(self, filename, clip_ratio=None, background='black',
-                  rescale=True):
+    def write_png(self, filename, sigma_clip=None, background='black',
+                  rescale=True, clip_ratio=None):
         r"""Writes ImageArray to png file.
 
         Parameters
         ----------
         filename: string
-            Note filename not be modified.
-        clip_ratio: float, optional
+            Filename to save to.  If None, PNG contents will be returned as a
+            string.
+        sigma_clip: float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
@@ -289,13 +292,17 @@ class ImageArray(YTArray):
         else:
             out = scaled
 
-        if filename[-4:] != '.png':
+        if filename is not None and filename[-4:] != '.png':
             filename += '.png'
 
         if clip_ratio is not None:
+            warnings.warn("'clip_ratio' keyword is deprecated. Use 'sigma_clip' instead")
+            sigma_clip = clip_ratio
+
+        if sigma_clip is not None:
             nz = out[:, :, :3][out[:, :, :3].nonzero()]
             return write_bitmap(out.swapaxes(0, 1), filename,
-                                nz.mean() + clip_ratio*nz.std())
+                                nz.mean() + sigma_clip * nz.std())
         else:
             return write_bitmap(out.swapaxes(0, 1), filename)
 

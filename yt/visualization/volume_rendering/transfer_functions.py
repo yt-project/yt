@@ -58,6 +58,7 @@ class TransferFunction(object):
         self.y = np.zeros(nbins, dtype='float64')
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, 'float64')
+        self.features = []
 
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
@@ -85,6 +86,8 @@ class TransferFunction(object):
         """
         vals = height * np.exp(-(self.x - location)**2.0/width)
         self.y = np.clip(np.maximum(vals, self.y), 0.0, np.inf)
+        self.features.append(('gaussian', "location(x):%3.2g" % location, 
+                              "width(x):%3.2g" % width, "height(y):%3.2g" % height))
 
     def add_line(self, start, stop):
         r"""Add a line between two points to the transmission function.
@@ -118,6 +121,9 @@ class TransferFunction(object):
         vals = slope * (self.x - x0) + y0
         vals[~((self.x >= x0) & (self.x <= x1))] = 0.0
         self.y = np.clip(np.maximum(vals, self.y), 0.0, np.inf)
+        self.features.append(('line', "start(x,y):(%3.2g, %3.2g)" % \
+                              (start[0], start[1]), "stop(x,y):(%3.2g, %3.2g)"\
+                              % (stop[0], stop[1])))
 
     def add_step(self, start, stop, value):
         r"""Adds a step function to the transfer function.
@@ -152,6 +158,8 @@ class TransferFunction(object):
         vals = np.zeros(self.x.shape, 'float64')
         vals[(self.x >= start) & (self.x <= stop)] = value
         self.y = np.clip(np.maximum(vals, self.y), 0.0, np.inf)
+        self.features.append(('step', "start(x):%3.2g" % start, \
+                              "stop(x):%3.2g" % stop, "value(y):%3.2g" % value))
 
     def add_filtered_planck(self, wavelength, trans):
         vals = np.zeros(self.x.shape, 'float64')
@@ -222,6 +230,11 @@ class TransferFunction(object):
         
     def clear(self):
         self.y[:]=0.0
+
+    def __repr__(self):
+        disp = "<Transfer Function Object>: x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s" % \
+                (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
+        return disp
 
 class MultiVariateTransferFunction(object):
     r"""This object constructs a set of field tables that allow for
@@ -352,7 +365,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         The min and max for the transfer function.  Values below or above
         these values are discarded.
     nbins : int
-        How many bins to calculate; in betwee, linear interpolation is
+        How many bins to calculate; in between, linear interpolation is
         used, so low values are typically fine.
     grey_opacity : bool
         Should opacity be calculated on a channel-by-channel basis, or
@@ -371,6 +384,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.alpha = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue, self.alpha)
         self.grey_opacity = grey_opacity
+        self.features = []
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
@@ -410,6 +424,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         """
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
+        self.features.append(('gaussian', "location(x):%3.2g" % location, \
+                              "width(x):%3.2g" % width, \
+                              "height(y):(%3.2g, %3.2g, %3.2g, %3.2g)" % 
+                              (height[0], height[1], height[2], height[3])))
 
     def add_step(self, start, stop, value):
         r"""Adds a step function to the transfer function.
@@ -443,6 +461,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         """
         for tf, v in zip(self.funcs, value):
             tf.add_step(start, stop, v)
+        self.features.append(('step', "start(x):%3.2g" % start, \
+                              "stop(x):%3.2g" % stop, \
+                              "value(y):(%3.2g, %3.2g, %3.2g, %3.2g)" % \
+                              (value[0], value[1], value[2], value[3])))
 
     def plot(self, filename):
         r"""Save an image file of the transfer function.
@@ -707,6 +729,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.green.y[rel0:rel1] = cc[:, 1]*scale_mult
         self.blue.y[rel0:rel1] = cc[:, 2]*scale_mult
         self.alpha.y[rel0:rel1] = scale*cc[:, 3]*scale_mult
+        self.features.append(('map_to_colormap', "start(x):%3.2g" % mi, \
+                              "stop(x):%3.2g" % ma, \
+                              "value(y):%3.2g" % scale))
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern", col_bounds = None):
@@ -760,7 +785,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             dist = (col_bounds[1] - col_bounds[0])
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
-        if w is None: w = 0.001 * (ma-mi)/N
+        if w is None:
+            w = 0.001 * (ma - mi) / N
+            w = max(w, 1.0 / self.nbins)
         if alpha is None and self.grey_opacity:
             alpha = np.ones(N, dtype="float64")
         elif alpha is None and not self.grey_opacity:
@@ -781,6 +808,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         for f in self.funcs:
             f.clear()
 
+    def __repr__(self):
+        disp = "<Color Transfer Function Object>:\n" + \
+                "x_bounds:[%3.2g, %3.2g] nbins:%i features:\n" % (self.x_bounds[0],
+                        self.x_bounds[1], self.nbins)
+        for f in self.features:
+            disp += "\t%s\n" % str(f)
+        return disp
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
     r"""A transfer function that defines a simple projection.

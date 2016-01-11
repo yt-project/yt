@@ -166,7 +166,7 @@ class Cosmology(object):
                      (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
                       np.sqrt(1 + self.omega_curvature * 
-                           sqr(self.comoving_transverse_distance(z_i, z_f) /
+                           np.sqrt(self.comoving_transverse_distance(z_i, z_f) /
                                self.hubble_distance())) - 
                       np.sinh(np.fabs(self.omega_curvature) * 
                             self.comoving_transverse_distance(z_i, z_f) /
@@ -178,7 +178,7 @@ class Cosmology(object):
                      (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
                       np.sqrt(1 + self.omega_curvature * 
-                           sqr(self.comoving_transverse_distance(z_i, z_f) /
+                           np.sqrt(self.comoving_transverse_distance(z_i, z_f) /
                                self.hubble_distance())) - 
                       np.arcsin(np.fabs(self.omega_curvature) * 
                            self.comoving_transverse_distance(z_i, z_f) /

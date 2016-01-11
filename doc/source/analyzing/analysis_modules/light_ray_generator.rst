@@ -79,7 +79,7 @@ randomizations, simply by changing the value of the random seed with the
 
   lr.make_light_ray(seed=8675309,
                     fields=['temperature', 'density'],
-                    get_los_velocity=True)
+                    use_peculiar_velocity=True)
 
 The keyword arguments are:
 
@@ -107,8 +107,10 @@ The keyword arguments are:
 * ``data_filename`` (*string*): Path to output file for ray data.  
   Default: None.
 
-* ``get_los_velocity`` (*bool*): If True, the line of sight velocity is 
-  calculated for each point in the ray.  Default: True.
+* ``use_peculiar_velocity`` (*bool*): If True, the doppler redshift from
+  the peculiar velocity of gas along the ray is calculated and added to the
+  cosmological redshift as the "effective" redshift.
+  Default: True.
 
 * ``redshift`` (*float*): Used with light rays made from single datasets to 
   specify a starting redshift for the ray.  If not used, the starting 

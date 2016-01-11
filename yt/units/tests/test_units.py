@@ -37,7 +37,7 @@ from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
 # unit definitions
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
     mass_sun_grams
 
@@ -454,7 +454,7 @@ def test_temperature_offsets():
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
     assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)
 
-def test_comoving_and_code_unit_labels():
+def test_latex_repr():
     ds = fake_random_ds(64, nprocs=1)
 
     # create a fake comoving unit
@@ -471,3 +471,6 @@ def test_comoving_and_code_unit_labels():
     test_unit = Unit('code_mass/code_length**3', registry=ds.unit_registry)
     assert_equal(test_unit.latex_repr,
                  '\\frac{\\rm{code\\ mass}}{\\rm{code\\ length}^{3}}')
+
+    test_unit = Unit('cm**-3', base_value=1.0, registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr, '\\frac{1}{\\rm{cm}^{3}}')

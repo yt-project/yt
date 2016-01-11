@@ -33,11 +33,11 @@ from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.analysis_modules.cosmological_observation.light_ray.light_ray \
-     import periodic_ray
+from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
+    periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-import warnings
 
 
 from . import _MPL
@@ -1510,6 +1510,86 @@ class TitleCallback(PlotCallback):
         label = plot._axes.title
         self._set_font_properties(plot, [label])
 
+
+class MeshLinesCallback(PlotCallback):
+    """
+    annotate_mesh_lines(thresh=0.01)
+
+    Adds the mesh lines to the plot.
+
+    This is done by marking the pixels where the mapped coordinate
+    is within some threshold distance of one of the element boundaries.
+    If the mesh lines are too thick or too thin, try varying thresh.
+
+    Parameters
+    ----------
+
+    thresh : float
+        The threshold distance, in mapped coordinates, within which the
+        pixels will be marked as part of the element boundary.
+        Default is 0.01.
+
+    """
+    _type_name = "mesh_lines"
+
+    def __init__(self, thresh=0.1):
+        super(MeshLinesCallback, self).__init__()
+        self.thresh = thresh
+
+    def __call__(self, plot):
+
+        ftype, fname = plot.field
+        mesh_id = int(ftype[-1]) - 1
+        mesh = plot.ds.index.meshes[mesh_id]
+
+        coords = mesh.connectivity_coords
+        indices = mesh.connectivity_indices
+
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+
+        offset = mesh._index_offset
+        ax = plot.data.axis
+        xax = plot.data.ds.coordinates.x_axis[ax]
+        yax = plot.data.ds.coordinates.y_axis[ax]
+
+        size = plot.image._A.shape
+        c = plot.data.center[ax]
+        buff_size = size[0:ax] + (1,) + size[ax:]
+
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        c = plot.data.center[ax]
+        bounds = [x0, x1, y0, y1]
+        bounds.insert(2*ax, c)
+        bounds.insert(2*ax, c)
+        bounds = np.reshape(bounds, (3, 2))
+
+        # draw the mesh lines by marking where the mapped
+        # coordinate is close to the domain edge. We do this by
+        # calling the pixelizer with a dummy field and passing in
+        # a non-negative thresh.
+        dummy_field = np.zeros(indices.shape, dtype=np.float64)
+        img = pixelize_element_mesh(coords, indices,
+                                    buff_size,
+                                    dummy_field,
+                                    bounds,
+                                    offset, self.thresh)
+        img = np.squeeze(np.transpose(img, (yax, xax, ax)))
+
+        # convert to RGBA 
+        image = np.zeros((800, 800, 4), dtype=np.uint8)
+        image[:, :, 0][img > 0.0] = 0
+        image[:, :, 1][img > 0.0] = 0
+        image[:, :, 2][img > 0.0] = 0
+        image[:, :, 3][img > 0.0] = 255
+
+        plot._axes.imshow(image, zorder=1,
+                          extent=[xx0, xx1, yy0, yy1],
+                          origin='lower',
+                          interpolation='nearest')
+
+
 class TriangleFacetsCallback(PlotCallback):
     """
     annotate_triangle_facets(triangle_vertices, plot_args=None )
@@ -1523,6 +1603,7 @@ class TriangleFacetsCallback(PlotCallback):
     of the geometry represented by the triangles.
     """
     _type_name = "triangle_facets"
+
     def __init__(self, triangle_vertices, plot_args=None):
         super(TriangleFacetsCallback, self).__init__()
         self.plot_args = {} if plot_args is None else plot_args
@@ -1539,12 +1620,14 @@ class TriangleFacetsCallback(PlotCallback):
         else:
             vertices = self.vertices
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, vertices)[:,:,(xax, yax)]
+        # l_cy is shape (nlines, 2, 2)
         # reformat for conversion to plot coordinates
         l_cy = np.rollaxis(l_cy,0,3)
         # convert all line starting points
         l_cy[0] = self.convert_to_plot(plot,l_cy[0])
-        l_cy[1] = self.convert_to_plot(plot,l_cy[1])
         # convert all line ending points
+        l_cy[1] = self.convert_to_plot(plot,l_cy[1])
+        # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy,2,0)
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
@@ -2167,7 +2250,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
 
-        if self.texture == None:
+        if self.texture is None:
             self.texture = np.random.rand(nx,ny).astype(np.double)
         elif self.texture.shape != (nx,ny):
             raise SyntaxError("'texture' must have the same shape "

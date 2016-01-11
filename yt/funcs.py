@@ -14,22 +14,35 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import errno
 from yt.extern.six import string_types
-import time, types, signal, inspect, traceback, sys, pdb, os, re
+from yt.extern.six.moves import input
+import time
+import inspect
+import traceback
+import sys
+import pdb
+import os
+import re
 import contextlib
-import warnings, struct, subprocess
+import warnings
+import struct
+import subprocess
 import numpy as np
+import itertools
+import base64
+import numpy
+import matplotlib
+import getpass
 from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
 from yt.extern.six.moves import builtins, urllib
-from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.exceptions import YTInvalidWidthError
 import yt.extern.progressbar as pb
-import yt.utilities.rpdb as rpdb
 from yt.units.yt_array import YTArray, YTQuantity
-from collections import defaultdict
 from functools import wraps
 
 # Some functions for handling sequences and other types
@@ -170,7 +183,7 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","timefunctions") == True:
+    if ytcfg.getboolean("yt","timefunctions") is True:
         return wrapper
     else:
         return func
@@ -221,24 +234,29 @@ def rootloginfo(*args):
     if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
     mylog.info(*args)
 
-def deprecate(func):
-    """
-    This decorator issues a deprecation warning.
+def deprecate(replacement):
+    def real_deprecate(func):
+        """
+        This decorator issues a deprecation warning.
 
-    This can be used like so:
+        This can be used like so:
 
-    .. code-block:: python
+        .. code-block:: python
 
-       @deprecate
-       def some_really_old_function(...):
+        @deprecate("new_function")
+        def some_really_old_function(...):
 
-    """
-    @wraps(func)
-    def run_func(*args, **kwargs):
-        warnings.warn("%s has been deprecated and may be removed without notice!" \
-                % func.__name__, DeprecationWarning, stacklevel=2)
-        func(*args, **kwargs)
-    return run_func
+        """
+        @wraps(func)
+        def run_func(*args, **kwargs):
+            message = "%s has been deprecated and may be removed without notice!"
+            if replacement is not None:
+                message += " Use %s instead." % replacement
+            warnings.warn(message % func.__name__, DeprecationWarning,
+                          stacklevel=2)
+            func(*args, **kwargs)
+        return run_func
+    return real_deprecate
 
 def pdb_run(func):
     """
@@ -287,7 +305,7 @@ def insert_ipython(num_up=1):
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
-
+    import IPython
     api_version = get_ipython_api_version()
 
     frame = inspect.stack()[num_up]
@@ -460,7 +478,6 @@ def paste_traceback_detailed(exc_type, exc, tb):
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
-    import itertools, base64
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
     print(dec_s)
@@ -535,12 +552,10 @@ def get_yt_version():
     return version
 
 def get_version_stack():
-    import numpy, matplotlib, h5py
     version_info = {}
     version_info['yt'] = get_yt_version()
     version_info['numpy'] = numpy.version.version
     version_info['matplotlib'] = matplotlib.__version__
-    version_info['h5py'] = h5py.version.version
     return version_info
 
 def get_script_contents():
@@ -572,13 +587,14 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
+    import hglib
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
@@ -589,7 +605,7 @@ def get_yt_supp():
         print("*** is a delicate act, I require you to respond   ***")
         print("*** to the prompt with the word 'yes'.            ***")
         print()
-        response = raw_input("Do you want me to try to check it out? ")
+        response = input("Do you want me to try to check it out? ")
         if response != "yes":
             print()
             print("Okay, I understand.  You can check it out yourself.")
@@ -599,8 +615,8 @@ def get_yt_supp():
             print("%s" % (supp_path))
             print()
             sys.exit(1)
-        rv = commands.clone(uu,
-                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
+        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", 
+                         supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)
@@ -620,7 +636,7 @@ def fix_length(length, ds=None):
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
-    unit_is_string = isinstance(length[1], str)
+    unit_is_string = isinstance(length[1], string_types)
     if length_valid_tuple and unit_is_string:
         return YTArray(*length, registry=registry)
     else:
@@ -668,6 +684,57 @@ def fix_axis(axis, ds):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+def get_output_filename(name, keyword, suffix):
+    r"""Return an appropriate filename for output.
+
+    With a name provided by the user, this will decide how to 
+    appropriately name the output file by the following rules:
+    1. if name is None, the filename will be the keyword plus 
+       the suffix.
+    2. if name ends with "/", assume name is a directory and 
+       the file will be named name/(keyword+suffix).  If the
+       directory does not exist, first try to create it and
+       raise an exception if an error occurs.
+    3. if name does not end in the suffix, add the suffix.
+    
+    Parameters
+    ----------
+    name : str
+        A filename given by the user.
+    keyword : str
+        A default filename prefix if name is None.
+    suffix : str
+        Suffix that must appear at end of the filename.
+        This will be added if not present.
+
+    Examples
+    --------
+
+    >>> print get_output_filename(None, "Projection_x", ".png")
+    Projection_x.png
+    >>> print get_output_filename("my_file", "Projection_x", ".png")
+    my_file.png
+    >>> print get_output_filename("my_file/", "Projection_x", ".png")
+    my_file/Projection_x.png
+    
+    """
+    if name is None:
+        name = keyword
+    name = os.path.expanduser(name)
+    if name[-1] == os.sep and not os.path.isdir(name):
+        try:
+            os.mkdir(name)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+    if os.path.isdir(name):
+        name = os.path.join(name, keyword)
+    if not name.endswith(suffix):
+        name += suffix
+    return name
 
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""

@@ -719,8 +719,8 @@ class YTArray(np.ndarray):
     # End unit conversion methods
     #
 
-    def write_hdf5(self, filename, dataset_name=None, info=None):
-        r"""Writes ImageArray to hdf5 file.
+    def write_hdf5(self, filename, dataset_name=None, info=None, group_name=None):
+        r"""Writes a YTArray to hdf5 file.
 
         Parameters
         ----------
@@ -733,16 +733,17 @@ class YTArray(np.ndarray):
         info: dictionary
             A dictionary of supplementary info to write to append as attributes
             to the dataset.
+            
+        group_name: string
+            An optional group to write the arrays to. If not specified, the arrays
+            are datasets at the top level by default.
 
         Examples
         --------
         >>> a = YTArray([1,2,3], 'cm')
-
         >>> myinfo = {'field':'dinosaurs', 'type':'field_data'}
-
         >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
         ...              info=myinfo)
-
         """
         import h5py
         from yt.extern.six.moves import cPickle as pickle
@@ -756,8 +757,15 @@ class YTArray(np.ndarray):
             dataset_name = 'array_data'
 
         f = h5py.File(filename)
-        if dataset_name in f.keys():
-            d = f[dataset_name]
+        if group_name is not None:
+            if group_name in f:
+                g = f[group_name]
+            else:
+                g = f.create_group(group_name)
+        else:
+            g = f
+        if dataset_name in g.keys():
+            d = g[dataset_name]
             # Overwrite without deleting if we can get away with it.
             if d.shape == self.shape and d.dtype == self.dtype:
                 d[:] = self
@@ -765,16 +773,16 @@ class YTArray(np.ndarray):
                     del d.attrs[k]
             else:
                 del f[dataset_name]
-                d = f.create_dataset(dataset_name, data=self)
+                d = g.create_dataset(dataset_name, data=self)
         else:
-            d = f.create_dataset(dataset_name, data=self)
+            d = g.create_dataset(dataset_name, data=self)
 
         for k, v in info.items():
             d.attrs[k] = v
         f.close()
 
     @classmethod
-    def from_hdf5(cls, filename, dataset_name=None):
+    def from_hdf5(cls, filename, dataset_name=None, group_name=None):
         r"""Attempts read in and convert a dataset in an hdf5 file into a YTArray.
 
         Parameters
@@ -786,6 +794,10 @@ class YTArray(np.ndarray):
             The name of the dataset to read from.  If the dataset has a units
             attribute, attempt to infer units as well.
 
+        group_name: string
+            An optional group to read the arrays from. If not specified, the arrays
+            are datasets at the top level by default.
+
         """
         import h5py
         from yt.extern.six.moves import cPickle as pickle
@@ -794,7 +806,11 @@ class YTArray(np.ndarray):
             dataset_name = 'array_data'
 
         f = h5py.File(filename)
-        dataset = f[dataset_name]
+        if group_name is not None:
+            g = f[group_name]
+        else:
+            g = f
+        dataset = g[dataset_name]
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
@@ -1375,9 +1391,9 @@ def uunion1d(arr1, arr2):
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.ds._get_field_info(field[0],field[1]).units
+        units = data.ds._get_field_info(field[0],field[1]).output_units
     else:
-        units = data.ds._get_field_info(field).units
+        units = data.ds._get_field_info(field).output_units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)

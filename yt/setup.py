@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import setuptools
-import os
-import sys
 
 
 def configuration(parent_package='', top_path=None):
@@ -15,6 +12,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('geometry')
     config.add_subpackage('units')
     config.add_subpackage('utilities')
+    config.add_subpackage('tests')
     config.add_subpackage('visualization')
     config.make_config_py()
     #config.make_svn_version_py()

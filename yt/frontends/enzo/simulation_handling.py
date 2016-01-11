@@ -20,7 +20,8 @@ import os
 from math import ceil
 
 from yt.convenience import \
-    load, \
+    load
+from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
@@ -40,7 +41,7 @@ from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-    
+
 class EnzoSimulation(SimulationTimeSeries):
     r"""
     Initialize an Enzo Simulation object.
@@ -101,6 +102,8 @@ class EnzoSimulation(SimulationTimeSeries):
             self.length_unit = self.quan(self.box_size, "Mpccm / h",
                                          registry=self.unit_registry)
             self.box_size = self.length_unit
+            self.domain_left_edge = self.domain_left_edge * self.length_unit
+            self.domain_right_edge = self.domain_right_edge * self.length_unit
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
         self.unit_registry.modify("code_time", self.time_unit)
@@ -133,21 +136,21 @@ class EnzoSimulation(SimulationTimeSeries):
             datasets for time series.
             Default: True.
         initial_time : tuple of type (float, str)
-            The earliest time for outputs to be included.  This should be 
+            The earliest time for outputs to be included.  This should be
             given as the value and the string representation of the units.
-            For example, (5.0, "Gyr").  If None, the initial time of the 
-            simulation is used.  This can be used in combination with 
+            For example, (5.0, "Gyr").  If None, the initial time of the
+            simulation is used.  This can be used in combination with
             either final_time or final_redshift.
             Default: None.
         final_time : tuple of type (float, str)
-            The latest time for outputs to be included.  This should be 
+            The latest time for outputs to be included.  This should be
             given as the value and the string representation of the units.
-            For example, (13.7, "Gyr"). If None, the final time of the 
-            simulation is used.  This can be used in combination with either 
+            For example, (13.7, "Gyr"). If None, the final time of the
+            simulation is used.  This can be used in combination with either
             initial_time or initial_redshift.
             Default: None.
         times : tuple of type (float array, str)
-            A list of times for which outputs will be found and the units 
+            A list of times for which outputs will be found and the units
             of those values.  For example, ([0, 1, 2, 3], "s").
             Default: None.
         initial_redshift : float
@@ -195,8 +198,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
         >>> import yt
         >>> es = yt.simulation("my_simulation.par", "Enzo")
-        
-        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"), 
+
+        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"),
                                redshift_data=False)
 
         >>> es.get_time_series(redshifts=[3, 2, 1, 0])
@@ -304,7 +307,7 @@ class EnzoSimulation(SimulationTimeSeries):
         for output in my_outputs:
             if os.path.exists(output['filename']):
                 init_outputs.append(output['filename'])
-            
+
         DatasetSeries.__init__(self, outputs=init_outputs, parallel=parallel,
                                 setup_function=setup_function)
         mylog.info("%d outputs loaded into time series.", len(init_outputs))
@@ -586,11 +589,11 @@ class EnzoSimulation(SimulationTimeSeries):
         Check a list of files to see if they are valid datasets.
         """
 
-        only_on_root(mylog.info, "Checking %d potential outputs.", 
+        only_on_root(mylog.info, "Checking %d potential outputs.",
                      len(potential_outputs))
 
         my_outputs = {}
-        for my_storage, output in parallel_objects(potential_outputs, 
+        for my_storage, output in parallel_objects(potential_outputs,
                                                    storage=my_outputs):
             if self.parameters['DataDumpDir'] in output:
                 dir_key = self.parameters['DataDumpDir']
@@ -643,6 +646,6 @@ class EnzoCosmology(Cosmology):
         self.initial_redshift = initial_redshift
         # time units = 1 / sqrt(4 * pi * G rho_0 * (1 + z_i)**3),
         # rho_0 = (3 * Omega_m * h**2) / (8 * pi * G)
-        self.time_unit = ((1.5 * self.omega_matter * self.hubble_constant**2 * 
+        self.time_unit = ((1.5 * self.omega_matter * self.hubble_constant**2 *
                            (1 + self.initial_redshift)**3)**-0.5).in_units("s")
         self.time_unit.units.registry = self.unit_registry

@@ -16,7 +16,6 @@ and contributing code!
 .. toctree::
    :maxdepth: 2
     
-   intro
    developing
    building_the_docs
    testing

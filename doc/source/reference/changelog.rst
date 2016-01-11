@@ -22,7 +22,7 @@ Major enhancements
 * Late-stage beta support for Python 3 - unit tests and answer tests pass for 
   all the major frontends under python 3.4, and yt should now be mostly if not 
   fully usable.  Because many of the yt developers are still on Python 2 at 
-  this point, this should be considered a “late stage beta” as there may be 
+  this point, this should be considered a "late stage beta" as there may be 
   remaining issues yet to be identified or worked out.
 * Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn 
   how to load halo catalogs as regular yt datasets.
@@ -644,7 +644,7 @@ Version 2.1
  * libconfig is now included
  * SQLite3 and Forthon now included by default in the install script
  * Development guide has been lengthened substantially and a development
-   bootstrap script (:ref:`bootstrap-dev`) is now included.
+   bootstrap script is now included.
  * Installation script now installs Python 2.7 and HDF5 1.8.6
  * iyt now tab-completes field names
  * Halos can now be stored on-disk much more easily between HaloFinding runs.

@@ -24,6 +24,7 @@ _frontends = [
     'chombo',
     'eagle',
     'enzo',
+    'exodus_ii',
     'fits',
     'flash',
     'gadget',
@@ -39,6 +40,7 @@ _frontends = [
     'sdf',
     'stream',
     'tipsy',
+    'ytdata',
 ]
 
 class _frontend_container:

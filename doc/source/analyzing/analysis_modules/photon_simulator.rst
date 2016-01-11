@@ -1,3 +1,5 @@
+.. _photon_simulator:
+
 Constructing Mock X-ray Observations
 ------------------------------------
 
@@ -98,9 +100,8 @@ cold fronts.
    `AtomDB <http://www.atomdb.org>`_ and get the files from the
    `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
    data package (see the ``xray_data`` `README <xray_data_README.html>`_ 
-   for details on the latter). Make sure that
-   in what follows you specify the full path to the locations of these
-   files.
+   for details on the latter). Make sure that in what follows you 
+   specify the full path to the locations of these files.
 
 To generate photons from this dataset, we have several different things
 we need to set up. The first is a standard yt data object. It could
@@ -197,7 +198,7 @@ construct a ``Cosmology`` object:
 
 .. code:: python
 
-    A = 6000.
+    A = 3000.
     exp_time = 4.0e5
     redshift = 0.05
     cosmo = Cosmology()
@@ -298,7 +299,7 @@ column density :math:`N_H` as input:
 
 The second option, ``TableAbsorbModel``, takes as input an HDF5 file
 containing two datasets, ``"energy"`` (in keV), and ``"cross_section"``
-(in cm2), and the Galactic column density :math:`N_H`:
+(in :math:`cm^2`), and the Galactic column density :math:`N_H`:
 
 .. code:: python
 
@@ -307,7 +308,7 @@ containing two datasets, ``"energy"`` (in keV), and ``"cross_section"``
 Now we're ready to project the photons. First, we choose a line-of-sight
 vector ``normal``. Second, we'll adjust the exposure time and the redshift.
 Third, we'll pass in the absorption ``SpectrumModel``. Fourth, we'll
-specify a ``sky_center`` in RA,DEC on the sky in degrees.
+specify a ``sky_center`` in RA and DEC on the sky in degrees.
 
 Also, we're going to convolve the photons with instrument ``responses``.
 For this, you need a ARF/RMF pair with matching energy bins. This is of
@@ -322,8 +323,8 @@ RMF to convolve energies, we must set ``convolve_energies=True``.
 
 .. code:: python
 
-    ARF = "chandra_ACIS-S3_onaxis_arf.fits"
-    RMF = "chandra_ACIS-S3_onaxis_rmf.fits"
+    ARF = "acisi_aimpt_cy17.arf"
+    RMF = "acisi_aimpt_cy17.rmf"
     normal = [0.0,0.0,1.0]
     events = photons.project_photons(normal, exp_time_new=2.0e5, redshift_new=0.07, dist_new=None, 
                                      absorb_model=abs_model, sky_center=(187.5,12.333), responses=[ARF,RMF], 
@@ -540,7 +541,7 @@ example:
 
    sphere = ds.sphere("c", (1.0,"Mpc"))
        
-   A = 6000.
+   A = 3000.
    exp_time = 2.0e5
    redshift = 0.05
    cosmo = Cosmology()
@@ -555,7 +556,8 @@ example:
 
 
    events = photons.project_photons([0.0,0.0,1.0], 
-                                    responses=["sim_arf.fits","sim_rmf.fits"], 
+                                    responses=["acisi_aimpt_cy17.arf",
+                                               "acisi_aimpt_cy17.rmf"], 
                                     absorb_model=abs_model,
                                     north_vector=[0.0,1.0,0.0])
 
@@ -625,3 +627,31 @@ SIMX. They are 200 ks observations of the two example clusters from above
 .. image:: _images/ds9_sloshing.png
 
 .. image:: _images/ds9_bubbles.png
+
+In November 2015, the structure of the photon and event HDF5 files changed. To 
+convert an old-format file to the new format, use the ``convert_old_file`` utility:
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import convert_old_file
+   convert_old_file("old_photons.h5", "new_photons.h5", clobber=True)
+   convert_old_file("old_events.h5", "new_events.h5", clobber=True)
+
+This utility will auto-detect the kind of file (photons or events) and will write 
+the correct replacement for the new version.
+
+At times it may be convenient to write several ``EventLists`` to disk to be merged 
+together later. This can be achieved with the ``merge_files`` utility. It takes a 
+list of 
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import merge_files
+   merge_files(["events_0.h5", "events_1.h5", "events_2.h5"], "merged_events.h5",
+                add_exposure_times=True, clobber=False)
+
+At the current time this utility is very limited, as it only allows merging of 
+``EventLists`` which have the same parameters, with the exception of the exposure
+time. If the ``add_exposure_times`` argument to ``merge_files`` is set to ``True``, 
+the lists will be merged together with the exposure times added. Otherwise, the 
+exposure times of the different files must be equal. 

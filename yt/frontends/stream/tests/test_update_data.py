@@ -1,5 +1,5 @@
 from yt.testing import fake_random_ds
-from yt.data_objects.profiles import BinnedProfile1D
+from yt.data_objects.profiles import create_profile
 from numpy.random import uniform
 
 def test_update_data() :
@@ -12,9 +12,5 @@ def test_update_data() :
     prj = ds.proj("temperature", 2)
     prj["temperature"]
     dd = ds.all_data()
-    profile = BinnedProfile1D(dd, 10, "density",
-                              dd["density"].min(),
-                              dd["density"].max())
-    profile.add_fields(["temperature"])
-    profile["temperature"]
-                              
+    profile = create_profile(dd, "density", "temperature", 10)
+    profile["temperature"]                             

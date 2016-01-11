@@ -44,7 +44,7 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype not in ("gas",) for ftype, fname in fields)):
+        if any((ftype not in self.ds.fluid_types for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:
@@ -251,3 +251,37 @@ class IOHandlerStreamOctree(BaseIOHandler):
                         subset.domain_id - subset._domain_offset][field]
                 subset.fill(field_vals, rv, selector, ind)
         return rv
+
+
+class IOHandlerStreamUnstructured(BaseIOHandler):
+    _dataset_type = "stream_unstructured"
+
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(IOHandlerStreamUnstructured, self).__init__(ds)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
+        chunk = chunks[0]
+        mesh_id = chunk.objs[0].mesh_id
+        rv = {}
+        for field in fields:
+            if field in self.ds._node_fields:
+                nodes_per_element = self.fields[mesh_id][field].shape[1]
+                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+            else:
+                rv[field] = np.empty(size, dtype="float64")
+        ngrids = sum(len(chunk.objs) for chunk in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ftype, fname in fields], ngrids)
+        for field in fields:
+            ind = 0
+            ftype, fname = field
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self.fields[g.mesh_id].get(field, None)
+                    if ds is None:
+                        ds = self.fields[g.mesh_id][fname]
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv
+

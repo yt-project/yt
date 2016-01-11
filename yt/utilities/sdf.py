@@ -1,6 +1,5 @@
 from __future__ import print_function
 from yt.extern.six.moves import cStringIO
-import re
 import os
 import numpy as np
 try:
@@ -293,7 +292,7 @@ class SDFRead(dict):
             self.load_memmaps()
 
     def write(self, filename):
-        f = file(filename, 'w')
+        f = open(filename, 'w')
         f.write("# SDF 1.0\n")
         f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
         for c in self.comments:
@@ -387,8 +386,6 @@ class SDFRead(dict):
         assert 'struct' in line
 
         str_types = []
-        comments = []
-        str_lines = []
         l = ascfile.readline()
         while "}" not in l:
             vtype, vnames = _get_struct_vars(l)
@@ -1036,10 +1033,7 @@ class SDFIndex(object):
         #right = right.astype('float32')
 
         #my_filter = bbox_filter(left, right, self.true_domain_width)
-        data = []
-        for dd in self.filter_bbox(
-            left, right,
-            self.iter_data(inds, fields)):
+        for dd in self.filter_bbox(left, right, self.iter_data(inds, fields)):
             yield dd
         #for dd in self.filter_particles(
         #    self.iter_data(inds, fields),
@@ -1066,11 +1060,8 @@ class SDFIndex(object):
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
-        liarr = self.get_ind_from_key(left_key)
-        riarr = self.get_ind_from_key(right_key)
 
         lbase=0
-        llen = 0
         if left_key > self._max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % \
                                (left_key, self._max_key))
@@ -1080,7 +1071,6 @@ class SDFIndex(object):
         right_key = self.get_previous_nonzero_chunk(right_key, left_key)
 
         lbase = self.indexdata['base'][left_key]
-        llen = self.indexdata['len'][left_key]
 
         rbase = self.indexdata['base'][right_key]
         rlen = self.indexdata['len'][right_key]
@@ -1247,8 +1237,7 @@ class SDFIndex(object):
 
         pbox[1, 0] = bbox[1, 1]
         pbox[1, 1] = pbox[1, 0] + pad[1]
-        for dd in self.filter_bbox(
-            filter_left, filter_right,
+        for dd in self.filter_bbox(filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             yield dd
             del dd
@@ -1284,9 +1273,6 @@ class SDFIndex(object):
 
         """
         _ensure_xyz_fields(fields)
-        bbox = self.get_cell_bbox(level, cell_iarr)
-        filter_left = bbox[:, 0] - pad
-        filter_right = bbox[:, 1] + pad
 
         data = []
         for dd in self.iter_padded_bbox_data(level, cell_iarr, pad, fields):
@@ -1304,8 +1290,6 @@ class SDFIndex(object):
 
         """
         bbox = self.get_cell_bbox(level, cell_iarr)
-        filter_left = bbox[:, 0] - pad
-        filter_right = bbox[:, 1] + pad
 
         # Need to get all of these
         low_key, high_key = self.get_key_bounds(level, cell_iarr)

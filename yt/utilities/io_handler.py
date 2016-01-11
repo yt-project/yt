@@ -16,8 +16,6 @@ The data-file handling functions
 from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.funcs import mylog
-from yt.extern.six.moves import cPickle
 import os
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np

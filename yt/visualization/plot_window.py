@@ -13,7 +13,7 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import base64
+
 import numpy as np
 import matplotlib
 import types
@@ -24,8 +24,6 @@ from distutils.version import LooseVersion
 from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
-from ._mpl_imports import FigureCanvasAgg
-from .image_writer import apply_colormap
 from .base_plot_types import ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
@@ -43,9 +41,9 @@ from yt.data_objects.time_series import \
     DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
-from yt.extern.six.moves import \
-    StringIO
 from yt.extern.six import string_types
+from yt.frontends.ytdata.data_structures import \
+    YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, fix_unitary
@@ -57,8 +55,6 @@ from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.png_writer import \
-    write_png_to_string
 from yt.utilities.definitions import \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
@@ -86,46 +82,8 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    if ds.geometry in ("cartesian", "spectral_cube"):
-        width = ds.coordinates.sanitize_width(axis, width, None)
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-    elif ds.geometry in ("polar", "cylindrical"):
-        # Set our default width to be the full domain
-        axis_name = ds.coordinates.axis_name[axis]
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        # Note: regardless of axes, these are set up to give consistent plots
-        # when plotted, which is not strictly a "right hand rule" for axes.
-        r_ax, theta_ax, z_ax = (ds.coordinates.axis_id[ax]
-                                for ax in ('r', 'theta', 'z'))
-        if axis_name == "r": # soup can label
-            width = [2.0*np.pi * ds.domain_width.uq, ds.domain_width[z_ax]]
-        elif axis_name == "theta":
-            width = [ds.domain_right_edge[r_ax], ds.domain_width[z_ax]]
-        elif axis_name == "z":
-            width = [2.0*ds.domain_right_edge[r_ax],
-                     2.0*ds.domain_right_edge[r_ax]]
-    elif ds.geometry == "spherical":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            # latitude slice
-            width = ds.arr([2*np.pi, np.pi], "code_length")
-        elif axis == 1:
-            width = [2.0*ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-        elif axis == 2:
-            width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-    elif ds.geometry == "geographic":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 1:
-            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-    else:
-        raise NotImplementedError
+    width = ds.coordinates.sanitize_width(axis, width, None)
+    center, display_center = ds.coordinates.sanitize_center(center, axis)
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
     bounds = (display_center[xax]-width[0] / 2,
@@ -1072,6 +1030,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_colorbar()
+        return self
 
     def show_colorbar(self, field=None):
         """
@@ -1090,6 +1049,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_colorbar()
+        return self
 
     def hide_axes(self, field=None):
         """
@@ -1128,6 +1088,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_axes()
+        return self
 
     def show_axes(self, field=None):
         """
@@ -1146,6 +1107,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_axes()
+        return self
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
@@ -1264,9 +1226,17 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             get_window_parameters(axis, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
-        slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
-                       center=center, data_source=data_source)
-        slc.get_data(fields)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            slc = ds.all_data()
+            slc.axis = axis
+            if slc.axis != ds.parameters["axis"]:
+                raise RuntimeError("Original slice axis is %s." %
+                                   ds.parameters["axis"])
+        else:
+            slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
+                           center=center, data_source=data_source)
+            slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect)
@@ -1426,9 +1396,18 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, display_center) = \
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
-        proj = ds.proj(fields, axis, weight_field=weight_field,
-                       center=center, data_source=data_source,
-                       field_parameters = field_parameters, method = method)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            proj = ds.all_data()
+            proj.axis = axis
+            if proj.axis != ds.parameters["axis"]:
+                raise RuntimeError("Original projection axis is %s." %
+                                   ds.parameters["axis"])
+            proj.weight_field = proj._determine_fields(weight_field)[0]
+        else:
+            proj = ds.proj(fields, axis, weight_field=weight_field,
+                           center=center, data_source=data_source,
+                           field_parameters = field_parameters, method = method)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1513,10 +1492,16 @@ class OffAxisSlicePlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
             field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector=north_vector,
-                             field_parameters=field_parameters,
-                             data_source=data_source)
-        cutting.get_data(fields)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            cutting = ds.all_data()
+            cutting.axis = 4
+            cutting._inv_mat = ds.parameters["_inv_mat"]
+        else:
+            cutting = ds.cutting(normal, center, north_vector=north_vector,
+                                 field_parameters=field_parameters,
+                                 data_source=data_source)
+            cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,

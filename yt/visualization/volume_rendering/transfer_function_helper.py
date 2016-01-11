@@ -15,8 +15,9 @@ rendering.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import mylog
-from yt.data_objects.profiles import BinnedProfile1D
-from yt.visualization.volume_rendering.api import ColorTransferFunction
+from yt.data_objects.profiles import create_profile
+from yt.visualization.volume_rendering.transfer_functions import \
+    ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from yt.extern.six.moves import StringIO
@@ -24,31 +25,31 @@ import numpy as np
 
 
 class TransferFunctionHelper(object):
+    r"""A transfer function helper.
 
+    This attempts to help set up a good transfer function by finding
+    bounds, handling linear/log options, and displaying the transfer
+    function combined with 1D profiles of rendering quantity.
+
+    Parameters
+    ----------
+    ds: A Dataset instance
+        A static output that is currently being rendered. This is used to
+        help set up data bounds.
+
+    Notes
+    -----
+    """
+ 
     profiles = None
 
     def __init__(self, ds):
-        r"""A transfer function helper.
-
-        This attempts to help set up a good transfer function by finding
-        bounds, handling linear/log options, and displaying the transfer
-        function combined with 1D profiles of rendering quantity.
-
-        Parameters
-        ----------
-        ds: A Dataset instance
-            A static output that is currently being rendered. This is used to
-            help set up data bounds.
-
-        Notes
-        -----
-        """
         self.ds = ds
         self.field = None
         self.log = False
         self.tf = None
         self.bounds = None
-        self.grey_opacity = True
+        self.grey_opacity = True 
         self.profiles = {}
 
     def set_bounds(self, bounds=None):
@@ -64,7 +65,8 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.ds.all_data().quantities.extrema(self.field)
+            bounds = self.ds.h.all_data().quantities['Extrema'](self.field, non_zero=True)
+            bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
         # Do some error checking.
@@ -84,6 +86,7 @@ class TransferFunctionHelper(object):
             The field to be rendered.
         """
         self.field = field
+        self.log = self.ds._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """
@@ -124,10 +127,21 @@ class TransferFunctionHelper(object):
             mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             mi, ma = self.bounds
+
         self.tf = ColorTransferFunction((mi, ma),
                                         grey_opacity=self.grey_opacity,
                                         nbins=512)
         return self.tf
+
+    def setup_default(self):
+        """docstring for setup_default"""
+        if self.log:
+            mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
+        else:
+            mi, ma = self.bounds
+        self.tf.add_layers(10, colormap='spectral')
+        factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
+        self.tf.funcs[-1].y *= 2*factor
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """
@@ -176,11 +190,12 @@ class TransferFunctionHelper(object):
             except KeyError:
                 self.setup_profile(profile_field, profile_weight)
                 prof = self.profiles[self.field]
-            if profile_field not in prof.keys():
-                prof.add_fields([profile_field], fractional=False,
-                                weight=profile_weight)
+            try:
+                prof[profile_field]
+            except KeyError:
+                prof.add_fields([profile_field])
             # Strip units, if any, for matplotlib 1.3.1
-            xplot = np.array(prof[self.field])
+            xplot = np.array(prof.x)
             yplot = np.array(prof[profile_field]*tf.funcs[3].y.max() /
                              prof[profile_field].max())
             ax.plot(xplot, yplot, color='w', linewidth=3)
@@ -205,11 +220,9 @@ class TransferFunctionHelper(object):
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
             profile_field = 'cell_volume'
-        prof = BinnedProfile1D(self.ds.all_data(), 128, self.field,
-                               self.bounds[0], self.bounds[1],
-                               log_space=self.log,
-                               end_collect=False)
-        prof.add_fields([profile_field], fractional=False,
-                        weight=profile_weight)
+        prof = create_profile(self.ds.all_data(), self.field, profile_field,
+                              n_bins=128, extrema={self.field: self.bounds},
+                              weight_field=profile_weight,
+                              logs = {self.field: self.log})
         self.profiles[self.field] = prof
         return

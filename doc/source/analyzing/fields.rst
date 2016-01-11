@@ -195,10 +195,32 @@ We provide a full list of fields that yt recognizes by default at
 :ref:`field-list`.  If you want to create additional custom derived fields, 
 see :ref:`creating-derived-fields`.
 
-The full list of fields available for a dataset can be found as 
-the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
-for derived fields (``derived_field_list`` is a superset of ``field_list``).
-You can view these lists by examining a dataset like this:
+Every dataset has an attribute, ``ds.fields``.  This attribute possesses
+attributes itself, each of which is a "field type," and each field type has as
+its attributes the fields themselves.  When one of these is printed, it returns
+information about the field and things like units and so on.  You can use this
+for tab-completing as well as easier access to information.
+
+As an example, you might browse the available fields like so:::
+
+  print(dir(ds.fields))
+  print(dir(ds.fields.gas))
+  print(ds.fields.gas.density)
+
+On an Enzo dataset, the result from the final command would look something like
+this:::
+
+  Alias Field for "('enzo', 'Density')" (gas, density): (units: g/cm**3)
+
+You can use this to easily explore available fields, particularly through
+tab-completion in Jupyter/IPython.
+
+For a more programmatic method of accessing fields, you can utilize the
+``ds.field_list``, ``ds.derived_field_list`` and some accessor methods to gain
+information about fields.  The full list of fields available for a dataset can
+be found as the attribute ``field_list`` for native, on-disk fields and
+``derived_field_list`` for derived fields (``derived_field_list`` is a superset
+of ``field_list``).  You can view these lists by examining a dataset like this:
 
 .. code-block:: python
 
@@ -373,6 +395,17 @@ defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 ``Temperature`` of the ``Gas`` particle type would be ``("deposit",
 "Gas_smoothed_Temperature")``, which in most cases would be aliased to the
 field ``("gas", "temperature")`` for convenience.
+
+Other smoothing kernels besides the cubic spline one are available through a
+keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
+Current available kernel names include:
+
+* ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
+* ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
+
+The added smoothed particle field can be accessed by
+``("deposit", "particletype_kernelname_smoothed_fieldname")`` (except for the
+cubic spline kernel, which obeys the naming scheme given above).
 
 Computing the Nth Nearest Neighbor
 ----------------------------------

@@ -42,13 +42,15 @@ class SpectralModel(object):
     def get_spectrum(self):
         pass
 
+    def cleanup_spectrum(self):
+        pass
+
 class XSpecThermalModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from PyXspec.
 
     Parameters
     ----------
-
     model_name : string
         The name of the thermal emission model.
     emin : float
@@ -109,6 +111,10 @@ class XSpecThermalModel(SpectralModel):
         cosmic_spec *= self.norm
         metal_spec *= self.norm
         return YTArray(cosmic_spec, "cm**3/s"), YTArray(metal_spec, "cm**3/s")
+    
+    def cleanup_spectrum(self):
+        del self.thermal_comp
+        del self.model
 
 class XSpecAbsorbModel(SpectralModel):
     r"""
@@ -116,7 +122,6 @@ class XSpecAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     model_name : string
         The name of the absorption model.
     nH : float
@@ -165,16 +170,18 @@ class XSpecAbsorbModel(SpectralModel):
         m.nH = self.nH
         return np.array(self.model.values(0))
 
+    def cleanup_spectrum(self):
+        del self.model
+
 class TableApecModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from the AtomDB APEC tables
     available at http://www.atomdb.org. This code borrows heavily from Python
     routines used to read the APEC tables developed by Adam Foster at the
-    CfA (afoster@cfa.harvard.edu). 
+    CfA (afoster@cfa.harvard.edu).
 
     Parameters
     ----------
-
     apec_root : string
         The directory root where the APEC model files are stored.
     emin : float
@@ -313,7 +320,6 @@ class TableAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     filename : string
         The name of the table file.
     nH : float
@@ -323,7 +329,6 @@ class TableAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("abs_table.h5", 0.1)
     """
-
     def __init__(self, filename, nH):
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)

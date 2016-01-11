@@ -18,7 +18,8 @@ import glob
 import os
 
 from yt.convenience import \
-    load, \
+    load
+from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
@@ -374,7 +375,7 @@ class GadgetSimulation(SimulationTimeSeries):
         else:
             if self.parameters["OutputListOn"]:
                 a_values = [float(a) for a in 
-                           file(self.parameters["OutputListFilename"], "r").readlines()]
+                            open(self.parameters["OutputListFilename"], "r").readlines()]
             else:
                 a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
                 time_max = float(self.parameters["TimeMax"])
