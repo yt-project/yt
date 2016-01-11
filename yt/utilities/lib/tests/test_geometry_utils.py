@@ -63,6 +63,34 @@ def test_get_morton_argsort():
     get_morton_argsort(pos[sort_shf,:],0,N-1,sort_out)
     assert_array_equal(sort_out,sort_ans)
 
+def test_dist():
+    from yt.utilities.lib.geometry_utils import dist
+    p = np.array([0.0,0.0,0.0],dtype=np.float64)
+    q = np.array([0.0,0.0,0.0],dtype=np.float64)
+    assert_equal(dist(p,q),0.0)
+    p = np.array([0.0,0.0,0.0],dtype=np.float64)
+    q = np.array([1.0,0.0,0.0],dtype=np.float64)
+    assert_equal(dist(p,q),1.0)
+    p = np.array([0.0,0.0,0.0],dtype=np.float64)
+    q = np.array([1.0,1.0,0.0],dtype=np.float64)
+    assert_equal(dist(p,q),np.sqrt(2.0))
+    p = np.array([0.0,0.0,0.0],dtype=np.float64)
+    q = np.array([1.0,1.0,1.0],dtype=np.float64)
+    assert_equal(dist(p,q),np.sqrt(3.0))
+
+def test_knn_direct():
+    from yt.utilities.lib.geometry_utils import knn_direct
+    k = 5
+    N = 2*k
+    idx = np.arange(N,dtype=np.uint64)
+    rad = np.arange(N,dtype=np.float64)
+    pos = np.vstack(3*[rad**2/3.0]).T
+    sort_shf = np.arange(N,dtype=np.uint64)
+    np.random.shuffle(sort_shf)
+    sort_ans = np.argsort(sort_shf)[:k]
+    sort_out = knn_direct(pos[sort_shf,:], k, sort_ans[0], idx)
+    assert_array_equal(sort_out,sort_ans)
+
 def test_obtain_rvec():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, 
            negative = [False, True, True, True])
