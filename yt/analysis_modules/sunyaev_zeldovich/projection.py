@@ -236,7 +236,8 @@ class SZProjection(object):
         nx : integer, optional
             The dimensions on a side of the projection image.
         nz : integer, optional
-            The number of elements along the integration path length.
+            Deprecated, this is still in the function signature for API
+            compatibility
         north_vector : a sequence of floats
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
@@ -261,7 +262,7 @@ class SZProjection(object):
         wd = self.ds.coordinates.sanitize_width(L, width, depth)
         w = tuple(el.in_units('code_length').v for el in wd)
         ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
-        res = (nx, nx, nz)
+        res = (nx, nx)
 
         if source is not None:
             mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
