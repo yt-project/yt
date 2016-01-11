@@ -697,7 +697,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
             while (idxmax+(2**I) < N) and compare_morton(P[idxmax+(2**I),:],P[i,:]+rad_Ai):
                 I+=1
             u = min(idxmax+(2**I),N-1)
-            Ai = csearch_morton(P,k,i,Ai,min(idxmax+1,N-1),u,nu=nu,DLE=DLE,DRE=DRE,order=order)
+            Ai = csearch_morton(P,k,i,Ai,min(idxmax+1,N-1),u,order,DLE,DRE,nu=nu)
     else:
         u = idxmax
     # Extend lower bound to match upper bound
@@ -710,7 +710,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
                 I+=1
             l = max(idxmin-(2**I),0)
             print "l = {}/{} (idxmin = {})".format(l,N,idxmin)
-            Ai = csearch_morton(P,k,i,Ai,l,max(idxmin-1,0),nu=nu,DLE=DLE,DRE=DRE,order=order)
+            Ai = csearch_morton(P,k,i,Ai,l,max(idxmin-1,0),order,DLE,DRE,nu=nu)
     else:
         l = idxmin
     # Return indices of neighbors in the correct order

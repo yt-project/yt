@@ -91,6 +91,24 @@ def test_knn_direct():
     sort_out = knn_direct(pos[sort_shf,:], k, sort_ans[0], idx)
     assert_array_equal(sort_out,sort_ans)
 
+# TODO: test of quadtree (.pxd)
+
+def test_csearch_morton():
+    from yt.utilities.lib.geometry_utils import get_morton_argsort,csearch_morton,ORDER_MAX
+    k = 5
+    i = 0
+    xN = 2
+    N = xN**3
+    xf = np.arange(xN,dtype=np.float64)+1
+    DLE = np.zeros(3,dtype=np.float64)
+    DRE = (xN+1)*np.ones(3,dtype=np.float64)
+    X,Y,Z = np.meshgrid(xf,xf,xf)
+    pos = np.vstack((X.flatten(),Y.flatten(),Z.flatten())).T
+    sort_fwd = np.arange(N, dtype=np.uint64)
+    get_morton_argsort(pos,0,N-1,sort_fwd)
+    out = csearch_morton(pos[sort_fwd,:], k, i, Ai, l, h, order, DLE, DRE, ORDER_MAX)
+    # assert_array_equal(out,ans)
+
 def test_obtain_rvec():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, 
            negative = [False, True, True, True])
