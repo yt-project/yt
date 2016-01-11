@@ -25,8 +25,27 @@ def test_get_morton_points():
 
 def test_compare_morton():
     from yt.utilities.lib.geometry_utils import compare_morton
+    # Diagonal
     p = np.array([0.0,0.0,0.0],dtype=np.float64)
     q = np.array([1.0,1.0,1.0],dtype=np.float64)
+    assert_equal(compare_morton(p,q),1)
+    assert_equal(compare_morton(q,p),0)
+    assert_equal(compare_morton(p,p),0)
+    # 1-1 vs 0-1
+    p = np.array([1.0,1.0,0.0],dtype=np.float64)
+    q = np.array([1.0,1.0,1.0],dtype=np.float64)
+    assert_equal(compare_morton(p,q),1)
+    assert_equal(compare_morton(q,p),0)
+    assert_equal(compare_morton(p,p),0)
+    # y advance
+    q = np.array([1.0,0.0,0.0],dtype=np.float64)
+    p = np.array([0.0,1.0,0.0],dtype=np.float64)
+    assert_equal(compare_morton(p,q),1)
+    assert_equal(compare_morton(q,p),0)
+    assert_equal(compare_morton(p,p),0)
+    # z advance
+    q = np.array([1.0,1.0,0.0],dtype=np.float64)
+    p = np.array([0.0,0.0,1.0],dtype=np.float64)
     assert_equal(compare_morton(p,q),1)
     assert_equal(compare_morton(q,p),0)
     assert_equal(compare_morton(p,p),0)
@@ -41,7 +60,6 @@ def test_get_morton_argsort():
     sort_shf = np.arange(N,dtype=np.uint64)
     np.random.shuffle(sort_shf)
     sort_ans = np.argsort(sort_shf)
-    print pos[sort_shf,:]
     get_morton_argsort(pos[sort_shf,:],0,N-1,sort_out)
     assert_array_equal(sort_out,sort_ans)
 

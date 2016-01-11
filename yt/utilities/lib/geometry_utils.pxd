@@ -59,15 +59,13 @@ cdef inline np.int64_t xor_msb(np.float64_t a, np.float64_t b):
     y = (b_e+1)*DBL_MANT_DIG
     # Compare mantissa if exponents equal
     if x == y:
-        #if a_m == b_m: return 0
         z = msdb(a_m,b_m)
-        x = x - z# + DBL_MANT_DIG
-        return x
+        return x-1 # required so that xor_msb(0.0,1.0)!=xor_msb(1.0,1.0)
     # Otherwise return largest exponent
     if y < x:
-        return x# + DBL_MANT_DIG
+        return x
     else:
-        return y# + DBL_MANT_DIG
+        return y
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
