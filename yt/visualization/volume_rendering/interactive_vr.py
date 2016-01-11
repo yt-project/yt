@@ -1,12 +1,11 @@
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 from OpenGL.GLUT import *
-
 import sys
 
 import numpy as np
 from yt.funcs import ensure_list
-from yt.utilities.math_utils import get_translate_matrix, get_scale_matrix,
+from yt.utilities.math_utils import get_translate_matrix, get_scale_matrix, \
     get_lookat_matrix, get_perspective_matrix
 import yt
 
