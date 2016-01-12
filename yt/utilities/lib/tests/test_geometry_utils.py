@@ -101,6 +101,9 @@ def point_grid(n_per_dim,ndim):
     DLE = np.array(ndim*[0.0],dtype=np.float64)
     DRE = np.array(ndim*[n_per_dim],dtype=np.float64)
     pos = pos.astype(np.float64)
+    # ind = np.arange(pos.shape[0])
+    # np.random.shuffle(ind)
+    # pos = pos[ind,:]
     return pos,DLE,DRE
 
 def point_random(n_per_dim,ndim,seed=1):
@@ -113,7 +116,7 @@ def point_random(n_per_dim,ndim,seed=1):
 
 def test_knn_morton():
     from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,get_morton_argsort,dist
-    Np_d = 10 # 100
+    Np_d = 50 # 100
     Nd = 3
     Np = Np_d**Nd
     idx_test = np.uint64(Np/2)
@@ -126,6 +129,12 @@ def test_knn_morton():
     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
+    if True:
+        print pos[idx_test,:]
+        id1 = 14252
+        id2 = 14502
+        print id1,pos[sort_fwd[id1],:],dist(pos[idx_test,:],pos[sort_fwd[id1],:])
+        print id2,pos[sort_fwd[id2],:],dist(pos[idx_test,:],pos[sort_fwd[id2],:])
     assert_array_equal(knn_mor,knn_dir,
                        err_msg="{} random points & k = {}".format(Np,k))
     # Grid points
@@ -136,10 +145,11 @@ def test_knn_morton():
     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
     if True:
-        print pos[idx_test,:],pos[sort_fwd[sort_rev[idx_test]],:]
-        print pos[sort_fwd[131],:],dist(pos[idx_test,:],pos[sort_fwd[131],:])
-        print pos[sort_fwd[154],:],dist(pos[idx_test,:],pos[sort_fwd[154],:])
-        print pos[sort_fwd[149],:],dist(pos[idx_test,:],pos[sort_fwd[149],:])
+        print pos[idx_test,:]
+        id1 = 14252
+        id2 = 14502
+        print id1,pos[sort_fwd[id1],:],dist(pos[idx_test,:],pos[sort_fwd[id1],:])
+        print id2,pos[sort_fwd[id2],:],dist(pos[idx_test,:],pos[sort_fwd[id2],:])
     assert_array_equal(knn_mor,knn_dir,
                        err_msg="grid of {} points & k = {}".format(Np,k))
 

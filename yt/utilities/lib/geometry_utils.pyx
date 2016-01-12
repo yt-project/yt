@@ -366,6 +366,24 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
+def qsort_partition(np.ndarray[anyfloat, ndim=2] pos,
+                    np.int64_t start, np.int64_t end,
+                    np.ndarray[np.uint64_t, ndim=1] ind):
+    # Initialize
+    cdef int j
+    cdef np.int64_t bottom, top 
+    cdef np.uint64_t done, pivot
+    cdef np.float64_t ppos[3]
+    cdef np.float64_t ipos[3]
+    bottom = start-1
+    top = end
+    done = 0
+    pivot = ind[end]
+    for j in range(3):
+        ppos[j] = pos[pivot,j]
+
+
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -412,8 +430,13 @@ def get_morton_argsort(np.ndarray[anyfloat, ndim=2] pos,
                 ind[bottom] = ind[top]
                 break
     ind[top] = pivot
-    get_morton_argsort(pos,start,top-1,ind)
-    get_morton_argsort(pos,top+1,end,ind)
+    # Do remaining parts on either side of pivot, sort side first
+    if (top-1-start < end-(top+1)):
+        get_morton_argsort(pos,start,top-1,ind)
+        get_morton_argsort(pos,top+1,end,ind)
+    else:
+        get_morton_argsort(pos,top+1,end,ind)
+        get_morton_argsort(pos,start,top-1,ind)
     return
 
 def compare_morton(np.ndarray[anyfloat, ndim=1] p0, np.ndarray[anyfloat, ndim=1] q0):
@@ -564,20 +587,23 @@ def knn_direct(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
 
     """
     cdef int j,m
-    cdef np.ndarray[np.float64_t, ndim=1] dist
+    #cdef np.ndarray[np.float64_t, ndim=1] dist
     cdef np.ndarray[long, ndim=1] sort_fwd
     cdef np.float64_t ipos[3]
     cdef np.float64_t jpos[3]
-    dist = np.zeros(len(idx),dtype=np.float64)
+    dist = np.zeros(len(idx),dtype=[('dist','float64'),('ind','int64')])
     for m in range(3): ipos[m] = P[i,m]
     for j in range(len(idx)):
         for m in range(3): jpos[m] = P[idx[j],m]
-        dist[j] = euclidean_distance(ipos,jpos)
-    sort_fwd = np.argsort(dist)[:k]#.astype(np.uint64)
+        dist['dist'][j] = euclidean_distance(ipos,jpos)
+        dist['ind'][j] = idx[j]
+    # TODO: this can be done more efficiently for just appending a few
+    # values. Possibly sort addition first and then make a collective pass
+    sort_fwd = np.argsort(dist,order=('dist','ind'))[:k]#.astype(np.uint64)
     if return_dist:
-        return idx[sort_fwd],dist[sort_fwd]
+        return idx[sort_fwd],dist['dist'][sort_fwd]
     elif return_rad:
-        return idx[sort_fwd],dist[sort_fwd][k-1]
+        return idx[sort_fwd],dist['dist'][sort_fwd][k-1]
     else:
         return idx[sort_fwd]
 
@@ -661,14 +687,12 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
         Ai,rad_Ai = knn_direct(P,k,i,np.hstack((m,Ai)).astype(np.uint64),return_rad=True)
     cbox_sol = np.zeros(3,dtype=np.float64)
     rbox_sol = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_sol)
-    # print rad_Ai,rbox_sol
-    rad_Ai = rbox_sol
-    # Return current solution if hl box is outside current solution's radius
+    # Return current solution if hl box is outside current solution's box
     # Uses actual box
     cbox_hl = np.zeros(3,dtype=np.float64)
     rbox_hl = quadtree_box(P[l,:],P[h,:],order,DLE,DRE,cbox_hl)
-    if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= rbox_sol:
-        # print '{} ({}) >= {} (m = {})'.format(dist_to_box(cbox_sol,cbox_hl,rbox_hl),dist(cbox_sol,cbox_hl)-rbox_hl,rbox_sol,m)
+    if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= 1.5*rbox_sol:
+        print '{} outside: rad = {}, rbox = {}, dist = {}'.format(m,rad_Ai,rbox_sol,dist_to_box(P[i,:],cbox_hl,rbox_hl))
         return Ai
     # Expand search to lower/higher indicies as needed 
     if i < m: # They are already sorted...
@@ -676,10 +700,8 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
         if compare_morton(P[m,:],P[i,:]+dist(P[i,:],P[Ai[k-1],:])):
             Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
     else:
-        print 'adding lower: {} to {}'.format(m+1,h)
         Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
         if compare_morton(P[i,:]-dist(P[i,:],P[Ai[k-1],:]),P[m,:]):
-            print 'adding even lower: {} to {}'.format(l,m-1)
             Ai = csearch_morton(P,k,i,Ai,l,m-1,order,DLE,DRE,nu=nu)
     return Ai
 
@@ -742,6 +764,9 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
                     np.arange(i+1,idxmax+1,dtype=np.uint64)))
     Ai,rad_Ai = knn_direct(P,k,i,Ai,return_rad=True)
     # Get radius of solution
+    cbox_Ai = np.zeros(3,dtype=np.float64)
+    rbox_Ai = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_Ai)
+    rad_Ai = rbox_Ai
     # Extend upper bound to match lower bound
     if idxmax < (N-1):
         if compare_morton(P[i,:]+rad_Ai,P[idxmax,:]):
@@ -756,7 +781,6 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
         u = idxmax
     # Extend lower bound to match upper bound
     if idxmin > 0:
-        print '{} < {}? -> {}'.format(P[idxmin,:],P[i,:]-rad_Ai,compare_morton(P[idxmin,:],P[i,:]-rad_Ai))
         if compare_morton(P[idxmin,:],P[i,:]-rad_Ai):
             l = i
         else:
@@ -764,7 +788,6 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
             while (idxmin-(2**I) >= 0) and compare_morton(P[i,:]-rad_Ai,P[idxmin-(2**I),:]):
                 I+=1
             l = max(idxmin-(2**I),0)
-            print "l = {}/{} (idxmin = {})".format(l,N,idxmin)
             Ai = csearch_morton(P,k,i,Ai,l,max(idxmin-1,0),order,DLE,DRE,nu=nu)
     else:
         l = idxmin
