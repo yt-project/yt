@@ -93,11 +93,49 @@ def test_knn_direct():
 
 # TODO: test of quadtree (.pxd)
 
+def point_grid(n_per_dim,ndim):
+    q = np.arange(n_per_dim,dtype=np.float64)+0.5 # Middle of each cell
+    out = np.meshgrid(*tuple(ndim*[q]))
+    pos = np.vstack(tuple([iout.flatten() for iout in out])).T
+    DLE = np.array(ndim*[0.0],dtype=np.float64)
+    DRE = np.array(ndim*[n_per_dim],dtype=np.float64)
+    pos = pos.astype(np.float64)
+    return pos,DLE,DRE
+
+def point_random(n_per_dim,ndim,seed=1):
+    np.random.seed(seed)
+    pos = np.random.random_sample((n_per_dim**ndim,ndim)).astype(np.float64)
+    DLE = np.array(ndim*[0.0],dtype=np.float64)
+    DRE = np.array(ndim*[1.0],dtype=np.float64)
+    pos = pos.astype(np.float64)
+    return pos,DLE,DRE
+
+def test_knn_morton():
+    from yt.utilities.lib.geometry_utils import knn_direct,knn_morton
+    Np_d = 5 # 100
+    Nd = 3
+    Np = Np_d**Nd
+    idx_test = np.uint64(Np/2)
+    k = 6 # 27
+    # Grid points
+    print 'grid'
+    pos,DLE,DRE = point_grid(Np_d,Nd)
+    knn_dir = knn_direct(pos,k,idx_test,np.arange(Np,dtype=np.uint64))
+    knn_mor = knn_morton(pos,k,idx_test,DLE=DLE,DRE=DRE)
+    assert_array_equal(knn_mor,knn_dir)
+    # Random points
+    print 'random'
+    pos,DLE,DRE = point_random(Np_d,Nd)
+    knn_dir = knn_direct(pos,k,idx_test,np.arange(Np,dtype=np.uint64))
+    knn_mor = knn_morton(pos,k,idx_test,DLE=DLE,DRE=DRE)
+    assert_array_equal(knn_mor,knn_dir)
+    
+
 def test_csearch_morton():
     from yt.utilities.lib.geometry_utils import get_morton_argsort,csearch_morton,ORDER_MAX
     k = 5
     i = 0
-    xN = 2
+    xN = 3
     N = xN**3
     xf = np.arange(xN,dtype=np.float64)+1
     DLE = np.zeros(3,dtype=np.float64)
