@@ -516,7 +516,7 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        colors: array of ints, shape (4), optional
+        color: array of ints, shape (4), optional
             The RGBA value to use to draw the mesh lines.
             Default is black.
         alpha : float, optional
