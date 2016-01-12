@@ -19,7 +19,7 @@ from yt.data_objects.profiles import BinnedProfile1D
 from yt.visualization.volume_rendering.api import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
-from yt.extern.six.moves import StringIO
+from yt.extern.six import BytesIO
 import numpy as np
 
 
@@ -194,7 +194,7 @@ class TransferFunctionHelper(object):
 
         if fn is None:
             from IPython.core.display import Image
-            f = StringIO()
+            f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = f.read()
