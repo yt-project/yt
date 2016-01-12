@@ -647,12 +647,18 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
     # Make sure that h and l are both larger/smaller than i
     if (l < i) and (h > i):
         raise ValueError("Both l and h must be on the same side of i.")
+    m = np.uint64((h + l)/2)
     # New range is small enough to consider directly 
     if (h-l) < nu:
-        return knn_direct(P,k,i,np.hstack((Ai,np.arange(l,h+1,dtype=np.uint64))))
+        if m > i:
+            return knn_direct(P,k,i,np.hstack((Ai,np.arange(l,h+1,dtype=np.uint64))))
+        else:
+            return knn_direct(P,k,i,np.hstack((np.arange(l,h+1,dtype=np.uint64),Ai)))
     # Add middle point
-    m = np.uint64((h + l)/2)
-    Ai,rad_Ai = knn_direct(P,k,i,np.hstack((Ai,m)).astype(np.uint64),return_rad=True)
+    if m > i:
+        Ai,rad_Ai = knn_direct(P,k,i,np.hstack((Ai,m)).astype(np.uint64),return_rad=True)
+    else:
+        Ai,rad_Ai = knn_direct(P,k,i,np.hstack((m,Ai)).astype(np.uint64),return_rad=True)
     cbox_sol = np.zeros(3,dtype=np.float64)
     rbox_sol = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_sol)
     # print rad_Ai,rbox_sol
