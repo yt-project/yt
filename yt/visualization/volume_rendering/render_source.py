@@ -507,7 +507,7 @@ class MeshSource(OpaqueSource):
         sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
         sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
 
-    def annotate_mesh_lines(self, color=None, alpha=255):
+    def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
 
         Modifies this MeshSource by drawing the mesh lines.
