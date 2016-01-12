@@ -448,16 +448,15 @@ class MeshSource(OpaqueSource):
         mylog.debug("Done casting rays")
 
         self.finalize_image(camera, self.sampler.aimage)
-
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap(cmap=cmap,
                                                  color_bounds=color_bounds)
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
                            self.sampler.zbuffer)
-        zbuffer.rgba = ImageArray(zbuffer.rgba.astype('uint8'))
+        zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
-        self.zbuffer.rgba = self.zbuffer.rgba.astype('uint8')
+        self.zbuffer.rgba = self.zbuffer.rgba
         self.current_image = self.zbuffer.rgba
         return self.current_image
 
@@ -502,7 +501,7 @@ class MeshSource(OpaqueSource):
     def apply_colormap(self, cmap='algae', color_bounds=None):
         self.current_image = apply_colormap(self.data,
                                             color_bounds=color_bounds,
-                                            cmap_name=cmap)
+                                            cmap_name=cmap)/255.
         '''
 
         Applies a colormap to the current image without re-rendering.
