@@ -607,6 +607,15 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     number_of_particles = data.pop("number_of_particles", 0)
     # First we fix our field names
     field_units, data = unitify_data(data)
+
+    for field_name in data:
+        if data[field_name].shape != tuple(domain_dimensions):
+            msg = ("Input data shape %s for field %s does not match provided "
+                   "domain_dimensions %s")
+            msg = msg % (data[field_name].shape, field_name,
+                         tuple(domain_dimensions))
+            raise RuntimeError(msg)
+
     sfh = StreamDictFieldHandler()
 
     if number_of_particles > 0:
