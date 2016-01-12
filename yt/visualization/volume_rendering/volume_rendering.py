@@ -19,8 +19,6 @@ from .render_source import VolumeSource, \
 from .utils import data_source_or_all
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
 
 
 def create_scene(data_source, field=None, lens_type='plane-parallel'):
