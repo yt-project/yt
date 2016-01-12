@@ -24,6 +24,7 @@ def test_get_morton_points():
     assert_array_equal(li_out,li_ans)
 
 def test_compare_morton():
+    # TODO: Add error messages to assertions
     from yt.utilities.lib.geometry_utils import compare_morton
     # Diagonal
     p = np.array([0.0,0.0,0.0],dtype=np.float64)
@@ -37,15 +38,15 @@ def test_compare_morton():
     assert_equal(compare_morton(p,q),1)
     assert_equal(compare_morton(q,p),0)
     assert_equal(compare_morton(p,p),0)
-    # y advance
-    q = np.array([1.0,0.0,0.0],dtype=np.float64)
+    # x advance, y decrease
     p = np.array([0.0,1.0,0.0],dtype=np.float64)
+    q = np.array([1.0,0.0,0.0],dtype=np.float64)
     assert_equal(compare_morton(p,q),1)
     assert_equal(compare_morton(q,p),0)
     assert_equal(compare_morton(p,p),0)
-    # z advance
-    q = np.array([1.0,1.0,0.0],dtype=np.float64)
+    # x&y advance, z decrease
     p = np.array([0.0,0.0,1.0],dtype=np.float64)
+    q = np.array([1.0,1.0,0.0],dtype=np.float64)
     assert_equal(compare_morton(p,q),1)
     assert_equal(compare_morton(q,p),0)
     assert_equal(compare_morton(p,p),0)
@@ -111,25 +112,32 @@ def point_random(n_per_dim,ndim,seed=1):
     return pos,DLE,DRE
 
 def test_knn_morton():
-    from yt.utilities.lib.geometry_utils import knn_direct,knn_morton
-    Np_d = 5 # 100
+    from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,get_morton_argsort
+    Np_d = 10 # 100
     Nd = 3
     Np = Np_d**Nd
     idx_test = np.uint64(Np/2)
     k = 6 # 27
-    # Grid points
-    print 'grid'
-    pos,DLE,DRE = point_grid(Np_d,Nd)
-    knn_dir = knn_direct(pos,k,idx_test,np.arange(Np,dtype=np.uint64))
-    knn_mor = knn_morton(pos,k,idx_test,DLE=DLE,DRE=DRE)
-    assert_array_equal(knn_mor,knn_dir)
+    idx_notest = np.hstack([np.arange(idx_test),np.arange((idx_test+1),Np)]).astype(np.uint64)
     # Random points
-    print 'random'
     pos,DLE,DRE = point_random(Np_d,Nd)
-    knn_dir = knn_direct(pos,k,idx_test,np.arange(Np,dtype=np.uint64))
-    knn_mor = knn_morton(pos,k,idx_test,DLE=DLE,DRE=DRE)
-    assert_array_equal(knn_mor,knn_dir)
-    
+    sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
+    get_morton_argsort(pos,0,pos.shape[0]-1,sort_fwd)
+    sort_rev = np.argsort(sort_fwd).astype(np.uint64)
+    knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
+    knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
+    assert_array_equal(knn_mor,knn_dir,
+                       err_msg="{} random points & k = {}".format(Np,k))
+    # Grid points
+    pos,DLE,DRE = point_grid(Np_d,Nd)
+    sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
+    get_morton_argsort(pos,0,pos.shape[0]-1,sort_fwd)
+    sort_rev = np.argsort(sort_fwd).astype(np.uint64)
+    knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
+    knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
+    assert_array_equal(knn_mor,knn_dir,
+                       err_msg="grid of {} points & k = {}".format(Np,k))
+
 
 def test_csearch_morton():
     from yt.utilities.lib.geometry_utils import get_morton_argsort,csearch_morton,ORDER_MAX

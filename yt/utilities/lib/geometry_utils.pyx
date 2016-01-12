@@ -519,6 +519,29 @@ def dist(np.ndarray[np.float64_t, ndim=1] p0, np.ndarray[np.float64_t, ndim=1] q
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def dist_to_box(np.ndarray[np.float64_t, ndim=1] p,
+                np.ndarray[np.float64_t, ndim=1] cbox,
+                np.float64_t rbox):
+    cdef int j
+    cdef np.float64_t d = 0.0
+    for j in range(3):
+        d+= max((cbox[j]-rbox)-p[j],0.0,p[j]-(cbox[j]+rbox))**2
+    return np.sqrt(d)
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def solution_radius(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
+                    np.ndarray[np.uint64_t, ndim=1] idx, int order, 
+                    np.ndarray[np.float64_t, ndim=1] DLE,
+                    np.ndarray[np.float64_t, ndim=1] DRE):
+    c = np.zeros(3, dtype=np.float64)
+    return quadtree_box(P[i,:],P[idx[k-1],:],order,DLE,DRE,c)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def knn_direct(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
                np.ndarray[np.uint64_t, ndim=1] idx, return_dist = False, 
                return_rad = False):
@@ -561,6 +584,36 @@ def knn_direct(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def quadtree_box(np.ndarray[np.float64_t, ndim=1] p, 
+                 np.ndarray[np.float64_t, ndim=1] q, int order, 
+                 np.ndarray[np.float64_t, ndim=1] DLE,
+                 np.ndarray[np.float64_t, ndim=1] DRE,
+                 np.ndarray[np.float64_t, ndim=1] c):
+    # Declare & transfer values to ctypes
+    cdef int j
+    cdef np.float64_t ppos[3]
+    cdef np.float64_t qpos[3]
+    cdef np.float64_t rbox
+    cdef np.float64_t cbox[3]
+    cdef np.float64_t DLE1[3]
+    cdef np.float64_t DRE1[3]
+    for j in range(3):
+        ppos[j] = p[j]
+        qpos[j] = q[j]
+        DLE1[j] = DLE[j]
+        DRE1[j] = DRE[j] 
+    # Get smallest box containing p & q
+    rbox = smallest_quadtree_box(ppos,qpos,order,DLE1,DRE1,
+                                 &cbox[0],&cbox[1],&cbox[2])
+    # Transfer values to python array
+    for j in range(3):
+        c[j] = cbox[j]
+    return rbox
+   
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
                    np.ndarray[np.uint64_t, ndim=1] Ai, 
                    np.uint64_t l, np.uint64_t h, int order,
@@ -591,19 +644,6 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
     """
     cdef int j
     cdef np.uint64_t m
-    cdef np.float64_t ipos[3]
-    cdef np.float64_t lpos[3]
-    cdef np.float64_t hpos[3]
-    cdef np.float64_t rbox_hl
-    cdef np.float64_t cbox_hl[3]
-    cdef np.float64_t DLE1[3]
-    cdef np.float64_t DRE1[3]
-    for j in range(3):
-        ipos[j] = P[i,j]
-        lpos[j] = P[l,j]
-        hpos[j] = P[h,j]
-        DLE1[j] = DLE[j]
-        DRE1[j] = DRE[j]
     # Make sure that h and l are both larger/smaller than i
     if (l < i) and (h > i):
         raise ValueError("Both l and h must be on the same side of i.")
@@ -613,11 +653,16 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
     # Add middle point
     m = np.uint64((h + l)/2)
     Ai,rad_Ai = knn_direct(P,k,i,np.hstack((Ai,m)).astype(np.uint64),return_rad=True)
+    cbox_sol = np.zeros(3,dtype=np.float64)
+    rbox_sol = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_sol)
+    # print rad_Ai,rbox_sol
+    rad_Ai = rbox_sol
     # Return current solution if hl box is outside current solution's radius
-    # TODO: currently uses distance to inscribed hypersphere, should this be 
-    # the actual box? 
-    rbox_hl = smallest_quadtree_box(lpos,hpos,order,DLE1,DRE1,&cbox_hl[0],&cbox_hl[1],&cbox_hl[2])
-    if (euclidean_distance(ipos,cbox_hl)-rbox_hl) >= rad_Ai:
+    # Uses actual box
+    cbox_hl = np.zeros(3,dtype=np.float64)
+    rbox_hl = quadtree_box(P[l,:],P[h,:],order,DLE,DRE,cbox_hl)
+    if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= rbox_sol:
+        # print '{} ({}) >= {} (m = {})'.format(dist_to_box(cbox_sol,cbox_hl,rbox_hl),dist(cbox_sol,cbox_hl)-rbox_hl,rbox_sol,m)
         return Ai
     # Expand search to lower/higher indicies as needed 
     if i < m: # They are already sorted...
@@ -625,8 +670,10 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
         if compare_morton(P[m,:],P[i,:]+dist(P[i,:],P[Ai[k-1],:])):
             Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
     else:
+        print 'adding lower: {} to {}'.format(m+1,h)
         Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
         if compare_morton(P[i,:]-dist(P[i,:],P[Ai[k-1],:]),P[m,:]):
+            print 'adding even lower: {} to {}'.format(l,m-1)
             Ai = csearch_morton(P,k,i,Ai,l,m-1,order,DLE,DRE,nu=nu)
     return Ai
 
@@ -674,7 +721,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
         i = i0
     else:
         get_morton_argsort(P0,0,N-1,sort_fwd)
-        sort_rev = np.argsort(sort_fwd)
+        sort_rev = np.argsort(sort_fwd).astype(np.uint64)
         P = P0[sort_fwd,:]
         i = sort_rev[i0]
     # Check domain and set if singular
@@ -688,6 +735,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
     Ai = np.hstack((np.arange(idxmin,i,dtype=np.uint64),
                     np.arange(i+1,idxmax+1,dtype=np.uint64)))
     Ai,rad_Ai = knn_direct(P,k,i,Ai,return_rad=True)
+    # Get radius of solution
     # Extend upper bound to match lower bound
     if idxmax < (N-1):
         if compare_morton(P[i,:]+rad_Ai,P[idxmax,:]):
@@ -702,6 +750,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
         u = idxmax
     # Extend lower bound to match upper bound
     if idxmin > 0:
+        print '{} < {}? -> {}'.format(P[idxmin,:],P[i,:]-rad_Ai,compare_morton(P[idxmin,:],P[i,:]-rad_Ai))
         if compare_morton(P[idxmin,:],P[i,:]-rad_Ai):
             l = i
         else:

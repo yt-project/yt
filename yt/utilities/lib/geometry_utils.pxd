@@ -98,6 +98,7 @@ cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]
         d+=(p[j]-q[j])**2
     return np.sqrt(d)
 
+# Todo: allow radius reported independently in each dimension for rectangular domain
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
