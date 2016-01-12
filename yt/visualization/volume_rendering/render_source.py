@@ -342,13 +342,51 @@ class MeshSource(OpaqueSource):
         self.mesh = None
         self.current_image = None
 
+        # default color map
+        self._cmap = 'algae'
+        self._color_bounds = None
+
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
 
         self.scene = mesh_traversal.YTEmbreeScene()
-
         self.build_mesh()
+
+    def cmap():
+        '''
+        This is the name of the colormap that will be used when rendering
+        this MeshSource object. Should be a string, like 'algae', or 'hot'.
+        
+        '''
+
+        def fget(self):
+            return self._cmap
+
+        def fset(self, cmap_name):
+            self._cmap = cmap_name
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    cmap = property(**cmap())
+
+    def color_bounds():
+        '''
+        These are the bounds that will be used with the colormap to the display
+        the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
+        None, the bounds will be automatically inferred from the max and min of 
+        the rendered data.
+
+        '''
+        def fget(self):
+            return self._color_bounds
+
+        def fset(self, bounds):
+            self._color_bounds = bounds
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    color_bounds = property(**color_bounds())
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -410,7 +448,7 @@ class MeshSource(OpaqueSource):
                                                             indices,
                                                             field_data)
 
-    def render(self, camera, zbuffer=None, cmap='algae', color_bounds=None):
+    def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
         Parameters
@@ -450,8 +488,7 @@ class MeshSource(OpaqueSource):
 
         self.finalize_image(camera, self.sampler.aimage)
         self.data = self.sampler.aimage
-        self.current_image = self.apply_colormap(cmap=cmap,
-                                                 color_bounds=color_bounds)
+        self.current_image = self.apply_colormap()
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
                            self.sampler.zbuffer)
@@ -499,10 +536,7 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
-    def apply_colormap(self, cmap='algae', color_bounds=None):
-        self.current_image = apply_colormap(self.data,
-                                            color_bounds=color_bounds,
-                                            cmap_name=cmap)/255.
+    def apply_colormap(self):
         '''
 
         Applies a colormap to the current image without re-rendering.
@@ -522,10 +556,14 @@ class MeshSource(OpaqueSource):
 
 
         '''
-        alpha = self.current_image[:, :, 3]
+
+        image = apply_colormap(self.data,
+                               color_bounds=self._color_bounds,
+                               cmap_name=self._cmap)/255.
+        alpha = image[:, :, 3]
         alpha[self.sampler.image_used == -1] = 0.0
-        self.current_image[:, :, 3] = alpha        
-        return self.current_image
+        image[:, :, 3] = alpha        
+        return image
 
     def __repr__(self):
         disp = "<Mesh Source>:%s " % str(self.data_source)
