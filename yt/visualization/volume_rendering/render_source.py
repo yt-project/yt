@@ -346,6 +346,11 @@ class MeshSource(OpaqueSource):
         self._cmap = 'algae'
         self._color_bounds = None
 
+        # default mesh annotation options
+        self._annotate_mesh = False
+        self._mesh_line_color = None
+        self._mesh_line_alpha = 1.0
+
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
@@ -496,6 +501,11 @@ class MeshSource(OpaqueSource):
         self.zbuffer = zbuffer
         self.zbuffer.rgba = self.zbuffer.rgba
         self.current_image = self.zbuffer.rgba
+
+        if self._annotate_mesh:
+            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
+                                                          self._mesh_line_alpha)
+
         return self.current_image
 
     def finalize_image(self, camera, image):
@@ -523,6 +533,10 @@ class MeshSource(OpaqueSource):
             The opacity of the mesh lines. Default is 255 (solid).
 
         """
+
+        self.annotate_mesh = True
+        self._mesh_line_color = color
+        self._mesh_line_alpha = alpha
 
         if color is None:
             color = np.array([0, 0, 0, alpha])
