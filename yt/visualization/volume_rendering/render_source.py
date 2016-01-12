@@ -440,6 +440,7 @@ class MeshSource(OpaqueSource):
         elif zbuffer.rgba.shape != shape:
             zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
                               zbuffer.z.reshape(shape[:2]))
+        self.zbuffer = zbuffer
 
         self.sampler = new_mesh_sampler(camera, self)
 
