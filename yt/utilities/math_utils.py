@@ -758,28 +758,27 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
 def get_perspective_matrix(fovy, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
-    and far plane distance, this routine computes the rotation matrix
-    corresponding to a projection onto the corresponding perspective
-    frustum using homogenous coordinates.
+    and far plane distance, this routine computes the transformation matrix
+    corresponding to perspective projection using homogenous coordinates.
 
     Parameters
     ----------
-    fovy : scaler
+    fovy : scalar
         The angle in radians of the field of view.
 
-    aspect : scaler
+    aspect : scalar
         The aspect ratio of width / height for the projection.
 
-    z_near : scaler
+    z_near : scalar
         The distance of the near plane from the camera.
 
-    z_far : scaler
+    z_far : scalar
         The distance of the far plane from the camera.
 
     Returns
     -------
     persp_matrix : ndarray
-        A new 4x4 3D array. Represents a perspective transformation
+        A new 4x4 2D array. Represents a perspective transformation
         in homogeneous coordinates. Note that this matrix does not
         actually perform the projection. After multiplying a 4D
         vector of the form (x_0, y_0, z_0, 1.0), the point will be
@@ -833,7 +832,7 @@ def get_lookat_matrix(eye, center, up):
     Returns
     -------
     lookat_matrix : ndarray
-        A new 4x4 `3D` array in homogeneous coordinates. This matrix
+        A new 4x4 2D array in homogeneous coordinates. This matrix
         moves all vectors in the same way required to move the camera
         to the origin of the coordinate system, with it pointing down
         the negative z-axis.
@@ -873,19 +872,19 @@ def get_translate_matrix(dx, dy, dz):
 
     Parameters
     ----------
-    dx : scaler
+    dx : scalar
         A translation amount for the x-coordinate
 
-    dy : scaler
+    dy : scalar
         A translation amount for the y-coordinate
 
-    dz : scaler
+    dz : scalar
         A translation amount for the z-coordinate
 
     Returns
     -------
     trans_matrix : ndarray
-        A new 4x4 `3D` array. Represents a translation by dx, dy
+        A new 4x4 2D array. Represents a translation by dx, dy
         and dz in each coordinate respectively.
     """
     result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
@@ -908,19 +907,19 @@ def get_scale_matrix(dx, dy, dz):
 
     Parameters
     ----------
-    dx : scaler
+    dx : scalar
         A scaling factor for the x-coordinate.
 
-    dy : scaler
+    dy : scalar
         A scaling factor for the y-coordinate.
 
-    dz : scaler
+    dz : scalar
         A scaling factor for the z-coordinate.
 
     Returns
     -------
     scale_matrix : ndarray
-        A new 4x4 `3D` array. Represents a scaling by dx, dy, and dz
+        A new 4x4 2D array. Represents a scaling by dx, dy, and dz
         in each coordinate respectively.
     """
     result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
