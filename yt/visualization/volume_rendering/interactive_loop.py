@@ -1,8 +1,5 @@
 import cyglfw3 as glfw
-import yt
 import numpy as np
-import sys
-import time
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
 
