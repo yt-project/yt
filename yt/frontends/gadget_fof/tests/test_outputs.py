@@ -20,7 +20,8 @@ from yt.frontends.gadget_fof.api import \
     GadgetFOFDataset
 from yt.testing import \
     requires_file, \
-    assert_equal
+    assert_equal, \
+    assert_array_equal
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
@@ -72,3 +73,19 @@ def test_subhalos():
     # Test that all subhalo particles are contained within
     # their parent group.
     yield assert_equal, total_sub, total_int
+
+@requires_file(g298)
+def test_halomasses():
+    ds = data_dir_load(g298)
+    ad = ds.all_data()
+    for ptype in ["Group", "Subhalo"]:
+        nhalos = ds.index.particle_count[ptype]
+        mass = ds.arr(np.zeros(nhalos), "code_mass")
+        for i in range(nhalos):
+            halo = ds.halo(ptype, i)
+            mass[i] = halo.mass
+
+        # Check that masses from halo containers are the same
+        # as the array of all masses.  This will test getting
+        # scalar fields for halos correctly.
+        yield assert_array_equal, ad[ptype, "particle_mass"], mass
