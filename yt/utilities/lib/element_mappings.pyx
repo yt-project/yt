@@ -501,9 +501,14 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
                 return 1
             else:
                 return 0
+        if (direction == 1):
+            if (fabs(mapped_coord[direction]) < tolerance):
+                return 1
+            else:
+                return 0
         else:
-            if (fabs(mapped_coord[direction]) < tolerance or
-                fabs(mapped_coord[direction] - 1.0) < tolerance):
+            if (fabs(mapped_coord[0]) < tolerance or
+                fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance):
                 return 1
             return 0
 
