@@ -58,7 +58,7 @@ def test_GadgetFOFDataset():
 # fof/subhalo catalog with member particles
 g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
 
-@requires_ds(g298)
+@requires_file(g298)
 def test_subhalos():
     ds = data_dir_load(g298)
     total_sub = 0

@@ -44,7 +44,9 @@ class GadgetFOFParticleIndex(ParticleIndex):
         super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
 
     def _calculate_particle_count(self):
-        "Calculate the total number of each type of particle."
+        """
+        Calculate the total number of each type of particle.
+        """
         self.particle_count = \
           dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
                  for ptype in self.ds.particle_types_raw])
