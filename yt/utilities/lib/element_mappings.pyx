@@ -35,11 +35,11 @@ cdef double determinant_3x3(double* col0,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double maxnorm(double* f) nogil:
+cdef double maxnorm(double* f, int dim) nogil:
     cdef double err
     cdef int i
     err = fabs(f[0])
-    for i in range(1, 2):
+    for i in range(1, dim + 1):
         err = fmax(err, fabs(f[i])) 
     return err
 
@@ -304,7 +304,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
     
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f)  
+        err = maxnorm(f, 3)  
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
@@ -314,7 +314,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
             x[1] = x[1] - (determinant_3x3(r, f, t)/d)
             x[2] = x[2] - (determinant_3x3(r, s, f)/d)
             self.func(f, x, vertices, physical_x)        
-            err = maxnorm(f)
+            err = maxnorm(f, 3)
             iterations += 1
 
         if (err > self.tolerance):
@@ -464,32 +464,25 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
-        cdef double F, r, s, t, sqrt3 
-    
-        sqrt3 = sqrt(3.0)
+        cdef double F
 
-        r = coord[0]
-        s = coord[1]
-        t = coord[2]
-    
-        F = (1.0 + 2.0*r)*(1.0 - t)*vals[0] \
-            + (1.0 - r - sqrt3*s)*(1.0 - t)*vals[1] + \
-            + (1.0 - r + sqrt3*s)*(1.0 - t)*vals[2] + \
-            + (1.0 + 2.0*r)*(1.0 + t)*vals[3] \
-            + (1.0 - r - sqrt3*s)*(1.0 + t)*vals[4] + \
-            + (1.0 - r + sqrt3*s)*(1.0 + t)*vals[5]
+        F = vals[0]*(1.0 - coord[0] - coord[1])*(1.0 - coord[2]) + \
+            vals[1]*coord[0]*(1.0 - coord[2]) + \
+            vals[2]*coord[1]*(1.0 - coord[2]) + \
+            vals[3]*(1.0 - coord[0] - coord[1])*(1.0 + coord[2]) + \
+            vals[4]*coord[0]*(1.0 + coord[2]) + \
+            vals[5]*coord[1]*(1.0 + coord[2])
 
-        return F / 6.0
+        return F / 2.0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
         if (mapped_coord[0] < -self.inclusion_tol or
-            mapped_coord[0] - 1.0 > self.inclusion_tol):
+            mapped_coord[0] + mapped_coord[1] - 1.0 > self.inclusion_tol):
             return 0 
-        if (mapped_coord[1] < -self.inclusion_tol or
-            mapped_coord[1] - 1.0 > self.inclusion_tol):
+        if (mapped_coord[1] < -self.inclusion_tol):
             return 0 
         if (fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
@@ -522,16 +515,15 @@ cdef inline void W1Function3D(double* fx,
                               double* x, 
                               double* vertices, 
                               double* phys_x) nogil:
-    cdef int i    
-    cdef double sqrt3 = sqrt(3.0)
+    cdef int i
     for i in range(3):
-        fx[i] = vertices[0 + i]*(1.0 + 2.0*x[0])*(1.0 - x[2]) \
-              + vertices[3 + i]*(1.0 - x[0] - sqrt3*x[1])*(1.0 - x[2]) \
-              + vertices[6 + i]*(1.0 - x[0] + sqrt3*x[1])*(1.0 - x[2]) \
-              + vertices[9 + i]*(1.0 + 2.0*x[0])*(1.0 + x[2]) \
-              + vertices[12 + i]*(1.0 - x[0] - sqrt3*x[1])*(1.0 + x[2]) \
-              + vertices[15 + i]*(1.0 - x[0] + sqrt3*x[1])*(1.0 + x[2]) \
-              - 6.0*phys_x[i]
+        fx[i] = vertices[0 + i]*(1.0 - x[0] - x[1])*(1.0 - x[2]) \
+              + vertices[3 + i]*x[0]*(1.0 - x[2]) \
+              + vertices[6 + i]*x[1]*(1.0 - x[2]) \
+              + vertices[9 + i]*(1.0 - x[0] - x[1])*(1.0 + x[2]) \
+              + vertices[12 + i]*x[0]*(1.0 + x[2]) \
+              + vertices[15 + i]*x[1]*(1.0 + x[2]) \
+              - 2.0*phys_x[i]
 
 
 @cython.boundscheck(False)
@@ -543,26 +535,23 @@ cdef inline void W1Jacobian3D(double* rcol,
                               double* x, 
                               double* vertices, 
                               double* phys_x) nogil:    
+
     cdef int i
-    cdef double sqrt3 = sqrt(3.0)
-                                  
     for i in range(3):
-        rcol[i] = -2.0*(x[2] - 1.0) * vertices[0 + i] \
-                + (x[2] - 1.0) * vertices[3 + i] \
-                + (x[2] - 1.0) * vertices[6 + i] \
-                + 2.0*(x[2] + 1.0) * vertices[9 + i] \
-                - (x[2] + 1.0) * vertices[12 + i] \
-                - (x[2] + 1.0) * vertices[15 + i]
-        scol[i] = sqrt3*(x[2] - 1.0) * vertices[3 + i] \
-                - sqrt3*(x[2] - 1.0) * vertices[6 + i] \
-                - sqrt3*(x[2] + 1.0) * vertices[12 + i] \
-                + sqrt3*(x[2] + 1.0) * vertices[15 + i]
-        tcol[i] = -(2*x[0] + 1.0) * (x[2] - 1.0) * vertices[0 + i] \
-                + (sqrt3*x[1] + x[0] - 1.0) * vertices[3 + i] \
-                - (sqrt3*x[1] - x[0] + 1.0) * vertices[6 + i] \
-                + (2*x[0] + 1.0) * (x[2] + 1.0) * vertices[9 + i] \
-                - (sqrt3*x[1] + x[0] - 1.0) * vertices[12 + i] \
-                + (sqrt3*x[1] - x[0] + 1.0) * vertices[15 + i]
+        rcol[i] = (x[2] - 1.0) * vertices[0 + i] \
+                - (x[2] - 1.0) * vertices[3 + i] \
+                - (x[2] + 1.0) * vertices[9 + i] \
+                + (x[2] + 1.0) * vertices[12 + i]
+        scol[i] = (x[2] - 1.0) * vertices[0 + i] \
+                - (x[2] - 1.0) * vertices[6 + i] \
+                - (x[2] + 1.0) * vertices[9 + i] \
+                + (x[2] + 1.0) * vertices[15 + i]
+        tcol[i] = (x[0] + x[1] - 1.0) * vertices[0 + i] \
+                - x[0] * vertices[3 + i] \
+                - x[1] * vertices[6 + i] \
+                - (x[0] + x[1] - 1.0) * vertices[9 + i] \
+                + x[0] * vertices[12 + i] \
+                + x[1] * vertices[15 + i]
 
 
 cdef class NonlinearSolveSampler2D(ElementSampler):
@@ -604,7 +593,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f)  
+        err = fmax(fabs(f[0]), fabs(f[1]))  
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
@@ -615,7 +604,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             x[1] -= (-A[2]*f[0] + A[0]*f[1]) / d
 
             self.func(f, x, vertices, physical_x)        
-            err = maxnorm(f)
+            err = fmax(fabs(f[0]), fabs(f[1]))
             iterations += 1
 
         if (err > self.tolerance):
