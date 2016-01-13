@@ -24,7 +24,8 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler3D, \
     Q1Sampler3D, \
     P1Sampler2D, \
-    Q1Sampler2D
+    Q1Sampler2D, \
+    W1Sampler3D
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -473,7 +474,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
     else:
-        raise RuntimeError
+        raise RuntimeError("Element type not recognized.")
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:
