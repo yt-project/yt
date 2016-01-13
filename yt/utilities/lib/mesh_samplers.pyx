@@ -160,17 +160,23 @@ cdef void sample_wedge(void* userPtr,
     ray.time = val
 
     cdef double r, s, t
-    cdef double thresh = 2.0e-2
-    r = mapped_coord[0] 
+    cdef double thresh = 5.0e-2
+    r = mapped_coord[0]
     s = mapped_coord[1]
     t = mapped_coord[2]
 
+    cdef int near_edge_r, near_edge_s, near_edge_t
+    near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
+    near_edge_s = (s < thresh)
+    near_edge_t = fabs(fabs(mapped_coord[2]) - 1.0) < thresh
+    
     # we use ray.instID to pass back whether the ray is near the
     # element boundary or not (used to annotate mesh lines)
-    if ((fabs(r) < thresh) or 
-        ((fabs(r + s) - 1.0) < thresh) or
-        (fabs(s) < thresh) or 
-        (fabs(fabs(t) - 1.0) < thresh)):
+    if (near_edge_r and near_edge_s):
+        ray.instID = 1
+    elif (near_edge_r and near_edge_t):
+        ray.instID = 1
+    elif (near_edge_s and near_edge_t):
         ray.instID = 1
     else:
         ray.instID = -1
