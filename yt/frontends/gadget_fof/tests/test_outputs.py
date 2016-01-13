@@ -39,7 +39,6 @@ g42 = "gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5"
 @requires_ds(g5)
 def test_fields_g5():
     ds = data_dir_load(g5)
-    yield assert_equal, str(ds), os.path.basename(g5)
     for field in _fields:
         yield FieldValuesTest(g5, field, particle_type=True)
 
@@ -47,7 +46,6 @@ def test_fields_g5():
 @requires_ds(g42)
 def test_fields_g42():
     ds = data_dir_load(g42)
-    yield assert_equal, str(ds), os.path.basename(g42)
     for field in _fields:
         yield FieldValuesTest(g42, field, particle_type=True)
 
