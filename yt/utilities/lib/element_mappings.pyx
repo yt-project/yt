@@ -18,7 +18,7 @@ cimport numpy as np
 from numpy cimport ndarray
 cimport cython
 import numpy as np
-from libc.math cimport fabs, fmax, sqrt
+from libc.math cimport fabs, fmax
 
 
 @cython.boundscheck(False)
