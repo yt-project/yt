@@ -39,7 +39,7 @@ cdef double maxnorm(double* f, int dim) nogil:
     cdef double err
     cdef int i
     err = fabs(f[0])
-    for i in range(1, dim + 1):
+    for i in range(1, dim):
         err = fmax(err, fabs(f[i])) 
     return err
 
@@ -598,7 +598,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = fmax(fabs(f[0]), fabs(f[1]))  
+        err = maxnorm(f, 2)  
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
@@ -609,7 +609,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             x[1] -= (-A[2]*f[0] + A[0]*f[1]) / d
 
             self.func(f, x, vertices, physical_x)        
-            err = fmax(fabs(f[0]), fabs(f[1]))
+            err = maxnorm(f, 2)
             iterations += 1
 
         if (err > self.tolerance):
