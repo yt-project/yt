@@ -454,8 +454,9 @@ add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3
 
 # This is rho_total / rho_cr(z).
 def _Convert_Overdensity(data):
-    return 1.0 / (rho_crit_now * data.pf.hubble_constant**2 * 
-                (1+data.pf.current_redshift)**3)
+    rho_crit_z = (rho_crit_now * data.pf.hubble_constant**2)* \
+        (data.pf.omega_matter * (1.0 + data.pf.current_redshift)**3.0 + data.pf.omega_lambda)
+    return 1.0 / rho_crit_z
 add_field("Overdensity",function=_Matter_Density,
           convert_function=_Convert_Overdensity, units=r"")
 
