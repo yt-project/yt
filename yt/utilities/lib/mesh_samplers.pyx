@@ -20,13 +20,15 @@ from yt.utilities.lib.mesh_construction cimport MeshDataContainer
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
-    Q1Sampler3D
+    Q1Sampler3D, \
+    W1Sampler3D
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmax
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
+cdef ElementSampler W1Sampler = W1Sampler3D()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -112,6 +114,63 @@ cdef void sample_hex(void* userPtr,
         ray.instID = 1
     elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
           fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+        ray.instID = 1
+    else:
+        ray.instID = -1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void sample_wedge(void* userPtr,
+                       rtcr.RTCRay& ray) nogil:
+    cdef int ray_id, elem_id, i
+    cdef double val
+    cdef double[6] field_data
+    cdef int[6] element_indices
+    cdef double[18] vertices
+    cdef double[3] position
+    cdef MeshDataContainer* data
+
+    data = <MeshDataContainer*> userPtr
+    ray_id = ray.primID
+    if ray_id == -1:
+        return
+
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are triangles. Here,
+    # we convert this to the element id by dividing by the
+    # number of triangles per element.
+    elem_id = ray_id / data.tpe
+
+    get_hit_position(position, userPtr, ray)
+    
+    for i in range(6):
+        element_indices[i] = data.element_indices[elem_id*6+i]
+        field_data[i]      = data.field_data[elem_id*6+i]
+
+    for i in range(6):
+        vertices[i*3]     = data.vertices[element_indices[i]].x
+        vertices[i*3 + 1] = data.vertices[element_indices[i]].y
+        vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
+
+    # we use ray.time to pass the value of the field
+    cdef double mapped_coord[3]
+    W1Sampler.map_real_to_unit(mapped_coord, vertices, position)
+    val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    ray.time = val
+
+    cdef double r, s, t
+    cdef double thresh = 2.0e-2
+    r = mapped_coord[0] 
+    s = mapped_coord[1]
+    t = mapped_coord[2]
+
+    # we use ray.instID to pass back whether the ray is near the
+    # element boundary or not (used to annotate mesh lines)
+    if ((fabs(r) < thresh) or 
+        ((fabs(r + s) - 1.0) < thresh) or
+        (fabs(s) < thresh) or 
+        (fabs(fabs(t) - 1.0) < thresh)):
         ray.instID = 1
     else:
         ray.instID = -1
