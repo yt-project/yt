@@ -467,7 +467,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Pick the right sampler and allocate storage for the mapped coordinate
     if ndim == 3 and nvertices == 4:
         sampler = P1Sampler3D()
-    if ndim == 3 and nvertices == 6:
+    elif ndim == 3 and nvertices == 6:
         sampler = W1Sampler3D()
     elif ndim == 3 and nvertices == 8:
         sampler = Q1Sampler3D()
