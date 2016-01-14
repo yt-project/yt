@@ -72,7 +72,7 @@ def test_subhalos():
     yield assert_equal, total_sub, total_int
 
 @requires_file(g298)
-def test_halomasses():
+def test_halo_masses():
     ds = data_dir_load(g298)
     ad = ds.all_data()
     for ptype in ["Group", "Subhalo"]:
