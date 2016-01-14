@@ -3,6 +3,8 @@ from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
+# TODO: test msdb for [0,0], [1,1], [2,2] etc.
+
 def test_get_morton_indices():
     from yt.utilities.lib.geometry_utils import get_morton_indices,get_morton_indices_unravel
     INDEX_MAX_64 = np.uint64(2097151)
@@ -51,18 +53,65 @@ def test_compare_morton():
     assert_equal(compare_morton(q,p),0)
     assert_equal(compare_morton(p,p),0)
 
-def test_get_morton_argsort():
-    from yt.utilities.lib.geometry_utils import get_morton_argsort,get_morton_points
-    N = 10
-    mi = np.hstack((np.arange(N,dtype=np.uint64),np.array([646904,780276],dtype=np.uint64)))
+def test_morton_qsort(seed=1,recursive=False,use_loop=False):
+    from yt.utilities.lib.geometry_utils import morton_qsort,get_morton_points
+    np.random.seed(seed)
+    N = 100
+    mi = np.hstack((np.arange(N,dtype=np.uint64),#+600000,
+                    np.array([646904,780276],dtype=np.uint64)))
     N = len(mi)
     pos = get_morton_points(mi).astype(np.float64)
     sort_out = np.arange(N,dtype=np.uint64)
     sort_shf = np.arange(N,dtype=np.uint64)
     np.random.shuffle(sort_shf)
     sort_ans = np.argsort(sort_shf)
-    get_morton_argsort(pos[sort_shf,:],0,N-1,sort_out)
+    morton_qsort(pos[sort_shf,:],0,N-1,sort_out,
+                 recursive=recursive,use_loop=use_loop)
+    if True:
+        from yt.utilities.lib.geometry_utils import compare_morton,xor_msb_cy,msdb_cy,ifrexp_cy
+        count = 0
+        for ind1 in range(N):
+            if sort_out[ind1]!=sort_ans[ind1]:
+                for ind2 in range(ind1+1,N):
+                    i1 = sort_ans[ind1]
+                    i2 = sort_ans[ind2]
+                    p1 = pos[sort_shf[i1],:]
+                    p2 = pos[sort_shf[i2],:]
+                    if not compare_morton(p1,p2):
+                        count+=1
+                        print compare_morton(p1,p2),compare_morton(p2,p1)
+                        print 'Found {}'.format(count)
+                        print '    ',i1, mi[sort_shf[i1]], p1
+                        print '    ',i2, mi[sort_shf[i2]], p2
+                        for j in range(3):
+                            im1,ie1 = ifrexp_cy(p1[j])
+                            im2,ie2 = ifrexp_cy(p2[j])
+                            print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
     assert_array_equal(sort_out,sort_ans)
+
+def time_morton_qsort(seed=1):
+    # Not the most effecient test, but not meant to be run much
+    import time
+    # Recursive, no loop
+    t1 = time.time()
+    test_morton_qsort(recursive=True,use_loop=False)
+    t2 = time.time()
+    print("Recursive, no loop: {:f}".format(t2-t1))
+    # Recursive, loop
+    t1 = time.time()
+    test_morton_qsort(recursive=True,use_loop=True)
+    t2 = time.time()
+    print("Recursive, loop:    {:f}".format(t2-t1))
+    # Iterative, no loop
+    t1 = time.time()
+    test_morton_qsort(recursive=False,use_loop=False)
+    t2 = time.time()
+    print("Iterative, no loop: {:f}".format(t2-t1))
+    # Iterative, loop
+    t1 = time.time()
+    test_morton_qsort(recursive=False,use_loop=True)
+    t2 = time.time()
+    print("Iterative, loop:    {:f}".format(t2-t1))
 
 def test_dist():
     from yt.utilities.lib.geometry_utils import dist
@@ -79,8 +128,9 @@ def test_dist():
     q = np.array([1.0,1.0,1.0],dtype=np.float64)
     assert_equal(dist(p,q),np.sqrt(3.0))
 
-def test_knn_direct():
+def test_knn_direct(seed=1):
     from yt.utilities.lib.geometry_utils import knn_direct
+    np.random.seed(seed)
     k = 5
     N = 2*k
     idx = np.arange(N,dtype=np.uint64)
@@ -115,8 +165,8 @@ def point_random(n_per_dim,ndim,seed=1):
     return pos,DLE,DRE
 
 def test_knn_morton():
-    from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,get_morton_argsort,dist
-    Np_d = 50 # 100
+    from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,morton_qsort,dist
+    Np_d = 10 # 100
     Nd = 3
     Np = Np_d**Nd
     idx_test = np.uint64(Np/2)
@@ -125,11 +175,11 @@ def test_knn_morton():
     # Random points
     pos,DLE,DRE = point_random(Np_d,Nd)
     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
-    get_morton_argsort(pos,0,pos.shape[0]-1,sort_fwd)
+    morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
-    if True:
+    if False:
         print pos[idx_test,:]
         id1 = 14252
         id2 = 14502
@@ -140,11 +190,11 @@ def test_knn_morton():
     # Grid points
     pos,DLE,DRE = point_grid(Np_d,Nd)
     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
-    get_morton_argsort(pos,0,pos.shape[0]-1,sort_fwd)
+    morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
-    if True:
+    if False:
         print pos[idx_test,:]
         id1 = 14252
         id2 = 14502
@@ -155,7 +205,7 @@ def test_knn_morton():
 
 
 def test_csearch_morton():
-    from yt.utilities.lib.geometry_utils import get_morton_argsort,csearch_morton,ORDER_MAX
+    from yt.utilities.lib.geometry_utils import morton_qsort,csearch_morton,ORDER_MAX
     k = 5
     i = 0
     xN = 3
@@ -166,7 +216,7 @@ def test_csearch_morton():
     X,Y,Z = np.meshgrid(xf,xf,xf)
     pos = np.vstack((X.flatten(),Y.flatten(),Z.flatten())).T
     sort_fwd = np.arange(N, dtype=np.uint64)
-    get_morton_argsort(pos,0,N-1,sort_fwd)
+    morton_qsort(pos,0,N-1,sort_fwd)
     out = csearch_morton(pos[sort_fwd,:], k, i, Ai, l, h, order, DLE, DRE, ORDER_MAX)
     # assert_array_equal(out,ans)
 
