@@ -506,21 +506,14 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
                              double* mapped_coord,
                              double tolerance,
                              int direction) nogil:
-        if (direction == 2):
-            if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
-                return 1
-            else:
-                return 0
-        if (direction == 1):
-            if (fabs(mapped_coord[direction]) < tolerance):
-                return 1
-            else:
-                return 0
-        else:
-            if (fabs(mapped_coord[0]) < tolerance or
-                fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance):
-                return 1
-            return 0
+        if (direction == 2 and (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance)):
+            return 1
+        elif (direction == 1 and (fabs(mapped_coord[direction]) < tolerance)):
+            return 1
+        elif (direction == 0 and (fabs(mapped_coord[0]) < tolerance or
+                                  fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance)):
+            return 1
+        return 0
 
 
 @cython.boundscheck(False)
