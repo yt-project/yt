@@ -168,6 +168,8 @@ cdef class P1Sampler2D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for triangles, we check whether all mapped_coords are
+        # between 0 and 1, to within the inclusion tolerance
         cdef int i
         for i in range(3):
             if (mapped_coord[i] < -self.inclusion_tol or
@@ -242,6 +244,8 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for tetrahedra, we check whether all mapped coordinates
+        # are within 0 and 1, to within the inclusion tolerance
         cdef int i
         for i in range(4):
             if (mapped_coord[i] < -self.inclusion_tol or
@@ -362,6 +366,8 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for hexes, the mapped coordinates all go from -1 to 1 
+        # if we are inside the element.
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
@@ -479,6 +485,10 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for wedges the bounds of the mapped coordinates are: 
+        #     0 <= mapped_coord[0] <= 1 - mapped_coord[1]
+        #     0 <= mapped_coord[1]
+        #    -1 <= mapped_coord[2] <= 1
         if (mapped_coord[0] < -self.inclusion_tol or
             mapped_coord[0] + mapped_coord[1] - 1.0 > self.inclusion_tol):
             return 0 
@@ -654,6 +664,8 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for quads, we check whether the mapped_coord is between
+        # -1 and 1 in both directions.
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
             return 0
