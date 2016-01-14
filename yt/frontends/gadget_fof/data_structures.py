@@ -590,12 +590,15 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
                         parent_subhalos, self.group_identifier))
 
             # ids of the sibling subhalos that come before this one
-            sub_ids = np.arange(
-                self.particle_identifier - self.subgroup_identifier,
-                self.particle_identifier)
-            my_data = self.index._get_halo_values(
-                "Subhalo", sub_ids, ["SubhaloLen"])
-            id_offset = my_data["SubhaloLen"].sum(dtype=np.int64)
+            if self.subgroup_identifier > 0:
+                sub_ids = np.arange(
+                    self.particle_identifier - self.subgroup_identifier,
+                    self.particle_identifier)
+                my_data = self.index._get_halo_values(
+                    "Subhalo", sub_ids, ["SubhaloLen"])
+                id_offset = my_data["SubhaloLen"].sum(dtype=np.int64)
+            else:
+                id_offset = 0
 
         # Calculate the starting index for the member particles.
         # First, add up all the particles in the earlier files.
