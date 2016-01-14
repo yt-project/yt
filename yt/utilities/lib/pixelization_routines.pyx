@@ -18,7 +18,8 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
-from yt.utilities.exceptions import YTPixelizeError
+from yt.utilities.exceptions import YTPixelizeError, \
+    YTElementTypeNotRecognized
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -476,7 +477,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
     else:
-        raise RuntimeError("Element type not recognized.")
+        raise YTElementTypeNotRecognized(ndim, nvertices)
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:

@@ -39,6 +39,7 @@ from mesh_intersection cimport \
 from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
 cimport numpy as np
+from yt.utilities.exceptions import YTElementTypeNotRecognized
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -119,7 +120,8 @@ cdef class LinearElementMesh:
             self.tpe = TETRA_NT
             self.tri_array = triangulate_tetra
         else:
-            raise NotImplementedError("Could not determine element type.")
+            raise YTElementTypeNotRecognized(vertices.shape[1], 
+                                             indices.shape[1])
 
         self._build_from_indices(scene, vertices, indices)
         self._set_field_data(scene, data)
