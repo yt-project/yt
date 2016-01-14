@@ -74,7 +74,7 @@ class libconfig(dict):
         return eval(v)
 
     def write(self, filename):
-        f = file(filename, 'w')
+        f = open(filename, 'w')
 
         self.write_dict(f, self, 0)
 

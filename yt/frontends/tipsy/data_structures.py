@@ -37,6 +37,10 @@ from yt.utilities.physical_constants import \
 from .fields import \
     TipsyFieldInfo
 
+import sys
+if sys.version_info > (3,):
+    long = int
+
 class TipsyFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         # To go above 1 domain, we need to include an indexing step in the
