@@ -366,77 +366,174 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
-def qsort_partition(np.ndarray[anyfloat, ndim=2] pos,
-                    np.int64_t start, np.int64_t end,
-                    np.ndarray[np.uint64_t, ndim=1] ind):
+def ifrexp_cy(np.float64_t x):
+    cdef np.int64_t e, m
+    m = ifrexp(x, &e)
+    return m,e
+
+def msdb_cy(np.int64_t a, np.int64_t b):
+    return msdb(a,b)
+
+def msdb_cy(np.int64_t a, np.int64_t b):
+    return msdb(a,b)
+
+def xor_msb_cy(np.float64_t a, np.float64_t b):
+    return xor_msb(a,b)
+
+def morton_qsort_swap(np.ndarray[np.uint64_t, ndim=1] ind,
+                      np.uint64_t a, np.uint64_t b):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    cdef np.int64_t t = ind[a]
+    ind[a] = ind[b]
+    ind[b] = t
+
+def morton_qsort_partition(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
     # Initialize
-    cdef int j
-    cdef np.int64_t bottom, top 
-    cdef np.uint64_t done, pivot
+    cdef int k
+    cdef np.int64_t i, j
     cdef np.float64_t ppos[3]
     cdef np.float64_t ipos[3]
-    bottom = start-1
-    top = end
-    done = 0
-    pivot = ind[end]
-    for j in range(3):
-        ppos[j] = pos[pivot,j]
-
-
+    cdef np.uint64_t done, pivot
+    if use_loop:
+        # http://www.geeksforgeeks.org/iterative-quick-sort/
+        # A bit slower
+        # Set starting point & pivot
+        i = (l - 1)
+        for k in range(3):
+            ppos[k] = pos[ind[h],k]
+        # Loop over array moving ind for points smaller than pivot to front
+        for j in range(l, h):
+            for k in range(3):
+                ipos[k] = pos[ind[j],k]
+            if compare_floats_morton(ipos,ppos):
+                i+=1
+                morton_qsort_swap(ind,i,j)
+        # Swap the pivot to the midpoint in the partition
+        i+=1
+        morton_qsort_swap(ind,i,h)
+        return i
+    else:
+        # Set starting point & pivot
+        i = l-1
+        j = h
+        done = 0
+        pivot = ind[h]
+        for k in range(3):
+            ppos[k] = pos[pivot,k]
+        # Loop until entire array processed
+        while not done:
+            # Process bottom
+            while not done:
+                i+=1
+                if i == j:
+                    done = 1
+                    break
+                for k in range(3):
+                    ipos[k] = pos[ind[i],k]
+                if compare_floats_morton(ppos,ipos):
+                    ind[j] = ind[i]
+                    break
+            # Process top
+            while not done:
+                j-=1
+                if j == i:
+                    done = 1
+                    break
+                for k in range(3):
+                    ipos[k] = pos[ind[j],k]
+                if compare_floats_morton(ipos,ppos):
+                    ind[i] = ind[j]
+                    break
+        ind[j] = pivot
+    return j
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_morton_argsort(np.ndarray[anyfloat, ndim=2] pos, 
-                       np.int64_t start, np.int64_t end,
-                       np.ndarray[np.uint64_t, ndim=1] ind):
+def morton_qsort_recursive(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    cdef np.int64_t p
+    if (l < h):
+        p = morton_qsort_partition(pos, l, h, ind, use_loop=use_loop)
+        morton_qsort_recursive(pos, l, p-1, ind, use_loop=use_loop)
+        morton_qsort_recursive(pos, p+1, h, ind, use_loop=use_loop)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_qsort_iterative(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    # Auxillary stack
+    cdef np.ndarray[np.int64_t, ndim=1] stack = np.zeros(h-l+1, dtype=np.int64)
+    cdef np.int64_t top = -1
+    cdef np.int64_t p
+    top+=1
+    stack[top] = l
+    top+=1
+    stack[top] = h
+    # Pop from stack until it's empty
+    while (top >= 0):
+        # Get next set
+        h = stack[top]
+        top-=1
+        l = stack[top]
+        top-=1
+        # Partition
+        p = morton_qsort_partition(pos, l, h, ind, use_loop=use_loop)
+        # Add left partition to the stack
+        if (p-1) > l:
+            top+=1
+            stack[top] = l
+            top+=1
+            stack[top] = p - 1
+        # Add right partition to the stack
+        if (p+1) < h:
+            top+=1
+            stack[top] = p + 1
+            top+=1
+            stack[top] = h
+            
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_qsort(np.ndarray[anyfloat, ndim=2] pos,
+                 np.int64_t l, np.int64_t h,
+                 np.ndarray[np.uint64_t, ndim=1] ind,
+                 recursive = False,
+                 use_loop = False):
+    #get_morton_argsort1(pos,l,h,ind)
+    if recursive:
+        morton_qsort_recursive(pos,l,h,ind,use_loop=use_loop)
+    else:
+        morton_qsort_iterative(pos,l,h,ind,use_loop=use_loop)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_argsort1(np.ndarray[anyfloat, ndim=2] pos, 
+                        np.int64_t start, np.int64_t end,
+                        np.ndarray[np.uint64_t, ndim=1] ind):
     # Return if only one position selected
     if start >= end: return
     # Initialize
-    cdef int j
-    cdef np.int64_t bottom, top 
-    cdef np.uint64_t done, pivot
-    #cdef np.uint64_t bottom, top, done
-    cdef np.float64_t ppos[3]
-    cdef np.float64_t ipos[3]
-    bottom = start-1
-    top = end
-    done = 0
-    pivot = ind[end]
-    for j in range(3):
-        ppos[j] = pos[pivot,j]
-    # Loop until entire array processed
-    while not done:
-        # Process bottom
-        while not done:
-            bottom+=1
-            if bottom == top:
-                done = 1
-                break
-            for j in range(3):
-                ipos[j] = pos[ind[bottom],j]
-            if compare_floats_morton(ppos,ipos):
-                ind[top] = ind[bottom]
-                break
-        # Process top
-        while not done:
-            top-=1
-            if top == bottom:
-                done = 1
-                break
-            for j in range(3):
-                ipos[j] = pos[ind[top],j]
-            if compare_floats_morton(ipos,ppos):
-                ind[bottom] = ind[top]
-                break
-    ind[top] = pivot
+    cdef np.int64_t top 
+    top = morton_qsort_partition(pos,start,end,ind)
     # Do remaining parts on either side of pivot, sort side first
     if (top-1-start < end-(top+1)):
-        get_morton_argsort(pos,start,top-1,ind)
-        get_morton_argsort(pos,top+1,end,ind)
+        get_morton_argsort1(pos,start,top-1,ind)
+        get_morton_argsort1(pos,top+1,end,ind)
     else:
-        get_morton_argsort(pos,top+1,end,ind)
-        get_morton_argsort(pos,start,top-1,ind)
+        get_morton_argsort1(pos,top+1,end,ind)
+        get_morton_argsort1(pos,start,top-1,ind)
     return
 
 def compare_morton(np.ndarray[anyfloat, ndim=1] p0, np.ndarray[anyfloat, ndim=1] q0):
@@ -748,7 +845,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
         P = P0
         i = i0
     else:
-        get_morton_argsort(P0,0,N-1,sort_fwd)
+        morton_qsort(P0,0,N-1,sort_fwd)
         sort_rev = np.argsort(sort_fwd).astype(np.uint64)
         P = P0[sort_fwd,:]
         i = sort_rev[i0]
