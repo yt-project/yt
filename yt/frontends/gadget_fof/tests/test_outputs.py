@@ -14,7 +14,6 @@ GadgetFOF frontend tests using gadget_fof datasets
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import os
 
 from yt.frontends.gadget_fof.api import \
     GadgetFOFDataset
@@ -39,14 +38,12 @@ g42 = "gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5"
 
 @requires_ds(g5)
 def test_fields_g5():
-    ds = data_dir_load(g5)
     for field in _fields:
         yield FieldValuesTest(g5, field, particle_type=True)
 
 
 @requires_ds(g42)
 def test_fields_g42():
-    ds = data_dir_load(g42)
     for field in _fields:
         yield FieldValuesTest(g42, field, particle_type=True)
 
