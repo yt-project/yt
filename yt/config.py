@@ -1,11 +1,10 @@
 """
 This module is very simple.  It imports the configuration
 we have written for yt.
-Everything will be returned in a global config dictionary: ytcfg
-
-
+Everything will be returned in a global config dictionary ``ytcfg``
 
 """
+
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
@@ -17,7 +16,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import os
-import types
 from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(
@@ -31,7 +29,6 @@ ytcfg_defaults = dict(
     loglevel = '20',
     inline = 'False',
     numthreads = '-1',
-    __withinreason = 'False',
     __withintesting = 'False',
     __parallel = 'False',
     __global_parallel_rank = '0',
@@ -62,7 +59,8 @@ ytcfg_defaults = dict(
     sketchfab_api_key = 'None',
     thread_field_detection = 'False',
     ignore_invalid_unit_operation_errors = 'False',
-    chunk_size = '1000'
+    chunk_size = '1000',
+    xray_data_dir = '/does/not/exist',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

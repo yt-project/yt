@@ -331,21 +331,3 @@ def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
                 for z in range(2):
                     child_mask[lex+x,ley+y,lez+z] = art_child_masks[ioct,x,y,z]
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def read_castro_particles(char *fn, int offset, int fieldindex, int nfields,
-                          np.ndarray[np.float64_t, ndim=1] tofill):
-    cdef int nparticles = tofill.shape[0]
-    cdef int i
-    cdef startskip = fieldindex*8
-    cdef endskip = (nfields - 1 - fieldindex)*8
-    cdef np.float64_t temp
-    cdef FILE *f = fopen(fn, 'r')
-    fseek(f, offset + 5*nparticles*4, 0) # 4 bytes
-    for i in range(nparticles):
-        fseek(f, startskip, SEEK_CUR)
-        fread(&temp, 8, 1, f)
-        tofill[i] = temp
-        fseek(f, endskip, SEEK_CUR)
-    fclose(f)

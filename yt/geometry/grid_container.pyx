@@ -124,6 +124,31 @@ cdef class GridTree:
             children.append(childs)
         return indices, levels, nchild, children
 
+    @property
+    def grid_arrays(self):
+        cdef GridTreeNodePadded[:] grids
+        grids = <GridTreeNodePadded[:self.num_grids]> \
+            (<GridTreeNodePadded*> self.grids)
+        grids_basic = np.asarray(grids)
+        # This next bit is necessary because as of 0.23.4, Cython can't make
+        # nested dtypes automatically where you have a property that is
+        # something like float[3].  So we unroll all of those, then re-roll
+        # them in a new dtype.
+        dtn = {}
+        dt = grids_basic.dtype
+        for name in dt.names:
+            d, o = dt.fields[name]
+            n = name
+            if name.endswith("_x"):
+                f = (d.char, 3)
+                n = name[:-2]
+            elif name.endswith("_y") or name.endswith("_z"):
+                continue
+            else:
+                f = (d.char, 1)
+            dtn[n] = (f, o)
+        return grids_basic.view(dtype=np.dtype(dtn))
+
     cdef void setup_data(self, GridVisitorData *data):
         # Being handed a new GVD object, we initialize it to sane defaults.
         data.index = 0

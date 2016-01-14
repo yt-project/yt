@@ -17,20 +17,13 @@ Geometry container base class.
 import os
 from yt.extern.six.moves import cPickle
 import weakref
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import abc
-import copy
 
-from yt.funcs import *
 from yt.config import ytcfg
+from yt.funcs import iterable
 from yt.units.yt_array import \
-    uconcatenate
-from yt.fields.field_info_container import \
-    NullFunc
-from yt.fields.particle_fields import \
-    particle_deposition_functions, \
-    particle_scalar_functions
+    YTArray, uconcatenate
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -183,7 +176,7 @@ class Index(ParallelAnalysisInterface):
         Return the dataset with a given *name* located at *node* in the
         datafile.
         """
-        if self._data_file == None:
+        if self._data_file is None:
             return None
         if node[0] != "/": node = "/%s" % node
 
@@ -396,11 +389,26 @@ class YTDataChunk(object):
         ind = 0
         for obj in self._fast_index or self.objs:
             gdt, gt = obj.select_tcoords(self.dobj)
-            if gt.shape == 0: continue
+            if gt.size == 0: continue
             ct[ind:ind+gt.size] = gt
             cdt[ind:ind+gdt.size] = gdt
             ind += gt.size
         return cdt
+
+    @cached_property
+    def fcoords_vertex(self):
+        ci = np.empty((self.data_size, 8, 3), dtype='float64')
+        ci = YTArray(ci, input_units = "code_length",
+                     registry = self.dobj.ds.unit_registry)
+        if self.data_size == 0: return ci
+        ind = 0
+        for obj in self.objs:
+            c = obj.select_fcoords_vertex(self.dobj)
+            if c.shape[0] == 0: continue
+            ci[ind:ind+c.shape[0], :, :] = c
+            ind += c.shape[0]
+        return ci
+
 
 class ChunkDataCache(object):
     def __init__(self, base_iter, preload_fields, geometry_handler,

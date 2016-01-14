@@ -41,12 +41,13 @@ Example Notebooks
 
    notebook_tutorial
    custom_colorbar_tickmarks
-   embedded_javascript_animation
    embedded_webm_animation
    gadget_notebook
    owls_notebook
+   ../visualizing/transfer_function_helper
    ../analyzing/analysis_modules/sunyaev_zeldovich
    fits_radio_cubes
    fits_xray_images
    tipsy_notebook
    halo_analysis_example
+   ../visualizing/volume_rendering_tutorial

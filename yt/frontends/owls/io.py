@@ -15,7 +15,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -32,7 +32,7 @@ CHUNKSIZE = 10000000
 def _get_h5_handle(fn):
     try:
         f = h5py.File(fn, "r")
-    except IOError as e:
+    except IOError:
         print("ERROR OPENING %s" % (fn))
         if os.path.exists(fn):
             print("FILENAME EXISTS")
@@ -70,7 +70,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: x.filename):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
@@ -88,7 +88,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: x.filename):
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:

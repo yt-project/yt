@@ -1,6 +1,11 @@
 # Some tests for the geographic coordinates handler
 
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_amr_ds, \
+    assert_equal, \
+    assert_rel_equal
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -19,7 +24,6 @@ def test_geographic_coordinates():
         dd = ds.all_data()
         fi = ("index", axis)
         fd = ("index", "d%s" % axis)
-        fp = ("index", "path_element_%s" % axis)
         ma = np.argmax(dd[fi])
         yield assert_equal, dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i].d
         mi = np.argmin(dd[fi])

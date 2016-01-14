@@ -18,6 +18,7 @@ from __future__ import print_function
 import numpy as np
 import os
 
+from yt.extern.six import string_types
 from yt.frontends.owls.io import \
     IOHandlerOWLS
 from yt.utilities.io_handler import \
@@ -167,7 +168,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 fs = 8
             else:
                 fs = 4
-            if not isinstance(field, str):
+            if not isinstance(field, string_types):
                 field = field[0]
             if not any( (ptype, field) in field_list
                         for ptype in self._ptypes):

@@ -13,9 +13,14 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
+from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
@@ -26,7 +31,7 @@ from . import _MPL
 import numpy as np
 import weakref
 import re
-import string
+import types
 
 class FixedResolutionBuffer(object):
     r"""
@@ -41,12 +46,12 @@ class FixedResolutionBuffer(object):
     requires a deposition step, where individual variable-resolution pixels
     are deposited into a buffer of some resolution, to create an image.
     This object is an interface to that pixelization step: it can deposit
-    multiple fields.  It acts as a standard AMRData object, such that
+    multiple fields.  It acts as a standard YTDataContainer object, such that
     dict-style access returns an image of a given field.
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -96,6 +101,7 @@ class FixedResolutionBuffer(object):
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
 
@@ -113,13 +119,15 @@ class FixedResolutionBuffer(object):
             yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
-        
+
+        self.setup_filters()
+
     def keys(self):
         return self.data.keys()
-    
+
     def __delitem__(self, item):
         del self.data[item]
-    
+
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
@@ -132,6 +140,10 @@ class FixedResolutionBuffer(object):
         buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
             int(self.antialias))
+
+        for name, (args, kwargs) in self._filters:
+            buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
+
         # Need to add _period and self.periodic
         # self._period, int(self.periodic)
         ia = ImageArray(buff, input_units=self.data_source[item].units,
@@ -153,7 +165,7 @@ class FixedResolutionBuffer(object):
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
         result = False
-        if p.search( fname ) != None:
+        if p.search( fname ) is not None:
             result = True
         return result
 
@@ -166,26 +178,27 @@ class FixedResolutionBuffer(object):
 
         p = re.compile("_p[0-9]+_")
         m = p.search( fname )
-        if m != None:
+        if m is not None:
             pstr = m.string[m.start()+1:m.end()-1]
             segments = fname.split("_")
             for i,s in enumerate(segments):
-                segments[i] = string.capitalize(s)
+                segments[i] = s.capitalize()
                 if s == pstr:
                     ipstr = i
             element = segments[ipstr-1]
-            roman = pnum2rom[pstr[1:]] 
+            roman = pnum2rom[pstr[1:]]
             label = element + '\ ' + roman + '\ ' + \
-                string.join(segments[ipstr+1:], '\ ')
+                '\ '.join(segments[ipstr+1:])
         else:
             label = fname
         return label
+
 
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
         finfo = self.data_source.ds._get_field_info(*field)
-        info['data_source'] = self.data_source.__str__()  
+        info['data_source'] = self.data_source.__str__()
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
         info['xlim'] = self.bounds[:2]
@@ -193,30 +206,30 @@ class FixedResolutionBuffer(object):
         info['length_unit'] = self.data_source.ds.length_unit
         info['length_to_cm'] = info['length_unit'].in_cgs().to_ndarray()
         info['center'] = self.data_source.center
-        
+
         try:
             info['coord'] = self.data_source.coord
         except AttributeError:
             pass
-        
+
         try:
             info['weight_field'] = self.data_source.weight_field
         except AttributeError:
             pass
-        
+
         info['label'] = finfo.display_name
         if info['label'] is None:
             if self._is_ion( fname ):
                 fname = self._ion_to_label( fname )
                 info['label'] = r'$\rm{'+fname+r'}$'
                 info['label'] = r'$\rm{'+fname.replace('_','\ ')+r'}$'
-            else:    
+            else:
                 info['label'] = r'$\rm{'+fname+r'}$'
                 info['label'] = r'$\rm{'+fname.replace('_','\ ').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\ ')
             info['label'] = r'$\rm{'+info['label']+r'}$'
-        
+
         return info
 
     def convert_to_pixel(self, coords):
@@ -257,7 +270,7 @@ class FixedResolutionBuffer(object):
         """
         dpx = (self.bounds[1]-self.bounds[0])/self.buff_size[0]
         return distance/dpx
-        
+
     def convert_distance_y(self, distance):
         r"""This function converts code-space distance into pixel-space
         distance in the y-coordiante.
@@ -281,7 +294,7 @@ class FixedResolutionBuffer(object):
 
         This function will export any number of fields into datasets in a new
         HDF5 file.
-        
+
         Parameters
         ----------
         filename : string
@@ -309,7 +322,7 @@ class FixedResolutionBuffer(object):
             The name of the FITS file to be written.
         fields : list of strings
             These fields will be pixelized and output. If "None", the keys of the
-            FRB will be used. 
+            FRB will be used.
         clobber : boolean
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
@@ -318,11 +331,11 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'.
         """
 
-        from yt.utilities.fits_image import FITSImageBuffer
+        from yt.utilities.fits_image import FITSImageData
 
         if fields is None: fields = list(self.data.keys())
 
-        fib = FITSImageBuffer(self, fields=fields, units=units)
+        fib = FITSImageData(self, fields=fields, units=units)
         if other_keys is not None:
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
@@ -330,14 +343,14 @@ class FixedResolutionBuffer(object):
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be
-        analyzed as any other in yt. Unit information and other parameters (e.g., 
-        geometry, current_time, etc.) will be taken from the parent dataset. 
+        analyzed as any other in yt. Unit information and other parameters (e.g.,
+        geometry, current_time, etc.) will be taken from the parent dataset.
 
         Parameters
         ----------
         fields : list of strings, optional
             These fields will be pixelized and output. If "None", the keys of the
-            FRB will be used. 
+            FRB will be used.
         nprocs: integer, optional
             If greater than 1, will create this number of subarrays out of data
 
@@ -370,6 +383,85 @@ class FixedResolutionBuffer(object):
                                  geometry=self.ds.geometry,
                                  nprocs=nprocs)
 
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export a fixed resolution buffer to a reloadable yt dataset.
+
+        This function will take a fixed resolution buffer and output a 
+        dataset containing either the fields presently existing or fields 
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> frb = proj.to_frb(1.0, (800, 800))
+        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> ds2 = yt.load(fn)
+        >>> print (ds2.data["density"])
+        [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         ...,
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]] g/cm**3
+
+        """
+
+        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self.data_source._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.data)
+
+        ftypes = dict([(field, "grid") for field in data])
+        extra_attrs = dict([(arg, getattr(self.data_source, arg, None))
+                            for arg in self.data_source._con_args +
+                            self.data_source._tds_attrs])
+        extra_attrs["con_args"] = self.data_source._con_args
+        extra_attrs["left_edge"] = self.ds.arr([self.bounds[0],
+                                                self.bounds[2]])
+        extra_attrs["right_edge"] = self.ds.arr([self.bounds[1],
+                                                 self.bounds[3]])
+        extra_attrs["ActiveDimensions"] = self.buff_size
+        extra_attrs["level"] = 0
+        extra_attrs["data_type"] = "yt_frb"
+        extra_attrs["container_type"] = self.data_source._type_name
+        extra_attrs["dimensionality"] = self.data_source._dimensionality
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
+
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
@@ -380,6 +472,18 @@ class FixedResolutionBuffer(object):
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
+
+    def setup_filters(self):
+        ignored = ['FixedResolutionBufferFilter']
+        for key in filter_registry:
+            if key in ignored:
+                continue
+            filtername = filter_registry[key]._filter_name
+            FilterMaker = filter_registry[key]
+            filt = apply_filter(FilterMaker)
+            filt.__doc__ = FilterMaker.__doc__
+            self.__dict__['apply_' + filtername] = \
+                types.MethodType(filt, self)
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     """
@@ -395,7 +499,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
-        
+
         ds = getattr(data_source, "ds", None)
         if ds is not None:
             ds.plots.append(weakref.proxy(self))
@@ -408,7 +512,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
                                  self.radius)
         self[item] = buff
         return buff
-        
+
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of
@@ -433,7 +537,7 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
         ia = ImageArray(buff, input_units=self.data_source[item].units,
                         info=self._get_info(item))
         self[item] = ia
-        return ia 
+        return ia
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
@@ -449,13 +553,13 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
-        mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
+        mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
         dd = self.data_source
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+        buff, sc = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
@@ -492,7 +596,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
 
     def __getitem__(self, item):
-        if item in self.data: 
+        if item in self.data:
             return self.data[item]
 
         mylog.info("Splatting (%s) onto a %d by %d mesh" %
@@ -543,7 +647,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                       input_units=weight_data.units,
                                       info=self._get_info(item))
 
-            locs = np.where(ia > 0)
+            locs = np.where(weight_array > 0)
             ia[locs] /= weight_array[locs]
 
         self.data[item] = ia

@@ -14,9 +14,10 @@ Unstructured-mesh geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+import os
 import weakref
 
-from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib.mesh_utilities import smallest_fwidth

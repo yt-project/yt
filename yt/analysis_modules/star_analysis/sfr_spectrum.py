@@ -16,9 +16,8 @@ from __future__ import print_function
 
 import os
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import math
-import itertools
 
 from yt.config import ytcfg
 from yt.extern.six.moves import zip as izip
@@ -354,12 +353,19 @@ class SpectrumBuilder(object):
 
         r"""For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
-        final_spec: The collective spectrum in units of flux binned in
-            wavelength.
-        wavelength: The wavelength for the spectrum bins, in Angstroms.
-        total_mass: Total mass of all the stars.
-        avg_mass: Average mass of all the stars.
-        avg_metal: Average metallicity of all the stars.
+
+        Attributes
+        ----------
+        final_spec: array
+            The collective spectrum in units of flux binned in wavelength.
+        wavelength: array
+            The wavelength for the spectrum bins, in Angstroms.
+        total_mass: float
+            Total mass of all the stars.
+        avg_mass: float
+            Average mass of all the stars.
+        avg_metal: float
+            Average metallicity of all the stars.
 
         Parameters
         ----------
@@ -389,6 +395,7 @@ class SpectrumBuilder(object):
         >>> sp = ds.sphere([0.5, 0.5, 0.5], 0.1)
         >>> spec.calculate_spectrum(data_source=sp, min_age=1.e6)
         """
+
         # Initialize values
         self.final_spec = np.zeros(self.wavelength.size, dtype='float64')
         self._data_source = data_source

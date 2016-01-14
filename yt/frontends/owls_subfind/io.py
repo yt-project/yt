@@ -14,18 +14,16 @@ OWLSSubfind data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.utilities.exceptions import *
+from yt.utilities.exceptions import YTDomainOverflow
 from yt.funcs import mylog
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
 from yt.utilities.lib.geometry_utils import compute_morton
-
-from yt.geometry.oct_container import _ORDER_MAX
 
 class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
@@ -44,7 +42,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda f: f.filename):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -78,7 +76,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda f: f.filename):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -193,7 +191,7 @@ def subfind_field_list(fh, ptype, pcount):
                 my_div = fh[field].size / pcount[ptype]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
-                    for i in range(my_div):
+                    for i in range(int(my_div)):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
@@ -205,7 +203,7 @@ def subfind_field_list(fh, ptype, pcount):
                 my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
-                    for i in range(my_div):
+                    for i in range(int(my_div)):
                         fields.append(("FOF", "%s_%d" % (fname, i)))
                 else:
                     fields.append(("FOF", fname))

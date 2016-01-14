@@ -1,4 +1,9 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_array_less, \
+    assert_array_equal
 from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")

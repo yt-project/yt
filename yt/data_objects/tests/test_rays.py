@@ -1,4 +1,11 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    assert_rel_equal
+from yt.units.yt_array import \
+    uconcatenate
 
 def test_ray():
     for nproc in [1, 2, 4, 8]:
@@ -36,7 +43,6 @@ def test_ray():
             tin = tin.max(axis=0)
             tout = tout.min(axis=0)
             my_cells = (tin < tout) & (tin < 1) & (tout > 0)
-            dts = np.clip(tout[my_cells], 0.0, 1.0) - np.clip(tin[my_cells], 0.0, 1.0)
 
             yield assert_equal, ray_cells.sum(), my_cells.sum()
             yield assert_rel_equal, my_ray['density'][ray_cells].sum(), \

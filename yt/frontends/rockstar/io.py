@@ -14,20 +14,21 @@ Rockstar data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
+import os
 
-from yt.utilities.exceptions import *
 from yt.funcs import mylog
+
+from yt.utilities.exceptions import \
+    YTDomainOverflow
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-import yt.utilities.fortran_utils as fpu
 from .definitions import halo_dts
 from yt.utilities.lib.geometry_utils import compute_morton
 
-from yt.geometry.oct_container import _ORDER_MAX
+from operator import attrgetter
 
 class IOHandlerRockstarBinary(BaseIOHandler):
     _dataset_type = "rockstar_binary"
@@ -45,12 +46,11 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(ptf.keys()[0] == "halos")
+        assert(list(ptf.keys())[0] == "halos")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 f.seek(data_file._position_offset, os.SEEK_SET)
@@ -66,11 +66,11 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         data_files = set([])
         # Only support halo reading for now.
         assert(len(ptf) == 1)
-        assert(ptf.keys()[0] == "halos")
+        assert(list(ptf.keys())[0] == "halos")
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
@@ -91,6 +91,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
+        if pcount == 0: return morton
         ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(data_file._position_offset, os.SEEK_SET)
@@ -108,7 +109,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             # domain edges.  This helps alleviate that.
             np.clip(pos, self.ds.domain_left_edge + dx,
                          self.ds.domain_right_edge - dx, pos)
-            #del halos
+            del halos
             if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),

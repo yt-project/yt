@@ -75,8 +75,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith('component_'):
-                comp_number = int(re.match('component_(\d)', key).groups()[0])
-                field_dict[val] = comp_number
+                comp_number = int(re.match('component_(\d+)', key).groups()[0])
+                field_dict[val.decode('utf-8')] = comp_number
         self._field_dict = field_dict
         return self._field_dict
 
@@ -88,20 +88,16 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith('particle_'):
-                comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
+                comp_number = int(re.match('particle_component_(\d+)', key).groups()[0])
                 field_dict[val.decode("ascii")] = comp_number
         self._particle_field_index = field_dict
         return self._particle_field_index
-
-    def _read_field_names(self, grid):
-        ncomp = int(self._handle.attrs['num_components'])
-        fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
 
     def _read_data(self, grid, field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
-        shape = grid.ActiveDimensions + 2*self.ghost
+        shape = dims + 2*self.ghost
         boxsize = shape.prod()
 
         if self._offsets is not None:
@@ -112,7 +108,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
         data_no_ghost = data.reshape(shape, order='F')
-        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, grid.ActiveDimensions)]
+        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, dims)]
         ghost_slice = ghost_slice[0:self.dim]
         return data_no_ghost[ghost_slice]
 
@@ -186,9 +182,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         offsets = np.append(np.array([0]), offsets)
         offsets = np.array(offsets, dtype=np.int64)
 
-        # convert between the global grid id and the id on this level            
+        # convert between the global grid id and the id on this level
         grid_levels = np.array([g.Level for g in self.ds.index.grids])
-        grid_ids = np.array([g.id    for g in self.ds.index.grids])
+        grid_ids = np.array([g.id for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
@@ -199,43 +195,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
         return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
-
-
-class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "chombo2d_hdf5"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self._handle = ds._handle
-        self.dim = 2
-        self._read_ghost_info()
-
-
-class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "chombo1d_hdf5"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self.dim = 1
-        self._handle = ds._handle
-        self._read_ghost_info()
-
-
-class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
-    _dataset_type = "pluto_chombo_native"
-    _offset_string = 'data:offsets=0'
-    _data_string = 'data:datatype=0'
-
-    def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
-        self.ds = ds
-        self._handle = ds._handle
 
 
 def parse_orion_sinks(fn):
@@ -282,19 +241,18 @@ def parse_orion_sinks(fn):
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
+        index['particle_mdot']      = 14
         index['particle_burnstate'] = 15
 
-    elif len(line.strip().split()) == 18:
+    elif (len(line.strip().split()) == 18 or len(line.strip().split()) == 19):
         # these are the newer style, add luminosity as well
         index['particle_mlast']     = 10
         index['particle_r']         = 11
         index['particle_mdeut']     = 12
         index['particle_n']         = 13
-        index['particle_mdot']      = 14,
-        index['particle_burnstate'] = 15,
+        index['particle_mdot']      = 14
+        index['particle_burnstate'] = 15
         index['particle_luminosity']= 16
-
     else:
         # give a warning if none of the above apply:
         mylog.warning('Warning - could not figure out particle output file')

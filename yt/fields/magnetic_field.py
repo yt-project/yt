@@ -15,11 +15,6 @@ Magnetic field ... er, fields.
 
 import numpy as np
 
-from yt.units.yt_array import YTArray
-from yt.utilities.lib.misc_utilities import \
-    obtain_rvec, obtain_rv_vec
-from yt.utilities.math_utils import resize_vector
-from yt.utilities.cosmology import Cosmology
 from yt.fields.derived_field import \
     ValidateParameter
 
@@ -27,16 +22,8 @@ from .field_plugin_registry import \
     register_field_plugin
 
 from yt.utilities.math_utils import \
-    get_sph_r_component, \
     get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component, \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
+    get_sph_phi_component
 
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):

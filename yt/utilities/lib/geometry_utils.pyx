@@ -75,7 +75,7 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def obtain_rvec(data):
+def obtain_rvec(data, ftype="gas"):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] xf
@@ -90,11 +90,11 @@ def obtain_rvec(data):
     cdef int i, j, k
     center = data.get_field_parameter("center")
     c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
-    if len(data['x'].shape) == 1:
+    if len(data[ftype, 'x'].shape) == 1:
         # One dimensional data
-        xf = data['x']
-        yf = data['y']
-        zf = data['z']
+        xf = data[ftype, 'x']
+        yf = data[ftype, 'y']
+        zf = data[ftype, 'z']
         rf = np.empty((3, xf.shape[0]), 'float64')
         for i in range(xf.shape[0]):
             rf[0, i] = xf[i] - c[0]
@@ -103,9 +103,9 @@ def obtain_rvec(data):
         return rf
     else:
         # Three dimensional data
-        xg = data['x']
-        yg = data['y']
-        zg = data['z']
+        xg = data[ftype, 'x']
+        yg = data[ftype, 'y']
+        zg = data[ftype, 'z']
         rg = np.empty((3, xg.shape[0], xg.shape[1], xg.shape[2]), 'float64')
         for i in range(xg.shape[0]):
             for j in range(xg.shape[1]):
@@ -800,7 +800,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rv_vec(data):
+def obtain_rv_vec(data, ftype="gas"):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] vxf
@@ -817,11 +817,11 @@ def obtain_rv_vec(data):
     if bulk_velocity == None:
         bulk_velocity = np.zeros(3)
     bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
-    if len(data['velocity_x'].shape) == 1:
+    if len(data[ftype, 'velocity_x'].shape) == 1:
         # One dimensional data
-        vxf = data['velocity_x'].astype("float64")
-        vyf = data['velocity_y'].astype("float64")
-        vzf = data['velocity_z'].astype("float64")
+        vxf = data[ftype, 'velocity_x'].astype("float64")
+        vyf = data[ftype, 'velocity_y'].astype("float64")
+        vzf = data[ftype, 'velocity_z'].astype("float64")
         rvf = np.empty((3, vxf.shape[0]), 'float64')
         for i in range(vxf.shape[0]):
             rvf[0, i] = vxf[i] - bv[0]
@@ -830,9 +830,9 @@ def obtain_rv_vec(data):
         return rvf
     else:
         # Three dimensional data
-        vxg = data['velocity_x'].astype("float64")
-        vyg = data['velocity_y'].astype("float64")
-        vzg = data['velocity_z'].astype("float64")
+        vxg = data[ftype, 'velocity_x'].astype("float64")
+        vyg = data[ftype, 'velocity_y'].astype("float64")
+        vzg = data[ftype, 'velocity_z'].astype("float64")
         rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
         for i in range(vxg.shape[0]):
             for j in range(vxg.shape[1]):

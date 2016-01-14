@@ -27,6 +27,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from collections import OrderedDict
 
 def setup():
     """Test specific setup."""
@@ -66,6 +67,9 @@ TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
+FPROPS = {'family': 'sans-serif', 'style': 'italic',
+          'weight': 'bold', 'size': 24}
+
 ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "pan_rel": [(((0.1, 0.1), ), {})],
              "set_axes_unit": [(("kpc", ), {}),
@@ -77,8 +81,8 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_center": [(((0.4, 0.3), ), {})],
              "set_cmap": [(('density', 'RdBu'), {}),
                           (('density', 'kamae'), {})],
-             "set_font": [(({'family': 'sans-serif', 'style': 'italic',
-                             'weight': 'bold', 'size': 24}, ), {})],
+             "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])), ),
+                           {})],
              "set_log": [(('density', False), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
@@ -152,11 +156,33 @@ PROJECTION_METHODS = (
     'mip'
 )
 
+def simple_contour(test_obj, plot):
+    plot.annotate_contour(test_obj.plot_field)
+
+def simple_velocity(test_obj, plot):
+    plot.annotate_velocity()
+
+def simple_streamlines(test_obj, plot):
+    ax = test_obj.plot_axis
+    xax = test_obj.ds.coordinates.x_axis[ax]
+    yax = test_obj.ds.coordinates.y_axis[ax]
+    xn = test_obj.ds.coordinates.axis_name[xax]
+    yn = test_obj.ds.coordinates.axis_name[yax]
+    plot.annotate_streamlines("velocity_%s" % xn,
+                              "velocity_%s" % yn)
+
+CALLBACK_TESTS = (
+    ("simple_contour", (simple_contour,)),
+    ("simple_velocity", (simple_velocity,)),
+    #("simple_streamlines", (simple_streamlines,)),
+    #("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
+)
+
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(M7)
     for ax in 'xyz':
@@ -166,12 +192,15 @@ def test_attributes():
                                                args, decimals)
                 test_attributes.__name__ = test.description
                 yield test
+                for n, r in CALLBACK_TESTS:
+                    yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                        args, decimals, callback_id=n, callback_runners=r)
 
 
 @requires_ds(WT)
 def test_attributes_wt():
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(WT)
     ax = 'z'
@@ -179,6 +208,9 @@ def test_attributes_wt():
         for args in ATTR_ARGS[attr_name]:
             yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                           args, decimals)
+            for n, r in CALLBACK_TESTS:
+                yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                    args, decimals, callback_id=n, callback_runners=r)
 
 class TestHideAxesColorbar(unittest.TestCase):
 
@@ -259,11 +291,6 @@ class TestSetWidth(unittest.TestCase):
         self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
         self._assert_05_075cm()
         assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
-
-    def test_tuple_of_tuples_neq(self):
-        self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
-        self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'm'))
 
 
 class TestPlotWindowSave(unittest.TestCase):

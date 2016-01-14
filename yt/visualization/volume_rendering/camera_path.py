@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import random
 import numpy as np
-from .create_spline import create_spline
+from yt.visualization.volume_rendering.create_spline import create_spline
 
 class Keyframes(object):
     def __init__(self, x, y, z=None, north_vectors=None, up_vectors=None,
@@ -74,7 +74,7 @@ class Keyframes(object):
         """
         Nx = len(x)
         Ny = len(y)
-        if z != None:
+        if z is not None:
             Nz = len(z)
             ndims = 3
         else:
@@ -82,18 +82,18 @@ class Keyframes(object):
             ndims = 2
         if Nx*Ny*Nz != Nx**ndims:
             print("Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz))
-            sys.exit()
+            raise RuntimeError
         self.nframes = Nx
         self.pos = np.zeros((Nx,3))
         self.pos[:,0] = x
         self.pos[:,1] = y
-        if z != None:
+        if z is not None:
             self.pos[:,2] = z
         else:
             self.pos[:,2] = 0.0
         self.north_vectors = north_vectors
         self.up_vectors = up_vectors
-        if times == None:
+        if times is None:
             self.times = np.arange(self.nframes)
         else:
             self.times = times
@@ -227,7 +227,8 @@ class Keyframes(object):
         ----------
         None.
         """
-        self.setup_tsp(niter, init_temp, alpha, fixed_start)
+        # this obviously doesn't work. When someone fixes it, remove the NOQA
+        self.setup_tsp(niter, init_temp, alpha, fixed_start)  # NOQA
         num_eval = 1
         cooling_schedule = self.cooling()
         current = self.tour
@@ -257,9 +258,9 @@ class Keyframes(object):
             if done:
                 break
         self.pos = self.pos[self.tour,:]
-        if self.north_vectors != None:
+        if self.north_vectors is not None:
             self.north_vectors = self.north_vectors[self.tour]
-        if self.up_vectors != None:
+        if self.up_vectors is not None:
             self.up_vectors = self.up_vectors[self.tour]
 
     def create_path(self, npoints, path_time=None, tension=0.5, shortest_path=False):
@@ -291,17 +292,17 @@ class Keyframes(object):
                      "up_vectors": np.zeros((npoints,3))}
         if shortest_path:
             self.get_shortest_path()
-        if path_time == None:
+        if path_time is None:
             path_time = np.linspace(0, self.nframes, npoints)
         self.path["time"] = path_time
         for dim in range(3):
             self.path["position"][:,dim] = create_spline(self.times, self.pos[:,dim],
                                                          path_time, tension=tension)
-            if self.north_vectors != None:
+            if self.north_vectors is not None:
                 self.path["north_vectors"][:,dim] = \
                     create_spline(self.times, self.north_vectors[:,dim],
                                   path_time, tension=tension)
-            if self.up_vectors != None:
+            if self.up_vectors is not None:
                 self.path["up_vectors"][:,dim] = \
                     create_spline(self.times, self.up_vectors[:,dim],
                                   path_time, tension=tension)

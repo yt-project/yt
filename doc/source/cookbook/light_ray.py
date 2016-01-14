@@ -20,7 +20,6 @@ lr.make_light_ray(seed=123456789,
                   solution_filename='LR/lightraysolution.txt',
                   data_filename='LR/lightray.h5',
                   fields=['temperature', 'density'],
-                  get_los_velocity=True,
                   njobs=-1)
 
 # Optionally, we can now overplot the part of this ray that intersects 

@@ -42,7 +42,18 @@ mpi4py website, but you may have luck by just running:
 
     $ pip install mpi4py
 
-Once that has been installed, you're all done!  You just need to launch your
+If you have an Anaconda installation of yt and there is no MPI library on the
+system you are using try:
+
+.. code-block:: bash
+
+    $ conda install mpi4py
+
+This will install `MPICH2 <https://www.mpich.org/>`_ and will interefere with
+other MPI libraries that are already installed. Therefore, it is preferable to
+use the ``pip`` installation method.
+
+Once mpi4py has been installed, you're all done!  You just need to launch your
 scripts with ``mpirun`` (or equivalent) and signal to yt that you want to
 run them in parallel by invoking the ``yt.enable_parallelism()`` function in
 your script.  In general, that's all it takes to get a speed benefit on a
@@ -490,11 +501,7 @@ biggest concern for halo finding is the amount of memory needed.  There is
 subtle art in estimating the amount of memory needed for halo finding, but a
 rule of thumb is that the HOP halo finder is the most memory intensive
 (:func:`HaloFinder`), and Friends of Friends (:func:`FOFHaloFinder`) being the
-most memory-conservative.  It has been found that :func:`parallelHF` needs
-roughly 1 MB of memory per 5,000 particles, although recent work has improved
-this and the memory requirement is now smaller than this. But this is a good
-starting point for beginning to calculate the memory required for halo-finding.
-For more information, see :ref:`halo_finding`.
+most memory-conservative. For more information, see :ref:`halo_finding`.
 
 **Volume Rendering**
 

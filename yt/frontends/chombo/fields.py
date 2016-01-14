@@ -51,8 +51,11 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("X-magnfield", (b_units, ["magnetic_field_x"], None)),
         ("Y-magnfield", (b_units, ["magnetic_field_y"], None)),
         ("Z-magnfield", (b_units, ["magnetic_field_z"], None)),
-    )
-
+        ("directrad-dedt-density", (eden_units, ["directrad-dedt-density"], None)),
+        ("directrad-dpxdt-density", (mom_units, ["directrad-dpxdt-density"], None)),
+        ("directrad-dpydt-density", (mom_units, ["directrad-dpydt-density"], None)),
+        ("directrad-dpzdt-density", (mom_units, ["directrad-dpzdt-density"], None)),
+        )
     known_particle_fields = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
@@ -182,27 +185,10 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
 
-        # We'll either have particle_position or particle_position_[xyz]
-        if (ptype, "particle_position") in self.field_list or \
-           (ptype, "particle_position") in self.field_aliases:
-            particle_scalar_functions(ptype,
-                   "particle_position", "particle_velocity",
-                   self)
-        else:
-            # We need to check to make sure that there's a "known field" that
-            # overlaps with one of the vector fields.  For instance, if we are
-            # in the Stream frontend, and we have a set of scalar position
-            # fields, they will overlap with -- and be overridden by -- the
-            # "known" vector field that the frontend creates.  So the easiest
-            # thing to do is to simply remove the on-disk field (which doesn't
-            # exist) and replace it with a derived field.
-            if (ptype, "particle_position") in self and \
-                 self[ptype, "particle_position"]._function == NullFunc:
-                self.pop((ptype, "particle_position"))
-            particle_vector_functions(ptype,
-                    ["particle_position_%s" % ax for ax in 'xyz'],
-                    ["particle_velocity_%s" % ax for ax in 'xyz'],
-                    self)
+        ppos_fields = ["particle_position_%s" % ax for ax in 'xyz']
+        pvel_fields = ["particle_velocity_%s" % ax for ax in 'xyz']
+        particle_vector_functions(ptype, ppos_fields, pvel_fields, self)
+
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
@@ -216,7 +202,7 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
             self.add_output_field(field, 
                                   units = self.ds.field_units.get(field, ""),
                                   particle_type = True)
-        self.setup_smoothed_fields(ptype, 
+        self.setup_smoothed_fields(ptype,
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
 

@@ -13,7 +13,7 @@ HaloCatalog object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -138,7 +138,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.actions = []
         # fields to be written to the halo catalog
         self.quantities = []
-        if not self.halos_ds is None:
+        if self.halos_ds is not None:
             self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):

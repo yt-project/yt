@@ -1,10 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import setuptools
-import os, sys, os.path, glob, \
-    tempfile, subprocess, shutil
+import os
+import sys
+import tempfile
+import subprocess
+import shutil
+import pkg_resources
+from sys import platform as _platform
+
 
 def check_for_openmp():
+    """Returns True if local setup supports OpenMP, False otherwise"""
+
+    # See https://bugs.python.org/issue25150
+    if sys.version_info[:3] == (3, 5, 0):
+        return False
+
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -17,6 +28,7 @@ def check_for_openmp():
 
         # Get compiler invocation
         compiler = os.getenv('CC', 'cc')
+        compiler = compiler.split(' ')
 
         # Attempt to compile a test script.
         # See http://openmp.org/wp/openmp-compilers/
@@ -32,24 +44,71 @@ def check_for_openmp():
             )
         file.flush()
         with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call([compiler, '-fopenmp', filename],
+            exit_code = subprocess.call(compiler + ['-fopenmp', filename],
                                         stdout=fnull, stderr=fnull)
 
         # Clean up
         file.close()
+    except OSError:
+        return False
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
 
     return exit_code == 0
 
+def check_for_pyembree():
+    try:
+        fn = pkg_resources.resource_filename("pyembree", "rtcore.pxd")
+    except ImportError:
+        return None
+    return os.path.dirname(fn)
+
+
+def read_embree_location():
+    '''
+
+    Attempts to locate the embree installation. First, we check for an
+    EMBREE_DIR environment variable. If one is not defined, we look for
+    an embree.cfg file in the root yt source directory. Finally, if that 
+    is not present, we default to /usr/local. If embree is installed in a
+    non-standard location and none of the above are set, the compile will
+    not succeed. This only gets called if check_for_pyembree() returns 
+    something other than None.
+
+    '''
+
+    rd = os.environ.get('EMBREE_DIR')
+    if rd is not None:
+        return rd
+    print("EMBREE_DIR not set. Attempting to read embree.cfg")
+    try:
+        rd = open("embree.cfg").read().strip()
+        return rd
+    except IOError:
+        print("Reading Embree location from embree.cfg failed.")
+        print("If compilation fails, please place the base directory")
+        print("of your Embree install in embree.cfg and restart.")
+        return '/usr/local'
+
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('lib',parent_package,top_path)
-    if check_for_openmp() == True:
+    if check_for_openmp() is True:
         omp_args = ['-fopenmp']
     else:
         omp_args = None
+    if check_for_pyembree() is not None:
+        loc = read_embree_location()
+        embree_include_dir = loc + '/include'
+        embree_lib_dir = loc + '/lib'
+        embree_args = ['-I/' + embree_include_dir, '-L/' + embree_lib_dir]
+        if _platform == "darwin":
+            embree_lib_name = "embree.2"
+        else:
+            embree_lib_name = "embree"
+    else:
+        embree_args = None
     # Because setjmp.h is included by lots of things, and because libpng hasn't
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
@@ -68,6 +127,7 @@ def configuration(parent_package='',top_path=None):
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
                          "yt/utilities/lib/ContourFinding.pxd",
+                         "yt/utilities/lib/grid_traversal.pxd",
                          "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
@@ -101,12 +161,14 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("misc_utilities", 
                 ["yt/utilities/lib/misc_utilities.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("pixelization_routines", 
+    config.add_extension("pixelization_routines",
                 ["yt/utilities/lib/pixelization_routines.pyx",
                  "yt/utilities/lib/pixelization_constants.c"],
                include_dirs=["yt/utilities/lib/"],
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
-                                  "yt/utilities/lib/pixelization_constants.h"])
+               language="c++",
+               libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
+                                         "yt/utilities/lib/pixelization_constants.h",
+                                         "yt/utilities/lib/element_mappings.pxd"])
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -152,11 +214,50 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("write_array",
                          ["yt/utilities/lib/write_array.pyx"])
+    config.add_extension("element_mappings",
+                         ["yt/utilities/lib/element_mappings.pyx"],
+                         libraries=["m"], depends=["yt/utilities/lib/element_mappings.pxd"])
     config.add_extension("ragged_arrays",
                          ["yt/utilities/lib/ragged_arrays.pyx"])
     config.add_extension("amr_kdtools", 
                          ["yt/utilities/lib/amr_kdtools.pyx"],
                          libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("line_integral_convolution",
+                         ["yt/utilities/lib/line_integral_convolution.pyx"])
+
+    include_dirs = check_for_pyembree()
+    if include_dirs is not None:
+        config.add_extension("mesh_construction",
+                             ["yt/utilities/lib/mesh_construction.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", embree_lib_name], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
+                             depends=["yt/utilities/lib/mesh_construction.pxd"])
+        config.add_extension("mesh_traversal",
+                             ["yt/utilities/lib/mesh_traversal.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", embree_lib_name], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
+                             depends=["yt/utilities/lib/mesh_traversal.pxd",
+                                      "yt/utilities/lib/grid_traversal.pxd"])
+        config.add_extension("mesh_samplers",
+                             ["yt/utilities/lib/mesh_samplers.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", embree_lib_name], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
+                             depends=["yt/utilities/lib/mesh_samplers.pxd",
+                                      "yt/utilities/lib/element_mappings.pxd"])
+        config.add_extension("mesh_intersection",
+                             ["yt/utilities/lib/mesh_intersection.pyx"],
+                             include_dirs=["yt/utilities/lib", include_dirs],
+                             libraries=["m", embree_lib_name], language="c++",
+                             extra_compile_args=embree_args,
+                             extra_link_args=embree_args,
+                             depends=["yt/utilities/lib/mesh_intersection.pxd"])
+
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":

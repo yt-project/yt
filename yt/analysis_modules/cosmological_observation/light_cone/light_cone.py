@@ -13,7 +13,7 @@ LightCone class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -24,8 +24,6 @@ from yt.analysis_modules.cosmological_observation.cosmology_splice import \
     CosmologySplice
 from yt.convenience import \
     load
-from yt.utilities.cosmology import \
-    Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
@@ -343,7 +341,7 @@ class LightCone(CosmologySplice):
             del output["object"]
 
         # Combine results from each slice.
-        all_slices = all_storage.keys()
+        all_slices = list(all_storage.keys())
         all_slices.sort()
         for my_slice in all_slices:
             if save_slice_images:

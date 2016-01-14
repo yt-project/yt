@@ -18,7 +18,8 @@ import glob
 import os
 
 from yt.convenience import \
-    load, \
+    load
+from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
@@ -26,13 +27,15 @@ from yt.units import dimensions
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
-    YTArray, YTQuantity
+    YTArray
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified
 from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -328,7 +331,7 @@ class GadgetSimulation(SimulationTimeSeries):
             self.final_redshift = 1.0 / self.parameters["TimeMax"] - 1.0
             self.cosmological_simulation = 1
             for a, v in cosmo_attr.items():
-                if not v in self.parameters:
+                if v not in self.parameters:
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
         else:
@@ -372,7 +375,7 @@ class GadgetSimulation(SimulationTimeSeries):
         else:
             if self.parameters["OutputListOn"]:
                 a_values = [float(a) for a in 
-                           file(self.parameters["OutputListFilename"], "r").readlines()]
+                            open(self.parameters["OutputListFilename"], "r").readlines()]
             else:
                 a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
                 time_max = float(self.parameters["TimeMax"])
@@ -426,7 +429,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.final_time = self.quan(self.parameters["TimeMax"], "code_time")
             else:
                 self.final_time = None
-            if not "TimeMax" in self.parameters:
+            if "TimeMax" not in self.parameters:
                 raise NoStoppingCondition(self.parameter_filename)
 
     def _find_outputs(self):

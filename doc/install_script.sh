@@ -47,7 +47,6 @@ INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 INST_FTYPE=1    # Install FreeType2 locally?
-INST_ENZO=0     # Clone a copy of Enzo?
 INST_SQLITE3=1  # Install a local version of SQLite3?
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
@@ -109,7 +108,6 @@ function write_config
     echo INST_BZLIB=${INST_BZLIB} >> ${CONFIG_FILE}
     echo INST_PNG=${INST_PNG} >> ${CONFIG_FILE}
     echo INST_FTYPE=${INST_FTYPE} >> ${CONFIG_FILE}
-    echo INST_ENZO=${INST_ENZO} >> ${CONFIG_FILE}
     echo INST_SQLITE3=${INST_SQLITE3} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
     echo INST_0MQ=${INST_0MQ} >> ${CONFIG_FILE}
@@ -235,53 +233,61 @@ function host_specific
         echo
         echo "NOTE: you must have the Xcode command line tools installed."
         echo
-	echo "The instructions for obtaining these tools varies according"
-	echo "to your exact OS version.  On older versions of OS X, you"
-	echo "must register for an account on the apple developer tools"
-	echo "website: https://developer.apple.com/downloads to obtain the"
-	echo "download link."
-	echo
-	echo "We have gathered some additional instructions for each"
-	echo "version of OS X below. If you have trouble installing yt"
-	echo "after following these instructions, don't hesitate to contact"
-	echo "the yt user's e-mail list."
-	echo
-	echo "You can see which version of OSX you are running by clicking"
-	echo "'About This Mac' in the apple menu on the left hand side of"
-	echo "menu bar.  We're assuming that you've installed all operating"
-	echo "system updates; if you have an older version, we suggest"
-	echo "running software update and installing all available updates."
-	echo
+        echo "The instructions for obtaining these tools varies according"
+        echo "to your exact OS version.  On older versions of OS X, you"
+        echo "must register for an account on the apple developer tools"
+        echo "website: https://developer.apple.com/downloads to obtain the"
+        echo "download link."
+        echo
+        echo "We have gathered some additional instructions for each"
+        echo "version of OS X below. If you have trouble installing yt"
+        echo "after following these instructions, don't hesitate to contact"
+        echo "the yt user's e-mail list."
+        echo
+        echo "You can see which version of OSX you are running by clicking"
+        echo "'About This Mac' in the apple menu on the left hand side of"
+        echo "menu bar.  We're assuming that you've installed all operating"
+        echo "system updates; if you have an older version, we suggest"
+        echo "running software update and installing all available updates."
+        echo
         echo "OS X 10.5.8: search for and download Xcode 3.1.4 from the"
-	echo "Apple developer tools website."
+        echo "Apple developer tools website."
         echo
         echo "OS X 10.6.8: search for and download Xcode 3.2 from the Apple"
-	echo "developer tools website.  You can either download the"
-	echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
-	echo "Software Update to update to XCode 3.2.6 or"
-	echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
-	echo "bundle (4.1 GB)."
+        echo "developer tools website.  You can either download the"
+        echo "Xcode 3.2.2 Developer Tools package (744 MB) and then use"
+        echo "Software Update to update to XCode 3.2.6 or"
+        echo "alternatively, you can download the Xcode 3.2.6/iOS SDK"
+        echo "bundle (4.1 GB)."
         echo
         echo "OS X 10.7.5: download Xcode 4.2 from the mac app store"
-	echo "(search for Xcode)."
+        echo "(search for Xcode)."
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of"
-	echo "Xcode from the mac app store (search for Xcode)."
-    echo
-	echo "Additionally, you will have to manually install the Xcode"
-	echo "command line tools."
-    echo
-    echo "For OS X 10.8, see:"
-   	echo "http://stackoverflow.com/questions/9353444"
-	echo
-    echo "For OS X 10.9 and 10.10, the command line tools can be installed"
-    echo "with the following command:"
-    echo "    xcode-select --install"
-    echo
-    OSX_VERSION=`sw_vers -productVersion`
-    if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
+        echo "OS X 10.8.4, 10.9, 10.10, and 10.11:"
+        echo "download the appropriate version of Xcode from the"
+        echo "mac app store (search for Xcode)."
+        echo
+        echo "Additionally, you will have to manually install the Xcode"
+        echo "command line tools."
+        echo
+        echo "For OS X 10.8, see:"
+        echo "http://stackoverflow.com/questions/9353444"
+        echo
+        echo "For OS X 10.9 and newer the command line tools can be installed"
+        echo "with the following command:"
+        echo "    xcode-select --install"
+        echo
+        echo "For OS X 10.11, you will additionally need to install the OpenSSL"
+        echo "library using a package manager like homebrew or macports."
+        echo "If you install fails with a message like"
+        echo "    ImportError: cannot import HTTPSHandler"
+        echo "then you do not have the OpenSSL headers available in a location"
+        echo "visible to your C compiler. Consider installing yt using the"
+        echo "get_yt.sh script instead, as that bundles OpenSSL."
+        OSX_VERSION=`sw_vers -productVersion`
+        if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
             MPL_SUPP_CFLAGS="${MPL_SUPP_CFLAGS} -mmacosx-version-min=10.7"
             MPL_SUPP_CXXFLAGS="${MPL_SUPP_CXXFLAGS} -mmacosx-version-min=10.7"
@@ -360,17 +366,17 @@ function host_specific
     fi
     if [ $INST_SCIPY -eq 1 ]
     then
-	echo
-	echo "Looks like you've requested that the install script build SciPy."
-	echo
-	echo "If the SciPy build fails, please uncomment one of the the lines"
-	echo "at the top of the install script that sets NUMPY_ARGS, delete"
-	echo "any broken installation tree, and re-run the install script"
-	echo "verbatim."
-	echo
-	echo "If that doesn't work, don't hesitate to ask for help on the yt"
-	echo "user's mailing list."
-	echo
+    echo
+    echo "Looks like you've requested that the install script build SciPy."
+    echo
+    echo "If the SciPy build fails, please uncomment one of the the lines"
+    echo "at the top of the install script that sets NUMPY_ARGS, delete"
+    echo "any broken installation tree, and re-run the install script"
+    echo "verbatim."
+    echo
+    echo "If that doesn't work, don't hesitate to ask for help on the yt"
+    echo "user's mailing list."
+    echo
     fi
     if [ ! -z "${CFLAGS}" ]
     then
@@ -425,10 +431,6 @@ echo "be installing Python 3"
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
-
-printf "%-15s = %s so I " "INST_ENZO" "${INST_ENZO}"
-get_willwont ${INST_ENZO}
-echo "be checking out Enzo"
 
 printf "%-15s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
@@ -496,9 +498,9 @@ function do_exit
 
 if [ $INST_PY3 -eq 1 ]
 then
-	 PYTHON_EXEC='python3.4'
+     PYTHON_EXEC='python3.4'
 else 
-	 PYTHON_EXEC='python2.7'
+     PYTHON_EXEC='python2.7'
 fi
 
 function do_setup_py
@@ -641,7 +643,7 @@ SYMPY='sympy-0.7.6'
 TORNADO='tornado-4.0.2'
 ZEROMQ='zeromq-4.0.5'
 ZLIB='zlib-1.2.8'
-SETUPTOOLS='setuptools-16.0'
+SETUPTOOLS='setuptools-18.0.1'
 
 # Now we dump all our SHA512 files out.
 echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
@@ -650,7 +652,6 @@ echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a9135
 echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
-echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo '4a83f9ae1855a7fad90133b327d426201c8ccfd2e7fbe9f39b2d61a2eee2f3ebe2ea02cf80f3d4e1ad659f8e790c173df8cc99b87d0b7ce63d34aa88cfdc7939  h5py-2.5.0.tar.gz' > h5py-2.5.0.tar.gz.sha512
 echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
@@ -669,7 +670,7 @@ echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a
 echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
 echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
-echo '38a89aad89dc9aa682dbfbca623e2f69511f5e20d4a3526c01aabbc7e93ae78f20aac566676b431e111540b41540a1c4f644ce4174e7ecf052318612075e02dc  setuptools-16.0.tar.gz' > setuptools-16.0.tar.gz.sha512
+echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
 [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
 [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -692,7 +693,6 @@ get_ytproject $MATPLOTLIB.tar.gz
 get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
-get_ytproject reason-js-20120623.zip
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
@@ -907,28 +907,28 @@ then
 else
     if [ ! -e $SCIPY/done ]
     then
-	if [ ! -e BLAS/done ]
-	then
-	    tar xfz blas.tar.gz
-	    echo "Building BLAS"
-	    cd BLAS
-	    gfortran -O2 -fPIC -fno-second-underscore -c *.f
-	    ( ar r libfblas.a *.o 2>&1 ) 1>> ${LOG_FILE}
-	    ( ranlib libfblas.a 2>&1 ) 1>> ${LOG_FILE}
-	    rm -rf *.o
-	    touch done
-	    cd ..
-	fi
-	if [ ! -e $LAPACK/done ]
-	then
-	    tar xfz $LAPACK.tar.gz
-	    echo "Building LAPACK"
-	    cd $LAPACK/
-	    cp INSTALL/make.inc.gfortran make.inc
-	    ( make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 2>&1 ) 1>> ${LOG_FILE} || do_exit
-	    touch done
-	    cd ..
-	fi
+    if [ ! -e BLAS/done ]
+    then
+        tar xfz blas.tar.gz
+        echo "Building BLAS"
+        cd BLAS
+        gfortran -O2 -fPIC -fno-second-underscore -c *.f
+        ( ar r libfblas.a *.o 2>&1 ) 1>> ${LOG_FILE}
+        ( ranlib libfblas.a 2>&1 ) 1>> ${LOG_FILE}
+        rm -rf *.o
+        touch done
+        cd ..
+    fi
+    if [ ! -e $LAPACK/done ]
+    then
+        tar xfz $LAPACK.tar.gz
+        echo "Building LAPACK"
+        cd $LAPACK/
+        cp INSTALL/make.inc.gfortran make.inc
+        ( make lapacklib OPTS="-fPIC -O2" NOOPT="-fPIC -O0" CFLAGS=-fPIC LDFLAGS=-fPIC 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
     fi
     export BLAS=$PWD/BLAS/libfblas.a
     export LAPACK=$PWD/$LAPACK/liblapack.a
@@ -1038,21 +1038,13 @@ touch done
 cd $MY_PWD
 
 if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
-	[[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
+    [[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
 then
     if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then
         echo "Installing pure-python readline"
         ( ${DEST_DIR}/bin/pip install gnureadline 2>&1 ) 1>> ${LOG_FILE}
     fi
-fi
-
-if [ $INST_ENZO -eq 1 ]
-then
-    echo "Cloning a copy of Enzo."
-    cd ${DEST_DIR}/src/
-    ${HG_EXEC} clone https://bitbucket.org/enzo/enzo-stable ./enzo-hg-stable
-    cd $MY_PWD
 fi
 
 if [ -e $HOME/.matplotlib/fontList.cache ] && \
@@ -1104,16 +1096,6 @@ function print_afterword
       echo "Mercurial has also been installed:"
       echo
       echo "$DEST_DIR/bin/hg"
-      echo
-    fi
-    if [ $INST_ENZO -eq 1 ]
-    then
-      echo "Enzo has also been checked out, but not built."
-      echo
-      echo "$DEST_DIR/src/enzo-hg-stable"
-      echo
-      echo "The value of YT_DEST can be used as an HDF5 installation location."
-      echo "Questions about Enzo should be directed to the Enzo User List."
       echo
     fi
     echo

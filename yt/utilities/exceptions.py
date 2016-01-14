@@ -67,6 +67,9 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTSceneFieldNotFound(YTException):
+    pass
+
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
         return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
@@ -195,7 +198,7 @@ class YTUnitsNotReducible(YTException):
           "the %s base system of units." % (self.unit, self.units_base)
         return err
 
-class YTEquivalentDimsError(Exception):
+class YTEquivalentDimsError(YTUnitOperationError):
     def __init__(self, old_units, new_units, base):
         self.old_units = old_units
         self.new_units = new_units
@@ -416,9 +419,6 @@ class YTRockstarMultiMassNotSupported(YTException):
             self.ma)
         return v
 
-class YTEmptyProfileData(Exception):
-    pass
-
 class YTTooParallel(YTException):
     def __str__(self):
         return "You've used too many processors for this dataset."
@@ -519,3 +519,12 @@ class YTPixelizeError(YTException):
 
     def __str__(self):
         return self.message
+
+class YTDimensionalityError(YTException):
+    def __init__(self, wrong, right):
+        self.wrong = wrong
+        self.right = right
+
+    def __str__(self):
+        return 'Dimensionality specified was %s but we need %s' % (
+            self.wrong, self.right)

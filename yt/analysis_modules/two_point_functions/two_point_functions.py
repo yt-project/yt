@@ -13,18 +13,22 @@ Two Point Functions Framework.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-from yt.mods import *
-#from yt.utilities.math_utils import *
-from yt.utilities.performance_counters import yt_counters, time_function
+from yt.utilities.on_demand_imports import _h5py as h5py
+import numpy as np
+
+from yt.funcs import mylog
+from yt.utilities.performance_counters import yt_counters
 from yt.utilities.parallel_tools.parallel_analysis_interface import ParallelAnalysisInterface, parallel_blocking_call, parallel_root_only
 
 try:
-    from yt.utilities.kdtree.api import *
+    from yt.utilities.kdtree.api import \
+        fKD, free_tree, create_tree
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
-import math, sys, itertools, inspect, types, time
+import math
+import inspect
+import time
 from collections import defaultdict
 
 sep = 12
@@ -117,7 +121,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.index = ds.index
         self.center = (ds.domain_right_edge + ds.domain_left_edge)/2.0
         # Figure out the range of ruler lengths.
-        if length_range == None:
+        if length_range is None:
             length_range = [math.sqrt(3) * self.ds.index.get_smallest_dx(),
                 self.min_edge/2.]
         else:
@@ -679,7 +683,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         for fset in self._fsets:
             # Only operate on correlation functions.
-            if fset.corr_norm == None: continue
+            if fset.corr_norm is None: continue
             fp = self.comm.write_on_root("%s_correlation.txt" % fset.function.__name__)
             line = "# length".ljust(sep)
             line += "\\xi".ljust(sep)

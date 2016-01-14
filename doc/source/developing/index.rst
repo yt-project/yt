@@ -16,11 +16,11 @@ and contributing code!
 .. toctree::
    :maxdepth: 2
     
-   intro
    developing
    building_the_docs
    testing
    debugdrive
+   releasing
    creating_datatypes
    creating_derived_fields
    creating_derived_quantities

@@ -1,5 +1,5 @@
 """
-Unit test the sunyaev_zeldovich analysis module.
+Unit test the PPVCube analysis module.
 """
 
 #-----------------------------------------------------------------------------
@@ -15,7 +15,7 @@ from yt.analysis_modules.ppv_cube.api import PPVCube
 import yt.units as u
 from yt.utilities.physical_constants import kboltz, mh, clight
 import numpy as np
-from yt.testing import *
+from yt.testing import assert_allclose_units
 
 def setup():
     """Test specific setup."""
@@ -46,7 +46,7 @@ def test_ppv():
     a = cube.data.mean(axis=(0,1)).v
     b = dv*np.exp(-((cube.vmid+v_shift)/v_th)**2)/(np.sqrt(np.pi)*v_th)
 
-    yield assert_allclose, a, b, 1.0e-2
+    yield assert_allclose_units, a, b, 1.0e-2
 
     E_0 = 6.8*u.keV
 
@@ -58,4 +58,4 @@ def test_ppv():
 
     c = dE*np.exp(-((cube.vmid-E_shift)/delta_E)**2)/(np.sqrt(np.pi)*delta_E)
 
-    yield assert_allclose, a, c, 1.0e-2
+    yield assert_allclose_units, a, c, 1.0e-2

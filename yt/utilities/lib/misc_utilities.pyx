@@ -18,7 +18,9 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
+from libc.math cimport abs
 from fp_utils cimport fmin, fmax, i64min, i64max
+from yt.geometry.selection_routines cimport _ensure_code
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -212,13 +214,14 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def lines(np.ndarray[np.float64_t, ndim=3] image,
-          np.ndarray[np.int64_t, ndim=1] xs,
-          np.ndarray[np.int64_t, ndim=1] ys,
-          np.ndarray[np.float64_t, ndim=2] colors,
+def lines(np.float64_t[:,:,:] image,
+          np.int64_t[:] xs,
+          np.int64_t[:] ys,
+          np.float64_t[:,:] colors,
           int points_per_color=1,
           int thick=1,
-	  int flip=0):
+	      int flip=0,
+          int crop = 0):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -229,19 +232,30 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
     cdef int has_alpha = (image.shape[2] == 4)
+    cdef int no_color = (image.shape[2] < 3)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-        x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
+        x0 = xs[j]
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
+        if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
+            continue
         err = dx - dy
-        if has_alpha:
+
+        if no_color:
+            for i in range(4):
+                alpha[i] = colors[j, 0]
+        elif has_alpha:
             for i in range(4):
                 alpha[i] = colors[j/points_per_color,i]
         else:
             for i in range(3):
                 alpha[i] = colors[j/points_per_color,3]*\
                         colors[j/points_per_color,i]
+
         if x0 < x1:
             sx = 1
         else:
@@ -263,7 +277,9 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                         else:
                             yi0 = yi
 
-                        if has_alpha:
+                        if no_color:
+                            image[xi, yi0, 0] = fmin(alpha[i], image[xi, yi0, 0])
+                        elif has_alpha:
                             image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
                                 outa = 1.0/outa
@@ -276,6 +292,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                                 image[xi, yi0, i] = \
                                         (1.-alpha[i])*image[xi,yi0,i] + alpha[i]
 
+
             if (x0 == x1 and y0 == y1):
                 break
             e2 = 2*err
@@ -286,6 +303,150 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                 err = err + dx
                 y0 += sy
     return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def zlines(np.ndarray[np.float64_t, ndim=3] image,
+        np.ndarray[np.float64_t, ndim=2] zbuffer,
+        np.ndarray[np.int64_t, ndim=1] xs,
+        np.ndarray[np.int64_t, ndim=1] ys,
+        np.ndarray[np.float64_t, ndim=1] zs,
+        np.ndarray[np.float64_t, ndim=2] colors,
+        int points_per_color=1,
+        int thick=1,
+        int flip=0,
+        int crop = 0):
+
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t outa
+    cdef int i, j
+    cdef int dx, dy, sx, sy, e2, err
+    cdef np.int64_t x0, x1, y0, y1, yi0
+    cdef np.float64_t z0, z1, dzx, dzy
+    cdef int has_alpha = (image.shape[2] == 4)
+    cdef int no_color = (image.shape[2] < 3)
+    for j in range(0, nl, 2):
+        # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+        x0 = xs[j]
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
+        z0 = zs[j]
+        z1 = zs[j+1]
+        dx = abs(x1-x0)
+        dy = abs(y1-y0)
+        dzx = (z1-z0) / (dx**2 + dy**2) * dx
+        dzy = (z1-z0) / (dx**2 + dy**2) * dy
+        err = dx - dy
+        if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
+            continue
+
+        for i in range(4):
+            alpha[i] = colors[j/points_per_color, i]
+
+        if x0 < x1:
+            sx = 1
+        else:
+            sx = -1
+        if y0 < y1:
+            sy = 1
+        else:
+            sy = -1
+        while(1):
+            if (x0 < thick and sx == -1): break
+            elif (x0 >= nx-thick+1 and sx == 1): break
+            elif (y0 < thick and sy == -1): break
+            elif (y0 >= ny-thick+1 and sy == 1): break
+            if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
+                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                    for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if flip:
+                            yi0 = ny - yi
+                        else:
+                            yi0 = yi
+                        if z0 < zbuffer[x0, yi0]:
+                            if alpha[3] != 1.0:
+                                talpha = image[x0, yi0, 3]
+                                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                                for i in range(3):
+                                    if image[x0, yi0, 3] == 0.0:
+                                        image[x0, yi0, i] = 0.0
+                                    else:
+                                        image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                            else:
+                                for i in range(4):
+                                    image[x0, yi0, i] = alpha[i]
+                            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                                image[x0, yi0, 3] = 1.0
+                                zbuffer[x0, yi0] = z0
+
+            if (x0 == x1 and y0 == y1):
+                break
+            e2 = 2*err
+            if e2 > -dy:
+                err = err - dy
+                x0 += sx
+                z0 += dzx
+            if e2 < dx :
+                err = err + dx
+                y0 += sy
+                z0 += dzy
+        # assert(np.abs(z0 - z1) < 1.0e-3 * (np.abs(z0) + np.abs(z1)))
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def zpoints(np.ndarray[np.float64_t, ndim=3] image,
+        np.ndarray[np.float64_t, ndim=2] zbuffer,
+        np.ndarray[np.int64_t, ndim=1] xs,
+        np.ndarray[np.int64_t, ndim=1] ys,
+        np.ndarray[np.float64_t, ndim=1] zs,
+        np.ndarray[np.float64_t, ndim=2] colors,
+        int points_per_color=1,
+        int thick=1,
+        int flip=0):
+
+    cdef int nx = image.shape[0]
+    cdef int ny = image.shape[1]
+    cdef int nl = xs.shape[0]
+    cdef np.float64_t alpha[4]
+    cdef np.float64_t talpha
+    cdef int i, j
+    cdef np.int64_t x0, y0, yi0
+    cdef np.float64_t z0
+    for j in range(0, nl):
+        x0 = xs[j]
+        y0 = ys[j]
+        z0 = zs[j]
+        if (x0 < 0 or x0 >= nx): continue
+        if (y0 < 0 or y0 >= ny): continue
+        for i in range(4):
+            alpha[i] = colors[j/points_per_color, i]
+        if flip:
+            yi0 = ny - y0
+        else:
+            yi0 = y0
+
+        if z0 < zbuffer[x0, yi0]:
+            if alpha[3] != 1.0:
+                talpha = image[x0, yi0, 3]
+                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                for i in range(3):
+                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                    if image[x0, yi0, 3] == 0.0:
+                        image[x0, yi0, i] = 0.0
+            else:
+                for i in range(4):
+                    image[x0, yi0, i] = alpha[i]
+            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                zbuffer[x0, yi0] = z0
+    return
+
 
 def rotate_vectors(np.ndarray[np.float64_t, ndim=3] vecs,
         np.ndarray[np.float64_t, ndim=2] R):
@@ -637,6 +798,8 @@ def fill_region(input_fields, output_fields,
     cdef int offsets[3][3]
     cdef np.int64_t off
     for i in range(3):
+        # Offsets here is a way of accounting for periodicity.  It keeps track
+        # of how to offset our grid as we loop over the icoords.
         dim[i] = output_fields[0].shape[i]
         offsets[i][0] = offsets[i][2] = 0
         offsets[i][1] = 1
@@ -654,27 +817,36 @@ def fill_region(input_fields, output_fields,
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))
                 iind[0] = ipos[i, 0] * rf - off
+                # rf here is the "refinement factor", or, the number of zones
+                # that this zone could potentially contribute to our filled
+                # grid.
                 for oi in range(rf):
                     # Now we need to apply our offset
                     oind[0] = oi + iind[0]
-                    if oind[0] < 0 or oind[0] >= dim[0]:
+                    if oind[0] < 0:
                         continue
+                    elif oind[0] >= dim[0]:
+                        break
                     for wj in range(3):
                         if offsets[1][wj] == 0: continue
                         off = (left_index[1] + level_dims[1]*(wj-1))
                         iind[1] = ipos[i, 1] * rf - off
                         for oj in range(rf):
                             oind[1] = oj + iind[1]
-                            if oind[1] < 0 or oind[1] >= dim[1]:
+                            if oind[1] < 0:
                                 continue
+                            elif oind[1] >= dim[1]:
+                                break
                             for wk in range(3):
                                 if offsets[2][wk] == 0: continue
                                 off = (left_index[2] + level_dims[2]*(wk-1))
                                 iind[2] = ipos[i, 2] * rf - off
                                 for ok in range(rf):
                                     oind[2] = ok + iind[2]
-                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                    if oind[2] < 0:
                                         continue
+                                    elif oind[2] >= dim[2]:
+                                        break
                                     ofield[oind[0], oind[1], oind[2]] = \
                                         ifield[i]
                                     tot += 1
@@ -734,3 +906,109 @@ def count_collisions(np.ndarray[np.uint8_t, ndim=2] masks):
                     collides[j] = 1
         counts[i] = collides.sum()
     return counts
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
+                      np.ndarray[np.float64_t, ndim=2] fwidth,
+                      np.ndarray[np.float64_t, ndim=1] data,
+                      np.ndarray[np.float64_t, ndim=1] box_left_edge,
+                      np.ndarray[np.float64_t, ndim=1] box_right_edge,
+                      np.ndarray[np.float64_t, ndim=3] dest,
+                      int antialias = 1,
+                      period = None,
+                      int check_period = 1):
+    cdef np.float64_t ds_period[3]
+    cdef np.float64_t box_dds[3], box_idds[3], width[3], LE[3], RE[3]
+    cdef np.int64_t i, j, k, p, xi, yi, ji
+    cdef np.int64_t dims[3], ld[3], ud[3]
+    cdef np.float64_t overlap[3]
+    cdef np.float64_t dsp, osp[3], odsp[3], sp[3], lfd[3], ufd[3]
+    # These are the temp vars we get from the arrays
+    # Some periodicity helpers
+    cdef int diter[3][2]
+    cdef np.float64_t diterv[3][2]
+    if period is not None:
+        for i in range(3):
+            ds_period[i] = period[i]
+    else:
+        ds_period[0] = ds_period[1] = ds_period[2] = 0.0
+    box_left_edge = _ensure_code(box_left_edge)
+    box_right_edge = _ensure_code(box_right_edge)
+    _ensure_code(fcoords)
+    _ensure_code(fwidth)
+    for i in range(3):
+        LE[i] = box_left_edge[i]
+        RE[i] = box_right_edge[i]
+        width[i] = RE[i] - LE[i]
+        dims[i] = dest.shape[i]
+        box_dds[i] = width[i] / dims[i]
+        box_idds[i] = 1.0/box_dds[i]
+        diter[i][0] = diter[i][1] = 0
+        diterv[i][0] = diterv[i][1] = 0.0
+        overlap[i] = 1.0 
+    with nogil:
+        for p in range(fcoords.shape[0]):
+            for i in range(3):
+               diter[i][1] = 999
+               odsp[i] = fwidth[p,i]*0.5
+               osp[i] = fcoords[p,i] # already centered
+               overlap[i] = 1.0
+            dsp = data[p]
+            if check_period == 1:
+                for i in range(3):
+                    if (osp[i] - odsp[i] < LE[i]):
+                        diter[i][1] = +1
+                        diterv[i][1] = ds_period[i]
+                    elif (osp[i] + odsp[i] > RE[i]):
+                        diter[i][1] = -1
+                        diterv[i][1] = -ds_period[i]
+            for xi in range(2):
+                if diter[0][xi] == 999: continue
+                sp[0] = osp[0] + diterv[0][xi]
+                if (sp[0] + odsp[0] < LE[0]) or (sp[0] - odsp[0] > RE[0]): continue
+                for yi in range(2):
+                    if diter[1][yi] == 999: continue
+                    sp[1] = osp[1] + diterv[1][yi]
+                    if (sp[1] + odsp[1] < LE[1]) or (sp[1] - odsp[1] > RE[1]): continue
+                    for zi in range(2):
+                        if diter[2][zi] == 999: continue
+                        sp[2] = osp[2] + diterv[2][yi]
+                        if (sp[2] + odsp[2] < LE[2]) or (sp[2] - odsp[2] > RE[2]): continue
+                        for i in range(3):
+                            ld[i] = <np.int64_t> fmax(((sp[i]-odsp[i]-LE[i])*box_idds[i]),0)
+                            # NOTE: This is a different way of doing it than in the C
+                            # routines.  In C, we were implicitly casting the
+                            # initialization to int, but *not* the conditional, which
+                            # was allowed an extra value:
+                            #     for(j=lc;j<rc;j++)
+                            # here, when assigning lc (double) to j (int) it got
+                            # truncated, but no similar truncation was done in the
+                            # comparison of j to rc (double).  So give ourselves a
+                            # bonus row and bonus column here.
+                            ud[i] = <np.int64_t> fmin(((sp[i]+odsp[i]-LE[i])*box_idds[i] + 1), dims[i])
+                        for i in range(ld[0], ud[0]):
+                            if antialias == 1:
+                                lfd[0] = box_dds[0] * i + LE[0]
+                                ufd[0] = box_dds[0] * (i + 1) + LE[0]
+                                overlap[0] = ((fmin(ufd[0], sp[0]+odsp[0])
+                                           - fmax(lfd[0], (sp[0]-odsp[0])))*box_idds[0])
+                            if overlap[0] < 0.0: continue
+                            for j in range(ld[1], ud[1]):
+                                if antialias == 1:
+                                    lfd[1] = box_dds[1] * j + LE[1]
+                                    ufd[1] = box_dds[1] * (j + 1) + LE[1]
+                                    overlap[1] = ((fmin(ufd[1], sp[1]+odsp[1])
+                                               - fmax(lfd[1], (sp[1]-odsp[1])))*box_idds[1])
+                                if overlap[1] < 0.0: continue
+                                for k in range(ld[2], ud[2]):
+                                    if antialias == 1:
+                                        lfd[2] = box_dds[2] * k + LE[2]
+                                        ufd[2] = box_dds[2] * (k + 1) + LE[2]
+                                        overlap[2] = ((fmin(ufd[2], sp[2]+odsp[2])
+                                                   - fmax(lfd[2], (sp[2]-odsp[2])))*box_idds[2])
+                                        if overlap[2] < 0.0: continue
+                                        dest[i,j,k] += dsp * (overlap[0]*overlap[1]*overlap[2])
+                                    else:
+                                        dest[i,j,k] = dsp

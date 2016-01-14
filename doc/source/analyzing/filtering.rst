@@ -23,7 +23,7 @@ Filtering Mesh Fields
 ----------------------
 
 Mesh fields can be filtered by two methods: cut region objects 
-(:class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`) 
+(:class:`~yt.data_objects.selection_data_containers.YTCutRegion`) 
 and NumPy boolean masks.  Boolean masks are simpler, but they only work
 for examining datasets, whereas cut regions objects create wholly new
 data objects suitable for full analysis (data examination, image generation, 
@@ -111,7 +111,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
 .. code-block:: python
 
-    @yt.particle_filter(requires=["particle_type], filtered_type='all')
+    @yt.particle_filter(requires=["particle_type"], filtered_type='all')
     def stars(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter

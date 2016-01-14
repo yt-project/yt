@@ -14,21 +14,12 @@ Particle-only geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import numpy as na
-import string, re, gc, time
-from yt.extern.six.moves import cPickle
-from yt.extern.six.moves import zip as izip
-
+import numpy as np
+import os
 import weakref
 
-from itertools import chain
-
-from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.arraytypes import blankRecordArray
-from yt.config import ytcfg
-from yt.fields.field_info_container import NullFunc
+from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleForest
