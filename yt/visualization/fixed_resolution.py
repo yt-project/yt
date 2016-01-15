@@ -17,7 +17,8 @@ from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
     get_output_filename, \
-    mylog
+    mylog, \
+    ensure_list
 from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
@@ -333,7 +334,17 @@ class FixedResolutionBuffer(object):
 
         from yt.utilities.fits_image import FITSImageData
 
-        if fields is None: fields = list(self.data.keys())
+        if fields is None:
+            fields = list(self.data.keys())
+        else:
+            fields = ensure_list(fields)
+
+        if len(fields) == 0:
+            raise RuntimeError(
+                "No fields to export. Either pass a field or list of fields to "
+                "export_fits or access a field from the fixed resolution buffer "
+                "object."
+            )
 
         fib = FITSImageData(self, fields=fields, units=units)
         if other_keys is not None:
