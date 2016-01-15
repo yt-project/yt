@@ -627,7 +627,6 @@ BZLIB='bzip2-1.0.6'
 FREETYPE_VER='freetype-2.4.12' 
 H5PY='h5py-2.5.0'
 HDF5='hdf5-1.8.14' 
-IPYTHON='ipython-2.4.1'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
 MATPLOTLIB='matplotlib-1.4.3'
@@ -635,13 +634,12 @@ MERCURIAL='mercurial-3.4'
 NOSE='nose-1.3.6'
 NUMPY='numpy-1.9.2'
 PYTHON_HGLIB='python-hglib-1.6'
-PYZMQ='pyzmq-14.5.0'
 ROCKSTAR='rockstar-0.99.6'
 SCIPY='scipy-0.15.1'
 SQLITE='sqlite-autoconf-3071700'
 SYMPY='sympy-0.7.6'
-TORNADO='tornado-4.0.2'
-ZEROMQ='zeromq-4.0.5'
+PYZMQ='pyzmq-15.2.0'
+ZEROMQ='zeromq-4.1.4'
 ZLIB='zlib-1.2.8'
 SETUPTOOLS='setuptools-18.0.1'
 
@@ -655,7 +653,6 @@ echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02
 echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
 echo '4a83f9ae1855a7fad90133b327d426201c8ccfd2e7fbe9f39b2d61a2eee2f3ebe2ea02cf80f3d4e1ad659f8e790c173df8cc99b87d0b7ce63d34aa88cfdc7939  h5py-2.5.0.tar.gz' > h5py-2.5.0.tar.gz.sha512
 echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
-echo 'a9cffc08ba10c47b0371b05664e55eee0562a30ef0d4bbafae79e52e5b9727906c45840c0918122c06c5672ac65e6eb381399f103e1a836aca003eda81b2acde  ipython-2.4.1.tar.gz' > ipython-2.4.1.tar.gz.sha512
 echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
 echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
 echo '51b0f58b2618b47b653e17e4f6b6a1215d3a3b0f1331ce3555cc7435e365d9c75693f289ce12fe3bf8f69fd57b663e545f0f1c2c94e81eaa661cac0689e125f5  matplotlib-1.4.3.tar.gz' > matplotlib-1.4.3.tar.gz.sha512
@@ -663,12 +660,11 @@ echo 'a61b0d4cf528136991243bb23ac972c11c50ab5681d09f8b2d12cf7d37d3a9d76262f7fe6e
 echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
 echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
 echo 'bfd10455e74e30df568c4c4827140fb6cc29893b0e062ce1764bd52852ec7487a70a0f5ea53c3fca7886f5d36365c9f4db52b8c93cad35fb67beeb44a2d56f2d  python-hglib-1.6.tar.gz' > python-hglib-1.6.tar.gz.sha512
-echo '20164f7b05c308e0f089c07fc46b1c522094f3ac136f2e0bba84f19cb63dfd36152a2465df723dd4d93c6fbd2de4f0d94c160e2bbc353a92cfd680eb03cbdc87  pyzmq-14.5.0.tar.gz' > pyzmq-14.5.0.tar.gz.sha512
+echo '28541b095b5486b662fe33a24994af5a465989a2391091ec8b693579124fdd600c3b0721853377c7551430d55b13c9116a1eebdced74678598d78c01fa7431c7  pyzmq-15.2.0.tar.gz' > pyzmq-15.2.0.tar.gz.sha512
 echo 'fff4412d850c431a1b4e6ee3b17958ee5ab3beb81e6cb8a8e7d56d368751eaa8781d7c3e69d932dc002d718fddc66a72098acfe74cfe29ec80b24e6736317275  scipy-0.15.1.tar.gz' > scipy-0.15.1.tar.gz.sha512
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
 echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a3c3e4e3d485809750ce07507a6488e776a388a7a9a713110882fcf  sympy-0.7.6.tar.gz' > sympy-0.7.6.tar.gz.sha512
-echo '93591068dc63af8d50a7925d528bc0cccdd705232c529b6162619fe28dddaf115e8a460b1842877d35160bd7ed480c1bd0bdbec57d1f359085bd1814e0c1c242  tornado-4.0.2.tar.gz' > tornado-4.0.2.tar.gz.sha512
-echo '0d928ed688ed940d460fa8f8d574a9819dccc4e030d735a8c7db71b59287ee50fa741a08249e356c78356b03c2174f2f2699f05aa7dc3d380ed47d8d7bab5408  zeromq-4.0.5.tar.gz' > zeromq-4.0.5.tar.gz.sha512
+echo '8a8cf4f52ad78dddfff104bfba0f80bbc12566920906a0fafb9fc340aa92f5577c2923cb2e5346c69835cd2ea1609647a8893c2883cd22c1f0340a720511460c  zeromq-4.1.4.tar.gz' > zeromq-4.1.4.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
 echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
@@ -681,7 +677,6 @@ echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4
 [ $INST_PYX -eq 1 ] && get_ytproject $PYX.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject $ZEROMQ.tar.gz
 [ $INST_0MQ -eq 1 ] && get_ytproject $PYZMQ.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject $TORNADO.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
@@ -690,7 +685,6 @@ echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4
 get_ytproject $PYTHON2.tgz
 get_ytproject $NUMPY.tar.gz
 get_ytproject $MATPLOTLIB.tar.gz
-get_ytproject $IPYTHON.tar.gz
 get_ytproject $H5PY.tar.gz
 get_ytproject $CYTHON.tar.gz
 get_ytproject $NOSE.tar.gz
@@ -984,17 +978,18 @@ then
         [ ! -e $ZEROMQ ] && tar xfz $ZEROMQ.tar.gz
         echo "Installing ZeroMQ"
         cd $ZEROMQ
-        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure --without-libsodium --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
     fi
     do_setup_py $PYZMQ --zmq=${DEST_DIR}
-    do_setup_py $TORNADO
 fi
 
-do_setup_py $IPYTHON
+echo "Installing Jupyter"
+( ${DEST_DIR}/bin/pip install "jupyter<2.0.0" 2>&1 ) 1>> ${LOG_FILE}
+
 do_setup_py $CYTHON
 do_setup_py $H5PY
 do_setup_py $NOSE
