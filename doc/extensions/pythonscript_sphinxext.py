@@ -4,6 +4,7 @@ import glob
 import shutil
 import subprocess
 import uuid
+import errno
 from sphinx.util.compat import Directive
 from docutils import nodes
 
