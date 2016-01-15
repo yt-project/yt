@@ -6,7 +6,6 @@ import subprocess
 import uuid
 from sphinx.util.compat import Directive
 from docutils import nodes
-from notebook_sphinxext import make_image_dir
 
 
 class PythonScriptDirective(Directive):
@@ -82,3 +81,20 @@ def get_image_tag(filename, image_dir, image_rel_dir):
     shutil.move(filename, image_dir + os.path.sep + my_uuid + filename)
     relative_filename = image_rel_dir + os.path.sep + my_uuid + filename
     return '<img src="%s" width="600"><br>' % relative_filename
+
+
+def make_image_dir(setup, rst_dir):
+    image_dir = setup.app.builder.outdir + os.path.sep + '_images'
+    rel_dir = os.path.relpath(setup.confdir, rst_dir)
+    image_rel_dir = rel_dir + os.path.sep + '_images'
+    thread_safe_mkdir(image_dir)
+    return image_dir, image_rel_dir
+
+
+def thread_safe_mkdir(dirname):
+    try:
+        os.makedirs(dirname)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+        pass
