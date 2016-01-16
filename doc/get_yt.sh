@@ -23,8 +23,8 @@
 DEST_SUFFIX="yt-conda"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
-INST_YT_SOURCE=1 # Do we do a source install of yt?
-INST_UNSTRUCTURED=1 # Do we want to build with unstructured mesh support?
+INST_YT_SOURCE=0 # Do we do a source install of yt?
+INST_UNSTRUCTURED=0 # Do we want to build with unstructured mesh support?
 
 ##################################################################
 #                                                                #
