@@ -116,10 +116,10 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("bitarray", 
                 ["yt/utilities/lib/bitarray.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"])
-    config.add_extension("CICDeposit", 
+    config.add_extension("particle_mesh_operations", 
                 ["yt/utilities/lib/particle_mesh_operations.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("ContourFinding", 
+    config.add_extension("contour_finding", 
                 ["yt/utilities/lib/contour_finding.pyx"],
                 include_dirs=["yt/utilities/lib/",
                               "yt/geometry/"],
@@ -129,7 +129,7 @@ def configuration(parent_package='',top_path=None):
                          "yt/utilities/lib/grid_traversal.pxd",
                          "yt/utilities/lib/contour_finding.pxd",
                          "yt/geometry/oct_container.pxd"])
-    config.add_extension("DepthFirstOctree", 
+    config.add_extension("depth_first_octree", 
                 ["yt/utilities/lib/depth_first_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("fortran_reader", 
@@ -141,7 +141,7 @@ def configuration(parent_package='',top_path=None):
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
                  libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("Interpolators", 
+    config.add_extension("interpolators", 
                 ["yt/utilities/lib/interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("alt_ray_tracers", 
@@ -167,7 +167,7 @@ def configuration(parent_package='',top_path=None):
                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
                                          "yt/utilities/lib/pixelization_constants.h",
                                          "yt/utilities/lib/element_mappings.pxd"])
-    config.add_extension("Octree", 
+    config.add_extension("basic_octree", 
                 ["yt/utilities/lib/basic_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("origami", 
@@ -179,13 +179,13 @@ def configuration(parent_package='',top_path=None):
                          ["yt/utilities/lib/image_utilities.pyx"],
                          libraries=["m"],
                          depends=["yt/utilities/lib/fp_utils.pxd"]),
-    config.add_extension("PointsInVolume", 
+    config.add_extension("points_in_volume", 
                 ["yt/utilities/lib/points_in_volume.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("QuadTree", 
+    config.add_extension("quad_tree", 
                 ["yt/utilities/lib/quad_tree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("RayIntegrators", 
+    config.add_extension("ray_integrators", 
                 ["yt/utilities/lib/ray_integrators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("mesh_utilities",
