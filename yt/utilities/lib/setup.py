@@ -117,20 +117,20 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/bitarray.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"])
     config.add_extension("CICDeposit", 
-                ["yt/utilities/lib/CICDeposit.pyx"],
+                ["yt/utilities/lib/particle_mesh_operations.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("ContourFinding", 
-                ["yt/utilities/lib/ContourFinding.pyx"],
+                ["yt/utilities/lib/contour_finding.pyx"],
                 include_dirs=["yt/utilities/lib/",
                               "yt/geometry/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
-                         "yt/utilities/lib/ContourFinding.pxd",
                          "yt/utilities/lib/grid_traversal.pxd",
+                         "yt/utilities/lib/contour_finding.pxd",
                          "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
-                ["yt/utilities/lib/DepthFirstOctree.pyx"],
+                ["yt/utilities/lib/depth_first_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("fortran_reader", 
                 ["yt/utilities/lib/fortran_reader.pyx"],
@@ -142,19 +142,19 @@ def configuration(parent_package='',top_path=None):
                extra_link_args=omp_args,
                  libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
-                ["yt/utilities/lib/Interpolators.pyx"],
+                ["yt/utilities/lib/interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("alt_ray_tracers", 
                 ["yt/utilities/lib/alt_ray_tracers.pyx"],
                 libraries=["m"], depends=[])
     config.add_extension("marching_cubes", 
                 ["yt/utilities/lib/marching_cubes.pyx",
-                 "yt/utilities/lib/FixedInterpolator.c"],
+                 "yt/utilities/lib/fixed_interpolator.c"],
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/fixed_interpolator.pxd",
-                         "yt/utilities/lib/FixedInterpolator.h",
+                         "yt/utilities/lib/fixed_interpolator.h",
                 ])
     config.add_extension("misc_utilities", 
                 ["yt/utilities/lib/misc_utilities.pyx"],
@@ -168,7 +168,7 @@ def configuration(parent_package='',top_path=None):
                                          "yt/utilities/lib/pixelization_constants.h",
                                          "yt/utilities/lib/element_mappings.pxd"])
     config.add_extension("Octree", 
-                ["yt/utilities/lib/Octree.pyx"],
+                ["yt/utilities/lib/basic_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("origami", 
                 ["yt/utilities/lib/origami.pyx",
@@ -180,13 +180,13 @@ def configuration(parent_package='',top_path=None):
                          libraries=["m"],
                          depends=["yt/utilities/lib/fp_utils.pxd"]),
     config.add_extension("PointsInVolume", 
-                ["yt/utilities/lib/PointsInVolume.pyx"],
+                ["yt/utilities/lib/points_in_volume.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("QuadTree", 
-                ["yt/utilities/lib/QuadTree.pyx"],
+                ["yt/utilities/lib/quad_tree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("RayIntegrators", 
-                ["yt/utilities/lib/RayIntegrators.pyx"],
+                ["yt/utilities/lib/ray_integrators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("mesh_utilities",
               ["yt/utilities/lib/mesh_utilities.pyx"],
@@ -197,7 +197,7 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("grid_traversal", 
                ["yt/utilities/lib/grid_traversal.pyx",
-                "yt/utilities/lib/FixedInterpolator.c",
+                "yt/utilities/lib/fixed_interpolator.c",
                 "yt/utilities/lib/kdtree.c"],
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
@@ -205,7 +205,7 @@ def configuration(parent_package='',top_path=None):
                extra_link_args=omp_args,
                depends = ["yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
-                          "yt/utilities/lib/FixedInterpolator.h",
+                          "yt/utilities/lib/fixed_interpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",
                           "yt/utilities/lib/field_interpolation_tables.pxd",
                           ]
