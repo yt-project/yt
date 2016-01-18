@@ -222,15 +222,48 @@ def compact_bits(np.uint64_t x):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def lsz(np.uint64_t v, int stride = 3):
+def lsz(np.uint64_t v, int stride = 1, int start = 0):
     cdef int c
-    cdef np.uint64_t m
-    m = 1
-    c = 0
-    while (m & v):
-        m <<= stride
+    c = start
+    while ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
         c += stride
     return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsb(np.uint64_t v, int stride = 1, int start = 0):
+    cdef int c
+    c = start
+    while (np.uint64(v) << np.uint64(c)) and not ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def bitwise_addition(np.uint64_t x, np.int64_t y0, 
+                     int stride = 1, int start = 0):
+    cdef int end
+    cdef str mstr
+    cdef np.uint64_t m, y
+    y = np.uint64(y0)
+    # Get end point
+    if (y == 0):
+        return x
+    elif (y == 1):
+        if (y0 > 0):
+            end = lsz(x,stride=stride,start=start)
+        else:
+            end = lsb(x,stride=stride,start=start)
+    else:
+        end = start
+    # Create mask
+    mstr = (end + 1) * '0'
+    mstr[range(start,end+1,stride)] = '1'
+    m = int(mstr, 2)
+    # Invert portion in mask
+    return masked_merge_64bit(x, ~y, m)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

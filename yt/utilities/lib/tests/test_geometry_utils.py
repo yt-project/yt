@@ -3,7 +3,7 @@ from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
-# TODO: test compact/spread bits
+# TODO: error compact/spread bits for incorrect size
 # TODO: test msdb for [0,0], [1,1], [2,2] etc.
 
 def test_spread_bits():
@@ -37,8 +37,24 @@ def test_lsz():
           (np.uint64(0b10010010010010010010010010010010010010010010010010010010010010) , 3*0),
           (np.uint64(0b100100100100100100100100100100100100100100100100100100100100100), 3*0)]
     for i,ans in li:
-        out = lsz(i)
+        out = lsz(i,stride=3)
         assert_equal(out,ans)
+
+def test_lsb():
+    from yt.utilities.lib.geometry_utils import lsb
+    li = [(np.uint64(0b1001001001001001001001001001001001001001001001001001001001001)  , 3*0),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001001000)  , 3*1),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001000000)  , 3*2),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001000000000)  , 3*3),
+          (np.uint64(0b10010010010010010010010010010010010010010010010010010010010010) ,3*21),
+          (np.uint64(0b100100100100100100100100100100100100100100100100100100100100100),3*21)]
+    for i,ans in li:
+        out = lsb(i,stride=3)
+        assert_equal(out,ans)
+
+#def test_add_to_morton_coord():
+#    from yt.utilities.lib.geometry_utils import add_to_morton_coord
+    
 
 def test_get_morton_indices():
     from yt.utilities.lib.geometry_utils import get_morton_indices,get_morton_indices_unravel
