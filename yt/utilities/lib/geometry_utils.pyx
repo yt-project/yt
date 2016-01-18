@@ -23,6 +23,9 @@ from yt.utilities.exceptions import YTDomainOverflow
 
 DEF ORDER_MAX=20
 DEF INDEX_MAX_64=2097151
+DEF XSHIFT=2
+DEF YSHIFT=1
+DEF ZSHIFT=0
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -207,6 +210,31 @@ cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def spread_bits(np.uint64_t x):
+    return spread_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def compact_bits(np.uint64_t x):
+    return compact_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsz(np.uint64_t v, int stride = 3):
+    cdef int c
+    cdef np.uint64_t m
+    m = 1
+    c = 0
+    while (m & v):
+        m <<= stride
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
     cdef np.int64_t h, e, d, l, b, w, i, x
     h = e = d = 0
@@ -361,6 +389,33 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
         for j in range(3):
             positions[i, j] = p[j]
     return positions
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
+                         np.uint64_t mi_max, periodic=False):
+    """Returns array of neighboring morton indices"""
+    cdef int i, j
+    cdef np.uint64_t xmask, ymask, zmask
+    cdef np.uint64_t p0[3]
+    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
+    xmask = encode_morton_64bit(2097151,0,0)
+    ymask = encode_morton_64bit(0,2097151,0)
+    zmask = encode_morton_64bit(0,0,2097151)
+    mi_neighbors = np.zeros(6*mi.shape[0], 'uint64')
+    for i in range(mi.shape[0]):
+        morton_to_point(mi[i], p)
+        # x
+        mi_neighbors[6*i    ] = masked_merge_64bit(mi[i],p[0] - 1,xmask)
+        mi_neighbors[6*i + 1] = mi[i] ^ ((mi[i] ^ (p[0] + 1)) & xmask)
+        # y
+        mi_neighbors[6*i + 2] = mi[i] ^ ((mi[i] ^ (p[1] - 1)) & ymask)
+        mi_neighbors[6*i + 3] = mi[i] ^ ((mi[i] ^ (p[1] + 1)) & ymask)
+        # z
+        mi_neighbors[6*i + 4] = mi[i] ^ ((mi[i] ^ (p[2] - 1)) & zmask)
+        mi_neighbors[6*i + 5] = mi[i] ^ ((mi[i] ^ (p[2] + 1)) & zmask)
 
 ctypedef fused anyfloat:
     np.float32_t

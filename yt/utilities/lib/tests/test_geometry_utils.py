@@ -3,7 +3,42 @@ from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
+# TODO: test compact/spread bits
 # TODO: test msdb for [0,0], [1,1], [2,2] etc.
+
+def test_spread_bits():
+    from yt.utilities.lib.geometry_utils import spread_bits
+    li = [(np.uint64(0b111111111111111111111), np.uint64(0b1001001001001001001001001001001001001001001001001001001001001))]
+    for i,ans in li:
+        out = spread_bits(i)
+        assert_equal(out,ans)
+
+def test_compact_bits():
+    from yt.utilities.lib.geometry_utils import compact_bits
+    li = [(np.uint64(0b111111111111111111111), np.uint64(0b1001001001001001001001001001001001001001001001001001001001001))]
+    for ans,i in li:
+        out = compact_bits(i)
+        assert_equal(out,ans)
+
+def test_spread_and_compact_bits():
+    from yt.utilities.lib.geometry_utils import spread_bits,compact_bits
+    li = [np.uint64(0b111111111111111111111)]
+    for ans in li:
+        mi = spread_bits(ans)
+        out = compact_bits(mi)
+        assert_equal(out,ans)
+
+def test_lsz():
+    from yt.utilities.lib.geometry_utils import lsz
+    li = [(np.uint64(0b1001001001001001001001001001001001001001001001001001001001001)  ,3*21),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001001000)  , 3*0),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001000001)  , 3*1),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001000001001)  , 3*2),
+          (np.uint64(0b10010010010010010010010010010010010010010010010010010010010010) , 3*0),
+          (np.uint64(0b100100100100100100100100100100100100100100100100100100100100100), 3*0)]
+    for i,ans in li:
+        out = lsz(i)
+        assert_equal(out,ans)
 
 def test_get_morton_indices():
     from yt.utilities.lib.geometry_utils import get_morton_indices,get_morton_indices_unravel
@@ -144,7 +179,7 @@ def test_knn_direct(seed=1):
 
 # TODO: test of quadtree (.pxd)
 
-def point_grid(n_per_dim,ndim):
+def gen_points_grid(n_per_dim,ndim):
     q = np.arange(n_per_dim,dtype=np.float64)+0.5 # Middle of each cell
     out = np.meshgrid(*tuple(ndim*[q]))
     pos = np.vstack(tuple([iout.flatten() for iout in out])).T
@@ -156,13 +191,19 @@ def point_grid(n_per_dim,ndim):
     # pos = pos[ind,:]
     return pos,DLE,DRE
 
-def point_random(n_per_dim,ndim,seed=1):
+def gen_points_random(n_per_dim,ndim,seed=1):
     np.random.seed(seed)
     pos = np.random.random_sample((n_per_dim**ndim,ndim)).astype(np.float64)
     DLE = np.array(ndim*[0.0],dtype=np.float64)
     DRE = np.array(ndim*[1.0],dtype=np.float64)
     pos = pos.astype(np.float64)
     return pos,DLE,DRE
+
+def gen_points(n_per_dim,ndim,seed=1,grid=False):
+    if grid:
+        return gen_points_grid(n_per_dim,ndim)
+    else:
+        return gen_points_random(n_per_dim,ndim,seed=seed)
 
 def test_knn_morton():
     from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,morton_qsort,dist
@@ -173,7 +214,7 @@ def test_knn_morton():
     k = 6 # 27
     idx_notest = np.hstack([np.arange(idx_test),np.arange((idx_test+1),Np)]).astype(np.uint64)
     # Random points
-    pos,DLE,DRE = point_random(Np_d,Nd)
+    pos,DLE,DRE = gen_points_random(Np_d,Nd)
     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
     morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
@@ -188,7 +229,7 @@ def test_knn_morton():
     assert_array_equal(knn_mor,knn_dir,
                        err_msg="{} random points & k = {}".format(Np,k))
     # Grid points
-    pos,DLE,DRE = point_grid(Np_d,Nd)
+    pos,DLE,DRE = gen_points_grid(Np_d,Nd)
     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
     morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
     sort_rev = np.argsort(sort_fwd).astype(np.uint64)

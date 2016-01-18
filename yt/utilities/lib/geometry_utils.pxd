@@ -19,7 +19,11 @@ from libc.float cimport DBL_MANT_DIG
 from libc.math cimport frexp,ldexp
 
 DEF ORDER_MAX=20
-DEF INDEX_MAX=2097151
+DEF INDEX_MAX_64=2097151
+# TODO: Handle error for indices past max
+DEF XSHIFT=2
+DEF YSHIFT=1
+DEF ZSHIFT=0
     
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -218,34 +222,27 @@ cdef inline np.uint32_t compact_32bits_by2(np.uint32_t x):
     x=(x|(x>>16))&(<np.uint32_t>0x000003FF)
     return x
 
-#-----------------------------------------------------------------------------
-# Shortcuts for default (May be invalid to call inline from within inline...)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.uint64_t spread_bits(np.uint64_t x):
-    return spread_64bits_by2(x)
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline np.uint64_t compact_bits(np.uint64_t x):
-    return compact_64bits_by2(x)
+cdef inline np.uint64_t masked_merge_64bit(np.uint64_t a, np.uint64_t b, np.uint64_t mask):
+    # https://graphics.stanford.edu/~seander/bithacks.html#MaskedMerge
+    return a ^ ((a ^ b) & mask)
 
 @cython.cdivision(True)
 cdef inline np.uint64_t encode_morton_64bit(np.uint64_t x_ind, np.uint64_t y_ind, np.uint64_t z_ind):
     cdef np.uint64_t mi
     mi = 0
-    mi |= spread_64bits_by2(z_ind)<<0
-    mi |= spread_64bits_by2(y_ind)<<1
-    mi |= spread_64bits_by2(x_ind)<<2
+    mi |= spread_64bits_by2(z_ind)<<ZSHIFT
+    mi |= spread_64bits_by2(y_ind)<<YSHIFT
+    mi |= spread_64bits_by2(x_ind)<<XSHIFT
     return mi
 
 @cython.cdivision(True)
 cdef inline void decode_morton_64bit(np.uint64_t mi, np.uint64_t *p):
-    p[0] = compact_64bits_by2(mi>>2)
-    p[1] = compact_64bits_by2(mi>>1)
-    p[2] = compact_64bits_by2(mi>>0)
+    p[0] = compact_64bits_by2(mi>>XSHIFT)
+    p[1] = compact_64bits_by2(mi>>YSHIFT)
+    p[2] = compact_64bits_by2(mi>>ZSHIFT)
 
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float64_t z,
