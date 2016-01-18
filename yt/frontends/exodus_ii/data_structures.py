@@ -42,10 +42,16 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
 
     def _initialize_mesh(self):
         coords = self.ds._read_coordinates()
-        self.meshes = [ExodusIIUnstructuredMesh(
-            mesh_id, self.index_filename, conn_ind, coords, self)
-                       for mesh_id, conn_ind in
-                       enumerate(self.ds._read_connectivity())]
+        connectivity = self.ds._read_connectivity()
+        self.meshes = []
+        for mesh_id, conn_ind in enumerate(connectivity):
+            displaced_coords = self.ds._apply_displacement(coords, mesh_id)
+            mesh = ExodusIIUnstructuredMesh(mesh_id, 
+                                            self.index_filename,
+                                            conn_ind, 
+                                            displaced_coords, 
+                                            self)
+            self.meshes.append(mesh)
 
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
@@ -63,7 +69,7 @@ class ExodusIIDataset(Dataset):
     def __init__(self,
                  filename,
                  step=0,
-                 displacement_factor=0.0,
+                 displacements=None,
                  dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
@@ -71,11 +77,10 @@ class ExodusIIDataset(Dataset):
         self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
         self.step = step
-        if iterable(displacement_factor):
-            assert(len(displacement_factor) == 3)
+        if displacements is None:
+            self.displacements = {}
         else:
-            displacement_factor = [displacement_factor]*3
-        self.displacement_factor = np.array(displacement_factor)
+            self.displacements = displacements
         super(ExodusIIDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override)
         self.index_filename = filename
@@ -233,16 +238,30 @@ class ExodusIIDataset(Dataset):
         else:
             coords = np.array([coord for coord in
                                self._vars["coord"][:]]).transpose().copy()
+        return coords
 
+    def _apply_displacement(self, coords, mesh_id):
+        
+        mesh_name = "connect%d" % (mesh_id + 1)
+        if mesh_name not in self.displacements:
+            new_coords = coords.copy()
+            return new_coords
+
+        new_coords = np.zeros_like(coords)
+        fac = self.displacements[mesh_name]
+
+        if not iterable(fac):
+            fac = [fac]*self.dimensionality
+
+        coord_axes = 'xyz'[:self.dimensionality]
         for i, ax in enumerate(coord_axes):
             if "disp_%s" % ax in self.parameters['nod_names']:
                 ind = self.parameters['nod_names'].index("disp_%s" % ax)
                 offset = self._vars['vals_nod_var%d' % (ind + 1)][self.step]
-                coords[:, i] += self.displacement_factor[i]*offset
+                new_coords[:, i] = coords[:, i] + fac[i]*offset
 
-        return coords
-
-
+        return new_coords
+        
     def _read_connectivity(self):
         """
         Loads the connectivity data for the mesh
