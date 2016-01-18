@@ -27,7 +27,7 @@ from .fields import \
     ExodusIIFieldInfo
 from .util import \
     load_info_records, sanitize_string
-
+from yt.funcs import iterable
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
     _index_offset = 1
@@ -63,6 +63,7 @@ class ExodusIIDataset(Dataset):
     def __init__(self,
                  filename,
                  step=0,
+                 displacement_factor=0.0,
                  dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
@@ -70,6 +71,11 @@ class ExodusIIDataset(Dataset):
         self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
         self.step = step
+        if iterable(displacement_factor):
+            assert(len(displacement_factor) == 3)
+        else:
+            displacement_factor = [displacement_factor]*3
+        self.displacement_factor = np.array(displacement_factor)
         super(ExodusIIDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override)
         self.index_filename = filename
@@ -222,11 +228,20 @@ class ExodusIIDataset(Dataset):
 
         mylog.info("Loading coordinates")
         if "coord" not in self._vars:
-            return np.array([self._vars["coord%s" % ax][:]
-                             for ax in coord_axes]).transpose().copy()
+            coords = np.array([self._vars["coord%s" % ax][:]
+                               for ax in coord_axes]).transpose().copy()
         else:
-            return np.array([coord for coord in
-                             self._vars["coord"][:]]).transpose().copy()
+            coords = np.array([coord for coord in
+                               self._vars["coord"][:]]).transpose().copy()
+
+        for i, ax in enumerate(coord_axes):
+            if "disp_%s" % ax in self.parameters['nod_names']:
+                ind = self.parameters['nod_names'].index("disp_%s" % ax)
+                offset = self._vars['vals_nod_var%d' % (ind + 1)][self.step]
+                coords[:, i] += self.displacement_factor[i]*offset
+
+        return coords
+
 
     def _read_connectivity(self):
         """
