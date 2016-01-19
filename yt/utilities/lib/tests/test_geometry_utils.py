@@ -169,6 +169,60 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
                             print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
     assert_array_equal(sort_out,sort_ans)
 
+def test_get_morton_neighbors():
+    from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices, ORDER_MAX
+    order = ORDER_MAX
+    imax = 1 << order
+    p = np.array([[imax/2,imax/2,imax/2],
+                  [imax/2,imax/2,0     ],
+                  [imax/2,imax/2,imax  ]],dtype=np.uint64)
+    pn_non = [np.array([[imax/2+1,imax/2,imax/2],
+                        [imax/2-1,imax/2,imax/2],
+                        [imax/2,imax/2+1,imax/2],
+                        [imax/2,imax/2-1,imax/2],
+                        [imax/2,imax/2,imax/2+1],
+                        [imax/2,imax/2,imax/2-1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,0],
+                        [imax/2-1,imax/2,0],
+                        [imax/2,imax/2+1,0],
+                        [imax/2,imax/2-1,0],
+                        [imax/2,imax/2,0+1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,imax],
+                        [imax/2-1,imax/2,imax],
+                        [imax/2,imax/2+1,imax],
+                        [imax/2,imax/2-1,imax],
+                        [imax/2,imax/2,imax-1]],dtype=np.uint64)]
+    pn_per = [np.array([[imax/2+1,imax/2,imax/2],
+                        [imax/2-1,imax/2,imax/2],
+                        [imax/2,imax/2+1,imax/2],
+                        [imax/2,imax/2-1,imax/2],
+                        [imax/2,imax/2,imax/2+1],
+                        [imax/2,imax/2,imax/2-1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,0],
+                        [imax/2-1,imax/2,0],
+                        [imax/2,imax/2+1,0],
+                        [imax/2,imax/2-1,0],
+                        [imax/2,imax/2,1],
+                        [imax/2,imax/2,imax-1],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,imax],
+                        [imax/2-1,imax/2,imax],
+                        [imax/2,imax/2+1,imax],
+                        [imax/2,imax/2-1,imax],
+                        [imax/2,imax/2,1],
+                        [imax/2,imax/2,imax-1]],dtype=np.uint64)]
+    mi = get_morton_indices(p)
+    N = mi.shape[0]
+    # Non-periodic
+    for i in range(N):
+        out = get_morton_neighbors(np.array([mi[i]],dtype=uint64),order=order,periodic=False)
+        ans = get_morton_indices(pn_non[i])
+        assert_array_equal(out,ans)
+    # Periodic
+    for i in range(N):
+        out = get_morton_neighbors(np.array([mi[i]],dtype=uint64),order=order,periodic=True)
+        ans = get_morton_indices(pn_per[i])
+        assert_array_equal(out,ans)
+
 def time_bitwise_addition():
     import time
     from yt.utilities.lib.geometry_utils import get_morton_points, get_morton_indices, bitwise_addition

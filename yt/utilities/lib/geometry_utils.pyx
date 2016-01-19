@@ -435,29 +435,51 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def morton_neighbor(np.uint64_t p[3], int dim, int num, 
+                    int order = ORDER_MAX, periodic=False):
+    cdef np.int64_t x
+    cdef np.uint64_t imax
+    x = np.int64(p[dim]) + num
+    imax = np.uint64(1 << order)
+    if (x < 0):
+        if periodic:
+            p[dim] = np.uint64(imax + (x % imax))
+        else:
+            return np.int64(-1)
+    elif (x > imax):
+        if periodic:
+            p[dim] = np.uint64(x % imax)
+        else:
+            return np.int64(-1)
+    else:
+        p[dim] = np.uint64(x)
+    return np.int64(point_to_morton(p))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
-                         np.uint64_t mi_max, periodic=False):
+                         int order=ORDER_MAX, periodic=False):
     """Returns array of neighboring morton indices"""
-    cdef int i, j
-    cdef np.uint64_t xmask, ymask, zmask
-    cdef np.uint64_t p0[3]
+    cdef int i, j, k
     cdef np.uint64_t p[3]
+    cdef np.int64_t nmi
     cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
-    xmask = encode_morton_64bit(2097151,0,0)
-    ymask = encode_morton_64bit(0,2097151,0)
-    zmask = encode_morton_64bit(0,0,2097151)
     mi_neighbors = np.zeros(6*mi.shape[0], 'uint64')
+    k = 0
     for i in range(mi.shape[0]):
         morton_to_point(mi[i], p)
-        # x
-        mi_neighbors[6*i    ] = masked_merge_64bit(mi[i],p[0] - 1,xmask)
-        mi_neighbors[6*i + 1] = mi[i] ^ ((mi[i] ^ (p[0] + 1)) & xmask)
-        # y
-        mi_neighbors[6*i + 2] = mi[i] ^ ((mi[i] ^ (p[1] - 1)) & ymask)
-        mi_neighbors[6*i + 3] = mi[i] ^ ((mi[i] ^ (p[1] + 1)) & ymask)
-        # z
-        mi_neighbors[6*i + 4] = mi[i] ^ ((mi[i] ^ (p[2] - 1)) & zmask)
-        mi_neighbors[6*i + 5] = mi[i] ^ ((mi[i] ^ (p[2] + 1)) & zmask)
+        for j in range(3):
+            nmi = morton_neighbor(p,j,1,order=order,periodic=periodic)
+            if nmi > 0:
+                mi_neighbors[k] = np.uint64(nmi)
+                k+=1
+            nmi = morton_neighbor(p,j,-1,order=order,periodic=periodic)
+            if nmi > 0:
+                mi_neighbors[k] = np.uint64(nmi)
+                k+=1
+    mi_neighbors.resize(k)
+    return mi_neighbors
 
 ctypedef fused anyfloat:
     np.float32_t
