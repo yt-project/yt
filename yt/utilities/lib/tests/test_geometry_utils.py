@@ -30,14 +30,18 @@ def test_spread_and_compact_bits():
 
 def test_lsz():
     from yt.utilities.lib.geometry_utils import lsz
-    li = [(np.uint64(0b1001001001001001001001001001001001001001001001001001001001001)  ,3*21),
-          (np.uint64(0b1001001001001001001001001001001001001001001001001001001001000)  , 3*0),
-          (np.uint64(0b1001001001001001001001001001001001001001001001001001001000001)  , 3*1),
-          (np.uint64(0b1001001001001001001001001001001001001001001001001001000001001)  , 3*2),
-          (np.uint64(0b10010010010010010010010010010010010010010010010010010010010010) , 3*0),
-          (np.uint64(0b100100100100100100100100100100100100100100100100100100100100100), 3*0)]
-    for i,ans in li:
-        out = lsz(i,stride=3)
+    li = [(np.uint64(0b1001001001001001001001001001001001001001001001001001001001001)  ,3*21, 3, 0),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001001000)  , 3*0, 3, 0),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001001000001)  , 3*1, 3, 0),
+          (np.uint64(0b1001001001001001001001001001001001001001001001001001000001001)  , 3*2, 3, 0),
+          (np.uint64(0b10010010010010010010010010010010010010010010010010010010010010) , 3*0, 3, 0),
+          (np.uint64(0b100100100100100100100100100100100100100100100100100100100100100), 3*0, 3, 0),
+          (np.uint64(0b100), 0, 1, 0),
+          (np.uint64(0b100), 1, 1, 1),
+          (np.uint64(0b100), 3, 1, 2),
+          (np.uint64(0b100), 3, 1, 3)]
+    for i,ans,stride,start in li:
+        out = lsz(i,stride=stride,start=start)
         assert_equal(out,ans)
 
 def test_lsb():
@@ -51,6 +55,31 @@ def test_lsb():
     for i,ans in li:
         out = lsb(i,stride=3)
         assert_equal(out,ans)
+
+def test_bitwise_addition():
+    from yt.utilities.lib.geometry_utils import bitwise_addition
+    # TODO: Handle negative & periodic boundaries
+    begin = 1
+    end = 5
+    lz = [(0,1),
+#          (0,-1),
+          (1,1),
+          (1,2),
+          (1,4),
+          (1,-1),
+          (2,1),
+          (2,2),
+          (2,-1),
+          (2,-2),
+          (3,1),
+          (3,5),
+          (3,-1)]
+    for i,a in lz:
+        i = np.uint64(i)
+        a = np.int64(a)
+        out = bitwise_addition(i,a,stride=1,start=0)
+        # print bin(i),bin(a),bin(np.uint64(i+a)),bin(out)
+        assert_equal(out,i+a)
 
 #def test_add_to_morton_coord():
 #    from yt.utilities.lib.geometry_utils import add_to_morton_coord
@@ -139,6 +168,24 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
                             im2,ie2 = ifrexp_cy(p2[j])
                             print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
     assert_array_equal(sort_out,sort_ans)
+
+def time_bitwise_addition():
+    import time
+    from yt.utilities.lib.geometry_utils import get_morton_points, get_morton_indices, bitwise_addition
+    x0 = np.array([np.uint64(0b111111111111111111111)],dtype=np.uint64)
+    x0 = np.array([np.uint64(0b11111111111111111111)],dtype=np.uint64)
+    # Explicit spreading and compacting
+    t1 = time.time()
+    p = get_morton_points(x0)
+    p[0]+=1
+    x1 = get_morton_indices(p)
+    t2 = time.time()
+    print("Explicit bit spreading/compacting: {:f}".format(t2-t1))
+    # Bitwise addition
+    t1 = time.time()
+    x2 = bitwise_addition(x0[0],np.int64(1),stride=3,start=2)
+    t2 = time.time()
+    print("Using bitwise addition: {:f}".format(t2-t1))
 
 def time_morton_qsort(seed=1):
     # Not the most effecient test, but not meant to be run much

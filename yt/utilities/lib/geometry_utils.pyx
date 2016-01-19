@@ -244,26 +244,35 @@ def lsb(np.uint64_t v, int stride = 1, int start = 0):
 @cython.wraparound(False)
 def bitwise_addition(np.uint64_t x, np.int64_t y0, 
                      int stride = 1, int start = 0):
-    cdef int end
-    cdef str mstr
-    cdef np.uint64_t m, y
-    y = np.uint64(y0)
-    # Get end point
-    if (y == 0):
-        return x
-    elif (y == 1):
-        if (y0 > 0):
-            end = lsz(x,stride=stride,start=start)
-        else:
-            end = lsb(x,stride=stride,start=start)
+    if (y0 == 0): return x
+    cdef int end, p, pstart
+    cdef list mstr
+    cdef np.uint64_t m, y, out
+    y = np.uint64(np.abs(y0))
+    if (y0 > 0):
+        func_ls = lsz
     else:
-        end = start
-    # Create mask
-    mstr = (end + 1) * '0'
-    mstr[range(start,end+1,stride)] = '1'
-    m = int(mstr, 2)
-    # Invert portion in mask
-    return masked_merge_64bit(x, ~y, m)
+        func_ls = lsb
+    # Continue until all bits added
+    p = 0
+    out = x
+    while (y >> p):
+        if (y & (1 << p)): 
+            # Get end point
+            pstart = start + p*stride
+            end = func_ls(out,stride=stride,start=pstart)
+            # Create mask
+            mstr = (end + 1) * ['0']
+            for i in range(pstart,end+1,stride):
+                mstr[i] = '1'
+                m = int(''.join(mstr[::-1]), 2)
+            # Invert portion in mask
+            # print mstr[::-1]
+            # print y,p,(pstart,end+1),bin(m),bin(out),bin(~out)
+            out = masked_merge_64bit(out, ~out, m)
+        # Move to next bit
+        p += 1
+    return out
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
