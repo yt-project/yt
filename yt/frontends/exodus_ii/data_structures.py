@@ -112,8 +112,7 @@ class ExodusIIDataset(Dataset):
         self.parameters['num_meshes'] = self._vars['eb_status'].shape[0]
         self.parameters['elem_names'] = self._get_elem_names()
         self.parameters['nod_names'] = self._get_nod_names()
-        self.domain_left_edge = self._load_domain_edge(0)
-        self.domain_right_edge = self._load_domain_edge(1)
+        self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
 
         # set up psuedo-3D for lodim datasets here
         if self.dimensionality == 2:
@@ -272,17 +271,22 @@ class ExodusIIDataset(Dataset):
             connectivity.append(self._vars["connect%d" % (i+1)][:].astype("i8"))
         return connectivity
 
-    def _load_domain_edge(self, domain_idx):
+    def _load_domain_edge(self):
         """
         Loads the boundaries for the domain edge
 
-        Parameters:
-        - domain_idx: 0 corresponds to the left edge, 1 corresponds to the right edge
         """
-        if domain_idx == 0:
-            return self._read_coordinates().min(axis=0)
-        if domain_idx == 1:
-            return self._read_coordinates().max(axis=0)
+        
+        coords = self._read_coordinates()
+        connectivity = self._read_connectivity()
+
+        mi = 1e300
+        ma = -1e300
+        for mesh_id, _ in enumerate(connectivity):
+            displaced_coords = self._apply_displacement(coords, mesh_id)
+            mi = np.minimum(displaced_coords.min(axis=0), mi)
+            ma = np.maximum(displaced_coords.max(axis=0), ma)
+        return mi, ma
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
