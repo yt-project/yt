@@ -169,9 +169,28 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
                             print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
     assert_array_equal(sort_out,sort_ans)
 
+def test_morton_neighbor():
+    from yt.utilities.lib.geometry_utils import morton_neighbor, get_morton_indices, get_morton_index
+    order = 20
+    imax = 1 << order
+    p = np.array([[imax/2,imax/2,imax/2],
+                  [imax/2,imax/2,0     ],
+                  [imax/2,imax/2,imax  ]],dtype=np.uint64)
+    p_ans = np.array([[imax/2,imax/2,imax/2+1],
+                      [imax/2,imax/2,imax/2-1],
+                      [imax/2,imax/2,imax-1  ],
+                      [imax/2,imax/2,1       ]],dtype=np.uint64)
+    mi_ans = get_morton_indices(p_ans)
+    assert_equal(morton_neighbor(p[0,:],2,+1,order=order),mi_ans[0])
+    assert_equal(morton_neighbor(p[0,:],2,-1,order=order),mi_ans[1])
+    assert_equal(morton_neighbor(p[1,:],2,-1,order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[2,:],2,+1,order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[1,:],2,-1,order=order,periodic=True ),mi_ans[2])
+    assert_equal(morton_neighbor(p[2,:],2,+1,order=order,periodic=True ),mi_ans[3])
+
 def test_get_morton_neighbors():
-    from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices, ORDER_MAX
-    order = ORDER_MAX
+    from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices
+    order = 20
     imax = 1 << order
     p = np.array([[imax/2,imax/2,imax/2],
                   [imax/2,imax/2,0     ],
@@ -203,7 +222,7 @@ def test_get_morton_neighbors():
                         [imax/2,imax/2+1,0],
                         [imax/2,imax/2-1,0],
                         [imax/2,imax/2,1],
-                        [imax/2,imax/2,imax-1],dtype=np.uint64),
+                        [imax/2,imax/2,imax-1]],dtype=np.uint64),
               np.array([[imax/2+1,imax/2,imax],
                         [imax/2-1,imax/2,imax],
                         [imax/2,imax/2+1,imax],
@@ -214,14 +233,14 @@ def test_get_morton_neighbors():
     N = mi.shape[0]
     # Non-periodic
     for i in range(N):
-        out = get_morton_neighbors(np.array([mi[i]],dtype=uint64),order=order,periodic=False)
+        out = get_morton_neighbors(np.array([mi[i]],dtype=np.uint64),order=order,periodic=False)
         ans = get_morton_indices(pn_non[i])
-        assert_array_equal(out,ans)
+        assert_array_equal(out,ans,err_msg="Non-periodic: {}".format(i))
     # Periodic
     for i in range(N):
-        out = get_morton_neighbors(np.array([mi[i]],dtype=uint64),order=order,periodic=True)
+        out = get_morton_neighbors(np.array([mi[i]],dtype=np.uint64),order=order,periodic=True)
         ans = get_morton_indices(pn_per[i])
-        assert_array_equal(out,ans)
+        assert_array_equal(out,ans,err_msg="Periodic: {}".format(i))
 
 def time_bitwise_addition():
     import time

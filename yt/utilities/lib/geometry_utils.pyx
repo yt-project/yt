@@ -381,6 +381,21 @@ cdef void morton_to_point(np.uint64_t mi, np.uint64_t *p):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_morton_index(np.ndarray[np.uint64_t, ndim=1] left_index):
+    cdef int j
+    cdef np.uint64_t morton_index
+    cdef np.uint64_t p[3]
+    for j in range(3):
+        if left_index[j] >= INDEX_MAX_64:
+            raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                             "for 64bit interleave.")
+        p[j] = left_index[j]
+    morton_index = point_to_morton(p)
+    return morton_index
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
     cdef np.int64_t i
     cdef int j
@@ -435,51 +450,56 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def morton_neighbor(np.uint64_t p[3], int dim, int num, 
-                    int order = ORDER_MAX, periodic=False):
+def morton_neighbor(np.ndarray[np.uint64_t,ndim=1] p, int dim, int num, 
+                    int order = ORDER_MAX, periodic = False):
     cdef np.int64_t x
     cdef np.uint64_t imax
+    cdef np.uint64_t p1[3]
+    cdef int j
+    for j in range(3):
+        p1[j] = np.uint64(p[j])
     x = np.int64(p[dim]) + num
     imax = np.uint64(1 << order)
     if (x < 0):
         if periodic:
-            p[dim] = np.uint64(imax + (x % imax))
+            p1[dim] = np.uint64(imax - (abs(x) % imax))
         else:
             return np.int64(-1)
     elif (x > imax):
         if periodic:
-            p[dim] = np.uint64(x % imax)
+            p1[dim] = np.uint64(x % imax)
         else:
             return np.int64(-1)
     else:
-        p[dim] = np.uint64(x)
-    return np.int64(point_to_morton(p))
+        p1[dim] = np.uint64(x)
+    return np.int64(point_to_morton(p1))
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
-                         int order=ORDER_MAX, periodic=False):
+                         int order = ORDER_MAX, periodic = False):
     """Returns array of neighboring morton indices"""
     cdef int i, j, k
-    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=2] p
     cdef np.int64_t nmi
     cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
-    mi_neighbors = np.zeros(6*mi.shape[0], 'uint64')
+    p = get_morton_points(mi)
+    mi_neighbors = np.zeros(27*mi.shape[0], 'uint64')
     k = 0
     for i in range(mi.shape[0]):
-        morton_to_point(mi[i], p)
         for j in range(3):
-            nmi = morton_neighbor(p,j,1,order=order,periodic=periodic)
+            nmi = morton_neighbor(p[i,:],j,1,order=order,periodic=periodic)
             if nmi > 0:
                 mi_neighbors[k] = np.uint64(nmi)
                 k+=1
-            nmi = morton_neighbor(p,j,-1,order=order,periodic=periodic)
+            nmi = morton_neighbor(p[i,:],j,-1,order=order,periodic=periodic)
             if nmi > 0:
                 mi_neighbors[k] = np.uint64(nmi)
                 k+=1
-    mi_neighbors.resize(k)
-    return mi_neighbors
+    return np.resize(mi_neighbors,(k,))
+    # mi_neighbors.resize(k,refcheck=False)
+    # return mi_neighbors
 
 ctypedef fused anyfloat:
     np.float32_t
