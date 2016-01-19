@@ -73,7 +73,59 @@ class ExodusIIDataset(Dataset):
                  dataset_type='exodus_ii',
                  storage_filename=None,
                  units_override=None):
+        """
 
+        A class used to represent an on-disk ExodusII dataset. The initializer takes 
+        two extra optional parameters, "step" and "displacements."
+
+        Parameters
+        ----------
+
+        step : integer
+            The step tells which time index to slice at. It throws an Error if
+            the index is larger than the number of time outputs in the ExodusII
+            file. Passing step=-1 picks out the last dataframe. 
+            Default is 0.
+
+        displacements : dictionary
+            This is a dictionary of scale factors that will be applied to the 
+            displacement fields in the ExodusII file. If no displacement fields
+            are present, then this dictionary is ignored. You can specify 
+            separate scale factors for each mesh. The scale factors can either be
+            floats, in which case the same scale will applied to each dimension,
+            or they can be iterables of 3 floats, in which case you can specify
+            anisotropic scale factors.
+
+        Examples
+        --------
+
+        This will load the Dataset at time index '0' with displacements turned off.
+
+        >>> import yt
+        >>> ds = yt.load("MOOSE_sample_data/mps_out.e")
+
+        This will load the Dataset at the final index with displacements turned off.
+
+        >>> import yt
+        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)
+
+        This will load the Dataset at index 10, scaling the 2nd mesh
+        by a factor of 5.0 in each direction.
+
+        >>> import yt
+        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                         displacements={'connect2': 5.0})
+        
+        This will load the Dataset at index 10, scaling the 2nd mesh
+        by a factor of 5.0 in each direction and the 1st mesh by an
+        anisotropic scale factor.
+
+        >>> import yt
+        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                         displacements={'connect1': [1.0, 2.0, 3.0],
+                                        'connect2': 5.0})
+
+        """
         self.parameter_filename = filename
         self.fluid_types += self._get_fluid_types()
         self.step = step
