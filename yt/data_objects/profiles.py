@@ -32,7 +32,7 @@ from yt.utilities.lib.misc_utilities import \
     new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
-from yt.utilities.lib.CICDeposit import \
+from yt.utilities.lib.particle_mesh_operations import \
     CICDeposit_2, \
     NGPDeposit_2
 
