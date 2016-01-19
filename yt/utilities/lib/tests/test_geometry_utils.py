@@ -172,18 +172,21 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
 def time_bitwise_addition():
     import time
     from yt.utilities.lib.geometry_utils import get_morton_points, get_morton_indices, bitwise_addition
-    x0 = np.array([np.uint64(0b111111111111111111111)],dtype=np.uint64)
-    x0 = np.array([np.uint64(0b11111111111111111111)],dtype=np.uint64)
+    xarr = np.array(range(100)+[np.uint64(0b11111111111111111111)],dtype=np.uint64)
     # Explicit spreading and compacting
     t1 = time.time()
-    p = get_morton_points(x0)
-    p[0]+=1
-    x1 = get_morton_indices(p)
+    for x in xarr:
+        p = get_morton_points(x)
+        p[0]+=1
+        p[0]+=2
+        x1 = get_morton_indices(p)
     t2 = time.time()
     print("Explicit bit spreading/compacting: {:f}".format(t2-t1))
     # Bitwise addition
     t1 = time.time()
-    x2 = bitwise_addition(x0[0],np.int64(1),stride=3,start=2)
+    for x in xarr:
+        x2 = bitwise_addition(x,np.int64(1),stride=3,start=2)
+        x2 = bitwise_addition(x,np.int64(2),stride=3,start=2)
     t2 = time.time()
     print("Using bitwise addition: {:f}".format(t2-t1))
 
