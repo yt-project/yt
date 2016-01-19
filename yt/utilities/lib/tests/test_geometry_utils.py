@@ -176,7 +176,7 @@ def time_bitwise_addition():
     # Explicit spreading and compacting
     t1 = time.time()
     for x in xarr:
-        p = get_morton_points(x)
+        p = get_morton_points(np.array([x],dtype=np.uint64))
         p[0]+=1
         p[0]+=2
         x1 = get_morton_indices(p)
