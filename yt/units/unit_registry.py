@@ -12,8 +12,13 @@ A registry for units that can be added to and modified.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import json
+
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
+from yt.extern import six
+from sympy import \
+    sympify, srepr
 
 class SymbolNotFoundError(Exception):
     pass
@@ -102,3 +107,29 @@ class UnitRegistry:
 
         """
         return self.lut.keys()
+
+    def to_json(self):
+        """
+        Returns a json-serialized version of the unit registry
+        """
+        sanitized_lut = {}
+        for k, v in six.iteritems(self.lut):
+            san_v = list(v)
+            san_v[1] = srepr(v[1])
+            sanitized_lut[k] = tuple(san_v)
+
+        return json.dumps(sanitized_lut)
+
+    @classmethod
+    def from_json(cls, json_text):
+        """
+        Returns a UnitRegistry object from a json-serialized unit registry
+        """
+        data = json.loads(json_text)
+        lut = {}
+        for k, v in six.iteritems(data):
+            unsan_v = list(v)
+            unsan_v[1] = sympify(v[1])
+            lut[k] = tuple(unsan_v)
+
+        return cls(lut=lut, add_default_symbols=False)
