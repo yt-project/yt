@@ -3,6 +3,8 @@
 #define HEX_NT 12
 #define TETRA_NV 4
 #define TETRA_NT 4
+#define WEDGE_NV 6
+#define WEDGE_NT 8
 
 // This array is used to triangulate the hexahedral mesh elements
 // Each element has six faces with two triangles each.
@@ -34,6 +36,24 @@ int triangulate_tetra[MAX_NUM_TRI][3] = {
   {-1, -1, -1},
   {-1, -1, -1}
 };
+
+// Triangule wedges
+int triangulate_wedge[MAX_NUM_TRI][3] = {
+  {0, 1, 2},
+  {0, 3, 1},
+  {1, 3, 4},
+  {0, 2, 3},
+  {2, 5, 3},
+  {1, 4, 2},
+  {2, 4, 5},
+  {3, 5, 4},
+
+  {-1, -1, -1},
+  {-1, -1, -1},
+  {-1, -1, -1},
+  {-1, -1, -1}
+};
+
 
 // This is used to select faces from a 20-sided hex element
 int hex20_faces[6][8] = {
