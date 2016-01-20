@@ -448,6 +448,16 @@ class BoxlibDataset(Dataset):
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
                 vals = self.domain_dimensions = np.array(vals.split(), dtype='int32')
+
+                # For 1D and 2D simulations in BoxLib usually only the relevant dimensions
+                # have a specified number of zones, but yt requires domain_dimensions to 
+                # have three elements, with 1 in the additional slots if we're not in 3D, 
+                # so append them as necessary.
+
+                if (len(vals) == 1):
+                    vals = self.domain_dimensions = np.array([vals[0], 1, 1])
+                elif (len(vals) == 2):
+                    vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
