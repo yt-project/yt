@@ -499,7 +499,6 @@ class MeshSource(OpaqueSource):
                            self.sampler.zbuffer)
         zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
-        self.zbuffer.rgba = self.zbuffer.rgba
         self.current_image = self.zbuffer.rgba
 
         if self._annotate_mesh:
