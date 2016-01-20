@@ -311,7 +311,7 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
@@ -496,7 +496,7 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.insert_image_yt(p)
@@ -704,7 +704,8 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
+        >>> p.hide_colorbar()
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.insert_image_yt(p)
@@ -740,7 +741,8 @@ class DualEPS(object):
                     print("Colorbar label not available")
                     _zlabel = ''
             else:
-                _zlabel = pyxize_label(plot.z_title)
+                _, _, z_title = plot._get_field_title(self.field, plot.profile)
+                _zlabel = pyxize_label(z_title)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -1258,27 +1260,28 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    plots : `yt.visualization.plot_window.PlotWindow`
-        yt PlotWindow that has the plots to be used.
+    plots : ``PlotWindow`` instance, ``PhasePlot`` instance, or list of plots
+        yt plots to be used.
 
     Examples
     --------
-    >>> pc = PlotCollection(ds)
-    >>> p = pc.add_slice('Density',0,use_colorbar=False)
-    >>> p.set_width(0.1,'kpc')
-    >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
-    >>> p1.set_width(0.1,'kpc')
-    >>> p1.set_cmap('hot')
-    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'H2I_Fraction'],
-    >>>                         weight='CellMassMsun')
-    >>> p1.set_xlim(1e18,3e20)
-    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'Temperature'],
-    >>>                         weight='CellMassMsun')
-    >>> p1.set_xlim(1e18,3e20)
-    >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
-    >>>                   yt_nocbar=False, margins=(0.5,0.5))
+    >>> p1 = SlicePlot(ds, 0, 'density')
+    >>> p1.set_width(10, 'kpc')
+    >>>
+    >>> p2 = SlicePlot(ds, 0, 'temperature')
+    >>> p2.set_width(10, 'kpc')
+    >>> p2.set_cmap('temperature', 'hot')
+    >>>
+    >>> sph = ds.sphere(ds.domain_center, (10, 'kpc'))
+    >>> p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
+    ...                weight_field='cell_mass')
+    >>>
+    >>> p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+    >>>
+    >>> mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
+    ...                   bare_axes=True, yt_nocbar=False, margins=(0.5,0.5))
     """
-    # Determine whether the plots are organized in a PlotWindow, or list 
+    # Determine whether the plots are organized in a PlotWindow, or list
     # of PlotWindows
     if isinstance(plots, (PlotWindow, PhasePlot)):
         if fields == None:
@@ -1329,7 +1332,7 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
     Examples
     --------
-    >>> p = pc.add_slice('Density',0,use_colorbar=False)
+    >>> p = SlicePlot(ds, 0, 'density')
     >>> p.set_width(0.1,'kpc')
     >>> single_plot(p, savefig="figure1")
     """
