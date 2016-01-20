@@ -25,7 +25,8 @@ cimport pyembree.rtcore_geometry_user as rtcgu
 from mesh_samplers cimport \
     sample_hex, \
     sample_tetra, \
-    sample_element
+    sample_element, \
+    sample_wedge
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -36,6 +37,7 @@ from mesh_intersection cimport \
 from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
 cimport numpy as np
+from yt.utilities.exceptions import YTElementTypeNotRecognized
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -45,8 +47,11 @@ cdef extern from "mesh_construction.h":
     int HEX_NT
     int TETRA_NV
     int TETRA_NT
+    int WEDGE_NV
+    int WEDGE_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
+    int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
 
 
@@ -99,17 +104,22 @@ cdef class LinearElementMesh:
                  np.ndarray indices,
                  np.ndarray data):
 
-        # We need now to figure out if we've been handed quads or tetrahedra.
+        # We need now to figure out what kind of elements we've been handed.
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
             self.tri_array = triangulate_hex
+        elif indices.shape[1] == 6:
+            self.vpe = WEDGE_NV
+            self.tpe = WEDGE_NT
+            self.tri_array = triangulate_wedge
         elif indices.shape[1] == 4:
             self.vpe = TETRA_NV
             self.tpe = TETRA_NT
             self.tri_array = triangulate_tetra
         else:
-            raise NotImplementedError
+            raise YTElementTypeNotRecognized(vertices.shape[1], 
+                                             indices.shape[1])
 
         self._build_from_indices(scene, vertices, indices)
         self._set_field_data(scene, data)
@@ -186,11 +196,12 @@ cdef class LinearElementMesh:
             self.filter_func = <rtcg.RTCFilterFunc> sample_element
         elif self.fpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
+        elif self.fpe == 6:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_wedge
         elif self.fpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
-            print "Error - sampler type not implemented."
-            raise NotImplementedError
+            raise NotImplementedError("Sampler type not implemented.")
 
         rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
                                               self.mesh,

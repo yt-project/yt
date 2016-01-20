@@ -126,8 +126,8 @@ class TestFieldAccess(object):
         fields = list(_base_fields)
 
         for rf in requested:
-            if field.particle_type:
-                if rf not in particle_fields:
+            if rf[0] == 'io' or rf[0] == 'all':
+                if rf not in particle_fields or rf[1] not in particle_fields:
                     particle_fields.append(rf[1])
             else:
                 fields.append(rf)

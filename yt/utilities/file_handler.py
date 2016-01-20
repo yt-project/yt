@@ -1,5 +1,5 @@
 """
-Wrapper classes for h5py and netCDF4 file objects.
+A wrapper class for h5py file objects.
 
 
 
@@ -73,7 +73,7 @@ class FITSFileHandler(HDF5FileHandler):
         super(FITSFileHandler, self).__del__()
 
     def close(self):
-        pass
+        self.handle.close()
 
 class NetCDF4FileHandler(object):
     def __init__(self, filename):

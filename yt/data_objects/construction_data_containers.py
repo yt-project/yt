@@ -19,7 +19,7 @@ from functools import wraps
 import fileinput
 import io
 from re import finditer
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryFile
 import os
 import sys
 import zipfile
@@ -58,7 +58,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
-
+import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -810,7 +810,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                               int(any(self.ds.periodicity)))
         fi = self.ds._get_field_info(field)
         self[field] = self.ds.arr(dest, fi.units)
-        
+
 
 class LevelState(object):
     current_dx = None
@@ -1628,7 +1628,7 @@ class YTSurface(YTSelectionContainer3D):
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
                    color_map = "algae", color_log = True, sample_type = "face"):
-        if isinstance(filename, io.IOBase):
+        if hasattr(filename, 'read'):
             f = filename
         else:
             f = open(filename, "wb")
@@ -1641,27 +1641,29 @@ class YTSurface(YTSelectionContainer3D):
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
         fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
-        f.write("ply\n")
-        f.write("format binary_little_endian 1.0\n")
-        f.write("element vertex %s\n" % (nv))
-        f.write("property float x\n")
-        f.write("property float y\n")
-        f.write("property float z\n")
+        f.write(b"ply\n")
+        f.write(b"format binary_little_endian 1.0\n")
+        line = "element vertex %i\n" % (nv)
+        f.write(six.b(line))
+        f.write(b"property float x\n")
+        f.write(b"property float y\n")
+        f.write(b"property float z\n")
         if color_field is not None and sample_type == "vertex":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
             self._color_samples(cs, color_log, color_map, v)
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        f.write("element face %s\n" % (nv/3))
-        f.write("property list uchar int vertex_indices\n")
+        line = "element face %i\n" % (nv / 3)
+        f.write(six.b(line))
+        f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
@@ -1676,7 +1678,7 @@ class YTSurface(YTSelectionContainer3D):
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
             v[ax][:] = tmp
-        f.write("end_header\n")
+        f.write(b"end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
         vi = np.arange(nv, dtype="<i")
@@ -1765,39 +1767,49 @@ class YTSurface(YTSelectionContainer3D):
             open(fn, "wb").write(ply_file.read())
             raise YTTooManyVertices(self.vertices.shape[1], fn)
 
-        zfs = TemporaryFile()
+        zfs = NamedTemporaryFile(suffix='.zip')
         with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.writestr("yt_export.ply", ply_file.read())
         zfs.seek(0)
 
         zfs.seek(0)
         data = {
-            'title': title,
             'token': api_key,
+            'name': title,
             'description': description,
-            'fileModel': zfs,
-            'filenameModel': "yt_export.zip",
+            'tags': "yt",
         }
-        upload_id = self._upload_to_sketchfab(data)
+        files = {
+            'modelFile': zfs
+        }
+        upload_id = self._upload_to_sketchfab(data, files)
         upload_id = self.comm.mpi_bcast(upload_id, root = 0)
         return upload_id
 
     @parallel_root_only
-    def _upload_to_sketchfab(self, data):
-        import json
-        from yt.extern.six.moves import urllib
-        from yt.utilities.poster.encode import multipart_encode
-        from yt.utilities.poster.streaminghttp import register_openers
-        register_openers()
-        datamulti, headers = multipart_encode(data)
-        request = urllib.request.Request("https://api.sketchfab.com/v1/models",
-                        datamulti, headers)
-        rv = urllib.request.urlopen(request).read()
-        rv = json.loads(rv)
-        upload_id = rv.get("result", {}).get("id", None)
-        if upload_id:
-            mylog.info("Model uploaded to: https://sketchfab.com/show/%s",
-                       upload_id)
+    def _upload_to_sketchfab(self, data, files):
+        import requests
+        SKETCHFAB_DOMAIN = 'sketchfab.com'
+        SKETCHFAB_API_URL = 'https://api.{}/v2/models'.format(SKETCHFAB_DOMAIN)
+        SKETCHFAB_MODEL_URL = 'https://{}/models/'.format(SKETCHFAB_DOMAIN)
+
+        try:
+            r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
+        except requests.exceptions.RequestException as e:
+            mylog.error("An error occured: {}".format(e))
+            return
+
+        result = r.json()
+
+        if r.status_code != requests.codes.created:
+            mylog.error("Upload to SketchFab failed with error: {}".format(result))
+            return
+
+        model_uid = result['uid']
+        model_url = SKETCHFAB_MODEL_URL + model_uid
+        if model_uid:
+            mylog.info("Model uploaded to: {}".format(model_url))
         else:
             mylog.error("Problem uploading.")
-        return upload_id
+
+        return model_uid

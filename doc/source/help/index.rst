@@ -114,7 +114,7 @@ your computer.
 
 If you have not done so already (see :ref:`source-installation`), clone a copy of the yt mercurial repository and make it the 'active' installation by doing
 
-.. code-block::bash
+.. code-block:: bash
 
   python setup.py develop
 

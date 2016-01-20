@@ -171,7 +171,7 @@ def domains_from_halos(ds,halo_list,frvir=0.15):
             domains[(dle,dre)] = [halo,]
     #for niceness, let's process the domains in order of 
     #the one with the most halos
-    domains_list = [(len(v),k,v) for k,v in domains.iteritems()]
+    domains_list = [(len(v),k,v) for k,v in domains.items()]
     domains_list.sort() 
     domains_list.reverse() #we want the most populated domains first
     return domains_list

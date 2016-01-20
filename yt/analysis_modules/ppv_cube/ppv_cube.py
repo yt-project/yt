@@ -98,7 +98,8 @@ class PPVCube(object):
             key of the unit: (width, 'unit').  If set to a float, code units
             are assumed. Only for off-axis cubes.
         depth_res : integer, optional
-            The resolution of integration along the line of sight for off-axis cubes. Default: 256
+            Deprecated, this is still in the function signature for API
+            compatibility
         method : string, optional
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
@@ -189,7 +190,7 @@ class PPVCube(object):
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf, sc = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny, depth_res), "intensity",
+                                          (self.nx, self.ny), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
                                           method=method, weight=weight_field)
             sto.result_id = i
