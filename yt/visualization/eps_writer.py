@@ -1257,7 +1257,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    plots : ``PlotWindow`` instace, ``PhasePlot`` instance, or list of plots
+    plots : ``PlotWindow`` instance, ``PhasePlot`` instance, or list of plots
         yt plots to be used.
 
     Examples
