@@ -486,7 +486,7 @@ def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
     cdef np.int64_t nmi
     cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
     p = get_morton_points(mi)
-    mi_neighbors = np.zeros(27*mi.shape[0], 'uint64')
+    mi_neighbors = np.zeros(26*mi.shape[0], 'uint64')
     n = 0
     for i in range(mi.shape[0]):
         for j in range(3):
