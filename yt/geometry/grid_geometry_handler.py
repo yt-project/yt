@@ -217,11 +217,13 @@ class GridIndex(Index):
             grid_index[grid].append(coord_index)
 
         out = []
+        for field in fields:
+            funit = self.ds._get_field_info(field).units
+            out.append(self.ds.arr(np.empty((len(coords))), funit))
+
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
             for field_index, field in enumerate(fields):
-                funit = self.ds._get_field_info(field).units
-                out.append(self.ds.arr(np.empty((len(grid_index[grid]))), funit))
                 for coord_index in grid_index[grid]:
                     mark = ((coords[coord_index, :] - grid.LeftEdge) / cellwidth)
                     mark = np.array(mark, dtype='int64')
