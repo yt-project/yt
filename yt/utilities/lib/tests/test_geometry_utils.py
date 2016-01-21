@@ -179,14 +179,26 @@ def test_morton_neighbor():
     p_ans = np.array([[imax/2,imax/2,imax/2+1],
                       [imax/2,imax/2,imax/2-1],
                       [imax/2,imax/2,imax-1  ],
-                      [imax/2,imax/2,1       ]],dtype=np.uint64)
+                      [imax/2,imax/2,1       ],
+                      [imax/2,imax/2+1,imax/2+1],
+                      [imax/2-1,imax/2-1,imax/2],
+                      [imax/2-1,imax/2,imax/2+1],
+                      [imax/2,imax/2-1,imax-1  ],
+                      [imax/2,imax/2+1,1       ]],dtype=np.uint64)
     mi_ans = get_morton_indices(p_ans)
-    assert_equal(morton_neighbor(p[0,:],2,+1,order=order),mi_ans[0])
-    assert_equal(morton_neighbor(p[0,:],2,-1,order=order),mi_ans[1])
-    assert_equal(morton_neighbor(p[1,:],2,-1,order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[2,:],2,+1,order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[1,:],2,-1,order=order,periodic=True ),mi_ans[2])
-    assert_equal(morton_neighbor(p[2,:],2,+1,order=order,periodic=True ),mi_ans[3])
+    assert_equal(morton_neighbor(p[0,:],[2],[+1],order=order),mi_ans[0])
+    assert_equal(morton_neighbor(p[0,:],[2],[-1],order=order),mi_ans[1])
+    assert_equal(morton_neighbor(p[1,:],[2],[-1],order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[2,:],[2],[+1],order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[1,:],[2],[-1],order=order,periodic=True ),mi_ans[2])
+    assert_equal(morton_neighbor(p[2,:],[2],[+1],order=order,periodic=True ),mi_ans[3])
+    assert_equal(morton_neighbor(p[0,:],[1,2],[+1,+1],order=order),mi_ans[4])
+    assert_equal(morton_neighbor(p[0,:],[0,1],[-1,-1],order=order),mi_ans[5])
+    assert_equal(morton_neighbor(p[0,:],[0,2],[-1,+1],order=order),mi_ans[6])
+    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],order=order,periodic=False),-1)
+    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],order=order,periodic=True ),mi_ans[7])
+    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],order=order,periodic=True ),mi_ans[8])
 
 def test_get_morton_neighbors():
     from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices
@@ -195,40 +207,42 @@ def test_get_morton_neighbors():
     p = np.array([[imax/2,imax/2,imax/2],
                   [imax/2,imax/2,0     ],
                   [imax/2,imax/2,imax  ]],dtype=np.uint64)
-    pn_non = [np.array([[imax/2+1,imax/2,imax/2],
-                        [imax/2-1,imax/2,imax/2],
-                        [imax/2,imax/2+1,imax/2],
-                        [imax/2,imax/2-1,imax/2],
-                        [imax/2,imax/2,imax/2+1],
-                        [imax/2,imax/2,imax/2-1]],dtype=np.uint64),
-              np.array([[imax/2+1,imax/2,0],
-                        [imax/2-1,imax/2,0],
-                        [imax/2,imax/2+1,0],
-                        [imax/2,imax/2-1,0],
+    pn_non = [np.array([[imax/2+1,imax/2,imax/2],[imax/2-1,imax/2,imax/2],
+                        [imax/2+1,imax/2+1,imax/2],[imax/2+1,imax/2-1,imax/2],[imax/2-1,imax/2+1,imax/2],[imax/2-1,imax/2-1,imax/2],
+                        [imax/2+1,imax/2,imax/2+1],[imax/2+1,imax/2,imax/2-1],[imax/2-1,imax/2,imax/2+1],[imax/2-1,imax/2,imax/2-1],
+                        [imax/2,imax/2+1,imax/2],[imax/2,imax/2-1,imax/2],
+                        [imax/2,imax/2+1,imax/2+1],[imax/2,imax/2+1,imax/2-1],[imax/2,imax/2-1,imax/2+1],[imax/2,imax/2-1,imax/2-1],
+                        [imax/2,imax/2,imax/2+1],[imax/2,imax/2,imax/2-1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,0],[imax/2-1,imax/2,0],
+                        [imax/2+1,imax/2+1,0],[imax/2+1,imax/2-1,0],[imax/2-1,imax/2+1,0],[imax/2-1,imax/2-1,0],
+                        [imax/2+1,imax/2,1],[imax/2-1,imax/2,1],
+                        [imax/2,imax/2+1,0],[imax/2,imax/2-1,0],
+                        [imax/2,imax/2+1,1],[imax/2,imax/2-1,1],
                         [imax/2,imax/2,0+1]],dtype=np.uint64),
-              np.array([[imax/2+1,imax/2,imax],
-                        [imax/2-1,imax/2,imax],
-                        [imax/2,imax/2+1,imax],
-                        [imax/2,imax/2-1,imax],
+              np.array([[imax/2+1,imax/2,imax],[imax/2-1,imax/2,imax],
+                        [imax/2+1,imax/2+1,imax],[imax/2+1,imax/2-1,imax],[imax/2-1,imax/2+1,imax],[imax/2-1,imax/2-1,imax],
+                        [imax/2+1,imax/2,imax-1],[imax/2-1,imax/2,imax-1],
+                        [imax/2,imax/2+1,imax],[imax/2,imax/2-1,imax],
+                        [imax/2,imax/2+1,imax-1],[imax/2,imax/2-1,imax-1],
                         [imax/2,imax/2,imax-1]],dtype=np.uint64)]
-    pn_per = [np.array([[imax/2+1,imax/2,imax/2],
-                        [imax/2-1,imax/2,imax/2],
-                        [imax/2,imax/2+1,imax/2],
-                        [imax/2,imax/2-1,imax/2],
-                        [imax/2,imax/2,imax/2+1],
-                        [imax/2,imax/2,imax/2-1]],dtype=np.uint64),
-              np.array([[imax/2+1,imax/2,0],
-                        [imax/2-1,imax/2,0],
-                        [imax/2,imax/2+1,0],
-                        [imax/2,imax/2-1,0],
-                        [imax/2,imax/2,1],
-                        [imax/2,imax/2,imax-1]],dtype=np.uint64),
-              np.array([[imax/2+1,imax/2,imax],
-                        [imax/2-1,imax/2,imax],
-                        [imax/2,imax/2+1,imax],
-                        [imax/2,imax/2-1,imax],
-                        [imax/2,imax/2,1],
-                        [imax/2,imax/2,imax-1]],dtype=np.uint64)]
+    pn_per = [np.array([[imax/2+1,imax/2,imax/2],[imax/2-1,imax/2,imax/2],
+                        [imax/2+1,imax/2+1,imax/2],[imax/2+1,imax/2-1,imax/2],[imax/2-1,imax/2+1,imax/2],[imax/2-1,imax/2-1,imax/2],
+                        [imax/2+1,imax/2,imax/2+1],[imax/2+1,imax/2,imax/2-1],[imax/2-1,imax/2,imax/2+1],[imax/2-1,imax/2,imax/2-1],
+                        [imax/2,imax/2+1,imax/2],[imax/2,imax/2-1,imax/2],
+                        [imax/2,imax/2+1,imax/2+1],[imax/2,imax/2+1,imax/2-1],[imax/2,imax/2-1,imax/2+1],[imax/2,imax/2-1,imax/2-1],
+                        [imax/2,imax/2,imax/2+1],[imax/2,imax/2,imax/2-1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,0],[imax/2-1,imax/2,0],
+                        [imax/2+1,imax/2+1,0],[imax/2+1,imax/2-1,0],[imax/2-1,imax/2+1,0],[imax/2-1,imax/2-1,0],
+                        [imax/2+1,imax/2,1],[imax/2+1,imax/2,imax-1],[imax/2-1,imax/2,1],[imax/2-1,imax/2,imax-1],
+                        [imax/2,imax/2+1,0],[imax/2,imax/2-1,0],
+                        [imax/2,imax/2+1,1],[imax/2,imax/2+1,imax-1],[imax/2,imax/2-1,1],[imax/2,imax/2-1,imax-1],
+                        [imax/2,imax/2,0+1],[imax/2,imax/2,imax-1]],dtype=np.uint64),
+              np.array([[imax/2+1,imax/2,imax],[imax/2-1,imax/2,imax],
+                        [imax/2+1,imax/2+1,imax],[imax/2+1,imax/2-1,imax],[imax/2-1,imax/2+1,imax],[imax/2-1,imax/2-1,imax],
+                        [imax/2+1,imax/2,1],[imax/2+1,imax/2,imax-1],[imax/2-1,imax/2,1],[imax/2-1,imax/2,imax-1],
+                        [imax/2,imax/2+1,imax],[imax/2,imax/2-1,imax],
+                        [imax/2,imax/2+1,1],[imax/2,imax/2+1,imax-1],[imax/2,imax/2-1,1],[imax/2,imax/2-1,imax-1],
+                        [imax/2,imax/2,1],[imax/2,imax/2,imax-1]],dtype=np.uint64)]
     mi = get_morton_indices(p)
     N = mi.shape[0]
     # Non-periodic
