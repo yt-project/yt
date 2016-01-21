@@ -26,7 +26,6 @@ from yt.funcs import \
     ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
-from yt.units.yt_array import YTArray
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
