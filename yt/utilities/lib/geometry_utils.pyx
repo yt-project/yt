@@ -481,7 +481,7 @@ def morton_neighbor(np.ndarray[np.uint64_t,ndim=1] p, list dim_list, list num_li
 def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
                          int order = ORDER_MAX, periodic = False):
     """Returns array of neighboring morton indices"""
-    cdef int i, j, k, n
+    cdef int i, j, k, l, n
     cdef np.ndarray[np.uint64_t, ndim=2] p
     cdef np.int64_t nmi
     cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
@@ -490,34 +490,80 @@ def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
     n = 0
     for i in range(mi.shape[0]):
         for j in range(3):
+            # +1 in dimension j
             nmi = morton_neighbor(p[i,:],[j],[+1],order=order,periodic=periodic)
             if nmi > 0:
                 mi_neighbors[n] = np.uint64(nmi)
                 n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[+1,+1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,+1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,+1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[+1,-1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,-1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,-1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+            # -1 in dimension j
             nmi = morton_neighbor(p[i,:],[j],[-1],order=order,periodic=periodic)
             if nmi > 0:
                 mi_neighbors[n] = np.uint64(nmi)
                 n+=1
-            # +/- 1 in other dimensions
-            for k in range(j+1,3):
-                # +1 in dimension j
-                nmi = morton_neighbor(p[i,:],[j,k],[+1,+1],order=order,periodic=periodic)
-                if nmi > 0:
-                    mi_neighbors[n] = np.uint64(nmi)
-                    n+=1
-                nmi = morton_neighbor(p[i,:],[j,k],[+1,-1],order=order,periodic=periodic)
-                if nmi > 0:
-                    mi_neighbors[n] = np.uint64(nmi)
-                    n+=1
-                # -1 in dimension j
-                nmi = morton_neighbor(p[i,:],[j,k],[-1,+1],order=order,periodic=periodic)
-                if nmi > 0:
-                    mi_neighbors[n] = np.uint64(nmi)
-                    n+=1
-                nmi = morton_neighbor(p[i,:],[j,k],[-1,-1],order=order,periodic=periodic)
-                if nmi > 0:
-                    mi_neighbors[n] = np.uint64(nmi)
-                    n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[-1,+1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,+1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,+1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[-1,-1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,-1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,-1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
     return np.resize(mi_neighbors,(n,))
     # mi_neighbors.resize(k,refcheck=False)
     # return mi_neighbors
