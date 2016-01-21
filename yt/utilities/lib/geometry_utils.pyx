@@ -23,6 +23,9 @@ from yt.utilities.exceptions import YTDomainOverflow
 
 DEF ORDER_MAX=20
 DEF INDEX_MAX_64=2097151
+DEF XSHIFT=2
+DEF YSHIFT=1
+DEF ZSHIFT=0
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -207,6 +210,73 @@ cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def spread_bits(np.uint64_t x):
+    return spread_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def compact_bits(np.uint64_t x):
+    return compact_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsz(np.uint64_t v, int stride = 1, int start = 0):
+    cdef int c
+    c = start
+    while ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsb(np.uint64_t v, int stride = 1, int start = 0):
+    cdef int c
+    c = start
+    while (np.uint64(v) << np.uint64(c)) and not ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def bitwise_addition(np.uint64_t x, np.int64_t y0, 
+                     int stride = 1, int start = 0):
+    if (y0 == 0): return x
+    cdef int end, p, pstart
+    cdef list mstr
+    cdef np.uint64_t m, y, out
+    y = np.uint64(np.abs(y0))
+    if (y0 > 0):
+        func_ls = lsz
+    else:
+        func_ls = lsb
+    # Continue until all bits added
+    p = 0
+    out = x
+    while (y >> p):
+        if (y & (1 << p)): 
+            # Get end point
+            pstart = start + p*stride
+            end = func_ls(out,stride=stride,start=pstart)
+            # Create mask
+            mstr = (end + 1) * ['0']
+            for i in range(pstart,end+1,stride):
+                mstr[i] = '1'
+                m = int(''.join(mstr[::-1]), 2)
+            # Invert portion in mask
+            # print mstr[::-1]
+            # print y,p,(pstart,end+1),bin(m),bin(out),bin(~out)
+            out = masked_merge_64bit(out, ~out, m)
+        # Move to next bit
+        p += 1
+    return out
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
     cdef np.int64_t h, e, d, l, b, w, i, x
     h = e = d = 0
@@ -311,6 +381,21 @@ cdef void morton_to_point(np.uint64_t mi, np.uint64_t *p):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_morton_index(np.ndarray[np.uint64_t, ndim=1] left_index):
+    cdef int j
+    cdef np.uint64_t morton_index
+    cdef np.uint64_t p[3]
+    for j in range(3):
+        if left_index[j] >= INDEX_MAX_64:
+            raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                             "for 64bit interleave.")
+        p[j] = left_index[j]
+    morton_index = point_to_morton(p)
+    return morton_index
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
     cdef np.int64_t i
     cdef int j
@@ -361,6 +446,127 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
         for j in range(3):
             positions[i, j] = p[j]
     return positions
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_neighbor(np.ndarray[np.uint64_t,ndim=1] p, list dim_list, list num_list, 
+                    int order = ORDER_MAX, periodic = False):
+    cdef np.int64_t x
+    cdef np.uint64_t imax
+    cdef np.uint64_t p1[3]
+    cdef int j, dim, num
+    for j in range(3):
+        p1[j] = np.uint64(p[j])
+    for dim,num in zip(dim_list,num_list):
+        x = np.int64(p[dim]) + num
+        imax = np.uint64(1 << order)
+        if (x < 0):
+            if periodic:
+                p1[dim] = np.uint64(imax - (abs(x) % imax))
+            else:
+                return np.int64(-1)
+        elif (x > imax):
+            if periodic:
+                p1[dim] = np.uint64(x % imax)
+            else:
+                return np.int64(-1)
+        else:
+            p1[dim] = np.uint64(x)
+    return np.int64(point_to_morton(p1))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
+                         int order = ORDER_MAX, periodic = False):
+    """Returns array of neighboring morton indices"""
+    cdef int i, j, k, l, n
+    cdef np.ndarray[np.uint64_t, ndim=2] p
+    cdef np.int64_t nmi
+    cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
+    p = get_morton_points(mi)
+    mi_neighbors = np.zeros(26*mi.shape[0], 'uint64')
+    n = 0
+    for i in range(mi.shape[0]):
+        for j in range(3):
+            # +1 in dimension j
+            nmi = morton_neighbor(p[i,:],[j],[+1],order=order,periodic=periodic)
+            if nmi > 0:
+                mi_neighbors[n] = np.uint64(nmi)
+                n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[+1,+1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,+1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,+1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[+1,-1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,-1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[+1,-1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+            # -1 in dimension j
+            nmi = morton_neighbor(p[i,:],[j],[-1],order=order,periodic=periodic)
+            if nmi > 0:
+                mi_neighbors[n] = np.uint64(nmi)
+                n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[-1,+1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,+1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,+1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = morton_neighbor(p[i,:],[j,k],[-1,-1],order=order,periodic=periodic)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,-1,+1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = morton_neighbor(p[i,:],[j,k,l],[-1,-1,-1],order=order,periodic=periodic)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+    return np.resize(mi_neighbors,(n,))
+    # mi_neighbors.resize(k,refcheck=False)
+    # return mi_neighbors
 
 ctypedef fused anyfloat:
     np.float32_t
