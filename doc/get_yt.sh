@@ -23,8 +23,8 @@
 DEST_SUFFIX="yt-conda"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
-INST_YT_SOURCE=0 # Do we do a source install of yt?
-INST_UNSTRUCTURED=0 # Do we want to build with unstructured mesh support?
+INST_YT_SOURCE=1 # Do we do a source install of yt?
+INST_UNSTRUCTURED=1 # Do we want to build with unstructured mesh support?
 
 ##################################################################
 #                                                                #
@@ -310,24 +310,11 @@ for YT_DEP in "${YT_DEPS[@]}"; do
     log_cmd conda install --yes ${YT_DEP}
 done
 
-if [ $INST_YT_SOURCE -eq 0 ]
-then
-  echo "Installing yt"
-  log_cmd conda install --yes yt
-else
-    # We do a source install.
-    echo "Installing yt from source"
-    YT_DIR="${DEST_DIR}/src/yt-hg"
-    log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
-    pushd ${YT_DIR}
-    log_cmd python setup.py develop
-    popd
-fi
-
 if [ $INST_UNSTRUCTURED -eq 1 ]
 then
 
   echo "Installing embree"
+  mkdir ${DEST_DIR}/src
   cd ${DEST_DIR}/src
   ( ${GETFILE} "$EMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
   log_cmd tar xfz ${EMBREE}.tar.gz
@@ -347,12 +334,24 @@ then
   pushd ${DEST_DIR}/src/pyembree-master
   log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
   popd
+fi
 
-  YT_DIR="${DEST_DIR}/src/yt-hg"
-  echo $DEST_DIR > ${YT_DIR}/embree.cfg
-  pushd ${YT_DIR}
-  log_cmd python setup.py develop
-  popd
+if [ $INST_YT_SOURCE -eq 0 ]
+then
+  echo "Installing yt"
+  log_cmd conda install --yes yt
+else
+    # We do a source install.
+    echo "Installing yt from source"
+    YT_DIR="${DEST_DIR}/src/yt-hg"
+    log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+if [ $INST_UNSTRUCTURED -eq 1 ]
+then
+    echo $DEST_DIR > ${YT_DIR}/embree.cfg
+fi
+    pushd ${YT_DIR}
+    log_cmd python setup.py develop
+    popd
 fi
 
 echo
