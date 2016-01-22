@@ -180,7 +180,7 @@ cdef void sample_tetra(void* userPtr,
 @cython.cdivision(True)
 cdef void sample_element(void* userPtr,
                          rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id, i
+    cdef int ray_id, elem_id
     cdef double val
     cdef MeshDataContainer* data
 
