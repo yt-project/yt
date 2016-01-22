@@ -170,8 +170,11 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
-from yt.testing import \
-    run_nose
+try:
+    from yt.testing import \
+        run_nose
+except ImportError:
+    pass  # needs nosetests
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
