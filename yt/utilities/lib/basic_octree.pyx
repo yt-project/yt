@@ -58,9 +58,8 @@ cdef void OTN_add_value(OctreeNode *self,
         self.max_level = imax(self.max_level, level)
 
 cdef void OTN_refine(OctreeNode *self, int incremental = 0):
-    cdef int i, j, k, i1, j1
+    cdef int i, j, k
     cdef np.int64_t npos[3]
-    cdef OctreeNode *node
     for i in range(2):
         npos[0] = self.pos[0] * 2 + i
         for j in range(2):
@@ -134,7 +133,6 @@ cdef class Octree:
                   int nvals, int incremental = False):
         cdef int i, j, k
         self.incremental = incremental
-        cdef OctreeNode *node
         cdef np.int64_t pos[3]
         cdef np.float64_t *vals = <np.float64_t *> alloca(
                 sizeof(np.float64_t)*nvals)
@@ -231,7 +229,6 @@ cdef class Octree:
     def get_all_from_level(self, int level, int count_only = 0):
         cdef int i, j, k
         cdef int total = 0
-        vals = []
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):
@@ -374,7 +371,6 @@ cdef class Octree:
         # node in the list that is at the same or lower (coarser) level than
         # this node. This is useful in the treecode for skipping over nodes
         # that don't need to be inspected.
-        cdef int i, j, k
         cdef OctreeNode *initial_next
         cdef OctreeNode *temp_next
         initial_next = node.next
@@ -391,7 +387,6 @@ cdef class Octree:
         # Set treecode = 1 if nodes with no mass are to be skipped in the
         # list.
         cdef int i, j, k, sum, top_grid_total, ii, jj, kk
-        cdef OctreeNode *this_node
         self.last_node = self.root_nodes[0][0][0]
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -429,9 +424,6 @@ cdef class Octree:
         cdef np.float64_t angle, dist
         cdef OctreeNode *this_node
         cdef OctreeNode *pair_node
-        cdef int pair_count
-        cdef int to_break
-        to_break = 0
         this_node = self.root_nodes[0][0][0]
         while this_node is not NULL:
             # Iterate down the list to a node that either has no children and
@@ -499,7 +491,7 @@ cdef class Octree:
         """
         # The real work is done in fbe_main(), this just sets things up
         # and returns the potential.
-        cdef int i, j, k, sum
+        cdef int i
         cdef np.float64_t potential
         potential = 0.0
         self.opening_angle = opening_angle
