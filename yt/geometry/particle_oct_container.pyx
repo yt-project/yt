@@ -495,17 +495,19 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector):
-        # Find octs within selector
+    def identify_data_files(self, SelectorObject selector, int ngz):
         # Find corresponding morton indices
         # Increase by ghost zones
-
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
+        cdef np.ndarray[np.uint8_t, ndim=1] cell_levels
+        cdef np.ndarray[np.uint8_t, ndim=1] cell_indices
         cdef np.ndarray[np.int64_t, ndim=1] file_indices
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask 
         cdef np.ndarray[np.uint8_t, ndim=2] masks = self.masks
-        _, _, file_indices = self.index_octree.file_index_octs(selector, -1)
+        # cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] bitmasks
+        # Find cells within selector
+        cell_levels, cell_indices, file_indices = self.index_octree.file_index_octs(selector, -1)
         file_mask = np.zeros(masks.shape[1], dtype="uint8")
         cdef int i, j
         cdef np.int64_t k

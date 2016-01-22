@@ -95,6 +95,24 @@ cdef void icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
         coords[data.index * 3 + i] = (data.pos[i] << data.oref) + data.ind[i]
     data.index += 1
 
+cdef void morton_index_octs(Oct *o, OctVisitorData *data, np.uint64_t selected):
+    from yt.utilities.libs.geometry_utils cimport encode_morton_64bit
+    if selected == 0: return
+    cdef void **p = <void **> data.array
+    cdef np.uint8_t *level_arr = <np.uint8_t *> p[0]
+    cdef np.uint64_t *mi = <np.uint64_t*> p[1]
+    cdef np.int64_t coord[3]
+    cdef int i
+    for i in range(3):
+        coords[i] = (data.pos[i] << data.oref) + data.ind[i]
+        if (coords[i] < 0):
+            raise RuntimeError("Oct coordinate in dimension {} is ".format(i)+
+                               "negative. ({})".format(coords[i])
+    mi[data.index] = encode_morton_64bit(np.uint64(coords[0]),
+                                         np.uint64(coords[1]),
+                                         np.uint64(coords[2]))
+    data.index += 1
+
 cdef void ires_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     if selected == 0: return
     cdef np.int64_t *ires = <np.int64_t*> data.array
