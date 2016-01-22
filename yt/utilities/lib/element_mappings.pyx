@@ -124,9 +124,6 @@ cdef class P1Sampler2D(ElementSampler):
     cdef void map_real_to_unit(self, double* mapped_x, 
                                double* vertices, double* physical_x) nogil:
     
-        cdef int i
-        cdef double d
-        cdef double[3] bvec
         cdef double[3] col0
         cdef double[3] col1
         cdef double[3] col2
@@ -289,7 +286,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                                double* vertices,
                                double* physical_x) nogil:
         cdef int i
-        cdef double d, val
+        cdef double d
         cdef double[3] f 
         cdef double[3] r
         cdef double[3] s
@@ -471,7 +468,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                                double* vertices,
                                double* physical_x) nogil:
         cdef int i
-        cdef double d, val
+        cdef double d
         cdef double[2] f
         cdef double[2] x
         cdef double[4] A
@@ -566,8 +563,7 @@ cdef inline void Q1Jacobian2D(double* A,
                               double* x,
                               double* vertices,
                               double* phys_x) nogil:
-    cdef int i
-    cdef double rm, rp, sm, sp, tm, tp
+    cdef double rm, rp, sm, sp
 
     rm = 1.0 - x[0]
     rp = 1.0 + x[0]
