@@ -3,7 +3,7 @@ import numpy as np
 from yt.testing import \
     fake_random_ds, \
     assert_array_less, \
-    assert_array_equal
+    assert_array_equal, assert_equal
 from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
@@ -177,7 +177,7 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
 def test_morton_neighbor():
     from yt.utilities.lib.geometry_utils import morton_neighbor, get_morton_indices, get_morton_index
     order = 20
-    imax = 1 << order
+    imax = np.uint64(1 << order)
     p = np.array([[imax/2,imax/2,imax/2],
                   [imax/2,imax/2,0     ],
                   [imax/2,imax/2,imax  ]],dtype=np.uint64)
@@ -205,19 +205,19 @@ def test_morton_neighbor():
                       [imax/2,imax/2-1,imax-1  ],
                       [imax/2,imax/2+1,1       ]],dtype=np.uint64)
     mi_ans = get_morton_indices(p_ans)
-    assert_equal(morton_neighbor(p[0,:],[2],[+1],order=order),mi_ans[0])
-    assert_equal(morton_neighbor(p[0,:],[2],[-1],order=order),mi_ans[1])
-    assert_equal(morton_neighbor(p[1,:],[2],[-1],order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[2,:],[2],[+1],order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[1,:],[2],[-1],order=order,periodic=True ),mi_ans[2])
-    assert_equal(morton_neighbor(p[2,:],[2],[+1],order=order,periodic=True ),mi_ans[3])
-    assert_equal(morton_neighbor(p[0,:],[1,2],[+1,+1],order=order),mi_ans[4])
-    assert_equal(morton_neighbor(p[0,:],[0,1],[-1,-1],order=order),mi_ans[5])
-    assert_equal(morton_neighbor(p[0,:],[0,2],[-1,+1],order=order),mi_ans[6])
-    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],order=order,periodic=False),-1)
-    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],order=order,periodic=True ),mi_ans[7])
-    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],order=order,periodic=True ),mi_ans[8])
+    assert_equal(morton_neighbor(p[0,:],[2],[+1],imax),mi_ans[0])
+    assert_equal(morton_neighbor(p[0,:],[2],[-1],imax),mi_ans[1])
+    assert_equal(morton_neighbor(p[1,:],[2],[-1],imax,periodic=False),-1)
+    assert_equal(morton_neighbor(p[2,:],[2],[+1],imax,periodic=False),-1)
+    assert_equal(morton_neighbor(p[1,:],[2],[-1],imax,periodic=True ),mi_ans[2])
+    assert_equal(morton_neighbor(p[2,:],[2],[+1],imax,periodic=True ),mi_ans[3])
+    assert_equal(morton_neighbor(p[0,:],[1,2],[+1,+1],imax),mi_ans[4])
+    assert_equal(morton_neighbor(p[0,:],[0,1],[-1,-1],imax),mi_ans[5])
+    assert_equal(morton_neighbor(p[0,:],[0,2],[-1,+1],imax),mi_ans[6])
+    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],imax,periodic=False),-1)
+    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],imax,periodic=False),-1)
+    assert_equal(morton_neighbor(p[1,:],[1,2],[-1,-1],imax,periodic=True ),mi_ans[7])
+    assert_equal(morton_neighbor(p[2,:],[1,2],[+1,+1],imax,periodic=True ),mi_ans[8])
 
 def test_get_morton_neighbors():
     from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices
@@ -339,13 +339,33 @@ def test_get_morton_neighbors():
     # Non-periodic
     for i in range(N):
         out = get_morton_neighbors(np.array([mi[i]],dtype=np.uint64),order=order,periodic=False)
-        ans = get_morton_indices(pn_non[i])
-        assert_array_equal(out,ans,err_msg="Non-periodic: {}".format(i))
+        ans = get_morton_indices(np.vstack([p[i,:],pn_non[i]]))
+        assert_array_equal(np.unique(out),np.unique(ans),err_msg="Non-periodic: {}".format(i))
     # Periodic
     for i in range(N):
         out = get_morton_neighbors(np.array([mi[i]],dtype=np.uint64),order=order,periodic=True)
-        ans = get_morton_indices(pn_per[i])
-        assert_array_equal(out,ans,err_msg="Periodic: {}".format(i))
+        ans = get_morton_indices(np.vstack([p[i,:],pn_per[i]]))
+        assert_array_equal(np.unique(out),np.unique(ans),err_msg="Periodic: {}".format(i))
+
+def time_get_morton_neighbors():
+    import time
+    from yt.utilities.lib.geometry_utils import get_morton_neighbors
+    # 0.001464
+    N = 100
+    order = 20
+    imax = np.uint64(1 << order)
+    x = np.arange(N,dtype=np.uint64)+np.uint64(imax-N/2)
+    # Non-periodic
+    t1 = time.time()
+    mi = get_morton_neighbors(x,order=order,periodic=False)
+    t2 = time.time()
+    tnon = t2-t1
+    # Periodic
+    t1 = time.time()
+    mi = get_morton_neighbors(x,order=order,periodic=True)
+    t2 = time.time()
+    tper = t2-t1
+    print("get_morton_neighbors: {:f} non-perodic, {:f} periodic".format(tnon,tper))
 
 def time_bitwise_addition():
     import time

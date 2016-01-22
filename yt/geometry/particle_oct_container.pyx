@@ -503,6 +503,10 @@ cdef class ParticleForest:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector):
+        # Find octs within selector
+        # Find corresponding morton indices
+        # Increase by ghost zones
+
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
         cdef np.ndarray[np.int64_t, ndim=1] file_indices
