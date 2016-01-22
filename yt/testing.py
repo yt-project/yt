@@ -780,10 +780,8 @@ def periodicity_cases(ds):
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
     import nose
-    import os
     import sys
-    import yt
-    from yt.funcs import mylog
+    from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
@@ -797,7 +795,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
+    yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
     if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
         # Provide a nice error message to work around nose bug
