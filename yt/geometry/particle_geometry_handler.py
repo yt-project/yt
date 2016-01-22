@@ -18,6 +18,7 @@ import numpy as np
 import os
 import weakref
 
+from yt.funcs import get_pbar
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
@@ -90,7 +91,6 @@ class ParticleIndex(Index):
             for pos in self.io._yield_coordinates(data_file):
                 self.regions.add_data_file(pos, data_file.file_id, 0, 0.0)
         pb.finish()
-
 
     def _detect_output_fields(self):
         # TODO: Add additional fields

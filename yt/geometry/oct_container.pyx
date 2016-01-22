@@ -33,7 +33,7 @@ cdef OctAllocationContainer *allocate_octs(
         int n_octs, OctAllocationContainer *prev):
     cdef OctAllocationContainer *n_cont
     cdef Oct *oct
-    cdef int n, i, j, k
+    cdef int n
     n_cont = <OctAllocationContainer *> malloc(
         sizeof(OctAllocationContainer))
     if prev == NULL:
@@ -87,13 +87,12 @@ cdef class OctreeContainer:
         self.oref = over_refine
         self.partial_coverage = partial_coverage
         self.cont = NULL
-        cdef int i, j, k, p
+        cdef int i
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
         self.num_domains = 0
         self.level_offset = 0
         self.domains = NULL
-        p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
@@ -113,8 +112,6 @@ cdef class OctreeContainer:
     @property
     def oct_arrays(self):
         cdef OctAllocationContainer *cur = self.cont
-        cdef Oct *this
-        cdef int i
         cdef OctPadded[:] mm
         rv = []
         while cur != NULL:
@@ -134,7 +131,7 @@ cdef class OctreeContainer:
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
         cdef OctVisitorData data
         obj.setup_data(&data, -1)
-        cdef int i, j, k, n
+        cdef int j, k
         data.global_index = -1
         data.level = 0
         data.oref = 0
@@ -232,7 +229,7 @@ cdef class OctreeContainer:
                         oct_visitor_function *func,
                         OctVisitorData *data,
                         int vc = -1, np.int64_t *indices = NULL):
-        cdef int i, j, k, n
+        cdef int i, j, k
         if vc == -1:
             vc = self.partial_coverage
         data.global_index = -1
@@ -261,12 +258,6 @@ cdef class OctreeContainer:
                 pos[1] += dds[1]
             pos[0] += dds[0]
 
-    cdef void oct_bounds(self, Oct *o, np.float64_t *corner, np.float64_t *size):
-        cdef int i
-        #for i in range(3):
-        #    size[i] = (self.DRE[i] - self.DLE[i]) / (self.nn[i] << o.level)
-        #    corner[i] = o.pos[i] * size[i] + self.DLE[i]
-
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
 
@@ -290,7 +281,6 @@ cdef class OctreeContainer:
         cdef np.int64_t ipos[3]
         cdef np.float64_t dds[3]
         cdef np.float64_t cp[3]
-        cdef np.float64_t pp[3]
         cdef Oct *cur
         cdef Oct *next
         cdef int i
@@ -356,15 +346,13 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     cdef Oct** neighbors(self, OctInfo *oi, np.int64_t *nneighbors, Oct *o,
                          bint periodicity[3]):
-        cdef Oct* candidate
-        nn = 0
         # We are going to do a brute-force search here.
         # This is not the most efficient -- in fact, it's relatively bad.  But
         # we will attempt to improve it in a future iteration, where we will
         # grow a stack of parent Octs.
         # Note that in the first iteration, we will just find the up-to-27
         # neighbors, including the main oct.
-        cdef np.int64_t i, j, k, n, level, ii, nfound = 0, dlevel
+        cdef np.int64_t i, j, k, n, level, ii, dlevel
         cdef int ind[3]
         cdef OctList *olist
         cdef OctList *my_list
@@ -618,11 +606,10 @@ cdef class OctreeContainer:
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
             int count_boundary = 0):
-        cdef int level, no, p, i, j, k
+        cdef int no, p, i
         cdef int ind[3]
         cdef int nb = 0
         cdef Oct *cur
-        cdef Oct *next = NULL
         cdef np.float64_t pp[3]
         cdef np.float64_t cp[3]
         cdef np.float64_t dds[3]
@@ -650,7 +637,7 @@ cdef class OctreeContainer:
             if cur == NULL: raise RuntimeError
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
-            for level in range(curlevel):
+            for _ in range(curlevel):
                 # At every level, find the cell this oct
                 # lives inside
                 for i in range(3):
@@ -752,7 +739,6 @@ cdef class OctreeContainer:
 
     def domain_count(self, SelectorObject selector):
         # We create oct arrays of the correct size
-        cdef np.int64_t i, num_octs
         cdef np.ndarray[np.int64_t, ndim=1] domain_counts
         domain_counts = np.zeros(self.num_domains, dtype="int64")
         cdef OctVisitorData data
@@ -772,10 +758,8 @@ cdef class OctreeContainer:
                    np.int64_t offset = 0):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n
-        cdef int i, di
-        cdef np.int64_t local_pos, local_filled = 0
-        cdef np.float64_t val
+        cdef int i
+        cdef np.int64_t local_filled = 0
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
@@ -810,7 +794,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  over_refine = 1):
-        cdef int i, j, k, p
+        cdef int i
         self.partial_coverage = 1
         self.oref = over_refine
         for i in range(3):
@@ -838,7 +822,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
 
     cdef int get_root(self, int ind[3], Oct **o):
         o[0] = NULL
-        cdef int i
         cdef np.int64_t key = self.ipos_to_key(ind)
         cdef OctKey okey
         cdef OctKey **oresult = NULL
@@ -876,8 +859,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
                         OctVisitorData *data,
                         int vc = -1,
                         np.int64_t *indices = NULL):
-        cdef int i, j, k, n
-        cdef np.int64_t key, ukey
+        cdef int i, j
+        cdef np.int64_t key
         data.global_index = -1
         data.level = 0
         if vc == -1:
@@ -904,7 +887,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         return 0 # We no longer have a domain offset.
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
-        cdef int i
         cdef Oct *next = NULL
         self.get_root(ind, &next)
         if next != NULL: return next
@@ -919,7 +901,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cont.n_assigned += 1
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
-        cdef np.int64_t okey = ikey.key
         key = self.ipos_to_key(ind)
         self.root_nodes[self.num_root].key = key
         self.root_nodes[self.num_root].node = next
