@@ -42,7 +42,7 @@ int convert_particle_arrays(
 
     *xpos    = (PyArrayObject *) PyArray_FromAny(oxpos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if(!*xpos){
     PyErr_Format(_HOPerror,
              "EnzoHop: xpos didn't work.");
@@ -52,7 +52,7 @@ int convert_particle_arrays(
 
     *ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if((!*ypos)||(PyArray_SIZE(*ypos) != num_particles)) {
     PyErr_Format(_HOPerror,
              "EnzoHop: xpos and ypos must be the same length.");
@@ -61,7 +61,7 @@ int convert_particle_arrays(
 
     *zpos    = (PyArrayObject *) PyArray_FromAny(ozpos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if((!*zpos)||(PyArray_SIZE(*zpos) != num_particles)) {
     PyErr_Format(_HOPerror,
              "EnzoHop: xpos and zpos must be the same length.");
@@ -70,7 +70,7 @@ int convert_particle_arrays(
 
     *mass    = (PyArrayObject *) PyArray_FromAny(omass,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if((!*mass)||(PyArray_SIZE(*mass) != num_particles)) {
     PyErr_Format(_HOPerror,
              "EnzoHop: xpos and mass must be the same length.");
@@ -129,11 +129,11 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
                     PyArray_DescrFromType(NPY_FLOAT64));
 
     fprintf(stdout, "Copying arrays for %d particles\n", num_particles);
-    kd->np_masses = (npy_float64*) mass->data;
-    kd->np_pos[0] = (npy_float64*) xpos->data;
-    kd->np_pos[1] = (npy_float64*) ypos->data;
-    kd->np_pos[2] = (npy_float64*) zpos->data;
-    kd->np_densities = (npy_float64*) particle_density->data;
+    kd->np_masses = (npy_float64*) PyArray_DATA(mass);
+    kd->np_pos[0] = (npy_float64*) PyArray_DATA(xpos);
+    kd->np_pos[1] = (npy_float64*) PyArray_DATA(ypos);
+    kd->np_pos[2] = (npy_float64*) PyArray_DATA(zpos);
+    kd->np_densities = (npy_float64*) PyArray_DATA(particle_density);
     kd->totalmass = totalmass;
 	for (i = 0; i < num_particles; i++) kd->p[i].np_index = i;
 
@@ -173,8 +173,8 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     free(my_comm.gl);
     free_slice(my_comm.s);
 
-    PyArray_UpdateFlags(particle_density, NPY_OWNDATA | particle_density->flags);
-    PyArray_UpdateFlags(particle_group_id, NPY_OWNDATA | particle_group_id->flags);
+    PyArray_UpdateFlags(particle_density, NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_density));
+    PyArray_UpdateFlags(particle_group_id, NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_group_id));
     PyObject *return_value = Py_BuildValue("NN", particle_density, particle_group_id);
 
     Py_DECREF(xpos);
@@ -266,11 +266,11 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
     totalmass /= normalize_to;
 
 
-    self->kd->np_masses = (npy_float64 *)self->mass->data;
-    self->kd->np_pos[0] = (npy_float64 *)self->xpos->data;
-    self->kd->np_pos[1] = (npy_float64 *)self->ypos->data;
-    self->kd->np_pos[2] = (npy_float64 *)self->zpos->data;
-    self->kd->np_densities = (npy_float64 *)self->densities->data;
+    self->kd->np_masses = (npy_float64 *)PyArray_DATA(self->mass);
+    self->kd->np_pos[0] = (npy_float64 *)PyArray_DATA(self->xpos);
+    self->kd->np_pos[1] = (npy_float64 *)PyArray_DATA(self->ypos);
+    self->kd->np_pos[2] = (npy_float64 *)PyArray_DATA(self->zpos);
+    self->kd->np_densities = (npy_float64 *)PyArray_DATA(self->densities);
     self->kd->totalmass = totalmass;
 
     PrepareKD(self->kd);
