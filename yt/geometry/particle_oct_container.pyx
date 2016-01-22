@@ -118,8 +118,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
         cdef np.int64_t i = 0, lpos = 0
-        cdef np.int64_t index_counter = 0
-        cdef int cur_dom = -1
         # Note that we now assign them in the same order they will be visited
         # by recursive visitors.
         for i in range(self.nn[0]):
@@ -156,7 +154,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #track of how many are used with np initially 0
         self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
-        cdef int i, j, k
         my_oct.domain = -1
         my_oct.file_ind = 0
         my_oct.domain_ind = self.nocts - 1
@@ -222,10 +219,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
-        cdef int i, j, k, m, n
+        cdef int i, j, k
         cdef int ind[3]
         cdef Oct *noct
-        cdef np.uint64_t prefix1, prefix2
         # TODO: This does not need to be changed.
         o.children = <Oct **> malloc(sizeof(Oct *)*8)
         for i in range(2):
@@ -357,7 +353,8 @@ cdef class ParticleForest:
                       np.float64_t rel_buffer):
         # TODO: Replace with the bitarray
         # Initialize
-        cdef np.int64_t p, i
+        cdef int i
+        cdef np.int64_t p
         cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
@@ -394,8 +391,7 @@ cdef class ParticleForest:
                       np.ndarray[np.uint8_t, ndim=1] mask,
                       np.uint64_t file_id, int order):
         # Initialize
-        cdef np.int64_t no = pos.shape[0]
-        cdef np.int64_t p, i
+        cdef np.int64_t p
         cdef np.uint64_t mi, nsub_mi, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
@@ -405,14 +401,12 @@ cdef class ParticleForest:
         cdef np.float64_t box_right[3]
         cdef np.float64_t dds[3]
         cdef np.int64_t total_hits = 0
-        cdef ParticleOctreeContainer octree = self.index_octree
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             #dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
             dds[i] = self.dds_mi[i]
-        tr = []
         cdef np.ndarray[np.uint64_t, ndim=2] sub_mi
         sub_mi = np.zeros((2, pos.shape[0]), dtype="uint64")
         nsub_mi = 0
@@ -467,7 +461,6 @@ cdef class ParticleForest:
         cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it1
         cdef map[np.int32_t, ewah_bool_array].iterator it2
         cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p1
-        cdef pair[np.int32_t, ewah_bool_array] p2
         cdef ewah_bool_array arr, arr_any, arr_two, arr_swap
         cdef int nm = 0, nc = 0
         it1 = self.bitmasks.begin()
@@ -532,19 +525,17 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=3] omask
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
-        files, pcount, omask, buffer_files = data_file_info
+        _, _, omask, _ = data_file_info
         # cdef np.float64_t LE[3], RE[3]
-        cdef np.float64_t LE[3]
-        cdef np.float64_t RE[3]
         cdef np.uint64_t total_pcount = 0
-        cdef np.uint64_t selected, fcheck, fmask
+        cdef np.uint64_t fcheck, fmask
         cdef np.ndarray[np.uint64_t, ndim=3] counts
         cdef np.ndarray[np.uint64_t, ndim=3] mask 
         cdef np.ndarray[np.int32_t, ndim=3] forest_nodes
         forest_nodes = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
             dtype="int32") - 1
         counts = self.counts
-        cdef int i0, i, j0, j, k0, k, n, nm, multiple, ii
+        cdef int i, j, k, n, nm, ii
         nm = len(self.masks)
         cdef np.uint64_t **masks = <np.uint64_t **> malloc(
             sizeof(np.uint64_t *) * nm)
@@ -552,15 +543,12 @@ cdef class ParticleForest:
             mask = self.masks[n]
             masks[n] = <np.uint64_t *> mask.data
         cdef int file_mask_id = <int> (file_id / 64.0)
-        cdef np.uint64_t mv, index, file_mask = (ONEBIT << (file_id % 64))
-        cdef int num_roots = 0
-        indices = []
+        cdef np.uint64_t index, file_mask = (ONEBIT << (file_id % 64))
         cdef np.uint8_t *file_ids = <np.uint8_t*> malloc(
             sizeof(np.uint8_t) * self.nfiles)
         for i in range(self.nfiles):
             file_ids[i] = 0
         index = -1
-        cdef int my_ind
         cdef int dims[3]
         for i in range(3):
             dims[i] = self.dims[i]
@@ -631,7 +619,7 @@ cdef class ParticleForest:
                     bitsize = 32
                 elif pos.dtype == np.float64:
                     pos64 = pos
-                    bisize = 64
+                    bitsize = 64
                 else:
                     raise RuntimeError
                 for j in range(pos.shape[0]):
@@ -705,9 +693,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #every domain
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
-        cdef Oct *o
         cdef np.int64_t i, lpos = 0
-        cdef int cur_dom = -1
         # Note that we now assign them in the same order they will be visited
         # by recursive visitors.
         for i in range(self.num_root):
@@ -740,7 +726,6 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #track of how many are used with np initially 0
         self.nocts += 1
         cdef Oct *my_oct = <Oct*> malloc(sizeof(Oct))
-        cdef int i, j, k
         my_oct.domain = -1
         my_oct.file_ind = 0
         my_oct.domain_ind = self.nocts - 1
@@ -750,7 +735,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
     def __dealloc__(self):
         #Call the freemem ops on every ocy
         #of the root mesh recursively
-        cdef int i, j, k
+        cdef int i
         if self.root_nodes== NULL: return
         if self.cont != NULL and self.cont.next == NULL: return
         if self.loaded == 0:
@@ -785,7 +770,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef Oct *cur
-        cdef Oct *root
+        cdef Oct *root = NULL
         cdef np.int64_t no = indices.shape[0], p, index
         cdef int i, level
         cdef int ind[3]
@@ -830,10 +815,9 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         #Allocate and initialize child octs
         #Attach particles to child octs
         #Remove particles from this oct entirely
-        cdef int i, j, k, m, n
+        cdef int i, j, k
         cdef int ind[3]
         cdef Oct *noct
-        cdef np.uint64_t prefix1, prefix2
         # TODO: This does not need to be changed.
         o.children = <Oct **> malloc(sizeof(Oct *)*8)
         for i in range(2):
@@ -870,7 +854,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
                 header['dims'], header['left_edge'],
                 header['right_edge'], header['num_root'],
                 over_refine = header['over_refine'])
-        cdef np.uint64_t i, j, k, n
+        cdef np.uint64_t i, j
         cdef np.int64_t i64ind[3]
         cdef int ind[3]
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask, packed_mask
@@ -904,13 +888,11 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
             for j in range(3):
                 ind[j] = i64ind[j]
             obj.next_root(1, ind)
-        cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         # This dds is the oct-width
         for i in range(3):
             dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
         # Pos is the center of the octs
-        cdef Oct *o
         cdef void *p[4]
         cdef np.int64_t nfinest = 0
         p[0] = ref_mask.data
@@ -935,7 +917,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
                       right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
                       over_refine = self.oref, num_root = self.num_root)
-        cdef np.uint64_t i, j, k
+        cdef np.uint64_t i, j
         cdef SelectorObject selector = AlwaysSelector(None)
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
