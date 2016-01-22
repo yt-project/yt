@@ -76,7 +76,6 @@ cdef class OctreeContainer:
     cdef int get_root(self, int ind[3], Oct **o)
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
-    cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
     # OctAllocationContainer.offset if such a thing exists.
     cdef np.int64_t get_domain_offset(self, int domain_id)

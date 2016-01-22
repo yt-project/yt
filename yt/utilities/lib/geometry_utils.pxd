@@ -30,7 +30,7 @@ DEF ZSHIFT=0
 @cython.wraparound(False)
 cdef inline np.int64_t ifrexp(np.float64_t x, np.int64_t *e):
     cdef np.float64_t m
-    cdef int e0
+    cdef int e0 = 0
     m = frexp(x,&e0)
     e[0] = <np.int64_t>e0
     return <np.int64_t>ldexp(m,DBL_MANT_DIG)
@@ -263,7 +263,6 @@ cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float6
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_mml(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds):
-    cdef int i
     cdef np.uint64_t x_ind, y_ind, z_ind
     cdef np.uint64_t mi
     x_ind = <np.uint64_t> ((x - DLE[0])/dds[0])
