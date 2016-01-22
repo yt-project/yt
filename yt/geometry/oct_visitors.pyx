@@ -19,6 +19,7 @@ cimport numpy
 import numpy
 from fp_utils cimport *
 from libc.stdlib cimport malloc, free
+from yt.utilities.libs.geometry_utils cimport encode_morton_64bit
 
 # Now some visitor functions
 
@@ -96,7 +97,6 @@ cdef void icoords_octs(Oct *o, OctVisitorData *data, np.uint8_t selected):
     data.index += 1
 
 cdef void morton_index_octs(Oct *o, OctVisitorData *data, np.uint64_t selected):
-    from yt.utilities.libs.geometry_utils cimport encode_morton_64bit
     if selected == 0: return
     cdef void **p = <void **> data.array
     cdef np.uint8_t *level_arr = <np.uint8_t *> p[0]

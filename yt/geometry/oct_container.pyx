@@ -737,6 +737,27 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, self.fill_func, &data)
         return levels, cell_inds, file_inds
 
+    def morton_index_octs(self, SelectorObject selector, int domain_id,
+                          num_cells = -1):
+        cdef np.int64_t i
+        cdef np.ndarray[np.uint8_t, ndim=1] levels
+        cdef np.ndarray[np.uint64_t, ndim=1] morton_inds
+        if num_cells < 0:
+            num_cells = selector.count_oct_cells(self, domain_id)
+        levels = np.zeros(num_cells, dtype="uint8")
+        morton_inds = np.zeros(num_cells, dtype="uint64")
+        for i in range(num_cells):
+            levels[i] = 100
+            morton_inds[i] = 0
+        cdef OctVisitorData data
+        self.setup_data(&data, domain_id)
+        cdef void *p[3]
+        p[0] = levels.data
+        p[1] = morton_inds.data
+        data.array = p
+        self.visit_all_octs(selector, oct_visitors.morton_index_octs, &data)
+        return levels, morton_inds
+
     def domain_count(self, SelectorObject selector):
         # We create oct arrays of the correct size
         cdef np.ndarray[np.int64_t, ndim=1] domain_counts
