@@ -1577,8 +1577,9 @@ class MeshLinesCallback(PlotCallback):
                                     offset, self.thresh)
         img = np.squeeze(np.transpose(img, (yax, xax, ax)))
 
-        # convert to RGBA 
-        image = np.zeros((800, 800, 4), dtype=np.uint8)
+        # convert to RGBA
+        size = plot.frb.buff_size
+        image = np.zeros((size[0], size[1], 4), dtype=np.uint8)
         image[:, :, 0][img > 0.0] = 0
         image[:, :, 1][img > 0.0] = 0
         image[:, :, 2][img > 0.0] = 0

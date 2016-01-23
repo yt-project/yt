@@ -97,6 +97,7 @@ cdef class MeshSampler(ImageSampler):
             ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
             ray.mask = -1
             ray.time = 0
+            ray.Ng[0] = 1e37  # we use this to track the hit distance
             rtcs.rtcIntersect(scene.scene_i, ray)
             data[j] = ray.time
             used[j] = ray.primID

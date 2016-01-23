@@ -19,7 +19,6 @@ from yt.funcs import \
     get_output_filename, \
     mylog, \
     ensure_list
-from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
@@ -575,10 +574,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
                                    north_vector=dd.north_vector, method=dd.method)
-        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
-        if dd.weight_field is None and dd.method == "integrate":
-            units *= Unit('cm', registry=dd.ds.unit_registry)
-        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
+        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
         self[item] = ia
         return ia
 

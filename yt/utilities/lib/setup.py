@@ -247,15 +247,16 @@ def configuration(parent_package='',top_path=None):
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_samplers.pxd",
-                                      "yt/utilities/lib/element_mappings.pxd"])
+                                      "yt/utilities/lib/element_mappings.pxd",
+                                      "yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("mesh_intersection",
                              ["yt/utilities/lib/mesh_intersection.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
-                             depends=["yt/utilities/lib/mesh_intersection.pxd"])
-
+                             depends=["yt/utilities/lib/mesh_intersection.pxd",
+                                      "yt/utilities/lib/mesh_construction.pxd"])
     config.add_subpackage("tests")
 
     if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
