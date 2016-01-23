@@ -272,22 +272,22 @@ class SZProjection(object):
         setup_sunyaev_zeldovich_fields(self.ds)
 
         dens = off_axis_projection(source, ctr, L, w, res, "density",
-                                   north_vector=north_vector, no_ghost=no_ghost)
+                                   north_vector=north_vector, no_ghost=no_ghost)[0]
         Te = off_axis_projection(source, ctr, L, w, res, "t_sz",
-                                 north_vector=north_vector, no_ghost=no_ghost)/dens
+                                 north_vector=north_vector, no_ghost=no_ghost)[0]/dens
         bpar = off_axis_projection(source, ctr, L, w, res, "beta_par",
-                                   north_vector=north_vector, no_ghost=no_ghost)/dens
+                                   north_vector=north_vector, no_ghost=no_ghost)[0]/dens
         omega1 = off_axis_projection(source, ctr, L, w, res, "t_squared",
-                                     north_vector=north_vector, no_ghost=no_ghost)/dens
+                                     north_vector=north_vector, no_ghost=no_ghost)[0]/dens
         omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
             bperp2 = off_axis_projection(source, ctr, L, w, res, "beta_perp_squared", 
-                                         north_vector=north_vector, no_ghost=no_ghost)/dens
+                                         north_vector=north_vector, no_ghost=no_ghost)[0]/dens
             sigma1 = off_axis_projection(source, ctr, L, w, res, "t_beta_par", 
-                                         north_vector=north_vector, no_ghost=no_ghost)/dens
+                                         north_vector=north_vector, no_ghost=no_ghost)[0]/dens
             sigma1 = sigma1/Te - bpar
             kappa1 = off_axis_projection(source, ctr, L, w, res, "beta_par_squared", 
-                                         north_vector=north_vector, no_ghost=no_ghost)/dens
+                                         north_vector=north_vector, no_ghost=no_ghost)[0]/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))

@@ -19,7 +19,7 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.old_camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
 
 pyfits = _astropy.pyfits
@@ -764,7 +764,7 @@ class FITSOffAxisProjection(FITSImageData):
         for field in fields:
             buf[field] = off_axis_projection(ds, center, normal, wd, res, field,
                                              no_ghost=no_ghost, north_vector=north_vector,
-                                             method=method, weight=weight_field).swapaxes(0, 1)
+                                             method=method, weight=weight_field)[0].swapaxes(0, 1)
         center = ds.arr([0.0] * 2, 'code_length')
         w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
         super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)
