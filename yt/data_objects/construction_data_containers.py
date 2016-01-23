@@ -40,9 +40,9 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
     YTTooManyVertices
-from yt.utilities.lib.QuadTree import \
+from yt.utilities.lib.quad_tree import \
     QuadTree
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 from yt.utilities.lib.misc_utilities import \
     fill_region, fill_region_float

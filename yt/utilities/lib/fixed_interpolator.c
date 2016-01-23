@@ -11,7 +11,7 @@
 // that I can't seem to make fast in Cython
 //
 
-#include "FixedInterpolator.h"
+#include "fixed_interpolator.h"
 
 #define VINDEX(A,B,C) data[((((A)+ci[0])*(ds[1]+1)+((B)+ci[1]))*(ds[2]+1)+ci[2]+(C))]
 //  (((C*ds[1])+B)*ds[0]+A)
