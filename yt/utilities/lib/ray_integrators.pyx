@@ -52,7 +52,6 @@ def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
             for n in range(nn):
                 temp[n] = i_s[ii,jj,n]
             for k in range(kmax-kmin):
-                kk = k + kmin#*kstride, which doesn't make any sense
                 for n in range(nn):
                     o_s[i,j,k,n] = temp[n] + dx*(e[i,j,k,n] - temp[n]*a[i,j,k,n])
                     temp[n] = o_s[i,j,k,n]
@@ -135,7 +134,6 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     cdef np.int64_t cur_ind[3]
     cdef np.int64_t step[3]
     intersect_t = 1
-    dt_tolerance = 1e-6
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
@@ -237,7 +235,6 @@ def PlaneVoxelIntegration(np.ndarray[np.float64_t, ndim=1] left_edge,
     # Note that for now it's just shells, but this can and should be
     # generalized to transfer functions
     cdef int i, vi
-    dt_tolerance = 1e-6
     cdef int nv = ug.shape[0]
     cdef int nshells = shells.shape[0]
     cdef np.ndarray[np.float64_t, ndim=1] u = np.empty((3,), dtype=np.float64)
