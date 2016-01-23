@@ -7,12 +7,18 @@ Installation
 ^^^^^^^^^^^^
 
 Beginning with version 3.3, yt has the ability to volume render unstructured
-mesh data - like that created by finite element calculations, for example. 
-In order to use this capability, a few additional dependencies are required. 
-The easiest way to get yt with unstructured mesh support is to use the
-``get_yt.sh`` script, which will install the additional dependencies for you
-if you set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the top of
-the script. The ``get_yt.sh`` script can be downloaded by doing:
+mesh data like that created by finite element calculations. In order to use 
+this capability, a few additional dependencies are required. The easiest way 
+to install yt with unstructured mesh support is to use conda to install the
+most recent development version of yt from our channel:
+
+.. code-block:: bash
+
+    conda install -c http://use.yt/with_conda/ yt
+
+If you want to install from source, you can use the ``get_yt.sh`` script.
+Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 
+top of the script. The ``get_yt.sh`` script can be downloaded by doing:
 
 .. code-block:: bash
 
