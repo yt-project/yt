@@ -174,8 +174,13 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr, global_dict=global_dict,
-                                       transformations=unit_text_transform)
+                try:
+                    unit_expr = parse_expr(unit_expr, global_dict=global_dict,
+                                           transformations=unit_text_transform)
+                except SyntaxError as e:
+                    msg = ("Unit expression %s raised an error "
+                           "during parsing:\n%s" % (unit_expr, repr(e)))
+                    raise UnitParseError(msg)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr

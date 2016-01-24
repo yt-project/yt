@@ -5,7 +5,7 @@ from yt.testing import \
     assert_array_almost_equal, \
     fake_random_ds
 import yt.utilities.linear_interpolators as lin
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 
 def setup():

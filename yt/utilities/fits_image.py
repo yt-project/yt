@@ -728,8 +728,9 @@ class FITSOffAxisProjection(FITSImageData):
          The name of the weighting field.  Set to None for no weight.
     image_res : an int or 2-tuple of ints
         Specify the resolution of the resulting image. 
-    depth_res : an int 
-        Specify the resolution of the depth of the projection.
+    depth_res : integer
+        Deprecated, this is still in the function signature for API
+        compatibility
     north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
@@ -759,7 +760,7 @@ class FITSOffAxisProjection(FITSImageData):
         wd = tuple(el.in_units('code_length').v for el in width)
         if not iterable(image_res):
             image_res = (image_res, image_res)
-        res = (image_res[0], image_res[1], depth_res)
+        res = (image_res[0], image_res[1])
         for field in fields:
             buf[field] = off_axis_projection(ds, center, normal, wd, res, field,
                                              no_ghost=no_ghost, north_vector=north_vector,

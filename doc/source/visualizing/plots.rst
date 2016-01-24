@@ -1452,7 +1452,9 @@ filesize.
 .. note::
    PyX must be installed, which can be accomplished either manually
    with ``pip install pyx`` or with the install script by setting
-   ``INST_PYX=1``.
+   ``INST_PYX=1``. If you are using python2, you must install pyx
+   version 0.12.1 with ``pip install pyx==0.12.1``, since that is 
+   the last version with python2 support.
 
 This module can take any of the plots mentioned above and create an
 EPS or PDF figure.  For example,
@@ -1499,3 +1501,31 @@ The routine will try its best to place the colorbars in the optimal
 margin, but it can be overridden by providing the keyword
 ``cb_location`` with a dict of either ``right, left, top, bottom``
 with the fields as the keys.
+
+You can also combine slices, projections, and phase plots. Here is
+an example that includes slices and phase plots:
+
+.. code-block:: python
+
+    from yt import SlicePlot, PhasePlot
+    from yt.visualization.eps_writer import multiplot_yt
+   
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+    p1 = SlicePlot(ds, 0, 'density')
+    p1.set_width(10, 'kpc')
+   
+    p2 = SlicePlot(ds, 0, 'temperature')
+    p2.set_width(10, 'kpc')
+    p2.set_cmap('temperature', 'hot')
+
+    sph = ds.sphere(ds.domain_center, (10, 'kpc'))
+    p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
+                   weight_field='cell_mass')
+
+    p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+
+    mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
+                      bare_axes=False, yt_nocbar=False, margins=(0.5,0.5))
+
+    mp.save_fig('multi_slice_phase')
