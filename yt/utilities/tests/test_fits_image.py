@@ -25,7 +25,7 @@ from yt.utilities.fits_image import \
     FITSSlice, FITSOffAxisSlice, \
     FITSOffAxisProjection, \
     assert_same_wcs
-from yt.visualization.volume_rendering.old_camera import \
+from yt.visualization.volume_rendering.off_axis_projection import \
     off_axis_projection
 
 
@@ -105,7 +105,7 @@ def test_fits_image():
     assert new_fid3.wcs.wcs.ctype[1] == "DEC--TAN"
 
     buf = off_axis_projection(ds, ds.domain_center, [0.1, 0.2, -0.9],
-                              0.5, 128, "density").swapaxes(0, 1)
+                              0.5, 128, "density")[0].swapaxes(0, 1)
     fid4 = FITSImageData(buf, fields="density", width=100.0)
     fits_oap = FITSOffAxisProjection(ds, [0.1, 0.2, -0.9], "density",
                                      width=(0.5,"unitary"), image_res=128,
