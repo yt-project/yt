@@ -82,6 +82,8 @@ cdef class OctreeContainer:
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void append_domain(self, np.int64_t domain_count)
+    # The fill_style is the ordering, C or F, of the octs in the file.  "o"
+    # corresponds to C, and "r" is for Fortran.
     cdef public object fill_style
 
 cdef class SparseOctreeContainer(OctreeContainer):
