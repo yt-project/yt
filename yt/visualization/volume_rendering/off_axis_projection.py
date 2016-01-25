@@ -19,8 +19,9 @@ from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
 from yt.funcs import mylog, iterable
 from yt.utilities.lib.grid_traversal import \
-        PartitionedGrid
+    PartitionedGrid
 from yt.data_objects.api import ImageArray
+from yt.utilities.orientation import Orientation
 import numpy as np
 
 
@@ -162,6 +163,11 @@ def off_axis_projection(data_source, center, normal_vector,
         width = data_source.ds.arr([width]*3)
     camera.position = center - width[2]*camera.normal_vector
     camera.focus = center
+    orienter = Orientation(normal_vector=normal_vector, 
+                           north_vector=north_vector)
+    camera.switch_orientation(orienter.normal_vector,
+                              orienter.north_vector)
+    print camera.unit_vectors
     sc.camera = camera
     sc.add_source(vol)
 
