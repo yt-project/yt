@@ -167,7 +167,6 @@ def off_axis_projection(data_source, center, normal_vector,
                            north_vector=north_vector)
     camera.switch_orientation(orienter.normal_vector,
                               orienter.north_vector)
-    print camera.unit_vectors
     sc.camera = camera
     sc.add_source(vol)
 
