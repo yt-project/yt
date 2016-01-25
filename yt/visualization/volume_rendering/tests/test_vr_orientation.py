@@ -16,12 +16,14 @@ import numpy as np
 from yt import load_uniform_grid
 from yt.utilities.answer_testing.framework import \
     requires_answer_testing, \
-    VRImageComparisonTest
+    VRImageComparisonTest, \
+    GenericImageTest
 from yt.visualization.volume_rendering.api import \
     Scene, \
     Camera, \
     VolumeSource, \
-    ColorTransferFunction
+    ColorTransferFunction, \
+    off_axis_projection
 
 
 def setup_ds():
@@ -149,3 +151,12 @@ def test_orientation():
             sc.camera = cam
             yield VRImageComparisonTest(
                 sc, ds, 'roll_%s_%04d' % (lens_type, frame), decimals)
+
+    image, sc = off_axis_projection(ds,
+                                    [0.5, 0.5, 0.5],
+                                    [0.5, 0.4, 0.7],
+                                    [0.04, 0.04, 0.4],
+                                    512, "density", no_ghost=False)
+    def offaxis_image_func(filename_prefix):
+        return image.write_image(filename_prefix)
+    yield GenericImageTest(ds, offaxis_image_func, decimals)
