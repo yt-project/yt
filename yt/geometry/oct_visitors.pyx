@@ -41,6 +41,8 @@ cdef class OctVisitor:
     cdef void visit(self, Oct* o, np.uint8_t selected):
         raise NotImplementedError
 
+# This copies an integer array from the source to the destination, based on the
+# selection criteria.
 cdef class CopyArrayI64(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -54,6 +56,8 @@ cdef class CopyArrayI64(OctVisitor):
                 self.global_index, :]
         self.index += 1
 
+# This copies a floating point array from the source to the destination, based
+# on the selection criteria.
 cdef class CopyArrayF64(OctVisitor):
     #@cython.boundscheck(False)
     #@cython.initializedcheck(False)
@@ -67,6 +71,9 @@ cdef class CopyArrayF64(OctVisitor):
                 self.global_index, :]
         self.index += 1
 
+# This counts the number of octs, selected or not, that the selector hits.
+# Note that the selector will not recursively visit unselected octs, so this is
+# still useful.
 cdef class CountTotalOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -77,6 +84,7 @@ cdef class CountTotalOcts(OctVisitor):
             self.index += 1
             self.last = o.domain_ind
 
+# This counts the number of selected cells.
 cdef class CountTotalCells(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -84,6 +92,7 @@ cdef class CountTotalCells(OctVisitor):
         # Number of *cells* visited and selected.
         self.index += selected
 
+# Every time a cell is visited, mark it.  This will be for all visited octs.
 cdef class MarkOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -94,6 +103,7 @@ cdef class MarkOcts(OctVisitor):
             self.index += 1
         self.mark[self.index, self.ind[2], self.ind[1], self.ind[0]] = 1
 
+# Mask all the selected cells.
 cdef class MaskOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -101,6 +111,7 @@ cdef class MaskOcts(OctVisitor):
         if selected == 0: return
         self.mask[self.global_index, self.ind[2], self.ind[1], self.ind[0]] = 1
 
+# Compute a mapping from domain_ind to flattened index.
 cdef class IndexOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -111,6 +122,7 @@ cdef class IndexOcts(OctVisitor):
             self.oct_index[o.domain_ind] = self.index
             self.index += 1
 
+# Integer coordinates
 cdef class ICoordsOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -121,6 +133,7 @@ cdef class ICoordsOcts(OctVisitor):
             self.icoords[self.index,i] = (self.pos[i] << self.oref) + self.ind[i]
         self.index += 1
 
+# Level
 cdef class IResOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -129,6 +142,7 @@ cdef class IResOcts(OctVisitor):
         self.ires[self.index] = self.level
         self.index += 1
 
+# Floating point coordinates
 cdef class FCoordsOcts(OctVisitor):
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -146,6 +160,7 @@ cdef class FCoordsOcts(OctVisitor):
             self.fcoords[self.index,i] = (c + 0.5) * dx
         self.index += 1
 
+# Floating point widths; domain modifications are done later.
 cdef class FWidthOcts(OctVisitor):
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -162,6 +177,7 @@ cdef class FWidthOcts(OctVisitor):
             self.fwidth[self.index,i] = dx
         self.index += 1
 
+# Mark which domains are touched by a selector.
 cdef class IdentifyOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -172,6 +188,7 @@ cdef class IdentifyOcts(OctVisitor):
         if selected == 0: return
         self.domain_mask[o.domain - 1] = 1
 
+# Assign domain indices to octs
 cdef class AssignDomainInd(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -179,6 +196,7 @@ cdef class AssignDomainInd(OctVisitor):
         o.domain_ind = self.global_index
         self.index += 1
 
+# From the file, fill in C order
 cdef class FillFileIndicesO(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -191,6 +209,7 @@ cdef class FillFileIndicesO(OctVisitor):
         self.cell_inds[self.index] = self.oind()
         self.index +=1
 
+# From the file, fill in F order
 cdef class FillFileIndicesR(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -203,6 +222,7 @@ cdef class FillFileIndicesR(OctVisitor):
         self.cell_inds[self.index] = self.rind()
         self.index +=1
 
+# Count octs by domain
 cdef class CountByDomain(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -211,6 +231,7 @@ cdef class CountByDomain(OctVisitor):
         # NOTE: We do this for every *cell*.
         self.domain_counts[o.domain - 1] += 1
 
+# Store the refinement mapping of the octree to be loaded later
 cdef class StoreOctree(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
@@ -225,6 +246,7 @@ cdef class StoreOctree(OctVisitor):
         self.ref_mask[self.index] = res
         self.index += 1
 
+# Go from a refinement mapping to a new octree
 cdef class LoadOctree(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
