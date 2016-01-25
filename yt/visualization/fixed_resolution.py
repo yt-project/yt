@@ -569,7 +569,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff, sc = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
