@@ -440,10 +440,6 @@ printf "%-15s = %s so I " "INST_SCIPY" "${INST_SCIPY}"
 get_willwont ${INST_SCIPY}
 echo "be installing scipy"
 
-printf "%-15s = %s so I " "INST_0MQ" "${INST_0MQ}"
-get_willwont ${INST_0MQ}
-echo "be installing ZeroMQ"
-
 printf "%-15s = %s so I " "INST_ROCKSTAR" "${INST_ROCKSTAR}"
 get_willwont ${INST_ROCKSTAR}
 echo "be installing Rockstar"
@@ -638,8 +634,6 @@ ROCKSTAR='rockstar-0.99.6'
 SCIPY='scipy-0.15.1'
 SQLITE='sqlite-autoconf-3071700'
 SYMPY='sympy-0.7.6'
-PYZMQ='pyzmq-15.2.0'
-ZEROMQ='zeromq-4.1.4'
 ZLIB='zlib-1.2.8'
 SETUPTOOLS='setuptools-18.0.1'
 
@@ -660,11 +654,9 @@ echo 'a61b0d4cf528136991243bb23ac972c11c50ab5681d09f8b2d12cf7d37d3a9d76262f7fe6e
 echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
 echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
 echo 'bfd10455e74e30df568c4c4827140fb6cc29893b0e062ce1764bd52852ec7487a70a0f5ea53c3fca7886f5d36365c9f4db52b8c93cad35fb67beeb44a2d56f2d  python-hglib-1.6.tar.gz' > python-hglib-1.6.tar.gz.sha512
-echo '28541b095b5486b662fe33a24994af5a465989a2391091ec8b693579124fdd600c3b0721853377c7551430d55b13c9116a1eebdced74678598d78c01fa7431c7  pyzmq-15.2.0.tar.gz' > pyzmq-15.2.0.tar.gz.sha512
 echo 'fff4412d850c431a1b4e6ee3b17958ee5ab3beb81e6cb8a8e7d56d368751eaa8781d7c3e69d932dc002d718fddc66a72098acfe74cfe29ec80b24e6736317275  scipy-0.15.1.tar.gz' > scipy-0.15.1.tar.gz.sha512
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
 echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a3c3e4e3d485809750ce07507a6488e776a388a7a9a713110882fcf  sympy-0.7.6.tar.gz' > sympy-0.7.6.tar.gz.sha512
-echo '8a8cf4f52ad78dddfff104bfba0f80bbc12566920906a0fafb9fc340aa92f5577c2923cb2e5346c69835cd2ea1609647a8893c2883cd22c1f0340a720511460c  zeromq-4.1.4.tar.gz' > zeromq-4.1.4.tar.gz.sha512
 echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
 echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
 # Individual processes
@@ -675,8 +667,6 @@ echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4
 [ $INST_FTYPE -eq 1 ] && get_ytproject $FREETYPE_VER.tar.gz
 [ $INST_SQLITE3 -eq 1 ] && get_ytproject $SQLITE.tar.gz
 [ $INST_PYX -eq 1 ] && get_ytproject $PYX.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject $ZEROMQ.tar.gz
-[ $INST_0MQ -eq 1 ] && get_ytproject $PYZMQ.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
 [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
@@ -969,23 +959,6 @@ fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
 [ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
-
-# Now we do our IPython installation, which has two optional dependencies.
-if [ $INST_0MQ -eq 1 ]
-then
-    if [ ! -e $ZEROMQ/done ]
-    then
-        [ ! -e $ZEROMQ ] && tar xfz $ZEROMQ.tar.gz
-        echo "Installing ZeroMQ"
-        cd $ZEROMQ
-        ( ./configure --without-libsodium --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
-        touch done
-        cd ..
-    fi
-    do_setup_py $PYZMQ --zmq=${DEST_DIR}
-fi
 
 echo "Installing Jupyter"
 ( ${DEST_DIR}/bin/pip install "jupyter<2.0.0" 2>&1 ) 1>> ${LOG_FILE}
