@@ -178,6 +178,93 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 my_array[j,i] = dsp
     return my_array
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_off_axis_cartesian(
+                       np.ndarray[np.float64_t, ndim=1] x,
+                       np.ndarray[np.float64_t, ndim=1] y,
+                       np.ndarray[np.float64_t, ndim=1] z,
+                       np.ndarray[np.float64_t, ndim=1] px,
+                       np.ndarray[np.float64_t, ndim=1] py,
+                       np.ndarray[np.float64_t, ndim=1] pdx,
+                       np.ndarray[np.float64_t, ndim=1] pdy,
+                       np.ndarray[np.float64_t, ndim=1] pdz,
+                       np.ndarray[np.float64_t, ndim=1] center,
+                       np.ndarray[np.float64_t, ndim=2] inv_mat,
+                       np.ndarray[np.int64_t, ndim=1] indices,
+                       np.ndarray[np.float64_t, ndim=1] data,
+                       int cols, int rows, bounds):
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
+    cdef int i, j, p, ip
+    cdef int lc, lr, rc, rr
+    # These are the temp vars we get from the arrays
+    cdef np.float64_t xsp, ysp, zsp, dxsp, dysp, dzsp, dsp
+    cdef np.float64_t pxsp, pysp, cxpx, cypx, cx, cy, cz
+    # Some periodicity helpers
+    cdef np.ndarray[np.float64_t, ndim=2] my_array
+    cdef np.ndarray[np.int64_t, ndim=2] mask
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> rows)
+    px_dy = height / (<np.float64_t> cols)
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if rows == 0 or cols == 0:
+        raise YTPixelizeError("Cannot scale to zero size")
+    if px.shape[0] != py.shape[0] or \
+       px.shape[0] != pdx.shape[0] or \
+       px.shape[0] != pdy.shape[0] or \
+       px.shape[0] != pdz.shape[0] or \
+       px.shape[0] != indices.shape[0] or \
+       px.shape[0] != data.shape[0]:
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    my_array = np.zeros((rows, cols), "float64")
+    mask = np.zeros((rows, cols), "int64")
+    with nogil:
+        for ip in range(indices.shape[0]):
+            p = indices[ip]
+            xsp = x[p]
+            ysp = y[p]
+            zsp = z[p]
+            pxsp = px[p]
+            pysp = py[p]
+            dxsp = pdx[p]
+            dysp = pdy[p]
+            dzsp = pdz[p]
+            dsp = data[p]
+            # Any point we want to plot is at most this far from the center
+            md = 2.0 * math.sqrt(dxsp*dxsp + dysp*dysp + dzsp*dzsp)
+            if pxsp + md < x_min or \
+               pxsp - md > x_max or \
+               pysp + md < y_min or \
+               pysp - md > y_max:
+                continue
+            lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
+            lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), rows)
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), cols)
+            for i in range(lr, rr):
+                cypx = px_dy * (i + 0.5) + y_min
+                for j in range(lc, rc):
+                    cxpx = px_dx * (j + 0.5) + x_min
+                    cx = inv_mat[0,0]*cxpx + inv_mat[0,1]*cypx + center[0]
+                    cy = inv_mat[1,0]*cxpx + inv_mat[1,1]*cypx + center[1]
+                    cz = inv_mat[2,0]*cxpx + inv_mat[2,1]*cypx + center[2]
+                    if fabs(xsp - cx) * 0.95 > dxsp or \
+                       fabs(ysp - cy) * 0.95 > dysp or \
+                       fabs(zsp - cz) * 0.95 > dzsp:
+                        continue
+                    mask[i, j] = 1
+                    my_array[i, j] += dsp
+    my_array /= mask
+    return my_array
+
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
