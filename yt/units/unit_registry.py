@@ -13,12 +13,22 @@ A registry for units that can be added to and modified.
 #-----------------------------------------------------------------------------
 
 import json
+import re
+import sympy
 
+from distutils.version import LooseVersion
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.extern import six
 from sympy import \
-    sympify, srepr
+    sympify, \
+    srepr, \
+    __version__ as sympy_version
+
+SYMPY_VERSION = LooseVersion(sympy_version)
+
+def positive_symbol_replacer(match):
+    return match.group().replace(')\')', ')\', positive=True)')
 
 class SymbolNotFoundError(Exception):
     pass
@@ -115,7 +125,12 @@ class UnitRegistry:
         sanitized_lut = {}
         for k, v in six.iteritems(self.lut):
             san_v = list(v)
-            san_v[1] = srepr(v[1])
+            repr_dims = srepr(v[1])
+            if SYMPY_VERSION < LooseVersion("1.0.0"):
+                # see https://github.com/sympy/sympy/issues/6131
+                repr_dims = re.sub("Symbol\('\([a-z_]*\)'\)",
+                                   positive_symbol_replacer, repr_dims)
+            san_v[1] = repr_dims
             sanitized_lut[k] = tuple(san_v)
 
         return json.dumps(sanitized_lut)
