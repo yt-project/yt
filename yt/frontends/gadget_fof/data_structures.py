@@ -150,6 +150,10 @@ class GadgetFOFDataset(Dataset):
         super(GadgetFOFDataset, self).__init__(filename, dataset_type,
                                                units_override=units_override)
 
+    def add_field(self, *args, **kwargs):
+        super(GadgetFOFDataset, self).add_field(*args, **kwargs)
+        self._halos_ds.add_field(*args, **kwargs)
+
     @property
     def halos_field_list(self):
         return self._halos_ds.field_list
@@ -424,7 +428,12 @@ class GadgetFOFHaloDataset(Dataset):
         pass
 
     def _parse_parameter_file(self):
-        for attr in ["dimensionality", "current_time",
+        for attr in ["cosmological_simulation", "cosmology",
+                     "current_redshift", "current_time",
+                     "dimensionality", "domain_dimensions",
+                     "domain_left_edge", "domain_right_edge",
+                     "domain_width", "hubble_constant",
+                     "omega_lambda", "omega_matter",
                      "unique_identifier"]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
