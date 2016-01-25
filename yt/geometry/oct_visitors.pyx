@@ -50,7 +50,7 @@ cdef class CopyArrayI64(OctVisitor):
         if selected == 0: return
         # There are this many records between "octs"
         self.dest[self.index, :] = self.source[
-                self.ind[0], self.ind[1], self.ind[2],
+                self.ind[2], self.ind[1], self.ind[0],
                 self.global_index, :]
         self.index += 1
 
@@ -63,7 +63,7 @@ cdef class CopyArrayF64(OctVisitor):
         if selected == 0: return
         # There are this many records between "octs"
         self.dest[self.index, :] = self.source[
-                self.ind[0], self.ind[1], self.ind[2],
+                self.ind[2], self.ind[1], self.ind[0],
                 self.global_index, :]
         self.index += 1
 
@@ -92,14 +92,14 @@ cdef class MarkOcts(OctVisitor):
         if self.last != o.domain_ind:
             self.last = o.domain_ind
             self.index += 1
-        self.mark[self.index, self.ind[0], self.ind[1], self.ind[2]] = 1
+        self.mark[self.index, self.ind[2], self.ind[1], self.ind[0]] = 1
 
 cdef class MaskOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         if selected == 0: return
-        self.mask[self.global_index, self.ind[0], self.ind[1], self.ind[2]] = 1
+        self.mask[self.global_index, self.ind[2], self.ind[1], self.ind[0]] = 1
 
 cdef class IndexOcts(OctVisitor):
     @cython.boundscheck(False)
