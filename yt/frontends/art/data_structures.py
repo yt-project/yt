@@ -444,7 +444,7 @@ class DarkMatterARTDataset(ARTDataset):
         base_prefix, base_suffix = filename_pattern['particle_data']
         aexpstr = file_particle.rsplit('s0',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle))+"/*")
-        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+        for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue

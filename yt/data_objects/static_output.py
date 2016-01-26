@@ -293,6 +293,22 @@ class Dataset(object):
     def _is_valid(cls, *args, **kwargs):
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        """
+        This is a class method that accepts a directory (base), a list of files
+        in that directory, and a list of subdirectories.  It should return a
+        list of filenames (defined relative to the supplied directory) and a
+        boolean as to whether or not further directories should be recursed.
+        
+        This function doesn't need to catch all possibilities, nor does it need
+        to filter possibilities.
+        """
+        return [], True
+
+    def close(self):
+        pass
+
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]

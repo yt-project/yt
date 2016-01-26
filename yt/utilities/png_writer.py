@@ -12,7 +12,12 @@ Writing PNGs
 
 import matplotlib
 import matplotlib._png as _png
-from yt.extern.six.moves import cStringIO
+from yt.extern.six import PY2
+
+if PY2:
+    from cStringIO import StringIO
+else:
+    from io import BytesIO as StringIO
 from distutils.version import LooseVersion
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
@@ -33,7 +38,7 @@ def write_png(buffer, filename, dpi=100):
 def write_png_to_string(buffer, dpi=100, gray=0):
     width = buffer.shape[1]
     height = buffer.shape[0]
-    fileobj = cStringIO()
+    fileobj = StringIO()
     call_png_write_png(buffer, width, height, fileobj, dpi)
     png_str = fileobj.getvalue()
     fileobj.close()

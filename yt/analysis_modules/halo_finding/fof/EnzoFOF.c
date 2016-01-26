@@ -48,7 +48,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     xpos    = (PyArrayObject *) PyArray_FromAny(oxpos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if(!xpos){
     PyErr_Format(_FOFerror,
              "EnzoFOF: xpos didn't work.");
@@ -58,7 +58,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if((!ypos)||(PyArray_SIZE(ypos) != num_particles)) {
     PyErr_Format(_FOFerror,
              "EnzoFOF: xpos and ypos must be the same length.");
@@ -67,7 +67,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     zpos    = (PyArrayObject *) PyArray_FromAny(ozpos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    NPY_ARRAY_INOUT_ARRAY | NPY_ARRAY_UPDATEIFCOPY, NULL);
     if((!zpos)||(PyArray_SIZE(zpos) != num_particles)) {
     PyErr_Format(_FOFerror,
              "EnzoFOF: xpos and zpos must be the same length.");
@@ -140,7 +140,8 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
 	kdFinishFoF(kd);
 
-    PyArray_UpdateFlags(particle_group_id, NPY_OWNDATA | particle_group_id->flags);
+    PyArray_UpdateFlags(particle_group_id,
+        NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_group_id));
     PyObject *return_value = Py_BuildValue("N", particle_group_id);
 
     Py_DECREF(xpos);

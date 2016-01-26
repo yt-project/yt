@@ -13,7 +13,7 @@ from __future__ import print_function
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
-from yt.utilities.lib.CICDeposit import CICSample_3
+from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.funcs import mylog, get_pbar

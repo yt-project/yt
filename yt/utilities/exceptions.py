@@ -423,6 +423,17 @@ class YTTooParallel(YTException):
     def __str__(self):
         return "You've used too many processors for this dataset."
 
+
+class YTElementTypeNotRecognized(YTException):
+    def __init__(self, dim, num_nodes):
+        self.dim = dim
+        self.num_nodes = num_nodes
+
+    def __str__(self):
+        return "Element type not recognized - dim = %s, num_nodes = %s" % (
+            self.dim, self.num_nodes)
+
+
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
         self.field = field

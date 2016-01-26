@@ -381,26 +381,22 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
-            mylog.warning("High order elements not yet supported, " +
-                          "dropping to 1st order.")
-            field_data = field_data[:, 0:8]
-            indices = indices[:, 0:8]
-            self.mesh = mesh_construction.LinearElementMesh(self.scene,
-                                                            vertices,
-                                                            indices,
-                                                            field_data)
+            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+                                                               vertices,
+                                                               indices,
+                                                               field_data)
         else:
             # if this is another type of higher-order element, we demote
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("27-node hexes not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
             elif indices.shape[1] == 10:
                 # tetrahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("10-node tetrahedral elements not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
