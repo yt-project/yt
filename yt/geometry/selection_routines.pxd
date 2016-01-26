@@ -19,6 +19,8 @@ from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
+from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
+from libcpp.map cimport map
 
 ctypedef fused anyfloat:
     np.float32_t
@@ -64,6 +66,13 @@ cdef class SelectorObject:
                                 int level)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                     grid_visitor_function *func, np.uint8_t *cached_mask = ?)
+
+    cdef void recursive_morton_mask(self, np.int32_t level,
+                                     np.ndarray[np.float64_t, ndim=1] pos,
+                                     np.ndarray[np.float64_t, ndim=1] dds,
+                                     np.int32_t max_level, np.uint64_t mi1,
+                                     map[np.uint64_t, ewah_bool_array] mm,
+                                     int ngz = ?)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

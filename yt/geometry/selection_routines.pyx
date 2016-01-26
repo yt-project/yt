@@ -144,7 +144,8 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def get_morton_mask(self,
+    cdef map[np.uint64_t, ewah_bool_array] get_morton_mask(
+                        self,
                         np.ndarray[np.float64_t, ndim=1] DLE,
                         np.ndarray[np.float64_t, ndim=1] DRE,
                         np.int32_t order, int ngz = 0):
@@ -162,7 +163,7 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cpdef void recursive_morton_mask(self, np.int32_t level,
+    cdef void recursive_morton_mask(self, np.int32_t level,
                                      np.ndarray[np.float64_t, ndim=1] pos,
                                      np.ndarray[np.float64_t, ndim=1] dds,
                                      np.int32_t max_level, np.uint64_t mi1,
