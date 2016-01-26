@@ -796,7 +796,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                          method="volume_weighted",
                          create_octree=True,
                          index_fields=[smooth_cutoff],
-                         kernel_name=kernel_name)[0]
+                         kernel_name=kernel_name,
+                         **kwargs)[0]
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         # This should be used when seeking a non-normalized value:
