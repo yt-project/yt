@@ -513,6 +513,8 @@ class DualEPS(object):
         force_square = False
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
+        plot.hide_colorbar()
+        plot.hide_axes()
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
                 self.field = plot.plots.keys()[0]
@@ -522,7 +524,6 @@ class DualEPS(object):
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
-            plot.plots[self.field].hide_colorbar()
             plot.refresh()
             _p1 = plot.plots[self.field].figure
             force_square = True
@@ -538,7 +539,6 @@ class DualEPS(object):
         else:
             raise RuntimeError("Unknown plot type")
 
-        _p1.axes[0].set_axis_off()  # remove axes
         _p1.axes[0].set_position([0,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
@@ -547,7 +547,7 @@ class DualEPS(object):
 
         # Account for 1 pixel line width of the axis box and
         # non-square images after removing the colorbar.
-        yshift = -1.0 / _p1.dpi * 2.54
+        yshift = -1.0 / _p1.dpi * 2.54  # 2.54 cm = 1 in
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
         if force_square:
             yscale = scale * float(size[1]) / float(size[0])
