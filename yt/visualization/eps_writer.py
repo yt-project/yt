@@ -513,8 +513,6 @@ class DualEPS(object):
         force_square = False
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        plot.hide_colorbar()
-        plot.hide_axes()
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
                 self.field = plot.plots.keys()[0]
@@ -524,6 +522,12 @@ class DualEPS(object):
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+            if isinstance(plot, PlotWindow):
+                plot.hide_colorbar()
+                plot.hide_axes()
+            else:
+                plot.plots[self.field]._toggle_axes(False)
+                plot.plots[self.field]._toggle_colorbar(False)
             plot.refresh()
             _p1 = plot.plots[self.field].figure
             force_square = True
@@ -1336,7 +1340,7 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
     d = DualEPS(figsize=figsize)
     d.insert_image_yt(plot, field=field)
     d.axis_box_yt(plot, bare_axes=bare_axes, **kwargs)
-    if colorbar:
+    if colorbar and not isinstance(plot, ProfilePlot):
         d.colorbar_yt(plot, orientation=cb_orient)
     if savefig is not None:
         d.save_fig(savefig, format=file_format)
