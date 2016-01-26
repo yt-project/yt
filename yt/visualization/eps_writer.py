@@ -549,9 +549,7 @@ class DualEPS(object):
         figure_canvas.draw()
         size = (_p1.get_size_inches() * _p1.dpi).astype('int')
 
-        # Account for 1 pixel line width of the axis box and
-        # non-square images after removing the colorbar.
-        yshift = -1.0 / _p1.dpi * 2.54  # 2.54 cm = 1 in
+        # Account for non-square images after removing the colorbar.
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
         if force_square:
             yscale = scale * float(size[1]) / float(size[0])
@@ -559,7 +557,7 @@ class DualEPS(object):
             yscale = scale
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1]+yshift, image,
+        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              width=scale*self.figsize[0],
                                              height=yscale*self.figsize[1]))
 
