@@ -144,10 +144,8 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef map[np.uint64_t, ewah_bool_array] get_morton_mask(
-                        self,
-                        np.ndarray[np.float64_t, ndim=1] DLE,
-                        np.ndarray[np.float64_t, ndim=1] DRE,
+    cdef map[np.uint64_t, ewah_bool_array] get_morton_mask(self,
+                        np.float64_t DLE[3], np.float64_t DRE[3],
                         np.int32_t order, int ngz = 0):
         cdef map[np.uint64_t, ewah_bool_array] morton_mask
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
@@ -164,8 +162,7 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void recursive_morton_mask(self, np.int32_t level,
-                                     np.ndarray[np.float64_t, ndim=1] pos,
-                                     np.ndarray[np.float64_t, ndim=1] dds,
+                                     np.float64_t pos[3], np.float64_t dds[3],
                                      np.int32_t max_level, np.uint64_t mi1,
                                      map[np.uint64_t, ewah_bool_array] mm,
                                      int ngz = 0):
@@ -173,14 +170,14 @@ cdef class SelectorObject:
         cdef np.float64_t zpos[3]
         cdef np.float64_t npos[3]
         cdef np.float64_t ndds[3]
-        cdef np.int64_t ind1[3]
-        cdef np.int64_t ind2[3]
-        cdef np.ndarray[np.uint64_t, dim=2] ind1_n
-        cdef np.ndarray[np.uint64_t, dim=2] ind2_n
+        cdef np.uint64_t ind1[3]
+        cdef np.uint64_t ind2[3]
+        cdef np.ndarray[np.uint64_t, ndim=2] ind1_n
+        cdef np.ndarray[np.uint64_t, ndim=2] ind2_n
         cdef np.int64_t max_index = np.uint64(1 << max_level)
         cdef int i, j, k, l, m, n
         for i in range(3):
-            ndds[i] = dds/2
+            ndds[i] = dds[i]/2
             zpos[i] = 0
         # Loop over octs
         for i in range(2):

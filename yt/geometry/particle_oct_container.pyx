@@ -511,7 +511,7 @@ cdef class ParticleForest:
         # mask_s = selector.get_morton_mask(self.left_edge,self.right_edge,
         #                                   self.index_order,ngz=ngz)
         for j in range(3):
-            pos[j] = np.float64(0)
+            pos[j] = 0.0
             dds[j] = self.right_edge[j] - self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
                                        mask_s, ngz=ngz)
