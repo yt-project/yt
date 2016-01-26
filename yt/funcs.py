@@ -340,10 +340,9 @@ class TqdmProgressBar(object):
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self,title, maxval):
-        self._pbar = tqdm(leave=True,total=maxval,desc=title)
-
-    def update(self,*args,**kwargs):
-        self._pbar.update()
+        self._pbar = tqdm(leave=True, total=maxval, desc=title)
+    def update(self,*args, **kwargs):
+        self._pbar.update(*args, **kwargs)
     def finish(self):
         self._pbar.close()
 
@@ -385,7 +384,7 @@ class GUIProgressBar(object):
     def finish(self):
         self._pbar.Destroy()
 
-def get_pbar(title, maxval):
+def get_pbar(title, maxval, parallel=False):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -396,7 +395,14 @@ def get_pbar(title, maxval):
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
+        # If parallel is True, update progress on root only.
+        if parallel:
+            if is_root():
+                return TqdmProgressBar(title, maxval)
+            else:
+                return DummyProgressBar()
+        else:
+            return ParallelProgressBar(title, maxval)
     pbar = TqdmProgressBar(title,maxval)
     return pbar
 
