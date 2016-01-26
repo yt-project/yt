@@ -21,6 +21,7 @@ from fp_utils cimport fclip, i64clip
 from libc.math cimport copysign
 from yt.utilities.exceptions import YTDomainOverflow
 
+
 DEF ORDER_MAX=20
 DEF INDEX_MAX_64=2097151
 DEF XSHIFT=2

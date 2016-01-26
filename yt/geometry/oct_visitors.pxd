@@ -65,6 +65,7 @@ cdef oct_visitor_function fill_file_indices_rind
 cdef oct_visitor_function count_by_domain
 cdef oct_visitor_function store_octree
 cdef oct_visitor_function load_octree
+cdef oct_visitor_function morton_index_octs
 
 cdef inline int cind(int i, int j, int k):
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.

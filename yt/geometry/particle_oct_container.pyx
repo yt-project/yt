@@ -173,7 +173,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
-        cdef np.uint64_t FLAG = ~(<np.uint64_t>0) # why not just -1?
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
@@ -332,9 +332,6 @@ cdef class ParticleForest:
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i] 
-            # To save time, don't do this if index_order changes
-            # (Can you use properties in cython? If so, index_order should be
-            # property to handle changes that effect dds_mi)
             self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order)
         # We use 64-bit masks
         self.masks = []
@@ -405,7 +402,6 @@ cdef class ParticleForest:
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
-            #dds[i] = (self.right_edge[i] - self.left_edge[i]) / (1<<self.index_order)
             dds[i] = self.dds_mi[i]
         cdef np.ndarray[np.uint64_t, ndim=2] sub_mi
         sub_mi = np.zeros((2, pos.shape[0]), dtype="uint64")
@@ -495,29 +491,56 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector, int ngz):
-        # Find corresponding morton indices
-        # Increase by ghost zones
-        # This just performs a selection of which data files touch which cells.
-        # This should be used for non-spatial chunking of data.
-        cdef np.ndarray[np.uint8_t, ndim=1] cell_levels
-        cdef np.ndarray[np.uint8_t, ndim=1] cell_indices
-        cdef np.ndarray[np.int64_t, ndim=1] file_indices
-        cdef np.ndarray[np.uint8_t, ndim=1] file_mask 
-        cdef np.ndarray[np.uint8_t, ndim=2] masks = self.masks
-        # cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] bitmasks
-        # Find cells within selector
-        cell_levels, cell_indices, file_indices = self.index_octree.file_index_octs(selector, -1)
-        file_mask = np.zeros(masks.shape[1], dtype="uint8")
-        cdef int i, j
-        cdef np.int64_t k
-        for i in range(masks.shape[1]):
-            for j in range(file_indices.shape[0]):
-                k = file_indices[j]
-                if masks[k,i] == 1:
-                    file_mask[i] = 1
-                    break
-        return file_mask
+    cpdef identify_data_files(self, SelectorObject selector, int ngz = 0):
+        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] mask_d
+        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it_mi1
+        cdef map[np.int32_t, ewah_bool_array].iterator it_file
+        cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p_mi1_file
+        cdef pair[np.int32_t, ewah_bool_array] p_file_mi2
+        cdef map[np.uint64_t, ewah_bool_array] mask_s
+        cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1_s
+        cdef ewah_bool_array arr1, arr2, arr_and
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
+        cdef int j
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
+        cdef np.uint64_t mi1
+        cdef np.int32_t ifile
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
+        # Find mask of selected morton indices
+        # mask_s = selector.get_morton_mask(self.left_edge,self.right_edge,
+        #                                   self.index_order,ngz=ngz)
+        for j in range(3):
+            pos[j] = np.float64(0)
+            dds[j] = self.right_edge[j] - self.left_edge[j]
+        selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
+                                       mask_s, ngz=ngz)
+        # Compare with mask of particles
+        # TODO: set nfile
+        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        it_mi1_d = mask_d.begin()
+        while it_mi1_d != mask_d.end():
+            p_mi1_file = dereference(it_mi1_d)
+            mi1 = p_mi1_file.first
+            it_mi1_s = mask_s.find(mi1)
+            # Only continue if mi1 selected
+            if (it_mi1_s != mask_s.end()):
+                arr1 = dereference(it_mi1_s).second
+                it_file = p_mi1_file.second.begin()
+                while it_file != p_mi1_file.second.end():
+                    ifile = dereference(it_file).first
+                    # Only continue if file not already selected
+                    if not file_mask_p[ifile]:
+                        arr_and.reset()
+                        arr2 = dereference(it_file).second
+                        arr1.logicaland(arr2,arr_and)
+                        if arr_and.numberOfOnes() > 0:
+                            file_mask_p[ifile] = 1
+                    # Increment file
+                    preincrement(it_file)
+            # Increment mi1
+            preincrement(it_mi1_d)
+        return np.where(file_mask_p)[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

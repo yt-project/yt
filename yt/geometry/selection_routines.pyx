@@ -25,6 +25,9 @@ from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
+from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
+from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
+from libcpp.map cimport map
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -137,6 +140,97 @@ cdef class SelectorObject:
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
                 self.periodicity[i] = ds.periodicity[i]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def get_morton_mask(self,
+                        np.ndarray[np.float64_t, ndim=1] DLE,
+                        np.ndarray[np.float64_t, ndim=1] DRE,
+                        np.int32_t order, int ngz = 0):
+        cdef map[np.uint64_t, ewah_bool_array] morton_mask
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
+        cdef int i
+        for i in range(3):
+            pos[i] = 0
+            dds[i] = (DRE[i] - DLE[i])
+        self.recursive_morton_mask(0, pos, dds, order, FLAG, morton_mask, ngz=ngz)
+        return morton_mask
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cpdef void recursive_morton_mask(self, np.int32_t level,
+                                     np.ndarray[np.float64_t, ndim=1] pos,
+                                     np.ndarray[np.float64_t, ndim=1] dds,
+                                     np.int32_t max_level, np.uint64_t mi1,
+                                     map[np.uint64_t, ewah_bool_array] mm,
+                                     int ngz = 0):
+        cdef np.uint64_t mi2, mi1_n
+        cdef np.float64_t zpos[3]
+        cdef np.float64_t npos[3]
+        cdef np.float64_t ndds[3]
+        cdef np.int64_t ind1[3]
+        cdef np.int64_t ind2[3]
+        cdef np.ndarray[np.uint64_t, dim=2] ind1_n
+        cdef np.ndarray[np.uint64_t, dim=2] ind2_n
+        cdef np.int64_t max_index = np.uint64(1 << max_level)
+        cdef int i, j, k, l, m, n
+        for i in range(3):
+            ndds[i] = dds/2
+            zpos[i] = 0
+        # Loop over octs
+        for i in range(2):
+            npos[0] = pos[0] + i*ndds[0]
+            for j in range(2):
+                npos[1] = pos[1] + j*ndds[1]
+                for k in range(2):
+                    npos[2] = pos[2] + k*ndds[2]
+                    # Only recurse into selected cells
+                    if self.select_cell(npos,ndds):
+                        if level < (2*max_level): # both morton indices...
+                            if level == max_level:
+                                mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
+                                                          np.uint64(npos[1]/ndds[1]),
+                                                          np.uint64(npos[2]/ndds[2]))
+                                # Reset so second is relative to first
+                                self.recursive_morton_mask(level+1, zpos, ndds,
+                                                           max_level, mi1, mm)
+                            else:
+                                self.recursive_morton_mask(level+1, npos, ndds,
+                                                           max_level, mi1, mm)
+                        else: # 2*max_level
+                            for m in range(3):
+                                ind2[m] = np.uint64(npos[m]/ndds[m])
+                            # Add neighbors
+                            if (ngz > 0):
+                                decode_morton_64bit(mi1,ind1)
+                                ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
+                                ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
+                                for m in range(3):
+                                    for n,l in enumerate(range(-ngz,(ngz+1))):
+                                        # TODO: handle non-periodic
+                                        if (ind2[m]+l) < 0:
+                                            ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index)
+                                            ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                        elif (ind2[m]+l) > max_index:
+                                            ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index)
+                                            ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                        else:
+                                            ind1_n[n,m] = ind1[m]
+                                            ind2_n[n,m] = np.uint64(ind2[m]+l)
+                                for l in range(ind1_n.shape[0]):
+                                    for m in range(ind1_n.shape[0]):
+                                        for n in range(ind1_n.shape[0]):
+                                            mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                            mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
+                                            mm[mi1_n].set(mi2)
+                            else:
+                                mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
+                                mm[mi1].set(mi2)
+                                        
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
