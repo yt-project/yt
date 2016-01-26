@@ -790,9 +790,9 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smooth_cutoff.convert_to_units("code_length")
         # volume_weighted smooth operations return lists of length 1.
         rv = data.smooth(pos, [mass, hsml, dens, quan],
+                         index_fields=[smooth_cutoff],
                          method="volume_weighted",
                          create_octree=True,
-                         index_fields=[smooth_cutoff],
                          nneighbors=nneighbors,
                          kernel_name=kernel_name)[0]
         rv[np.isnan(rv)] = 0.0
