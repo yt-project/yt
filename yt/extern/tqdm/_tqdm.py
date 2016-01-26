@@ -446,15 +446,21 @@ class tqdm(object):
             self.n = n
             self.close()
 
-    def update(self, n=1):
+    def update(self, n=None, i=None):
         """
         Manually update the progress bar, useful for streams
         such as reading files.
         E.g.:
         >>> t = tqdm(total=filesize) # Initialise
         >>> for current_buffer in stream:
+        ...    t.update(i=len(current_buffer))
+        >>> t.close()
+        >>>
+        >>> some_list = range(10)
+        >>> t = tqdm(total=len(some_list)) # Initialise
+        >>> for n, val in some_list:
         ...    ...
-        ...    t.update(len(current_buffer))
+        ...    t.update(n)
         >>> t.close()
         The last line is highly recommended, but possibly not necessary if
         `t.update()` will be called in such a way that `filesize` will be
@@ -463,15 +469,23 @@ class tqdm(object):
         Parameters
         ----------
         n  : int
-            Increment to add to the internal counter of iterations
-            [default: 1].
+            The current iteration.
+        i : int
+            The increment
         """
+
+        if n is None and i is None:
+            i = 1
+        if n is not None and i is not None:
+            raise RuntimeError("Must specify either n or i, not both.")
+
         if self.disable:
             return
 
-        if n < 1:
-            n = 1
-        self.n += n
+        if n is not None:
+            self.n = n
+        else:
+            self.n += i
 
         delta_it = self.n - self.last_print_n  # should be n?
         if delta_it >= self.miniters:
