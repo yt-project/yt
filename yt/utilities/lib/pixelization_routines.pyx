@@ -182,18 +182,18 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_off_axis_cartesian(
-                       np.ndarray[np.float64_t, ndim=1] x,
-                       np.ndarray[np.float64_t, ndim=1] y,
-                       np.ndarray[np.float64_t, ndim=1] z,
-                       np.ndarray[np.float64_t, ndim=1] px,
-                       np.ndarray[np.float64_t, ndim=1] py,
-                       np.ndarray[np.float64_t, ndim=1] pdx,
-                       np.ndarray[np.float64_t, ndim=1] pdy,
-                       np.ndarray[np.float64_t, ndim=1] pdz,
-                       np.ndarray[np.float64_t, ndim=1] center,
-                       np.ndarray[np.float64_t, ndim=2] inv_mat,
-                       np.ndarray[np.int64_t, ndim=1] indices,
-                       np.ndarray[np.float64_t, ndim=1] data,
+                       np.float64_t[:] x,
+                       np.float64_t[:] y,
+                       np.float64_t[:] z,
+                       np.float64_t[:] px,
+                       np.float64_t[:] py,
+                       np.float64_t[:] pdx,
+                       np.float64_t[:] pdy,
+                       np.float64_t[:] pdz,
+                       np.float64_t[:] center,
+                       np.float64_t[:,:] inv_mat,
+                       np.int64_t[:] indices,
+                       np.float64_t[:] data,
                        int cols, int rows, bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
