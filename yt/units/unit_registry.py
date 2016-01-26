@@ -14,7 +14,6 @@ A registry for units that can be added to and modified.
 
 import json
 import re
-import sympy
 
 from distutils.version import LooseVersion
 from yt.units.unit_lookup_table import \
