@@ -764,7 +764,7 @@ def add_particle_average(registry, ptype, field_name,
 
 def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
-        nneighbors = None, kernel_name = 'cubic'):
+        nneighbors = 64, kernel_name = 'cubic'):
     if kernel_name == 'cubic':
         field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
     else:
@@ -785,9 +785,6 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         else:
             hsml = data[ptype, smoothing_length_name]
             hsml.convert_to_units("code_length")
-        kwargs = {}
-        if nneighbors:
-            kwargs['nneighbors'] = nneighbors
         # This is for applying cutoffs, similar to in the SPLASH paper.
         smooth_cutoff = data["index","cell_volume"]**(1./3)
         smooth_cutoff.convert_to_units("code_length")
@@ -796,8 +793,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                          method="volume_weighted",
                          create_octree=True,
                          index_fields=[smooth_cutoff],
-                         kernel_name=kernel_name,
-                         **kwargs)[0]
+                         nneighbors=nneighbors,
+                         kernel_name=kernel_name)[0]
         rv[np.isnan(rv)] = 0.0
         # Now some quick unit conversions.
         # This should be used when seeking a non-normalized value:
