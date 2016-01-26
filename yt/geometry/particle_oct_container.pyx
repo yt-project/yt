@@ -30,7 +30,10 @@ cimport cython
 from collections import defaultdict
 
 from particle_deposit cimport gind
-from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
+from yt.utilities.lib.ewah_bool_array cimport \
+    ewah_bool_array
+from yt.utilities.lib.ewah_bool_wrap cimport \
+    BoolArrayCollection
 from libcpp.map cimport map
 from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
@@ -498,6 +501,8 @@ cdef class ParticleForest:
         cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p_mi1_file
         cdef pair[np.int32_t, ewah_bool_array] p_file_mi2
         cdef map[np.uint64_t, ewah_bool_array] mask_s
+        cdef BoolArrayCollection cmask_s = BoolArrayCollection()
+        mask_s = (<map[np.uint64_t, ewah_bool_array] *> cmask_s.ewah_coll)[0]
         cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1_s
         cdef ewah_bool_array arr1, arr2, arr_and
         cdef np.float64_t pos[3]
@@ -514,7 +519,7 @@ cdef class ParticleForest:
             pos[j] = 0.0
             dds[j] = self.right_edge[j] - self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
-                                       mask_s, ngz=ngz)
+                                       cmask_s, ngz=ngz)
         # Compare with mask of particles
         # TODO: set nfile
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")

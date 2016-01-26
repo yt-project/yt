@@ -25,9 +25,8 @@ from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
+from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
-from libcpp.map cimport map
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -144,10 +143,10 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef map[np.uint64_t, ewah_bool_array] get_morton_mask(self,
+    cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3], np.float64_t DRE[3],
                         np.int32_t order, int ngz = 0):
-        cdef map[np.uint64_t, ewah_bool_array] morton_mask
+        cdef BoolArrayCollection morton_mask = BoolArrayCollection()
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
@@ -164,7 +163,7 @@ cdef class SelectorObject:
     cdef void recursive_morton_mask(self, np.int32_t level,
                                      np.float64_t pos[3], np.float64_t dds[3],
                                      np.int32_t max_level, np.uint64_t mi1,
-                                     map[np.uint64_t, ewah_bool_array] mm,
+                                     BoolArrayCollection mm,
                                      int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t zpos[3]
@@ -224,10 +223,9 @@ cdef class SelectorObject:
                                         for n in range(ind1_n.shape[0]):
                                             mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
-                                            mm[mi1_n].set(mi2)
                             else:
                                 mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                                mm[mi1].set(mi2)
+                                mm.set(mi1, mi2)
                                         
 
     @cython.boundscheck(False)

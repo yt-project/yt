@@ -16,6 +16,7 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 cimport numpy as np
 cimport cython
 from libcpp.vector cimport vector
+from libcpp.map cimport map
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[uword]:
@@ -42,3 +43,4 @@ cdef extern from "ewah.h":
 
 ctypedef EWAHBoolArray[np.uint32_t] ewah_bool_array
 ctypedef vector[size_t] bitset_array
+ctypedef map[np.uint64_t, ewah_bool_array] ewah_map

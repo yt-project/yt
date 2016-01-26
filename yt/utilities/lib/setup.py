@@ -257,6 +257,12 @@ def configuration(parent_package='',top_path=None):
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_intersection.pxd"])
+        config.add_extension("ewah_bool_wrap",
+                             ["yt/utilities/lib/ewah_bool_wrap.pyx"],
+                             depends=["yt/utilities/lib/ewah_bool_array.pxd"],
+                             include_dirs=["yt/utilities/lib/",
+                                           "yt/utilities/lib/ewahboolarray"],
+                             language="c++")
 
     config.add_subpackage("tests")
 

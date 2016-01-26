@@ -19,20 +19,14 @@ from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
-from yt.utilities.lib.ewah_bool_array cimport ewah_bool_array
-from libcpp.map cimport map
+from yt.utilities.lib.ewah_bool_wrap cimport \
+    BoolArrayCollection
 from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
+from yt.utilities.lib.fp_utils cimport _ensure_code
 
 ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
-
-cdef inline _ensure_code(arr):
-    if hasattr(arr, "units"):
-        if "code_length" == str(arr.units):
-            return arr
-        arr.convert_to_units("code_length")
-    return arr
 
 cdef class SelectorObject:
     cdef public np.int32_t min_level
@@ -72,9 +66,9 @@ cdef class SelectorObject:
                                      np.float64_t pos[3],
                                      np.float64_t dds[3],
                                      np.int32_t max_level, np.uint64_t mi1,
-                                     map[np.uint64_t, ewah_bool_array] mm,
+                                     BoolArrayCollection mm,
                                      int ngz = ?)
-    cdef map[np.uint64_t, ewah_bool_array] get_morton_mask(self,
+    cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3],
                         np.float64_t DRE[3],
                         np.int32_t order, int ngz = ?)
