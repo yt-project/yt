@@ -535,6 +535,9 @@ cdef class ParticleForest:
             p_mi1_file = dereference(it_mi1_d)
             mi1 = p_mi1_file.first
             # mi1 selected by selector
+            it_mi1_s = mask_d.find(mi1)
+            if (it_mi1_s != mask_s.end()):
+                print "Found mi1 = {} in selector".format(mi1)
             it_mi1_s = mask_s.find(mi1)
             if (it_mi1_s != mask_s.end()):
                 print "Found mi1 = {} in selector".format(mi1)
