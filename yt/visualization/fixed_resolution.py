@@ -23,11 +23,10 @@ from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
+    pixelize_cylinder, pixelize_off_axis_cartesian
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.frontends.stream.api import load_uniform_grid
 
-from . import _MPL
 import numpy as np
 import weakref
 import re
@@ -537,7 +536,8 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
+        buff = pixelize_off_axis_cartesian(
+                               self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
                                self.data_source.center, self.data_source._inv_mat, indices,
