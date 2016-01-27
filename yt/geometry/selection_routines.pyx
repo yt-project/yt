@@ -119,6 +119,7 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
+        self._hash_initialized = 0
         cdef np.float64_t [:] DLE
         cdef np.float64_t [:] DRE
         self.min_level = getattr(dobj, "min_level", 0)
@@ -613,6 +614,8 @@ cdef class SelectorObject:
 
     def __hash__(self):
         # convert data to be hashed to a byte array, which FNV algorithm expects
+        if self._hash_initialized == 1:
+            return self._hash
         hash_data = bytearray()
         for v in self._hash_vals() + self._base_hash():
             if isinstance(v, tuple):
@@ -620,7 +623,10 @@ cdef class SelectorObject:
                 hash_data.extend(repr(v[1]).encode('ascii'))
             else:
                 hash_data.extend(repr(v).encode('ascii'))
-        return fnv_hash(hash_data)
+        cdef np.int64_t hash_value = fnv_hash(hash_data)
+        self._hash = hash_value
+        self._hash_initialized = 1
+        return hash_value
 
     def _hash_vals(self):
         raise NotImplementedError
