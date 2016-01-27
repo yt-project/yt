@@ -146,7 +146,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3], np.float64_t DRE[3],
-                        np.int32_t order, int ngz = 0):
+                        np.int32_t order1, np.int32_t order2, int ngz = 0):
         cdef BoolArrayCollection morton_mask = BoolArrayCollection()
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.float64_t pos[3]
@@ -155,7 +155,7 @@ cdef class SelectorObject:
         for i in range(3):
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
-        self.recursive_morton_mask(0, pos, dds, order, FLAG, 
+        self.recursive_morton_mask(0, pos, dds, order1, order2, FLAG, 
                                    morton_mask, morton_mask, ngz=ngz)
         return morton_mask
 
@@ -163,11 +163,12 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void recursive_morton_mask(self, np.int32_t level,
-                                     np.float64_t pos[3], np.float64_t dds[3],
-                                     np.int32_t max_level, np.uint64_t mi1,
-                                     BoolArrayCollection mm,
-                                     BoolArrayCollection mm_ghosts,
-                                     int ngz = 0):
+                                    np.float64_t pos[3], np.float64_t dds[3],
+                                    np.int32_t max_level1, np.int32_t max_level2,
+                                    np.uint64_t mi1,
+                                    BoolArrayCollection mm,
+                                    BoolArrayCollection mm_ghosts,
+                                    int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t npos[3]
         cdef np.float64_t ndds[3]
@@ -175,7 +176,8 @@ cdef class SelectorObject:
         cdef np.uint64_t ind2[3]
         cdef np.ndarray[np.uint64_t, ndim=2] ind1_n
         cdef np.ndarray[np.uint64_t, ndim=2] ind2_n
-        cdef np.uint64_t max_index = np.uint64(1 << max_level)
+        cdef np.uint64_t max_index1 = np.uint64(1 << max_level1)
+        cdef np.uint64_t max_index2 = np.uint64(1 << max_level2)
         cdef int i, j, k, l, m, n, n_neighbors
         cdef list neighbors
         for i in range(3):
@@ -189,17 +191,18 @@ cdef class SelectorObject:
                     npos[2] = pos[2] + k*ndds[2]
                     # Only recurse into selected cells
                     if self.select_cell(npos,ndds):
-                        if level < (2*max_level): # both morton indices...
-                            if level == max_level:
+                        if level < (max_level1 + max_level2): # both morton indices...
+                            if level == max_level1:
                                 mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
                                                           np.uint64(npos[1]/ndds[1]),
                                                           np.uint64(npos[2]/ndds[2]))
                             self.recursive_morton_mask(level+1, npos, ndds,
-                                                       max_level, mi1, mm, mm_ghosts, ngz=ngz)
-                        else: # 2*max_level
+                                                       max_level1, max_level2,
+                                                       mi1, mm, mm_ghosts, ngz=ngz)
+                        else: # max_level1 + max_level2
                             decode_morton_64bit(mi1,ind1)
                             for m in range(3):
-                                ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*(1 << max_level))/ndds[m])
+                                ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
                             # Add selected cell
                             mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
                             mm.set(mi1,mi2)
@@ -213,16 +216,24 @@ cdef class SelectorObject:
                                     for m in range(3):
                                         if (ind2[m]+l) < 0:
                                             if self.periodicity[m]:
-                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index)
-                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index1)
+                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
                                             else:
-                                                break
-                                        elif (ind2[m]+l) > max_index:
+                                                if (ind1[m]-1) < 0:
+                                                    break
+                                                else:
+                                                    ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index1)
+                                                    ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
+                                        elif (ind2[m]+l) >= max_index2:
                                             if self.periodicity[m]:
-                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index)
-                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index1)
+                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
                                             else:
-                                                break
+                                                if (ind1[m]+1) >= max_index1:
+                                                    break
+                                                else:
+                                                    ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index1)
+                                                    ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
                                         else:
                                             ind1_n[n,m] = ind1[m]
                                             ind2_n[n,m] = np.uint64(ind2[m]+l)

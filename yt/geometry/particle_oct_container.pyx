@@ -177,7 +177,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
-        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
@@ -291,6 +290,7 @@ ctypedef fused anyfloat:
     np.float64_t
 
 cdef np.uint64_t ONEBIT=1
+cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
 cdef class ParticleForest:
     cdef np.float64_t left_edge[3]
@@ -303,7 +303,8 @@ cdef class ParticleForest:
     cdef int oref
     cdef public int n_ref
     cdef public ParticleOctreeContainer index_octree
-    cdef public np.int32_t index_order
+    cdef public np.int32_t index_order1
+    cdef public np.int32_t index_order2
     cdef public object masks
     cdef public object counts
     cdef public object max_count
@@ -339,7 +340,7 @@ cdef class ParticleForest:
             self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order)
         # We use 64-bit masks
         self.masks = []
-        self.index_order = index_order
+        self.index_order1 = index_order
         # This will be an on/off flag for which morton index values are touched
         # by particles.
         self.morton_count = np.zeros(1 << (index_order*3), dtype="uint8")
@@ -362,7 +363,7 @@ cdef class ParticleForest:
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         # cdef np.float64_t dds[3]
-        cdef np.int32_t order = self.index_order
+        cdef np.int32_t order = self.index_order1
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -380,9 +381,9 @@ cdef class ParticleForest:
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
-            #mi = bounded_morton_mml(ppos[0], ppos[1], ppos[2], LE, dds)
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
+            self.bitmasks[mi][file_id].set(FLAG)
         return
 
     @cython.boundscheck(False)
@@ -402,6 +403,8 @@ cdef class ParticleForest:
         cdef np.float64_t box_right[3]
         cdef np.float64_t dds[3]
         cdef np.int64_t total_hits = 0
+        # Save order of second index
+        self.index_order2 = order
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -422,7 +425,7 @@ cdef class ParticleForest:
             if skip == 1: continue
             # Find coarse index of particle
             # (Balance between memory cost of storing morton indices & computation time?)
-            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order)
+            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order1)
             #mi = bounded_morton_mml(ppos[0], ppos[1], ppos[2], LE, dds)
             # Only look if it's within the mask
             if mask[mi] == 0: continue
@@ -489,7 +492,7 @@ cdef class ParticleForest:
         self.index_octree.n_ref = 1
         mi, = np.where(self.morton_count > 0)
         mi = mi.astype("uint64")
-        self.index_octree.add(mi, self.index_order)
+        self.index_octree.add(mi, self.index_order1)
         self.index_octree.finalize()
 
     @cython.boundscheck(False)
@@ -519,10 +522,14 @@ cdef class ParticleForest:
         for j in range(3):
             pos[j] = np.float64(0.0)
             dds[j] = self.right_edge[j] - self.left_edge[j]
-        selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
-                                       cmask_s, cmask_g, ngz=ngz)
+        selector.recursive_morton_mask(0, pos, dds, 
+                                       self.index_order1, self.index_order2, 
+                                       FLAG, cmask_s, cmask_g, ngz=ngz)
+        mask_d = self.bitmasks
         mask_s = (<map[np.uint64_t, ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.uint64_t, ewah_bool_array] *> cmask_g.ewah_coll)[0]
+        if (mask_d.begin() == mask_d.end()):
+            print "Data mask is empty."
         if (mask_s.begin() == mask_s.end()):
             print "Selector mask is empty."
         if (mask_g.begin() == mask_g.end()):
@@ -534,9 +541,10 @@ cdef class ParticleForest:
         while it_mi1_d != mask_d.end():
             p_mi1_file = dereference(it_mi1_d)
             mi1 = p_mi1_file.first
+            print "mi1 = {}".format(mi1)
             # mi1 selected by selector
-            it_mi1_s = mask_d.find(mi1)
-            if (it_mi1_s != mask_s.end()):
+            it_mi1_d = mask_d.find(mi1)
+            if (it_mi1_d != mask_d.end()):
                 print "Found mi1 = {} in selector".format(mi1)
             it_mi1_s = mask_s.find(mi1)
             if (it_mi1_s != mask_s.end()):

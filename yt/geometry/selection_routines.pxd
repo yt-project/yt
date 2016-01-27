@@ -63,16 +63,17 @@ cdef class SelectorObject:
                     grid_visitor_function *func, np.uint8_t *cached_mask = ?)
 
     cdef void recursive_morton_mask(self, np.int32_t level,
-                                     np.float64_t pos[3],
-                                     np.float64_t dds[3],
-                                     np.int32_t max_level, np.uint64_t mi1,
-                                     BoolArrayCollection mm,
-                                     BoolArrayCollection mm_ghosts,
-                                     int ngz = ?)
+                                    np.float64_t pos[3],
+                                    np.float64_t dds[3],
+                                    np.int32_t max_level1, np.int32_t max_level2,
+                                    np.uint64_t mi1,
+                                    BoolArrayCollection mm,
+                                    BoolArrayCollection mm_ghosts,
+                                    int ngz = ?)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3],
                         np.float64_t DRE[3],
-                        np.int32_t order, int ngz = ?)
+                        np.int32_t order1, np.int32_t order2, int ngz = ?)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil
