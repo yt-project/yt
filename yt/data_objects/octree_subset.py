@@ -93,7 +93,7 @@ class OctreeSubset(YTSelectionContainer):
         if len(arr.shape) == 4 and arr.flags["F_CONTIGUOUS"]:
             return arr
         nz = self.nz
-        n_oct = arr.shape[0] / (nz**3.0)
+        n_oct = arr.shape[0] / (nz**3)
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
