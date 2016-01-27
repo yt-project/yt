@@ -19,7 +19,7 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.old_camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
 
 pyfits = _astropy.pyfits
@@ -732,26 +732,28 @@ class FITSOffAxisProjection(FITSImageData):
         Deprecated, this is still in the function signature for API
         compatibility
     north_vector : a sequence of floats
-         A vector defining the 'up' direction in the plot.  This
-         option sets the orientation of the slicing plane.  If not
-         set, an arbitrary grid-aligned north-vector is chosen.
+        A vector defining the 'up' direction in the plot.  This
+        option sets the orientation of the slicing plane.  If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection.  Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
+    data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+        If specified, this will be the data source used for selecting regions to project.
     """
     def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
-                 weight_field=None, image_res=512, depth_res=256,
+                 weight_field=None, image_res=512, depth_res=256, data_source=None,
                  north_vector=None, depth=(1.0,"unitary"), no_ghost=False, method='integrate'):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
@@ -761,8 +763,12 @@ class FITSOffAxisProjection(FITSImageData):
         if not iterable(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
+        if data_source is None:
+            source = ds
+        else:
+            source = data_source
         for field in fields:
-            buf[field] = off_axis_projection(ds, center, normal, wd, res, field,
+            buf[field] = off_axis_projection(source, center, normal, wd, res, field,
                                              no_ghost=no_ghost, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0, 1)
         center = ds.arr([0.0] * 2, 'code_length')

@@ -328,7 +328,7 @@ projection through a simulation.
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
-   image, sc = yt.off_axis_projection(ds, c, L, W, N, "density")
+   image = yt.off_axis_projection(ds, c, L, W, N, "density")
    yt.write_image(np.log10(image), "%s_offaxis_projection.png" % ds)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
