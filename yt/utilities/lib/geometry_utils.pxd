@@ -115,10 +115,10 @@ cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q
     cdef int j
     cdef np.float64_t c[3]
     cdef np.uint64_t pidx[3]
-    cdef np.uint64_t qidx[3]
+    # cdef np.uint64_t qidx[3]
     for j in range(3):
         pidx[j] = 0
-        qidx[j] = 0
+        # qidx[j] = 0
     cdef np.uint64_t pidx_next[3]
     cdef np.uint64_t qidx_next[3]
     cdef np.float64_t dds[3]
@@ -139,7 +139,7 @@ cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q
         if not done:
             for j in range(3):
                 pidx[j] = pidx_next[j]
-                qidx[j] = qidx_next[j]
+                # qidx[j] = qidx_next[j]
             lvl+=1
     rad = 0.0
     for j in range(3):

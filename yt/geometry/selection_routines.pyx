@@ -18,6 +18,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 from fp_utils cimport fclip, iclip, fmax, fmin
 from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
@@ -26,7 +27,7 @@ from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
+from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -173,11 +174,12 @@ cdef class SelectorObject:
         cdef np.uint64_t ind2[3]
         cdef np.ndarray[np.uint64_t, ndim=2] ind1_n
         cdef np.ndarray[np.uint64_t, ndim=2] ind2_n
-        cdef np.int64_t max_index = np.uint64(1 << max_level)
-        cdef int i, j, k, l, m, n
+        cdef np.uint64_t max_index = np.uint64(1 << max_level)
+        cdef int i, j, k, l, m, n, n_neighbors
+        cdef list neighbors
         for i in range(3):
             ndds[i] = dds[i]/2
-            zpos[i] = 0
+            zpos[i] = np.float64(0.0)
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -187,6 +189,7 @@ cdef class SelectorObject:
                     npos[2] = pos[2] + k*ndds[2]
                     # Only recurse into selected cells
                     if self.select_cell(npos,ndds):
+                        printf("Level {}/{}\n".format(level,max_level))
                         if level < (2*max_level): # both morton indices...
                             if level == max_level:
                                 mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
@@ -201,31 +204,44 @@ cdef class SelectorObject:
                         else: # 2*max_level
                             for m in range(3):
                                 ind2[m] = np.uint64(npos[m]/ndds[m])
+                            printf("Cell selected: {},{},{}\n".format(ind2[0],ind2[1],ind2[2]))
                             # Add neighbors
                             if (ngz > 0):
                                 decode_morton_64bit(mi1,ind1)
                                 ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
                                 ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
-                                for m in range(3):
-                                    for n,l in enumerate(range(-ngz,(ngz+1))):
-                                        # TODO: handle non-periodic
+                                n_neighbors = 0
+                                neighbors = ind1_n.shape[0]*[0]
+                                for n,l in enumerate(range(-ngz,(ngz+1))):
+                                    for m in range(3):
                                         if (ind2[m]+l) < 0:
-                                            ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index)
-                                            ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                            if self.periodicity[m]:
+                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index)
+                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                            else:
+                                                break
                                         elif (ind2[m]+l) > max_index:
-                                            ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index)
-                                            ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                            if self.periodicity[m]:
+                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index)
+                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index)
+                                            else:
+                                                break
                                         else:
                                             ind1_n[n,m] = ind1[m]
                                             ind2_n[n,m] = np.uint64(ind2[m]+l)
-                                for l in range(ind1_n.shape[0]):
-                                    for m in range(ind1_n.shape[0]):
-                                        for n in range(ind1_n.shape[0]):
+                                        neighbors[n_neighbors] = n
+                                        n_neighbors += 1
+                                for l in neighbors:
+                                    for m in neighbors:
+                                        for n in neighbors:
                                             mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
+                                            printf("Setting {},{}\n".format(mi1_n,mi2))
+                                            mm.set(mi1_n,mi2)
                             else:
                                 mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                                mm.set(mi1, mi2)
+                                printf("Setting {},{}\n".format(mi1,mi2))
+                                mm.set(mi1,mi2)
                                         
 
     @cython.boundscheck(False)

@@ -171,7 +171,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
-        cdef np.int64_t no = indices.shape[0], p, index
+        cdef np.int64_t no = indices.shape[0], p
+        cdef np.uint64_t index
         cdef int i, level
         cdef int ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
@@ -360,13 +361,13 @@ cdef class ParticleForest:
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
-        cdef np.float64_t dds[3]
+        # cdef np.float64_t dds[3]
         cdef np.int32_t order = self.index_order
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
-            dds[i] = self.dds_mi[i]
+            # dds[i] = self.dds_mi[i]
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         cdef np.ndarray[np.uint8_t, ndim=1] morton_count = self.morton_count
         # Mark index of particles that are in this file
@@ -494,7 +495,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef identify_data_files(self, SelectorObject selector, int ngz = 0):
+    def identify_data_files(self, SelectorObject selector, int ngz = 0):
         cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] mask_d
         cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it_mi1
         cdef map[np.int32_t, ewah_bool_array].iterator it_file
@@ -502,7 +503,6 @@ cdef class ParticleForest:
         cdef pair[np.int32_t, ewah_bool_array] p_file_mi2
         cdef map[np.uint64_t, ewah_bool_array] mask_s
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
-        mask_s = (<map[np.uint64_t, ewah_bool_array] *> cmask_s.ewah_coll)[0]
         cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1_s
         cdef ewah_bool_array arr1, arr2, arr_and
         cdef np.float64_t pos[3]
@@ -513,13 +513,15 @@ cdef class ParticleForest:
         cdef np.int32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         # Find mask of selected morton indices
-        # mask_s = selector.get_morton_mask(self.left_edge,self.right_edge,
-        #                                   self.index_order,ngz=ngz)
         for j in range(3):
             pos[j] = np.float64(0.0)
             dds[j] = self.right_edge[j] - self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
                                        cmask_s, ngz=ngz)
+        mask_s = (<map[np.uint64_t, ewah_bool_array] *> cmask_s.ewah_coll)[0]
+        if (mask_s.begin() == mask_s.end()):
+            print "Selector mask is empty."
+            # raise RuntimeError("Selector mask is empty.")
         # Compare with mask of particles
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         it_mi1_d = mask_d.begin()
@@ -544,7 +546,8 @@ cdef class ParticleForest:
                     preincrement(it_file)
             # Increment mi1
             preincrement(it_mi1_d)
-        return np.where(file_mask_p)[0]
+        print sum(file_mask_p==1)
+        return np.where(file_mask_p==1)[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -921,10 +924,10 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
             for j in range(3):
                 ind[j] = i64ind[j]
             obj.next_root(1, ind)
-        cdef np.float64_t dds[3]
-        # This dds is the oct-width
-        for i in range(3):
-            dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
+        # cdef np.float64_t dds[3]
+        # # This dds is the oct-width
+        # for i in range(3):
+        #     dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
         # Pos is the center of the octs
         cdef void *p[4]
         cdef np.int64_t nfinest = 0
@@ -972,7 +975,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         # Now let's bitpack; we'll un-bitpack later.
         packed_mask = np.zeros(ceil(self.nocts * data.nz/8.0), dtype="uint8")
         i = j = 0
-        while i * 8 + j < self.nocts * data.nz:
+        while i * 8 + j < np.uint64(self.nocts * data.nz):
             packed_mask[i] |= (ref_mask[i * 8 + j] << j)
             j += 1
             if j == 8:
