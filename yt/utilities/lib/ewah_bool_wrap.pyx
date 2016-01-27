@@ -45,8 +45,16 @@ cdef class BoolArrayCollection:
     def get(self, i1, i2):
         return self._get(i1, i2)
 
+    cdef bint _contains(self, np.uint64_t i):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        return ewah_keys[0].get(i)
+
+    def contains(self, np.uint64_t i):
+        return self._contains(i)
+
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         del ewah_keys
         del ewah_coll
+
