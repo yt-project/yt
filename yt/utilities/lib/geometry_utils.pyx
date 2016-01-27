@@ -1193,9 +1193,8 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
                              np.ndarray[np.float64_t, ndim=3] triangles):
     cdef np.float64_t p0[3]
     cdef np.float64_t p1[3]
-    cdef np.float64_t p2[3]
     cdef np.float64_t p3[3]
-    cdef int i, j, k, count, i0, i1, i2, ntri, nlines
+    cdef int i, j, k, count, ntri, nlines
     nlines = 0
     ntri = triangles.shape[0]
     cdef PointSet *first

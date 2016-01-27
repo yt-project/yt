@@ -198,7 +198,7 @@ cdef class ContourTree:
         # This coalesces contour IDs, so that we have only the final name
         # resolutions -- the .join_id from a candidate.  So many items will map
         # to a single join_id.
-        cdef int i, j, k, ni, nj, nk, nc
+        cdef int i, ni, nc
         cdef CandidateContour *first = NULL
         cdef CandidateContour *temp
         cdef np.int64_t cid1, cid2
@@ -374,8 +374,8 @@ def link_node_contours(Node trunk, contours, ContourTree tree,
         pg = contours[node_ids[i]][2]
         vcs[i] = pg.container
     cdef np.ndarray[np.uint8_t] examined = np.zeros(n_nodes, "uint8")
-    for nid, cinfo in sorted(contours.items(), key = lambda a: -a[1][0]):
-        level, node_ind, pg, sl = cinfo
+    for _, cinfo in sorted(contours.items(), key = lambda a: -a[1][0]):
+        _, node_ind, pg, _ = cinfo
         construct_boundary_relationships(trunk, tree, node_ind,
             examined, vcs, node_ids)
         examined[node_ind] = 1
@@ -402,7 +402,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 np.ndarray[np.int64_t, ndim=1] node_ids):
     # We only look at the boundary and find the nodes next to it.
     # Contours is a dict, keyed by the node.id.
-    cdef int i, j, off_i, off_j, oi, oj, level, ax, ax0, ax1, n1, n2
+    cdef int i, j, off_i, off_j, oi, oj, ax, ax0, ax1, n1, n2
     cdef np.int64_t c1, c2
     cdef Node adj_node
     cdef VolumeContainer *vc1
@@ -473,8 +473,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
 def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                  np.ndarray[np.int64_t, ndim=3] contour_ids,
                  np.ndarray[np.int64_t, ndim=1] final_joins):
-    cdef np.int64_t new, old
-    cdef int i, j, nj, nf
+    cdef int j, nj, nf
     cdef int ci, cj, ck
     nj = joins.shape[0]
     nf = final_joins.shape[0]
@@ -529,9 +528,8 @@ cdef class ParticleContourTree(ContourTree):
         cdef Oct **neighbors = NULL
         cdef OctInfo oi
         cdef ContourID *c0
-        cdef ContourID *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
-        cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
+        cdef np.int64_t i, j, k, n, nneighbors = -1, pind0, offset
         cdef int counter = 0
         cdef int verbose = 0
         pcount = np.zeros_like(dom_ind)
@@ -539,7 +537,6 @@ cdef class ParticleContourTree(ContourTree):
         # First, we find the oct for each particle.
         pdoms = np.zeros(positions.shape[0], dtype="int64")
         pdoms -= -1
-        cdef np.int64_t *pdom = <np.int64_t*> pdoms.data
         # First we allocate our container
         cdef ContourID **container = <ContourID**> malloc(
             sizeof(ContourID*) * positions.shape[0])
@@ -571,7 +568,6 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         counter = 0
         cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
-        cdef int inside, skip_early
         if verbose == 1: print >> sys.stderr, "Will be outputting every", frac
         for i in range(doff.shape[0]):
             if verbose == 1 and counter >= frac:
@@ -657,7 +653,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef ContourID *c0
         cdef ContourID *c1
         cdef np.int64_t pind1
-        cdef int i, j, k
+        cdef int i, j
         # We use pid here so that we strictly take new ones.
         # Note that pind0 will not monotonically increase, but
         c0 = container[pind0]
@@ -709,7 +705,6 @@ cdef inline int r2dist_early(np.float64_t ppos[3],
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
-    cdef int inside = 0
     for i in range(3):
         if cpos[i] < edges[0][i]:
             return 0

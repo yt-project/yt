@@ -25,7 +25,7 @@ from yt.utilities.fits_image import \
     FITSSlice, FITSOffAxisSlice, \
     FITSOffAxisProjection, \
     assert_same_wcs
-from yt.visualization.volume_rendering.old_camera import \
+from yt.visualization.volume_rendering.off_axis_projection import \
     off_axis_projection
 
 
