@@ -342,7 +342,9 @@ class TqdmProgressBar(object):
     def __init__(self,title, maxval):
         self._pbar = tqdm(leave=True, total=maxval, desc=title)
         self.i = 0
-    def update(self, i):
+    def update(self, i=None):
+        if i is None:
+            i = self.i + 1
         n = i - self.i
         self.i = i
         self._pbar.update(n)
