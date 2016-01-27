@@ -77,49 +77,59 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
 
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
-   ms = MeshSource(ds, ('connect1', 'diffused'))
+    # create a default scene
+    sc = yt.create_scene(ds)
 
-   # setup the camera
-   cam = Camera(ds)
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
 
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
+    # adjust the camera position and orientation
+    cam = sc.camera
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
 
-   im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-   pw.write_png(im, 'hex_mesh_render.png')
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render and save
+    sc.save()
 
 You can also overplot the mesh boundaries:
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
 
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
-   ms = MeshSource(ds, ('connect1', 'diffused'))
+    # create a default scene
+    sc = yt.create_scene(ds)
 
-   # setup the camera
-   cam = Camera(ds)
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
 
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
-   cam.resolution = (800, 800)
+    # adjust the camera position and orientation
+    cam = sc.camera
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
 
-   ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-   im = ms.annotate_mesh_lines()
-   pw.write_png(im, 'hex_render_with_mesh.png')
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render, draw the element boundaries, and save
+    sc.render()
+    sc.annotate_mesh_lines()
+    sc.save()
 
 As with slices, you can visualize different meshes and different fields. For example,
 Here is a script similar to the above that plots the "diffused" variable 
@@ -127,24 +137,29 @@ using the mesh labelled by "connect2":
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
 
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
-
-   ms = MeshSource(ds, ('connect2', 'diffused'))
-
-   # setup the camera
-   cam = Camera(ds)
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
-
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
-
-   im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-   pw.write_png(im, 'hex_mesh_render.png')
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
+   
+    # create a default scene
+    sc = yt.create_scene(ds, ('connect2', 'diffused'))
+   
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
+   
+    # adjust the camera position and orientation
+    cam = sc.camera
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
+   
+    # increase the default resolution
+    cam.resolution = (800, 800)
+   
+    # render and save
+    sc.save()
 
 Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 Note that in this dataset, there are multiple "steps" per file, so we specify
@@ -152,49 +167,64 @@ that we want to look at the last one.
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
 
-   filename = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
-   ds = yt.load(filename, step=-1)  # we look at the last time frame
+    filename = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
+    ds = yt.load(filename, step=-1)  # we look at the last time frame
 
-   ms = MeshSource(ds, ('connect1', 'u'))
+    # create a default scene
+    sc = yt.create_scene(ds, ("connect1", "u"))
 
-   # setup the camera 
-   cam = Camera(ds)
-   camera_position = ds.arr([3.0, 3.0, 3.0], 'code_length')
-   cam.set_width(ds.arr([2.0, 2.0, 2.0], 'code_length'))
-   north_vector = ds.arr([0.0, 1.0, 0.0], 'dimensionless')
-   cam.set_position(camera_position, north_vector)
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
 
-   im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 1.0))
-   pw.write_png(im, 'tetra_render.png')
+    # adjust the camera position and orientation
+    cam = sc.camera
+    camera_position = ds.arr([3.0, 3.0, 3.0], 'code_length')
+    cam.set_width(ds.arr([2.0, 2.0, 2.0], 'code_length'))
+    north_vector = ds.arr([0.0, 1.0, 0.0], 'dimensionless')
+    cam.set_position(camera_position, north_vector)
+
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render and save
+    sc.save()
 
 Another example, this time plotting the temperature field from a 20-node hex 
 MOOSE dataset:
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
 
-   ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)  # we load the last time frame
+    # We load the last time frame
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)
 
-   ms = MeshSource(ds, ('connect2', 'temp'))
+    # create a default scene
+    sc = yt.create_scene(ds, ("connect2", "temp"))
 
-   # set up the camera
-   cam = Camera(ds)
-   camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-   north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
-   cam.width = ds.arr([0.04, 0.04, 0.04], 'code_length')
-   cam.resolution = (800, 800)
-   cam.set_position(camera_position, north_vector)
+    # override the default colormap. This time we also override
+    # the default color bounds
+    ms = sc.get_source(0)
+    ms.cmap = 'hot'
+    ms.color_bounds = (500.0, 1700.0)
 
-   im = ms.render(cam, cmap='hot', color_bounds=(500.0, 1700.0))
-   im = ms.annotate_mesh_lines()
-   pw.write_png(im, 'hex20_render.png')
+    # adjust the camera position and orientation
+    cam = sc.camera
+    camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.width = ds.arr([0.04, 0.04, 0.04], 'code_length')
+    cam.set_position(camera_position, north_vector)
+
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render, draw the element boundaries, and save
+    sc.render()
+    sc.annotate_mesh_lines()
+    sc.save()
 
 As with other volume renderings in yt, you can swap out different lenses. Here is 
 an example that uses a "perspective" lens, for which the rays diverge from the 
@@ -202,25 +232,35 @@ camera position according to some opening angle:
 
 .. python-script::
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
+    from yt.visualization.volume_rendering.api import Camera
 
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
-   ms = MeshSource(ds, ('connect2', 'diffused'))
+    # create a default scene
+    sc = yt.create_scene(ds, ("connect2", "diffused"))
 
-   # setup the camera
-   cam = Camera(ds, lens_type='perspective')
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
-
-   cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
-
-   im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-   im = ms.annotate_mesh_lines()
-   pw.write_png(im, 'hex_mesh_render_perspective.png')
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
+   
+    # Create a perspective Camera
+    cam = Camera(ds, lens_type='perspective')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
+   
+    # tell our scene to use it
+    sc.camera = cam
+   
+    # increase the default resolution
+    cam.resolution = (800, 800)
+   
+    # render, draw the element boundaries, and save
+    sc.render()
+    sc.annotate_mesh_lines()
+    sc.save()
 
 You can also create scenes that have multiple meshes. The ray-tracing infrastructure
 will keep track of the depth information for each source separately, and composite
@@ -231,20 +271,21 @@ with two meshes on it:
 
     import yt
     from yt.visualization.volume_rendering.api import MeshSource, Camera, Scene
-    import yt.utilities.png_writer as pw
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
 
     # this time we create an empty scene and add sources to it one-by-one
     sc = Scene()
 
+    # set up our Camera
     cam = Camera(ds)
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
-                     ds.arr([0.0, 1.0, 0.0], 'dimensionless'))
+    ds.arr([0.0, 1.0, 0.0], 'dimensionless'))
     cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
     cam.resolution = (800, 800)
 
+    # tell the scene to use it
     sc.camera = cam
 
     # create two distinct MeshSources from 'connect1' and 'connect2'
@@ -254,10 +295,9 @@ with two meshes on it:
     sc.add_source(ms1)
     sc.add_source(ms2)
 
+    # render and save
     im = sc.render()
-
-    pw.write_png(im, 'composite_render.png')
-
+    sc.save()
 
 Making Movies
 ^^^^^^^^^^^^^
@@ -270,30 +310,37 @@ disk each time.
 
 .. code-block:: python
 
-   import yt
-   from yt.visualization.volume_rendering.api import MeshSource, Camera
-   import yt.utilities.png_writer as pw
+    import yt
+    import numpy as np
 
-   ds = yt.load("MOOSE_sample_data/out.e-s010")
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
 
-   ms = MeshSource(ds, ('connect1', 'diffused'))
+    # create a default scene
+    sc = yt.create_scene(ds)
 
-   # setup the camera
-   cam = Camera(ds)
-   cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')  # point we're looking at
+    # override the default colormap
+    ms = sc.get_source(0)
+    ms.cmap = 'Eos A'
 
-   cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')  # the camera location
-   north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')  # down is the new up
-   cam.set_position(cam_pos, north_vector)
-   cam.resolution = (800, 800)
-   cam.steady_north = True
+    # adjust the camera position and orientation
+    cam = sc.camera
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
 
-   # make movie frames
-   num_frames = 301
-   for i in range(num_frames):
-       cam.rotate(2.0*np.pi/num_frames)
-       im = ms.render(cam, cmap='Eos A', color_bounds=(0.0, 2.0))
-       pw.write_png(im, 'movie_frames/surface_render_%.4d.png' % i)
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # set the camera to use "steady_north"
+    cam.steady_north = True
+
+    # make movie frames
+    num_frames = 301
+    for i in range(num_frames):
+        cam.rotate(2.0*np.pi/num_frames)
+        sc.render()
+        sc.save('movie_frames/surface_render_%.4d.png' % i)
 
 Finally, this example demonstrates how to loop over the time steps in a single
 file with a fixed camera position:
