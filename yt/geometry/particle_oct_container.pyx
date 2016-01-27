@@ -494,7 +494,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cpdef identify_data_files(self, SelectorObject selector, int ngz = 0):
+    cdef identify_data_files(self, SelectorObject selector, int ngz = 0):
         cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] mask_d
         cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it_mi1
         cdef map[np.int32_t, ewah_bool_array].iterator it_file
@@ -516,12 +516,11 @@ cdef class ParticleForest:
         # mask_s = selector.get_morton_mask(self.left_edge,self.right_edge,
         #                                   self.index_order,ngz=ngz)
         for j in range(3):
-            pos[j] = 0.0
+            pos[j] = np.float64(0.0)
             dds[j] = self.right_edge[j] - self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, self.index_order, FLAG, 
                                        cmask_s, ngz=ngz)
         # Compare with mask of particles
-        # TODO: set nfile
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         it_mi1_d = mask_d.begin()
         while it_mi1_d != mask_d.end():
