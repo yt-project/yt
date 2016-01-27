@@ -189,25 +189,19 @@ cdef class SelectorObject:
                     npos[2] = pos[2] + k*ndds[2]
                     # Only recurse into selected cells
                     if self.select_cell(npos,ndds):
-                        printf("Level {}/{}\n".format(level,max_level))
                         if level < (2*max_level): # both morton indices...
                             if level == max_level:
                                 mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
                                                           np.uint64(npos[1]/ndds[1]),
                                                           np.uint64(npos[2]/ndds[2]))
-                                # Reset so second is relative to first
-                                self.recursive_morton_mask(level+1, zpos, ndds,
-                                                           max_level, mi1, mm)
-                            else:
-                                self.recursive_morton_mask(level+1, npos, ndds,
-                                                           max_level, mi1, mm)
+                            self.recursive_morton_mask(level+1, npos, ndds,
+                                                       max_level, mi1, mm)
                         else: # 2*max_level
+                            decode_morton_64bit(mi1,ind1)
                             for m in range(3):
-                                ind2[m] = np.uint64(npos[m]/ndds[m])
-                            printf("Cell selected: {},{},{}\n".format(ind2[0],ind2[1],ind2[2]))
+                                ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*(1 << max_level))/ndds[m])
                             # Add neighbors
                             if (ngz > 0):
-                                decode_morton_64bit(mi1,ind1)
                                 ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
                                 ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
                                 n_neighbors = 0
@@ -236,11 +230,9 @@ cdef class SelectorObject:
                                         for n in neighbors:
                                             mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
-                                            printf("Setting {},{}\n".format(mi1_n,mi2))
                                             mm.set(mi1_n,mi2)
                             else:
                                 mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                                printf("Setting {},{}\n".format(mi1,mi2))
                                 mm.set(mi1,mi2)
                                         
 
