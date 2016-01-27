@@ -116,21 +116,21 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("bitarray", 
                 ["yt/utilities/lib/bitarray.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"])
-    config.add_extension("CICDeposit", 
-                ["yt/utilities/lib/CICDeposit.pyx"],
+    config.add_extension("particle_mesh_operations", 
+                ["yt/utilities/lib/particle_mesh_operations.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("ContourFinding", 
-                ["yt/utilities/lib/ContourFinding.pyx"],
+    config.add_extension("contour_finding", 
+                ["yt/utilities/lib/contour_finding.pyx"],
                 include_dirs=["yt/utilities/lib/",
                               "yt/geometry/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/amr_kdtools.pxd",
-                         "yt/utilities/lib/ContourFinding.pxd",
                          "yt/utilities/lib/grid_traversal.pxd",
+                         "yt/utilities/lib/contour_finding.pxd",
                          "yt/geometry/oct_container.pxd"])
-    config.add_extension("DepthFirstOctree", 
-                ["yt/utilities/lib/DepthFirstOctree.pyx"],
+    config.add_extension("depth_first_octree", 
+                ["yt/utilities/lib/depth_first_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("fortran_reader", 
                 ["yt/utilities/lib/fortran_reader.pyx"],
@@ -143,20 +143,20 @@ def configuration(parent_package='',top_path=None):
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/geometry_utils.pxd"])
-    config.add_extension("Interpolators", 
-                ["yt/utilities/lib/Interpolators.pyx"],
+    config.add_extension("interpolators", 
+                ["yt/utilities/lib/interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("alt_ray_tracers", 
                 ["yt/utilities/lib/alt_ray_tracers.pyx"],
                 libraries=["m"], depends=[])
     config.add_extension("marching_cubes", 
                 ["yt/utilities/lib/marching_cubes.pyx",
-                 "yt/utilities/lib/FixedInterpolator.c"],
+                 "yt/utilities/lib/fixed_interpolator.c"],
                 include_dirs=["yt/utilities/lib/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
                          "yt/utilities/lib/fixed_interpolator.pxd",
-                         "yt/utilities/lib/FixedInterpolator.h",
+                         "yt/utilities/lib/fixed_interpolator.h",
                 ])
     config.add_extension("misc_utilities", 
                 ["yt/utilities/lib/misc_utilities.pyx"],
@@ -169,8 +169,8 @@ def configuration(parent_package='',top_path=None):
                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
                                          "yt/utilities/lib/pixelization_constants.h",
                                          "yt/utilities/lib/element_mappings.pxd"])
-    config.add_extension("Octree", 
-                ["yt/utilities/lib/Octree.pyx"],
+    config.add_extension("basic_octree", 
+                ["yt/utilities/lib/basic_octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("origami", 
                 ["yt/utilities/lib/origami.pyx",
@@ -181,14 +181,14 @@ def configuration(parent_package='',top_path=None):
                          ["yt/utilities/lib/image_utilities.pyx"],
                          libraries=["m"],
                          depends=["yt/utilities/lib/fp_utils.pxd"]),
-    config.add_extension("PointsInVolume", 
-                ["yt/utilities/lib/PointsInVolume.pyx"],
+    config.add_extension("points_in_volume", 
+                ["yt/utilities/lib/points_in_volume.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("QuadTree", 
-                ["yt/utilities/lib/QuadTree.pyx"],
+    config.add_extension("quad_tree", 
+                ["yt/utilities/lib/quad_tree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("RayIntegrators", 
-                ["yt/utilities/lib/RayIntegrators.pyx"],
+    config.add_extension("ray_integrators", 
+                ["yt/utilities/lib/ray_integrators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("mesh_utilities",
               ["yt/utilities/lib/mesh_utilities.pyx"],
@@ -199,7 +199,7 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("grid_traversal", 
                ["yt/utilities/lib/grid_traversal.pyx",
-                "yt/utilities/lib/FixedInterpolator.c",
+                "yt/utilities/lib/fixed_interpolator.c",
                 "yt/utilities/lib/kdtree.c"],
                include_dirs=["yt/utilities/lib/"],
                libraries=["m"], 
@@ -207,7 +207,7 @@ def configuration(parent_package='',top_path=None):
                extra_link_args=omp_args,
                depends = ["yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
-                          "yt/utilities/lib/FixedInterpolator.h",
+                          "yt/utilities/lib/fixed_interpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",
                           "yt/utilities/lib/field_interpolation_tables.pxd",
                           ]
@@ -249,14 +249,16 @@ def configuration(parent_package='',top_path=None):
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
                              depends=["yt/utilities/lib/mesh_samplers.pxd",
-                                      "yt/utilities/lib/element_mappings.pxd"])
+                                      "yt/utilities/lib/element_mappings.pxd",
+                                      "yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("mesh_intersection",
                              ["yt/utilities/lib/mesh_intersection.pyx"],
                              include_dirs=["yt/utilities/lib", include_dirs],
                              libraries=["m", embree_lib_name], language="c++",
                              extra_compile_args=embree_args,
                              extra_link_args=embree_args,
-                             depends=["yt/utilities/lib/mesh_intersection.pxd"])
+                             depends=["yt/utilities/lib/mesh_intersection.pxd",
+                                      "yt/utilities/lib/mesh_construction.pxd"])
         config.add_extension("ewah_bool_wrap",
                              ["yt/utilities/lib/ewah_bool_wrap.pyx"],
                              depends=["yt/utilities/lib/ewah_bool_array.pxd"],

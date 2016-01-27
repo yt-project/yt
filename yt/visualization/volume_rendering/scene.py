@@ -18,7 +18,7 @@ from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues, string_types
 from .camera import Camera
 from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridSource, RenderSource
+    GridSource, RenderSource, MeshSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -398,6 +398,26 @@ class Scene(object):
         grids = GridSource(data_source, alpha=alpha, cmap=cmap,
                             min_level=min_level, max_level=max_level)
         self.add_source(grids)
+        return self
+
+    def annotate_mesh_lines(self, color=None, alpha=1.0):
+        """
+
+        Modifies this Scene by drawing the mesh line boundaries
+        on all MeshSources.
+
+        Parameters
+        ----------
+        colors: array of ints, shape (4), optional
+            The RGBA value to use to draw the mesh lines.
+            Default is black.
+        alpha : float, optional
+            The opacity of the mesh lines. Default is 255 (solid).
+
+        """
+        for k, source in self._iter_opaque_sources():
+            if isinstance(source, MeshSource):
+                source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
 
     def annotate_axes(self, colors=None, alpha=1.0):

@@ -18,7 +18,7 @@ import numpy as np
 import os
 import weakref
 
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, only_on_root
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
@@ -78,7 +78,8 @@ class ParticleIndex(Index):
 
     def _initialize_coarse_index(self):
         ds = self.dataset
-        mylog.info("Allocating for %0.3e particles", self.total_particles)
+        only_on_root(mylog.info, "Allocating for %0.3e particles",
+          self.total_particles)
         # No more than 256^3 in the region finder.
         N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
         self.regions = ParticleForest(
