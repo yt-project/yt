@@ -155,7 +155,8 @@ cdef class SelectorObject:
         for i in range(3):
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
-        self.recursive_morton_mask(0, pos, dds, order, FLAG, morton_mask, ngz=ngz)
+        self.recursive_morton_mask(0, pos, dds, order, FLAG, 
+                                   morton_mask, morton_mask, ngz=ngz)
         return morton_mask
 
     @cython.boundscheck(False)
@@ -165,9 +166,9 @@ cdef class SelectorObject:
                                      np.float64_t pos[3], np.float64_t dds[3],
                                      np.int32_t max_level, np.uint64_t mi1,
                                      BoolArrayCollection mm,
+                                     BoolArrayCollection mm_ghosts,
                                      int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
-        cdef np.float64_t zpos[3]
         cdef np.float64_t npos[3]
         cdef np.float64_t ndds[3]
         cdef np.uint64_t ind1[3]
@@ -179,7 +180,6 @@ cdef class SelectorObject:
         cdef list neighbors
         for i in range(3):
             ndds[i] = dds[i]/2
-            zpos[i] = np.float64(0.0)
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -195,12 +195,15 @@ cdef class SelectorObject:
                                                           np.uint64(npos[1]/ndds[1]),
                                                           np.uint64(npos[2]/ndds[2]))
                             self.recursive_morton_mask(level+1, npos, ndds,
-                                                       max_level, mi1, mm)
+                                                       max_level, mi1, mm, mm_ghosts, ngz=ngz)
                         else: # 2*max_level
                             decode_morton_64bit(mi1,ind1)
                             for m in range(3):
                                 ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*(1 << max_level))/ndds[m])
-                            # Add neighbors
+                            # Add selected cell
+                            mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
+                            mm.set(mi1,mi2)
+                            # Add neighbors of selected cell
                             if (ngz > 0):
                                 ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
                                 ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
@@ -230,11 +233,9 @@ cdef class SelectorObject:
                                         for n in neighbors:
                                             mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
-                                            mm.set(mi1_n,mi2)
-                            else:
-                                mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                                mm.set(mi1,mi2)
-                                        
+                                            # Only set if not already a primary
+                                            if not mm.get(mi1_n,mi2):
+                                                mm_ghosts.set(mi1_n,mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

@@ -67,6 +67,7 @@ cdef class SelectorObject:
                                      np.float64_t dds[3],
                                      np.int32_t max_level, np.uint64_t mi1,
                                      BoolArrayCollection mm,
+                                     BoolArrayCollection mm_ghosts,
                                      int ngz = ?)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3],
