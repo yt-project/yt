@@ -409,6 +409,9 @@ def test_comparisons():
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
+    
+    # Allow comparisons with dimensionless quantities.
+    yield assert_equal, a1 < 2, [True, False, False]
 
 
 def test_unit_conversions():

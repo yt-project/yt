@@ -1048,10 +1048,18 @@ class YTArray(np.ndarray):
     #
 
     # @todo: outsource to a single method with an op argument.
+    # @todo: np.array() copies memory, why are we using it here?
+    def validate_and_strip_comparison_units(self, other, op_string):
+        oth = validate_comparison_units(self, other, op_string)
+        if hasattr(oth, 'units'):
+            return oth.ndarray_view()
+        return oth
+
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
         oth = validate_comparison_units(self, other, 'less_than')
-        return np.array(self).__lt__(np.array(oth))
+        return super(YTArray, self).__lt__(oth)
+        #return np.array(self).__lt__(np.array(oth))
 
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
@@ -1164,7 +1172,8 @@ class YTArray(np.ndarray):
                     unit2 = 1.0
             unit_operator = self._ufunc_registry[context[0]]
             if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
-                if unit1 != unit2:
+                # Allow comparisons with dimensionless quantities.
+                if unit1 != unit2 and not unit2.is_dimensionless:
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
