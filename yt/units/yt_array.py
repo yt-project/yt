@@ -1048,12 +1048,8 @@ class YTArray(np.ndarray):
     #
 
     # @todo: outsource to a single method with an op argument.
-    # @todo: np.array() copies memory, why are we using it here?
-    def validate_and_strip_comparison_units(self, other, op_string):
-        oth = validate_comparison_units(self, other, op_string)
-        if hasattr(oth, 'units'):
-            return oth.ndarray_view()
-        return oth
+    # I'm guessing the reason we don't do __ne__ as np.logical_not(__eq__)
+    # is because we don't want to do more operations on large arrays than necessary?
 
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
@@ -1063,7 +1059,7 @@ class YTArray(np.ndarray):
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
         oth = validate_comparison_units(self, other, 'less_than or equal')
-        return np.array(self).__le__(np.array(oth))
+        return super(YTArray, self).__le__(oth)
 
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
@@ -1072,7 +1068,7 @@ class YTArray(np.ndarray):
             # self is a YTArray, so it can't be None.
             return False
         oth = validate_comparison_units(self, other, 'equal')
-        return np.array(self).__eq__(np.array(oth))
+        return super(YTArray, self).__eq__(oth)
 
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
@@ -1080,19 +1076,19 @@ class YTArray(np.ndarray):
         if other is None:
             return True
         oth = validate_comparison_units(self, other, 'not equal')
-        return np.array(self).__ne__(np.array(oth))
+        return super(YTArray, self).__ne__(oth)
 
     def __ge__(self, other):
         """ Test if this is greater than or equal to other. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than or equal')
-        return np.array(self).__ge__(np.array(oth))
+        return super(YTArray, self).__ge__(oth)
 
     def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than')
-        return np.array(self).__gt__(np.array(oth))
+        return super(YTArray, self).__gt__(oth)
 
     #
     # End comparison operators
@@ -1172,7 +1168,8 @@ class YTArray(np.ndarray):
             unit_operator = self._ufunc_registry[context[0]]
             if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
                 # Allow comparisons with dimensionless quantities.
-                if unit1 != unit2 and not unit2.is_dimensionless:
+                if (unit1 != unit2 and
+                    not unit2.is_dimensionless and not unit1.is_dimensionless):
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:

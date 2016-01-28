@@ -382,6 +382,7 @@ def test_comparisons():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 1, 3], 'cm')
     a3 = YTArray([.02, .01, .03], 'm')
+    dimless = np.array([2,1,3])
 
     ops = (
         np.less,
@@ -411,7 +412,13 @@ def test_comparisons():
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
     
     # Allow comparisons with dimensionless quantities.
+    yield operate_and_compare, a1, dimless, np.less, [True, False, False]
+    yield operate_and_compare, a3, dimless, np.less, [True, True, True]
+    yield operate_and_compare, dimless, a3, np.less, [False, False, False]
     yield assert_equal, a1 < 2, [True, False, False]
+    yield assert_equal, a1 < 2, np.less(a1, 2)
+    yield assert_equal, 2 < a1, [False, False, True]
+    yield assert_equal, 2 < a1, np.less(2, a1)
 
 
 def test_unit_conversions():
