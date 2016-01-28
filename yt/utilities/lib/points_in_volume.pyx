@@ -85,7 +85,7 @@ def grid_points_in_volume(
                    np.ndarray[np.int32_t, ndim=3] mask,
                    int break_first):
     cdef int n[3]
-    cdef i, j, k, ax
+    cdef i, j, k
     cdef np.float64_t rds[3][3]
     cdef np.float64_t cur_pos[3]
     cdef np.float64_t rorigin[3]
@@ -171,7 +171,6 @@ def find_grids_in_inclined_box(
     cdef np.float64_t a_vec[3][3]
     cdef np.float64_t sep_ax[15][3]
     cdef np.float64_t sep_vec[3]
-    cdef np.float64_t norm
     cdef np.ndarray[np.int32_t, ndim=1] good = np.zeros(n, dtype='int32')
     cdef np.ndarray[np.float64_t, ndim=2] grid_centers
     # Fill in our axis unit vectors
@@ -225,7 +224,7 @@ def calculate_fill_grids(int fill_level, int refratio, int last_level,
     cdef np.int64_t gend[3]
     cdef np.int64_t dw[3]
     cdef np.int64_t cxi, cyi, czi, gxi, gyi, gzi, ci, cj, ck
-    cdef int i, total
+    cdef int i, total = 0
     for i in range(3):
         dw[i] = domain_width[i]
         cgstart[i] = cg_start_index[i]

@@ -37,6 +37,8 @@ cdef class SelectorObject:
     cdef int overlap_cells
     cdef np.float64_t domain_width[3]
     cdef bint periodicity[3]
+    cdef bint _hash_initialized
+    cdef np.int64_t _hash
 
     cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],

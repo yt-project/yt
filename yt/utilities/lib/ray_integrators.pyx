@@ -40,7 +40,7 @@ def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
     """
     cdef int i, ii
     cdef int j, jj
-    cdef int k, kk
+    cdef int k
     cdef int n, nn
     nn = o_s.shape[3] # This might be slow
     cdef np.float64_t *temp = <np.float64_t *>malloc(sizeof(np.float64_t) * nn)
@@ -52,7 +52,6 @@ def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
             for n in range(nn):
                 temp[n] = i_s[ii,jj,n]
             for k in range(kmax-kmin):
-                kk = k + kmin#*kstride, which doesn't make any sense
                 for n in range(nn):
                     o_s[i,j,k,n] = temp[n] + dx*(e[i,j,k,n] - temp[n]*a[i,j,k,n])
                     temp[n] = o_s[i,j,k,n]
@@ -127,7 +126,7 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     # Find the first place the ray hits the grid on its path
     # Do left edge then right edge in each dim
     cdef int i, x, y
-    cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t, dt_tolerance
+    cdef np.float64_t tl, tr, intersect_t, enter_t
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tdelta[3]
     cdef np.float64_t tmax[3]
@@ -135,7 +134,6 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     cdef np.int64_t cur_ind[3]
     cdef np.int64_t step[3]
     intersect_t = 1
-    dt_tolerance = 1e-6
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
@@ -236,9 +234,7 @@ def PlaneVoxelIntegration(np.ndarray[np.float64_t, ndim=1] left_edge,
     # We're roughly following Amanatides & Woo on a ray-by-ray basis
     # Note that for now it's just shells, but this can and should be
     # generalized to transfer functions
-    cdef int i, x, y, vi
-    intersect_t = 1
-    dt_tolerance = 1e-6
+    cdef int i, vi
     cdef int nv = ug.shape[0]
     cdef int nshells = shells.shape[0]
     cdef np.ndarray[np.float64_t, ndim=1] u = np.empty((3,), dtype=np.float64)
@@ -262,17 +258,14 @@ def integrate_ray(np.ndarray[np.float64_t, ndim=1] u,
     cdef int x, y, i, n
     cdef int step[3]
     cdef np.float64_t intersect_t = 1
-    cdef np.float64_t dt_tolerance = 1e-6
-    cdef np.float64_t tl, tr, enter_t, exit_t
+    cdef np.float64_t tl, tr, enter_t
     cdef np.int64_t cur_ind[3]
     cdef np.float64_t tdelta[3]
     cdef np.float64_t tmax[3]
     cdef np.float64_t intersect[3]
-    cdef np.float64_t dt, dv
+    cdef np.float64_t dv
     cdef np.float64_t dist, alpha
-    cdef np.float64_t one = 1.0
     cdef int dims[3]
-    cdef np.float64_t rgba[4]
     cdef np.float64_t temp_x, temp_y
     for i in range(3):
         # As long as we're iterating, set some other stuff, too
@@ -305,7 +298,6 @@ def integrate_ray(np.ndarray[np.float64_t, ndim=1] u,
         return
     # Now get the indices of the intersection
     for i in range(3): intersect[i] = u[i] + intersect_t * v[i]
-    cdef int ncells = 0
     for i in range(3):
         cur_ind[i] = np.floor((intersect[i] + 1e-8*dx[i] - left_edge[i])/dx[i])
         tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]

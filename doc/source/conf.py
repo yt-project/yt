@@ -38,11 +38,11 @@ if not on_rtd:
     extensions.append('pythonscript_sphinxext')
 
 try:
-    import runipy
-    import IPython.nbconvert.utils.pandoc
+    import RunNotebook
+    import nbconvert
     if not on_rtd:
-        extensions.append('notebook_sphinxext')
-        extensions.append('notebookcell_sphinxext')
+        extensions.append('RunNotebook.notebook_sphinxext')
+        extensions.append('RunNotebook.notebookcell_sphinxext')
 except ImportError:
     pass
 

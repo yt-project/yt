@@ -56,9 +56,8 @@ cdef void QTN_max_value(QuadTreeNode *self,
     self.weight_val = 1.0
 
 cdef void QTN_refine(QuadTreeNode *self, int nvals):
-    cdef int i, j, i1, j1
+    cdef int i, j
     cdef np.int64_t npos[2]
-    cdef QuadTreeNode *node
     cdef np.float64_t *tvals = <np.float64_t *> alloca(
             sizeof(np.float64_t) * nvals)
     for i in range(nvals): tvals[i] = 0.0
@@ -120,7 +119,6 @@ cdef class QuadTree:
         self.merged = 1
         self.max_level = 0
         cdef int i, j
-        cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
         cdef np.float64_t *vals = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*nvals)
@@ -213,7 +211,6 @@ cdef class QuadTree:
         elif method == "integrate" or method == 1:
             self.merged = 1
         cdef int curpos = 0
-        cdef QuadTreeNode *root
         self.num_cells = wval.shape[0]
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -255,7 +252,6 @@ cdef class QuadTree:
             return -1
         if level > self.max_level:
             self.max_level = level
-        cdef np.int64_t fac
         for L in range(level):
             if node.children[0][0] == NULL:
                 QTN_refine(node, self.nvals)
@@ -332,7 +328,6 @@ cdef class QuadTree:
             np.ndarray[np.int64_t, ndim=1] level):
         cdef int num = pxs.shape[0]
         cdef int p, rv
-        cdef np.float64_t *vals
         cdef np.int64_t pos[2]
         for p in range(num):
             pos[0] = pxs[p]
@@ -350,7 +345,6 @@ cdef class QuadTree:
     def get_all(self, int count_only = 0, int method = 1):
         cdef int i, j, vi
         cdef int total = 0
-        vals = []
         self.merged = method
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
@@ -461,8 +455,9 @@ cdef class QuadTree:
         cdef np.float64_t dds[2]
         cdef int nn[2]
         cdef int i, j
-        cdef np.float64_t bounds[4], opos[4]
-        cdef np.float64_t weight, value = 0.0
+        cdef np.float64_t bounds[4]
+        cdef np.float64_t opos[4]
+        cdef np.float64_t weight = 0.0, value = 0.0
         cdef np.float64_t *wval = NULL
         if weighted == 1:
             wval = &weight
@@ -471,7 +466,6 @@ cdef class QuadTree:
         for i in range(2):
             nn[i] = buffer.shape[i]
             dds[i] = (bounds[i*2 + 1] - bounds[i*2])/nn[i]
-        cdef QuadTreeNode *node
         pos[0] = bounds[0]
         opos[0] = opos[1] = pos[0] + dds[0]
         for i in range(nn[0]):
