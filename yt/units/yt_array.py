@@ -1057,9 +1057,8 @@ class YTArray(np.ndarray):
 
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
-        oth = validate_comparison_units(self, other, 'less_than')
+        oth = validate_comparison_units(self, other, 'less_than') # converts if possible
         return super(YTArray, self).__lt__(oth)
-        #return np.array(self).__lt__(np.array(oth))
 
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
