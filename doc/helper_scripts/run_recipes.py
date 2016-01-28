@@ -40,7 +40,7 @@ def run_recipe(payload):
         prep_dirs()
         if module_name in PARALLEL_TEST:
             cmd = ["mpiexec", "-n", PARALLEL_TEST[module_name],
-                   "python", recipe]
+                   "python2", recipe]
         else:
             cmd = ["python", recipe]
         try:
