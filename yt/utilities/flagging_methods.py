@@ -91,7 +91,7 @@ class ProtoSubgrid(object):
         self.sigs = []
         for dim in range(3):
             d1 = (dim + 1) % 3
-            d2 = (dim == 0)
+            d2 = int(dim == 0)
             self.sigs.append(self.flagged.sum(axis=d1).sum(axis=d2))
 
     @property
@@ -118,7 +118,7 @@ class ProtoSubgrid(object):
 
     def find_by_zero_signature(self, dim):
         sig = self.sigs[dim]
-        grid_ends = np.zeros((sig.size, 2))
+        grid_ends = np.zeros((sig.size, 2), dtype='int64')
         ng = 0
         i = 0
         while i < sig.size:

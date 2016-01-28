@@ -251,7 +251,7 @@ def fake_particle_ds(
     data = {}
     for field, offset, u in zip(fields, offsets, units):
         if "position" in field:
-            v = np.random.normal(npart, 0.5, 0.25)
+            v = np.random.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
         v = (np.random.random(npart) - offset)
         data[field] = (v, u)
