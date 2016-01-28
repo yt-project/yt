@@ -689,7 +689,6 @@ class Dataset(object):
             pass
 
         fields = ensure_list(fields)
-        out = np.zeros((len(fields), len(coords)), dtype=np.float64)
         out = []
 
         # This may be slow because it creates a data object for each point
