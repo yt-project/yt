@@ -27,7 +27,8 @@ def prep_dirs():
         os.symlink(directory, os.path.basename(directory))
 
 
-def run_recipe((recipe,)):
+def run_recipe(payload):
+    recipe, = payload
     module_name, ext = os.path.splitext(os.path.basename(recipe))
     dest = os.path.join(os.path.dirname(recipe), '_static', module_name)
     if module_name in BLACKLIST:
