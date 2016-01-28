@@ -152,8 +152,6 @@ def off_axis_projection(data_source, center, normal_vector,
         vol.set_fields(fields)
     camera = Camera(data_source)
     camera.set_width(width)
-    camera.switch_orientation(normal_vector=normal_vector,
-                              north_vector=north_vector)
     if not iterable(resolution):
         resolution = [resolution]*2
     camera.resolution = resolution

@@ -74,7 +74,7 @@ class Orientation(object):
         normal_vector /= np.sqrt(np.dot(normal_vector, normal_vector))
         if north_vector is None:
             vecs = np.identity(3)
-            t = np.cross(normal_vector, vecs).sum(axis=1)
+            t = np.cross(vecs, normal_vector).sum(axis=1)
             ax = t.argmax()
             east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
             # self.north_vector must remain None otherwise rotations about a fixed axis will break. 
