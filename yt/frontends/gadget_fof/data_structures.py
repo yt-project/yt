@@ -38,8 +38,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.exceptions import \
-    YTException
 from yt.utilities.logger import ytLogger as \
     mylog
 
