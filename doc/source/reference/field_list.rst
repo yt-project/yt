@@ -28,7 +28,7 @@ to display the native fields in alphabetical order:
   import yt
   ds = yt.load("Enzo_64/DD0043/data0043")
   for i in sorted(ds.field_list):
-    print i
+    print(i)
 
 To figure out out what all of the field types here mean, see
 :ref:`known-field-types`.

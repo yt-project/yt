@@ -169,7 +169,7 @@ This quantity will then be accessible for functions called later via the
 .. code-block:: python
 
    def my_new_function(halo):
-       print halo.quantities["my_quantity"]
+       print(halo.quantities["my_quantity"])
    add_callback("print_quantity", my_new_function)
 
    # ... Anywhere after "my_quantity" has been called
