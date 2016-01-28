@@ -35,11 +35,11 @@ cdef double determinant_3x3(double* col0,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double maxnorm(double* f) nogil:
+cdef double maxnorm(double* f, int dim) nogil:
     cdef double err
     cdef int i
     err = fabs(f[0])
-    for i in range(1, 2):
+    for i in range(1, dim):
         err = fmax(err, fabs(f[i])) 
     return err
 
@@ -124,9 +124,6 @@ cdef class P1Sampler2D(ElementSampler):
     cdef void map_real_to_unit(self, double* mapped_x, 
                                double* vertices, double* physical_x) nogil:
     
-        cdef int i
-        cdef double d
-        cdef double[3] bvec
         cdef double[3] col0
         cdef double[3] col1
         cdef double[3] col2
@@ -168,6 +165,8 @@ cdef class P1Sampler2D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for triangles, we check whether all mapped_coords are
+        # between 0 and 1, to within the inclusion tolerance
         cdef int i
         for i in range(3):
             if (mapped_coord[i] < -self.inclusion_tol or
@@ -242,6 +241,8 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for tetrahedra, we check whether all mapped coordinates
+        # are within 0 and 1, to within the inclusion tolerance
         cdef int i
         for i in range(4):
             if (mapped_coord[i] < -self.inclusion_tol or
@@ -289,7 +290,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                                double* vertices,
                                double* physical_x) nogil:
         cdef int i
-        cdef double d, val
+        cdef double d
         cdef double[3] f 
         cdef double[3] r
         cdef double[3] s
@@ -304,7 +305,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
     
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f)  
+        err = maxnorm(f, 3)  
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
@@ -314,7 +315,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
             x[1] = x[1] - (determinant_3x3(r, f, t)/d)
             x[2] = x[2] - (determinant_3x3(r, s, f)/d)
             self.func(f, x, vertices, physical_x)        
-            err = maxnorm(f)
+            err = maxnorm(f, 3)
             iterations += 1
 
         if (err > self.tolerance):
@@ -362,6 +363,8 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for hexes, the mapped coordinates all go from -1 to 1 
+        # if we are inside the element.
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
@@ -445,6 +448,329 @@ cdef inline void Q1Jacobian3D(double* rcol,
                    rp*sp*vertices[18 + i] + rm*sp*vertices[21 + i]
 
 
+cdef class S2Sampler3D(NonlinearSolveSampler3D):
+
+    ''' 
+
+    This implements sampling inside a 3D, 20-node hexahedral mesh element.
+
+    '''
+
+    def __init__(self):
+        super(S2Sampler3D, self).__init__()
+        self.num_mapped_coords = 3
+        self.dim = 3
+        self.func = S2Function3D
+        self.jac = S2Jacobian3D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
+        cdef double F, r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = coord[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = coord[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = coord[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        F = rm*sm*tm*(-r - s - t - 2.0)*vals[0] \
+          + rp*sm*tm*( r - s - t - 2.0)*vals[1] \
+          + rp*sp*tm*( r + s - t - 2.0)*vals[2] \
+          + rm*sp*tm*(-r + s - t - 2.0)*vals[3] \
+          + rm*sm*tp*(-r - s + t - 2.0)*vals[4] \
+          + rp*sm*tp*( r - s + t - 2.0)*vals[5] \
+          + rp*sp*tp*( r + s + t - 2.0)*vals[6] \
+          + rm*sp*tp*(-r + s + t - 2.0)*vals[7] \
+          + 2.0*(1.0 - r**2)*sm*tm*vals[8]  \
+          + 2.0*rp*(1.0 - s**2)*tm*vals[9]  \
+          + 2.0*(1.0 - r**2)*sp*tm*vals[10] \
+          + 2.0*rm*(1.0 - s**2)*tm*vals[11] \
+          + 2.0*rm*sm*(1.0 - t**2)*vals[12] \
+          + 2.0*rp*sm*(1.0 - t**2)*vals[13] \
+          + 2.0*rp*sp*(1.0 - t**2)*vals[14] \
+          + 2.0*rm*sp*(1.0 - t**2)*vals[15] \
+          + 2.0*(1.0 - r**2)*sm*tp*vals[16] \
+          + 2.0*rp*(1.0 - s**2)*tp*vals[17] \
+          + 2.0*(1.0 - r**2)*sp*tp*vals[18] \
+          + 2.0*rm*(1.0 - s**2)*tp*vals[19]
+        return 0.125*F
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
+            fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, 
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil:
+        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
+            return 1
+        else:
+            return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void S2Function3D(double* fx,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:
+        cdef int i
+        cdef double r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = x[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = x[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = x[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        for i in range(3):
+            fx[i] = rm*sm*tm*(-r - s - t - 2.0)*vertices[0 + i]  \
+                  + rp*sm*tm*( r - s - t - 2.0)*vertices[3 + i]  \
+                  + rp*sp*tm*( r + s - t - 2.0)*vertices[6 + i]  \
+                  + rm*sp*tm*(-r + s - t - 2.0)*vertices[9 + i]  \
+                  + rm*sm*tp*(-r - s + t - 2.0)*vertices[12 + i] \
+                  + rp*sm*tp*( r - s + t - 2.0)*vertices[15 + i] \
+                  + rp*sp*tp*( r + s + t - 2.0)*vertices[18 + i] \
+                  + rm*sp*tp*(-r + s + t - 2.0)*vertices[21 + i] \
+                  + 2.0*(1.0 - r**2)*sm*tm*vertices[24 + i] \
+                  + 2.0*rp*(1.0 - s**2)*tm*vertices[27 + i] \
+                  + 2.0*(1.0 - r**2)*sp*tm*vertices[30 + i] \
+                  + 2.0*rm*(1.0 - s**2)*tm*vertices[33 + i] \
+                  + 2.0*rm*sm*(1.0 - t**2)*vertices[36 + i] \
+                  + 2.0*rp*sm*(1.0 - t**2)*vertices[39 + i] \
+                  + 2.0*rp*sp*(1.0 - t**2)*vertices[42 + i] \
+                  + 2.0*rm*sp*(1.0 - t**2)*vertices[45 + i] \
+                  + 2.0*(1.0 - r**2)*sm*tp*vertices[48 + i] \
+                  + 2.0*rp*(1.0 - s**2)*tp*vertices[51 + i] \
+                  + 2.0*(1.0 - r**2)*sp*tp*vertices[54 + i] \
+                  + 2.0*rm*(1.0 - s**2)*tp*vertices[57 + i] \
+                  - 8.0*phys_x[i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void S2Jacobian3D(double* rcol,
+                              double* scol,
+                              double* tcol,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:    
+        cdef int i
+        cdef double r, s, t, rm, rp, sm, sp, tm, tp
+
+        r = x[0]
+        rm = 1.0 - r
+        rp = 1.0 + r
+
+        s = x[1]
+        sm = 1.0 - s
+        sp = 1.0 + s
+
+        t = x[2]
+        tm = 1.0 - t
+        tp = 1.0 + t
+
+        for i in range(3):
+            rcol[i] = (sm*tm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (sm*tm*(r - s - t - 2.0) + rp*sm*tm)*vertices[3  + i] \
+                    + (sp*tm*(r + s - t - 2.0) + rp*sp*tm)*vertices[6  + i] \
+                    + (sp*tm*(r - s + t + 2.0) - rm*sp*tm)*vertices[9  + i] \
+                    + (sm*tp*(r + s - t + 2.0) - rm*sm*tp)*vertices[12 + i] \
+                    + (sm*tp*(r - s + t - 2.0) + rp*sm*tp)*vertices[15 + i] \
+                    + (sp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (sp*tp*(r - s - t + 2.0) - rm*sp*tp)*vertices[21 + i] \
+                    - 4.0*r*sm*tm*vertices[24 + i] \
+                    + 2.0*(1.0 - s**2)*tm*vertices[27 + i] \
+                    - 4.0*r*sp*tm*vertices[30 + i] \
+                    - 2.0*(1.0 - s**2)*tm*vertices[33 + i] \
+                    - 2.0*sm*(1.0 - t**2)*vertices[36 + i] \
+                    + 2.0*sm*(1.0 - t**2)*vertices[39 + i] \
+                    + 2.0*sp*(1.0 - t**2)*vertices[42 + i] \
+                    - 2.0*sp*(1.0 - t**2)*vertices[45 + i] \
+                    - 4.0*r*sm*tp*vertices[48 + i] \
+                    + 2.0*(1.0 - s**2)*tp*vertices[51 + i] \
+                    - 4.0*r*sp*tp*vertices[54 + i] \
+                    - 2.0*(1.0 - s**2)*tp*vertices[57 + i]
+            scol[i] = ( rm*tm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (-rp*tm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
+                    + ( rp*tm*(r + s - t - 2.0) + rp*sp*tm)*vertices[6  + i] \
+                    + (-rm*tm*(r - s + t + 2.0) + rm*sp*tm)*vertices[9  + i] \
+                    + ( rm*tp*(r + s - t + 2.0) - rm*sm*tp)*vertices[12 + i] \
+                    + (-rp*tp*(r - s + t - 2.0) - rp*sm*tp)*vertices[15 + i] \
+                    + ( rp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (-rm*tp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
+                    - 2.0*(1.0 - r**2)*tm*vertices[24 + i] \
+                    - 4.0*rp*s*tm*vertices[27 + i] \
+                    + 2.0*(1.0 - r**2)*tm*vertices[30 + i] \
+                    - 4.0*rm*s*tm*vertices[33 + i] \
+                    - 2.0*rm*(1.0 - t**2)*vertices[36 + i] \
+                    - 2.0*rp*(1.0 - t**2)*vertices[39 + i] \
+                    + 2.0*rp*(1.0 - t**2)*vertices[42 + i] \
+                    + 2.0*rm*(1.0 - t**2)*vertices[45 + i] \
+                    - 2.0*(1.0 - r**2)*tp*vertices[48 + i] \
+                    - 4.0*rp*s*tp*vertices[51 + i] \
+                    + 2.0*(1.0 - r**2)*tp*vertices[54 + i] \
+                    - 4.0*rm*s*tp*vertices[57 + i]
+            tcol[i] = ( rm*sm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
+                    + (-rp*sm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
+                    + (-rp*sp*(r + s - t - 2.0) - rp*sp*tm)*vertices[6  + i] \
+                    + ( rm*sp*(r - s + t + 2.0) - rm*sp*tm)*vertices[9  + i] \
+                    + (-rm*sm*(r + s - t + 2.0) + rm*sm*tp)*vertices[12 + i] \
+                    + ( rp*sm*(r - s + t - 2.0) + rp*sm*tp)*vertices[15 + i] \
+                    + ( rp*sp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
+                    + (-rm*sp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
+                    - 2.0*(1.0 - r**2)*sm*vertices[24 + i] \
+                    - 2.0*rp*(1.0 - s**2)*vertices[27 + i] \
+                    - 2.0*(1.0 - r**2)*sp*vertices[30 + i] \
+                    - 2.0*rm*(1.0 - s**2)*vertices[33 + i] \
+                    - 4.0*rm*sm*t*vertices[36 + i] \
+                    - 4.0*rp*sm*t*vertices[39 + i] \
+                    - 4.0*rp*sp*t*vertices[42 + i] \
+                    - 4.0*rm*sp*t*vertices[45 + i] \
+                    + 2.0*(1.0 - r**2)*sm*vertices[48 + i] \
+                    + 2.0*rp*(1.0 - s**2)*vertices[51 + i] \
+                    + 2.0*(1.0 - r**2)*sp*vertices[54 + i] \
+                    + 2.0*rm*(1.0 - s**2)*vertices[57 + i]
+
+
+cdef class W1Sampler3D(NonlinearSolveSampler3D):
+
+    ''' 
+
+    This implements sampling inside a 3D, linear, wedge mesh element.
+
+    '''
+
+    def __init__(self):
+        super(W1Sampler3D, self).__init__()
+        self.num_mapped_coords = 3
+        self.dim = 3
+        self.func = W1Function3D
+        self.jac = W1Jacobian3D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
+        cdef double F
+
+        F = vals[0]*(1.0 - coord[0] - coord[1])*(1.0 - coord[2]) + \
+            vals[1]*coord[0]*(1.0 - coord[2]) + \
+            vals[2]*coord[1]*(1.0 - coord[2]) + \
+            vals[3]*(1.0 - coord[0] - coord[1])*(1.0 + coord[2]) + \
+            vals[4]*coord[0]*(1.0 + coord[2]) + \
+            vals[5]*coord[1]*(1.0 + coord[2])
+
+        return F / 2.0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        # for wedges the bounds of the mapped coordinates are: 
+        #     0 <= mapped_coord[0] <= 1 - mapped_coord[1]
+        #     0 <= mapped_coord[1]
+        #    -1 <= mapped_coord[2] <= 1
+        if (mapped_coord[0] < -self.inclusion_tol or
+            mapped_coord[0] + mapped_coord[1] - 1.0 > self.inclusion_tol):
+            return 0 
+        if (mapped_coord[1] < -self.inclusion_tol):
+            return 0 
+        if (fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_near_edge(self, 
+                             double* mapped_coord,
+                             double tolerance,
+                             int direction) nogil:
+        if (direction == 2 and (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance)):
+            return 1
+        elif (direction == 1 and (fabs(mapped_coord[direction]) < tolerance)):
+            return 1
+        elif (direction == 0 and (fabs(mapped_coord[0]) < tolerance or
+                                  fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance)):
+            return 1
+        return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void W1Function3D(double* fx,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:
+    cdef int i
+    for i in range(3):
+        fx[i] = vertices[0 + i]*(1.0 - x[0] - x[1])*(1.0 - x[2]) \
+              + vertices[3 + i]*x[0]*(1.0 - x[2]) \
+              + vertices[6 + i]*x[1]*(1.0 - x[2]) \
+              + vertices[9 + i]*(1.0 - x[0] - x[1])*(1.0 + x[2]) \
+              + vertices[12 + i]*x[0]*(1.0 + x[2]) \
+              + vertices[15 + i]*x[1]*(1.0 + x[2]) \
+              - 2.0*phys_x[i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void W1Jacobian3D(double* rcol,
+                              double* scol,
+                              double* tcol,
+                              double* x, 
+                              double* vertices, 
+                              double* phys_x) nogil:    
+
+    cdef int i
+    for i in range(3):
+        rcol[i] = (x[2] - 1.0) * vertices[0 + i] \
+                - (x[2] - 1.0) * vertices[3 + i] \
+                - (x[2] + 1.0) * vertices[9 + i] \
+                + (x[2] + 1.0) * vertices[12 + i]
+        scol[i] = (x[2] - 1.0) * vertices[0 + i] \
+                - (x[2] - 1.0) * vertices[6 + i] \
+                - (x[2] + 1.0) * vertices[9 + i] \
+                + (x[2] + 1.0) * vertices[15 + i]
+        tcol[i] = (x[0] + x[1] - 1.0) * vertices[0 + i] \
+                - x[0] * vertices[3 + i] \
+                - x[1] * vertices[6 + i] \
+                - (x[0] + x[1] - 1.0) * vertices[9 + i] \
+                + x[0] * vertices[12 + i] \
+                + x[1] * vertices[15 + i]
+
+
 cdef class NonlinearSolveSampler2D(ElementSampler):
 
     '''
@@ -471,7 +797,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                                double* vertices,
                                double* physical_x) nogil:
         cdef int i
-        cdef double d, val
+        cdef double d
         cdef double[2] f
         cdef double[2] x
         cdef double[4] A
@@ -484,7 +810,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f)  
+        err = maxnorm(f, 2)  
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
@@ -495,7 +821,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             x[1] -= (-A[2]*f[0] + A[0]*f[1]) / d
 
             self.func(f, x, vertices, physical_x)        
-            err = maxnorm(f)
+            err = maxnorm(f, 2)
             iterations += 1
 
         if (err > self.tolerance):
@@ -540,6 +866,8 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
+        # for quads, we check whether the mapped_coord is between
+        # -1 and 1 in both directions.
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
             return 0
@@ -566,8 +894,7 @@ cdef inline void Q1Jacobian2D(double* A,
                               double* x,
                               double* vertices,
                               double* phys_x) nogil:
-    cdef int i
-    cdef double rm, rp, sm, sp, tm, tp
+    cdef double rm, rp, sm, sp
 
     rm = 1.0 - x[0]
     rp = 1.0 + x[0]
@@ -623,6 +950,23 @@ def test_hex_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def test_hex20_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                       np.ndarray[np.float64_t, ndim=1] field_values,
+                       np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    cdef S2Sampler3D sampler = S2Sampler3D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
                        np.ndarray[np.float64_t, ndim=1] field_values,
                        np.ndarray[np.float64_t, ndim=1] physical_x):
@@ -635,6 +979,23 @@ def test_tetra_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
                                        <double*> field_values.data,
                                        <double*> physical_x.data)
 
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_wedge_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                       np.ndarray[np.float64_t, ndim=1] field_values,
+                       np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    cdef W1Sampler3D sampler = W1Sampler3D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
     return val
 
 

@@ -112,7 +112,7 @@ class YTDataset(Dataset):
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
         self.field_info.setup_extra_union_fields()
-        mylog.info("Loading field plugins.")
+        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)

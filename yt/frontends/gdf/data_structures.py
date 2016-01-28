@@ -216,7 +216,7 @@ class GDFDataset(Dataset):
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = unit
+                    self.field_units[unit_name] = unit.decode('utf8')
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")

@@ -24,6 +24,7 @@ import os
 from .fields import \
     OWLSSubfindFieldInfo
 
+from yt.funcs import only_on_root
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
@@ -159,7 +160,7 @@ class OWLSSubfindDataset(Dataset):
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
             self._unit_base = dict(length = (1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.

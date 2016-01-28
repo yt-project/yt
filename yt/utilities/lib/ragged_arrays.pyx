@@ -84,12 +84,12 @@ def index_unop(np.ndarray[numpy_dt, ndim=1] values,
         func = r_min
     else:
         raise NotImplementedError
-    cdef np.int64_t i, j, ind_ind, ind_arr
+    cdef np.int64_t i, ind_ind, ind_arr
     ind_ind = 0
     for i in range(sizes.size):
         # Each entry in sizes is the size of the array
         val = ival
-        for j in range(sizes[i]):
+        for _ in range(sizes[i]):
             ind_arr = indices[ind_ind]
             val = func(val, values[ind_arr])
             ind_ind += 1

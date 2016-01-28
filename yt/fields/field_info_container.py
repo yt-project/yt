@@ -251,7 +251,7 @@ class FieldInfoContainer(dict):
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
-            only_on_root(mylog.info, "Loaded %s (%s new fields)",
+            only_on_root(mylog.debug, "Loaded %s (%s new fields)",
                          n, len(loaded))
         self.find_dependencies(loaded)
 

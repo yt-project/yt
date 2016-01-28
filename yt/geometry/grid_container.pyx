@@ -163,7 +163,7 @@ cdef class GridTree:
                           SelectorObject selector):
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
-        cdef int i, n
+        cdef int i
         # Because of confusion about mapping of children to parents, we are
         # going to do this the stupid way for now.
         cdef GridTreeNode *grid

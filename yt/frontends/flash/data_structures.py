@@ -413,4 +413,13 @@ class FLASHDataset(Dataset):
             pass
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = [_ for _ in files if
+                      ("_hdf5_plt_cnt_" in _) or
+                      ("_hdf5_chk_" in _)]
+        # Typically, Flash won't have nested outputs.
+        return candidates, (len(candidates) == 0)
 
+    def close(self):
+        self._handle.close()

@@ -20,6 +20,7 @@ from pyembree.rtcore cimport Vec3f
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
+from yt.utilities.lib.mesh_samplers cimport sample_hex20
 
 
 @cython.boundscheck(False)
@@ -104,7 +105,7 @@ cdef void cross(const float* a,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches, 
-                          size_t item, 
+                          size_t item,
                           rtcg.RTCBounds* bounds_o) nogil:
 
     cdef Patch patch = patches[item]
@@ -143,21 +144,9 @@ cdef void patchIntersectFunc(Patch* patches,
 
     cdef Patch patch = patches[item]
 
-    # return if the ray does not intersect the bounding sphere
-    cdef float[3] vec
-    for i in range(3):
-        vec[i] = ray.org[i] - patch.center[i]
-        
-    cdef float A = dot(ray.dir, ray.dir, 3)
-    cdef float B = 2.0*dot(vec, ray.dir, 3)
-    cdef float C = dot(vec, vec, 3) - patch.radius**2
-    cdef float D = B*B - 4.0*A*C
-    if (D < 0.0):
-        return
-
-    # otherwise, iterate to the get the true hit position
-    # first we compute the the two planes that define the ray.
+    # first we compute the two planes that define the ray.
     cdef float[3] n, N1, N2
+    cdef float A = dot(ray.dir, ray.dir, 3)
     for i in range(3):
         n[i] = ray.dir[i] / A
 
@@ -171,25 +160,25 @@ cdef void patchIntersectFunc(Patch* patches,
         N1[2] =-n[1]
     cross(N1, n, N2)
 
-    cdef float d1 = - dot(N1, ray.org, 3)
-    cdef float d2 = - dot(N2, ray.org, 3)
+    cdef float d1 = -dot(N1, ray.org, 3)
+    cdef float d2 = -dot(N2, ray.org, 3)
 
     # the initial guess is set to zero
     cdef float u = 0.0
     cdef float v = 0.0
     cdef float[3] S
     patchSurfaceFunc(patch, u, v, S)
-    cdef double fu = dot(N1, S, 3) + d1
-    cdef double fv = dot(N2, S, 3) + d2
-    cdef double err = fmax(fabs(fu), fabs(fv))
+    cdef float fu = dot(N1, S, 3) + d1
+    cdef float fv = dot(N2, S, 3) + d2
+    cdef float err = fmax(fabs(fu), fabs(fv))
     
     # begin Newton interation
-    cdef double tol = 1.0e-6
+    cdef float tol = 1.0e-5
     cdef int iterations = 0
-    cdef int max_iter = 5
+    cdef int max_iter = 10
     cdef float[3] Su
     cdef float[3] Sv
-    cdef double J11, J12, J21, J22, det
+    cdef float J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
         patchSurfaceDerivU(patch, u, v, Su)
@@ -211,19 +200,26 @@ cdef void patchIntersectFunc(Patch* patches,
         err = fmax(fabs(fu), fabs(fv))
         iterations += 1
 
+    # t is the distance along the ray to this hit
     cdef float t = 0.0
     for i in range(3):
         t += (S[i] - ray.org[i])**2
     t = sqrt(t)
-    if (t < ray.tnear or t > ray.tfar):
+
+    # only count this is it's the closest hit
+    if (t < ray.tnear or t > ray.Ng[0]):
         return
-    
+
     if (fabs(u) <= 1.0 and fabs(v) <= 1.0 and iterations < max_iter):
+
+        # we have a hit, so update ray information
         ray.u = u
         ray.v = v
-        ray.tfar = t
         ray.geomID = patch.geomID
         ray.primID = item
-        cross(Su, Sv, ray.Ng)
+        ray.Ng[0] = t
+        
+        # sample the solution at the calculated point
+        sample_hex20(patches, ray)
 
     return

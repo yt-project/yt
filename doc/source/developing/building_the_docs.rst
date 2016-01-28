@@ -154,22 +154,17 @@ The full documentation makes heavy use of custom sphinx extensions to transform
 recipes, notebooks, and inline code snippets into python scripts, IPython_
 notebooks, or notebook cells that are executed when the docs are built.
 
-To do this, we use IPython's nbconvert module to transform notebooks into
+To do this, we use Jupyter's nbconvert module to transform notebooks into
 HTML. to simplify versioning of the notebook JSON format, we store notebooks in
-an unevaluated state.  To generate evaluated notebooks, which could include
-arbitrary output (text, images, HTML), we make use of runipy_, which provides
-facilities to script notebook evaluation.
+an unevaluated state.
 
-.. _runipy: https://github.com/paulgb/runipy
-.. _IPython: http://ipython.org/
-
-To build the full documentation, you will need yt, IPython, runipy, and all 
-supplementary yt analysis modules installed. The following dependencies were 
+To build the full documentation, you will need yt, jupyter, and all depedencies 
+needed for yt's analysis modules installed. The following dependencies were 
 used to generate the yt documentation during the release of yt 3.2 in 2015.
 
 * Sphinx_ 1.3.1
-* IPython_ 2.4.1
-* runipy_ 0.1.3
+* Jupyter 1.0.0
+* RunNotebook 0.1
 * pandoc_ 1.13.2
 * Rockstar halo finder 0.99.6
 * SZpack_ 1.1.1
@@ -200,7 +195,7 @@ and build it using sphinx:
    make html
 
 If all of the dependencies are installed and all of the test data is in the
-testing directory, this should churn away for a while (~ 1 hour) and 
+testing directory, this should churn away for a while (several hours) and 
 eventually generate a docs build.  We suggest setting 
 :code:`suppressStreamLogging = True` in your yt configuration (See 
 :ref:`configuration-file`) to suppress large amounts of debug output from

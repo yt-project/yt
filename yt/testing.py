@@ -31,7 +31,12 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
-from nose.tools import assert_true, assert_less_equal  # NOQA
+try:
+    from nose.tools import assert_true, assert_less_equal  # NOQA
+except ImportError:
+    # This means nose isn't installed, so the tests can't run and it's ok
+    # to not import these functions
+    pass
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
@@ -781,11 +786,9 @@ def periodicity_cases(ds):
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
-    import nose
-    import os
+    from yt.utilities.on_demand_imports import _nose
     import sys
-    import yt
-    from yt.funcs import mylog
+    from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
@@ -799,7 +802,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
+    yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
     if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
         # Provide a nice error message to work around nose bug
@@ -817,7 +820,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
             )
     os.chdir(yt_dir)
     try:
-        nose.run(argv=nose_argv)
+        _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)

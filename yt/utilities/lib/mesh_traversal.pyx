@@ -62,15 +62,11 @@ cdef class MeshSampler(ImageSampler):
         '''
 
         rtcs.rtcCommit(scene.scene_i)
-        cdef int vi, vj, i, j, ni, nj, nn
-        cdef np.int64_t offset
+        cdef int vi, vj, i, j
         cdef ImageContainer *im = self.image
-        cdef np.int64_t elemID
-        cdef np.float64_t value
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
-        cdef np.float64_t px, py
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
@@ -101,6 +97,7 @@ cdef class MeshSampler(ImageSampler):
             ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
             ray.mask = -1
             ray.time = 0
+            ray.Ng[0] = 1e37  # we use this to track the hit distance
             rtcs.rtcIntersect(scene.scene_i, ray)
             data[j] = ray.time
             used[j] = ray.primID

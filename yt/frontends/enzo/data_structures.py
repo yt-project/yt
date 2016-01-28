@@ -961,6 +961,14 @@ class EnzoDataset(Dataset):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = [_ for _ in files if _.endswith(".hierarchy")
+                      and os.path.exists(
+                        os.path.join(base, _.rsplit(".", 1)[0]))]
+        # Typically, Enzo won't have nested outputs.
+        return candidates, (len(candidates) == 0)
+
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory
     _dataset_type = 'enzo_inline'
