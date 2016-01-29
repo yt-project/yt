@@ -15,6 +15,8 @@ Here are some fields that are specific to fluids.
 
 import numpy as np
 
+from yt.units.unit_object import Unit
+
 from .derived_field import \
     ValidateSpatial
 
@@ -174,7 +176,6 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                           weight="cell_mass")
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
-    from yt.units.unit_object import Unit
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
     if slice_info is None:
