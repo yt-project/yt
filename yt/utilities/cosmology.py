@@ -49,7 +49,7 @@ class Cosmology(object):
     omega_curvature : the fraction of the energy density of the Universe in 
         curvature.
         Default: 0.0.
-    unit_system : UnitSystem, optional 
+    unit_system : :class:`yt.units.unit_systems.UnitSystem`, optional
         The units system to use when making calculations. If not specified,
         cgs units are assumed.
 

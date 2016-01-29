@@ -293,10 +293,10 @@ class MaestroFieldInfo(FieldInfoContainer):
                 nice_name, tex_label = _nice_species_name(field)
                 display_name = r'\dot{\omega}\left[%s\right]' % tex_label
                 # Overwrite field to use nicer tex_label'ed display_name
-                self.add_output_field(("boxlib", field), units=unit_system["rate"],
+                self.add_output_field(("boxlib", field), units=unit_system["frequency"],
                                       display_name=display_name)
                 self.alias(("gas", "%s_creation_rate" % nice_name),
-                           ("boxlib", field), units=unit_system["rate"])
+                           ("boxlib", field), units=unit_system["frequency"])
 
 
 def _nice_species_name(field):
