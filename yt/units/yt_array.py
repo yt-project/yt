@@ -1048,8 +1048,6 @@ class YTArray(np.ndarray):
     #
 
     # @todo: outsource to a single method with an op argument.
-    # I'm guessing the reason we don't do __ne__ as np.logical_not(__eq__)
-    # is because we don't want to do more operations on large arrays than necessary?
 
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """

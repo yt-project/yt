@@ -404,6 +404,8 @@ def test_comparisons():
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a2, op, answer
+    for op, answer in zip(ops, answers):
+        yield operate_and_compare, a1, dimless, op, answer
 
     for op in ops:
         yield assert_raises, YTUfuncUnitError, op, a1, a3
@@ -411,8 +413,7 @@ def test_comparisons():
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
     
-    # Allow comparisons with dimensionless quantities.
-    yield operate_and_compare, a1, dimless, np.less, [True, False, False]
+    # Check that comparisons with dimensionless quantities work in both directions.
     yield operate_and_compare, a3, dimless, np.less, [True, True, True]
     yield operate_and_compare, dimless, a3, np.less, [False, False, False]
     yield assert_equal, a1 < 2, [True, False, False]
