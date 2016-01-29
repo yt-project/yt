@@ -115,6 +115,31 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
                        units="dimensionless")
 
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
+    r"""
+    This routine sets up special aliases between dataset-specific magnetic fields
+    and the default magnetic fields in yt so that unit conversions between different
+    unit systems can be handled properly. This is only called from the `setup_fluid_fields`
+    method of a frontend's :class:`FieldInfoContainer` instance.
+
+    Parameters
+    ----------
+    registry : :class:`FieldInfoContainer`
+        The field registry that these definitions will be installed into.
+    ds_ftype : string
+        The field type for the fields we're going to alias, e.g. "flash", "enzo", "athena", etc.
+    ds_fields : list of strings
+        The fields that will be aliased.
+    ftype : string, optional
+        The resulting field type of the fields. Default "gas".
+
+    Examples
+    --------
+    >>> class PlutoFieldInfo(ChomboFieldInfo):
+    ...     def setup_fluid_fields(self):
+    ...         from yt.fields.magnetic_field import \
+    ...             setup_magnetic_field_aliases
+    ...         setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
+    """
     unit_system = registry.ds.unit_system
     ds_fields = [(ds_ftype, fd) for fd in ds_fields]
     if ds_fields[0] not in registry:
