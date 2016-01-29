@@ -13,7 +13,7 @@ Unit system class.
 
 from yt.extern.six import string_types
 from yt.units import dimensions
-from yt.units.unit_object import Unit, unit_system_registry, get_system_unit_string
+from yt.units.unit_object import Unit, unit_system_registry, _get_system_unit_string
 from yt.utilities import physical_constants as pc
 
 class UnitSystemConstants(object):
@@ -59,7 +59,7 @@ class UnitSystem(object):
                 self._dims.append(key)
             key = getattr(dimensions, key)
         if key not in self.units_map:
-            units = get_system_unit_string(key, self.units_map)
+            units = _get_system_unit_string(key, self.units_map)
             self.units_map[key] = Unit(units, registry=self.registry)
         return self.units_map[key]
 

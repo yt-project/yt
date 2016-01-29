@@ -402,7 +402,7 @@ class Unit(Expr):
         """
         Create and return dimensionally-equivalent units in a specified base.
         """
-        yt_base_unit_string = get_system_unit_string(self.dimensions, default_base_units)
+        yt_base_unit_string = _get_system_unit_string(self.dimensions, default_base_units)
         yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
                             dimensions=self.dimensions, registry=self.registry)
         if unit_system == "cgs":
@@ -415,7 +415,7 @@ class Unit(Expr):
                                    r'code unit system. Try again with unit_system=ds instead, '
                                    r'where \'ds\' is your dataset.')
             unit_system = unit_system_registry[str(unit_system)]
-            units_string = get_system_unit_string(self.dimensions, unit_system.base_units)
+            units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
             base_value = get_conversion_factor(self, yt_base_unit)[0]
             base_value /= get_conversion_factor(self, u)[0]
@@ -611,7 +611,7 @@ def validate_dimensions(dimensions):
     elif not isinstance(dimensions, Basic):
         raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
 
-def get_system_unit_string(dimensions, base_units):
+def _get_system_unit_string(dimensions, base_units):
     # The dimensions of a unit object is the product of the base dimensions.
     # Use sympy to factor the dimensions into base CGS unit symbols.
     units = []
