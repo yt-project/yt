@@ -160,8 +160,8 @@ def test_orientation():
     center = [0.5, 0.5, 0.5]
     width = [0.04, 0.04, 0.4]
     for orientation in orientations:
-        image, sc = off_axis_projection(ds, center, orientation, width,
-                                        512, "density", no_ghost=False)
+        image = off_axis_projection(ds, center, orientation, width,
+                                    512, "density", no_ghost=False)
         def offaxis_image_func(filename_prefix):
             return image.write_image(filename_prefix)
         yield GenericImageTest(ds, offaxis_image_func, decimals)
