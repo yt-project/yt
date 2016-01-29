@@ -76,7 +76,7 @@ class ParticleIndex(Index):
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
 
-    def _initialize_coarse_index(self):
+    def _initialize_index(self, noref=False):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
           self.total_particles)
@@ -86,13 +86,26 @@ class ParticleIndex(Index):
                 ds.domain_left_edge, ds.domain_right_edge,
                 N, len(self.data_files), ds.over_refine_factor,
                 ds.n_ref)
+        self._initialize_coarse_index()
+        if not noref:
+            self._initialize_refined_index()
+
+    def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for pos in self.io._yield_coordinates(data_file):
-                self.regions.add_data_file(pos, data_file.file_id, 0, 0.0)
+                self.regions._coarse_index_data_file(pos, data_file.file_id)
         pb.finish()
 
+    def _initialize_refined_index(self):
+        pb = get_pbar("Initializing refined index", len(self.data_files))
+        for i, data_file in enumerate(self.data_files):
+            pb.update(i)
+            for pos in self.io._yield_coordinates(data_file):
+                self.regions._refined_index_data_file(pos, data_file.file_id)
+        pb.finish()
+            
     def _detect_output_fields(self):
         # TODO: Add additional fields
         dsl = []

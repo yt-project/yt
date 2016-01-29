@@ -28,6 +28,7 @@ cdef extern from "ewah.h":
         void logicaland(EWAHBoolArray &a, EWAHBoolArray &container)
         void logicalor(EWAHBoolArray &a, EWAHBoolArray &container)
         void logicalxor(EWAHBoolArray &a, EWAHBoolArray &container)
+        bint intersects(EWAHBoolArray &a)
         void reset()
         size_t sizeInBits()
         size_t sizeInBytes()

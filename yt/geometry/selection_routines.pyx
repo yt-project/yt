@@ -146,7 +146,8 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3], np.float64_t DRE[3],
-                        np.int32_t order1, np.int32_t order2, int ngz = 0):
+                        np.int32_t order1, np.int32_t order2, 
+                        BoolArrayCollection mm_coll, int ngz = 0):
         cdef BoolArrayCollection morton_mask = BoolArrayCollection()
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.float64_t pos[3]
@@ -156,7 +157,7 @@ cdef class SelectorObject:
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
         self.recursive_morton_mask(0, pos, dds, order1, order2, FLAG, 
-                                   morton_mask, morton_mask, ngz=ngz)
+                                   morton_mask, morton_mask, mm_coll, ngz=ngz)
         return morton_mask
 
     @cython.boundscheck(False)
@@ -168,6 +169,7 @@ cdef class SelectorObject:
                                     np.uint64_t mi1,
                                     BoolArrayCollection mm,
                                     BoolArrayCollection mm_ghosts,
+                                    BoolArrayCollection mm_coll,
                                     int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t npos[3]

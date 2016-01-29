@@ -69,11 +69,13 @@ cdef class SelectorObject:
                                     np.uint64_t mi1,
                                     BoolArrayCollection mm,
                                     BoolArrayCollection mm_ghosts,
+				    BoolArrayCollection mm_coll,
                                     int ngz = ?)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3],
                         np.float64_t DRE[3],
-                        np.int32_t order1, np.int32_t order2, int ngz = ?)
+                        np.int32_t order1, np.int32_t order2, 
+			BoolArrayCollection mm_coll, int ngz = ?)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

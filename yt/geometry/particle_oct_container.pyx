@@ -35,6 +35,7 @@ from yt.utilities.lib.ewah_bool_array cimport \
 from yt.utilities.lib.ewah_bool_wrap cimport \
     BoolArrayCollection
 from libcpp.map cimport map
+from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
 
@@ -318,10 +319,10 @@ cdef class ParticleForest:
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
-    cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] bitmasks
+    cdef dict bitmasks
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
-                 n_ref = 64, index_order = 7):
+                 n_ref = 64, index_order1 = 7, index_order2 = 7):
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
@@ -337,23 +338,22 @@ cdef class ParticleForest:
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i] 
-            self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order)
+            self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
         # We use 64-bit masks
         self.masks = []
-        self.index_order1 = index_order
+        self.index_order1 = index_order1
+        self.index_order2 = index_order2
         # This will be an on/off flag for which morton index values are touched
         # by particles.
-        self.morton_count = np.zeros(1 << (index_order*3), dtype="uint8")
+        self.morton_count = np.zeros(1 << (index_order1*3), dtype="uint8")
         # This is the simple way, for now.
-        self.masks = np.zeros((1 << (index_order * 3), nfiles), dtype="uint8")
+        self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def add_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
-                      np.uint64_t file_id, int filter,
-                      np.float64_t rel_buffer):
-        # TODO: Replace with the bitarray
+    def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                                np.uint64_t file_id):
         # Initialize
         cdef int i
         cdef np.int64_t p
@@ -362,19 +362,18 @@ cdef class ParticleForest:
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
-        # cdef np.float64_t dds[3]
         cdef np.int32_t order = self.index_order1
+        cdef np.int64_t total_hits = 0
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
-            # dds[i] = self.dds_mi[i]
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         cdef np.ndarray[np.uint8_t, ndim=1] morton_count = self.morton_count
         # Mark index of particles that are in this file
-        for p in range(pos.shape[0]): # Over particles
+        for p in range(pos.shape[0]):
             skip = 0
-            for i in range(3): # Over dimensions
+            for i in range(3):
                 # Skip particles outside the domain
                 if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
                     skip = 1
@@ -383,28 +382,25 @@ cdef class ParticleForest:
             if skip == 1: continue
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
-            self.bitmasks[mi][file_id].set(FLAG)
-        return
+            self.bitmasks[file_id].set(mi)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def secondary_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
-                      np.ndarray[np.uint8_t, ndim=1] mask,
-                      np.uint64_t file_id, int order):
+    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                                 np.uint64_t file_id):
         # Initialize
         cdef np.int64_t p
         cdef np.uint64_t mi, nsub_mi, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
-        cdef np.float64_t box_left[3]
         cdef np.float64_t RE[3]
+        cdef np.float64_t box_left[3]
         cdef np.float64_t box_right[3]
         cdef np.float64_t dds[3]
         cdef np.int64_t total_hits = 0
-        # Save order of second index
-        self.index_order2 = order
+        cdef np.int32_t order = self.index_order2
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -413,22 +409,18 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint64_t, ndim=2] sub_mi
         sub_mi = np.zeros((2, pos.shape[0]), dtype="uint64")
         nsub_mi = 0
-        # Loop over positions
+        # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
-                # Skip particles outside domain
                 if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
-            # Find coarse index of particle
-            # (Balance between memory cost of storing morton indices & computation time?)
+            # Only look if coarse index set 
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order1)
-            #mi = bounded_morton_mml(ppos[0], ppos[1], ppos[2], LE, dds)
-            # Only look if it's within the mask
-            if mask[mi] == 0: continue
+            if not self.bitmasks.get(mi): continue
             total_hits += 1
             # Compute the bounding box for this index
             # (this is also done inside bounded_morton)
@@ -441,18 +433,16 @@ cdef class ParticleForest:
                                                 box_left, box_right, order)
             nsub_mi += 1
         # Only subs of particles in the mask
-        #print sub_mi.size,
         sub_mi = sub_mi[:,:nsub_mi]
-        #print sub_mi.size
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort(sub_mi)
         last_submi = last_mi = 0
         for i in range(int(nsub_mi)):
             p = ind[i]
-            # Make sure its sorted
+            # Make sure its sorted by second index
             if not (sub_mi[1,p] >= last_submi):
-                print last_mi, last_submi, sub_mi[0,p], sub_mi[1,p]
-                raise RuntimeError
-            self.bitmasks[sub_mi[0,p]][file_id].set(sub_mi[1,p])
+                print(last_mi, last_submi, sub_mi[0,p], sub_mi[1,p])
+                raise RuntimeError("Error in sort by refined index.")
+            self.bitmasks[file_id].set(sub_mi[0,p],sub_mi[1,p])
             if last_mi == sub_mi[0,p]:
                 last_submi = sub_mi[1,p]
             else:
@@ -461,26 +451,38 @@ cdef class ParticleForest:
         return total_hits
 
     def check(self):
-        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it1
-        cdef map[np.int32_t, ewah_bool_array].iterator it2
-        cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p1
+        cdef np.uint64_t mi1
+        cdef ewah_bool_array arr_totref, arr_tottwo
         cdef ewah_bool_array arr, arr_any, arr_two, arr_swap
+        cdef vector[size_t] vec_totref
+        cdef vector[size_t].iterator it_mi1
+        cdef BoolArrayCollection b1
         cdef int nm = 0, nc = 0
-        it1 = self.bitmasks.begin()
-        while it1 != self.bitmasks.end():
-            p1 = dereference(it1)
-            it2 = p1.second.begin()
+        # Locate all indices with second level refinement
+        for ifile in self.bitmasks:
+            b1 = self.bitmasks[ifile]
+            arr = (<ewah_bool_array*> b1.ewah_refn)[0]
+            arr_totref.logicalor(arr,arr_totref)
+        # Count collections & second level indices
+        vec_totref = arr_totref.toArray()
+        it_mi1 = vec_totref.begin()
+        while it_mi1 != vec_totref.end():
+            mi1 = dereference(it_mi1)
             arr_any.reset()
             arr_two.reset()
-            while it2 != p1.second.end():
-                arr = dereference(it2).second
-                arr_any.logicaland(arr, arr_two)
-                arr_any.logicalor(arr, arr_swap)
-                arr_any = arr_swap
-                preincrement(it2)
-            preincrement(it1)
+            for ifile in self.bitmasks:
+                if self.bitmasks[ifile].isref(mi1):
+                    b1 = self.bitmasks[ifile]
+                    arr = (<map[np.int64_t, ewah_bool_array]*> b1.ewah_coll)[0][mi1]
+                    arr_any.logicaland(arr, arr_two) # Indices in previous files
+                    arr_any.logicalor(arr, arr_swap) # All second level indices
+                    arr_any = arr_swap
+                    arr_two.logicalor(arr_tottwo,arr_tottwo)
+            nc += arr_tottwo.numberOfOnes()
             nm += arr_any.numberOfOnes()
-            nc += arr_two.numberOfOnes()
+            preincrement(it_mi1)
+        # nc: total number of second level morton indices that are repeated
+        # nm: total number of second level morton indices
         print "Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm)
 
     def finalize(self):
@@ -499,17 +501,18 @@ cdef class ParticleForest:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector, int ngz = 0):
-        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]] mask_d
-        cdef map[np.uint64_t, map[np.int32_t, ewah_bool_array]].iterator it_mi1
-        cdef map[np.int32_t, ewah_bool_array].iterator it_file
-        cdef pair[np.uint64_t, map[np.int32_t, ewah_bool_array]] p_mi1_file
-        cdef pair[np.int32_t, ewah_bool_array] p_file_mi2
-        cdef map[np.uint64_t, ewah_bool_array] mask_s
-        cdef map[np.uint64_t, ewah_bool_array] mask_g
+        cdef BoolArrayCollection cmask_d = BoolArrayCollection()
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
-        cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1_s
-        cdef ewah_bool_array arr1, arr2, arr_and
+        cdef BoolArrayCollection cmask_coll = BoolArrayCollection()
+        cdef map[np.int64_t,ewah_bool_array] mask_d
+        cdef map[np.int64_t,ewah_bool_array] mask_s
+        cdef map[np.int64_t,ewah_bool_array] mask_g
+        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_d
+        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_s
+        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_g
+        cdef ewah_bool_array refined_d, refined_s, refined_g
+        cdef ewah_bool_array coarse_d, coarse_s, coarse_g
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         cdef int j
@@ -518,71 +521,74 @@ cdef class ParticleForest:
         cdef np.int32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        # Find mask defining cells with collisions at first index
+        for ifile in self.bitmasks:
+            cmask_d = self.bitmasks[ifile]
+            (<ewah_bool_array*>cmask_coll.ewah_keys)[0].logicalor((<ewah_bool_array*>cmask_d.ewah_refn)[0],
+                                                                  (<ewah_bool_array*>cmask_coll.ewah_keys)[0])
         # Find mask of selected morton indices
         for j in range(3):
             pos[j] = np.float64(0.0)
             dds[j] = self.right_edge[j] - self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, 
                                        self.index_order1, self.index_order2, 
-                                       FLAG, cmask_s, cmask_g, ngz=ngz)
-        mask_d = self.bitmasks
-        mask_s = (<map[np.uint64_t, ewah_bool_array] *> cmask_s.ewah_coll)[0]
-        mask_g = (<map[np.uint64_t, ewah_bool_array] *> cmask_g.ewah_coll)[0]
-        if (mask_d.begin() == mask_d.end()):
-            print "Data mask is empty."
+                                       FLAG, cmask_s, cmask_g, cmask_coll, 
+                                       ngz=ngz)
+        mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
+        mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
         if (mask_s.begin() == mask_s.end()):
             print "Selector mask is empty."
         if (mask_g.begin() == mask_g.end()):
             print "Ghost mask is empty."
+        cmask_s.ewah_coarse()
+        cmask_d.ewah_coarse()
+        coarse_s = (<ewah_bool_array*> cmask_s.ewah_coar)[0]
+        coarse_d = (<ewah_bool_array*> cmask_d.ewah_coar)[0]
         # Compare with mask of particles
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         file_mask_g = np.zeros(self.nfiles, dtype="uint8")
-        it_mi1_d = mask_d.begin()
-        while it_mi1_d != mask_d.end():
-            p_mi1_file = dereference(it_mi1_d)
-            mi1 = p_mi1_file.first
-            print "mi1 = {}".format(mi1)
-            # mi1 selected by selector
-            it_mi1_d = mask_d.find(mi1)
-            if (it_mi1_d != mask_d.end()):
-                print "Found mi1 = {} in selector".format(mi1)
-            it_mi1_s = mask_s.find(mi1)
-            if (it_mi1_s != mask_s.end()):
-                print "Found mi1 = {} in selector".format(mi1)
-                arr1 = dereference(it_mi1_s).second
-                it_file = p_mi1_file.second.begin()
-                while it_file != p_mi1_file.second.end():
-                    ifile = dereference(it_file).first
-                    # Only continue if file not already selected
-                    if not file_mask_p[ifile]:
-                        arr_and.reset()
-                        arr2 = dereference(it_file).second
-                        arr1.logicaland(arr2,arr_and)
-                        if arr_and.numberOfOnes() > 0:
-                            file_mask_p[ifile] = 1
-                            file_mask_g[ifile] = 0 # file can't be primary & ghost
-                    # Increment file
-                    preincrement(it_file)
-            # mi1 selected by ghosts
-            if ngz > 0:
-                it_mi1_s = mask_g.find(mi1)
-                if (it_mi1_s != mask_g.end()):
-                    print "Found mi1 = {} in ghosts".format(mi1)
-                    arr1 = dereference(it_mi1_s).second
-                    it_file = p_mi1_file.second.begin()
-                    while it_file != p_mi1_file.second.end():
-                        ifile = dereference(it_file).first
-                        # Only continue if file not already selected
-                        if not file_mask_p[ifile] and not file_mask_g[ifile]:
-                            arr_and.reset()
-                            arr2 = dereference(it_file).second
-                            arr1.logicaland(arr2,arr_and)
-                            if arr_and.numberOfOnes() > 0:
-                                file_mask_g[ifile] = 1
-                        # Increment file
-                        preincrement(it_file)
-            # Increment mi1
-            preincrement(it_mi1_d)
+        for ifile in self.bitmasks:
+            # Only continue if the file is not already selected
+            if not file_mask_p[ifile]:
+                cmask_d = self.bitmasks[ifile]
+                # Do coarse levels
+                cmask_d.ewah_coarse()
+                coarse_d = (<ewah_bool_array*> cmask_d.ewah_coar)[0]
+                if coarse_s.intersects(coarse_d):
+                    file_mask_p[ifile] = 1
+                    file_mask_g[ifile] = 0 # No intersection
+                    print "Found file {} in selector at coarse level".format(ifile)
+                elif coarse_g.intersects(coarse_d):
+                    file_mask_g[ifile] = 1
+                    print "Found file {} in ghosts at coarse level".format(ifile)
+                else:
+                    # Do refinement at collisions
+                    mask_d = (<map[np.int64_t,ewah_bool_array] *> cmask_d.ewah_coll)[0]
+                    if (mask_d.begin() == mask_d.end()):
+                        print "Data mask is empty. (file {})".format(ifile)
+                    it_mi1_d = mask_d.begin()
+                    while it_mi1_d != mask_d.end():
+                        mi1 = dereference(it_mi1_d).first
+                        if cmask_d.isref(mi1):
+                            refined_d = dereference(it_mi1_d).second
+                            # Selector
+                            if cmask_s.isref(mi1):
+                                it_mi1_s = mask_s.find(mi1)
+                                if (it_mi1_s == mask_s.end()):
+                                    raise RuntimeError("Refinement indicated in selected region, but bool array for mi1 = {} not found".format(mi1))
+                                refined_s = dereference(it_mi1_s).second
+                                if refined_s.intersects(refined_d):
+                                    file_mask_p[ifile] = 1
+                                    file_mask_g[ifile] = 0
+                            # Ghost zones
+                            if not file_mask_p[ifile] and not file_mask_g[ifile] and cmask_g.isref(mi1):
+                                it_mi1_g = mask_g.find(mi1)
+                                if (it_mi1_g == mask_g.end()):
+                                    raise RuntimeError("Refinement indicated in ghost zones, but bool array for mi1 = {} not found".format(mi1))
+                                refined_g = dereference(it_mi1_g).second
+                                if refined_g.intersects(refined_d):
+                                    file_mask_g[ifile] = 1
+                        preincrement(it_mi1_d)
         print sum(file_mask_p),sum(file_mask_g)
         return np.where(file_mask_p)[0],np.where(file_mask_g)[0]
 
