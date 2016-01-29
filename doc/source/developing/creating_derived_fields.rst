@@ -146,8 +146,17 @@ the units will be returned in the units of that system:
 
     ds.add_field(("gas", "pressure"), function=_pressure, units=ds.unit_system["pressure"])
 
-If you find yourself using the same custom-defined fields over and over, you
-should put them in your plugins file as described in :ref:`plugin-file`.
+Since the :class:`yt.units.unit_systems.UnitSystem` object returns a :class:`yt.units.unit_object.Unit` object when
+queried, you're not limited to specifying units in terms of those already available. You can specify units for fields
+using basic arithmetic if necessary:
+
+.. code-block:: python
+
+    ds.add_field(("gas", "my_acceleration"), function=_my_acceleration,
+                 units=ds.unit_system["length"]/ds.unit_system["time"]**2)
+
+If you find yourself using the same custom-defined fields over and over, you should put them in your plugins file as
+described in :ref:`plugin-file`.
 
 A More Complicated Example
 --------------------------
