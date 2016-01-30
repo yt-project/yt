@@ -34,14 +34,12 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh, pixelize_off_axis_cartesian
+    pixelize_element_mesh, pixelize_off_axis_cartesian, \
+    pixelize_cartesian
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-
-
-from . import _MPL
 
 callback_registry = {}
 
@@ -362,24 +360,18 @@ class QuiverCallback(PlotCallback):
         if self.bv_y != 0.0:
             # Workaround for 0.0 without units
             fv_y -= self.bv_y
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             fv_x,
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1), 0, # bounds, antialias
-                             (period_x, period_y), periodic,
-                             ).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             fv_y,
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1), 0, # bounds, antialias
-                             (period_x, period_y), periodic,
-                             ).transpose()
+        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  fv_x, int(nx), int(ny),
+                                  (x0, x1, y0, y1), 0, # bounds, antialias
+                                  (period_x, period_y), periodic,
+                                  ).transpose()
+        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  fv_y, int(nx), int(ny),
+                                  (x0, x1, y0, y1), 0, # bounds, antialias
+                                  (period_x, period_y), periodic,
+                                  ).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -670,28 +662,22 @@ class StreamlineCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_x],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_y],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
+        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  plot.data[self.field_x],
+                                  int(nx), int(ny),
+                                  (x0, x1, y0, y1),).transpose()
+        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  plot.data[self.field_y],
+                                  int(nx), int(ny),
+                                  (x0, x1, y0, y1),).transpose()
         if self.field_color:
-            self.field_color = _MPL.Pixelize(plot.data['px'],
-                                             plot.data['py'],
-                                             plot.data['pdx'],
-                                             plot.data['pdy'],
-                                             plot.data[self.field_color],
-                                             int(nx), int(ny),
-                                             (x0, x1, y0, y1),).transpose()
+            self.field_color = pixelize_cartesian(
+                        plot.data['px'], plot.data['py'],
+                        plot.data['pdx'], plot.data['pdy'],
+                        plot.data[self.field_color], int(nx), int(ny),
+                        (x0, x1, y0, y1),).transpose()
 
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
@@ -892,7 +878,7 @@ class ClumpContourCallback(PlotCallback):
             xf_copy = clump[xf].copy().in_units("code_length")
             yf_copy = clump[yf].copy().in_units("code_length")
 
-            temp = _MPL.Pixelize(xf_copy, yf_copy,
+            temp = pixelize_cartesian(xf_copy, yf_copy,
                                  clump[dxf].in_units("code_length")/2.0,
                                  clump[dyf].in_units("code_length")/2.0,
                                  clump[dxf].d*0.0+i+1, # inits inside Pixelize
