@@ -1007,7 +1007,7 @@ def gravitational_binding_energy(
         i += n_q - q_outer
         pbar.update(i)
         total_potential += this_potential
-        if truncate and total_potential / kinetic:
+        if truncate and total_potential / kinetic > 1.:
             break
     pbar.finish()
 
