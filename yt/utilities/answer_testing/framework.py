@@ -689,7 +689,7 @@ def compare_image_lists(new_result, old_result, decimals):
                 for fn in tempfiles:
                     sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
                 sys.stderr.write('\n')
-        assert_equal(results, None)
+        assert_equal(results, None, results)
         for fn in fns:
             os.remove(fn)
 
