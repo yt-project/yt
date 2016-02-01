@@ -32,7 +32,8 @@ from collections import defaultdict
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_bool_array
-from yt.utilities.lib.ewah_bool_wrap cimport \
+#from yt.utilities.lib.ewah_bool_wrap cimport \
+from ..utilities.lib.ewah_bool_wrap cimport \
     BoolArrayCollection
 from libcpp.map cimport map
 from libcpp.vector cimport vector
@@ -348,6 +349,9 @@ cdef class ParticleForest:
         self.morton_count = np.zeros(1 << (index_order1*3), dtype="uint8")
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
+        self.bitmasks = dict()
+        for i in range(nfiles):
+            self.bitmasks[i] = BoolArrayCollection()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -364,6 +368,7 @@ cdef class ParticleForest:
         cdef np.float64_t RE[3]
         cdef np.int32_t order = self.index_order1
         cdef np.int64_t total_hits = 0
+        cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -382,7 +387,7 @@ cdef class ParticleForest:
             if skip == 1: continue
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
             morton_count[mi] = mask[mi] = 1
-            self.bitmasks[file_id].set(mi)
+            bitmasks.set(mi)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -401,6 +406,7 @@ cdef class ParticleForest:
         cdef np.float64_t dds[3]
         cdef np.int64_t total_hits = 0
         cdef np.int32_t order = self.index_order2
+        cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -420,7 +426,7 @@ cdef class ParticleForest:
             if skip == 1: continue
             # Only look if coarse index set 
             mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, self.index_order1)
-            if not self.bitmasks.get(mi): continue
+            if not bitmasks.get(mi): continue
             total_hits += 1
             # Compute the bounding box for this index
             # (this is also done inside bounded_morton)
@@ -442,7 +448,7 @@ cdef class ParticleForest:
             if not (sub_mi[1,p] >= last_submi):
                 print(last_mi, last_submi, sub_mi[0,p], sub_mi[1,p])
                 raise RuntimeError("Error in sort by refined index.")
-            self.bitmasks[file_id].set(sub_mi[0,p],sub_mi[1,p])
+            bitmasks.set(sub_mi[0,p],sub_mi[1,p])
             if last_mi == sub_mi[0,p]:
                 last_submi = sub_mi[1,p]
             else:
@@ -471,8 +477,8 @@ cdef class ParticleForest:
             arr_any.reset()
             arr_two.reset()
             for ifile in self.bitmasks:
-                if self.bitmasks[ifile].isref(mi1):
-                    b1 = self.bitmasks[ifile]
+                b1 = self.bitmasks[ifile]
+                if b1.isref(mi1):
                     arr = (<map[np.int64_t, ewah_bool_array]*> b1.ewah_coll)[0][mi1]
                     arr_any.logicaland(arr, arr_two) # Indices in previous files
                     arr_any.logicalor(arr, arr_swap) # All second level indices

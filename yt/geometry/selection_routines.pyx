@@ -198,9 +198,12 @@ cdef class SelectorObject:
                                 mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
                                                           np.uint64(npos[1]/ndds[1]),
                                                           np.uint64(npos[2]/ndds[2]))
+                                # Only continue if there are collisions
+                                if not mm_coll.get(mi1):
+                                    continue
                             self.recursive_morton_mask(level+1, npos, ndds,
                                                        max_level1, max_level2,
-                                                       mi1, mm, mm_ghosts, ngz=ngz)
+                                                       mi1, mm, mm_ghosts, mm_coll, ngz=ngz)
                         else: # max_level1 + max_level2
                             decode_morton_64bit(mi1,ind1)
                             for m in range(3):

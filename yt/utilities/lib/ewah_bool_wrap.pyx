@@ -75,7 +75,7 @@ cdef class BoolArrayCollection:
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewah_bool_array *ewah_coar = <ewah_bool_array *> self.ewah_coar
-        ewah_coar.reset[0]()
+        ewah_coar[0].reset()
         ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar[0])
         return
 
@@ -85,8 +85,10 @@ cdef class BoolArrayCollection:
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_coar = <ewah_bool_array *> self.ewah_coar
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         del ewah_keys
         del ewah_refn
+        del ewah_coar
         del ewah_coll
 
