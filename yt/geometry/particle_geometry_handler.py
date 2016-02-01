@@ -87,6 +87,7 @@ class ParticleIndex(Index):
                 N, len(self.data_files), ds.over_refine_factor,
                 ds.n_ref)
         self._initialize_coarse_index()
+        self.regions.find_collisions()
         if not noref:
             self._initialize_refined_index()
 

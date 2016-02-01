@@ -199,7 +199,7 @@ cdef class SelectorObject:
                                                           np.uint64(npos[1]/ndds[1]),
                                                           np.uint64(npos[2]/ndds[2]))
                                 # Only continue if there are collisions
-                                if not mm_coll.get(mi1):
+                                if not mm_coll._get(mi1):
                                     continue
                             self.recursive_morton_mask(level+1, npos, ndds,
                                                        max_level1, max_level2,
@@ -210,7 +210,7 @@ cdef class SelectorObject:
                                 ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
                             # Add selected cell
                             mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                            mm.set(mi1,mi2)
+                            mm._set(mi1,mi2)
                             # Add neighbors of selected cell
                             if (ngz > 0):
                                 ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
@@ -250,8 +250,8 @@ cdef class SelectorObject:
                                             mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
                                             # Only set if not already a primary
-                                            if not mm.get(mi1_n,mi2):
-                                                mm_ghosts.set(mi1_n,mi2)
+                                            if not mm._get(mi1_n,mi2):
+                                                mm_ghosts._set(mi1_n,mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

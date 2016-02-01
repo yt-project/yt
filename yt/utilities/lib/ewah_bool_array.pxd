@@ -41,6 +41,7 @@ cdef extern from "ewah.h":
         size_t numberOfOnes()
         void logicalnot(EWAHBoolArray &x)
         void inplace_logicalnot()
+        void swap(EWAHBoolArray &x)
 
 ctypedef EWAHBoolArray[np.uint32_t] ewah_bool_array
 ctypedef vector[size_t] bitset_array
