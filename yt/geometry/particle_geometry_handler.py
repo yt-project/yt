@@ -87,7 +87,6 @@ class ParticleIndex(Index):
                 N, len(self.data_files), ds.over_refine_factor,
                 ds.n_ref)
         self._initialize_coarse_index()
-        self.regions.find_collisions()
         if not noref:
             self._initialize_refined_index()
 
@@ -98,6 +97,7 @@ class ParticleIndex(Index):
             for pos in self.io._yield_coordinates(data_file):
                 self.regions._coarse_index_data_file(pos, data_file.file_id)
         pb.finish()
+        self.regions.find_collisions_coarse()
 
     def _initialize_refined_index(self):
         pb = get_pbar("Initializing refined index", len(self.data_files))
@@ -106,6 +106,7 @@ class ParticleIndex(Index):
             for pos in self.io._yield_coordinates(data_file):
                 self.regions._refined_index_data_file(pos, data_file.file_id)
         pb.finish()
+        self.regions.find_collisions_refined()
             
     def _detect_output_fields(self):
         # TODO: Add additional fields

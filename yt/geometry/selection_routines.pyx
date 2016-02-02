@@ -173,33 +173,70 @@ cdef class SelectorObject:
                                     int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t npos[3]
+        cdef np.float64_t cpos[3] # Center of cell
         cdef np.float64_t ndds[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef np.ndarray[np.uint64_t, ndim=2] ind1_n
         cdef np.ndarray[np.uint64_t, ndim=2] ind2_n
-        cdef np.uint64_t max_index1 = np.uint64(1 << max_level1)
-        cdef np.uint64_t max_index2 = np.uint64(1 << max_level2)
-        cdef int i, j, k, l, m, n, n_neighbors
-        cdef list neighbors
+        cdef np.ndarray[np.int32_t, ndim=1] neighbors
+        cdef np.uint64_t max_index1 = <np.uint64_t>(1 << max_level1)
+        cdef np.uint64_t max_index2 = <np.uint64_t>(1 << max_level2)
+        cdef int i, j, k, l, m, n, iil, iim, iin, n_neighbors, skip
+        cdef np.int64_t maj, rem
+        neighbors = np.zeros(2*ngz+1, dtype=np.uint32)
+        ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
+        ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
         for i in range(3):
             ndds[i] = dds[i]/2
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
+            cpos[0] = npos[0] + ndds[0]/2
             for j in range(2):
                 npos[1] = pos[1] + j*ndds[1]
+                cpos[1] = npos[1] + ndds[1]/2
                 for k in range(2):
                     npos[2] = pos[2] + k*ndds[2]
+                    cpos[2] = npos[2] + ndds[2]/2
                     # Only recurse into selected cells
-                    if self.select_cell(npos,ndds):
+                    if self.select_cell(cpos,ndds):
                         if level < (max_level1 + max_level2): # both morton indices...
                             if level == max_level1:
-                                mi1 = encode_morton_64bit(np.uint64(npos[0]/ndds[0]),
-                                                          np.uint64(npos[1]/ndds[1]),
-                                                          np.uint64(npos[2]/ndds[2]))
-                                # Only continue if there are collisions
-                                if not mm_coll._get(mi1):
+                                mi1 = encode_morton_64bit(<np.uint64_t>(npos[0]/ndds[0]),
+                                                          <np.uint64_t>(npos[1]/ndds[1]),
+                                                          <np.uint64_t>(npos[2]/ndds[2]))
+                                mm._set(mi1)
+                                # If cell does not need refinement,
+                                # add neighbors at this level and continue
+                                if not mm_coll._isref(mi1):
+                                    if (ngz > 0):
+                                        n_neighbors = 0
+                                        for n,l in enumerate(range(-ngz,(ngz+1))):
+                                            skip = 0
+                                            for m in range(3):
+                                                if ((ind1[m] + l) < 0) or ((ind1[m] + l) >= max_index1):
+                                                    if self.periodicity[m]:
+                                                        ind1_n[n,m] = <np.uint64_t>((<np.int64_t>(ind1[m]+l)) % max_index1)
+                                                    else:
+                                                        skip = 1
+                                                        break
+                                                else:
+                                                    ind1_n[n,m] = <np.uint64_t>(ind1[m] + l)
+                                            if not skip:
+                                                neighbors[n_neighbors] = n
+                                                n_neighbors += 1
+                                        for iil in range(n_neighbors):
+                                            l = neighbors[iil]
+                                            for iim in range(n_neighbors):
+                                                m = neighbors[iim]
+                                                for iin in range(n_neighbors):
+                                                    n = neighbors[iin]
+                                                    mi1_n = 0
+                                                    # mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                                    # Only set if not already a primary
+                                                    if not mm._get(mi1_n):
+                                                        mm_ghosts._set(mi1_n)
                                     continue
                             self.recursive_morton_mask(level+1, npos, ndds,
                                                        max_level1, max_level2,
@@ -207,48 +244,47 @@ cdef class SelectorObject:
                         else: # max_level1 + max_level2
                             decode_morton_64bit(mi1,ind1)
                             for m in range(3):
-                                ind2[m] = np.uint64((npos[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
+                                ind2[m] = <np.uint64_t>((npos[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
                             # Add selected cell
                             mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
                             mm._set(mi1,mi2)
                             # Add neighbors of selected cell
                             if (ngz > 0):
-                                ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
-                                ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
                                 n_neighbors = 0
-                                neighbors = ind1_n.shape[0]*[0]
                                 for n,l in enumerate(range(-ngz,(ngz+1))):
+                                    skip = 0
                                     for m in range(3):
+                                        maj = (<np.int64_t>(ind2[m]+l)) / max_index2
+                                        rem = (<np.int64_t>(ind2[m]+l)) % max_index2
                                         if (ind2[m]+l) < 0:
-                                            if self.periodicity[m]:
-                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index1)
-                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
+                                            if not self.periodicity[m] and (ind1[m]+(maj-1) < 0):
+                                                skip = 1
+                                                break
                                             else:
-                                                if (ind1[m]-1) < 0:
-                                                    break
-                                                else:
-                                                    ind1_n[n,m] = np.uint64(np.int64(ind1[m]-1) % max_index1)
-                                                    ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
+                                                ind1_n[n,m] = <np.uint64_t>((<np.int64_t>(ind1[m]+(maj-1))) % max_index1)
+                                                ind2_n[n,m] = <np.uint64_t>(rem)
                                         elif (ind2[m]+l) >= max_index2:
-                                            if self.periodicity[m]:
-                                                ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index1)
-                                                ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
+                                            if not self.periodicity[m] and (ind1[m]+(maj+1) >= max_index1):
+                                                skip = 1
+                                                break
                                             else:
-                                                if (ind1[m]+1) >= max_index1:
-                                                    break
-                                                else:
-                                                    ind1_n[n,m] = np.uint64(np.int64(ind1[m]+1) % max_index1)
-                                                    ind2_n[n,m] = np.uint64(np.int64(ind2[m]+l) % max_index2)
+                                                ind1_n[n,m] = <np.uint64_t>((<np.int64_t>(ind1[m]+(maj+1))) % max_index1)
+                                                ind2_n[n,m] = <np.uint64_t>(rem)
                                         else:
                                             ind1_n[n,m] = ind1[m]
-                                            ind2_n[n,m] = np.uint64(ind2[m]+l)
+                                            ind2_n[n,m] = <np.uint64_t>(ind2[m]+l)
+                                    if not skip:
                                         neighbors[n_neighbors] = n
                                         n_neighbors += 1
-                                for l in neighbors:
-                                    for m in neighbors:
-                                        for n in neighbors:
-                                            mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                            mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
+                                for iil in range(n_neighbors):
+                                    l = neighbors[iil]
+                                    for iim in range(n_neighbors):
+                                        m = neighbors[iim]
+                                        for iin in range(n_neighbors):
+                                            n = neighbors[iin]
+                                            mi1_n = mi2 = 0
+                                            # mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                            # mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
                                             # Only set if not already a primary
                                             if not mm._get(mi1_n,mi2):
                                                 mm_ghosts._set(mi1_n,mi2)
