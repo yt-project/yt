@@ -78,8 +78,9 @@ big_data = "MOOSE_sample_data/mps_out.e"
 
 @requires_ds(big_data)
 def test_displacement_fields():
-    displacement_dicts =[{'connect2':5.0},
-                         {'connect1': [1.0, 2.0, 3.0], 'connect2': 5.0}]
+    displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
+                         {'connect1': (1.0, [1.0, 2.0, 3.0]), 
+                          'connect2': (0.0, [0.0, 0.0, 0.0])}]
     for disp in displacement_dicts:
         ds = data_dir_load(big_data, displacements=disp)
         for mesh in ds.index.meshes:

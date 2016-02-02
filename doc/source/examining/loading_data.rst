@@ -447,36 +447,39 @@ a dataset loaded as
    ds = yt.load("MOOSE_sample_data/mps_out.e")
 
 will not include the displacements in the vertex positions. The displacements can
-be turned on separately for each mesh in the file. For example, the following
-code snippet turns displacements on for the second mesh, but not the first:
+be turned on separately for each mesh in the file by passing in a a tuple of 
+(scale, offset) pairs for the meshes you want to enable displacements for. 
+For example, the following code snippet turns displacements on for the second 
+mesh, but not the first:
 
 .. code-block:: python
 
     import yt
     ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                 displacements={'connect2': 1.0})
+                 displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
 
 The displacements can also be scaled by an arbitrary factor before they are 
-added in to the vertex positions. To blow them up by a factor of 10.0, we do
+added in to the vertex positions. The following code turns on displacements
+for both ``connect1`` and ``connect2``, scaling the former by a factor of 5.0
+and the later by a factor of 10.0:
 
 .. code-block:: python
 
     import yt
     ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                 displacements={'connect2': 10.0})
+                 displacements={'connect1': (5.0, [0.0, 0.0, 0.0]),
+                                'connect2': (10.0, [0.0, 0.0, 0.0])})
 
-Finally, we can also scale each dimension independently. This snippet:
+Finally, we can also apply an arbitrary offset to the mesh vertices after 
+the scale factor is applied. For example, the following code scales all
+displacements in the second mesh by a factor of 5.0, and then shifts
+each vertex in the mesh by 1.0 unit in the z-direction:
 
 .. code-block:: python
 
     import yt
     ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                  displacements={'connect1': [1.0, 2.0, 3.0],
-                                 'connect2': 5.0})
-
-turns displacements on for both meshes, scaling those in the 2nd mesh
-by a factor of 5 and those in the first by 1.0, 2.0, and 3.0 in the
-x, y, and z directions, respectively.
+                  displacements={'connect2': (5.0, [0.0, 0.0, 1.0])})
 
 
 FITS Data

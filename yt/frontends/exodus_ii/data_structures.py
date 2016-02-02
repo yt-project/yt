@@ -87,14 +87,24 @@ class ExodusIIDataset(Dataset):
             file. Passing step=-1 picks out the last dataframe. 
             Default is 0.
 
-        displacements : dictionary
-            This is a dictionary of scale factors that will be applied to the 
-            displacement fields in the ExodusII file. If no displacement fields
-            are present, then this dictionary is ignored. You can specify 
-            separate scale factors for each mesh. The scale factors can either be
-            floats, in which case the same scale will applied to each dimension,
-            or they can be iterables of 3 floats, in which case you can specify
-            anisotropic scale factors.
+        displacements : dictionary of tuples
+            This is a dictionary that controls whether or not displacement fields
+            will be used with the meshes in this dataset. The keys of the
+            displacements dictionary should the names of meshes in the file 
+            (e.g., "connect1", "connect2", etc... ), while the values should be 
+            tuples of the form (scale, offset), where "scale" is a floating point
+            value and "offset" is an array-like with one component for each spatial
+            dimension in the dataset. When the displacements for a given mesh are
+            turned on, the coordinates of the vertices in that mesh get transformed
+            as: 
+
+                  vertex_x = vertex_x + disp_x*scale + offset_x
+                  vertex_y = vertex_y + disp_y*scale + offset_y
+                  vertex_z = vertex_z + disp_z*scale + offset_z
+
+            If no displacement 
+            fields (assumed to be named 'disp_x', 'disp_y', etc... ) are detected in
+            the output file, then this dictionary is ignored.
 
         Examples
         --------
@@ -109,21 +119,28 @@ class ExodusIIDataset(Dataset):
         >>> import yt
         >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)
 
-        This will load the Dataset at index 10, scaling the 2nd mesh
-        by a factor of 5.0 in each direction.
+        This will load the Dataset at index 10, turning on displacement fields for 
+        the 2nd mesh without applying any scale or offset:
 
         >>> import yt
         >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                         displacements={'connect2': 5.0})
+                         displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
+
+        This will load the Dataset at index 10, scaling the displacements
+        in the 2nd mesh by a factor of 5 while not applying an offset:
+
+        >>> import yt
+        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                         displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
         
-        This will load the Dataset at index 10, scaling the 2nd mesh
-        by a factor of 5.0 in each direction and the 1st mesh by an
-        anisotropic scale factor.
+        This will load the Dataset at index 10, scaling the displacements for
+        the 2nd mesh by a factor of 5.0 and shifting all the vertices in 
+        the first mesh by 1.0 unit in the z direction.
 
         >>> import yt
         >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                         displacements={'connect1': [1.0, 2.0, 3.0],
-                                        'connect2': 5.0})
+                         displacements={'connect1': (0.0, [0.0, 0.0, 1.0]),
+                                        'connect2': (5.0, [0.0, 0.0, 0.0])})
 
         """
         self.parameter_filename = filename
@@ -299,17 +316,15 @@ class ExodusIIDataset(Dataset):
             return new_coords
 
         new_coords = np.zeros_like(coords)
-        fac = self.displacements[mesh_name]
-
-        if not iterable(fac):
-            fac = [fac]*self.dimensionality
+        fac = self.displacements[mesh_name][0]
+        offset = self.displacements[mesh_name][1]
 
         coord_axes = 'xyz'[:self.dimensionality]
         for i, ax in enumerate(coord_axes):
             if "disp_%s" % ax in self.parameters['nod_names']:
                 ind = self.parameters['nod_names'].index("disp_%s" % ax)
-                offset = self._vars['vals_nod_var%d' % (ind + 1)][self.step]
-                new_coords[:, i] = coords[:, i] + fac[i]*offset
+                disp = self._vars['vals_nod_var%d' % (ind + 1)][self.step]
+                new_coords[:, i] = coords[:, i] + fac*disp + offset[i]
 
         return new_coords
         
