@@ -23,7 +23,8 @@
 DEST_SUFFIX="yt-conda"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 BRANCH="yt" # This is the branch to which we will forcibly update.
-INST_YT_SOURCE=0 # Do we do a source install of yt?
+INST_YT_SOURCE=1 # Do we do a source install of yt?
+INST_UNSTRUCTURED=1 # Do we want to build with unstructured mesh support?
 
 ##################################################################
 #                                                                #
@@ -39,6 +40,25 @@ LOG_FILE="`pwd`/yt_install.log"
 MINICONDA_URLBASE="http://repo.continuum.io/miniconda"
 MINICONDA_VERSION="latest"
 YT_RECIPE_REPO="https://bitbucket.org/yt_analysis/yt_conda/raw/default"
+
+if [ $INST_UNSTRUCTURED -eq 1 ]
+then
+  if [ $INST_YT_SOURCE -eq 0 ]
+  then
+      echo "yt must be compiled from source to use the unstructured mesh support."
+      echo "Please set INST_YT_SOURCE to 1 and re-run."
+      exit 1
+  fi
+  if [ `uname` = "Darwin" ]
+  then
+      EMBREE="embree-2.8.0.x86_64.macosx"
+      EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
+  else
+      EMBREE="embree-2.8.0.x86_64.linux"
+      EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
+  fi
+  PYEMBREE_URL="https://github.com/scopatz/pyembree/archive/master.zip"
+fi
 
 function do_exit
 {
@@ -276,6 +296,11 @@ YT_DEPS+=('conda-build')
 YT_DEPS+=('mercurial')
 YT_DEPS+=('sympy')
 
+if [ $INST_UNSTRUCTURED -eq 1 ]
+then
+  YT_DEPS+=('netcdf4')   
+fi
+
 # Here is our dependency list for yt
 log_cmd conda update --yes conda
 
@@ -284,6 +309,32 @@ for YT_DEP in "${YT_DEPS[@]}"; do
     echo "Installing $YT_DEP"
     log_cmd conda install --yes ${YT_DEP}
 done
+
+if [ $INST_UNSTRUCTURED -eq 1 ]
+then
+
+  echo "Installing embree"
+  mkdir ${DEST_DIR}/src
+  cd ${DEST_DIR}/src
+  ( ${GETFILE} "$EMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
+  log_cmd tar xfz ${EMBREE}.tar.gz
+  log_cmd mv ${DEST_DIR}/src/${EMBREE}/include/embree2 ${DEST_DIR}/include
+  log_cmd mv ${DEST_DIR}/src/${EMBREE}/lib/lib*.* ${DEST_DIR}/lib
+  if [ `uname` = "Darwin" ]
+  then
+    ln -s ${DEST_DIR}/lib/libembree.2.dylib ${DEST_DIR}/lib/libembree.dylib
+    install_name_tool -id ${DEST_DIR}/lib/libembree.2.dylib ${DEST_DIR}/lib/libembree.2.dylib
+  else
+    ln -s ${DEST_DIR}/lib/libembree.so.2 ${DEST_DIR}/lib/libembree.so
+  fi
+
+  echo "Installing pyembree from source"
+  ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
+  log_cmd unzip ${DEST_DIR}/src/master.zip
+  pushd ${DEST_DIR}/src/pyembree-master
+  log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
+  popd
+fi
 
 if [ $INST_YT_SOURCE -eq 0 ]
 then
@@ -294,6 +345,10 @@ else
     echo "Installing yt from source"
     YT_DIR="${DEST_DIR}/src/yt-hg"
     log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+if [ $INST_UNSTRUCTURED -eq 1 ]
+then
+    echo $DEST_DIR > ${YT_DIR}/embree.cfg
+fi
     pushd ${YT_DIR}
     log_cmd python setup.py develop
     popd
@@ -310,7 +365,7 @@ echo
 echo "   $DEST_DIR/bin"
 echo
 echo "On Bash-style shells you can copy/paste the following command to "
-echo "temporarily activate the yt installtion:"
+echo "temporarily activate the yt installation:"
 echo
 echo "    export PATH=$DEST_DIR/bin:\$PATH"
 echo

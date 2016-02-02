@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <ctype.h>
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/ndarrayobject.h"
 
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
@@ -102,10 +103,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   }
 
   // Check dimensions match
-  int nx = x->dimensions[0];
-  int ny = y->dimensions[0];
-  int ndx = dx->dimensions[0];
-  int ndy = dy->dimensions[0];
+  int nx = PyArray_DIMS(x)[0];
 
   // Calculate the pointer arrays to map input x to output x
   int i, j, p, xi, yi;
@@ -300,7 +298,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
       goto _fail;
   }
   center = (PyArrayObject *) PyArray_FromAny(centerp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL);
   if ((dz == NULL) || (PyArray_SIZE(center) != 3)) {
       PyErr_Format( _pixelizeError, "Center must have three points");
       goto _fail;
@@ -319,7 +317,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   }
 
   // Check dimensions match
-  int nx = x->dimensions[0];
+  int nx = PyArray_DIMS(x)[0];
 
   // Calculate the pointer arrays to map input x to output x
   int i, j, p;
@@ -327,14 +325,13 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   long double md, cxpx, cypx;
   long double cx, cy, cz;
 
-  npy_float64 xsp, ysp, zsp, pxsp, pysp, dxsp, dysp, dzsp, dsp;
   npy_float64 *centers = (npy_float64 *) PyArray_GETPTR1(center,0);
 
   npy_intp dims[] = {rows, cols};
   PyArrayObject *my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
-  npy_float64 *gridded = (npy_float64 *) my_array->data;
+  npy_float64 *gridded = (npy_float64 *) PyArray_DATA(my_array);
   npy_float64 *mask = malloc(sizeof(npy_float64)*rows*cols);
 
   npy_float64 inv_mats[3][3];
@@ -342,7 +339,6 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
       inv_mats[i][j]=*(npy_float64*)PyArray_GETPTR2(inv_mat,i,j);
 
   int pp;
-  npy_float64 radius;
   for(p=0;p<cols*rows;p++)gridded[p]=mask[p]=0.0;
   for(pp=0; pp<nx; pp++)
   {

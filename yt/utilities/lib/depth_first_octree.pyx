@@ -61,8 +61,6 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[gi]
-    cdef np.ndarray[np.int32_t, ndim=3] child_indices = grid.child_indices
-    cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.float64_t dx = grid.dx[0]
@@ -118,7 +116,6 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef OctreeGrid grid = grids[gi-1]
     cdef int level = grid.level
     cdef np.ndarray[np.int32_t, ndim=3] child_indices = grid.child_indices
-    cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.float64_t dx = grid.dx[0]
@@ -126,10 +123,10 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
     cdef int cp
+    s = None
     for i_off in range(i_f):
         i = i_off + i_i
         cx = (leftedges[0] + i*dx)
-        if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)

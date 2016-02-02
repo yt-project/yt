@@ -10,7 +10,7 @@
 
 #ifndef ASSERT
 #include <stdio.h>
-#define ASSERT(exp) { if(!(exp)) { fprintf(stderr,"Failed assertion %s, line: %d\n",#exp,__LINE__); exit(1); } }
+#define ASSERT(exp) { if(!(exp)) { fprintf(stderr,"Failed assertion %s, line: %d\n",#exp,__LINE__); } }
 #endif
 
 #ifndef HEAPALLOC

@@ -166,7 +166,6 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=2] qresult,
                   np.ndarray[np.float64_t, ndim=2] used):
     cdef int n, bini, binj
-    cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
@@ -195,7 +194,6 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=3] qresult,
                   np.ndarray[np.float64_t, ndim=3] used):
     cdef int n, bini, binj, bink
-    cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
@@ -228,7 +226,7 @@ def lines(np.float64_t[:,:,:] image,
     cdef int nl = xs.shape[0]
     cdef np.float64_t alpha[4]
     cdef np.float64_t outa
-    cdef int i, j
+    cdef int i, j, xi, yi
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
     cdef int has_alpha = (image.shape[2] == 4)
@@ -278,7 +276,7 @@ def lines(np.float64_t[:,:,:] image,
                             yi0 = yi
 
                         if no_color:
-                            image[xi, yi0, 0] = fmin(alpha[i], image[xi, yi0, 0])
+                            image[xi, yi0, 0] = fmin(alpha[0], image[xi, yi0, 0])
                         elif has_alpha:
                             image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
@@ -322,13 +320,10 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
     cdef np.float64_t alpha[4]
-    cdef np.float64_t outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1, yi0
     cdef np.float64_t z0, z1, dzx, dzy
-    cdef int has_alpha = (image.shape[2] == 4)
-    cdef int no_color = (image.shape[2] < 3)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]
@@ -362,7 +357,7 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
             elif (y0 < thick and sy == -1): break
             elif (y0 >= ny-thick+1 and sy == 1): break
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
-                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                for _ in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
                         if flip:
                             yi0 = ny - yi
@@ -494,7 +489,7 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
 def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] l_corner,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
-    cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
+    cdef int i, j, k, dim, n_unique, best_dim, n_grids, my_split
     n_grids = data.shape[0]
     cdef np.float64_t **uniquedims
     cdef np.float64_t *uniques
@@ -505,6 +500,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                 alloca(2*n_grids * sizeof(np.float64_t))
     my_max = 0
     best_dim = -1
+    my_split = -1
     for dim in range(3):
         n_unique = 0
         uniques = uniquedims[dim]
@@ -536,6 +532,8 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         #print "Setting tarr: ", i, uniquedims[best_dim][i]
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
+    if my_split < 0:
+        raise RuntimeError
     split = tarr[my_split]
     cdef np.ndarray[np.uint8_t, ndim=1] less_ids = np.empty(n_grids, dtype='uint8')
     cdef np.ndarray[np.uint8_t, ndim=1] greater_ids = np.empty(n_grids, dtype='uint8')
@@ -784,7 +782,7 @@ def fill_region(input_fields, output_fields,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
-    cdef np.int64_t tot, oi, oj, ok, rf
+    cdef np.int64_t tot = 0, oi, oj, ok, rf
     cdef np.int64_t iind[3]
     cdef np.int64_t oind[3]
     cdef np.int64_t dim[3]
@@ -865,11 +863,22 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
                       period = None,
                       int check_period = 1):
     cdef np.float64_t ds_period[3]
-    cdef np.float64_t box_dds[3], box_idds[3], width[3], LE[3], RE[3]
-    cdef np.int64_t i, j, k, p, xi, yi, ji
-    cdef np.int64_t dims[3], ld[3], ud[3]
+    cdef np.float64_t box_dds[3]
+    cdef np.float64_t box_idds[3]
+    cdef np.float64_t width[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
+    cdef np.int64_t i, j, k, p, xi, yi
+    cdef np.int64_t dims[3]
+    cdef np.int64_t ld[3]
+    cdef np.int64_t ud[3]
     cdef np.float64_t overlap[3]
-    cdef np.float64_t dsp, osp[3], odsp[3], sp[3], lfd[3], ufd[3]
+    cdef np.float64_t dsp
+    cdef np.float64_t osp[3]
+    cdef np.float64_t odsp[3]
+    cdef np.float64_t sp[3]
+    cdef np.float64_t lfd[3]
+    cdef np.float64_t ufd[3]
     # These are the temp vars we get from the arrays
     # Some periodicity helpers
     cdef int diter[3][2]

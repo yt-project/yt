@@ -25,6 +25,7 @@ from sympy import Symbol
 from yt.testing import \
     fake_random_ds, assert_allclose_units, \
     assert_almost_equal
+from yt.units.unit_registry import UnitRegistry
 
 # dimensions
 from yt.units.dimensions import \
@@ -496,3 +497,10 @@ def test_latitude_longitude():
     yield assert_equal, (lon*-90.0).in_units("deg"), deg*90.0
     yield assert_equal, (lon*0.0).in_units("deg"), deg*180.0
     yield assert_equal, (lon*180.0).in_units("deg"), deg*360
+
+def test_registry_json():
+    reg = UnitRegistry()
+    json_reg = reg.to_json()
+    unserialized_reg = UnitRegistry.from_json(json_reg)
+
+    assert_equal(reg.lut, unserialized_reg.lut)
