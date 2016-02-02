@@ -300,7 +300,7 @@ class Unit(Expr):
                 base_offset = u.base_offset
             elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
-            elif self.dimensions is u.dimensions is temperature:
+            else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
                                            "and Celsius or angles cannot be multiplied.")
 
@@ -477,11 +477,12 @@ def get_conversion_factor(old_units, new_units):
     if old_units.base_offset == 0 and new_units.base_offset == 0:
         return (ratio, None)
     else:
-        if old_units.dimensions != new_units.dimensions:
+        if old_units.dimensions in (temperature, angle):
+            return ratio, ratio*old_units.base_offset - new_units.base_offset
+        else:
             raise InvalidUnitOperation(
                 "Fahrenheit and Celsius are not absolute temperature scales "
                 "and cannot be used in compound unit symbols.")
-        return ratio, ratio*old_units.base_offset - new_units.base_offset
 
 #
 # Helper functions
