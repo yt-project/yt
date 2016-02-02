@@ -27,7 +27,7 @@ from .fields import \
     ExodusIIFieldInfo
 from .util import \
     load_info_records, sanitize_string
-from yt.funcs import iterable
+
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
     _index_offset = 1
