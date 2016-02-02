@@ -59,8 +59,8 @@ cdef class CopyArrayI64(OctVisitor):
 # This copies a floating point array from the source to the destination, based
 # on the selection criteria.
 cdef class CopyArrayF64(OctVisitor):
-    #@cython.boundscheck(False)
-    #@cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
