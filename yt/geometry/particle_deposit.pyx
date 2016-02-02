@@ -164,7 +164,7 @@ cdef class CountParticles(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        self.count[ii[0], ii[1], ii[2], offset] += 1
+        self.count[ii[2], ii[1], ii[0], offset] += 1
 
     def finalize(self):
         arr = np.asarray(self.count)
@@ -224,14 +224,14 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]
-                    self.temp[i,j,k,offset] = self.sph_kernel(dist)
-                    kernel_sum += self.temp[i,j,k,offset]
+                    self.temp[k,j,i,offset] = self.sph_kernel(dist)
+                    kernel_sum += self.temp[k,j,i,offset]
         # Having found the kernel, deposit accordingly into gdata
         for i from ib0[0] <= i <= ib1[0]:
             for j from ib0[1] <= j <= ib1[1]:
                 for k from ib0[2] <= k <= ib1[2]:
-                    dist = self.temp[i,j,k,offset] / kernel_sum
-                    self.data[i,j,k,offset] += fields[1] * dist
+                    dist = self.temp[k,j,i,offset] / kernel_sum
+                    self.data[k,j,i,offset] += fields[1] * dist
 
     def finalize(self):
         return self.odata
@@ -257,7 +257,7 @@ cdef class SumParticleField(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
-        self.sum[ii[0], ii[1], ii[2], offset] += fields[0]
+        self.sum[ii[2], ii[1], ii[0], offset] += fields[0]
         return
 
     def finalize(self):
@@ -300,18 +300,18 @@ cdef class StdParticleField(ParticleDepositOperation):
         cdef float k, mk, qk
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
-        k = self.i[ii[0], ii[1], ii[2], offset]
-        mk = self.mk[ii[0], ii[1], ii[2], offset]
-        qk = self.qk[ii[0], ii[1], ii[2], offset]
+        k = self.i[ii[2], ii[1], ii[0], offset]
+        mk = self.mk[ii[2], ii[1], ii[0], offset]
+        qk = self.qk[ii[2], ii[1], ii[0], offset]
         #print k, mk, qk, cell_index
         if k == 0.0:
             # Initialize cell values
-            self.mk[ii[0], ii[1], ii[2], offset] = fields[0]
+            self.mk[ii[2], ii[1], ii[0], offset] = fields[0]
         else:
-            self.mk[ii[0], ii[1], ii[2], offset] = mk + (fields[0] - mk) / k
-            self.qk[ii[0], ii[1], ii[2], offset] = \
+            self.mk[ii[2], ii[1], ii[0], offset] = mk + (fields[0] - mk) / k
+            self.qk[ii[2], ii[1], ii[0], offset] = \
                 qk + (k - 1.0) * (fields[0] - mk)**2.0 / k
-        self.i[ii[0], ii[1], ii[2], offset] += 1
+        self.i[ii[2], ii[1], ii[0], offset] += 1
 
     def finalize(self):
         # This is the standard variance
@@ -362,7 +362,7 @@ cdef class CICDeposit(ParticleDepositOperation):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    self.field[ind[0] - i, ind[1] - j, ind[2] - k, offset] += \
+                    self.field[ind[2] - k, ind[1] - j, ind[0] - i, offset] += \
                         fields[0]*rdds[0][i]*rdds[1][j]*rdds[2][k]
 
     def finalize(self):
@@ -396,8 +396,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
-        self.w[ii[0], ii[1], ii[2], offset] += fields[1]
-        self.wf[ii[0], ii[1], ii[2], offset] += fields[0] * fields[1]
+        self.w[ii[2], ii[1], ii[0], offset] += fields[1]
+        self.wf[ii[2], ii[1], ii[0], offset] += fields[0] * fields[1]
 
     def finalize(self):
         wf = np.asarray(self.owf)
@@ -465,9 +465,9 @@ cdef class NNParticleField(ParticleDepositOperation):
                     r2 = ((ppos[0] - gpos[0])*(ppos[0] - gpos[0]) +
                           (ppos[1] - gpos[1])*(ppos[1] - gpos[1]) +
                           (ppos[2] - gpos[2])*(ppos[2] - gpos[2]))
-                    if r2 < self.distfield[i,j,k,offset]:
-                        self.distfield[i,j,k,offset] = r2
-                        self.nnfield[i,j,k,offset] = fields[0]
+                    if r2 < self.distfield[k,j,i,offset]:
+                        self.distfield[k,j,i,offset] = r2
+                        self.nnfield[k,j,i,offset] = fields[0]
                     gpos[2] += dds[2]
                 gpos[1] += dds[1]
             gpos[0] += dds[0]
