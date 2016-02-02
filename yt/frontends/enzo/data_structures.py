@@ -394,7 +394,7 @@ class EnzoHierarchy(GridIndex):
         fields = []
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
-            if np.any(select_grids) is False:
+            if not np.any(select_grids):
                 current_ptypes = self.dataset.particle_types
                 new_ptypes = [p for p in current_ptypes if p != ptype]
                 self.dataset.particle_types = new_ptypes
