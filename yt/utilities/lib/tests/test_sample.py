@@ -1,6 +1,7 @@
 import numpy as np
 
-from yt.utilities.lib.CICDeposit import CICSample_3
+from yt.utilities.lib.particle_mesh_operations import \
+    CICSample_3
 from yt.testing import assert_allclose
 
 def setup():

@@ -56,7 +56,7 @@ cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 @cython.cdivision(True)
 cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                                        np.float64_t dvs[6]) nogil:
-    cdef np.float64_t bv, dy, dd, tf, rv
+    cdef np.float64_t bv, dy, dd
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
     if not isnormal(dvs[fit.field_id]): return 0.0
@@ -76,8 +76,8 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
                             np.float64_t *rgba, int n_fits,
                             FieldInterpolationTable fits[6],
                             int field_table_ids[6], int grey_opacity) nogil:
-    cdef int i, fid, use
-    cdef np.float64_t ta, tf, ttot, dot_prod
+    cdef int i, fid
+    cdef np.float64_t ta
     cdef np.float64_t istorage[6]
     cdef np.float64_t trgba[6]
     for i in range(6): istorage[i] = 0.0
@@ -106,8 +106,8 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         np.float64_t *rgba, int n_fits,
         FieldInterpolationTable fits[6],
         int field_table_ids[6], int grey_opacity) nogil:
-    cdef int i, fid, use
-    cdef np.float64_t ta, tf, dot_prod
+    cdef int i, fid
+    cdef np.float64_t ta, dot_prod
     cdef np.float64_t istorage[6]
     cdef np.float64_t trgba[6]
     dot_prod = 0.0

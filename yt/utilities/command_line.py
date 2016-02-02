@@ -26,7 +26,6 @@ import tempfile
 import json
 import pprint
 
-
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
@@ -43,6 +42,8 @@ from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -1098,6 +1099,75 @@ class YTUploadImageCmd(YTCommand):
             print()
             pprint.pprint(rv)
 
+class YTSearchCmd(YTCommand):
+    args = (dict(short="-o", longname="--output",
+                 action="store", type=str,
+                 dest="output", default="yt_index.json",
+                 help="File in which to place output"),
+            dict(longname="--check-all", short="-a",
+                 help="Attempt to load every file",
+                 action="store_true", default=False,
+                 dest="check_all"),
+            dict(longname="--full", short="-f",
+                 help="Output full contents of parameter file",
+                 action="store_true", default=False,
+                 dest="full_output"),
+            )
+    description = \
+        """
+        Attempt to find outputs that yt can recognize in directories.
+        """
+    name = "search"
+    def __call__(self, args):
+        from yt.utilities.parameter_file_storage import \
+            output_type_registry
+        attrs = ("dimensionality", "refine_by", "domain_dimensions",
+                 "current_time", "domain_left_edge", "domain_right_edge",
+                 "unique_identifier", "current_redshift", 
+                 "cosmological_simulation", "omega_matter", "omega_lambda",
+                 "hubble_constant", "dataset_type")
+        candidates = []
+        for base, dirs, files in os.walk(".", followlinks=True):
+            print("(% 10i candidates) Examining %s" % (len(candidates), base))
+            recurse = []
+            if args.check_all:
+                candidates.extend([os.path.join(base, _) for _ in files])
+            for _, otr in sorted(output_type_registry.items()):
+                c, r = otr._guess_candidates(base, dirs, files)
+                candidates.extend([os.path.join(base, _) for _ in c])
+                recurse.append(r)
+            if len(recurse) > 0 and not all(recurse):
+                del dirs[:]
+        # Now we have a ton of candidates.  We're going to do something crazy
+        # and try to load each one.
+        records = []
+        for i, c in enumerate(sorted(candidates)):
+            print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
+            try:
+                ds = load(c)
+            except YTOutputNotIdentified:
+                continue
+            record = {'filename': c}
+            for a in attrs:
+                v = getattr(ds, a, None)
+                if v is None:
+                    continue
+                if hasattr(v, "tolist"):
+                    v = v.tolist()
+                record[a] = v
+            if args.full_output:
+                params = {}
+                for p, v in ds.parameters.items():
+                    if hasattr(v, "tolist"):
+                        v = v.tolist()
+                    params[p] = v
+                record['params'] = params
+            records.append(record)
+            ds.close()
+        with open(args.output, "w") as f:
+            json.dump(records, f, indent=4)
+        print("Identified %s records output to %s" % (
+              len(records), args.output))
 
 def run_main():
     args = parser.parse_args()

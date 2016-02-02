@@ -13,14 +13,20 @@ A set of convenient on-demand imports
 class NotAModule(object):
     """
     A class to implement an informative error message that will be outputted if
-    someone tries to use an on-demand import without having the requisite package installed.
+    someone tries to use an on-demand import without having the requisite
+    package installed.
     """
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
+        self.error = ImportError(
+            "This functionality requires the %s "
+            "package to be installed." % self.pkg_name)
 
     def __getattr__(self, item):
-        raise ImportError("This functionality requires the %s package to be installed."
-                          % self.pkg_name)
+        raise self.error
+
+    def __call__(self, *args, **kwargs):
+        raise self.error
 
 class astropy_imports:
     _name = "astropy"
@@ -272,3 +278,18 @@ class h5py_imports:
         return self._version
 
 _h5py = h5py_imports()
+
+class nose_imports:
+    _name = "nose"
+    _run = None
+    @property
+    def run(self):
+        if self._run is None:
+            try:
+                from nose import run
+            except ImportError:
+                run = NotAModule(self._name)
+            self._run = run
+        return self._run
+
+_nose = nose_imports()

@@ -24,7 +24,7 @@ import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 
 class AMRGridPatch(YTSelectionContainer):
