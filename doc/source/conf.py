@@ -31,18 +31,18 @@ sys.path.insert(0, os.path.abspath('../extensions/'))
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
               'sphinx.ext.pngmath', 'sphinx.ext.viewcode',
-              'numpydocmod', 'yt_cookbook', 'yt_colormaps']
+              'numpydoc', 'yt_cookbook', 'yt_colormaps']
 
 if not on_rtd:
     extensions.append('sphinx.ext.autosummary')
     extensions.append('pythonscript_sphinxext')
 
 try:
-    import runipy
-    import IPython.nbconvert.utils.pandoc
+    import RunNotebook
+    import nbconvert
     if not on_rtd:
-        extensions.append('notebook_sphinxext')
-        extensions.append('notebookcell_sphinxext')
+        extensions.append('RunNotebook.notebook_sphinxext')
+        extensions.append('RunNotebook.notebookcell_sphinxext')
 except ImportError:
     pass
 

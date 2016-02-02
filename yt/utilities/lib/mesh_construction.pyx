@@ -1,5 +1,3 @@
-# cython: profile=True
-
 """
 This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
@@ -24,9 +22,11 @@ from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from mesh_samplers cimport sample_hex
-from mesh_samplers cimport sample_tetra
-from mesh_samplers cimport sample_element
+from mesh_samplers cimport \
+    sample_hex, \
+    sample_tetra, \
+    sample_element, \
+    sample_wedge
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
@@ -37,6 +37,7 @@ from mesh_intersection cimport \
 from libc.stdlib cimport malloc, free
 from libc.math cimport fmax, sqrt
 cimport numpy as np
+from yt.utilities.exceptions import YTElementTypeNotRecognized
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -46,8 +47,11 @@ cdef extern from "mesh_construction.h":
     int HEX_NT
     int TETRA_NV
     int TETRA_NT
+    int WEDGE_NV
+    int WEDGE_NT
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
+    int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
 
 
@@ -100,17 +104,22 @@ cdef class LinearElementMesh:
                  np.ndarray indices,
                  np.ndarray data):
 
-        # We need now to figure out if we've been handed quads or tetrahedra.
+        # We need now to figure out what kind of elements we've been handed.
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
             self.tri_array = triangulate_hex
+        elif indices.shape[1] == 6:
+            self.vpe = WEDGE_NV
+            self.tpe = WEDGE_NT
+            self.tri_array = triangulate_wedge
         elif indices.shape[1] == 4:
             self.vpe = TETRA_NV
             self.tpe = TETRA_NT
             self.tri_array = triangulate_tetra
         else:
-            raise NotImplementedError
+            raise YTElementTypeNotRecognized(vertices.shape[1], 
+                                             indices.shape[1])
 
         self._build_from_indices(scene, vertices, indices)
         self._set_field_data(scene, data)
@@ -119,7 +128,7 @@ cdef class LinearElementMesh:
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
                                   np.ndarray indices_in):
-        cdef int i, j, ind
+        cdef int i, j
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int nt = self.tpe*ne
@@ -187,11 +196,12 @@ cdef class LinearElementMesh:
             self.filter_func = <rtcg.RTCFilterFunc> sample_element
         elif self.fpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
+        elif self.fpe == 6:
+            self.filter_func = <rtcg.RTCFilterFunc> sample_wedge
         elif self.fpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
-            print "Error - sampler type not implemented."
-            raise NotImplementedError
+            raise NotImplementedError("Sampler type not implemented.")
 
         rtcg.rtcSetIntersectionFilterFunction(scene.scene_i,
                                               self.mesh,
@@ -239,7 +249,7 @@ cdef class QuadraticElementMesh:
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
                  np.ndarray indices,
-                 np.ndarray data):
+                 np.ndarray field_data):
 
         # only 20-point hexes are supported right now.
         if indices.shape[1] == 20:
@@ -247,13 +257,13 @@ cdef class QuadraticElementMesh:
         else:
             raise NotImplementedError
 
-        self._build_from_indices(scene, vertices, indices)
+        self._build_from_indices(scene, vertices, indices, field_data)
 
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
-                                  np.ndarray indices_in):
+                                  np.ndarray indices_in,
+                                  np.ndarray field_data):
         cdef int i, j, ind, idim
-        cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int npatch = 6*ne;
 
@@ -270,7 +280,9 @@ cdef class QuadraticElementMesh:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
-                self._set_bounding_sphere(patch)
+                patch.indices = indices_in
+                patch.vertices = vertices_in
+                patch.field_data = field_data
 
         self.patches = patches
         self.mesh = mesh
@@ -278,31 +290,8 @@ cdef class QuadraticElementMesh:
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, self.patches)
         rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
-        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
-
-    cdef void _set_bounding_sphere(self, Patch* patch):
-
-        # set the center to be the centroid of the patch vertices
-        cdef int i, j
-        for j in range(8):
-            for i in range(3):
-                patch.center[i] += patch.v[j][i]
-        for i in range(3):
-            patch.center[i] /= 8.0
-
-        # set the radius to be slightly larger than the distance between
-        # the center and the farthest vertex
-        cdef float r = 0.0
-        cdef float d
-        for j in range(8):
-            d = 0.0
-            for i in range(3):
-                d += (patch.v[j][i] - patch.center[i])**2
-            d = sqrt(d)
-            r = fmax(r, d)
-        patch.radius = 1.05*r
 
     def __dealloc__(self):
         free(self.patches)
-

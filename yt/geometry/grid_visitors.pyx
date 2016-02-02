@@ -40,9 +40,10 @@ cdef void setup_tuples(GridVisitorData *data) nogil:
     # positions for child masks.  This may not be considerably more efficient
     # memory-wise, but it is easier to keep and save when going through
     # multiple grids and selectors.
-    cdef int i, j, k
+    cdef int i, j
     cdef np.int64_t si, ei
-    cdef GridTreeNode *g, *c
+    cdef GridTreeNode *g
+    cdef GridTreeNode *c
     free_tuples(data)
     g = data.grid
     data.child_tuples = <int**> malloc(sizeof(int*) * g.num_children)
@@ -116,7 +117,6 @@ cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 cdef void ires_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Fill with the level value.
     if selected == 0: return
-    cdef int i
     cdef np.int64_t *ires = <np.int64_t*> data.array
     ires[data.index] = data.grid.level
     data.index += 1

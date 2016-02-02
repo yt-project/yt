@@ -289,7 +289,7 @@ cdef class ImageSampler:
             self.extent_function = calculate_extent_null
             self.vector_function = generate_vector_info_null
         self.sampler = NULL
-        cdef int i, j
+        cdef int i
         # These assignments are so we can track the objects and prevent their
         # de-allocation from reference counts.  Note that we do this to the
         # "atleast_3d" versions.  Also, note that we re-assign the input
@@ -319,8 +319,7 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, j, k, ni, nj, nn, xi, yi
-        cdef np.int64_t offset
+        cdef int vi, vj, hit, i, j
         cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
@@ -328,7 +327,6 @@ cdef class ImageSampler:
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
-        cdef np.float64_t rgba[6]
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
@@ -342,7 +340,6 @@ cdef class ImageSampler:
         size = nx * ny
         cdef ImageAccumulator *idata
         cdef np.float64_t width[3]
-        cdef int use_vec, max_i
         for i in range(3):
             width[i] = self.width[i]
         with nogil, parallel(num_threads = num_threads):
@@ -421,7 +418,6 @@ cdef void interpolated_projection_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -456,7 +452,6 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   n_samples = 10, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, **kwargs)
-        cdef int i
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
             malloc(sizeof(VolumeRenderAccumulator))
@@ -487,7 +482,6 @@ cdef void volume_render_sampler(
                     + index[1] * (vc.dims[2]) + index[2]
     if vc.mask[cell_offset] != 1:
         return
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -524,7 +518,6 @@ cdef void volume_render_gradient_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -562,7 +555,7 @@ cdef class star_kdtree_container:
                    np.ndarray[np.float64_t, ndim=1] pos_y,
                    np.ndarray[np.float64_t, ndim=1] pos_z,
                    np.ndarray[np.float64_t, ndim=2] star_colors):
-        cdef int i, n
+        cdef int i
         cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
         for i in range(pos_x.shape[0]):
             kdtree_utils.kd_insert3(self.tree,
@@ -597,9 +590,10 @@ cdef void volume_render_stars_sampler(
     cdef np.float64_t cell_left[3]
     cdef np.float64_t local_dds[3]
     cdef np.float64_t pos[3]
-    cdef int nstars, dti, i, j
+    cdef int nstars, i, j
     cdef np.float64_t *colors = NULL
     cdef np.float64_t gexp, gaussian, px, py, pz
+    px = py = pz = -1
     for i in range(3):
         dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
@@ -628,7 +622,7 @@ cdef void volume_render_stars_sampler(
                          vc.data[i] + offset)
         slopes[i] *= -1.0/vri.n_samples
         dvs[i] = temp
-    for dti in range(vri.n_samples):
+    for _ in range(vri.n_samples):
         # Now we add the contribution from stars
         kdtree_utils.kd_res_rewind(ballq)
         for i in range(nstars):
@@ -797,13 +791,13 @@ cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t max_t = 1.0) nogil:
     cdef int cur_ind[3]
     cdef int step[3]
-    cdef int x, y, i, n, flat_ind, hit, direction
+    cdef int x, y, i, hit, direction
     cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tmax[3]
     cdef np.float64_t tdelta[3]
-    cdef np.float64_t dist, alpha, dt, exit_t, enter_t = -1.0
-    cdef np.float64_t tr, tl, temp_x, temp_y, dv
+    cdef np.float64_t exit_t = -1.0, enter_t = -1.0
+    cdef np.float64_t tl, temp_x, temp_y = -1
     if max_t > 1.0: max_t = 1.0
     direction = -1
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
@@ -1089,7 +1083,7 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
     # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
     # ...but all in Cython.
     cdef np.ndarray[np.float64_t, ndim=3] vp
-    cdef int i, j, k
+    cdef int i, j
     cdef np.float64_t r, phi, theta, px, py
     cdef np.float64_t fov_rad = fov * np.pi / 180.0
     cdef int nx = resolution/nimx

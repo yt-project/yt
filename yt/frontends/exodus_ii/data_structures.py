@@ -154,6 +154,7 @@ class ExodusIIDataset(Dataset):
                                               units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
+        self.default_field = ("connect1", "diffused")
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

@@ -27,7 +27,7 @@ def UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
                            np.ndarray[np.int32_t, ndim=1] x_is,
                            np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
-    cdef int i, x_i, y_i
+    cdef int i, x_i
     for i in range(x_vals.shape[0]):
         x_i = x_is[i]
         x = x_vals[i]
@@ -128,7 +128,7 @@ def ghost_zone_interpolate(int rf,
     cdef np.float64_t iids[3]
     cdef np.float64_t opos[3]
     cdef np.float64_t ropos[3]
-    cdef int i, j
+    cdef int i
     for i in range(3):
         temp = input_left[i] + (rf * (input_field.shape[i] - 1))
         ids[i] = (temp - input_left[i])/(input_field.shape[i]-1)

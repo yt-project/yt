@@ -18,7 +18,7 @@ import numpy as np
 from collections import defaultdict
 
 from yt.funcs import mylog, get_pbar
-from yt.utilities.lib.ContourFinding import \
+from yt.utilities.lib.contour_finding import \
     ContourTree, TileContourTree, link_node_contours, \
     update_joins
 from yt.utilities.lib.grid_traversal import \

@@ -712,7 +712,7 @@ package must be installed.
 
   ds = yt.load("m33_hi.fits")
   circle_region = ds9_region(ds, "circle.reg")
-  print circle_region.quantities.extrema("flux")
+  print(circle_region.quantities.extrema("flux"))
 
 
 ``PlotWindowWCS``
@@ -1312,15 +1312,15 @@ The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND)
    ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
    ad = ds.all_data()
    # The halo mass
-   print ad["Group", "particle_mass"]
-   print ad["Subhalo", "particle_mass"]
+   print(ad["Group", "particle_mass"])
+   print(ad["Subhalo", "particle_mass"])
    # Halo ID
-   print ad["Group", "particle_identifier"]
-   print ad["Subhalo", "particle_identifier"]
+   print(ad["Group", "particle_identifier"])
+   print(ad["Subhalo", "particle_identifier"])
    # positions
-   print ad["Group", "particle_position_x"]
+   print(ad["Group", "particle_position_x"])
    # velocities
-   print ad["Group", "particle_velocity_x"]
+   print(ad["Group", "particle_velocity_x"])
 
 Multidimensional fields can be accessed through the field name followed by an 
 underscore and the index.
@@ -1328,7 +1328,7 @@ underscore and the index.
 .. code-block:: python
 
    # x component of the spin
-   print ad["Subhalo", "SubhaloSpin_0"]
+   print(ad["Subhalo", "SubhaloSpin_0"])
 
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
@@ -1342,7 +1342,7 @@ The two field types are "FOF" and "SUBFIND".
    ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
    ad = ds.all_data()
    # The halo mass
-   print ad["FOF", "particle_mass"]
+   print(ad["FOF", "particle_mass"])
 
 Rockstar
 ^^^^^^^^
@@ -1356,7 +1356,7 @@ The single field type available is "halos".
    ds = yt.load("rockstar_halos/halos_0.0.bin")
    ad = ds.all_data()
    # The halo mass
-   print ad["halos", "particle_mass"]
+   print(ad["halos", "particle_mass"])
 
 PyNE Data
 ---------

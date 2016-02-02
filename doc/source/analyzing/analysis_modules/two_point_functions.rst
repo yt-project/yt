@@ -897,11 +897,11 @@ the volume of the cells.
     all = ds.all_data()
     n = all.quantities["TotalNumDens"]()
     
-    print n,'n'
+    print(n,'n')
     
     # Instantiate our TPF object.
     tpf = TwoPointFunctions(ds, ['density', 'cell_volume'],
-        total_values=1e5, comm_size=10000, 
+        total_values=1e5, comm_size=10000,
         length_number=11, length_range=[-1, .5],
         length_type="lin", vol_ratio=1)
     
@@ -919,7 +919,7 @@ the volume of the cells.
     
     # Now we add the function to the TPF.
     # ``corr_norm`` is used to normalize the correlation function.
-    tpf.add_function(function=dens_tpcorr, out_labels=['tpcorr'], sqrt=[False], 
+    tpf.add_function(function=dens_tpcorr, out_labels=['tpcorr'], sqrt=[False],
         corr_norm=n**2 * sm**2)
     
     # And define how we want to bin things.

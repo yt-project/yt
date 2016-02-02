@@ -293,6 +293,22 @@ class Dataset(object):
     def _is_valid(cls, *args, **kwargs):
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        """
+        This is a class method that accepts a directory (base), a list of files
+        in that directory, and a list of subdirectories.  It should return a
+        list of filenames (defined relative to the supplied directory) and a
+        boolean as to whether or not further directories should be recursed.
+        
+        This function doesn't need to catch all possibilities, nor does it need
+        to filter possibilities.
+        """
+        return [], True
+
+    def close(self):
+        pass
+
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
@@ -421,7 +437,7 @@ class Dataset(object):
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
         self.field_info.setup_extra_union_fields()
-        mylog.info("Loading field plugins.")
+        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -649,7 +665,15 @@ class Dataset(object):
         coordinates. Returns a list of field values in the same order as
         the input *fields*.
         """
-        return self.point(coords)[fields]
+        point = self.point(coords)
+        ret = []
+        field_list = ensure_list(fields)
+        for field in field_list:
+            ret.append(point[field])
+        if len(field_list) == 1:
+            return ret[0]
+        else:
+            return ret
 
     def find_field_values_at_points(self, fields, coords):
         """
@@ -657,19 +681,26 @@ class Dataset(object):
         [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field
         values in the same order as the input *fields*.
 
-        This is quite slow right now as it creates a new data object for each
-        point.  If an optimized version exists on the Index object we'll use
-        that instead.
         """
-        if hasattr(self,"index") and \
-                hasattr(self.index,"_find_field_values_at_points"):
-            return self.index._find_field_values_at_points(fields,coords)
+        # If an optimized version exists on the Index object we'll use that
+        try:
+            return self.index._find_field_values_at_points(fields, coords)
+        except AttributeError:
+            pass
 
         fields = ensure_list(fields)
-        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
-        for i,coord in enumerate(coords):
-            out[:][i] = self.point(coord)[fields]
-        return out
+        out = []
+
+        # This may be slow because it creates a data object for each point
+        for field_index, field in enumerate(fields):
+            funit = self._get_field_info[field].units
+            out.append(self.arr(np.empty((len(coords),)), funit))
+            for coord_index, coord in enumerate(coords):
+                out[field_index][coord_index] = self.point(coord)[fields]
+        if len(fields) == 1:
+            return out[0]
+        else:
+            return out
 
     # Now all the object related stuff
     def all_data(self, find_max=False, **kwargs):

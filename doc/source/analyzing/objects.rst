@@ -55,13 +55,14 @@ dataset you could:
    sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
 
    # Show all temperature values
-   print sp["temperature"]
+   print(sp["temperature"])
 
    # Print things in a more human-friendly manner: one temperature at a time
-   print "(x,  y,  z) Temperature"
-   print "-----------------------"
+   print("(x,  y,  z) Temperature")
+   print("-----------------------")
    for i in range(sp["temperature"].size):
-       print "(%f,  %f,  %f)    %f" % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+       print("(%f,  %f,  %f)    %f" %
+             (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
 
 .. _quickly-selecting-data:
 
@@ -390,7 +391,7 @@ all the cells contained in a sphere at the center of our dataset.
 
    ds = load("my_data")
    sp = ds.sphere('c', (10, 'kpc'))
-   print sp.quantities.angular_momentum_vector()
+   print(sp.quantities.angular_momentum_vector())
 
 Quickly Processing Data
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -586,7 +587,7 @@ the deposited particle density, like so:
 
    obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
                           dims=[128, 128, 128])
-   print obj["deposit", "all_density"]
+   print(obj["deposit", "all_density"])
 
 While these cannot yet be used as input to projections or slices, slices and
 projections can be taken of the data in them and visualized by hand.

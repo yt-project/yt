@@ -18,13 +18,16 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
-from yt.utilities.exceptions import YTPixelizeError
+from yt.utilities.exceptions import YTPixelizeError, \
+    YTElementTypeNotRecognized
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
     Q1Sampler3D, \
+    S2Sampler3D, \
     P1Sampler2D, \
-    Q1Sampler2D
+    Q1Sampler2D, \
+    W1Sampler3D
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -62,15 +65,16 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
-    cdef int nx, ny, ndx, ndy
     cdef int i, j, p, xi, yi
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
     # These are the temp vars we get from the arrays
     cdef np.float64_t oxsp, oysp, xsp, ysp, dxsp, dysp, dsp
     # Some periodicity helpers
-    cdef int xiter[2], yiter[2]
-    cdef np.float64_t xiterv[2], yiterv[2]
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
     cdef np.ndarray[np.float64_t, ndim=2] my_array
     if period is not None:
         period_x = period[0]
@@ -173,6 +177,93 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
                                 my_array[j,i] = dsp
+    return my_array
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_off_axis_cartesian(
+                       np.float64_t[:] x,
+                       np.float64_t[:] y,
+                       np.float64_t[:] z,
+                       np.float64_t[:] px,
+                       np.float64_t[:] py,
+                       np.float64_t[:] pdx,
+                       np.float64_t[:] pdy,
+                       np.float64_t[:] pdz,
+                       np.float64_t[:] center,
+                       np.float64_t[:,:] inv_mat,
+                       np.int64_t[:] indices,
+                       np.float64_t[:] data,
+                       int cols, int rows, bounds):
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
+    cdef int i, j, p, ip
+    cdef int lc, lr, rc, rr
+    # These are the temp vars we get from the arrays
+    cdef np.float64_t xsp, ysp, zsp, dxsp, dysp, dzsp, dsp
+    cdef np.float64_t pxsp, pysp, cxpx, cypx, cx, cy, cz
+    # Some periodicity helpers
+    cdef np.ndarray[np.float64_t, ndim=2] my_array
+    cdef np.ndarray[np.int64_t, ndim=2] mask
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> rows)
+    px_dy = height / (<np.float64_t> cols)
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if rows == 0 or cols == 0:
+        raise YTPixelizeError("Cannot scale to zero size")
+    if px.shape[0] != py.shape[0] or \
+       px.shape[0] != pdx.shape[0] or \
+       px.shape[0] != pdy.shape[0] or \
+       px.shape[0] != pdz.shape[0] or \
+       px.shape[0] != indices.shape[0] or \
+       px.shape[0] != data.shape[0]:
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    my_array = np.zeros((rows, cols), "float64")
+    mask = np.zeros((rows, cols), "int64")
+    with nogil:
+        for ip in range(indices.shape[0]):
+            p = indices[ip]
+            xsp = x[p]
+            ysp = y[p]
+            zsp = z[p]
+            pxsp = px[p]
+            pysp = py[p]
+            dxsp = pdx[p]
+            dysp = pdy[p]
+            dzsp = pdz[p]
+            dsp = data[p]
+            # Any point we want to plot is at most this far from the center
+            md = 2.0 * math.sqrt(dxsp*dxsp + dysp*dysp + dzsp*dzsp)
+            if pxsp + md < x_min or \
+               pxsp - md > x_max or \
+               pysp + md < y_min or \
+               pysp - md > y_max:
+                continue
+            lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
+            lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), rows)
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), cols)
+            for i in range(lr, rr):
+                cypx = px_dy * (i + 0.5) + y_min
+                for j in range(lc, rc):
+                    cxpx = px_dx * (j + 0.5) + x_min
+                    cx = inv_mat[0,0]*cxpx + inv_mat[0,1]*cypx + center[0]
+                    cy = inv_mat[1,0]*cxpx + inv_mat[1,1]*cypx + center[1]
+                    cz = inv_mat[2,0]*cxpx + inv_mat[2,1]*cypx + center[2]
+                    if fabs(xsp - cx) * 0.95 > dxsp or \
+                       fabs(ysp - cy) * 0.95 > dysp or \
+                       fabs(zsp - cz) * 0.95 > dzsp:
+                        continue
+                    mask[i, j] = 1
+                    my_array[i, j] += dsp
+    my_array /= mask
     return my_array
 
 
@@ -290,8 +381,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
-    cdef np.float64_t dx, dy, inside
-    cdef np.float64_t theta1, dtheta1, phi1, dphi1
+    cdef np.float64_t dx, dy
     cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
@@ -310,6 +400,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
     # through the theta, phi arrays, it should be faster.
     dx = 2.0 / (img.shape[0] - 1)
     dy = 2.0 / (img.shape[1] - 1)
+    x = y = 0
     for fi in range(nf):
         theta_p = (theta[fi] + theta_offset) - PI
         dtheta_p = dtheta[fi]
@@ -385,8 +476,13 @@ cdef int check_face_dot(int nvertices,
     # and the centroid.
     # So, let's compute these vectors.  See above where these are written out
     # for ease of use.
-    cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp, npoint[3]
-    cdef np.uint8_t faces[MAX_NUM_FACES][2][2], nf
+    cdef np.float64_t vec1[3]
+    cdef np.float64_t vec2[3]
+    cdef np.float64_t cp_vec[3]
+    cdef np.float64_t npoint[3]
+    cdef np.float64_t dp
+    cdef np.uint8_t faces[MAX_NUM_FACES][2][2]
+    cdef np.uint8_t nf
     if nvertices == 4:
         faces = tetra_face_defs
         nf = TETRA_NF
@@ -448,12 +544,17 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # mapped coordinate system, and check whether the result in in-bounds or not
     # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
     # always be 1.
-    cdef np.float64_t pLE[3], pRE[3]
-    cdef np.float64_t LE[3], RE[3]
+    cdef np.float64_t pLE[3]
+    cdef np.float64_t pRE[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
     cdef int use
-    cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
-    cdef np.int64_t pstart[3], pend[3]
-    cdef np.float64_t ppoint[3], idds[3], dds[3]
+    cdef np.int64_t n, i, pi, pj, pk, ci, cj
+    cdef np.int64_t pstart[3]
+    cdef np.int64_t pend[3]
+    cdef np.float64_t ppoint[3]
+    cdef np.float64_t idds[3]
+    cdef np.float64_t dds[3]
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
@@ -466,22 +567,30 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     # Pick the right sampler and allocate storage for the mapped coordinate
     if ndim == 3 and nvertices == 4:
         sampler = P1Sampler3D()
+    elif ndim == 3 and nvertices == 6:
+        sampler = W1Sampler3D()
     elif ndim == 3 and nvertices == 8:
         sampler = Q1Sampler3D()
+    elif ndim == 3 and nvertices == 20:
+        sampler = S2Sampler3D()
     elif ndim == 2 and nvertices == 3:
         sampler = P1Sampler2D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
     else:
-        raise RuntimeError
+        raise YTElementTypeNotRecognized(ndim, nvertices)
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:
         assert(buff_size[2] == 1)
     
+    ax = -1
     for i in range(3):
         if buff_size[i] == 1:
             ax = i
+    if ax == -1:
+        raise RuntimeError
+    xax = yax = -1
     if ax == 0:
         xax = 1
         yax = 2
@@ -491,6 +600,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     elif ax == 2:
         xax = 0
         yax = 1
+    if xax == -1 or yax == -1:
+        raise RuntimeError
 
     # allocate temporary storage
     num_mapped_coords = sampler.num_mapped_coords

@@ -93,8 +93,8 @@ A number of helper routines exist for examining the clump hierarchy.
 
 .. code:: python
 
-   print leaf_clumps[0]["gas", "density"]
-   print leaf_clumps[0].quantities.total_mass()
+   print(leaf_clumps[0]["gas", "density"])
+   print(leaf_clumps[0].quantities.total_mass())
 
 The writing functions will write out a series or properties about each 
 clump by default.  Additional properties can be appended with the 
