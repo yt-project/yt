@@ -253,6 +253,8 @@ opportunity to demonstrate their use. The following example is exactly like the
 above, except we scale the displacements by a factor of a 10.0, and additionally 
 add an offset to the mesh by 1.0 unit in the x-direction:
 
+.. python-script::
+
     import yt
 
     # We load the last time frame
