@@ -65,8 +65,8 @@ class Camera:
                 self.far_plane)
     def update_position(self, theta, phi):
         rho = np.linalg.norm(self.position)
-        curr_theta = np.arctan( self.position[1] / self.position[0] )
-        curr_phi = np.arctan( np.linalg.norm(self.position[:2]) / self.position[2])
+        curr_theta = np.arctan2( self.position[1], self.position[0] )
+        curr_phi = np.arctan2( np.linalg.norm(self.position[:2]), self.position[2])
 
         curr_theta += theta
         curr_phi += phi
