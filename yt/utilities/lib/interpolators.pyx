@@ -16,7 +16,7 @@ Simple interpolators
 import numpy as np
 cimport numpy as np
 cimport cython
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
 @cython.cdivision(True)
 @cython.wraparound(False)

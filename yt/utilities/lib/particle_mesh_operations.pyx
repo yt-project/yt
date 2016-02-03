@@ -15,7 +15,7 @@ Simple integrators for the radiative transfer equation
 
 cimport numpy as np
 cimport cython
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

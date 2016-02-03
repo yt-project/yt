@@ -18,7 +18,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX
 from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject

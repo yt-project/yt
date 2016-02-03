@@ -21,7 +21,6 @@ from libc.string cimport memmove
 cimport cython
 from libc.math cimport sqrt, fabs, sin, cos
 
-from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
@@ -439,7 +438,7 @@ cdef class ParticleSmoothOperation:
             if layer_ind == initial_layer:
                 neighbors
                 break
-            
+
 
         for j in range(total_neighbors):
             # Particle octree neighbor indices

@@ -16,7 +16,7 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
 from .oct_visitors cimport OctVisitor, Oct, cind
