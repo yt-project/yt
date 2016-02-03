@@ -1232,10 +1232,9 @@ Halo Catalog Data
 
 yt has support for reading halo catalogs produced by Rockstar and the inline 
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
-particle datasets where each particle represents a single halo.  At this time, 
-yt does not have the ability to load the member particles for a given halo.  
-However, once loaded, further halo analysis can be performed using 
-:ref:`halo_catalog`.
+particle datasets where each particle represents a single halo.  Member particles
+for individual halos can be accessed through halo data containers.  Further halo
+analysis can be performed using :ref:`halo_catalog`.
 
 In the case where halo catalogs are written to multiple files, one must only 
 give the path to one of them.
@@ -1269,11 +1268,39 @@ underscore and the index.
    # x component of the spin
    print(ad["Subhalo", "SubhaloSpin_0"])
 
+Halo member particles are accessed by creating halo data containers with the
+type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
+can be accessed in the same way.  Halos also have mass, position, and velocity
+attributes.
+
+.. code-block:: python
+
+   halo = ds.halo("Group", 0)
+   # member particles for this halo
+   print halo["member_ids"]
+   # halo virial radius
+   print halo["Group_R_Crit200"]
+   # halo mass
+   print halo.mass
+
+Subhalos containers can be created using either their absolute ids or their
+subhalo ids.
+
+.. code-block:: python
+
+   # first subhalo of the first halo
+   subhalo = ds.halo("Subhalo", (0, 0))
+   # this subhalo's absolute id
+   print subhalo.group_identifier
+   # member particles
+   print subhalo["member_ids"]
+
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
 
 OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
-The two field types are "FOF" and "SUBFIND".
+The two field types are "FOF" and "SUBFIND".  At this time, halo member particles
+cannot be loaded.
 
 .. code-block:: python
 
