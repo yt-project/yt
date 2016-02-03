@@ -1,4 +1,5 @@
 from yt.testing import *
+import yt
 import numpy as np
 
 def setup():
@@ -6,6 +7,7 @@ def setup():
     ytcfg["yt","__withintesting"] = "True"
 
 def test_domain_point():
+    nparticles = 3
     ds = fake_random_ds(16, particles=nparticles)
     p = ds.point(ds.domain_center)
 
