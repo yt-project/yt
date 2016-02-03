@@ -702,11 +702,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions, kernel_name)
+        op = cls(self.ActiveDimensions.prod(), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.copy(order="C")
+        return vals.reshape(self.ActiveDimensions, order="C")
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
