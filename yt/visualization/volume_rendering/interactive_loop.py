@@ -57,6 +57,7 @@ def start_context():
 
     glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
     glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
+    glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
     glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
     window = glfw.CreateWindow(800, 600, 'vol_render')
     if not window:
