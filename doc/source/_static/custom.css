@@ -109,3 +109,8 @@ Make tables span only half the page.
 .table {
     width: 50%
 }
+
+
+.navbar-form.navbar-right:last-child {
+    margin-right: -60px;
+}

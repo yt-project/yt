@@ -160,15 +160,15 @@ attributes, which can be converted to any arbitrary desired physical unit:
 
 .. code-block:: python
 
-    print "Length unit: ", ds.length_unit
-    print "Time unit: ", ds.time_unit
-    print "Mass unit: ", ds.mass_unit
-    print "Velocity unit: ", ds.velocity_unit
+    print("Length unit: ", ds.length_unit)
+    print("Time unit: ", ds.time_unit)
+    print("Mass unit: ", ds.mass_unit)
+    print("Velocity unit: ", ds.velocity_unit)
 
-    print "Length unit: ", ds.length_unit.in_units('code_length')
-    print "Time unit: ", ds.time_unit.in_units('code_time')
-    print "Mass unit: ", ds.mass_unit.in_units('kg')
-    print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
+    print("Length unit: ", ds.length_unit.in_units('code_length'))
+    print("Time unit: ", ds.time_unit.in_units('code_time'))
+    print("Mass unit: ", ds.mass_unit.in_units('kg'))
+    print("Velocity unit: ", ds.velocity_unit.in_units('Mpc/year'))
 
 So to accomplish the example task of converting a scalar variable ``x`` in 
 code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is 
@@ -205,9 +205,9 @@ You can then naturally exploit the units system:
 
 .. code-block:: python
 
-    print "One Mpc in code_units:", one_Mpc.in_units('code_length')
-    print "One Mpc in AU:", one_Mpc.in_units('AU')
-    print "One Mpc in comoving kpc:", one_Mpc.in_units('kpccm')
+    print("One Mpc in code_units:", one_Mpc.in_units('code_length'))
+    print("One Mpc in AU:", one_Mpc.in_units('AU'))
+    print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
 
 For more information about unit conversion, see :ref:`data_selection_and_fields`.
 
@@ -226,7 +226,7 @@ simple example of this is::
     >>> x = ds.quan(1, 'kpc')
 
     # Try to add this to some non-dimensional quantity
-    >>> print x + 1
+    >>> print(x + 1)
     
     YTUnitOperationError: The addition operator for YTArrays with units (kpc) and (1) is not well defined.
 
@@ -240,14 +240,14 @@ attribute, which returns the data itself:
 
     x = ds.quan(1, 'kpc')
     x_val = x.v
-    print x_val 
+    print(x_val)
 
     array(1.0)
 
     # Try to add this to some non-dimensional quantity
-    print x + 1
+    print(x + 1)
 
-    2.0 
+    2.0
 
 For more information about this functionality with units, see :ref:`data_selection_and_fields`.
 
@@ -298,15 +298,15 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. code-block:: python
 
-   print ds.field_list
-   print ds.derived_field_list
+   print(ds.field_list)
+   print(ds.derived_field_list)
 
 or for a more legible version, try:
 
 .. code-block:: python
 
-   for field in ds.derived_field_list: 
-       print field
+   for field in ds.derived_field_list:
+       print(field)
 
 .. _faq-add-field-diffs:
 
@@ -329,8 +329,8 @@ Why are the values in my Ray object out of order?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using the Ray objects 
-(:class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` and 
-:class:`~yt.data_objects.selection_data_containers.YTRayBase`) with AMR data 
+(:class:`~yt.data_objects.selection_data_containers.YTOrthoRay` and 
+:class:`~yt.data_objects.selection_data_containers.YTRay`) with AMR data 
 gives non-contiguous cell information in the Ray's data array. The 
 higher-resolution cells are appended to the end of the array.  Unfortunately, 
 due to how data is loaded by chunks for data containers, there is really no 
@@ -450,7 +450,7 @@ which would produce debug (as well as info, warning, and error) messages, or at 
 
    from yt.config import ytcfg
    ytcfg["yt","loglevel"] = "40" # This sets the log level to "ERROR"
-   
+
 which in this case would suppress everything below error messages. For reference, the numerical 
 values corresponding to different log levels are:
 

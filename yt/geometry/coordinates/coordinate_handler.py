@@ -15,23 +15,19 @@ Coordinate handler base class.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import abc
 import weakref
 from numbers import Number
 
-from yt.funcs import *
-from yt.fields.field_info_container import \
-    NullFunc, FieldInfoContainer
-from yt.utilities.io_handler import io_registry
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
-import yt.visualization._MPL as _MPL
+from yt.extern.six import string_types
+from yt.funcs import \
+    validate_width_tuple, \
+    fix_unitary, \
+    iterable
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.extern.six import string_types
+from yt.utilities.exceptions import \
+    YTCoordinateNotImplemented, \
+    YTInvalidWidthError
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
@@ -44,6 +40,12 @@ def _get_coord_fields(axi, units = "code_length"):
         rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
         return data._reshape_vals(rv)
     return _dds, _coords
+
+def _get_vert_fields(axi, units = "code_length"):
+    def _vert(field, data):
+        rv = data.ds.arr(data.fcoords_vertex[...,axi].copy(), units)
+        return rv
+    return _vert
 
 def validate_iterable_width(width, ds, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):

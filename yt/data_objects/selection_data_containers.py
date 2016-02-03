@@ -14,30 +14,30 @@ Data containers based on geometric selection
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
 import numpy as np
-from contextlib import contextmanager
 
-from yt.funcs import *
-from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
-from yt.utilities.orientation import Orientation
-from .data_containers import \
+from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D
-from yt.data_objects.derived_quantities import \
-    DerivedQuantityCollection
+from yt.funcs import \
+    ensure_list, \
+    iterable, \
+    validate_width_tuple, \
+    fix_length
+from yt.units.yt_array import \
+    YTArray
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTMixedCutRegion
-from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
+    YTMixedCutRegion, \
+    YTEllipsoidOrdering
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
-from yt.units.yt_array import YTQuantity
+from yt.utilities.orientation import Orientation
 
 
-class YTPointBase(YTSelectionContainer0D):
+class YTPoint(YTSelectionContainer0D):
     """
     A 0-dimensional object defined by a single point
 
@@ -68,10 +68,10 @@ class YTPointBase(YTSelectionContainer0D):
     _type_name = "point"
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
-        super(YTPointBase, self).__init__(ds, field_parameters, data_source)
+        super(YTPoint, self).__init__(ds, field_parameters, data_source)
         self.p = p
 
-class YTOrthoRayBase(YTSelectionContainer1D):
+class YTOrthoRay(YTSelectionContainer1D):
     """
     This is an orthogonal ray cast through the entire domain, at a specific
     coordinate.
@@ -123,7 +123,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
-        super(YTOrthoRayBase, self).__init__(ds, field_parameters, data_source)
+        super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
         self.axis = axis
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
@@ -139,7 +139,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     def coords(self):
         return (self.px, self.py)
 
-class YTRayBase(YTSelectionContainer1D):
+class YTRay(YTSelectionContainer1D):
     """
     This is an arbitrarily-aligned ray cast through the entire domain, at a
     specific coordinate.
@@ -191,7 +191,7 @@ class YTRayBase(YTSelectionContainer1D):
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, ds=None,
                  field_parameters=None, data_source=None):
-        super(YTRayBase, self).__init__(ds, field_parameters, data_source)
+        super(YTRay, self).__init__(ds, field_parameters, data_source)
         self.start_point = self.ds.arr(start_point,
                             'code_length', dtype='float64')
         self.end_point = self.ds.arr(end_point,
@@ -211,7 +211,7 @@ class YTRayBase(YTSelectionContainer1D):
         else:
             raise KeyError(field)
 
-class YTSliceBase(YTSelectionContainer2D):
+class YTSlice(YTSelectionContainer2D):
     """
     This is a data object corresponding to a slice through the simulation
     domain.
@@ -295,7 +295,26 @@ class YTSliceBase(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, origin, 'Slice')
         return pw
 
-class YTCuttingPlaneBase(YTSelectionContainer2D):
+    def plot(self, fields=None):
+        if hasattr(self._data_source, "left_edge") and \
+            hasattr(self._data_source, "right_edge"):
+            left_edge = self._data_source.left_edge
+            right_edge = self._data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Slice')
+        pw.show()
+        return pw
+
+class YTCuttingPlane(YTSelectionContainer2D):
     """
     This is a data object corresponding to an oblique slice through the
     simulation domain.
@@ -347,6 +366,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['pz','pdz']
     _type_name = "cutting"
     _con_args = ('normal', 'center')
+    _tds_attrs = ("_inv_mat",)
+    _tds_fields = ("x", "y", "z", "dx")
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, normal, center, north_vector=None,
                  ds=None, field_parameters=None, data_source=None):
@@ -362,7 +383,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         self._x_vec = self.orienter.unit_vectors[0]
         self._y_vec = self.orienter.unit_vectors[1]
         # First we try all three, see which has the best result:
-        vecs = np.identity(3)
         self._rot_mat = np.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = np.linalg.pinv(self._rot_mat)
         self.set_field_parameter('cp_x_vec',self._x_vec)
@@ -497,7 +517,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
                                            periodic=periodic)
         return frb
 
-class YTDiskBase(YTSelectionContainer3D):
+class YTDisk(YTSelectionContainer3D):
     """
     By providing a *center*, a *normal*, a *radius* and a *height* we
     can define a cylinder of any proportion.  Only cells whose centers are
@@ -547,7 +567,7 @@ class YTDiskBase(YTSelectionContainer3D):
         self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
-class YTRegionBase(YTSelectionContainer3D):
+class YTRegion(YTSelectionContainer3D):
     """A 3D region of data with an arbitrary center.
 
     Takes an array of three *left_edge* coordinates, three
@@ -580,7 +600,7 @@ class YTRegionBase(YTSelectionContainer3D):
         else:
             self.right_edge = right_edge
 
-class YTDataCollectionBase(YTSelectionContainer3D):
+class YTDataCollection(YTSelectionContainer3D):
     """
     By selecting an arbitrary *object_list*, we can act on those grids.
     Child cells are not returned.
@@ -595,7 +615,7 @@ class YTDataCollectionBase(YTSelectionContainer3D):
                                 dtype="int64")
         self._obj_list = obj_list
 
-class YTSphereBase(YTSelectionContainer3D):
+class YTSphere(YTSelectionContainer3D):
     """
     A sphere of points defined by a *center* and a *radius*.
 
@@ -618,7 +638,7 @@ class YTSphereBase(YTSelectionContainer3D):
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, ds=None,
                  field_parameters=None, data_source=None):
-        super(YTSphereBase, self).__init__(center, ds,
+        super(YTSphere, self).__init__(center, ds,
                                            field_parameters, data_source)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.ds)
@@ -629,7 +649,7 @@ class YTSphereBase(YTSelectionContainer3D):
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
-class YTEllipsoidBase(YTSelectionContainer3D):
+class YTEllipsoid(YTSelectionContainer3D):
     """
     By providing a *center*,*A*,*B*,*C*,*e0*,*tilt* we
     can define a ellipsoid of any proportion.  Only cells whose
@@ -709,7 +729,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
 
-class YTCutRegionBase(YTSelectionContainer3D):
+class YTCutRegion(YTSelectionContainer3D):
     """
     This is a data object designed to allow individuals to apply logical
     operations to fields and filter as a result of those cuts.
@@ -729,7 +749,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> sp = ds.sphere("max", (1.0, 'mpc'))
+    >>> sp = ds.sphere("max", (1.0, 'Mpc'))
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
@@ -743,7 +763,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
                 raise RuntimeError(
                     "Cannot use both base_object and data_source")
             data_source=base_object
-        super(YTCutRegionBase, self).__init__(
+        super(YTCutRegion, self).__init__(
             data_source.center, ds, field_parameters, data_source=data_source)
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source

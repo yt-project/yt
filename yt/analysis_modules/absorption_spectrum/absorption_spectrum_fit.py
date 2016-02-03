@@ -1,9 +1,14 @@
-from __future__ import print_function
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import h5py
-from yt.analysis_modules.absorption_spectrum.absorption_line \
-        import voigt
-from yt.utilities.on_demand_imports import _scipy
+
+from yt.analysis_modules.absorption_spectrum.absorption_line import \
+    voigt
+from yt.funcs import \
+    mylog
+from yt.units.yt_array import \
+    YTArray
+from yt.utilities.on_demand_imports import \
+    _scipy
 
 optimize = _scipy.optimize
 
@@ -79,6 +84,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
         absorption profiles. Same size as x.
     """
 
+    # convert to NumPy array if we have a YTArray
+    if isinstance(x, YTArray):
+        x = x.d
+    
     #Empty dictionary for fitted lines
     allSpeciesLines = {}
 
@@ -132,7 +141,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
             if flag and species=='lya' and min(yDatBounded)<.1:
                newLinesP=_large_flag_fit(xBounded,yDatBounded,
                         yFitBounded,z,speciesDict,
-                        minSize,minError)
+                        fitLim,minError)
 
             if np.size(newLinesP)> 0:
 
@@ -217,7 +226,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
     """
 
     #Setup initial line guesses
-    if initP==None: #Regular fit
+    if initP is None: #Regular fit
         initP = [0,0,0] 
         if min(yDat)<.01: #Large lines get larger initial guess 
             initP[0] = speciesDict['init_N']*10**2
@@ -243,7 +252,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
     #Values to proceed through first run
     errSq,prevErrSq,prevLinesP=1,10*len(x),[]
 
-    if errBound == None:
+    if errBound is None:
         errBound = len(yDat)*(max(1-yDat)*1E-2)**2
     else:
         errBound = errBound*len(yDat)
@@ -272,8 +281,6 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
         errSq=sum(dif**2)
 
         if any(linesP[:,1]==speciesDict['init_b']):
-         #   linesP = prevLinesP
-
             flag = True
             break
             
@@ -539,7 +546,7 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
             lb = _get_bounds(p[2],b,wl,x0,xRes)
             xb,yb=x[lb[0]:lb[1]],y[lb[0]:lb[1]]
 
-            if errBound == None:
+            if errBound is None:
                 errBound = 10*len(yb)*(max(1-yb)*1E-2)**2
             else:
                 errBound = 10*errBound*len(yb)
@@ -1002,11 +1009,10 @@ def _output_fit(lineDic, file_name = 'spectrum_fit.h5'):
 
     """
     f = h5py.File(file_name, 'w')
-    for ion, params in lineDic.iteritems():
+    for ion, params in lineDic.items():
         f.create_dataset("{0}/N".format(ion),data=params['N'])
         f.create_dataset("{0}/b".format(ion),data=params['b'])
         f.create_dataset("{0}/z".format(ion),data=params['z'])
         f.create_dataset("{0}/complex".format(ion),data=params['group#'])
-    print('Writing spectrum fit to {0}'.format(file_name))
+    mylog.info('Writing spectrum fit to {0}'.format(file_name))
     f.close()
-

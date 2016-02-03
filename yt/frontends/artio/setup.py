@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-import setuptools
-import os
-import sys
-import os.path
 import glob
 
 
@@ -19,7 +15,8 @@ def configuration(parent_package='', top_path=None):
                          depends=artio_sources + 
                                  ["yt/utilities/lib/fp_utils.pxd",
                                   "yt/geometry/oct_container.pxd",
-                                  "yt/geometry/selection_routines.pxd"])
+                                  "yt/geometry/selection_routines.pxd",
+                                  "yt/geometry/particle_deposit.pxd"])
     config.make_config_py()  # installs __config__.py
     #config.make_svn_version_py()
     return config

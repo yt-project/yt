@@ -30,9 +30,9 @@ specify which particular particle type we want to query:
 
 .. code-block:: python
 
-   print ad["humans", "particle_position"]
-   print ad["dogs", "particle_position"]
-   print ad["dinosaurs", "particle_position"]
+   print(ad["humans", "particle_position"])
+   print(ad["dogs", "particle_position"])
+   print(ad["dinosaurs", "particle_position"])
 
 Each of these three fields may have different sizes.  In order to enable
 falling back on asking only for a field by the name, yt will use the most
@@ -43,7 +43,7 @@ velocity:
 
 .. code-block:: python
 
-   print ad["particle_velocity"]
+   print(ad["particle_velocity"])
 
 it would select ``dinosaurs`` as the field type.
 
@@ -54,7 +54,7 @@ types (described below) versus the gas fields:
 
 .. code-block:: python
 
-   print ad["deposit", "dark_matter_density"] / ad["gas", "density"]
+   print(ad["deposit", "dark_matter_density"] / ad["gas", "density"])
 
 The ``deposit`` field type is a mesh field, so it will have the same shape as
 the gas density.  If we weren't using ``deposit``, and instead directly
@@ -174,7 +174,7 @@ The field plugin system works in this order:
 
 Field plugins can be loaded dynamically, although at present this is not
 particularly useful.  Plans for extending field plugins to dynamically load, to
-enable simple definition of common types (gradient, divergence, etc), and to
+enable simple definition of common types (divergence, curl, etc), and to
 more verbosely describe available fields, have been put in place for future
 versions.
 
@@ -195,16 +195,40 @@ We provide a full list of fields that yt recognizes by default at
 :ref:`field-list`.  If you want to create additional custom derived fields, 
 see :ref:`creating-derived-fields`.
 
-The full list of fields available for a dataset can be found as 
-the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
-for derived fields (``derived_field_list`` is a superset of ``field_list``).
-You can view these lists by examining a dataset like this:
+Every dataset has an attribute, ``ds.fields``.  This attribute possesses
+attributes itself, each of which is a "field type," and each field type has as
+its attributes the fields themselves.  When one of these is printed, it returns
+information about the field and things like units and so on.  You can use this
+for tab-completing as well as easier access to information.
+
+As an example, you might browse the available fields like so:
+
+.. code-block:: python
+
+  print(dir(ds.fields))
+  print(dir(ds.fields.gas))
+  print(ds.fields.gas.density)
+
+On an Enzo dataset, the result from the final command would look something like
+this:::
+
+  Alias Field for "('enzo', 'Density')" (gas, density): (units: g/cm**3)
+
+You can use this to easily explore available fields, particularly through
+tab-completion in Jupyter/IPython.
+
+For a more programmatic method of accessing fields, you can utilize the
+``ds.field_list``, ``ds.derived_field_list`` and some accessor methods to gain
+information about fields.  The full list of fields available for a dataset can
+be found as the attribute ``field_list`` for native, on-disk fields and
+``derived_field_list`` for derived fields (``derived_field_list`` is a superset
+of ``field_list``).  You can view these lists by examining a dataset like this:
 
 .. code-block:: python
 
    ds = yt.load("my_data")
-   print ds.field_list
-   print ds.derived_field_list
+   print(ds.field_list)
+   print(ds.derived_field_list)
 
 By using the ``field_info()`` class, one can access information about a given
 field, like its default units or the source code for it.  
@@ -213,8 +237,8 @@ field, like its default units or the source code for it.
 
    ds = yt.load("my_data")
    ds.index
-   print ds.field_info["gas", "pressure"].get_units()
-   print ds.field_info["gas", "pressure"].get_source()
+   print(ds.field_info["gas", "pressure"].get_units())
+   print(ds.field_info["gas", "pressure"].get_source())
 
 Particle Fields
 ---------------
@@ -255,7 +279,7 @@ the two most commonly used field parameters.
 
    ad.set_field_parameter("wickets", 13)
 
-   print ad.get_field_parameter("wickets")
+   print(ad.get_field_parameter("wickets"))
 
 If a field parameter is not set, ``get_field_parameter`` will return None.  
 Within a field function, these can then be retrieved and used in the same way.
@@ -270,6 +294,29 @@ Within a field function, these can then be retrieved and used in the same way.
        return data["gas", "density"] * n_wickets
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
+
+Gradient Fields
+---------------
+
+yt provides a way to compute gradients of spatial fields using the
+:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` 
+method. If you have a spatially-based field such as density or temperature, 
+and want to calculate the gradient of that field, you can do it like so:
+
+.. code-block:: python
+
+    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+    grad_fields = ds.add_gradient_fields(("gas","temperature"))
+
+where the ``grad_fields`` list will now have a list of new field names that can be used
+in calculations, representing the 3 different components of the field and the magnitude
+of the gradient, e.g., ``"temperature_gradient_x"``, ``"temperature_gradient_y"``,
+``"temperature_gradient_z"``, and ``"temperature_gradient_magnitude"``. To see an example
+of how to create and use these fields, see :ref:`cookbook-complicated-derived-fields`.
+
+.. note::
+
+    ``add_gradient_fields`` currently only supports Cartesian geometries!
 
 General Particle Fields
 -----------------------
@@ -351,6 +398,17 @@ defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 "Gas_smoothed_Temperature")``, which in most cases would be aliased to the
 field ``("gas", "temperature")`` for convenience.
 
+Other smoothing kernels besides the cubic spline one are available through a
+keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
+Current available kernel names include:
+
+* ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
+* ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
+
+The added smoothed particle field can be accessed by
+``("deposit", "particletype_kernelname_smoothed_fieldname")`` (except for the
+cubic spline kernel, which obeys the naming scheme given above).
+
 Computing the Nth Nearest Neighbor
 ----------------------------------
 
@@ -371,7 +429,7 @@ yt defines this field as a plugin, and it can be added like so:
    fn, = add_nearest_neighbor_field("all", "particle_position", ds)
 
    dd = ds.all_data()
-   print dd[fn]
+   print(dd[fn])
 
 Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 ``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By

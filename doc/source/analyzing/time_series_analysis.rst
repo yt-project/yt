@@ -64,7 +64,7 @@ is returned for iteration:
    import yt
    ts = yt.load("*/*.index")
    for ds in ts:
-       print ds.current_time
+       print(ds.current_time)
 
 This can also operate in parallel, using
 :meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
@@ -79,9 +79,7 @@ see:
 Analyzing an Entire Simulation
 ------------------------------
 
-.. note:: Currently only implemented for Enzo.  Other simulation types coming 
-   soon.  Until then, rely on the above prescription for creating 
-   ``DatasetSeries`` objects.
+.. note:: Implemented for: Enzo, Gadget, OWLS.
 
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 
@@ -93,8 +91,7 @@ To instantiate, give the parameter file and the simulation type.
 .. code-block:: python
 
   import yt
-  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
-                         find_outputs=False)
+  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
 
 Then, create a ``DatasetSeries`` object with the 
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
@@ -116,17 +113,17 @@ After this, time series analysis can be done normally.
 
   for ds in my_sim.piter()
       all_data = ds.all_data()
-      print all_data.quantities.extrema('density')
+      print(all_data.quantities.extrema('density'))
  
 Additional keywords can be given to 
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
 to select a subset of the total data:
 
 * ``time_data`` (*bool*): Whether or not to include time outputs when 
-  gathering datasets for time series.  Default: True.
+  gathering datasets for time series.  Default: True.  (Enzo only)
 
 * ``redshift_data`` (*bool*): Whether or not to include redshift outputs 
-  when gathering datasets for time series.  Default: True.
+  when gathering datasets for time series.  Default: True.  (Enzo only)
 
 * ``initial_time`` (*float*): The earliest time for outputs to be included.  
   If None, the initial time of the simulation is used.  This can be used in 
@@ -139,15 +136,12 @@ to select a subset of the total data:
 * ``times`` (*list*): A list of times for which outputs will be found.
   Default: None.
 
-* ``time_units`` (*str*): The time units used for requesting outputs by time.
-  Default: '1' (code units).
-
 * ``initial_redshift`` (*float*): The earliest redshift for outputs to be 
   included.  If None, the initial redshift of the simulation is used.  This
   can be used in combination with either ``final_time`` or ``final_redshift``.
   Default: None.
 
-* ``final_time`` (*float*): The latest redshift for outputs to be included.  
+* ``final_redshift`` (*float*): The latest redshift for outputs to be included.  
   If None, the final redshift of the simulation is used.  This can be used 
   in combination with either ``initial_time`` or ``initial_redshift``.  
   Default: None.
@@ -157,11 +151,11 @@ to select a subset of the total data:
 
 * ``initial_cycle`` (*float*): The earliest cycle for outputs to be 
   included.  If None, the initial cycle of the simulation is used.  This can
-  only be used with final_cycle.  Default: None.
+  only be used with final_cycle.  Default: None.  (Enzo only)
 
 * ``final_cycle`` (*float*): The latest cycle for outputs to be included.  
   If None, the final cycle of the simulation is used.  This can only be used 
-  in combination with initial_cycle.  Default: None.
+  in combination with initial_cycle.  Default: None.  (Enzo only)
 
 * ``tolerance`` (*float*):  Used in combination with ``times`` or ``redshifts`` 
   keywords, this is the tolerance within which outputs are accepted given 

@@ -295,7 +295,7 @@ Projection Argument Order
 Previously, projections were inconsistent with the other data objects.
 (The API for Plot Windows is the same.)  The argument order is now ``field``
 then ``axis`` as seen here: 
-:class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`.
+:class:`~yt.data_objects.construction_data_containers.YTQuadTreeProj`.
 
 Field Parameters
 ^^^^^^^^^^^^^^^^
@@ -334,7 +334,7 @@ spatial chunking like so:
 
    for chunk in obj.chunks([], "spatial"):
        for grid in chunk._current_chunk.objs:
-           print grid
+           print(grid)
 
 This will "spatially" chunk the ``obj`` object and print out all the grids
 included.

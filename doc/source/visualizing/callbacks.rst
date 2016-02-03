@@ -463,6 +463,35 @@ Overplot Streamlines
    s.annotate_streamlines('velocity_x', 'velocity_y')
    s.save()
 
+.. _annotate-line-integral-convolution:
+
+Overplot Line Integral Convolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_line_integral_convolution(self, field_x, field_y, \
+                                                 texture=None, kernellen=50., \
+                                                 lim=(0.5,0.6), cmap='binary', \
+                                                 alpha=0.8, const_alpha=False)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.LineIntegralConvolutionCallback`.)
+
+   Add line integral convolution to any plot, using the ``field_x`` and ``field_y`` 
+   from the associated data. A white noise background will be used for ``texture`` 
+   as default. Adjust the bounds of ``lim`` in the range of ``[0, 1]`` which applies 
+   upper and lower bounds to the values of line integral convolution and enhance 
+   the visibility of plots. When ``const_alpha=False``, alpha will be weighted 
+   spatially by the values of line integral convolution; otherwise a constant value 
+   of the given alpha is used.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+   s.annotate_line_integral_convolution('velocity_x', 'velocity_y', lim=(0.5,0.65))
+   s.save()
+
 .. _annotate-text:
 
 Overplot Text
@@ -483,7 +512,7 @@ Overplot Text
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='max', width=(10, 'kpc'))
-   s.annotate_text((2, 2), coord_system='plot', 'Galaxy!')
+   s.annotate_text((2, 2), 'Galaxy!', coord_system='plot')
    s.save()
 
 .. _annotate-title:
@@ -568,23 +597,27 @@ Add the Current Time and/or Redshift
 
 Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, max_frac=0.2, \
-                             min_frac=0.018, text_args=None, \
-                             inset_box_args=None)
+                             unit=None, pos=None, max_frac=0.16, \
+                             min_frac=0.015, coord_system='axis', \
+                             text_args=None, size_bar_args=None, \
+                             draw_inset_box=False, inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
 
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
-    the pos argument.  Coeff and units (e.g. 1 Mpc) refer to the distance scale
-    you desire to show on the plot.  If no coeff and units are specified,
-    an appropriate pair will be determined such that your scale bar is never
-    smaller than min_frac or greater than max_frac of your plottable axis
-    length.  For additional text and plot arguments for the text and line,
-    include them as dictionaries to pass to text_args and plot_args.
+    the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
+    distance scale you desire to show on the plot.  If no coeff and units are
+    specified, an appropriate pair will be determined such that your scale bar
+    is never smaller than min_frac or greater than max_frac of your plottable
+    axis length.  Additional customization of the scale bar is possible by
+    adjusting the text_args and size_bar_args dictionaries.  The text_args
+    dictionary accepts matplotlib's font_properties arguments to override
+    the default font_properties for the current plot.  The size_bar_args
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in
+    matplotlib's axes_grid toolkit.
 
 .. python-script::
 
@@ -644,9 +677,13 @@ Overplot the Path of a Ray
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.RayCallback`.)
 
-    Adds a line representing the projected path of a ray across the plot.
-    The ray can be either a YTOrthoRayBase, YTRayBase, or a LightRay object.
-    annotate_ray() will properly account for periodic rays across the volume.
+    Adds a line representing the projected path of a ray across the plot.  The
+    ray can be either a
+    :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
+    :class:`~yt.data_objects.selection_data_contaners.YTRay`, or a
+    :class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
+    object.  annotate_ray() will properly account for periodic rays across the
+    volume.
 
 .. python-script::
 

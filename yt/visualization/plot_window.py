@@ -13,7 +13,7 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import base64
+
 import numpy as np
 import matplotlib
 import types
@@ -24,8 +24,6 @@ from distutils.version import LooseVersion
 from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
-from ._mpl_imports import FigureCanvasAgg
-from .image_writer import apply_colormap
 from .base_plot_types import ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
@@ -43,13 +41,12 @@ from yt.data_objects.time_series import \
     DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
-from yt.extern.six.moves import \
-    StringIO
 from yt.extern.six import string_types
+from yt.frontends.ytdata.data_structures import \
+    YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, validate_width_tuple, \
-    fix_unitary
+    fix_axis, fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -58,8 +55,6 @@ from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.png_writer import \
-    write_png_to_string
 from yt.utilities.definitions import \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
@@ -68,7 +63,6 @@ from yt.utilities.orientation import \
     Orientation
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
-    YTInvalidWidthError, \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
     YTPlotCallbackError
@@ -88,46 +82,8 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    if ds.geometry in ("cartesian", "spectral_cube"):
-        width = ds.coordinates.sanitize_width(axis, width, None)
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-    elif ds.geometry in ("polar", "cylindrical"):
-        # Set our default width to be the full domain
-        axis_name = ds.coordinates.axis_name[axis]
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        # Note: regardless of axes, these are set up to give consistent plots
-        # when plotted, which is not strictly a "right hand rule" for axes.
-        r_ax, theta_ax, z_ax = (ds.coordinates.axis_id[ax]
-                                for ax in ('r', 'theta', 'z'))
-        if axis_name == "r": # soup can label
-            width = [2.0*np.pi * ds.domain_width.uq, ds.domain_width[z_ax]]
-        elif axis_name == "theta":
-            width = [ds.domain_right_edge[r_ax], ds.domain_width[z_ax]]
-        elif axis_name == "z":
-            width = [2.0*ds.domain_right_edge[r_ax],
-                     2.0*ds.domain_right_edge[r_ax]]
-    elif ds.geometry == "spherical":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            # latitude slice
-            width = ds.arr([2*np.pi, np.pi], "code_length")
-        elif axis == 1:
-            width = [2.0*ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-        elif axis == 2:
-            width = [ds.domain_right_edge[0], 2.0*ds.domain_right_edge[0]]
-    elif ds.geometry == "geographic":
-        center, display_center = ds.coordinates.sanitize_center(center, axis)
-        if axis == 0:
-            width = [2.0*(ds.domain_right_edge[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 1:
-            width = [(ds.domain_left_edge[2] + ds.domain_width[2] + ds.surface_height),
-                     2.0*(ds.domain_right_edge[2] + ds.surface_height)]
-        elif axis == 2:
-            # latitude slice
-            width = ds.arr([360, 180], "code_length")
-    else:
-        raise NotImplementedError
+    width = ds.coordinates.sanitize_width(axis, width, None)
+    center, display_center = ds.coordinates.sanitize_center(center, axis)
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
     bounds = (display_center[xax]-width[0] / 2,
@@ -188,7 +144,7 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProjBase` or :class:`yt.data_objects.selection_data_containers.YTSliceBase`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -231,7 +187,7 @@ class PlotWindow(ImagePlotContainer):
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        if self.data_source.center is not None and oblique == False:
+        if self.data_source.center is not None and oblique is False:
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
@@ -534,7 +490,7 @@ class PlotWindow(ImagePlotContainer):
 
         if hasattr(self,'zlim'):
             centerz = (self.zlim[1] + self.zlim[0])/2.
-            mw = np.max([width[0], width[1]])
+            mw = self.ds.arr(width).max()
             self.zlim = (centerz - mw/2.,
                          centerz + mw/2.)
 
@@ -731,7 +687,11 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
-        if self._plot_valid: return
+        if self._plot_valid:
+            return
+        if not self._data_valid:
+            self._recreate_frb()
+            self._data_valid = True
         self._colorbar_valid = True
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
@@ -973,7 +933,7 @@ class PWViewerMPL(PlotWindow):
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
         self._set_font_properties()
-
+        self.run_callbacks()
         self._plot_valid = True
 
     def setup_callbacks(self):
@@ -1070,6 +1030,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_colorbar()
+        return self
 
     def show_colorbar(self, field=None):
         """
@@ -1088,6 +1049,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_colorbar()
+        return self
 
     def hide_axes(self, field=None):
         """
@@ -1126,6 +1088,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_axes()
+        return self
 
     def show_axes(self, field=None):
         """
@@ -1144,6 +1107,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_axes()
+        return self
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
@@ -1262,9 +1226,17 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             get_window_parameters(axis, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
-        slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
-                       center=center, data_source=data_source)
-        slc.get_data(fields)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            slc = ds.all_data()
+            slc.axis = axis
+            if slc.axis != ds.parameters["axis"]:
+                raise RuntimeError("Original slice axis is %s." %
+                                   ds.parameters["axis"])
+        else:
+            slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
+                           center=center, data_source=data_source)
+            slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect)
@@ -1424,9 +1396,18 @@ class ProjectionPlot(PWViewerMPL):
         (bounds, center, display_center) = \
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
-        proj = ds.proj(fields, axis, weight_field=weight_field,
-                       center=center, data_source=data_source,
-                       field_parameters = field_parameters, method = method)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            proj = ds.all_data()
+            proj.axis = axis
+            if proj.axis != ds.parameters["axis"]:
+                raise RuntimeError("Original projection axis is %s." %
+                                   ds.parameters["axis"])
+            proj.weight_field = proj._determine_fields(weight_field)[0]
+        else:
+            proj = ds.proj(fields, axis, weight_field=weight_field,
+                           center=center, data_source=data_source,
+                           field_parameters = field_parameters, method = method)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1511,10 +1492,16 @@ class OffAxisSlicePlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
             field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector=north_vector,
-                             field_parameters=field_parameters,
-                             data_source=data_source)
-        cutting.get_data(fields)
+
+        if isinstance(ds, YTSpatialPlotDataset):
+            cutting = ds.all_data()
+            cutting.axis = 4
+            cutting._inv_mat = ds.parameters["_inv_mat"]
+        else:
+            cutting = ds.cutting(normal, center, north_vector=north_vector,
+                                 field_parameters=field_parameters,
+                                 data_source=data_source)
+            cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
@@ -1667,259 +1654,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     def _recreate_frb(self):
         super(OffAxisProjectionPlot, self)._recreate_frb()
-
-
-_metadata_template = """
-%(ds)s<br>
-<br>
-Field of View:  %(x_width)0.3f %(axes_unit_names)s<br>
-Minimum Value:  %(mi)0.3e %(colorbar_unit)s<br>
-Maximum Value:  %(ma)0.3e %(colorbar_unit)s<br>
-Central Point:  (data coords)<br>
-&nbsp;&nbsp;&nbsp;%(xc)0.14f<br>
-&nbsp;&nbsp;&nbsp;%(yc)0.14f<br>
-&nbsp;&nbsp;&nbsp;%(zc)0.14f
-"""
-
-class PWViewerExtJS(PlotWindow):
-    """A viewer for the web interface.
-
-    """
-    _ext_widget_id = None
-    _current_field = None
-    _widget_name = "plot_window"
-    _frb_generator = FixedResolutionBuffer
-    _contour_info = None
-    _vector_info = None
-
-    def _setup_plots(self):
-        from yt.gui.reason.bottle_mods import PayloadHandler
-        ph = PayloadHandler()
-        if self._current_field is not None \
-           and self._ext_widget_id is not None:
-            fields = [self._current_field]
-            addl_keys = {'type': 'widget_payload',
-                         'widget_id': self._ext_widget_id}
-        else:
-            fields = self.frb.data.keys()
-            addl_keys = {}
-        if self._colorbar_valid is False:
-            addl_keys['colorbar_image'] = self._get_cbar_image()
-            self._colorbar_valid = True
-        min_zoom = 200*self.ds.index.get_smallest_dx() * self.ds['unitary']
-        for field in fields:
-            to_plot = apply_colormap(self.frb[field],
-                                     func = self._field_transform[field],
-                                     cmap_name = self._colormaps[field])
-            pngs = self._apply_modifications(to_plot)
-            img_data = base64.b64encode(pngs)
-            # We scale the width between 200*min_dx and 1.0
-            x_width = self.xlim[1] - self.xlim[0]
-            zoom_fac = np.log10(x_width*self.ds['unitary'])/np.log10(min_zoom)
-            zoom_fac = 100.0*max(0.0, zoom_fac)
-            ticks = self.get_ticks(field)
-            payload = {'type':'png_string',
-                       'image_data':img_data,
-                       'metadata_string': self.get_metadata(field),
-                       'zoom': zoom_fac,
-                       'ticks': ticks}
-            payload.update(addl_keys)
-            ph.add_payload(payload)
-
-    def _apply_modifications(self, img):
-        if self._contour_info is None and self._vector_info is None:
-            return write_png_to_string(img)
-        from matplotlib.figure import Figure
-
-        vi, vj, vn = img.shape
-
-        # Now we need to get our field values
-        fig = Figure((vi/100.0, vj/100.0), dpi = 100)
-        fig.figimage(img)
-        # Add our contour
-        ax = fig.add_axes([0.0, 0.0, 1.0, 1.0], frameon=False)
-        ax.patch.set_alpha(0.0)
-
-        # Now apply our modifications
-        self._apply_contours(ax, vi, vj)
-        self._apply_vectors(ax, vi, vj)
-
-        canvas = FigureCanvasAgg(fig)
-        f = StringIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        img = f.read()
-        return img
-
-    def _apply_contours(self, ax, vi, vj):
-        if self._contour_info is None: return
-        plot_args = {}
-        field, number, colors, logit = self._contour_info
-        if colors is not None: plot_args['colors'] = colors
-
-        raw_data = self.frb.data_source
-        b = self.frb.bounds
-        xi, yi = np.mgrid[b[0]:b[1]:(vi / 8) * 1j,
-                          b[2]:b[3]:(vj / 8) * 1j]
-        x = raw_data['px']
-        y = raw_data['py']
-        z = raw_data[field]
-        if logit: z = np.log10(z)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
-            from matplotlib.delaunay.triangulate import Triangulation as triang
-            fvals = triang(x,y).nn_interpolator(z)(xi,yi).transpose()[::-1,:]
-        else:
-            from matplotlib.tri import Triangulation, LinearTriInterpolator
-            t = Triangulation(x, y)
-            fvals = LinearTriInterpolator(t, z)(xi, yi).transpose()[::-1,:]
-
-        ax.contour(fvals, number, colors='w')
-
-    def _apply_vectors(self, ax, vi, vj):
-        if self._vector_info is None: return
-        skip, scale = self._vector_info
-
-        nx = self.frb.buff_size[0]/skip
-        ny = self.frb.buff_size[1]/skip
-        new_frb = FixedResolutionBuffer(self.frb.data_source,
-                                        self.frb.bounds, (nx,ny))
-
-        axis = self.frb.data_source.axis
-        xax = self.frb.data_source.ds.coordinates.x_axis[axis]
-        yax = self.frb.data_source.ds.coordinates.y_axis[axis]
-        axis_names = self.frb.data_source.ds.coordinates.axis_name
-        fx = "velocity_%s" % (axis_names[xax])
-        fy = "velocity_%x" % (axis_names[yax])
-        px = new_frb[fx][::-1,:]
-        py = new_frb[fy][::-1,:]
-        x = np.mgrid[0:vi-1:ny*1j]
-        y = np.mgrid[0:vj-1:nx*1j]
-        # Always normalize, then we scale
-        nn = ((px**2.0 + py**2.0)**0.5).max()
-        px /= nn
-        py /= nn
-        print(scale, px.min(), px.max(), py.min(), py.max())
-        ax.quiver(x, y, px, py, scale=float(vi)/skip)
-
-    def get_ticks(self, field, height = 400):
-        # This will eventually change to work with non-logged fields
-        ticks = []
-        transform = self._field_transform[field]
-        mi, ma = self.frb[field].min(), self.frb[field].max()
-        tick_locs = transform.ticks(mi, ma)
-        mi, ma = transform((mi, ma))
-        for v1,v2 in zip(tick_locs, transform(tick_locs)):
-            if v2 < mi or v2 > ma: continue
-            p = height - height * (v2 - mi)/(ma - mi)
-            ticks.append((p,v1,v2))
-        return ticks
-
-    def _get_cbar_image(self, height = 400, width = 40, field = None):
-        if field is None: field = self._current_field
-        cmap_name = self._colormaps[field]
-        vals = np.mgrid[1:0:height * 1j] * np.ones(width)[:,None]
-        vals = vals.transpose()
-        to_plot = apply_colormap(vals, cmap_name = cmap_name)
-        pngs = write_png_to_string(to_plot)
-        img_data = base64.b64encode(pngs)
-        return img_data
-
-    # This calls an invalidation routine from within
-    def scroll_zoom(self, value):
-        # We accept value from 0..100, and assume it has been set from the
-        # scroll bar.  In that case, we undo the logic for calcualting
-        # 'zoom_fac' from above.
-        min_val = 200*self.ds.index.get_smallest_dx()
-        unit = self.ds['unitary']
-        width = (min_val**(value/100.0))/unit
-        self.set_width(width)
-
-    def image_recenter(self, img_x, img_y, img_size_x, img_size_y):
-        dx = (self.xlim[1] - self.xlim[0]) / img_size_x
-        dy = (self.ylim[1] - self.ylim[0]) / img_size_y
-        new_x = img_x * dx + self.xlim[0]
-        new_y = img_y * dy + self.ylim[0]
-        print(img_x, img_y, dx, dy, new_x, new_y)
-        self.set_center((new_x, new_y))
-
-    def get_field_units(self, field, strip_mathml = True):
-        source = self.data_source
-        field = self._check_field(field)
-        finfo = source.ds._get_field_info(*field)
-        if source._type_name in ("slice", "cutting"):
-            units = finfo.get_units()
-        elif source._type_name == "proj":
-            if source.weight_field is not None or source.method in ("mip", "sum"):
-                units = finfo.get_units()
-            else:
-                units = finfo.get_projected_units()
-        else:
-            units = ""
-        if strip_mathml:
-            units = units.replace(r"\rm{", "").replace("}","")
-        return units
-
-    def get_metadata(self, field, strip_mathml = True, return_string = True):
-        fval = self.frb[field]
-        mi = fval.min()
-        ma = fval.max()
-        x_width = self.xlim[1] - self.xlim[0]
-        y_width = self.ylim[1] - self.ylim[0]
-        if self._axes_unit_names is None:
-            unit = self.ds.get_smallest_appropriate_unit(x_width)
-            unit = (unit, unit)
-        else:
-            unit = self._axes_unit_names
-        units = self.get_field_units(field, strip_mathml)
-        center = getattr(self.frb.data_source, "center", None)
-        xax = self.ds.coordinates.x_axis[self.frb.axis]
-        yax = self.ds.coordinates.y_axis[self.frb.axis]
-        if center is None or self.frb.axis == 4:
-            xc, yc, zc = -999, -999, -999
-        else:
-            center[xax] = 0.5 * (
-                self.xlim[0] + self.xlim[1])
-            center[yax] = 0.5 * (
-                self.ylim[0] + self.ylim[1])
-            xc, yc, zc = center
-        if return_string:
-            md = _metadata_template % dict(
-                ds = self.ds,
-                x_width = x_width*self.ds[unit[0]],
-                y_width = y_width*self.ds[unit[1]],
-                axes_unit_names = unit[0], colorbar_unit = units,
-                mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
-        else:
-            md = dict(ds = self.ds,
-                      x_width = x_width*self.ds[unit[0]],
-                      y_width = y_width*self.ds[unit[1]],
-                      axes_unit_names = unit, colorbar_unit = units,
-                      mi = mi, ma = ma, xc = xc, yc = yc, zc = zc)
-        return md
-
-    @invalidate_plot
-    def set_contour_info(self, field_name, n_cont = 8, colors = None,
-                         logit = True):
-        if field_name == "None" or n_cont == 0:
-            self._contour_info = None
-            return
-        self._contour_info = (field_name, n_cont, colors, logit)
-
-    @invalidate_plot
-    def set_vector_info(self, skip, scale = 1):
-        self._vector_info = (skip, scale)
-
-    @invalidate_data
-    def set_current_field(self, field):
-        field = self._check_field(field)
-        self._current_field = field
-        self.frb[field]
-        finfo = self.data_source.ds._get_field_info(*field)
-        if finfo.take_log:
-            self._field_transform[field] = log_transform
-        else:
-            self._field_transform[field] = linear_transform
-
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""

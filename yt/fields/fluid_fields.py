@@ -15,20 +15,16 @@ Here are some fields that are specific to fluids.
 
 import numpy as np
 
-from yt.funcs import \
-    just_one
-
 from .derived_field import \
-    ValidateParameter, \
     ValidateSpatial
 
 from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
-     create_averaged_field, \
-     create_magnitude_field, \
-     create_vector_fields
+    create_averaged_field, \
+    create_magnitude_field, \
+    create_vector_fields
 
 from yt.utilities.physical_constants import \
     mh, \
@@ -37,20 +33,6 @@ from yt.utilities.physical_constants import \
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
-from yt.units.yt_array import \
-    YTArray
-
-from yt.utilities.math_utils import \
-    get_sph_r_component, \
-    get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component, \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
 
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
@@ -70,7 +52,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     create_vector_fields(registry, "velocity", "cm / s", ftype, slice_info)
 
     def _cell_mass(field, data):
-        return data[ftype, "density"] * data["index", "cell_volume"]
+        return data[ftype, "density"] * data[ftype, "cell_volume"]
 
     registry.add_field((ftype, "cell_mass"),
         function=_cell_mass,
@@ -107,11 +89,11 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
             units = "")
 
     def _courant_time_step(field, data):
-        t1 = data["index", "dx"] / (data[ftype, "sound_speed"]
+        t1 = data[ftype, "dx"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_x"]))
-        t2 = data["index", "dy"] / (data[ftype, "sound_speed"]
+        t2 = data[ftype, "dy"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_y"]))
-        t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
+        t3 = data[ftype, "dz"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_z"]))
         tr = np.minimum(np.minimum(t1, t2), t3)
         return tr
@@ -158,7 +140,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units="Zsun")
 
     def _metal_mass(field, data):
-        return data[ftype, "metal_density"] * data["index", "cell_volume"]
+        return data[ftype, "metal_density"] * data[ftype, "cell_volume"]
     registry.add_field((ftype, "metal_mass"),
                        function=_metal_mass,
                        units="g")
@@ -206,7 +188,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl[axi] = sl_left
         slice_3dr[axi] = sl_right
         def func(field, data):
-            ds = div_fac * data["index", "d%s" % ax]
+            ds = div_fac * data[ftype, "d%s" % ax]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
@@ -215,7 +197,11 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             return new_field
         return func
 
-    grad_units = "(%s) / cm" % field_units
+    if field_units != "":
+        grad_units = "(%s) / cm" % field_units
+    else:
+        grad_units = "1 / cm"
+
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),

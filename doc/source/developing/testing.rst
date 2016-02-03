@@ -84,6 +84,9 @@ in handy:
 * :func:`~yt.testing.assert_equal` can operate on arrays.
 * :func:`~yt.testing.assert_almost_equal` can operate on arrays and accepts a
   relative allowable difference.
+* :func:`~yt.testing.assert_allclose_units` raises an error if two arrays are
+  not equal up to a desired absolute or relative tolerance. This wraps numpy's
+  assert_allclose to correctly verify unit consistency as well.
 * :func:`~yt.testing.amrspace` provides the ability to create AMR grid
   structures.
 * :func:`~yt.testing.expand_keywords` provides the ability to iterate over
@@ -99,9 +102,10 @@ To create new unit tests:
 #. Inside that directory, create a new python file prefixed with ``test_`` and
    including the name of the functionality.
 #. Inside that file, create one or more routines prefixed with ``test_`` that
-   accept no arguments.  These should ``yield`` a set of values of the form
-   ``function``, ``arguments``.  For example ``yield assert_equal, 1.0, 1.0``
-   would evaluate that 1.0 equaled 1.0.
+   accept no arguments.  These should ``yield`` a tuple of the form
+   ``function``, ``argument_one``, ``argument_two``, etc.  For example
+   ``yield assert_equal, 1.0, 1.0`` would be captured by nose as a test that
+   asserts that 1.0 is equal to 1.0.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
    several combinations of ``nproc``, so that domain decomposition can be
    tested as well.
@@ -113,6 +117,53 @@ For an example of how to write unit tests, look at the file
 ``yt/data_objects/tests/test_covering_grid.py``, which covers a great deal of
 functionality.
 
+Debugging failing tests
+^^^^^^^^^^^^^^^^^^^^^^^
+
+When writing new tests, often one exposes bugs or writes a test incorrectly,
+causing an exception to be raised or a failed test. To help debug issues like
+this, ``nose`` can drop into a debugger whenever a test fails or raises an
+exception. This can be accomplished by passing ``--pdb`` and ``--pdb-failures``
+to the ``nosetests`` executable. These options will drop into the pdb debugger
+whenever an error is raised or a failure happens, respectively. Inside the
+debugger you can interactively print out variables and go up and down the call
+stack to determine the context for your failure or error.
+
+.. code-block:: bash
+
+    nosetests --pdb --pdb-failures
+
+In addition, one can debug more crudely using print statements. To do this,
+you can add print statements to the code as normal. However, the test runner
+will capture all print output by default. To ensure that output gets printed
+to your terminal while the tests are running, pass ``-s`` to the ``nosetests``
+executable.
+
+Lastly, to quickly debug a specific failing test, it is best to only run that
+one test during your testing session. This can be accomplished by explicitly
+passing the name of the test function or class to ``nosetests``, as in the
+following example:
+
+.. code-block:: bash
+
+    $ nosetests yt.visualization.tests.test_plotwindow:TestSetWidth
+
+This nosetests invocation will only run the tests defined by the
+``TestSetWidth`` class.
+
+Finally, to determine which test is failing while the tests are running, it helps
+to run the tests in "verbose" mode. This can be done by passing the ``-v`` option
+to the ``nosetests`` executable.
+
+All of the above ``nosetests`` options can be combined. So, for example to run
+the ``TestSetWidth`` tests with verbose output, letting the output of print
+statements come out on the terminal prompt, and enabling pdb debugging on errors
+or test failures, one would do:
+
+.. code-block:: bash
+
+    $ nosetests --pdb --pdb-failures -v -s yt.visualization.tests.test_plotwindow:TestSetWidth
+
 .. _answer_testing:
 
 Answer Testing
@@ -122,8 +173,8 @@ What do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Answer tests test **actual data**, and many operations on that data, to make
-sure that answers don't drift over time.  This is how we will be testing
-frontends, as opposed to operations, in yt.
+sure that answers don't drift over time.  This is how we test frontends, as
+opposed to operations, in yt.
 
 .. _run_answer_testing:
 
@@ -133,20 +184,104 @@ How to Run the Answer Tests
 The very first step is to make a directory and copy over the data against which
 you want to test.  Currently, we test:
 
-* ``DD0010/moving7_0010`` (available in ``tests/`` in the yt distribution)
-* ``IsolatedGalaxy/galaxy0030/galaxy0030``
-* ``WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030``
-* ``GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300``
-* ``TurbBoxLowRes/data.0005.3d.hdf5``
-* ``GaussianCloud/data.0077.3d.hdf5``
+NMSU ART
+~~~~~~~~
+
+* ``D9p_500/10MpcBox_HartGal_csf_a0.500.d``
+
+ARTIO
+~~~~~
+
+* ``sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art``
+
+Athena
+~~~~~~
+
+* ``ShockCloud/id0/Cloud.0050.vtk``
+* ``MHDBlast/id0/Blast.0100.vtk``
+* ``RamPressureStripping/id0/rps.0062.vtk``
+* ``MHDSloshing/virgo_low_res.0054.vtk``
+
+Boxlib
+~~~~~~
+
 * ``RadAdvect/plt00000``
 * ``RadTube/plt00500``
+* ``StarParticles/plrd01000``
+
+Chombo
+~~~~~~
+
+* ``TurbBoxLowRes/data.0005.3d.hdf5``
+* ``GaussianCloud/data.0077.3d.hdf5``
+* ``IsothermalSphere/data.0000.3d.hdf5``
+* ``ZeldovichPancake/plt32.2d.hdf5``
+* ``KelvinHelmholtz/data.0004.hdf5``
+
+Enzo
+~~~~
+
+* ``DD0010/moving7_0010`` (available in ``tests/`` in the yt distribution)
+* ``IsolatedGalaxy/galaxy0030/galaxy0030``
+* ``enzo_tiny_cosmology/DD0046/DD0046``
+* ``enzo_cosmology_pluts/DD0046/DD0046``
+
+FITS
+~~~~
+
+* ``radio_fits/grs-50-cube.fits``
+* ``UnigridData/velocity_field_20.fits``
+
+FLASH
+~~~~~
+
+* ``WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030``
+* ``GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300``
+
+Gadget
+~~~~~~
+
+* ``IsothermalCollapse/snap_505``
+* ``IsothermalCollapse/snap_505.hdf5``
+* ``GadgetDiskGalaxy/snapshot_200.hdf5``
+
+Halo Catalog
+~~~~~~~~~~~~
+
+* ``owls_fof_halos/groups_001/group_001.0.hdf5``
+* ``owls_fof_halos/groups_008/group_008.0.hdf5``
+* ``gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5``
+* ``gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5``
+* ``rockstar_halos/halos_0.0.bin``
+
+MOAB
+~~~~
+
+* ``c5/c5.h5m``
+
+
+RAMSES
+~~~~~~
+
+* ``output_00080/info_00080.txt``
+
+Tipsy
+~~~~~
+
+* ``halo1e11_run1.00400/halo1e11_run1.00400``
+* ``agora_1e11.00400/agora_1e11.00400``
+* ``TipsyGalaxy/galaxy.00300``
+
+OWLS
+~~~~
+
+* ``snapshot_033/snap_033.0.hdf5``
 
 These datasets are available at http://yt-project.org/data/.
 
 Next, modify the file ``~/.yt/config`` to include a section ``[yt]``
 with the parameter ``test_data_dir``.  Set this to point to the
-directory with the test data you want to compare.  Here is an example
+directory with the test data you want to test with.  Here is an example
 config file:
 
 .. code-block:: none
@@ -154,47 +289,46 @@ config file:
    [yt]
    test_data_dir = /Users/tomservo/src/yt-data
 
-More data will be added over time.  To run the tests, you can import the yt
-module and invoke ``yt.run_nose()`` with a new keyword argument:
+More data will be added over time.  To run the answer tests, you must first
+generate a set of test answers locally on a "known good" revision, then update
+to the revision you want to test, and run the tests again using the locally
+stored answers.
 
-.. code-block:: python
-
-   import yt
-   yt.run_nose(run_answer_tests=True)
-
-If you have installed yt using ``python setup.py develop`` you can also
-optionally invoke nose using the ``nosetests`` command line interface:
+Let's focus on running the answer tests for a single frontend. It's possible to
+run the answer tests for **all** the frontends, but due to the large number of
+test datasets we currently use this is not normally done except on the yt
+project's contiguous integration server.
 
 .. code-block:: bash
 
    $ cd $YT_HG
-   $ nosetests --with-answer-testing
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy frontends.tipsy
 
-In either case, the current gold standard results will be downloaded from the
-rackspace cloud and compared to what is generated locally.  The results from a
-nose testing session are pretty straightforward to understand, the results for
-each test are printed directly to STDOUT. If a test passes, nose prints a
-period, F if a test fails, and E if the test encounters an exception or errors
-out for some reason.  If you want to also run tests for the 'big' datasets,
-then you can use the ``answer_big_data`` keyword argument:
-
-.. code-block:: python
-
-   import yt
-   yt.run_nose(run_answer_tests=True, answer_big_data=True)
-
-or, in the base directory of the yt mercurial repository:
+This command will create a set of local answers from the tipsy frontend tests
+and store them in ``$HOME/Documents/test`` (this can but does not have to be the
+same directory as the ``test_data_dir`` configuration variable defined in your
+``.yt/config`` file) in a file named ``local-tipsy``. To run the tipsy
+frontend's answer tests using a different yt changeset, update to that
+changeset, recompile if necessary, and run the tests using the following
+command:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --answer-big-data
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy frontends.tipsy
 
-It's also possible to only run the answer tests for one frontend.  For example,
-to run only the enzo answers tests, one can do,
+The results from a nose testing session are pretty straightforward to
+understand, the results for each test are printed directly to STDOUT.  If a test
+passes, nose prints a period, F if a test fails, and E if the test encounters an
+exception or errors out for some reason.  Explicit descriptions for each test
+are also printed if you pass ``-v`` to the ``nosetests`` executable.  If you
+want to also run tests for the 'big' datasets, then you will need to pass
+``--answer-big-data`` to ``nosetests``.  For example, to run the tests for the
+OWLS frontend, do the following:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing yt.frontends.enzo
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data frontends.owls
+
 
 How to Write Answer Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -205,11 +339,11 @@ You can find examples there of how to write a test.  Here is a trivial example:
 .. code-block:: python
 
    #!python
-   class MaximumValue(AnswerTestingTest):
-       _type_name = "ParentageRelationships"
+   class MaximumValueTest(AnswerTestingTest):
+       _type_name = "MaximumValue"
        _attrs = ("field",)
        def __init__(self, ds_fn, field):
-           super(MaximumValue, self).__init__(ds_fn)
+           super(MaximumValueTest, self).__init__(ds_fn)
            self.field = field
 
        def run(self):
@@ -247,10 +381,10 @@ To write a new test:
 * Typically for derived values, we compare to 10 or 12 decimal places.
   For exact values, we compare exactly.
 
-How to Add Data to the Testing Suite
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How To Write Answer Tests for a Frontend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To add data to the testing suite, first write a new set of tests for the data.
+To add a new frontend answer test, first write a new set of tests for the data.
 The Enzo example in ``yt/frontends/enzo/tests/test_outputs.py`` is
 considered canonical.  Do these things:
 
@@ -260,38 +394,78 @@ considered canonical.  Do these things:
   directory.
 
 * Create a new routine that operates similarly to the routines you can see
-  in Enzo's outputs.
+  in Enzo's output tests.
 
   * This routine should test a number of different fields and data objects.
 
   * The test routine itself should be decorated with
-    ``@requires_ds(file_name)``  This decorate can accept the argument
-    ``big_data`` for if this data is too big to run all the time.
+    ``@requires_ds(test_dataset_name)``. This decorator can accept the
+    argument ``big_data=True`` if the test is expensive. The 
+    ``test_dataset_name`` should be a string containing the path you would pass
+    to the ``yt.load`` function. It does not need to be the full path to the 
+    dataset, since the path will be automatically prepended with the location of
+    the test data directory.  See :ref:`configuration-file` for more information
+    about the ``test_data-dir`` configuration option.
 
-  * There are ``small_patch_amr`` and ``big_patch_amr`` routines that
-    you can yield from to execute a bunch of standard tests.  This is where
-    you should start, and then yield additional tests that stress the
-    outputs in whatever ways are necessary to ensure functionality.
-
-  * **All tests should be yielded!**
+  * There are ``small_patch_amr`` and ``big_patch_amr`` routines that you can
+    yield from to execute a bunch of standard tests. In addition we have created
+    ``sph_answer`` which is more suited for particle SPH datasets. This is where
+    you should start, and then yield additional tests that stress the outputs in
+    whatever ways are necessary to ensure functionality.
 
 If you are adding to a frontend that has a few tests already, skip the first
 two steps.
 
-How to Upload Answers
-^^^^^^^^^^^^^^^^^^^^^
+How to Write Image Comparison Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To upload answers you can execute this command:
+We have a number of tests designed to compare images as part of yt. We make use
+of some functionality from matplotlib to automatically compare images and detect
+differences, if any. Image comparison tests are used in the plotting and volume
+rendering machinery.
 
-.. code-block:: bash
+The easiest way to use the image comparison tests is to make use of the 
+``GenericImageTest`` class. This class takes three arguments:
 
-   $ nosetests --with-answer-testing frontends/enzo/ --answer-store --answer-name=whatever
+* A dataset instance (e.g. something you load with ``yt.load`` or 
+  ``data_dir_load``) 
+* A function the test machinery can call which will save an image to disk. The 
+  test class will then find any images that get created and compare them with the
+  stored "correct" answer.
+* An integer specifying the number of decimal places to use when comparing
+  images. A smaller number of decimal places will produce a less stringent test.
+  Matplotlib uses an L2 norm on the full image to do the comparison tests, so
+  this is not a pixel-by-pixel measure, and surprisingly large variations will
+  still pass the test if the strictness of the comparison is not high enough.
 
-The current version of the gold standard can be found in the variable
-``_latest`` inside ``yt/utilities/answer_testing/framework.py``  As of
-the time of this writing, it is ``gold007``  Note that the name of the
-suite of results is now disconnected from the dataset's name, so you
-can upload multiple outputs with the same name and not collide.
+You *must* decorate your test function with ``requires_ds``, otherwise the 
+answer testing machinery will not be properly set up.
 
-To upload answers, you **must** have the package boto installed, and you
-**must** have an Amazon key provided by Matt.  Contact Matt for these keys.
+Here is an example test function:
+
+.. code-block:: python
+
+   from yt.utilities.answer_testing.framework import \
+       GenericImageTest, requires_ds, data_dir_load
+
+   from matplotlib import pyplot as plt
+
+   @requires_ds(my_ds)
+   def test_my_ds():
+       ds = data_dir_load(my_ds)
+       def create_image(filename_prefix):
+           plt.plot([1, 2], [1, 2])
+           plt.savefig(filename_prefix)
+       test = GenericImageTest(ds, create_image, 12)
+       # this ensures a nice test name in nose's output
+       test_my_ds.__description__ = test.description
+       yield test_my_ds
+
+Another good example of an image comparison test is the
+``PlotWindowAttributeTest`` defined in the answer testing framework and used in
+``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
+test subclass can be used to programitically test a variety of different methods
+of a complicated class using the same test class. This sort of image comparison
+test is more useful if you are finding yourself writing a ton of boilerplate
+code to get your image comparison test working.  The ``GenericImageTest`` is
+more useful if you only need to do a one-off image comparison test.

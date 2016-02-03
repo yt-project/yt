@@ -28,17 +28,18 @@ from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp, \
-    assert_array_almost_equal, \
-    assert_allclose
+    assert_array_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
-    uunion1d
+    uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_ds, requires_module
+from yt.testing import \
+    fake_random_ds, requires_module, \
+    assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
@@ -466,6 +467,13 @@ def test_unit_conversions():
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
+    dimless = YTQuantity(1.0, "")
+    yield assert_equal, dimless.in_cgs(), dimless
+    yield assert_equal, dimless.in_cgs(), 1.0
+    yield assert_equal, dimless.in_mks(), dimless
+    yield assert_equal, dimless.in_mks(), 1.0
+    yield assert_equal, str(dimless.in_cgs().units), "dimensionless"
+
 def test_temperature_conversions():
     """
     Test conversions between various supported temperatue scales.
@@ -554,6 +562,17 @@ def test_selecting():
     yield assert_true, a_slice.base is a
 
 
+def test_iteration():
+    """
+    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    """
+    a = np.arange(3)
+    b = YTArray(np.arange(3), 'cm')
+    for ia, ib, in zip(a, b):
+        yield assert_equal, ia, ib.value
+        yield assert_equal, ib.units, b.units
+
+
 def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
@@ -631,7 +650,7 @@ def unary_ufunc_comparison(ufunc, a):
         # In-place copies do not drop units.
         assert_true(hasattr(out, 'units'))
         assert_true(not hasattr(ret, 'units'))
-    elif ufunc in (np.absolute, np.conjugate, np.floor, np.ceil,
+    elif ufunc in (np.absolute, np.fabs, np.conjugate, np.floor, np.ceil,
                    np.trunc, np.negative):
         ret = ufunc(a, out=out)
 
@@ -667,6 +686,8 @@ def unary_ufunc_comparison(ufunc, a):
 
         assert_array_equal(ret1, npret1)
         assert_array_equal(ret2, npret2)
+    elif ufunc is np.invert:
+        assert_raises(TypeError, ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)
@@ -685,6 +706,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         elif a.units != b.units:
             assert_raises(YTUnitOperationError, ufunc, a, b)
             return
+    if ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor,
+                 np.left_shift, np.right_shift, np.ldexp):
+        assert_raises(TypeError, ufunc, a, b)
+        return
 
     ret = ufunc(a, b, out=out)
 
@@ -720,8 +745,10 @@ def test_ufuncs():
             a = YTArray([.3, .4, .5], 'cm')
             b = YTArray([.1, .2, .3], 'dimensionless')
             c = np.array(b)
+            d = YTArray([1., 2., 3.], 'g')
             yield binary_ufunc_comparison, ufunc, a, b
             yield binary_ufunc_comparison, ufunc, a, c
+            assert_raises(YTUnitOperationError, ufunc, a, d)
             continue
 
         a = YTArray([.3, .4, .5], 'cm')
@@ -817,6 +844,33 @@ def test_astropy():
     yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
+@requires_module("pint")
+def test_pint():
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    
+    p_arr = np.arange(10)*ureg.km/ureg.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_pint(p_arr)
+
+    p_quan = 10.*ureg.g**0.5/(ureg.mm**3)
+    yt_quan = YTQuantity(10., "sqrt(g)/mm**3")
+    yt_quan2 = YTQuantity.from_pint(p_quan)
+
+    yield assert_array_equal, p_arr, yt_arr.to_pint()
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
+
+    yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
+    yield assert_equal, yt_quan, yt_quan2
+
+    yield assert_array_equal, yt_arr, YTArray.from_pint(yt_arr.to_pint())
+    yield assert_equal, yt_quan, YTQuantity.from_pint(yt_quan.to_pint())
+
 def test_subclass():
 
     class YTASubclass(YTArray):
@@ -871,6 +925,12 @@ def test_h5_io():
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
 
+    warr.write_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    giarr = YTArray.from_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    yield assert_equal, warr, giarr
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
@@ -883,14 +943,14 @@ def test_equivalencies():
 
     E = mp.to_equivalent("keV","mass_energy")
     yield assert_equal, E, mp*clight*clight
-    yield assert_allclose, mp, E.to_equivalent("g", "mass_energy")
+    yield assert_allclose_units, mp, E.to_equivalent("g", "mass_energy")
 
     # Thermal
 
     T = YTQuantity(1.0e8,"K")
     E = T.to_equivalent("W*hr","thermal")
     yield assert_equal, E, (kboltz*T).in_units("W*hr")
-    yield assert_allclose, T, E.to_equivalent("K", "thermal")
+    yield assert_allclose_units, T, E.to_equivalent("K", "thermal")
 
     # Spectral
 
@@ -899,11 +959,11 @@ def test_equivalencies():
     yield assert_equal, nu, clight/l
     E = hcgs*nu
     l2 = E.to_equivalent("angstrom", "spectral")
-    yield assert_allclose, l, l2
+    yield assert_allclose_units, l, l2
     nu2 = clight/l2.in_units("cm")
-    yield assert_allclose, nu, nu2
+    yield assert_allclose_units, nu, nu2
     E2 = nu2.to_equivalent("keV", "spectral")
-    yield assert_allclose, E2, E.in_units("keV")
+    yield assert_allclose_units, E2, E.in_units("keV")
 
     # Sound-speed
 
@@ -911,13 +971,13 @@ def test_equivalencies():
     gg = 5./3.
     c_s = T.to_equivalent("km/s","sound_speed")
     yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
-    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed")
+    yield assert_allclose_units, T, c_s.to_equivalent("K","sound_speed")
 
     mu = 0.5
     gg = 4./3.
     c_s = T.to_equivalent("km/s","sound_speed", mu=mu, gamma=gg)
     yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
-    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed",
+    yield assert_allclose_units, T, c_s.to_equivalent("K","sound_speed",
                                                     mu=mu, gamma=gg)
 
     # Lorentz
@@ -925,21 +985,21 @@ def test_equivalencies():
     v = 0.8*clight
     g = v.to_equivalent("dimensionless","lorentz")
     g2 = YTQuantity(1./np.sqrt(1.-0.8*0.8), "dimensionless")
-    yield assert_allclose, g, g2
+    yield assert_allclose_units, g, g2
     v2 = g2.to_equivalent("mile/hr", "lorentz")
-    yield assert_allclose, v2, v.in_units("mile/hr")
+    yield assert_allclose_units, v2, v.in_units("mile/hr")
 
     # Schwarzschild
 
     R = mass_sun_cgs.to_equivalent("kpc","schwarzschild")
     yield assert_equal, R.in_cgs(), 2*G*mass_sun_cgs/(clight*clight)
-    yield assert_allclose, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
+    yield assert_allclose_units, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
 
     # Compton
 
     l = me.to_equivalent("angstrom","compton")
     yield assert_equal, l, hcgs/(me*clight)
-    yield assert_allclose, me, l.to_equivalent("g", "compton")
+    yield assert_allclose_units, me, l.to_equivalent("g", "compton")
 
     # Number density
 
@@ -947,18 +1007,18 @@ def test_equivalencies():
 
     n = rho.to_equivalent("cm**-3","number_density")
     yield assert_equal, n, rho/(mh*0.6)
-    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density")
+    yield assert_allclose_units, rho, n.to_equivalent("g/cm**3","number_density")
 
     n = rho.to_equivalent("cm**-3","number_density", mu=0.75)
     yield assert_equal, n, rho/(mh*0.75)
-    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density", mu=0.75)
+    yield assert_allclose_units, rho, n.to_equivalent("g/cm**3","number_density", mu=0.75)
 
     # Effective temperature
 
     T = YTQuantity(1.0e4, "K")
     F = T.to_equivalent("erg/s/cm**2","effective_temperature")
     yield assert_equal, F, stefan_boltzmann_constant_cgs*T**4
-    yield assert_allclose, T, F.to_equivalent("K", "effective_temperature")
+    yield assert_allclose_units, T, F.to_equivalent("K", "effective_temperature")
 
 def test_electromagnetic():
     from yt.units.dimensions import charge_mks, pressure, current_cgs, \
@@ -1009,7 +1069,18 @@ def test_electromagnetic():
     V = YTQuantity(1.0, "statV")
     V_mks = V.to_equivalent("V", "SI")
     yield assert_array_almost_equal, V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s
-    
+
+def test_ytarray_coercion():
+    a = YTArray([1, 2, 3], 'cm')
+    q = YTQuantity(3, 'cm')
+    na = np.array([1, 2, 3])
+
+    assert_isinstance(a*q, YTArray)
+    assert_isinstance(q*na, YTArray)
+    assert_isinstance(q*3, YTQuantity)
+    assert_isinstance(q*np.float64(3), YTQuantity)
+    assert_isinstance(q*np.array(3), YTQuantity)
+
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
@@ -1050,3 +1121,22 @@ def test_modified_unit_division():
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
     yield assert_true, ret.units.base_value == 1.0
+
+def test_load_and_save():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    a = YTArray(np.random.random(10), "kpc")
+    b = YTArray(np.random.random(10), "Msun")
+    c = YTArray(np.random.random(10), "km/s")
+
+    savetxt("arrays.dat", [a,b,c], delimiter=",")
+
+    d, e = loadtxt("arrays.dat", usecols=(1,2), delimiter=",")
+
+    yield assert_array_equal, b, d
+    yield assert_array_equal, c, e
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

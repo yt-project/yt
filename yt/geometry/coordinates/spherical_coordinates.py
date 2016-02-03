@@ -1,5 +1,5 @@
 """
-Spherical fields
+Definitions for spherical coordinate systems
 
 
 
@@ -19,7 +19,6 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
@@ -186,7 +185,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         rv = {self.axis_id['r']: ('theta', 'phi'),
               self.axis_id['theta']: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
               self.axis_id['phi']: ('R', 'z')}
-        for i in rv.keys():
+        for i in list(rv.keys()):
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv
@@ -236,7 +235,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                      2.0*self.ds.domain_width[ri]]
         elif name == 'phi':
             ri = self.axis_id['r']
-            width = [self.ds.domain_right_edge[ri] / 2.0,
+            width = [self.ds.domain_right_edge[ri],
                      2.0*self.ds.domain_width[ri]]
         return width
 

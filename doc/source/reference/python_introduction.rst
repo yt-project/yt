@@ -34,7 +34,7 @@ including how it can be used and all of the possible "methods" that can be
 called on it.  ``dir()`` will return the available commands and objects that
 can be directly called, and ``dir(something)`` will return information about
 all the commands that ``something`` provides.  This probably sounds a bit
-opaque, but it will become clearer with time -- it's also probably heldsul to
+opaque, but it will become clearer with time -- it's also probably helpful to
 call ``help`` on any or all of the objects we create during this orientation.
 
 To start up Python, at your prompt simply type:
@@ -46,7 +46,7 @@ To start up Python, at your prompt simply type:
 This will open up Python and give to you a simple prompt of three greater-than
 signs.  Let's inaugurate the occasion appropriately -- type this::
 
-   >>> print "Hello, world."
+   >>> print("Hello, world.")
 
 As you can see, this printed out the string "Hello, world." just as we
 expected.  Now let's try a more advanced string, one with a number in it.  For
@@ -54,13 +54,13 @@ this we'll use the percent (``%``) operator, which is the manner by which
 values are fed into a formatted string.  We'll print pi, but only with three
 digits of accuracy.::
 
-   >>> print "Pi is precisely %0.2f" % (3.1415926)
+   >>> print("Pi is precisely %0.2f" % (3.1415926))
 
 This took the number we fed it (3.1415926) and printed it out as a floating
 point number with two decimal places.  Now let's try something a bit different
 -- let's print out both the name of the number and its value.::
 
-   >>> print "%s is precisely %0.2f" % ("pi", 3.1415926)
+   >>> print("%s is precisely %0.2f" % ("pi", 3.1415926))
 
 As you can see, we used ``%s`` to say that the string should print a value as a
 string (the supplied value does not have to be a string -- ``"pi"`` could be
@@ -99,18 +99,18 @@ The two easiest datatypes are simply strings and numbers.  We can make a string
 very easily::
 
    >>> my_string = "Hello there"
-   >>> print my_string
+   >>> print(my_string)
 
 We can also take a look at each individual part of a string.  We'll use the
 'slicing' notation for this.  As a brief note, slicing is 0-indexed, so that
 element 0 corresponds to the first element.  If we wanted to see the third
 element of our string::
 
-   >>> print my_string[2]
+   >>> print(my_string[2])
 
 We can also take the third through the 5 elements::
 
-   >>> print my_string[2:5]
+   >>> print(my_string[2:5])
 
 But note that if you try to change an element directly, Python objects and it
 won't let you -- that's because strings are immutable.  (But, note that because
@@ -119,14 +119,14 @@ of how the += operator works, we can do "my_string += '1'" without issue.)
 To create a number, we do something similar::
 
    >>> a = 10
-   >>> print a
+   >>> print(a)
 
 This works for floating points as well.  Now we can do math on these numbers::
 
-   >>> print a**2
-   >>> print a + 5
-   >>> print a + 5.1
-   >>> print a / 2.0
+   >>> print(a**2)
+   >>> print(a + 5)
+   >>> print(a + 5.1)
+   >>> print(a / 2.0)
 
 Because of a historical aversion to floating point division in Python (which is
 now changing) it's always safest to ensure that either the numerator or the
@@ -146,9 +146,9 @@ you can access them at will::
 
    >>> my_list.append(1)
    >>> my_list.append(my_string)
-   >>> print my_list[0]
-   >>> print my_list[-1]
-   >>> print len(my_list)
+   >>> print(my_list[0])
+   >>> print(my_list[-1])
+   >>> print(len(my_list))
 
 You can also create a list already containing an initial set of elements::
 
@@ -194,30 +194,30 @@ point numbers::
 
    >>> a = 10.1
    >>> b = 10.1
-   >>> print a == b
-   >>> print a is b
+   >>> print(a == b)
+   >>> print(a is b)
 
 The first one returned True, but the second one returned False.  Even though
 both numbers are equal, they point to different points in memory.  Now let's
 try assigning things a bit differently::
 
    >>> b = a
-   >>> print a is b
+   >>> print(a is b)
 
 This time it's true -- they point to the same part of memory.  Try incrementing
 one and seeing what happens.  Now let's try this with a string::
 
    >>> a = "Hi there"
    >>> b = a
-   >>> print a is b
+   >>> print(a is b)
 
 Okay, so our intuition here works the same way, and it returns True.  But what
 happens if we modify the string?::
 
    >>> a += "!"
-   >>> print a
-   >>> print b
-   >>> print a is b
+   >>> print(a)
+   >>> print(b)
+   >>> print(a is b)
 
 As you can see, now not only does a contain the value "Hi there!", but it also
 is a different value than what b contains, and it also points to a different
@@ -239,19 +239,19 @@ list inside a list, which adds another fun layer.)  Now when we modify a, it
 shows up in b::
 
    >>> a.append("hat wobble")
-   >>> print b[-1]
+   >>> print(b[-1])
 
 This also works with the concatenation operator::
 
    >>> a += ["beta sequences"]
-   >>> print a[-1], b[-1]
+   >>> print(a[-1], b[-1])
 
 But we can force a break in this by slicing the list when we initialize::
 
    >>> a = [1, 2, 3, 4]
    >>> b = a[:]
    >>> a.append(5)
-   >>> print b[-1], a[-1]
+   >>> print(b[-1], a[-1])
 
 Here they are different, because we have sliced the list when initializing b.
 
@@ -264,7 +264,7 @@ only look at one of the simplest mechanisms for doing so::
    >>> my_dict["A"] = 1.0
    >>> my_dict["B"] = 154.014
    >>> my_dict[14001] = "This number is great"
-   >>> print my_dict["A"]
+   >>> print(my_dict["A"])
 
 As you can see, one value can be used to look up another.  Almost all datatypes
 (with a few notable exceptions, but for the most part these are quite uncommon)
@@ -296,7 +296,7 @@ documentation for the words 'iterable' and 'generator.'
 To see this in action, let's first take a look at the built-in function
 ``range``. ::
 
-   >>> print range(10)
+   >>> print(range(10))
 
 As you can see, what the function ``range`` returns is a list of integers,
 starting at zero, that is as long as the argument to the ``range`` function.
@@ -319,7 +319,7 @@ Then type "print i", press enter, and then instead of indenting again, press
 enter again.  The entire entry should look like this::
 
    >>> for i in range(10):
-   ...     print i
+   ...     print(i)
    ...
 
 As you can see, it prints out each integer in turn.  So far this feels a lot
@@ -330,7 +330,7 @@ aren't created until they are requested.)  Let's try it with our earlier list::
 
    >>> my_sequence = ["a", "b", 4, 110.4]
    >>> for i in my_sequence:
-   ...     print i
+   ...     print(i)
    ...
 
 This time it prints out every item in the sequence.
@@ -341,7 +341,7 @@ at.  The first time this is written, it usually goes something like this::
    >>> index = 0
    >>> my_sequence = ["a", "b", 4, 110.4]
    >>> for i in my_sequence:
-   ...     print "%s = %s" % (index, i)
+   ...     print("%s = %s" % (index, i))
    ...     index += 1
    ...
 
@@ -352,7 +352,7 @@ accomplish this::
 
    >>> my_sequence = ["a", "b", 4, 110.4]
    >>> for index, val in enumerate(my_sequence):
-   ...     print "%s = %s" % (index, val)
+   ...     print("%s = %s" % (index, val))
    ...
 
 This does the exact same thing, but we didn't have to keep track of the counter
@@ -361,14 +361,14 @@ sequence in a similar fashion.  Try this out::
 
    >>> my_sequence = range(10)
    >>> for val in reversed(my_sequence):
-   ...     print val
+   ...     print(val)
    ...
 
 We can even combine the two!::
 
    >>> my_sequence = range(10)
    >>> for index, val in enumerate(reversed(my_sequence)):
-   ...     print "%s = %s" % (index, val)
+   ...     print("%s = %s" % (index, val))
    ...
 
 The most fun of all the built-in functions that operate on iterables, however,
@@ -385,7 +385,7 @@ produce a single combined sequence from them.::
    >>> for v1, v2 in zip(seq1, seq2):
    ...     seq3.append(v1 + v2)
    ...
-   >>> print seq3
+   >>> print(seq3)
 
 As you can see, this is much easier than constructing index values by hand and
 then drawing from the two sequences using those index values.  I should note
@@ -416,7 +416,7 @@ NumPy, as we'll do below.)::
 
    >>> for val in range(100):
    ...     if val % 2 == 0:
-   ...         print "%s is a multiple of 2" % (val)
+   ...         print("%s is a multiple of 2" % (val))
    ...
 
 Now we'll add on an ``else`` statement, so that we print out all the odd
@@ -424,9 +424,9 @@ numbers as well, with the caveat that they are not multiples of 2.::
 
    >>> for val in range(100):
    ...     if val % 2 == 0:
-   ...         print "%s is a multiple of 2" % (val)
+   ...         print("%s is a multiple of 2" % (val))
    ...     else:
-   ...         print "%s is not a multiple of 2" % (val)
+   ...         print("%s is not a multiple of 2" % (val))
    ...
 
 Let's extend this to check the remainders of division with both 2 and 3, and
@@ -435,11 +435,11 @@ all numbers between 0 and 99.::
 
    >>> for val in range(100):
    ...     if val % 2 == 0:
-   ...         print "%s is a multiple of 2" % (val)
+   ...         print("%s is a multiple of 2" % (val))
    ...     elif val % 3 == 0:
-   ...         print "%s is a multiple of 3" % (val):
+   ...         print("%s is a multiple of 3" % (val))
    ...     else:
-   ...         print "%s is not a multiple of 2 or 3" % (val)
+   ...         print("%s is not a multiple of 2 or 3" % (val))
    ...
 
 This should print out which numbers are multiples of 2 or 3 -- but note that
@@ -449,13 +449,13 @@ first if statement to encompass both, using the ``and`` operator::
 
    >>> for val in range(100):
    ...     if val % 2 == 3 and val % 3 == 0:
-   ...         print "%s is a multiple of 6" % (val)
+   ...         print("%s is a multiple of 6" % (val))
    ...     elif val % 2 == 0:
-   ...         print "%s is a multiple of 2" % (val)
+   ...         print("%s is a multiple of 2" % (val))
    ...     elif val % 3 == 0:
-   ...         print "%s is a multiple of 3" % (val):
+   ...         print("%s is a multiple of 3" % (val))
    ...     else:
-   ...         print "%s is not a multiple of 2 or 3" % (val)
+   ...         print("%s is not a multiple of 2 or 3" % (val))
    ...
 
 In addition to the ``and`` statement, the ``or`` and ``not`` statements work in
@@ -517,9 +517,9 @@ To get started, let's perform the NumPy version of getting a sequence of
 numbers from 0 to 99::
 
    >>> my_array = numpy.arange(100)
-   >>> print my_array
-   >>> print my_array * 2.0
-   >>> print my_array * 2
+   >>> print(my_array)
+   >>> print(my_array * 2.0)
+   >>> print( my_array * 2)
 
 As you can see, each of these operations does exactly what we think it ought
 to.  And, in fact, so does this one::
@@ -533,14 +533,14 @@ data, their shape, and their data type.  We can examine both the shape (which
 includes dimensionality) and the size (strictly the total number of elements)
 in an array by looking at a couple properties of the array::
 
-   >>> print my_array.size
-   >>> print my_array.shape
+   >>> print(my_array.size)
+   >>> print(my_array.shape)
 
 Note that size must be the product of the components of the shape.  In this
 case, both are 100.  We can obtain a new array of a different shape by calling
 the ``reshape`` method on an array::
 
-   >>> print my_array.reshape((10, 10))
+   >>> print(my_array.reshape((10, 10)))
 
 In this case, we have not modified ``my_array`` but instead created a new array
 containing the same elements, but with a different dimensionality and shape.
@@ -552,7 +552,7 @@ There are a few other important characteristics of arrays, and ways to create
 them.  We can see what kind of datatype an array is by examining its ``dtype``
 attribute::
 
-   >>> print my_array.dtype
+   >>> print(my_array.dtype)
 
 This can be changed by calling ``astype`` with another datatype.  Datatypes
 include, but are not limited to, ``int32``, ``int64``, ``float32``,
@@ -566,29 +566,29 @@ using the ``zip`` function.  To show this, we'll use the
 100, and then we'll multiply our original array against those random values.::
 
    >>> rand_array = numpy.random.random(100)
-   >>> print rand_array * my_array
+   >>> print(rand_array * my_array)
 
 There are a number of functions you can call on arrays, as well.  For
 instance::
 
-   >>> print rand_array.sum()
-   >>> print rand_array.mean()
-   >>> print rand_array.min()
-   >>> print rand_array.max()
+   >>> print(rand_array.sum())
+   >>> print(rand_array.mean())
+   >>> print(rand_array.min())
+   >>> print(rand_array.max())
 
 Indexing in NumPy is very fun, and also provides some advanced functionality
 for selecting values.  You can slice and dice arrays::
 
-   >>> print my_array[50:60]
-   >>> print my_array[::2]
-   >>> print my_array[:-10]
+   >>> print(my_array[50:60])
+   >>> print(my_array[::2])
+   >>> print(my_array[:-10])
 
 But Numpy also provides the ability to construct boolean arrays, which are the
 result of conditionals.  For example, let's say that you wanted to generate a
 random set of values, and select only those less than 0.2::
 
    >>> rand_array = numpy.random.random(100)
-   >>> print rand_array < 0.2
+   >>> print(rand_array < 0.2)
 
 What is returned is a long list of booleans.  Boolean arrays can be used as
 indices -- what this means is that you can construct an index array and then
@@ -599,21 +599,21 @@ elements satisfy it, and if any individual element satisfies it,
 respectively.::
 
    >>> ind_array = rand_array < 0.2
-   >>> print rand_array[ind_array]
-   >>> print numpy.all(rand_array[ind_array] < 0.2)
+   >>> print(rand_array[ind_array])
+   >>> print(numpy.all(rand_array[ind_array] < 0.2))
 
 You can even skip the creation of the variable ``ind_array`` completely, and
 instead just coalesce the statements into a single statement::
 
-   >>> print numpy.all(rand_array[rand_array < 0.2] < 0.2)
-   >>> print numpy.any(rand_array[rand_array < 0.2] > 0.2)
+   >>> print(numpy.all(rand_array[rand_array < 0.2] < 0.2))
+   >>> print(numpy.any(rand_array[rand_array < 0.2] > 0.2))
 
 You might look at these and wonder why this is useful -- we've already selected
 those elements that are less than 0.2, so why do we want to re-evaluate it?
 But the interesting component to this is that a conditional applied to one
 array can be used to index another array.  For instance::
 
-   >>> print my_array[rand_array < 0.2]
+   >>> print(my_array[rand_array < 0.2])
 
 Here we've identified those elements in our random number array that are less
 than 0.2, and printed the corresponding elements from our original sequential
@@ -669,7 +669,7 @@ sequence operations.  Into this file, type this text::
    my_array_squared = my_array**2.0
    t2 = time.time()
 
-   print "It took me %0.3e seconds to square the array using NumPy" % (t2-t1)
+   print("It took me %0.3e seconds to square the array using NumPy" % (t2-t1))
 
    t1 = time.time()
    my_sequence_squared = []
@@ -677,7 +677,7 @@ sequence operations.  Into this file, type this text::
        my_sequence_squared.append(i**2.0)
    t2 = time.time()
 
-   print "It took me %0.3e seconds to square the sequence without NumPy" % (t2-t1)
+   print("It took me %0.3e seconds to square the sequence without NumPy" % (t2-t1))
 
 Now save this file, and return to the command prompt.  We can execute it by
 supplying it to Python:
@@ -703,7 +703,7 @@ a command prompt.  At this point, all of the variables you have set up and
 created will be available to you -- so you can, for instance, print out the
 contents of ``my_array_squared``::
 
-   >>> print my_array_squared
+   >>> print(my_array_squared)
 
 The scripting interface for Python is quite powerful, and by combining it with
 interactive execution, you can, for instance, set up variables and functions

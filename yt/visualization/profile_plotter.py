@@ -17,31 +17,30 @@ from __future__ import absolute_import
 from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types, iteritems
+from collections import OrderedDict
 import base64
 import os
 
-from functools import wraps
 import matplotlib
 import numpy as np
 from io import BytesIO
 
 
 from .base_plot_types import ImagePlotMPL
-from yt.units.yt_array import YTArray
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
-    create_profile, \
-    sanitize_field_tuple_keys
+    create_profile
+from yt.frontends.ytdata.data_structures import \
+    YTProfileDataset
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
-    iterable, \
     get_image_suffix, \
     get_ipython_api_version
 
@@ -61,7 +60,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
-class FigureContainer(dict):
+class FigureContainer(OrderedDict):
     def __init__(self):
         super(FigureContainer, self).__init__()
 
@@ -70,7 +69,7 @@ class FigureContainer(dict):
         self[key] = figure
         return self[key]
 
-class AxesContainer(dict):
+class AxesContainer(OrderedDict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
         self.ylim = {}
@@ -208,13 +207,16 @@ class ProfilePlot(object):
         else:
             logs = {x_field:x_log}
 
-        profiles = [create_profile(data_source, [x_field],
-                                   n_bins=[n_bins],
-                                   fields=ensure_list(y_fields),
-                                   weight_field=weight_field,
-                                   accumulation=accumulation,
-                                   fractional=fractional,
-                                   logs=logs)]
+        if isinstance(data_source.ds, YTProfileDataset):
+            profiles = [data_source.ds.profile]
+        else:
+            profiles = [create_profile(data_source, [x_field],
+                                       n_bins=[n_bins],
+                                       fields=ensure_list(y_fields),
+                                       weight_field=weight_field,
+                                       accumulation=accumulation,
+                                       fractional=fractional,
+                                       logs=logs)]
 
         if plot_spec is None:
             plot_spec = [dict() for p in profiles]
@@ -222,7 +224,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-
+        
     @validate_plot
     def save(self, name=None, suffix=None):
         r"""
@@ -333,8 +335,7 @@ class ProfilePlot(object):
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
 
-        # This relies on 'profile' leaking
-        for fname, axes in self.axes.items():
+        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
             xscale, yscale = self._get_field_log(fname, profile)
             xtitle, ytitle = self._get_field_title(fname, profile)
             axes.set_xscale(xscale)
@@ -530,15 +531,20 @@ class ProfilePlot(object):
                 xma = xmax
             extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
             units = {p.x_field: str(p.x.units)}
+            if self.x_log is None:
+                logs = None
+            else:
+                logs = {p.x_field: self.x_log}
             for field in p.field_map.values():
                 units[field] = str(p.field_data[field].units)
             self.profiles[i] = \
                 create_profile(p.data_source, p.x_field,
                                n_bins=len(p.x_bins)-1,
-                               fields=p.field_map.values(),
+                               fields=list(p.field_map.values()),
                                weight_field=p.weight_field,
                                accumulation=p.accumulation,
                                fractional=p.fractional,
+                               logs=logs,
                                extrema=extrema, units=units)
         return self
 
@@ -585,9 +591,7 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        ds = profile.data_source.ds
-        yf, = profile.data_source._determine_fields([field_y])
-        yfi = ds._get_field_info(*yf)
+        yfi = profile.field_info[field_y]
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -618,12 +622,9 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
-        xf, yf = profile.data_source._determine_fields(
-            [field_x, field_y])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
@@ -676,10 +677,6 @@ class PhasePlot(ImagePlotContainer):
     fractional : If True the profile values are divided by the sum of all 
         the profile data such that the profile represents a probability 
         distribution function.
-    profile : profile object
-        If not None, a profile object created with 
-        `yt.data_objects.profiles.create_profile`.
-        Default: None.
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
@@ -708,20 +705,25 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+    _xlim = (None, None)
+    _ylim = (None, None)
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
 
-        profile = create_profile(
-            data_source,
-            [x_field, y_field],
-            ensure_list(z_fields),
-            n_bins=[x_bins, y_bins],
-            weight_field=weight_field,
-            accumulation=accumulation,
-            fractional=fractional)
+        if isinstance(data_source.ds, YTProfileDataset):
+            profile = data_source.ds.profile
+        else:
+            profile = create_profile(
+                data_source,
+                [x_field, y_field],
+                ensure_list(z_fields),
+                n_bins=[x_bins, y_bins],
+                weight_field=weight_field,
+                accumulation=accumulation,
+                fractional=fractional)
 
         type(self)._initialize_instance(self, data_source, profile, fontsize,
                                         figure_size)
@@ -746,14 +748,11 @@ class PhasePlot(ImagePlotContainer):
         return obj
 
     def _get_field_title(self, field_z, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
-        xf, yf, zf = profile.data_source._determine_fields(
-            [field_x, field_y, field_z])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
-        zfi = ds._get_field_info(*zf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
+        zfi = profile.field_info[field_z]
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
@@ -784,9 +783,7 @@ class PhasePlot(ImagePlotContainer):
         return label
 
     def _get_field_log(self, field_z, profile):
-        ds = profile.data_source.ds
-        zf, = profile.data_source._determine_fields([field_z])
-        zfi = ds._get_field_info(*zf)
+        zfi = profile.field_info[field_z]
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -802,6 +799,10 @@ class PhasePlot(ImagePlotContainer):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log], scales[z_log]
 
+    def _recreate_frb(self):
+        # needed for API compatibility with PlotWindow
+        pass
+
     def _setup_plots(self):
         if self._plot_valid:
             return
@@ -812,6 +813,8 @@ class PhasePlot(ImagePlotContainer):
             draw_colorbar = True
             draw_axes = True
             zlim = (None, None)
+            xlim = self._xlim
+            ylim = self._ylim
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
@@ -866,6 +869,9 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+
+            self.plots[f].axes.set_xlim(xlim)
+            self.plots[f].axes.set_ylim(ylim)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
@@ -1146,6 +1152,14 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
                    p.y_field: ((p.y_bins.min(), str(p.y.units)),
                                (p.y_bins.max(), str(p.y.units)))}
+        if self.x_log is not None or self.y_log is not None:
+            logs = {}
+        else:
+            logs = None
+        if self.x_log is not None:
+            logs[p.x_field] = self.x_log
+        if self.y_log is not None:
+            logs[p.y_field] = self.y_log
         deposition = getattr(self.profile, "deposition", None)
         if deposition is None:
             additional_kwargs = {'accumulation': p.accumulation,
@@ -1155,14 +1169,16 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
             extrema=extrema,
+            logs=logs,
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._xlim = (xmin, xmax)
         return self
 
     @invalidate_plot
@@ -1201,6 +1217,14 @@ class PhasePlot(ImagePlotContainer):
         extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
                                (p.x_bins.max(), str(p.x.units))),
                    p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        if self.x_log is not None or self.y_log is not None:
+            logs = {}
+        else:
+            logs = None
+        if self.x_log is not None:
+            logs[p.x_field] = self.x_log
+        if self.y_log is not None:
+            logs[p.y_field] = self.y_log
         deposition = getattr(self.profile, "deposition", None)
         if deposition is None:
             additional_kwargs = {'accumulation': p.accumulation,
@@ -1210,14 +1234,16 @@ class PhasePlot(ImagePlotContainer):
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
-            p.field_map.values(),
+            list(p.field_map.values()),
             n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
             weight_field=p.weight_field,
             units=units,
             extrema=extrema,
+            logs=logs,
             **additional_kwargs)
         for field in zunits:
             self.profile.set_field_unit(field, zunits[field])
+        self._ylim = (ymin, ymax)
         return self
 
 

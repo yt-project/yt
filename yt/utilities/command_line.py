@@ -15,16 +15,40 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import argparse
+import base64
+import getpass
+import numpy as np
+import os
+import sys
+import subprocess
+import tempfile
+import json
+import pprint
+
 from yt.config import ytcfg
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
-from yt.mods import *
-from yt.funcs import *
-from yt.extern.six import add_metaclass
-from yt.extern.six.moves import urllib
-from yt.utilities.minimal_representation import MinimalProjectDescription
-import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
-import base64, os
+from yt.funcs import \
+    ensure_list, \
+    get_hg_version, \
+    mylog, \
+    ensure_dir_exists, \
+    update_hg, \
+    enable_plugins
+from yt.extern.six import add_metaclass, string_types
+from yt.extern.six.moves import urllib, input
+from yt.convenience import load
+from yt.visualization.plot_window import \
+    SlicePlot, \
+    ProjectionPlot
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified
+
+# loading field plugins for backward compatibility, since this module
+# used to do "from yt.mods import *"
+if ytcfg.getboolean("yt","loadfieldplugins"):
+    enable_plugins()
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -40,7 +64,7 @@ def _fix_ds(arg):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, str):
+    if isinstance(arg, string_types):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []
@@ -302,7 +326,7 @@ def _get_yt_stack_date():
     if not os.path.exists(date_file):
         print("Could not determine when yt stack was last updated.")
         return
-    print("".join(file(date_file, 'r').readlines()))
+    print("".join(open(date_file, 'r').readlines()))
     print("To update all dependencies, run \"yt update --all\".")
 
 def _update_yt_stack(path):
@@ -322,7 +346,7 @@ def _update_yt_stack(path):
     print()
     print("[hit enter to continue or Ctrl-C to stop]")
     try:
-        raw_input()
+        input()
     except:
         sys.exit(0)
     os.environ["REINST_YT"] = "1"
@@ -358,7 +382,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
@@ -396,7 +420,7 @@ class YTBugreportCmd(YTCommand):
         print("   http://yt-project.org/irc.html")
         print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
         print()
-        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
+        summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
         print()
         print("Okay, sorry about that. How about a nice, pithy ( < 12 words )")
@@ -407,7 +431,7 @@ class YTBugreportCmd(YTCommand):
             current_version = get_yt_version()
         except:
             current_version = "Unavailable"
-        summary = raw_input("Summary? ")
+        summary = input("Summary? ")
         bugtype = "bug"
         data = dict(title = summary, type=bugtype)
         print()
@@ -419,11 +443,11 @@ class YTBugreportCmd(YTCommand):
         if "EDITOR" in os.environ:
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
-            loki = raw_input()
+            input()
             tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
-            popen = subprocess.call("$EDITOR %s" % fn, shell = True)
+            subprocess.call("$EDITOR %s" % fn, shell = True)
             content = open(fn).read()
             try:
                 os.unlink(fn)
@@ -440,7 +464,7 @@ class YTBugreportCmd(YTCommand):
             print()
             lines = []
             while 1:
-                line = raw_input()
+                line = input()
                 if line.strip() == "---": break
                 lines.append(line)
             content = "\n".join(lines)
@@ -464,7 +488,7 @@ class YTBugreportCmd(YTCommand):
         print("'submit'.  Next we'll ask for your Bitbucket Username.")
         print("If you don't have one, run the 'yt bootstrap_dev' command.")
         print()
-        loki = raw_input()
+        input()
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
@@ -505,17 +529,17 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("What username would you like to go by?")
         print()
-        username = raw_input("Username? ")
+        username = input("Username? ")
         if len(username) == 0: sys.exit(1)
         print()
         print("To start out, what's your name?")
         print()
-        name = raw_input("Name? ")
+        name = input("Name? ")
         if len(name) == 0: sys.exit(1)
         print()
         print("And your email address?")
         print()
-        email = raw_input("Email? ")
+        email = input("Email? ")
         if len(email) == 0: sys.exit(1)
         print()
         print("Please choose a password:")
@@ -531,12 +555,12 @@ class YTHubRegisterCmd(YTCommand):
         print("Would you like a URL displayed for your user?")
         print("Leave blank if no.")
         print()
-        url = raw_input("URL? ")
+        url = input("URL? ")
         print()
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
-        loki = raw_input()
+        input()
         data = dict(name = name, email = email, username = username,
                     password = password1, password2 = password2,
                     url = url, zap = "rowsdower")
@@ -544,7 +568,7 @@ class YTHubRegisterCmd(YTCommand):
         hub_url = "https://hub.yt-project.org/create_user"
         req = urllib.request.Request(hub_url, data)
         try:
-            status = urllib.request.urlopen(req).read()
+            urllib.request.urlopen(req).read()
         except urllib.error.HTTPError as exc:
             if exc.code == 400:
                 print("Sorry, the Hub couldn't create your user.")
@@ -585,14 +609,12 @@ class YTInstInfoCmd(YTCommand):
         print()
         print("yt module located at:")
         print("    %s" % (path))
-        update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
                 print("The supplemental repositories are located at:")
                 print("    %s" % (spath))
-                update_supp = True
         vstring = get_yt_version()
         if vstring == -1:
             vstring = "unknown"
@@ -602,7 +624,7 @@ class YTInstInfoCmd(YTCommand):
             print()
             print("---")
             print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip())
+            print("Changeset = %s" % vstring.strip().decode("utf-8"))
             print("---")
             print()
             if "site-packages" not in path:
@@ -692,10 +714,12 @@ class YTMapserverCmd(YTCommand):
             p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
         else:
             p = SlicePlot(ds, args.axis, args.field)
-        from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data_source, args.field)
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
+        PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
         bottle.debug(True)
+        bottle_dir = os.path.dirname(bottle.__file__)
+        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -706,6 +730,7 @@ class YTMapserverCmd(YTCommand):
             bottle.run(server='rocket', host=args.host, port=port)
         else:
             bottle.run(server='rocket')
+        sys.path.remove(bottle_dir)
 
 
 class YTPastebinCmd(YTCommand):
@@ -967,11 +992,11 @@ class YTStatsCmd(YTCommand):
         ds.print_stats()
         vals = {}
         if args.field in ds.derived_field_list:
-            if args.max == True:
+            if args.max is True:
                 vals['min'] = ds.find_max(args.field)
                 print("Maximum %s: %0.5e at %s" % (args.field,
                     vals['min'][0], vals['min'][1]))
-            if args.min == True:
+            if args.min is True:
                 vals['max'] = ds.find_min(args.field)
                 print("Minimum %s: %0.5e at %s" % (args.field,
                     vals['max'][0], vals['max'][1]))
@@ -1003,14 +1028,12 @@ class YTUpdateCmd(YTCommand):
         print()
         print("yt module located at:")
         print("    %s" % (path))
-        update_supp = False
         if "YT_DEST" in os.environ:
             spath = os.path.join(
                      os.environ["YT_DEST"], "src", "yt-supplemental")
             if os.path.isdir(spath):
                 print("The supplemental repositories are located at:")
                 print("    %s" % (spath))
-                update_supp = True
         vstring = None
         if "site-packages" not in path:
             vstring = get_hg_version(path)
@@ -1019,7 +1042,7 @@ class YTUpdateCmd(YTCommand):
             print()
             print("---")
             print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip())
+            print("Changeset = %s" % vstring.strip().decode("utf-8"))
             print("---")
             print()
             print("This installation CAN be automatically updated.")
@@ -1049,7 +1072,6 @@ class YTUploadImageCmd(YTCommand):
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
             return 1
-        import base64, json, pprint
         image_data = base64.b64encode(open(filename, 'rb').read())
         api_key = 'f62d550859558f28c4c214136bc797c7'
         parameters = {'key':api_key, 'image':image_data, type:'base64',
@@ -1077,6 +1099,75 @@ class YTUploadImageCmd(YTCommand):
             print()
             pprint.pprint(rv)
 
+class YTSearchCmd(YTCommand):
+    args = (dict(short="-o", longname="--output",
+                 action="store", type=str,
+                 dest="output", default="yt_index.json",
+                 help="File in which to place output"),
+            dict(longname="--check-all", short="-a",
+                 help="Attempt to load every file",
+                 action="store_true", default=False,
+                 dest="check_all"),
+            dict(longname="--full", short="-f",
+                 help="Output full contents of parameter file",
+                 action="store_true", default=False,
+                 dest="full_output"),
+            )
+    description = \
+        """
+        Attempt to find outputs that yt can recognize in directories.
+        """
+    name = "search"
+    def __call__(self, args):
+        from yt.utilities.parameter_file_storage import \
+            output_type_registry
+        attrs = ("dimensionality", "refine_by", "domain_dimensions",
+                 "current_time", "domain_left_edge", "domain_right_edge",
+                 "unique_identifier", "current_redshift", 
+                 "cosmological_simulation", "omega_matter", "omega_lambda",
+                 "hubble_constant", "dataset_type")
+        candidates = []
+        for base, dirs, files in os.walk(".", followlinks=True):
+            print("(% 10i candidates) Examining %s" % (len(candidates), base))
+            recurse = []
+            if args.check_all:
+                candidates.extend([os.path.join(base, _) for _ in files])
+            for _, otr in sorted(output_type_registry.items()):
+                c, r = otr._guess_candidates(base, dirs, files)
+                candidates.extend([os.path.join(base, _) for _ in c])
+                recurse.append(r)
+            if len(recurse) > 0 and not all(recurse):
+                del dirs[:]
+        # Now we have a ton of candidates.  We're going to do something crazy
+        # and try to load each one.
+        records = []
+        for i, c in enumerate(sorted(candidates)):
+            print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
+            try:
+                ds = load(c)
+            except YTOutputNotIdentified:
+                continue
+            record = {'filename': c}
+            for a in attrs:
+                v = getattr(ds, a, None)
+                if v is None:
+                    continue
+                if hasattr(v, "tolist"):
+                    v = v.tolist()
+                record[a] = v
+            if args.full_output:
+                params = {}
+                for p, v in ds.parameters.items():
+                    if hasattr(v, "tolist"):
+                        v = v.tolist()
+                    params[p] = v
+                record['params'] = params
+            records.append(record)
+            ds.close()
+        with open(args.output, "w") as f:
+            json.dump(records, f, indent=4)
+        print("Identified %s records output to %s" % (
+              len(records), args.output))
 
 def run_main():
     args = parser.parse_args()

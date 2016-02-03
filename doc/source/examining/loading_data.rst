@@ -104,7 +104,11 @@ Athena Data
 -----------
 
 Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+ZuHone. Both uniform grid and SMR datasets are supported. 
+
+.. note: 
+   yt also recognizes Fargo3D data written to VTK files as 
+   Athena data, but support for Fargo3D data is preliminary. 
 
 Loading Athena datasets is slightly different depending on whether
 your dataset came from a serial or a parallel run. If the data came
@@ -264,7 +268,7 @@ Pluto Data
 Support for Pluto AMR data is provided through the Chombo frontend, which
 is currently maintained by Andrew Myers. Pluto output files that don't use
 the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
-you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+you can use the ``yt.load`` command on the ``*.hdf5`` files. For example, the 
 KelvinHelmholtz sample dataset is a directory that contains the following
 files:
 
@@ -322,6 +326,100 @@ mentioned.
   quantities.
 
 .. _loading-fits-data:
+
+Exodus II Data
+--------------
+
+Exodus II is a file format for Finite Element datasets that is used by the MOOSE
+framework for file IO. Support for this format (and for unstructured mesh data in 
+general) is a new feature as of yt 3.3, so while we aim to fully support it, we also expect 
+there to be some buggy features at present. Currently, yt can visualize first-order
+mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
+Development of higher-order visualization capability is a work in progress.
+
+To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
+file:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+
+Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
+picard iterations, non-linear solve iterations, etc...), you can also specify a step
+argument when you load an Exodus II data that defines the index at which to look when
+you read data from the file.
+
+You can access the connectivity information directly by doing:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   print(ds.index.meshes[0].connectivity_coords)
+   print(ds.index.meshes[0].connectivity_indices)
+   print(ds.index.meshes[1].connectivity_coords)
+   print(ds.index.meshes[1].connectivity_indices)
+
+This particular dataset has two meshes in it, both of which are made of 8-node hexes.
+yt uses a field name convention to access these different meshes in plots and data
+objects. To see all the fields found in a particlular dataset, you can do:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   print(ds.field_list)
+
+This will give you a list of field names like ``('connect1', 'diffused')`` and 
+``('connect2', 'convected')``. Here, fields labelled with ``'connect1'`` correspond to the
+first mesh, and those with ``'connect2'`` to the second, and so on. To grab the value
+of the ``'convected'`` variable at all the nodes in the first mesh, for example, you
+would do:
+
+.. code-block:: python
+    
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()  # geometric selection, this just grabs everything
+   print(ad['connect1', 'convected'])
+
+In this dataset, ``('connect1', 'convected')`` is nodal field, meaning that the field values
+are defined at the vertices of the elements. If we examine the shape of the returned array:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'convected'].shape)
+
+we see that this mesh has 12480 8-node hexahedral elements, and that we get 8 field values
+for each element. To get the vertex positions at which these field values are defined, we
+can do, for instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'vertex_x'])
+
+If we instead look at an element-centered field, like ``('connect1', 'conv_indicator')``,
+we get:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ad = ds.all_data()
+   print(ad['connect1', 'conv_indicator'].shape)
+
+we instead get only one field value per element.
+
+For information about visualizing unstructured mesh data, including Exodus II datasets, 
+please see :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`. 
+
 
 FITS Data
 ---------
@@ -469,6 +567,8 @@ which may be used to make deposited image fields from the event data for differe
   first image in the primary file. If this is not the case,
   yt will raise a warning and will not load this field.
 
+.. _additional_fits_options:
+
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
@@ -551,7 +651,7 @@ package must be installed.
 
   ds = yt.load("m33_hi.fits")
   circle_region = ds9_region(ds, "circle.reg")
-  print circle_region.quantities.extrema("flux")
+  print(circle_region.quantities.extrema("flux"))
 
 
 ``PlotWindowWCS``
@@ -569,6 +669,35 @@ package must be installed.
 
 ``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
 utilized more here.
+
+``create_spectral_slabs``
+"""""""""""""""""""""""""
+
+.. note::
+
+  The following functionality requires the `spectral-cube <http://spectral-cube.readthedocs.org>`_
+  library to be installed. 
+  
+If you have a spectral intensity dataset of some sort, and would like to extract emission in 
+particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
+used to generate a dataset with these slabs as different fields. In this example, we use it
+to extract individual lines from an intensity cube:
+
+.. code-block:: python
+
+  slab_centers = {'13CN': (218.03117, 'GHz'),
+                  'CH3CH2CHO': (218.284256, 'GHz'),
+                  'CH3NH2': (218.40956, 'GHz')}
+  slab_width = (0.05, "GHz")
+  ds = create_spectral_slabs("intensity_cube.fits",
+                                    slab_centers, slab_width,
+                                    nan_mask=0.0)
+
+All keyword arguments to `create_spectral_slabs` are passed on to `load` when creating the dataset
+(see :ref:`additional_fits_options` above). In the returned dataset, the different slabs will be
+different fields, with the field names taken from the keys in ``slab_centers``. The WCS coordinates 
+on the spectral axis are reset so that the center of the domain along this axis is zero, and the 
+left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -635,13 +764,14 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
    import yt
    ds = yt.load("snapshot_061.hdf5")
 
-However, yt cannot detect raw-binary Gadget data, and so you must specify the
-format as being Gadget:
+Gadget data in raw binary format can also be loaded with the ``load`` command. 
+This is only supported for snapshots created with the ``SnapFormat`` parameter 
+set to 1 (the standard for Gadget-2).
 
 .. code-block:: python
 
    import yt
-   ds = yt.GadgetDataset("snapshot_061")
+   ds = yt.load("snapshot_061")
 
 .. _particle-bbox:
 
@@ -735,7 +865,7 @@ so:
 
 .. code-block:: python
 
-   from yt.frontends.sph.definitions import gadget_field_specs
+   from yt.frontends.gadget.definitions import gadget_field_specs
    gadget_field_specs["my_field_def"] = my_field_def
 
 Please also feel free to issue a pull request with any new field
@@ -835,7 +965,7 @@ Generic AMR Data
 ----------------
 
 See :ref:`loading-numpy-array` and
-:func:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
+:func:`~yt.frontends.stream.data_structures.load_amr_grids` for more detail.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
@@ -990,6 +1120,60 @@ have assumed your data is stored in the three-dimensional array
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
 
+Unstructured Grid Data
+----------------------
+
+See :ref:`loading-numpy-array`,
+:func:`~yt.frontends.stream.data_structures.load_unstructured_mesh` for
+more detail.
+
+In addition to the above grid types, you can also load data stored on
+unstructured meshes. This type of mesh is used, for example, in many
+finite element calculations. Currently, hexahedral and tetrahedral
+mesh elements are supported.
+
+To load an unstructured mesh, you need to specify the following. First,
+you need to have a coordinates array, which should be an (L, 3) array
+that stores the (x, y, z) positions of all of the vertices in the mesh.
+Second, you need to specify a connectivity array, which describes how
+those vertices are connected into mesh elements. The connectivity array
+should be (N, M), where N is the number of elements and M is the
+connectivity length, i.e. the number of vertices per element. Finally,
+you must also specify a data dictionary, where the keys should be
+the names of the fields and the values should be numpy arrays that
+contain the field data. These arrays can either supply the cell-averaged
+data for each element, in which case they would be (N, 1), or they
+can have node-centered data, in which case they would also be (N, M).
+
+Here is an example of how to load an in-memory, unstructured mesh dataset:
+
+.. code-block:: python
+
+   import yt
+   import numpy
+   from yt.utilities.exodusII_reader import get_data
+
+   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
+
+This uses a publically available `MOOSE <http://mooseframework.org/>` 
+dataset along with the get_data function to parse the coords, connectivity, 
+and data. Then, these can be loaded as an in-memory dataset as follows:
+
+.. code-block:: python
+
+    mesh_id = 0
+    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
+
+Note that load_unstructured_mesh can take either a single or a list of meshes.
+Here, we have selected only the first mesh to load.
+
+.. rubric:: Caveats
+
+* Units will be incorrect unless the data has already been converted to cgs.
+* Integration is not implemented.
+* Some functions may behave oddly or not work at all.
+* Data must already reside in memory.
+
 Generic Particle Data
 ---------------------
 
@@ -1042,6 +1226,76 @@ The ``load_particles`` function also accepts the following keyword parameters:
        The bounding box for the particle positions.
 
 .. _loading-pyne-data:
+
+Halo Catalog Data
+-----------------
+
+yt has support for reading halo catalogs produced by Rockstar and the inline 
+FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
+particle datasets where each particle represents a single halo.  At this time, 
+yt does not have the ability to load the member particles for a given halo.  
+However, once loaded, further halo analysis can be performed using 
+:ref:`halo_catalog`.
+
+In the case where halo catalogs are written to multiple files, one must only 
+give the path to one of them.
+
+Gadget FOF/SUBFIND
+^^^^^^^^^^^^^^^^^^
+
+The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print(ad["Group", "particle_mass"])
+   print(ad["Subhalo", "particle_mass"])
+   # Halo ID
+   print(ad["Group", "particle_identifier"])
+   print(ad["Subhalo", "particle_identifier"])
+   # positions
+   print(ad["Group", "particle_position_x"])
+   # velocities
+   print(ad["Group", "particle_velocity_x"])
+
+Multidimensional fields can be accessed through the field name followed by an 
+underscore and the index.
+
+.. code-block:: python
+
+   # x component of the spin
+   print(ad["Subhalo", "SubhaloSpin_0"])
+
+OWLS FOF/SUBFIND
+^^^^^^^^^^^^^^^^
+
+OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
+The two field types are "FOF" and "SUBFIND".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
+   ad = ds.all_data()
+   # The halo mass
+   print(ad["FOF", "particle_mass"])
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+The single field type available is "halos".
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # The halo mass
+   print(ad["halos", "particle_mass"])
 
 PyNE Data
 ---------
@@ -1151,8 +1405,8 @@ indexing and mesh-identification with that described in
 
 .. _specifying-cosmology-tipsy:
 
-Specifying Tipsy Cosmological Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specifying Tipsy Cosmological Parameters and Setting Default Units
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Cosmological parameters can be specified to Tipsy to enable computation of
 default units.  The parameters recognized are of this form:
@@ -1164,5 +1418,27 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-These will be used set the units, if they are specified.
+If you wish to set the default units directly, you can do so by using the
+``unit_base`` keyword in the load statement.
+
+ .. code-block:: python
+
+    import yt
+    ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
+
+
+Loading Cosmological Simulations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are not using a parameter file (i.e. non-Gasoline users), then you must
+use keyword ``cosmology_parameters`` when loading your data set to indicate to
+yt that it is a cosmological data set. If you do not wish to set any
+non-default cosmological parameters, you may pass an empty dictionary.
+
+ .. code-block:: python
+
+    import yt
+    ds = yt.load(filename, cosmology_parameters={})
+
+
 

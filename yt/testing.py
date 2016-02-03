@@ -14,21 +14,32 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
 import importlib
 import os
-from yt.funcs import *
+from yt.funcs import iterable
 from yt.config import ytcfg
-from numpy.testing import assert_array_equal, assert_almost_equal, \
-    assert_approx_equal, assert_array_almost_equal, assert_equal, \
-    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
-    assert_allclose, assert_raises
-from yt.units.yt_array import uconcatenate
-import yt.fields.api as field_api
+# we import this in a weird way from numpy.testing to avoid triggering
+# flake8 errors from the unused imports. These test functions are imported
+# elsewhere in yt from here so we want them to be imported here.
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
+from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
+from numpy.testing import assert_equal, assert_array_less  # NOQA
+from numpy.testing import assert_string_equal  # NOQA
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA
+from numpy.testing import assert_allclose, assert_raises  # NOQA
+try:
+    from nose.tools import assert_true, assert_less_equal  # NOQA
+except ImportError:
+    # This means nose isn't installed, so the tests can't run and it's ok
+    # to not import these functions
+    pass
 from yt.convenience import load
-
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTUnitOperationError
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -225,7 +236,7 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
             gdata[f] = np.random.random(dims)
         data.append(gdata)
     bbox = np.array([LE, RE]).T
-    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
+    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
 
 def fake_particle_ds(
         fields = ("particle_position_x",
@@ -258,6 +269,51 @@ def fake_particle_ds(
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
+
+
+def fake_tetrahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
+        _connectivity, _coordinates
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
+def fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.hexahedral_mesh import \
+        _connectivity, _coordinates
+
+    _connectivity -= 1  # this mesh has an offset of 1
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
 
 def expand_keywords(keywords, full=False):
     """
@@ -328,7 +384,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, str):
+            if isinstance(val, string_types):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -345,7 +401,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], str):
+                if isinstance(keywords[key], string_types):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -728,8 +784,9 @@ def periodicity_cases(ds):
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
-    import nose, os, sys, yt
-    from yt.funcs import mylog
+    from yt.utilities.on_demand_imports import _nose
+    import sys
+    from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
@@ -743,11 +800,81 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
+    yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
+    if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
+        # Provide a nice error message to work around nose bug
+        # see https://github.com/nose-devs/nose/issues/701
+        raise RuntimeError(
+            """
+    The yt.run_nose function does not work correctly when invoked in
+    the same directory as the installed yt package. Try starting
+    a python session in a different directory before invoking yt.run_nose
+    again. Alternatively, you can also run the "nosetests" executable in
+    the current directory like so:
+
+        $ nosetests
+            """
+            )
     os.chdir(yt_dir)
     try:
-        nose.run(argv=nose_argv)
+        _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)
+
+def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
+    """Raise an error if two objects are not equal up to desired tolerance
+
+    This is a wrapper for :func:`numpy.testing.assert_allclose` that also
+    verifies unit consistency
+
+    Parameters
+    ----------
+    actual : array-like
+        Array obtained (possibly with attached units)
+    desired : array-like
+        Array to compare with (possibly with attached units)
+    rtol : float, oprtional
+        Relative tolerance, defaults to 1e-7
+    atol : float or quantity, optional
+        Absolute tolerance. If units are attached, they must be consistent
+        with the units of ``actual`` and ``desired``. If no units are attached,
+        assumes the same units as ``desired``. Defaults to zero.
+
+    Also accepts additional keyword arguments accepted by
+    :func:`numpy.testing.assert_allclose`, see the documentation of that
+    function for details.
+    """
+    # Create a copy to ensure this function does not alter input arrays
+    act = YTArray(actual)
+    des = YTArray(desired)
+
+    try:
+        des = des.in_units(act.units)
+    except YTUnitOperationError:
+        raise AssertionError("Units of actual (%s) and desired (%s) do not have "
+                             "equivalent dimensions" % (act.units, des.units))
+
+    rt = YTArray(rtol)
+    if not rt.units.is_dimensionless:
+        raise AssertionError("Units of rtol (%s) are not "
+                             "dimensionless" % rt.units)
+
+    if not isinstance(atol, YTArray):
+        at = YTQuantity(atol, des.units)
+
+    try:
+        at = at.in_units(act.units)
+    except YTUnitOperationError:
+        raise AssertionError("Units of atol (%s) and actual (%s) do not have "
+                             "equivalent dimensions" % (at.units, act.units))
+
+    # units have been validated, so we strip units before calling numpy
+    # to avoid spurious errors
+    act = act.value
+    des = des.value
+    rt = rt.value
+    at = at.value
+
+    return assert_allclose(act, des, rt, at, **kwargs)

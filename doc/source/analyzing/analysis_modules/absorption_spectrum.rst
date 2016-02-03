@@ -11,8 +11,8 @@ densities are calculated multiplying the number density within a grid cell
 with the path length of the ray through the cell.  Line profiles are 
 generated using a voigt profile based on the temperature field.  The lines 
 are then shifted according to the redshift recorded by the light ray tool 
-and (optionally) the line of sight peculiar velocity.  Inclusion of the 
-peculiar velocity requires setting ``get_los_velocity`` to True in the call to 
+and (optionally) the peculiar velocity of gas along the ray.  Inclusion of the 
+peculiar velocity requires setting ``use_peculiar_velocity`` to True in the call to 
 :meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
 
 The spectrum generator will output a file containing the wavelength and 
@@ -108,6 +108,16 @@ in the ``output_file`` keyword: ``.fits`` for a fits file,
 ``.h5`` for an hdf5 file, and anything else for an ascii file.
 
 .. note:: To write out a fits file, you must install the `astropy <http://www.astropy.org>`_ python library in order to access the astropy.io.fits module.  You can usually do this by simply running `pip install astropy` at the command line.
+
+Generating Spectra in Parallel
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The spectrum generator can be run in parallel simply by following the procedures 
+laid out in :ref:`parallel-computation` for running yt scripts in parallel.  
+Spectrum generation is parallelized using a multi-level strategy where each 
+absorption line is deposited by a different processor.  If the number of available 
+processors is greater than the number of lines, then the deposition of 
+individual lines will be divided over multiple processors.
 
 Fitting an Absorption Spectrum
 ------------------------------

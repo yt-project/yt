@@ -1,6 +1,10 @@
 # Some tests for the Cartesian coordinates handler
 
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    fake_amr_ds, \
+    assert_equal
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.

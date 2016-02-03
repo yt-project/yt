@@ -33,6 +33,9 @@ from yt.visualization.profile_plotter import \
 
 class ParticleAxisAlignedDummyDataSource(object):
     _type_name = 'Particle'
+    _dimensionality = 2
+    _con_args = ('center', 'axis', 'width', 'fields', 'weight_field')
+    _tds_attrs = ()
     _key_fields = []
 
     def __init__(self, center, ds, axis, width, fields,
@@ -205,6 +208,9 @@ class ParticleProjectionPlot(PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
+        if axes_unit is None:
+            axes_unit = get_axes_unit(width, ds)
+
         # if no fields are passed in, we simply mark the x and
         # y fields using a given color. Use the 'particle_ones'
         # field to do this. We also turn off the colorbar in
@@ -225,7 +231,7 @@ class ParticleProjectionPlot(PWViewerMPL):
         width = np.zeros_like(center)
         width[x_coord] = bounds[1] - bounds[0]
         width[y_coord] = bounds[3] - bounds[2]
-        width[axis] = depth[0]
+        width[axis] = depth[0].in_units(width[x_coord].units)
 
         ParticleSource = ParticleAxisAlignedDummyDataSource(center, ds, axis,
                                         width, fields, weight_field,
@@ -236,8 +242,7 @@ class ParticleProjectionPlot(PWViewerMPL):
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect,
                              splat_color=splat_color)
-        if axes_unit is None:
-            axes_unit = get_axes_unit(width, ds)
+
         self.set_axes_unit(axes_unit)
 
         if self._use_cbar is False:

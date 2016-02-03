@@ -19,11 +19,11 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.units.yt_array import YTQuantity
-from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.funcs import fix_axis, get_pbar
+from yt.visualization.volume_rendering.off_axis_projection import \
+    off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     communication_system, parallel_root_only
+    communication_system, parallel_root_only
 from yt import units
 from yt.utilities.on_demand_imports import _astropy
 
@@ -106,7 +106,7 @@ class SZProjection(object):
         self.display_names["Tau"] = r"$\mathrm{\tau}$"
 
         for f, field in zip(self.freqs, self.freq_fields):
-            self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(f))
+            self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % int(f)
 
     def on_axis(self, axis, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an on-axis projection of the SZ signal.
@@ -125,9 +125,26 @@ class SZProjection(object):
             as a tuple containing a coordinate and string unit name or by passing
             in a YTArray. If a list or unitless array is supplied, code units are
             assumed.
-        width : float, tuple, or YTQuantity.
-            The width of the projection. A float will assume the width is in code units.
-            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
+        width : tuple or a float.
+            Width can have four different formats to support windows with variable
+            x and y widths.  They are:
+
+            ==================================     =======================
+            format                                 example
+            ==================================     =======================
+            (float, string)                        (10,'kpc')
+            ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+            float                                  0.2
+            (float, float)                         (0.2, 0.3)
+            ==================================     =======================
+
+            For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+            wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+            window that is 10 kiloparsecs wide along the x axis and 15
+            kiloparsecs wide along the y axis.  In the other two examples, code
+            units are assumed, for example (0.2, 0.3) requests a plot that has an
+            x width of 0.2 and a y width of 0.3 in code units.  If units are
+            provided the resulting plot axis labels will use the supplied units.
         nx : integer, optional
             The dimensions on a side of the projection image.
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
@@ -141,7 +158,7 @@ class SZProjection(object):
         ctr, dctr = self.ds.coordinates.sanitize_center(center, axis)
         width = self.ds.coordinates.sanitize_width(axis, width, None)
 
-        L = np.zeros((3))
+        L = np.zeros(3)
         L[axis] = 1.0
 
         beta_par = generate_beta_par(L)
@@ -174,7 +191,8 @@ class SZProjection(object):
 
         self.ds.field_info.pop(("gas","beta_par"))
 
-    def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
+    def off_axis(self, L, center="c", width=(1.0, "unitary"), depth=(1.0,"unitary"),
+                 nx=800, nz=800, north_vector=None, no_ghost=False, source=None):
         r""" Make an off-axis projection of the SZ signal.
 
         Parameters
@@ -191,46 +209,85 @@ class SZProjection(object):
             as a tuple containing a coordinate and string unit name or by passing
             in a YTArray. If a list or unitless array is supplied, code units are
             assumed.
-        width : float, tuple, or YTQuantity.
-            The width of the projection. A float will assume the width is in code units.
-            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
+        width : tuple or a float.
+            Width can have four different formats to support windows with variable
+            x and y widths.  They are:
+
+            ==================================     =======================
+            format                                 example
+            ==================================     =======================
+            (float, string)                        (10,'kpc')
+            ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+            float                                  0.2
+            (float, float)                         (0.2, 0.3)
+            ==================================     =======================
+
+            For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+            wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+            window that is 10 kiloparsecs wide along the x axis and 15
+            kiloparsecs wide along the y axis.  In the other two examples, code
+            units are assumed, for example (0.2, 0.3) requests a plot that has an
+            x width of 0.2 and a y width of 0.3 in code units.  If units are
+            provided the resulting plot axis labels will use the supplied units.
+        depth : A tuple or a float
+            A tuple containing the depth to project through and the string
+            key of the unit: (width, 'unit').  If set to a float, code units
+            are assumed
         nx : integer, optional
             The dimensions on a side of the projection image.
+        nz : integer, optional
+            Deprecated, this is still in the function signature for API
+            compatibility
+        north_vector : a sequence of floats
+            A vector defining the 'up' direction in the plot.  This
+            option sets the orientation of the slicing plane.  If not
+            set, an arbitrary grid-aligned north-vector is chosen.
+        no_ghost: bool, optional
+            Optimization option for off-axis cases. If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: True
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
-            If specified, this will be the data source used for selecting regions to project.
-            Currently unsupported in yt 2.x.
+            If specified, this will be the data source used for selecting regions 
+            to project.
 
         Examples
         --------
         >>> L = np.array([0.5, 1.0, 0.75])
         >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
-        if iterable(width):
-            w = self.ds.quan(width[0], width[1]).in_units("code_length").value
-        elif isinstance(width, YTQuantity):
-            w = width.in_units("code_length").value
-        else:
-            w = width
+        wd = self.ds.coordinates.sanitize_width(L, width, depth)
+        w = tuple(el.in_units('code_length').v for el in wd)
         ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
+        res = (nx, nx)
 
-        if source is not None:
-            mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
-            raise NotImplementedError
+        if source is None:
+            source = self.ds
 
         beta_par = generate_beta_par(L)
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens    = off_axis_projection(self.ds, ctr, L, w, nx, "density")
-        Te      = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")/dens
-        bpar    = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par")/dens
-        omega1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")/dens
-        omega1  = omega1/(Te*Te) - 1.
+        dens = off_axis_projection(source, ctr, L, w, res, "density",
+                                   north_vector=north_vector, no_ghost=no_ghost)
+        Te = off_axis_projection(source, ctr, L, w, res, "t_sz",
+                                 north_vector=north_vector, no_ghost=no_ghost)/dens
+        bpar = off_axis_projection(source, ctr, L, w, res, "beta_par",
+                                   north_vector=north_vector, no_ghost=no_ghost)/dens
+        omega1 = off_axis_projection(source, ctr, L, w, res, "t_squared",
+                                     north_vector=north_vector, no_ghost=no_ghost)/dens
+        omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")/dens
-            sigma1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")/dens
-            sigma1  = sigma1/Te - bpar
-            kappa1  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")/dens
+            bperp2 = off_axis_projection(source, ctr, L, w, res, "beta_perp_squared", 
+                                         north_vector=north_vector, no_ghost=no_ghost)/dens
+            sigma1 = off_axis_projection(source, ctr, L, w, res, "t_beta_par", 
+                                         north_vector=north_vector, no_ghost=no_ghost)/dens
+            sigma1 = sigma1/Te - bpar
+            kappa1 = off_axis_projection(source, ctr, L, w, res, "beta_par_squared", 
+                                         north_vector=north_vector, no_ghost=no_ghost)/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
@@ -238,9 +295,9 @@ class SZProjection(object):
             kappa1 = np.zeros((nx,nx))
         tau = sigma_thompson*dens*self.mueinv/mh
 
-        self.bounds = np.array([-0.5*w, 0.5*w, -0.5*w, 0.5*w])
-        self.dx = w/nx
-        self.dy = w/nx
+        self.bounds = (-0.5*wd[0], 0.5*wd[0], -0.5*wd[1], 0.5*wd[1])
+        self.dx = wd[0]/nx
+        self.dy = wd[1]/nx
         self.nx = nx
 
         self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
@@ -316,7 +373,7 @@ class SZProjection(object):
         >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
+        from yt.utilities.fits_image import FITSImageData
 
         dx = self.dx.in_units("kpc")
         dy = dx
@@ -328,12 +385,11 @@ class SZProjection(object):
         w.wcs.cunit = ["kpc"]*2
         w.wcs.ctype = ["LINEAR"]*2
 
+        fib = FITSImageData(self.data, fields=self.data.keys(), wcs=w)
         if sky_scale is not None and sky_center is not None:
-            w = create_sky_wcs(w, sky_center, sky_scale)
-
-        fib = FITSImageBuffer(self.data, fields=self.data.keys(), wcs=w)
+            fib.create_sky_wcs(sky_center, sky_scale)
         fib.writeto(filename, clobber=clobber)
-        
+
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name="algae",
                   axes_units="kpc", log_fields=None):
@@ -363,13 +419,13 @@ class SZProjection(object):
             crossover = False
             if vmin < 0 and vmax < 0:
                 data *= -1
-                negative = True                                        
+                negative = True
             if field in log_fields:
                 log_field = log_fields[field]
             else:
                 log_field = True
             if log_field:
-                formatter = matplotlib.ticker.LogFormatterMathtext()        
+                formatter = matplotlib.ticker.LogFormatterMathtext()
                 norm = matplotlib.colors.LogNorm()
                 if vmin < 0 and vmax > 0:
                     crossover = True
@@ -386,13 +442,13 @@ class SZProjection(object):
                 cbar_label += r'$\ \ ('+units+r')$'
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
-            cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")
+            cax = ax.imshow(data.d, norm=norm, extent=extent, cmap=cmap_name, origin="lower")
             for label in ax.get_xticklabels():
                 label.set_fontproperties(ticks_font)
             for label in ax.get_yticklabels():
-                label.set_fontproperties(ticks_font)                      
-            ax.set_xlabel(r"$\mathrm{x\ (%s)}$" % (axes_units), fontsize=16)
-            ax.set_ylabel(r"$\mathrm{y\ (%s)}$" % (axes_units), fontsize=16)
+                label.set_fontproperties(ticks_font)
+            ax.set_xlabel(r"$\mathrm{x\ (%s)}$" % axes_units, fontsize=16)
+            ax.set_ylabel(r"$\mathrm{y\ (%s)}$" % axes_units, fontsize=16)
             cbar = fig.colorbar(cax, format=formatter)
             cbar.ax.set_ylabel(cbar_label, fontsize=16)
             if negative:
@@ -405,10 +461,10 @@ class SZProjection(object):
                                             np.ceil(np.log10(vmax))+1))
                 cbar.set_ticks(yticks)
             for label in cbar.ax.get_yticklabels():
-                label.set_fontproperties(ticks_font)                 
+                label.set_fontproperties(ticks_font)
             fig.tight_layout()
             plt.savefig(filename)
-            
+
     @parallel_root_only
     def write_hdf5(self, filename):
         r"""Export the set of S-Z fields to a set of HDF5 datasets.
@@ -422,11 +478,8 @@ class SZProjection(object):
         --------
         >>> szprj.write_hdf5("SZsloshing.h5")
         """
-        import h5py
-        f = h5py.File(filename, "w")
         for field, data in self.items():
-            f.create_dataset(field,data=data.ndarray_view())
-        f.close()
+            data.write_hdf5(filename, dataset_name=field)
 
     def keys(self):
         return self.data.keys()

@@ -20,6 +20,7 @@ import numpy as np
 from selection_routines cimport SelectorObject
 from libc.math cimport floor
 cimport selection_routines
+from yt.geometry.oct_visitors cimport OctPadded
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
@@ -108,6 +109,19 @@ cdef class OctreeContainer:
                 self.root_mesh[i][j] = <Oct **> malloc(sizeof(void*) * self.nn[2])
                 for k in range(self.nn[2]):
                     self.root_mesh[i][j][k] = NULL
+
+    @property
+    def oct_arrays(self):
+        cdef OctAllocationContainer *cur = self.cont
+        cdef Oct *this
+        cdef int i
+        cdef OctPadded[:] mm
+        rv = []
+        while cur != NULL:
+            mm = <OctPadded[:cur.n_assigned]> (<OctPadded*> cur.my_octs)
+            rv.append(np.asarray(mm))
+            cur = cur.next
+        return rv
 
     @classmethod
     def load_octree(cls, header):

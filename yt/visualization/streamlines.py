@@ -14,8 +14,9 @@ Import the components of the volume rendering extension
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.construction_data_containers import YTStreamlineBase
-from yt.funcs import *
+from yt.data_objects.construction_data_containers import YTStreamline
+from yt.funcs import get_pbar
+from yt.units.yt_array import YTArray
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -215,7 +216,7 @@ class Streamlines(ParallelAnalysisInterface):
 
         Returns
         -------
-        An YTStreamlineBase YTSelectionContainer1D object
+        An YTStreamline YTSelectionContainer1D object
 
         Examples
         --------
@@ -225,8 +226,7 @@ class Streamlines(ParallelAnalysisInterface):
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-        
+
         """
-        return YTStreamlineBase(self.streamlines[streamline_id], ds=self.ds,
-                                length = self.length)
-        
+        return YTStreamline(self.streamlines[streamline_id], ds=self.ds,
+                            length=self.length)

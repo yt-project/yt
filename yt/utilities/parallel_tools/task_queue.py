@@ -14,9 +14,8 @@ Task queue in yt
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import time, threading, random
 
-from yt.funcs import *
+from yt.funcs import mylog
 from .parallel_analysis_interface import \
     communication_system, \
     _get_comm, \

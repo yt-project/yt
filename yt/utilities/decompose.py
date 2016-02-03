@@ -13,6 +13,8 @@ Automagical cartesian domain decomposition.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import division
+
 import numpy as np
 
 SIEVE_PRIMES = \
@@ -26,7 +28,7 @@ def decompose_to_primes(max_prime):
             break
         while max_prime % prime == 0:
             yield prime
-            max_prime /= prime
+            max_prime //= prime
     if max_prime > 1:
         yield max_prime
 
@@ -68,9 +70,8 @@ def factorize_number(pieces):
     factors = [factor for factor in decompose_to_primes(pieces)]
     temp = np.bincount(factors)
     return np.array(
-        [(prime, temp[prime], (temp[prime] + 1) * (temp[prime] + 2) / 2)
-         for prime in np.unique(factors)]
-    )
+        [(prime, temp[prime], (temp[prime] + 1) * (temp[prime] + 2) // 2)
+         for prime in np.unique(factors)]).astype(np.int64)
 
 
 def get_psize(n_d, pieces):
@@ -81,15 +82,15 @@ def get_psize(n_d, pieces):
     fac = factorize_number(pieces)
     nfactors = len(fac[:, 2])
     best = 0.0
-    p_size = np.ones(3, dtype=np.int)
+    p_size = np.ones(3, dtype=np.int64)
     if pieces == 1:
         return p_size
 
     while np.all(fac[:, 2] > 0):
-        ldom = np.ones(3, dtype=np.int)
+        ldom = np.ones(3, dtype=np.int64)
         for nfac in range(nfactors):
             i = int(np.sqrt(0.25 + 2 * (fac[nfac, 2] - 1)) - 0.5)
-            k = fac[nfac, 2] - int(1 + i * (i + 1) / 2)
+            k = fac[nfac, 2] - (1 + i * (i + 1) // 2)
             i = fac[nfac, 1] - i
             j = fac[nfac, 1] - (i + k)
             ldom *= fac[nfac, 0] ** np.array([i, j, k])

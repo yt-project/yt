@@ -14,31 +14,23 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import string, re, gc, time
-from yt.extern.six.moves import cPickle
-from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain
+from collections import defaultdict
 
-from yt.funcs import *
-from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
-from yt.fields.field_info_container import NullFunc
+from yt.funcs import \
+    ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
 from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.physical_constants import sec_per_year
-from yt.utilities.io_handler import io_registry
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
     GridTree, MatchPointsToGrids
 
-from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
     """The index class for patch and block AMR datasets. """
@@ -201,7 +193,6 @@ class GridIndex(Index):
              self.ds.current_time.in_units("s"),
              self.ds.current_time.in_units("yr")))
         print("\nSmallest Cell:")
-        u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
             print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
 
@@ -211,8 +202,8 @@ class GridIndex(Index):
         Returns the values [field1, field2,...] of the fields at the given
         (x, y, z) points. Returns a numpy array of field values cross coords
         """
-        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.ds.unit_registry)
-        grids = self._find_points(coords[:,0], coords[:,1], coords[:,2])[0]
+        coords = self.ds.arr(ensure_numpy_array(coords), 'code_length')
+        grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
         fields = ensure_list(fields)
         mark = np.zeros(3, dtype=np.int)
         out = []
@@ -224,13 +215,21 @@ class GridIndex(Index):
                 grid_index[grid] = []
             grid_index[grid].append(coord_index)
 
-        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        out = []
+        for field in fields:
+            funit = self.ds._get_field_info(field).units
+            out.append(self.ds.arr(np.empty((len(coords))), funit))
+
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
-            for field in fields:
+            for field_index, field in enumerate(fields):
                 for coord_index in grid_index[grid]:
-                    mark = ((coords[coord_index,:] - grid.LeftEdge) / cellwidth).astype('int')
-                    out[:,coord_index] = grid[field][mark[0],mark[1],mark[2]]
+                    mark = ((coords[coord_index, :] - grid.LeftEdge) / cellwidth)
+                    mark = np.array(mark, dtype='int64')
+                    out[field_index][coord_index] = \
+                        grid[field][mark[0], mark[1], mark[2]]
+        if len(fields) == 1:
+            return out[0]
         return out
 
 
@@ -286,7 +285,7 @@ class GridIndex(Index):
             return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
-            dobj._chunk_info[0] = dobj
+            dobj._chunk_info[0] = weakref.proxy(dobj)
         elif getattr(dobj, "_grids", None) is None:
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
@@ -322,9 +321,9 @@ class GridIndex(Index):
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         if sort in ("+level", "level"):
-            giter = sorted(gobjs, key = g.Level)
+            giter = sorted(gobjs, key=lambda g: g.Level)
         elif sort == "-level":
-            giter = sorted(gobjs, key = -g.Level)
+            giter = sorted(gobjs, key=lambda g: -g.Level)
         elif sort is None:
             giter = gobjs
         if preload_fields is None: preload_fields = []

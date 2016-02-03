@@ -184,9 +184,10 @@ class CastroFieldInfo(FieldInfoContainer):
                 if field[3] in string.ascii_letters:
                     element, weight = field[2:4], field[4:-1]
                 else:
-                    element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
-                # Here we can, later, add number density.
+                    element, weight = field[2:3], field[3:-1]  # NOQA
+
+                # Here we can, later, add number density
+                # right now element and weight inferred above are unused
 
 
 class MaestroFieldInfo(FieldInfoContainer):
@@ -280,10 +281,12 @@ class MaestroFieldInfo(FieldInfoContainer):
                     if field[3] in string.ascii_letters:
                         element, weight = field[2:4], field[4:-1]
                     else:
-                        element, weight = field[2:3], field[3:-1]
+                        element, weight = field[2:3], field[3:-1]  # NOQA
                     weight = int(weight)
 
-                # Here we can, later, add number density.
+                # Here we can, later, add number density using 'element' and
+                # 'weight' inferred above
+
             elif field.startswith("omegadot("):
                 nice_name, tex_label = _nice_species_name(field)
                 display_name = r'\dot{\omega}\left[%s\right]' % tex_label

@@ -13,7 +13,14 @@ Enzo frontend tests using moving7
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    assert_almost_equal, \
+    assert_equal, \
+    requires_file, \
+    units_override_check, \
+    assert_array_equal
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
@@ -41,12 +48,12 @@ def check_color_conservation(ds):
     dd = ds.all_data()
     dens_enzo = dd["Density"].copy()
     for f in sorted(ds.field_list):
-        if not f[1].endswith("_Density") or \
-               f[1].startswith("Dark_Matter_")  or \
-               f[1].startswith("Electron_") or \
-               f[1].startswith("SFR_") or \
-               f[1].startswith("Forming_Stellar_") or \
-               f[1].startswith("Star_Particle_"):
+        ff = f[1]
+        if not ff.endswith("_Density"):
+            continue
+        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
+                         "Dark_Matter", "Star_Particle_"]
+        if any([ff.startswith(ss) for ss in start_strings]):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd["Density"])
@@ -67,7 +74,7 @@ def test_galaxy0030():
     ds = data_dir_load(g30)
     yield check_color_conservation(ds)
     yield assert_equal, str(ds), "galaxy0030"
-    for test in big_patch_amr(g30, _fields):
+    for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
 

@@ -47,7 +47,7 @@ calculate a flux, call
 both of these operations will run in parallel.  For more information on enabling
 parallelism in yt, see :ref:`parallel-computation`.
 
-Alternatively, you can make an object called ``YTSurfaceBase`` that makes
+Alternatively, you can make an object called ``YTSurface`` that makes
 this process much easier.  You can create one of these objects by specifying a
 source data object and a field over which to identify a surface at a given
 value.  For example:
@@ -56,7 +56,7 @@ value.  For example:
 
    import yt
    ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
 This object, ``surface``, can be queried for values on the surface.  For
@@ -64,7 +64,7 @@ instance:
 
 .. code-block:: python
 
-   print surface["temperature"].min(), surface["temperature"].max()
+   print(surface["temperature"].min(), surface["temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -101,7 +101,7 @@ model in a website with other supplemental data, or you can use Sketchfab to
 discuss morphological properties of a dataset with collaborators.  It's also
 just plain cool.
 
-The ``YTSurfaceBase`` object includes a method to upload directly to Sketchfab,
+The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
@@ -172,7 +172,7 @@ galaxy simulation:
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
@@ -248,7 +248,7 @@ to output one more type of variable on your surfaces.  For example:
        return (data['density']*data['density']*np.sqrt(data['temperature']))
    add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = ds.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "Mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],

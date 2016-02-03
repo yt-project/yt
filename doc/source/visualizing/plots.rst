@@ -192,7 +192,7 @@ Off Axis Slices
 
 Off axis slice plots can be generated in much the same way as
 grid-aligned slices.  Off axis slices use
-:class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase` to slice
+:class:`~yt.data_objects.selection_data_containers.YTCuttingPlane` to slice
 through simulation domains at an arbitrary oblique angle.  A
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be
 instantiated by specifying a dataset, the normal to the cutting
@@ -311,7 +311,8 @@ creating the final image buffer.
 .. _off-axis-projection-function:
 
 To avoid manually creating a camera and setting the transfer
-function, yt provides the :func:`~yt.visualization.volume_rendering.camera.off_axis_projection`
+function, yt provides the
+:func:`~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection`
 function, which wraps the camera interface to create an off axis
 projection image buffer.  These images can be saved to disk or
 used in custom plots.  This snippet creates an off axis
@@ -353,6 +354,78 @@ to project along, and a field to project.  For example:
 OffAxisProjectionPlots can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
+
+.. _unstructured-mesh-slices:
+
+Unstructured Mesh Slices
+------------------------
+
+Unstructured Mesh datasets can be sliced using the same syntax as above.
+Here is an example script using a publically available MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'x', ('connect1', 'diffused'))
+   sl.zoom(0.75)
+   sl.save()
+
+Here, we plot the ``'diffused'`` variable, using a slice normal to the ``'x'`` direction, 
+through the meshed labelled by ``'connect1'``. By default, the slice goes through the
+center of the domain. We have also zoomed out a bit to get a better view of the 
+resulting structure. To instead plot the ``'convected'`` variable, using a slice normal
+to the ``'z'`` direction through the mesh labelled by ``'connect2'``, we do:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'z', ('connect2', 'convected'))
+   sl.zoom(0.75)
+   sl.save()
+
+These slices are made by sampling the finite element solution at the points corresponding 
+to each pixel of the image. The ``'convected'`` and ``'diffused'`` variables are node-centered,
+so this interpolation is performed by converting the sample point the reference coordinate
+system of the element and evaluating the appropriate shape functions. You can also
+plot element-centered fields:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'y', ('connect1', 'conv_indicator'))
+   sl.zoom(0.75)
+   sl.save()
+
+We can also annotate the mesh lines, as follows:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
+   sl.annotate_mesh_lines(thresh=0.1)
+   sl.zoom(0.75)
+   sl.save()
+
+This annotation is performed by marking the pixels where the mapped coordinate is close
+to the element boundary. What counts as 'close' (in the mapped coordinate system) is 
+determined by the ``thresh`` parameter, which can be varied to make the lines thicker or
+thinner.
+
+Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
+an example using another MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e')
+   sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
 
 Plot Customization: Recentering, Resizing, Colormaps, and More
 --------------------------------------------------------------
@@ -670,7 +743,7 @@ to be profiled.
    plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
-This will create a :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
+This will create a :class:`~yt.data_objects.selection_data_containers.YTDisk`
 centered at [0.5, 0.5, 0.5], with a normal vector of [0.0, 0.0, 1.0], radius of
 10 kiloparsecs and height of 3 kiloparsecs and will then make a plot of the
 mass-weighted average temperature as a function of density for all of the gas
@@ -722,9 +795,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print profile.x
+   print(profile.x)
    # print the profiled cell_mass field
-   print profile['cell_mass']
+   print(profile['cell_mass'])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
@@ -1224,18 +1297,18 @@ the plot filenames. If you don't care what the filenames are, just calling the
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
    slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
    slc.save()
-   
+
 which will yield PNG plots with the filenames
 
 .. code-block:: bash
 
-   $ ls *.png
+   $ ls \*.png
    sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_density.png
    sloshing_nomag2_hdf5_plt_cnt_0100_Slice_z_kT.png
 
 which has a general form of
 
-.. code-block::
+.. code-block:: bash
  
    [dataset name]_[plot type]_[axis]_[field name].[suffix]
    
@@ -1256,7 +1329,7 @@ yields
 
 .. code-block:: bash
 
-   $ ls *.png
+   $ ls \*.png
    bananas_Slice_z_kT.png
    bananas_Slice_z_density.png
 
@@ -1284,6 +1357,81 @@ yielding
    bananas_Slice_z_kT.eps
    bananas_Slice_z_density.eps
 
+.. _remaking-plots:
+
+Remaking Figures from Plot Datasets
+-----------------------------------
+
+When working with datasets that are too large to be stored locally,
+making figures just right can be cumbersome as it requires continuously
+moving images somewhere they can be viewed.  However, image creation is
+actually a two step process of first creating the projection, slice,
+or profile object, and then converting that object into an actual image.
+Fortunately, the hard part (creating slices, projections, profiles) can
+be separated from the easy part (generating images).  The intermediate
+slice, projection, and profile objects can be saved as reloadable
+datasets, then handed back to the plotting machinery discussed here.
+
+For slices and projections, the savable object is associated with the
+plot object as ``data_source``.  This can be saved with the
+:func:`~yt.data_objects.data_containers.save_as_dataset`` function.  For
+more information, see :ref:`saving_data`.
+
+.. code-block:: python
+
+   p = yt.ProjectionPlot(ds, "x", "density",
+                         weight_field="density")
+   fn = p.data_source.save_as_dataset()
+
+This function will optionally take a ``filename`` keyword that follows
+the same logic as dicussed above in :ref:`saving_plots`.  The filename
+to which the dataset was written will be returned.
+
+Once saved, this file can be reloaded completely independently of the
+original dataset and given back to the plot function with the same
+arguments.  One can now continue to tweak the figure to one's liking.
+
+.. code-block:: python
+
+   new_ds = yt.load(fn)
+   new_p = yt.ProjectionPlot(new_ds, "x", "density",
+                             weight_field="density")
+   new_p.save()
+
+The same functionality is available for profile and phase plots.  In
+each case, a special data container, ``data``, is given to the plotting
+functions.
+
+For ``ProfilePlot``:
+
+.. code-block:: python
+
+   ad = ds.all_data()
+   p1 = yt.ProfilePlot(ad, "density", "temperature",
+                       weight_field="cell_mass")
+
+   # note that ProfilePlots can hold a list of profiles
+   fn = p1.profiles[0].save_as_dataset()
+
+   new_ds = yt.load(fn)
+   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature",
+                       weight_field="cell_mass")
+   p2.save()
+
+For ``PhasePlot``:
+
+.. code-block:: python
+
+   ad = ds.all_data()
+   p1 = yt.PhasePlot(ad, "density", "temperature",
+                     "cell_mass", weight_field=None)
+   fn = p1.profile.save_as_dataset()
+
+   new_ds = yt.load(fn)
+   p2 = yt.PhasePlot(new_ds.data, "density", "temperature",
+                     "cell_mass", weight_field=None)
+   p2.save()
+
 .. _eps-writer:
 
 Publication-ready Figures
@@ -1304,7 +1452,9 @@ filesize.
 .. note::
    PyX must be installed, which can be accomplished either manually
    with ``pip install pyx`` or with the install script by setting
-   ``INST_PYX=1``.
+   ``INST_PYX=1``. If you are using python2, you must install pyx
+   version 0.12.1 with ``pip install pyx==0.12.1``, since that is 
+   the last version with python2 support.
 
 This module can take any of the plots mentioned above and create an
 EPS or PDF figure.  For example,
@@ -1351,3 +1501,31 @@ The routine will try its best to place the colorbars in the optimal
 margin, but it can be overridden by providing the keyword
 ``cb_location`` with a dict of either ``right, left, top, bottom``
 with the fields as the keys.
+
+You can also combine slices, projections, and phase plots. Here is
+an example that includes slices and phase plots:
+
+.. code-block:: python
+
+    from yt import SlicePlot, PhasePlot
+    from yt.visualization.eps_writer import multiplot_yt
+   
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+    p1 = SlicePlot(ds, 0, 'density')
+    p1.set_width(10, 'kpc')
+   
+    p2 = SlicePlot(ds, 0, 'temperature')
+    p2.set_width(10, 'kpc')
+    p2.set_cmap('temperature', 'hot')
+
+    sph = ds.sphere(ds.domain_center, (10, 'kpc'))
+    p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
+                   weight_field='cell_mass')
+
+    p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+
+    mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
+                      bare_axes=False, yt_nocbar=False, margins=(0.5,0.5))
+
+    mp.save_fig('multi_slice_phase')

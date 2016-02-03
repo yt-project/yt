@@ -15,11 +15,13 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.extern.six import string_types
+from yt.funcs import only_on_root
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
+import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -29,8 +31,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
@@ -43,7 +43,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], str):
+    if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
 
@@ -107,6 +107,14 @@ class GadgetDataset(ParticleDataset):
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
         super(GadgetDataset, self).__init__(filename, dataset_type)
+        if self.cosmological_simulation:
+            self.time_unit.convert_to_units('s/h')
+            self.length_unit.convert_to_units('kpccm/h')
+            self.mass_unit.convert_to_units('g/h')
+        else:
+            self.time_unit.convert_to_units('s')
+            self.length_unit.convert_to_units('kpc')
+            self.mass_unit.convert_to_units('Msun')
 
     def _setup_binary_spec(self, spec, spec_dict):
         if isinstance(spec, str):
@@ -123,7 +131,7 @@ class GadgetDataset(ParticleDataset):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
 
-        f = open(self.parameter_filename)
+        f = open(self.parameter_filename, 'rb')
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
@@ -162,7 +170,7 @@ class GadgetDataset(ParticleDataset):
         # It may be possible to deduce whether ComovingIntegration is on
         # somehow, but opinions on this vary.
         if self.omega_lambda == 0.0:
-            mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
+            only_on_root(mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology.")
             self.hubble_constant = 1.0  # So that scaling comes out correct
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
@@ -176,8 +184,8 @@ class GadgetDataset(ParticleDataset):
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
-            mylog.info("Calculating time from %0.3e to be %0.3e seconds",
-                       hvals["Time"], self.current_time)
+            only_on_root(mylog.info, "Calculating time from %0.3e to be %0.3e seconds",
+                         hvals["Time"], self.current_time)
         self.parameters = hvals
 
         prefix = os.path.abspath(
@@ -195,10 +203,10 @@ class GadgetDataset(ParticleDataset):
         # If no units passed in by user, set a sane default (Gadget-2 users guide).
         if self._unit_base is None:
             if self.cosmological_simulation == 1:
-                mylog.info("Assuming length units are in kpc/h (comoving)")
+                only_on_root(mylog.info, "Assuming length units are in kpc/h (comoving)")
                 self._unit_base = dict(length = (1.0, "kpccm/h"))
             else:
-                mylog.info("Assuming length units are in kpc (physical)")
+                only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
                 self._unit_base = dict(length = (1.0, "kpc"))
 
         # If units passed in by user, decide what to do about
@@ -217,12 +225,21 @@ class GadgetDataset(ParticleDataset):
         self.length_unit = self.quan(length_unit[0], length_unit[1])
 
         unit_base = self._unit_base or {}
+
+        if self.cosmological_simulation:
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            # for why we need to include a factor of square root of the
+            # scale factor
+            vel_units = "cm/s * sqrt(a)"
+        else:
+            vel_units = "cm/s"
+
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
-            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], "cm/s")
+            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], vel_units)
         else:
-            velocity_unit = (1e5, "cm/s")
+            velocity_unit = (1e5, vel_units)
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
 
@@ -237,15 +254,84 @@ class GadgetDataset(ParticleDataset):
                 mass_unit = (unit_base["UnitMass_in_g"], "g/h")
         else:
             # Sane default
-            mass_unit = (1.0, "1e10*Msun/h")
+            mass_unit = (1e10, "Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
         self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
-        self.time_unit = self.length_unit / self.velocity_unit
+        if self.cosmological_simulation:
+            # self.velocity_unit is the unit to rescale on-disk velocities, The
+            # actual internal velocity unit is really in comoving units
+            # since the time unit is derived from the internal velocity unit, we
+            # infer the internal velocity unit here and name it vel_unit
+            #
+            # see http://www.mpa-garching.mpg.de/gadget/gadget-list/0113.html
+            if 'velocity' in unit_base:
+                vel_unit = unit_base['velocity']
+            elif "UnitVelocity_in_cm_per_s" in unit_base:
+                vel_unit = (unit_base['UnitVelocity_in_cm_per_s'], 'cmcm/s')
+            else:
+                vel_unit = (1, 'kmcm/s')
+            vel_unit = self.quan(*vel_unit)
+        else:
+            vel_unit = self.velocity_unit
+        self.time_unit = self.length_unit / vel_unit
+
+    @staticmethod
+    def _validate_header(filename):
+        '''
+        This method automatically detects whether the Gadget file is big/little endian 
+        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a 
+        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file 
+        is a Gadget binary file, and endianswap is the endianness character '>' or '<'. 
+        '''
+        try:
+            f = open(filename,'rb')
+        except IOError:
+            try:
+                f = open(filename+".0")
+            except IOError:
+                return False, 1
+        
+        # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
+        # 8 for a Gadget2 binary file with SnapFormat=2 file, 
+        # or the byte swapped equivalents (65536 and 134217728).
+        # The int32 following the header (first 4+256 bytes) must equal this
+        # number.
+        try:
+            (rhead,) = struct.unpack('<I',f.read(4))
+        except struct.error:
+            f.close()
+            return False, 1
+        # Use value to check endianess
+        if rhead == 256:
+            endianswap = '<'
+        elif rhead == 65536:
+            endianswap = '>'
+        # Disabled for now (does any one still use SnapFormat=2?)
+        # If so, alternate read would be needed based on header.
+        # elif rhead == 8:
+        #     return True, '<'
+        # elif rhead == 134217728:
+        #     return True, '>'
+        else:
+            f.close()
+            return False, 1
+        # Read in particle number from header
+        np0 = sum(struct.unpack(endianswap+'IIIIII',f.read(6*4)))
+        # Read in size of position block. It should be 4 bytes per float, 
+        # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
+        f.seek(4+256+4,0)
+        np1 = struct.unpack(endianswap+'I',f.read(4))[0]/(4*3)
+        f.close()
+        # Compare
+        if np0 == np1:
+            return True, endianswap
+        else:
+            return False, 1
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # We do not allow load() of these files.
-        return False
+        # First 4 bytes used to check load
+        return GadgetDataset._validate_header(args[0])[0]
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
@@ -337,7 +423,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Header']
-        veto_groups = ['FOF']
+        veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
         try:
             fh = h5py.File(args[0], mode='r')

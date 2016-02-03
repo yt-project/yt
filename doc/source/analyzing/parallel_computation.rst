@@ -42,7 +42,18 @@ mpi4py website, but you may have luck by just running:
 
     $ pip install mpi4py
 
-Once that has been installed, you're all done!  You just need to launch your
+If you have an Anaconda installation of yt and there is no MPI library on the
+system you are using try:
+
+.. code-block:: bash
+
+    $ conda install mpi4py
+
+This will install `MPICH2 <https://www.mpich.org/>`_ and will interefere with
+other MPI libraries that are already installed. Therefore, it is preferable to
+use the ``pip`` installation method.
+
+Once mpi4py has been installed, you're all done!  You just need to launch your
 scripts with ``mpirun`` (or equivalent) and signal to yt that you want to
 run them in parallel by invoking the ``yt.enable_parallelism()`` function in
 your script.  In general, that's all it takes to get a speed benefit on a
@@ -84,10 +95,10 @@ in the simulation and then makes a plot of the projected density:
 
    import yt
    yt.enable_parallelism()
-   
+ 
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
-   print v, c
+   print(v, c)
    p = yt.ProjectionPlot(ds, "x", "density")
    p.save()
 
@@ -119,7 +130,7 @@ Creating Parallel and Serial Sections in a Script
 Many yt operations will automatically run in parallel (see the next section for
 a full enumeration), however some operations, particularly ones that print
 output or save data to the filesystem, will be run by all processors in a
-parallel script.  For example, in the script above the lines ``print v,c`` and
+parallel script.  For example, in the script above the lines ``print(v, c)`` and
 ``p.save()`` will be run on all 16 processors.  This means that your terminal
 output will contain 16 repetitions of the output of the print statement and the
 plot will be saved to disk 16 times (overwritten each time).
@@ -140,7 +151,7 @@ so:
    v, c = ds.find_max("density")
    p = yt.ProjectionPlot(ds, "x", "density")
    if yt.is_root():
-       print v, c
+       print(v, c)
        p.save()
 
 The second function, :func:`~yt.funcs.only_on_root` accepts the name of a
@@ -156,15 +167,15 @@ how to use it:
    import yt
    yt.enable_parallelism()
 
-   def print_and_save_plot(v, c, plot, print=True):
-       if print:
-          print v, c
+   def print_and_save_plot(v, c, plot, verbose=True):
+       if verbose:
+          print(v, c)
        plot.save()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
    p = yt.ProjectionPlot(ds, "x", "density")
-   yt.only_on_root(print_and_save_plot, v, c, plot, print=True)
+   yt.only_on_root(print_and_save_plot, v, c, plot, verbose=True)
 
 Types of Parallelism
 --------------------
@@ -252,7 +263,7 @@ and you can access the contents:
         sto.result = <some information processed for this dataset>
         sto.result_id = <some identfier for this dataset>
 
-    print my_dictionary
+    print(my_dictionary)
 
 .. _parallelizing-your-analysis:
 
@@ -270,9 +281,9 @@ processors (or cores).  Please see this heavily-commented example:
    # As always...
    import yt
    yt.enable_parallelism()
-   
+
    import glob
-   
+
    # The number 4, below, is the number of processes to parallelize over, which
    # is generally equal to the number of MPI tasks the job is launched with.
    # If num_procs is set to zero or a negative number, the for loop below
@@ -281,7 +292,7 @@ processors (or cores).  Please see this heavily-commented example:
    # MPI tasks the job is run with, num_procs will default to the number of
    # MPI tasks automatically.
    num_procs = 4
-   
+
    # fns is a list of all the simulation data files in the current directory.
    fns = glob.glob("./plot*")
    fns.sort()
@@ -321,7 +332,7 @@ processors (or cores).  Please see this heavily-commented example:
    # tasks do nothing.
    if yt.is_root()
        for fn, vals in sorted(my_storage.items()):
-           print fn, vals
+           print(fn, vals)
 
 This example above can be modified to loop over anything that can be saved to
 a Python list: halos, data files, arrays, and more.
@@ -361,7 +372,7 @@ density cell in a large number of simulation outputs:
 
    # Print out the angular momentum vector for all of the datasets
    for L in sorted(storage.items()):
-       print L
+       print(L)
 
 Note that this script can be run in serial or parallel with an arbitrary number
 of processors.  When running in parallel, each output is given to a different
@@ -379,7 +390,7 @@ processors.  Note that parallel=1 implies that the analysis will be run using
    yt.enable_parallelism()
 
    ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
-   
+
    for ds in ts.piter():
        sphere = ds.sphere("max", (1.0, "pc))
        L_vecs = sphere.quantities.angular_momentum_vector()
@@ -490,11 +501,7 @@ biggest concern for halo finding is the amount of memory needed.  There is
 subtle art in estimating the amount of memory needed for halo finding, but a
 rule of thumb is that the HOP halo finder is the most memory intensive
 (:func:`HaloFinder`), and Friends of Friends (:func:`FOFHaloFinder`) being the
-most memory-conservative.  It has been found that :func:`parallelHF` needs
-roughly 1 MB of memory per 5,000 particles, although recent work has improved
-this and the memory requirement is now smaller than this. But this is a good
-starting point for beginning to calculate the memory required for halo-finding.
-For more information, see :ref:`halo_finding`.
+most memory-conservative. For more information, see :ref:`halo_finding`.
 
 **Volume Rendering**
 
@@ -556,9 +563,9 @@ Additional Tips
        array = TinyTeensyParallelFunction(ds, tinystuff, ministuff)
        SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
    t2 = time.time()
-   
+
    if yt.is_root()
-       print "BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1)
+       print("BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1))
   
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,

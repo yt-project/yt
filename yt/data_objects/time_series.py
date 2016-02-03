@@ -13,17 +13,33 @@ Time series analysis functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import inspect, functools, weakref, glob, types, os
+import inspect
+import functools
+import glob
+import numpy as np
+import os
+import weakref
 
-from yt.funcs import *
+from functools import wraps
+
 from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
-from .data_containers import data_object_registry
-from .analyzer_objects import create_quantity_proxy, \
-    analysis_task_registry, AnalysisTask
+from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.derived_quantities import \
+    derived_quantity_registry
+from yt.data_objects.analyzer_objects import \
+    create_quantity_proxy, \
+    analysis_task_registry, \
+    AnalysisTask
+from yt.funcs import \
+    iterable, \
+    ensure_list, \
+    mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException
+from yt.utilities.exceptions import \
+    YTException, \
+    YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import parallel_objects, parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -130,7 +146,7 @@ class DatasetSeries(object):
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, string_types):
             outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls, *args, **kwargs)
+        ret = super(DatasetSeries, cls).__new__(cls)
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
@@ -156,7 +172,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, str):
+            if isinstance(o, string_types):
                 ds = load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -170,7 +186,7 @@ class DatasetSeries(object):
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, str):
+        if isinstance(o, string_types):
             o = load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -248,13 +264,31 @@ class DatasetSeries(object):
 
         """
         dynamic = False
-        if self.parallel == False:
+        if self.parallel is False:
             njobs = 1
         else:
-            if self.parallel == True: njobs = -1
-            else: njobs = self.parallel
-        return parallel_objects(self, njobs=njobs, storage=storage,
-                                dynamic=dynamic)
+            if self.parallel is True:
+                njobs = -1
+            else:
+                njobs = self.parallel
+
+        for output in parallel_objects(self._pre_outputs, njobs=njobs,
+                                       storage=storage, dynamic=dynamic):
+            if storage is not None:
+                sto, output = output
+
+            if isinstance(output, string_types):
+                ds = load(output, **self.kwargs)
+                self._setup_function(ds)
+            else:
+                ds = output
+
+            if storage is not None:
+                next_ret = (sto, ds)
+            else:
+                next_ret = ds
+
+            yield next_ret
 
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
@@ -267,7 +301,7 @@ class DatasetSeries(object):
                     if style == 'ds':
                         arg = ds
                     elif style == 'data_object':
-                        if obj == None:
+                        if obj is None:
                             obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(ds)
                     rv = task.eval(arg)
@@ -323,13 +357,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, str):
+        if isinstance(filenames, string_types):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, str):
+            if not isinstance(fn, string_types):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))
@@ -359,7 +393,7 @@ class TimeSeriesQuantitiesContainer(object):
         if key not in self.quantities: raise KeyError(key)
         q = self.quantities[key]
         def run_quantity_wrapper(quantity, quantity_name):
-            @wraps(quantity_info[quantity_name][1])
+            @wraps(derived_quantity_registry[quantity_name][1])
             def run_quantity(*args, **kwargs):
                 to_run = quantity(*args, **kwargs)
                 return self.data_object.eval(to_run)
@@ -372,7 +406,7 @@ class DatasetSeriesObject(object):
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in quantity_info.items()])
+        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in derived_quantity_registry.items()])
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
@@ -406,6 +440,7 @@ class SimulationTimeSeries(DatasetSeries):
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
         self.parameters = {}
+        self.key_parameters = []
 
         # Set some parameter defaults.
         self._set_parameter_defaults()
@@ -420,6 +455,21 @@ class SimulationTimeSeries(DatasetSeries):
         
         self.print_key_parameters()
 
+    def _set_parameter_defaults(self):
+        pass
+
+    def _parse_parameter_file(self):
+        pass
+
+    def _set_units(self):
+        pass
+
+    def _calculate_simulation_bounds(self):
+        pass
+
+    def _get_all_outputs(**kwargs):
+        pass
+        
     def __repr__(self):
         return self.parameter_filename
 
@@ -445,23 +495,78 @@ class SimulationTimeSeries(DatasetSeries):
         """
         Print out some key parameters for the simulation.
         """
-        for a in ["domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "initial_time", "final_time",
-                  "stop_cycle", "cosmological_simulation"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in dataset definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
+        if self.simulation_type == "grid":
+            for a in ["domain_dimensions", "domain_left_edge",
+                      "domain_right_edge"]:
+                self._print_attr(a)
+        for a in ["initial_time", "final_time",
+                  "cosmological_simulation"]:
+            self._print_attr(a)
+        if getattr(self, "cosmological_simulation", False):
             for a in ["box_size", "omega_lambda",
                       "omega_matter", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
-                if not hasattr(self, a):
-                    mylog.error("Missing %s in dataset definition!", a)
-                    continue
-                v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
+                self._print_attr(a)
+        for a in self.key_parameters:
+            self._print_attr(a)
         mylog.info("Total datasets: %d." % len(self.all_outputs))
 
+    def _print_attr(self, a):
+        """
+        Print the attribute or warn about it missing.
+        """
+        if not hasattr(self, a):
+            mylog.error("Missing %s in dataset definition!", a)
+            return
+        v = getattr(self, a)
+        mylog.info("Parameters: %-25s = %s", a, v)
+
+    def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
+        r"""
+        Get datasets at or near to given values.
+
+        Parameters
+        ----------
+        key: str
+            The key by which to retrieve outputs, usually 'time' or
+            'redshift'.
+        values: array_like
+            A list of values, given as floats.
+        tolerance : float
+            If not None, do not return a dataset unless the value is
+            within the tolerance value.  If None, simply return the
+            nearest dataset.
+            Default: None.
+        outputs : list
+            The list of outputs from which to choose.  If None,
+            self.all_outputs is used.
+            Default: None.
+
+        Examples
+        --------
+        >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
+
+        """
+
+        if not isinstance(values, YTArray):
+            if isinstance(values, tuple) and len(values) == 2:
+                values = self.arr(*values)
+            else:
+                values = self.arr(values)
+        values = values.in_cgs()
+
+        if outputs is None:
+            outputs = self.all_outputs
+        my_outputs = []
+        if not outputs:
+            return my_outputs
+        for value in values:
+            outputs.sort(key=lambda obj:np.abs(value - obj[key]))
+            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
+                    and outputs[0] not in my_outputs:
+                my_outputs.append(outputs[0])
+            else:
+                mylog.error("No dataset added for %s = %f.", key, value)
+
+        outputs.sort(key=lambda obj: obj['time'])
+        return my_outputs

@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.2-dev"
+__version__ = "3.3-dev"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -103,7 +103,9 @@ from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate, \
     uintersect1d, \
-    uunion1d
+    uunion1d, \
+    loadtxt, \
+    savetxt
 
 from yt.fields.api import \
     field_plugins, \
@@ -119,7 +121,6 @@ from yt.fields.api import \
     derived_field
 
 from yt.data_objects.api import \
-    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     DatasetSeries, ImageArray, \
     particle_filter, add_particle_filter, \
     create_profile, Profile1D, Profile2D, Profile3D, \
@@ -134,7 +135,10 @@ frontends = _frontend_container()
 from yt.frontends.stream.api import \
     load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree, \
-    hexahedral_connectivity
+    hexahedral_connectivity, load_unstructured_mesh
+
+from yt.frontends.ytdata.api import \
+    save_as_dataset
 
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset
@@ -154,8 +158,11 @@ from yt.visualization.api import \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
+    off_axis_projection
+import yt.visualization.volume_rendering.api as volume_rendering
+#    TransferFunctionHelper, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system
@@ -163,10 +170,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
-from yt.testing import \
-    run_nose
+from yt.testing import run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
-

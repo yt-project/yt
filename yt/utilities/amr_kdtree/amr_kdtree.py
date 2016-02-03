@@ -14,18 +14,28 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
 import numpy as np
-import h5py
-from .amr_kdtools import \
-        receive_and_reduce, send_to_parent, scatter_image
 
-from yt.utilities.lib.amr_kdtools import Node, add_pygrids, find_node, \
-        kd_is_leaf, depth_traverse, depth_first_touch, viewpoint_traverse, \
-        kd_traverse, \
-        get_left_edge, get_right_edge, kd_sum_volume, kd_node_check
-from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import ParallelAnalysisInterface 
+from yt.funcs import mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.amr_kdtree.amr_kdtools import \
+    receive_and_reduce, \
+    send_to_parent, \
+    scatter_image
+from yt.utilities.lib.amr_kdtools import \
+    Node, \
+    add_pygrids, \
+    find_node, \
+    kd_is_leaf, \
+    depth_traverse, \
+    depth_first_touch, \
+    kd_traverse, \
+    get_left_edge, \
+    get_right_edge, \
+    kd_sum_volume, \
+    kd_node_check
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
@@ -342,18 +352,18 @@ class AMRKDTree(ParallelAnalysisInterface):
         new_positions = [periodic_position(p, self.ds) for p in new_positions]
         grids[in_grid] = grid
                 
-        get_them = np.argwhere(in_grid != True).ravel()
+        get_them = np.argwhere(in_grid).ravel()
         cis[in_grid] = new_cis[in_grid]
 
-        if (in_grid != True).sum()>0:
-            grids[in_grid != True] = \
+        if (in_grid).sum()>0:
+            grids[np.logical_not(in_grid)] = \
                 [self.ds.index.grids[self.locate_brick(new_positions[i]).grid -
                                  self._id_offset]
                  for i in get_them]
-            cis[in_grid != True] = \
+            cis[np.logical_not(in_grid)] = \
                 [(new_positions[i]-grids[i].LeftEdge)/
                  grids[i].dds for i in get_them]
-        cis = [tuple(ci) for ci in cis]
+        cis = [tuple(_ci) for _ci in cis]
         return grids, cis
 
     def locate_neighbors_from_position(self, position):
@@ -457,7 +467,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         splitdims = self.comm.par_combine_object(splitdims, 'cat', 'list') 
         splitposs = self.comm.par_combine_object(splitposs, 'cat', 'list') 
         nid = np.array(nid)
-        new_tree = self.rebuild_tree_from_array(nid, pid, lid, 
+        self.rebuild_tree_from_array(nid, pid, lid,
             rid, les, res, gid, splitdims, splitposs)
 
     def get_node_arrays(self):
@@ -536,9 +546,9 @@ class AMRKDTree(ParallelAnalysisInterface):
         return self.tree.sum_cells() 
 
 if __name__ == "__main__":
-    from yt.mods import *
+    import yt
     from time import time
-    ds = load('/Users/skillman/simulations/DD1717/DD1717')
+    ds = yt.load('/Users/skillman/simulations/DD1717/DD1717')
     ds.index
 
     t1 = time()

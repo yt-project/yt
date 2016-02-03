@@ -13,15 +13,19 @@ Some convenience functions, objects, and iterators
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os, os.path, types
+import os
 
 # Named imports
-from yt.funcs import *
+from yt.extern.six import string_types
 from yt.config import ytcfg
+from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     simulation_time_series_registry, \
     EnzoRunDatabase
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified, \
+    YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def load(*args ,**kwargs):
@@ -32,24 +36,12 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.api.Dataset` subclass.
     """
-    if len(args) == 0:
-        try:
-            from yt.extern.six.moves import tkinter
-            import tkinter, tkFileDialog
-        except ImportError:
-            raise YTOutputNotIdentified(args, kwargs)
-        root = tkinter.Tk()
-        filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
-        if filename != None:
-            return load(filename)
-        else:
-            raise YTOutputNotIdentified(args, kwargs)
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, str)
+    args = [os.path.expanduser(arg) if isinstance(arg, string_types)
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
-        if isinstance(arg, str):
+        if isinstance(arg, string_types):
             if os.path.exists(arg):
                 valid_file.append(True)
             elif arg.startswith("http"):
@@ -62,17 +54,27 @@ def load(*args ,**kwargs):
                     valid_file.append(False)
         else:
             valid_file.append(False)
+    types_to_check = output_type_registry
     if not any(valid_file):
         try:
             from yt.data_objects.time_series import DatasetSeries
             ts = DatasetSeries.from_filenames(*args, **kwargs)
             return ts
-        except YTOutputNotIdentified:
+        except (TypeError, YTOutputNotIdentified):
             pass
-        mylog.error("None of the arguments provided to load() is a valid file")
-        mylog.error("Please check that you have used a correct path")
-        raise YTOutputNotIdentified(args, kwargs)
-    for n, c in output_type_registry.items():
+        # We check if either the first argument is a dict or list, in which
+        # case we try identifying candidates.
+        if len(args) > 0 and isinstance(args[0], (list, dict)):
+            # This fixes issues where it is assumed the first argument is a
+            # file
+            types_to_check = dict((n, v) for n, v in
+                    output_type_registry.items() if n.startswith("stream_"))
+            # Better way to do this is to override the output_type_registry
+        else:
+            mylog.error("None of the arguments provided to load() is a valid file")
+            mylog.error("Please check that you have used a correct path")
+            raise YTOutputNotIdentified(args, kwargs)
+    for n, c in types_to_check.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
 
@@ -85,7 +87,7 @@ def load(*args ,**kwargs):
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
-           and isinstance(args[0], str):
+           and isinstance(args[0], string_types):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"
@@ -99,32 +101,6 @@ def load(*args ,**kwargs):
     for c in candidates:
         mylog.error("    Possible: %s", c)
     raise YTOutputNotIdentified(args, kwargs)
-
-def projload(ds, axis, weight_field = None):
-    # This is something of a hack, so that we can just get back a projection
-    # and not utilize any of the intermediate index objects.
-    class ProjMock(dict):
-        pass
-    import h5py
-    f = h5py.File(os.path.join(ds.fullpath, ds.parameter_filename + ".yt"))
-    b = f["/Projections/%s/" % (axis)]
-    wf = "weight_field_%s" % weight_field
-    if wf not in b: raise KeyError(wf)
-    fields = []
-    for k in b:
-        if k.startswith("weight_field"): continue
-        if k.endswith("_%s" % weight_field):
-            fields.append(k)
-    proj = ProjMock()
-    for f in ["px","py","pdx","pdy"]:
-        proj[f] = b[f][:]
-    for f in fields:
-        new_name = f[:-(len(weight_field) + 1)]
-        proj[new_name] = b[f][:]
-    proj.axis = axis
-    proj.ds = ds
-    f.close()
-    return proj
 
 def simulation(parameter_filename, simulation_type, find_outputs=False):
     """

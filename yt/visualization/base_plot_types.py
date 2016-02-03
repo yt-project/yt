@@ -54,8 +54,10 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
+        self.aspect = window_plot._aspect
         self.font_properties = font_properties
         self.font_color = font_color
+        self.field = field
 
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.

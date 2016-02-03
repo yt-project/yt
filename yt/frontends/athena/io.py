@@ -12,12 +12,16 @@ The data-file handling functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.utilities.io_handler import \
-           BaseIOHandler
-import numpy as np
-from yt.funcs import mylog, defaultdict
 
-float_size = np.dtype(">f4").itemsize
+from yt.utilities.io_handler import \
+    BaseIOHandler
+import numpy as np
+from yt.funcs import mylog
+from .data_structures import chk23
+
+float_size = {"float":np.dtype(">f4").itemsize,
+              "double":np.dtype(">f8").itemsize}
+
 axis_list = ["_x","_y","_z"]
 
 class IOHandlerAthena(BaseIOHandler):
@@ -48,24 +52,28 @@ class IOHandlerAthena(BaseIOHandler):
             grid0_ncells = np.prod(grid.index.grids[0].read_dims)
             read_table_offset = get_read_table_offset(f)
             for field in fields:
-                dtype, offsetr = grid.index._field_map[field]
+                ftype, offsetr, dtype = grid.index._field_map[field]
                 if grid_ncells != grid0_ncells:
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
                 offset = int(offset) # Casting to be certain.
-                file_offset = grid.file_offset[2]*read_dims[0]*read_dims[1]*float_size
+                file_offset = grid.file_offset[2]*read_dims[0]*read_dims[1]*float_size[dtype]
                 xread = slice(grid.file_offset[0],grid.file_offset[0]+grid_dims[0])
                 yread = slice(grid.file_offset[1],grid.file_offset[1]+grid_dims[1])
                 f.seek(read_table_offset+offset+file_offset)
-                if dtype == 'scalar':
+                if dtype == 'float':
+                    dt = '>f4'
+                elif dtype == 'double':
+                    dt = '>f8'
+                if ftype == 'scalar':
                     f.seek(read_table_offset+offset+file_offset)
-                    v = np.fromfile(f, dtype='>f4',
+                    v = np.fromfile(f, dtype=dt,
                                     count=grid_ncells).reshape(read_dims,order='F')
-                if dtype == 'vector':
+                if ftype == 'vector':
                     vec_offset = axis_list.index(field[-1][-2:])
                     f.seek(read_table_offset+offset+3*file_offset)
-                    v = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
+                    v = np.fromfile(f, dtype=dt, count=3*grid_ncells)
                     v = v[vec_offset::3].reshape(read_dims,order='F')
                 if grid.ds.field_ordering == 1:
                     data[grid.id][field] = v[xread,yread,:].T.astype("float64")
@@ -104,15 +112,12 @@ class IOHandlerAthena(BaseIOHandler):
         return rv
 
 def get_read_table_offset(f):
-    from sys import version
     line = f.readline()
     while True:
         splitup = line.strip().split()
-        if version < '3':
-            chk = 'CELL_DATA'
-        else:
-            chk = b'CELL_DATA'
-        if chk in splitup:
+        chkc = chk23('CELL_DATA')
+        chkp = chk23('POINT_DATA')
+        if chkc in splitup or chkp in splitup:
             f.readline()
             read_table_offset = f.tell()
             break

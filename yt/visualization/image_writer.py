@@ -13,12 +13,10 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
-import imp
-import os
 import numpy as np
 
-from yt.funcs import *
+from yt.funcs import mylog, get_image_suffix
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from .color_maps import mcm
 from . import _colormap_data as cmd
@@ -170,7 +168,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
                                        alpha_channel], axis=-1)
     if transpose:
-        bitmap_array = bitmap_array.swapaxes(0,1)
+        bitmap_array = bitmap_array.swapaxes(0,1).copy(order="C")
     if filename is not None:
         pw.write_png(bitmap_array, filename)
     else:
@@ -277,7 +275,7 @@ def map_to_colors(buff, cmap_name):
                 cmap = bmap.get_mpl_colormap(N=cmap_name[2])
             else:
                 cmap = mcm.get_cmap(cmap_name)
-            dummy = cmap(0.0)
+            cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
             print("Your color map was not found in either the extracted" +\
