@@ -21,7 +21,8 @@ from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from fp_utils cimport *
-from yt.utilities.lib.geometry_utils cimport bounded_morton,bounded_morton_relative
+from yt.utilities.lib.geometry_utils cimport bounded_morton,bounded_morton_relative, \
+    bounded_morton_dds, bounded_morton_relative_dds
 import numpy as np
 cimport numpy as np
 from selection_routines cimport SelectorObject, \
@@ -298,7 +299,8 @@ cdef class ParticleForest:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
-    cdef np.float64_t dds_mi[3]
+    cdef np.float64_t dds_mi1[3]
+    cdef np.float64_t dds_mi2[3]
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
     cdef public np.uint64_t nfiles
@@ -319,8 +321,6 @@ cdef class ParticleForest:
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
     cdef list bitmasks
-    cdef ewah_bool_array total_keys
-    cdef ewah_bool_array total_refn
     cdef BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
@@ -340,7 +340,8 @@ cdef class ParticleForest:
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i] 
-            self.dds_mi[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
+            self.dds_mi1[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
+            self.dds_mi2[i] = self.dds_mi1[i] / (1<<index_order2)
         # We use 64-bit masks
         self.index_order1 = index_order1
         self.index_order2 = index_order2
@@ -366,6 +367,7 @@ cdef class ParticleForest:
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.float64_t dds[3]
         cdef np.int32_t order = self.index_order1
         cdef np.int64_t total_hits = 0
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
@@ -373,6 +375,7 @@ cdef class ParticleForest:
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            dds[i] = self.dds_mi1[i]
         # cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
@@ -384,7 +387,8 @@ cdef class ParticleForest:
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
-            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
+            # mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
+            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
             # mask[mi] = 1
             bitmasks._set(mi)
 
@@ -401,14 +405,19 @@ cdef class ParticleForest:
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.float64_t dds1[3]
+        cdef np.float64_t dds2[3]
         cdef np.int64_t total_hits = 0
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
+        cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            dds1[i] = self.dds_mi1[i]
+            dds2[i] = self.dds_mi2[i]
         cdef np.ndarray[np.uint64_t, ndim=1] sub_mi1 
         cdef np.ndarray[np.uint64_t, ndim=1] sub_mi2 
         sub_mi1 = np.zeros(pos.shape[0], dtype="uint64")
@@ -418,26 +427,31 @@ cdef class ParticleForest:
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
-                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                if pos[p,i] > RE[i]:
+                    skip = 1
+                    break
+                if pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
             if skip == 1: continue
             # Only look if collision at coarse index
-            mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order1)
-            if self.total_refn.get(mi): 
+            # mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order1)
+            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
+            if total_refn.get(mi): 
                 total_hits += 1
                 # Determine sub index within cell of primary index
                 sub_mi1[nsub_mi] = mi
-                sub_mi2[nsub_mi] = bounded_morton_relative(ppos[0], ppos[1], ppos[2],
-                                                           LE, RE, order1, order2)
+                # sub_mi2[nsub_mi] = bounded_morton_relative(ppos[0], ppos[1], ppos[2],
+                #                                            LE, RE, order1, order2)
+                sub_mi2[nsub_mi] = bounded_morton_relative_dds(ppos[0], ppos[1], ppos[2],
+                                                               LE, dds1, dds2)
                 nsub_mi += 1
         # Only subs of particles in the mask
-        # TODO: collisions at second level
-        sub_mi1 = sub_mi1[:nsub_mi]
-        sub_mi2 = sub_mi2[:nsub_mi]
-        #cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2)
+        # sub_mi1 = sub_mi1[:nsub_mi]
+        # sub_mi2 = sub_mi2[:nsub_mi]
+        # cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
         last_submi = last_mi = 0
         for i in range(int(nsub_mi)):
             p = ind[i]
@@ -459,6 +473,7 @@ cdef class ParticleForest:
     @cython.cdivision(True)
     def find_collisions_coarse(self):
         # TODO: count collisions at second level
+        cdef int nc, nm
         cdef np.int32_t ifile
         cdef BoolArrayCollection bitmask
         cdef ewah_bool_array arr_two, arr_swap, arr_keys, arr_refn
@@ -473,12 +488,10 @@ cdef class ParticleForest:
             arr_keys.swap(arr_swap)
             arr_refn.logicalor(arr_two, arr_swap)
             arr_refn.swap(arr_swap)
-        self.total_keys.swap(arr_keys)
-        self.total_refn.swap(arr_refn)
-        coll_keys[0] = self.total_keys
-        coll_refn[0] = self.total_refn
-        cdef int nc = self.total_refn.numberOfOnes()
-        cdef int nm = self.total_keys.numberOfOnes()
+        coll_keys[0].swap(arr_keys)
+        coll_refn[0].swap(arr_refn)
+        nc = coll_refn[0].numberOfOnes()
+        nm = coll_keys[0].numberOfOnes()
         print("{}/{} collisions at coarse refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     @cython.boundscheck(False)
@@ -586,21 +599,21 @@ cdef class ParticleForest:
         cdef ewah_bool_array coarse_d, coarse_s, coarse_g
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
+        cdef np.float64_t DLE[3]
         cdef int j
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.uint64_t mi1
         cdef np.int32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
-        # Find mask defining cells with collisions at first index
-        cmask_coll = self.collisions
         # Find mask of selected morton indices
         for j in range(3):
-            pos[j] = np.float64(0.0)
+            pos[j] = 0.0#self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
-        selector.recursive_morton_mask(0, pos, dds, 
+            DLE[j] = 0.0#self.left_edge[j]
+        selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
-                                       FLAG, cmask_s, cmask_g, cmask_coll, 
+                                       FLAG, cmask_s, cmask_g, self.collisions, 
                                        ngz=ngz)
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
@@ -619,6 +632,8 @@ cdef class ParticleForest:
         cmask_g._ewah_coarse()
         coarse_s = (<ewah_bool_array*> cmask_s.ewah_coar)[0]
         coarse_g = (<ewah_bool_array*> cmask_g.ewah_coar)[0]
+        print "{} coarse selector cells, {} coarse ghost cells".format(coarse_s.numberOfOnes(),
+                                                                       coarse_g.numberOfOnes())
         # Compare with mask of particles
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         file_mask_g = np.zeros(self.nfiles, dtype="uint8")
@@ -628,7 +643,7 @@ cdef class ParticleForest:
                 cmask_d = self.bitmasks[ifile]
                 # Do coarse levels
                 cmask_d._ewah_coarse()
-                coarse_d = (<ewah_bool_array*> cmask_d.ewah_coar)[0]
+                coarse_d = (<ewah_bool_array*> cmask_d.ewah_keys)[0]
                 refined_d = (<ewah_bool_array*> cmask_d.ewah_refn)[0]
                 if coarse_s.intersects(coarse_d):
                     file_mask_p[ifile] = 1
@@ -654,13 +669,21 @@ cdef class ParticleForest:
                                 if refined_s.intersects(refined_d):
                                     file_mask_p[ifile] = 1
                                     file_mask_g[ifile] = 0
+                                    break
+                            elif cmask_s._get(mi1):
+                                file_mask_p[ifile] = 1
+                                file_mask_g[ifile] = 0
+                                break
                             # Ghost zones
-                            if not file_mask_p[ifile] and not file_mask_g[ifile] and cmask_g._isref(mi1):
-                                it_mi1_g = mask_g.find(mi1)
-                                if (it_mi1_g == mask_g.end()):
-                                    raise RuntimeError("Refinement indicated in ghost zones, but bool array for mi1 = {} not found".format(mi1))
-                                refined_g = dereference(it_mi1_g).second
-                                if refined_g.intersects(refined_d):
+                            if not file_mask_p[ifile] and not file_mask_g[ifile]:
+                                if cmask_g._isref(mi1):
+                                    it_mi1_g = mask_g.find(mi1)
+                                    if (it_mi1_g == mask_g.end()):
+                                        raise RuntimeError("Refinement indicated in ghost zones, but bool array for mi1 = {} not found".format(mi1))
+                                    refined_g = dereference(it_mi1_g).second
+                                    if refined_g.intersects(refined_d):
+                                        file_mask_g[ifile] = 1
+                                elif cmask_g.get(mi1):
                                     file_mask_g[ifile] = 1
                         preincrement(it_mi1_d)
         return np.where(file_mask_p)[0],np.where(file_mask_g)[0]

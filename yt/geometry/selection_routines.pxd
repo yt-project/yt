@@ -65,6 +65,7 @@ cdef class SelectorObject:
     cdef void recursive_morton_mask(self, np.int32_t level,
                                     np.float64_t pos[3],
                                     np.float64_t dds[3],
+				    np.float64_t DLE[3],
                                     np.int32_t max_level1, np.int32_t max_level2,
                                     np.uint64_t mi1,
                                     BoolArrayCollection mm,

@@ -284,7 +284,7 @@ cdef inline np.uint64_t bounded_morton_relative(np.float64_t x, np.float64_t y, 
   
 # This dosn't seem to be much, if at all, faster...
 @cython.cdivision(True)
-cdef inline np.uint64_t bounded_morton_mml(np.float64_t x, np.float64_t y, np.float64_t z,
+cdef inline np.uint64_t bounded_morton_dds(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds):
     cdef np.uint64_t x_ind, y_ind, z_ind
     cdef np.uint64_t mi
@@ -293,3 +293,20 @@ cdef inline np.uint64_t bounded_morton_mml(np.float64_t x, np.float64_t y, np.fl
     z_ind = <np.uint64_t> ((z - DLE[2])/dds[2])
     mi = encode_morton_64bit(x_ind,y_ind,z_ind)
     return mi
+
+@cython.cdivision(True)
+cdef inline np.uint64_t bounded_morton_relative_dds(np.float64_t x, np.float64_t y, np.float64_t z,
+                               np.float64_t *DLE, np.float64_t *dds1, np.float64_t *dds2):
+    cdef np.float64_t DLE2[3]
+    cdef np.uint64_t x_ind, y_ind, z_ind
+    cdef np.uint64_t mi2
+    DLE2[0] = <np.float64_t> (<np.int64_t> ((x - DLE[0])/dds1[0])) * dds1[0]
+    DLE2[1] = <np.float64_t> (<np.int64_t> ((y - DLE[1])/dds1[1])) * dds1[1]
+    DLE2[2] = <np.float64_t> (<np.int64_t> ((z - DLE[2])/dds1[2])) * dds1[2]
+    x_ind = <np.uint64_t> ((x - DLE2[0])/dds2[0])
+    y_ind = <np.uint64_t> ((y - DLE2[1])/dds2[1])
+    z_ind = <np.uint64_t> ((z - DLE2[2])/dds2[2])
+    mi2 = encode_morton_64bit(x_ind,y_ind,z_ind)
+    return mi2
+
+  

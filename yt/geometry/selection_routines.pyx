@@ -27,7 +27,8 @@ from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit
+from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
+    bounded_morton_dds
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -156,15 +157,15 @@ cdef class SelectorObject:
         for i in range(3):
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
-        self.recursive_morton_mask(0, pos, dds, order1, order2, FLAG, 
+        self.recursive_morton_mask(0, pos, dds, DLE, order1, order2, FLAG, 
                                    morton_mask, morton_mask, mm_coll, ngz=ngz)
         return morton_mask
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void recursive_morton_mask(self, np.int32_t level,
-                                    np.float64_t pos[3], np.float64_t dds[3],
+    cdef void recursive_morton_mask(self, np.int32_t level, np.float64_t pos[3], 
+                                    np.float64_t dds[3], np.float64_t DLE[3],
                                     np.int32_t max_level1, np.int32_t max_level2,
                                     np.uint64_t mi1,
                                     BoolArrayCollection mm,
@@ -184,7 +185,7 @@ cdef class SelectorObject:
         cdef np.uint64_t max_index2 = <np.uint64_t>(1 << max_level2)
         cdef int i, j, k, l, m, n, iil, iim, iin, n_neighbors, skip
         cdef np.int64_t maj, rem
-        neighbors = np.zeros(2*ngz+1, dtype=np.uint32)
+        neighbors = np.zeros(2*ngz+1, dtype=np.int32)
         ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
         ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
         for i in range(3):
@@ -200,17 +201,16 @@ cdef class SelectorObject:
                     npos[2] = pos[2] + k*ndds[2]
                     cpos[2] = npos[2] + ndds[2]/2
                     # Only recurse into selected cells
-                    if self.select_cell(cpos,ndds):
+                    if self.select_cell(npos,ndds):
                         if level < (max_level1 + max_level2): # both morton indices...
                             if level == max_level1:
-                                mi1 = encode_morton_64bit(<np.uint64_t>(npos[0]/ndds[0]),
-                                                          <np.uint64_t>(npos[1]/ndds[1]),
-                                                          <np.uint64_t>(npos[2]/ndds[2]))
-                                mm._set(mi1)
+                                mi1 = bounded_morton_dds(npos[0],npos[1],npos[2], DLE, ndds)
                                 # If cell does not need refinement,
                                 # add neighbors at this level and continue
                                 if not mm_coll._isref(mi1):
+                                    mm._set(mi1)
                                     if (ngz > 0):
+                                        decode_morton_64bit(mi1,ind1)
                                         n_neighbors = 0
                                         for n,l in enumerate(range(-ngz,(ngz+1))):
                                             skip = 0
@@ -232,19 +232,20 @@ cdef class SelectorObject:
                                                 m = neighbors[iim]
                                                 for iin in range(n_neighbors):
                                                     n = neighbors[iin]
-                                                    mi1_n = 0
-                                                    # mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                                    mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                                     # Only set if not already a primary
                                                     if not mm._get(mi1_n):
                                                         mm_ghosts._set(mi1_n)
                                     continue
-                            self.recursive_morton_mask(level+1, npos, ndds,
+                                else:
+                                    printf("Refining {}\n".format(mi1))
+                            self.recursive_morton_mask(level+1, npos, ndds, DLE, 
                                                        max_level1, max_level2,
                                                        mi1, mm, mm_ghosts, mm_coll, ngz=ngz)
                         else: # max_level1 + max_level2
                             decode_morton_64bit(mi1,ind1)
                             for m in range(3):
-                                ind2[m] = <np.uint64_t>((npos[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
+                                ind2[m] = <np.uint64_t>((npos[m]-DLE[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
                             # Add selected cell
                             mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
                             mm._set(mi1,mi2)
@@ -282,9 +283,8 @@ cdef class SelectorObject:
                                         m = neighbors[iim]
                                         for iin in range(n_neighbors):
                                             n = neighbors[iin]
-                                            mi1_n = mi2 = 0
-                                            # mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                            # mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
+                                            mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                            mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
                                             # Only set if not already a primary
                                             if not mm._get(mi1_n,mi2):
                                                 mm_ghosts._set(mi1_n,mi2)
