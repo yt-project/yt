@@ -227,9 +227,6 @@ class BlockCollection:
             if len(self.blocks) == 1:
                 self.gl_texture_names = [self.gl_texture_names]
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
             glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR)
@@ -247,6 +244,9 @@ class BlockCollection:
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / (self.max_val - self.min_val)
             glBindTexture(GL_TEXTURE_3D, texture_name)
+            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+            glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
             glTexStorage3D(GL_TEXTURE_3D, 1, GL_R32F,
                 *block.my_data[0].shape)
             glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
