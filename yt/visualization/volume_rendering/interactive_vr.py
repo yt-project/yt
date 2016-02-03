@@ -3,8 +3,13 @@ from OpenGL.GL import shaders
 from OpenGL.GLUT import *
 
 import numpy as np
-from yt.utilities.math_utils import get_translate_matrix, get_scale_matrix, \
-    get_lookat_matrix, get_perspective_matrix
+from yt.utilities.math_utils import \
+    get_translate_matrix, \
+    get_scale_matrix, \
+    get_lookat_matrix, \
+    get_perspective_matrix, \
+    
+
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
