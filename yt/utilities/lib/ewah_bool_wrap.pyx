@@ -82,6 +82,8 @@ cdef class BoolArrayCollection:
     def ewah_coarse(self):
         return self._ewah_coarse()
 
+    # TODO: routines to return number of coarse/refined/total cells
+
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn

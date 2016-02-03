@@ -453,7 +453,7 @@ cdef class ParticleForest:
         # cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
         last_submi = last_mi = 0
-        for i in range(int(nsub_mi)):
+        for i in range(nsub_mi):
             p = ind[i]
             # Make sure its sorted by second index
             # if not (sub_mi2[p] >= last_submi):
@@ -597,6 +597,7 @@ cdef class ParticleForest:
         cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_g
         cdef ewah_bool_array refined_d, refined_s, refined_g
         cdef ewah_bool_array coarse_d, coarse_s, coarse_g
+        cdef ewah_bool_array total_d, total_s, total_g
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
         cdef np.float64_t DLE[3]
@@ -608,32 +609,31 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
         # Find mask of selected morton indices
         for j in range(3):
-            pos[j] = 0.0#self.left_edge[j]
+            pos[j] = self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
-            DLE[j] = 0.0#self.left_edge[j]
+            DLE[j] = self.left_edge[j]
         selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 
                                        ngz=ngz)
+        # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
-        if 1:
-            coarse_s = (<ewah_bool_array*> cmask_s.ewah_keys)[0]
-            coarse_g = (<ewah_bool_array*> cmask_g.ewah_keys)[0]
-            refined_s = (<ewah_bool_array*> cmask_s.ewah_refn)[0]
-            refined_g = (<ewah_bool_array*> cmask_g.ewah_refn)[0]
-            if (mask_s.begin() == mask_s.end()):
-                print "Selector mask is empty ({}/{} cells refined).".format(refined_s.numberOfOnes(),
-                                                                             coarse_s.numberOfOnes())
-            if (mask_g.begin() == mask_g.end()):
-                print "Ghost mask is empty ({}/{} cells refined).".format(refined_g.numberOfOnes(),
-                                                                          coarse_g.numberOfOnes())
         cmask_s._ewah_coarse()
         cmask_g._ewah_coarse()
         coarse_s = (<ewah_bool_array*> cmask_s.ewah_coar)[0]
         coarse_g = (<ewah_bool_array*> cmask_g.ewah_coar)[0]
-        print "{} coarse selector cells, {} coarse ghost cells".format(coarse_s.numberOfOnes(),
-                                                                       coarse_g.numberOfOnes())
+        if 1:
+            total_s = (<ewah_bool_array*> cmask_s.ewah_keys)[0]
+            total_g = (<ewah_bool_array*> cmask_g.ewah_keys)[0]
+            refined_s = (<ewah_bool_array*> cmask_s.ewah_refn)[0]
+            refined_g = (<ewah_bool_array*> cmask_g.ewah_refn)[0]
+            print("Selector: {: 8d} coarse, {: 8d} refined, {: 8d} total".format(coarse_s.numberOfOnes(),
+                                                                                 refined_s.numberOfOnes(),
+                                                                                 total_s.numberOfOnes()))
+            print("Ghost   : {: 8d} coarse, {: 8d} refined, {: 8d} total".format(coarse_g.numberOfOnes(),
+                                                                                 refined_g.numberOfOnes(),
+                                                                                 total_g.numberOfOnes()))
         # Compare with mask of particles
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         file_mask_g = np.zeros(self.nfiles, dtype="uint8")
@@ -671,6 +671,9 @@ cdef class ParticleForest:
                                     file_mask_g[ifile] = 0
                                     break
                             elif cmask_s._get(mi1):
+                                # This shouldn't happen, the selector should always
+                                # refine where the data is refined.
+                                print "mi1 = {} coarsely selected by selector, but refined in data.".format(mi1)
                                 file_mask_p[ifile] = 1
                                 file_mask_g[ifile] = 0
                                 break
@@ -684,6 +687,9 @@ cdef class ParticleForest:
                                     if refined_g.intersects(refined_d):
                                         file_mask_g[ifile] = 1
                                 elif cmask_g.get(mi1):
+                                    # This shouldn't happen, the selector should always
+                                    # refine where the data is refined.
+                                    print "mi1 = {} coarsely selected by ghost, but refined in data.".format(mi1)
                                     file_mask_g[ifile] = 1
                         preincrement(it_mi1_d)
         return np.where(file_mask_p)[0],np.where(file_mask_g)[0]
