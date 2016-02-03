@@ -49,7 +49,6 @@ cdef class ParticleDepositOperation:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.initializedcheck(False)
     def process_octree(self, OctreeContainer octree,
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
@@ -108,7 +107,6 @@ cdef class ParticleDepositOperation:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.initializedcheck(False)
     def process_grid(self, gobj,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None):
@@ -153,9 +151,6 @@ cdef class CountParticles(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="int64", order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -192,9 +187,6 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -253,9 +245,6 @@ cdef class SumParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -298,9 +287,6 @@ cdef class StdParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -346,9 +332,6 @@ cdef class CICDeposit(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -401,9 +384,6 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype='float64', order='F'), 4)
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -436,9 +416,6 @@ cdef class MeshIdentifier(ParticleDepositOperation):
         self.update_values = 1
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
@@ -465,9 +442,6 @@ cdef class NNParticleField(ParticleDepositOperation):
         self.distfield[:] = np.inf
 
     @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
     cdef void process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
