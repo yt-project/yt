@@ -1,5 +1,6 @@
 import cyglfw3 as glfw
 import numpy as np
+from OpenGL.GL import glViewport
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
 

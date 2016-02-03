@@ -14,8 +14,8 @@ uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 
 bool within_bb(vec3 pos)
 {
-    bvec3 left =  greaterThanEqual(pos + .01, left_edge);
-    bvec3 right = lessThanEqual(pos - .01, right_edge);
+    bvec3 left =  greaterThanEqual(pos, left_edge);
+    bvec3 right = lessThanEqual(pos, right_edge);
     return all(left) && all(right);
 }
 
@@ -42,7 +42,8 @@ void main()
 
     vec3 tex_curr_pos = vec3(0.0);
     vec3 range = right_edge - left_edge;
-    while (within_bb(ray_position)) {
+    bool ray_in_bb = true;
+    while (ray_in_bb) {
         tex_curr_pos = (ray_position - left_edge)/range;
 
         vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
@@ -51,6 +52,7 @@ void main()
         }
 
         ray_position += dir * step_size;
+        ray_in_bb = within_bb(ray_position);
     }
     output_color = vec4(curr_color.rrr, 1.0);
 }
