@@ -8,9 +8,7 @@ from yt.geometry.selection_routines cimport \
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
-from yt.geometry.oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct, \
-    fill_file_indices_oind, fill_file_indices_rind
+from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport \
     ParticleDepositOperation
 from libc.stdint cimport int32_t, int64_t
