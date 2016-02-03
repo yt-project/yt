@@ -107,7 +107,7 @@ density within a sphere can be created in the following way:
    import yt
    ds = yt.load("galaxy0030/galaxy0030")
    source = ds.sphere( "c", (10, "kpc"))
-   profile = yt.create_profile(source, 
+   profile = yt.create_profile(source,
                                [("gas", "density")],          # the bin field
                                [("gas", "temperature"),       # profile field
                                 ("gas", "radial_velocity")],  # profile field
@@ -117,17 +117,17 @@ The binning, weight, and profile data can now be access as:
 
 .. code-block:: python
 
-   print profile.x       # bin field
-   print profile.weight  # weight field
-   print profile["gas", "temperature"]      # profile field
-   print profile["gas", "radial_velocity"]  # profile field
+   print(profile.x)       # bin field
+   print(profile.weight)  # weight field
+   print(profile["gas", "temperature"])      # profile field
+   print(profile["gas", "radial_velocity"])  # profile field
 
 The ``profile.used`` attribute gives a boolean array of the bins which actually 
 have data.
 
 .. code-block:: python
 
-   print profile.used
+   print(profile.used)
 
 If a weight field was given, the profile data will represent the weighted mean of 
 a field.  In this case, the weighted variance will be calculated automatically and 
@@ -135,14 +135,14 @@ can be access via the ``profile.variance`` attribute.
 
 .. code-block:: python
 
-   print profile.variance["gas", "temperature"]
+   print(profile.variance["gas", "temperature"])
 
 A two-dimensional profile of the total gas mass in bins of density and temperature 
 can be created as follows:
 
 .. code-block:: python
 
-   profile2d = yt.create_profile(source, 
+   profile2d = yt.create_profile(source,
                                  [("gas", "density"),      # the x bin field
                                   ("gas", "temperature")], # the y bin field
                                  [("gas", "cell_mass")],   # the profile field
@@ -152,9 +152,9 @@ Accessing the x, y, and profile fields work just as with one-dimensional profile
 
 .. code-block:: python
 
-   print profile2d.x
-   print profile2d.y
-   print profile2d["gas", "cell_mass"]
+   print(profile2d.x)
+   print(profile2d.y)
+   print(profile2d["gas", "cell_mass"])
 
 One of the more interesting things that is enabled with this approach is
 the generation of 1D profiles that correspond to 2D profiles.  For instance, a
@@ -185,8 +185,8 @@ along that ray:
 
 .. code-block:: python
 
-   ray = ds.ray(  (0.3, 0.5, 0.9), (0.1, 0.8, 0.5) )
-   print ray["density"]
+   ray = ds.ray((0.3, 0.5, 0.9), (0.1, 0.8, 0.5))
+   print(ray["density"])
 
 The points are ordered, but the ray is also traversing cells of varying length,
 as well as taking a varying distance to cross each cell.  To determine the
@@ -198,8 +198,8 @@ To determine the value of ``t`` at which the ray enters each cell, the field
 
 .. code-block:: python
 
-   print ray['dts'].sum()
-   print ray['t']
+   print(ray['dts'].sum())
+   print(ray['t'])
 
 These can be used as inputs to, for instance, the Matplotlib function
 :func:`~matplotlib.pyplot.plot`, or they can be saved to disk.

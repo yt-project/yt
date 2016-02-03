@@ -330,12 +330,17 @@ mentioned.
 Exodus II Data
 --------------
 
+.. note::
+   To load Exodus II data, you need to have the `netcdf4 <http://unidata.github.io/
+   netcdf4-python/>`_ python interface installed.
+
 Exodus II is a file format for Finite Element datasets that is used by the MOOSE
 framework for file IO. Support for this format (and for unstructured mesh data in 
-general) is a new feature as of yt 3.3, so while we aim to fully support it, we also expect 
-there to be some buggy features at present. Currently, yt can visualize first-order
-mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
-Development of higher-order visualization capability is a work in progress.
+general) is a new feature as of yt 3.3, so while we aim to fully support it, we 
+also expect there to be some buggy features at present. Currently, yt can visualize 
+quads, hexes, triangles, and tetrahedral element types at first order. Additionally,
+there is experimental support for the high-order visualization of 20-node hex elements.
+Development of more high-order visualization capability is a work in progress.
 
 To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
 file:
@@ -348,14 +353,15 @@ file:
 Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
 picard iterations, non-linear solve iterations, etc...), you can also specify a step
 argument when you load an Exodus II data that defines the index at which to look when
-you read data from the file.
+you read data from the file. Omitting this argument is the same as passing in 0, and
+setting ``step=-1`` selects the last time output in the file.
 
 You can access the connectivity information directly by doing:
 
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=-1)
    print(ds.index.meshes[0].connectivity_coords)
    print(ds.index.meshes[0].connectivity_indices)
    print(ds.index.meshes[1].connectivity_coords)
@@ -368,7 +374,7 @@ objects. To see all the fields found in a particlular dataset, you can do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    print(ds.field_list)
 
 This will give you a list of field names like ``('connect1', 'diffused')`` and 
@@ -380,7 +386,7 @@ would do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()  # geometric selection, this just grabs everything
    print(ad['connect1', 'convected'])
 
@@ -390,7 +396,7 @@ are defined at the vertices of the elements. If we examine the shape of the retu
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'convected'].shape)
 
@@ -401,7 +407,7 @@ can do, for instance:
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'vertex_x'])
 
@@ -411,7 +417,7 @@ we get:
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'conv_indicator'].shape)
 
@@ -419,6 +425,61 @@ we instead get only one field value per element.
 
 For information about visualizing unstructured mesh data, including Exodus II datasets, 
 please see :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`. 
+
+Displacement Fields
+^^^^^^^^^^^^^^^^^^^
+
+Finite element codes often solve for the displacement of each vertex from its 
+original position as a node variable, rather than updating the actual vertex 
+positions with time. For analysis and visualization, it is often useful to turn 
+these displacements on or off, and to be able to scale them arbitrarily to 
+emphasize certain features of the solution. To allow this, if ``yt`` detects 
+displacement fields in an Exodus II dataset (using the convention that they will
+ be named ``disp_x``, ``disp_y``, etc...), it will add optionally add these to 
+the mesh vertex positions for the purposes of visualization. Displacement fields 
+can be controlled when a dataset is loaded by passing in an optional dictionary 
+to the ``yt.load`` command. This feature is turned off by default, meaning that 
+a dataset loaded as 
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/mps_out.e")
+
+will not include the displacements in the vertex positions. The displacements can
+be turned on separately for each mesh in the file by passing in a a tuple of 
+(scale, offset) pairs for the meshes you want to enable displacements for. 
+For example, the following code snippet turns displacements on for the second 
+mesh, but not the first:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                 displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
+
+The displacements can also be scaled by an arbitrary factor before they are 
+added in to the vertex positions. The following code turns on displacements
+for both ``connect1`` and ``connect2``, scaling the former by a factor of 5.0
+and the later by a factor of 10.0:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                 displacements={'connect1': (5.0, [0.0, 0.0, 0.0]),
+                                'connect2': (10.0, [0.0, 0.0, 0.0])})
+
+Finally, we can also apply an arbitrary offset to the mesh vertices after 
+the scale factor is applied. For example, the following code scales all
+displacements in the second mesh by a factor of 5.0, and then shifts
+each vertex in the mesh by 1.0 unit in the z-direction:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                  displacements={'connect2': (5.0, [0.0, 0.0, 1.0])})
 
 
 FITS Data
@@ -651,7 +712,7 @@ package must be installed.
 
   ds = yt.load("m33_hi.fits")
   circle_region = ds9_region(ds, "circle.reg")
-  print circle_region.quantities.extrema("flux")
+  print(circle_region.quantities.extrema("flux"))
 
 
 ``PlotWindowWCS``
@@ -1232,10 +1293,9 @@ Halo Catalog Data
 
 yt has support for reading halo catalogs produced by Rockstar and the inline 
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as 
-particle datasets where each particle represents a single halo.  At this time, 
-yt does not have the ability to load the member particles for a given halo.  
-However, once loaded, further halo analysis can be performed using 
-:ref:`halo_catalog`.
+particle datasets where each particle represents a single halo.  Member particles
+for individual halos can be accessed through halo data containers.  Further halo
+analysis can be performed using :ref:`halo_catalog`.
 
 In the case where halo catalogs are written to multiple files, one must only 
 give the path to one of them.
@@ -1251,15 +1311,15 @@ The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND)
    ds = yt.load("gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5")
    ad = ds.all_data()
    # The halo mass
-   print ad["Group", "particle_mass"]
-   print ad["Subhalo", "particle_mass"]
+   print(ad["Group", "particle_mass"])
+   print(ad["Subhalo", "particle_mass"])
    # Halo ID
-   print ad["Group", "particle_identifier"]
-   print ad["Subhalo", "particle_identifier"]
+   print(ad["Group", "particle_identifier"])
+   print(ad["Subhalo", "particle_identifier"])
    # positions
-   print ad["Group", "particle_position_x"]
+   print(ad["Group", "particle_position_x"])
    # velocities
-   print ad["Group", "particle_velocity_x"]
+   print(ad["Group", "particle_velocity_x"])
 
 Multidimensional fields can be accessed through the field name followed by an 
 underscore and the index.
@@ -1267,13 +1327,41 @@ underscore and the index.
 .. code-block:: python
 
    # x component of the spin
-   print ad["Subhalo", "SubhaloSpin_0"]
+   print(ad["Subhalo", "SubhaloSpin_0"])
+
+Halo member particles are accessed by creating halo data containers with the
+type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
+can be accessed in the same way.  Halos also have mass, position, and velocity
+attributes.
+
+.. code-block:: python
+
+   halo = ds.halo("Group", 0)
+   # member particles for this halo
+   print halo["member_ids"]
+   # halo virial radius
+   print halo["Group_R_Crit200"]
+   # halo mass
+   print halo.mass
+
+Subhalos containers can be created using either their absolute ids or their
+subhalo ids.
+
+.. code-block:: python
+
+   # first subhalo of the first halo
+   subhalo = ds.halo("Subhalo", (0, 0))
+   # this subhalo's absolute id
+   print subhalo.group_identifier
+   # member particles
+   print subhalo["member_ids"]
 
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
 
 OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.  
-The two field types are "FOF" and "SUBFIND".
+The two field types are "FOF" and "SUBFIND".  At this time, halo member particles
+cannot be loaded.
 
 .. code-block:: python
 
@@ -1281,7 +1369,7 @@ The two field types are "FOF" and "SUBFIND".
    ds = yt.load("owls_fof_halos/groups_008/group_008.0.hdf5")
    ad = ds.all_data()
    # The halo mass
-   print ad["FOF", "particle_mass"]
+   print(ad["FOF", "particle_mass"])
 
 Rockstar
 ^^^^^^^^
@@ -1295,7 +1383,7 @@ The single field type available is "halos".
    ds = yt.load("rockstar_halos/halos_0.0.bin")
    ad = ds.all_data()
    # The halo mass
-   print ad["halos", "particle_mass"]
+   print(ad["halos", "particle_mass"])
 
 PyNE Data
 ---------

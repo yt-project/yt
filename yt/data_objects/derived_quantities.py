@@ -436,22 +436,26 @@ class AngularMomentumVector(DerivedQuantity):
     """
     def count_values(self, use_gas=True, use_particles=True):
         num_vals = 0
-        if use_gas: num_vals += 4
-        if use_particles: num_vals += 4
+        # create the index if it doesn't exist yet
+        self.data_source.ds.index
+        self.use_gas = use_gas & \
+            (("gas", "cell_mass") in self.data_source.ds.field_info)
+        self.use_particles = use_particles & \
+            (("all", "particle_mass") in self.data_source.ds.field_info)
+        if self.use_gas:
+            num_vals += 4
+        if self.use_particles:
+            num_vals += 4
         self.num_vals = num_vals
 
-    def process_chunk(self, data, use_gas=True, use_particles=True):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
+    def process_chunk(self, data, **kwargs):
         rvals = []
-        if use_gas:
+        if self.use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
                            data["gas", "cell_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
             rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
-        if use_particles:
+        if self.use_particles:
             rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
                            data["all", "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
