@@ -248,6 +248,43 @@ MOOSE dataset:
     sc.annotate_mesh_lines()
     sc.save()
 
+The dataset in the above example contains displacement fields, so this is a good
+opportunity to demonstrate their use. The following example is exactly like the
+above, except we scale the displacements by a factor of a 10.0, and additionally 
+add an offset to the mesh by 1.0 unit in the x-direction:
+
+.. python-script::
+
+    import yt
+
+    # We load the last time frame
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1,
+                 displacements={'connect2': (10.0, [0.01, 0.0, 0.0])})
+
+    # create a default scene
+    sc = yt.create_scene(ds, ("connect2", "temp"))
+
+    # override the default colormap. This time we also override
+    # the default color bounds
+    ms = sc.get_source(0)
+    ms.cmap = 'hot'
+    ms.color_bounds = (500.0, 1700.0)
+
+    # adjust the camera position and orientation
+    cam = sc.camera
+    camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
+    cam.set_position(camera_position, north_vector)
+    
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render, draw the element boundaries, and save
+    sc.render()
+    sc.annotate_mesh_lines()
+    sc.save()
+
 As with other volume renderings in yt, you can swap out different lenses. Here is 
 an example that uses a "perspective" lens, for which the rays diverge from the 
 camera position according to some opening angle:

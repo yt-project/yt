@@ -330,12 +330,17 @@ mentioned.
 Exodus II Data
 --------------
 
+.. note::
+   To load Exodus II data, you need to have the `netcdf4 <http://unidata.github.io/
+   netcdf4-python/>`_ python interface installed.
+
 Exodus II is a file format for Finite Element datasets that is used by the MOOSE
 framework for file IO. Support for this format (and for unstructured mesh data in 
-general) is a new feature as of yt 3.3, so while we aim to fully support it, we also expect 
-there to be some buggy features at present. Currently, yt can visualize first-order
-mesh types only (4-node quads, 8-node hexes, 3-node triangles, and 4-node tetrahedra).
-Development of higher-order visualization capability is a work in progress.
+general) is a new feature as of yt 3.3, so while we aim to fully support it, we 
+also expect there to be some buggy features at present. Currently, yt can visualize 
+quads, hexes, triangles, and tetrahedral element types at first order. Additionally,
+there is experimental support for the high-order visualization of 20-node hex elements.
+Development of more high-order visualization capability is a work in progress.
 
 To load an Exodus II dataset, you can use the ``yt.load`` command on the Exodus II
 file:
@@ -348,14 +353,15 @@ file:
 Because Exodus II datasets can have multiple steps (which can correspond to time steps, 
 picard iterations, non-linear solve iterations, etc...), you can also specify a step
 argument when you load an Exodus II data that defines the index at which to look when
-you read data from the file.
+you read data from the file. Omitting this argument is the same as passing in 0, and
+setting ``step=-1`` selects the last time output in the file.
 
 You can access the connectivity information directly by doing:
 
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010", step=-1)
    print(ds.index.meshes[0].connectivity_coords)
    print(ds.index.meshes[0].connectivity_indices)
    print(ds.index.meshes[1].connectivity_coords)
@@ -368,7 +374,7 @@ objects. To see all the fields found in a particlular dataset, you can do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    print(ds.field_list)
 
 This will give you a list of field names like ``('connect1', 'diffused')`` and 
@@ -380,7 +386,7 @@ would do:
 .. code-block:: python
     
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()  # geometric selection, this just grabs everything
    print(ad['connect1', 'convected'])
 
@@ -390,7 +396,7 @@ are defined at the vertices of the elements. If we examine the shape of the retu
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'convected'].shape)
 
@@ -401,7 +407,7 @@ can do, for instance:
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'vertex_x'])
 
@@ -411,7 +417,7 @@ we get:
 .. code-block:: python
 
    import yt
-   ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
    ad = ds.all_data()
    print(ad['connect1', 'conv_indicator'].shape)
 
@@ -419,6 +425,61 @@ we instead get only one field value per element.
 
 For information about visualizing unstructured mesh data, including Exodus II datasets, 
 please see :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`. 
+
+Displacement Fields
+^^^^^^^^^^^^^^^^^^^
+
+Finite element codes often solve for the displacement of each vertex from its 
+original position as a node variable, rather than updating the actual vertex 
+positions with time. For analysis and visualization, it is often useful to turn 
+these displacements on or off, and to be able to scale them arbitrarily to 
+emphasize certain features of the solution. To allow this, if ``yt`` detects 
+displacement fields in an Exodus II dataset (using the convention that they will
+ be named ``disp_x``, ``disp_y``, etc...), it will add optionally add these to 
+the mesh vertex positions for the purposes of visualization. Displacement fields 
+can be controlled when a dataset is loaded by passing in an optional dictionary 
+to the ``yt.load`` command. This feature is turned off by default, meaning that 
+a dataset loaded as 
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/mps_out.e")
+
+will not include the displacements in the vertex positions. The displacements can
+be turned on separately for each mesh in the file by passing in a a tuple of 
+(scale, offset) pairs for the meshes you want to enable displacements for. 
+For example, the following code snippet turns displacements on for the second 
+mesh, but not the first:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                 displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
+
+The displacements can also be scaled by an arbitrary factor before they are 
+added in to the vertex positions. The following code turns on displacements
+for both ``connect1`` and ``connect2``, scaling the former by a factor of 5.0
+and the later by a factor of 10.0:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                 displacements={'connect1': (5.0, [0.0, 0.0, 0.0]),
+                                'connect2': (10.0, [0.0, 0.0, 0.0])})
+
+Finally, we can also apply an arbitrary offset to the mesh vertices after 
+the scale factor is applied. For example, the following code scales all
+displacements in the second mesh by a factor of 5.0, and then shifts
+each vertex in the mesh by 1.0 unit in the z-direction:
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
+                  displacements={'connect2': (5.0, [0.0, 0.0, 1.0])})
 
 
 FITS Data
