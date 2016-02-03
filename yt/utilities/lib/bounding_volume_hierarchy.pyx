@@ -9,10 +9,21 @@ cdef extern from "mesh_construction.h":
         MAX_NUM_TRI
     int triangulate_hex[MAX_NUM_TRI][3]
 
+# ray data structure
+cdef struct Ray:
+    np.float64_t origin[3]
+    np.float64_t direction[3]
+    np.float64_t data_val
+    np.float64_t t_near
+    np.float64_t t_far
+    np.int64_t  elem_id
+
+# axis-aligned bounding box
 cdef struct BBox:
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
-    
+
+# node for the bounding volume hierarchy
 cdef struct BVHNode:
     np.int64_t begin
     np.int64_t end
@@ -20,14 +31,18 @@ cdef struct BVHNode:
     BVHNode* right
     BBox bbox
     
+# triangle data structure
 cdef struct Triangle:
+    np.int64_t v0, v1, v2
+    np.int64_t elem_id
     np.float64_t centroid[3]
     BBox bbox
 
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
-    
+    cdef np.float64_t[:, ::1] vertices
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -35,13 +50,13 @@ cdef class BVH:
                  np.float64_t[:, ::1] vertices,
                  np.int64_t[:, ::1] indices):
         
+        self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
         self.triangles = <Triangle*> malloc(num_tri * sizeof(Triangle))
         
         cdef np.int64_t i, j, k
         cdef np.int64_t offset, tri_index
-        cdef np.int64_t v0, v1, v2
         cdef np.float64_t[:] p0
         cdef np.float64_t[:] p1
         cdef np.float64_t[:] p2
@@ -51,9 +66,13 @@ cdef class BVH:
             for j in range(12):
                 tri_index = offset + j
                 tri = &(self.triangles[tri_index])
-                p0 = vertices[indices[i][triangulate_hex[j][0]]]
-                p1 = vertices[indices[i][triangulate_hex[j][1]]]
-                p2 = vertices[indices[i][triangulate_hex[j][2]]]
+                tri.elem_id = i
+                tri.v0 = indices[i][triangulate_hex[j][0]]
+                tri.v1 = indices[i][triangulate_hex[j][1]]
+                tri.v2 = indices[i][triangulate_hex[j][2]]                
+                p0 = vertices[tri.v0]
+                p1 = vertices[tri.v1]
+                p2 = vertices[tri.v2]
                 for k in range(3):
                     tri.centroid[k] = (p0[k] + p1[k] + p2[k]) / 3.0
                     tri.bbox.left_edge[k] = fmin(fmin(p0[k], p1[k]), p2[k])
