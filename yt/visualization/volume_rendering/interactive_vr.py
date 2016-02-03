@@ -141,10 +141,10 @@ class BlockCollection:
 
         # Now we set up our buffer
         vert = np.concatenate(vert)
-        if self.gl_buffer_name != None:
+        if self.gl_buffer_name is not None:
             glDeleteBuffers(1, [self.gl_buffer_name])
         self.gl_buffer_name = glGenBuffers(1)
-        if self.gl_vao_name != None:
+        if self.gl_vao_name is not None:
             glDeleteVertexArrays(1, [self.gl_vao_name])
         self.gl_vao_name = glGenVertexArrays(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.gl_buffer_name)
