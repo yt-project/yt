@@ -3,9 +3,14 @@ import OpenGL.GL as GL
 from OpenGL.GL import shaders
 
 import numpy as np
-from yt.utilities.math_utils import get_translate_matrix, get_scale_matrix, \
-    get_lookat_matrix, get_perspective_matrix
-
+from yt.utilities.math_utils import \
+    get_translate_matrix, \
+    get_scale_matrix, \
+    get_lookat_matrix, \
+    get_perspective_matrix, \
+    quaternion_mult, \
+    quaternion_to_rotation_matrix
+    
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
        [ 0.,  0.,  1.,  1.],
@@ -44,6 +49,79 @@ bbox_vertices = np.array(
        [ 0.,  1.,  1.,  1.],
        [ 1.,  0.,  1.,  1.]])
 
+
+class TrackballCamera(object):
+    def __init__(self, 
+                 position=np.array([0.0, 0.0, 1.0]),
+                 focus=np.array([0.0, 0.0, 0.0]),
+                 fov=45.0, near_plane=1.0, far_plane=20.0, aspect_ratio=8.0/6.0):
+        self.view_matrix = np.zeros((4, 4), dtype=np.float32)
+        self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
+        self.position = np.array(position)
+        self.focus = np.array(focus)
+        self.fov = fov
+        self.near_plane = near_plane
+        self.far_plane = far_plane
+        self.aspect_ratio = aspect_ratio
+        self.orientation = np.array([1.0, 0.0, 0.0, 0.0])
+
+    def _map_to_surface(self, mouse_x, mouse_y):
+        # right now this just maps to the surface of
+        # the unit sphere
+        x, y = mouse_x, mouse_y
+        mag = np.sqrt(x*x + y*y)
+        if (mag > 1.0):
+            x /= mag
+            y /= mag
+            z = 0.0
+        else:
+            z = np.sqrt(1.0 - mag**2)
+        return np.array([x, -y, z])
+
+    def update_orientation(self, start_x, start_y, end_x, end_y):
+        old = self._map_to_surface(start_x, start_y)
+        new = self._map_to_surface(end_x, end_y)
+
+        # dot product
+        w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
+
+        # cross product gives the rotation axis
+        x = old[1]*new[2] - old[2]*new[1]
+        y = old[2]*new[0] - old[0]*new[2]
+        z = old[0]*new[1] - old[1]*new[0]
+
+        q = np.array([w, x, y, z])
+
+        #renormalize to prevent floating point issues
+        mag = np.sqrt(w**2 + x**2 + y**2 + z**2)
+        q /= mag
+
+        self.orientation = quaternion_mult(self.orientation, q)
+
+    def compute_matrices(self):
+        rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
+        self.position = np.linalg.norm(self.position)*rotation_matrix[2]
+        up = rotation_matrix[1]
+
+        self.view_matrix = get_lookat_matrix(self.focus + self.position, 
+                                             self.focus, 
+                                             up)
+
+        self.projection_matrix = get_perspective_matrix(self.fov,
+                                                        self.aspect_ratio,
+                                                        self.near_plane,
+                                                        self.far_plane)
+
+    def get_viewpoint(self):
+        return self.position
+
+    def get_view_matrix(self):
+        return self.view_matrix
+
+    def get_projection_matrix(self):
+        return self.projection_matrix
+
+
 class Camera:
     def __init__(self, position = (0, 0, 0), fov = 60.0, near_plane = 0.01,
             far_plane = 20, aspect_ratio = 8.0 / 6.0, focus = (0, 0, 0),
@@ -65,8 +143,8 @@ class Camera:
                 self.far_plane)
     def update_position(self, theta, phi):
         rho = np.linalg.norm(self.position)
-        curr_theta = np.arctan( self.position[1] / self.position[0] )
-        curr_phi = np.arctan( np.linalg.norm(self.position[:2]) / self.position[2])
+        curr_theta = np.arctan2( self.position[1], self.position[0] )
+        curr_phi = np.arctan2( np.linalg.norm(self.position[:2]), self.position[2])
 
         curr_theta += theta
         curr_phi += phi

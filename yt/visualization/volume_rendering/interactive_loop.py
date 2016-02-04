@@ -111,8 +111,9 @@ class MouseRotation(object):
         norm_y = 1.0 - 2.0 * end_screen[1] / window_size[1]
         end = (norm_x, norm_y)
 
-        camera.update_position( (end[0] - self.start[0]),
-                                (end[1] - self.start[1]))
+        camera.update_orientation(self.start[0],
+                                  self.start[1],
+                                  end[0], end[1])
         self.rotation = False
         return True
 
