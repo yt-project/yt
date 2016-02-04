@@ -156,7 +156,10 @@ class RenderingContext(object):
             exit()
 
         glfw.MakeContextCurrent(self.window)
-        window = self.window
+        GL.glClearColor(0.0, 0.0, 0.0, 0.0)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        glfw.SwapBuffers(self.window)
+        glfw.PollEvents()
 
     def start_loop(self, scene, camera):
         scene.set_camera(camera)
