@@ -1,9 +1,9 @@
 import yt
 import numpy as np
 from yt.visualization.volume_rendering.interactive_loop import \
-    start_context, SceneGraph, BlockCollection, Camera, start_loop
+    SceneGraph, BlockCollection, Camera, RenderingContext
 
-start_context()
+rc = RenderingContext(1280, 960)
 
 scene = SceneGraph()
 collection = BlockCollection()
@@ -25,4 +25,4 @@ scene.add_collection(collection)
 position = (-5.0, -5.0, 5.0)
 c = Camera(position = position, focus = ds.domain_center)
 
-start_loop(scene, c)
+rc.start_loop(scene, c)

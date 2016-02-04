@@ -87,66 +87,70 @@ def zoomout(camera, window, key, scancode, action, mods):
         np.linalg.norm(camera.position - camera.focus)
     return True
 
-def start_context():
-    global window
-    glfw.Init()
+def printit(*args):
+    print args
 
-    glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
-    glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
-    glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
-    glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-    window = glfw.CreateWindow(800, 600, 'vol_render')
-    if not window:
-        glfw.Terminate()
-        exit()
+class RenderingContext(object):
+    def __init__(self, width = 600, height = 800, title = "vol_render"):
+        glfw.Init()
+        glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
+        glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        self.window = glfw.CreateWindow(800, 600, 'vol_render')
+        if not self.window:
+            glfw.Terminate()
+            exit()
 
-    glfw.MakeContextCurrent(window)
-    glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
-    glfw.SetMouseButtonCallback(window, mouse_button_callback)
+        glfw.MakeContextCurrent(self.window)
+        glfw.SetFramebufferSizeCallback(self.window, framebuffer_size_callback)
+        glfw.SetMouseButtonCallback(self.window, mouse_button_callback)
+        global window
+        window = self.window
 
-def start_loop(scene, camera):
-    global draw, c, start
-    c = camera
-    scene.set_camera(camera)
-    scene.add_shader_from_file("max_intensity_frag.glsl")
-    frame_start = glfw.GetTime()
-    fps_start = glfw.GetTime()
-    f = 0
-    N = 10.0
-    print "Starting rendering..."
-    callbacks = KeyCallbacks(camera)
-    callbacks.add(close_window, "escape")
-    callbacks.add(zoomin, "w")
-    callbacks.add(zoomout, "s")
-    glfw.SetKeyCallback(window, callbacks)
-
-    while not glfw.WindowShouldClose(window):
-        if rotation:
-            new_end_screen = glfw.GetCursorPos(window)
-            window_size = glfw.GetWindowSize(window)
-
-            norm_x = -1.0 + 2.0 * new_end_screen[0] / window_size[0]
-            norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
-            new_end = (norm_x, norm_y)
-
-            c.update_position( (new_end[0] - start[0]),
-                    (new_end[1] - start[1]))
-            start = new_end
-            draw = True
-
-        if draw or callbacks.draw:
-            scene.set_camera(c)
-            scene.render()
-            draw = callbacks.draw = False
-        glfw.SwapBuffers(window)
-        glfw.PollEvents()
-
+    def start_loop(self, scene, camera):
+        global draw, c, start
+        c = camera
+        scene.set_camera(camera)
+        scene.add_shader_from_file("max_intensity_frag.glsl")
         frame_start = glfw.GetTime()
-        f += 1
-        if f == N:
-            print "FPS:", N / float(frame_start - fps_start)
-            fps_start = glfw.GetTime()
-            f = 0
+        fps_start = glfw.GetTime()
+        f = 0
+        N = 10.0
+        print "Starting rendering..."
+        callbacks = KeyCallbacks(camera)
+        callbacks.add(close_window, "escape")
+        callbacks.add(zoomin, "w")
+        callbacks.add(zoomout, "s")
+        glfw.SetKeyCallback(window, callbacks)
 
-    print "Finished rendering"
-    glfw.Terminate()
+        while not glfw.WindowShouldClose(self.window):
+            if rotation:
+                new_end_screen = glfw.GetCursorPos(self.window)
+                window_size = glfw.GetWindowSize(self.window)
+
+                norm_x = -1.0 + 2.0 * new_end_screen[0] / window_size[0]
+                norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
+                new_end = (norm_x, norm_y)
+
+                c.update_position( (new_end[0] - start[0]),
+                        (new_end[1] - start[1]))
+                start = new_end
+                draw = True
+
+            if draw or callbacks.draw:
+                scene.set_camera(c)
+                scene.render()
+                draw = callbacks.draw = False
+            glfw.SwapBuffers(self.window)
+            glfw.PollEvents()
+
+            frame_start = glfw.GetTime()
+            f += 1
+            if f == N:
+                print "FPS:", N / float(frame_start - fps_start)
+                fps_start = glfw.GetTime()
+                f = 0
+
+        print "Finished rendering"
+        glfw.Terminate()
