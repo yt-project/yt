@@ -109,6 +109,8 @@ default_unit_symbol_lut = {
             r"\rm{mas}"),  # milliarcseconds
     "hourangle": (np.pi/12., dimensions.angle, 0.0, r"\rm{HA}"),  # hour angle
     "steradian": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
+    "lat": (-np.pi/180.0, dimensions.angle, 90.0, r"\rm{Latitude}"),
+    "lon": (np.pi/180.0, dimensions.angle, -180.0, r"\rm{Longitude}"),
 
     # misc
     "eV": (erg_per_eV, dimensions.energy, 0.0, r"\rm{eV}"),

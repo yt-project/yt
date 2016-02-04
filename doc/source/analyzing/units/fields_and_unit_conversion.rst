@@ -46,8 +46,8 @@ convert the units of the `density` field appropriately:
    ds = yt.load('HiresIsolatedGalaxy/DD0044/DD0044')
    ad = ds.all_data()
 
-   print ad['cell_volume'].in_cgs()
-   print np.sqrt(ad['cell_volume'].in_cgs())
+   print(ad['cell_volume'].in_cgs())
+   print(np.sqrt(ad['cell_volume'].in_cgs()))
 
 That said, it is necessary to specify the units in the call to the
 :code:`add_field` function.  Not only does this ensure the returned units

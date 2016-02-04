@@ -20,7 +20,7 @@ from libc.stdlib cimport malloc, free, qsort
 cimport cython
 from libc.math cimport sqrt
 
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 from .particle_deposit cimport kernel_func, get_kernel_func, gind
 

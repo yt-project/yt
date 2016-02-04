@@ -24,7 +24,8 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless, current_mks
+    dimensionless, current_mks, \
+    angle
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, latex_prefixes, \
     default_base_units
@@ -297,13 +298,13 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
-                                           "and Celsius cannot be multiplied.")
+                                           "and Celsius or angles cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
                     base_value=(self.base_value * u.base_value),
@@ -320,9 +321,9 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
@@ -469,7 +470,7 @@ def get_conversion_factor(old_units, new_units):
     if old_units.base_offset == 0 and new_units.base_offset == 0:
         return (ratio, None)
     else:
-        if old_units.dimensions is temperature:
+        if old_units.dimensions in (temperature, angle):
             return ratio, ratio*old_units.base_offset - new_units.base_offset
         else:
             raise InvalidUnitOperation(

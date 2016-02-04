@@ -101,7 +101,7 @@ This snippet locates the cell containing a star and returns the grid and grid id
 
 	def find_cell(grid,position):
 	    x=grid
-	    #print grid.LeftEdge
+	    #print(grid.LeftEdge)
 	    for child in grid.Children:
 	        if numpy.all(child.LeftEdge  < position) and\
 	           numpy.all(child.RightEdge > position):

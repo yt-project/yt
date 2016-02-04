@@ -795,9 +795,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print profile.x
+   print(profile.x)
    # print the profiled cell_mass field
-   print profile['cell_mass']
+   print(profile['cell_mass'])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for

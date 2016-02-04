@@ -18,7 +18,10 @@ from yt.testing import \
     assert_array_equal, \
     requires_file
 from yt.utilities.answer_testing.framework import \
-    data_dir_load
+    data_dir_load, \
+    requires_ds, \
+    GenericArrayTest
+
 
 out = "ExodusII/out.e"
 
@@ -69,3 +72,18 @@ def test_gold():
     field_list = [('connect1', 'forced')]
     yield assert_equal, str(ds), "gold.e"
     yield assert_array_equal, ds.field_list, field_list 
+
+big_data = "MOOSE_sample_data/mps_out.e"
+
+
+@requires_ds(big_data)
+def test_displacement_fields():
+    displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
+                         {'connect1': (1.0, [1.0, 2.0, 3.0]), 
+                          'connect2': (0.0, [0.0, 0.0, 0.0])}]
+    for disp in displacement_dicts:
+        ds = data_dir_load(big_data, displacements=disp)
+        for mesh in ds.index.meshes:
+            def array_func():
+                return mesh.connectivity_coords
+            yield GenericArrayTest(ds, array_func, 12)
