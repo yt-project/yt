@@ -15,7 +15,7 @@ oor2 = ((x-c[0])**2 + (y-c[1])**2 + (z-c[2])**2)**-0.5
 np.clip(oor2, 1e-6, 1e60, oor2)
 data = {'x_field': 10**x, 'y_field': 10**y, 'z_field': 10**z, 'sphere':oor2}
 
-ds = yt.load_uniform_grid(data, [N, N, N], 1.0, nprocs=1)
+ds = yt.load_uniform_grid(data, [N, N, N], 1.0, nprocs=4)
 
 dd = ds.all_data()
 collection.add_data(dd, "z_field")
