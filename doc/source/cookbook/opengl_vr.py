@@ -1,7 +1,7 @@
 import yt
 import numpy as np
 from yt.visualization.volume_rendering.interactive_loop import \
-    start_context, SceneGraph, BlockCollection, Camera, start_loop
+    start_context, SceneGraph, BlockCollection, TrackballCamera, start_loop
 
 start_context()
 
@@ -23,6 +23,6 @@ collection.add_data(dd, "z_field")
 scene.add_collection(collection)
 
 position = (-5.0, -5.0, 5.0)
-c = Camera(position = position, focus = ds.domain_center)
+c = TrackballCamera(position = position, focus = ds.domain_center)
 
 start_loop(scene, c)
