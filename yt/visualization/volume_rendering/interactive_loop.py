@@ -5,59 +5,47 @@ from collections import defaultdict
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
 
-draw = True
-start = None
-rotation = False
-window = None
-
-c = None
-
-def mouse_button_callback(window, button, action, mods):
-    global draw, start, rotation, c
-
-    if (button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS):
-        start_screen = glfw.GetCursorPos(window) # Screen coordinates
-        window_size = glfw.GetWindowSize(window)
-
-        norm_x = -1.0 + 2.0 * start_screen[0] / window_size[0]
-        norm_y = 1.0 - 2.0 * start_screen[1] / window_size[1]
-        start = (norm_x, norm_y)
-        rotation = True
-
-    if (button == glfw.MOUSE_BUTTON_LEFT and action == glfw.RELEASE):
-        end_screen = glfw.GetCursorPos(window)
-        window_size = glfw.GetWindowSize(window)
-
-        norm_x = -1.0 + 2.0 * end_screen[0] / window_size[0]
-        norm_y = 1.0 - 2.0 * end_screen[1] / window_size[1]
-        end = (norm_x, norm_y)
-
-        c.update_position( (end[0] - start[0]), (end[1] - start[1]))
-
-        rotation = False
-        draw = True
-
 def framebuffer_size_callback(window, width, height):
     global draw
     glViewport(0, 0, width, height)
     draw = True
 
-class KeyCallbacks(object):
-    draw = True
+class Events(object):
     def __init__(self, camera):
-        self.callbacks = defaultdict(list)
+        self.key_callbacks = defaultdict(list)
+        self.mouse_callbacks = defaultdict(list)
+        self.render_events = []
         self.camera = camera
+        self.draw = True
 
-    def __call__(self, window, key, scancode, action, mods):
+    def key_call(self, window, key, scancode, action, mods):
         draw = False
-        for f in self.callbacks[None] + self.callbacks[key, action, mods]:
+        for f in self.key_callbacks[key, action, mods]:
             draw = f(self.camera, window, key, scancode, action, mods) or draw
-        self.draw = draw
+        self.draw = self.draw or draw
+
+    def mouse_call(self, window, key, action, mods):
+        draw = False
+        for f in self.mouse_callbacks[key, action, mods]:
+            draw = f(self.camera, window, key, action, mods) or draw
+        self.draw = self.draw or draw
+
+    def __call__(self, window):
+        draw = False
+        for f in self.render_events:
+            draw = f(self.camera, window) or draw
+        self.draw = self.draw or draw
 
     def add_default(self, func):
-        self.callbacks[None].append(func)
+        self.render_events.append(func)
 
-    def add(self, func, key, action = "press", mods = None):
+    def add_key_callback(self, func, key, action = "press", mods = None):
+        self._add_callback(self.key_callbacks, func, key, action, mods)
+
+    def add_mouse_callback(self, func, key, action = "press", mods = None):
+        self._add_callback(self.mouse_callbacks, func, key, action, mods)
+
+    def _add_callback(self, d, func, key, action, mods):
         if isinstance(key, str):
             key = getattr(glfw, "KEY_%s" % key.upper())
         if isinstance(action, str):
@@ -72,7 +60,7 @@ class KeyCallbacks(object):
                 m = 0
             mod |= m
         # We can allow for multiple
-        self.callbacks[key, action, mod].append(func)
+        d[key, action, mod].append(func)
 
 def close_window(camera, window, key, scancode, action, mods):
     glfw.SetWindowShouldClose(window, True)
@@ -90,6 +78,48 @@ def zoomout(camera, window, key, scancode, action, mods):
 def printit(*args):
     print args
 
+class MouseRotation(object):
+    def __init__(self):
+        self.start = None
+        self.rotation = False
+
+    def start_rotation(self, camera, window, key, action, mods):
+        start_screen = glfw.GetCursorPos(window) # Screen coordinates
+        window_size = glfw.GetWindowSize(window)
+
+        norm_x = -1.0 + 2.0 * start_screen[0] / window_size[0]
+        norm_y = 1.0 - 2.0 * start_screen[1] / window_size[1]
+        self.start = (norm_x, norm_y)
+        self.rotation = True
+        return False
+
+    def stop_rotation(self, camera, window, key, action, mods):
+        end_screen = glfw.GetCursorPos(window)
+        window_size = glfw.GetWindowSize(window)
+
+        norm_x = -1.0 + 2.0 * end_screen[0] / window_size[0]
+        norm_y = 1.0 - 2.0 * end_screen[1] / window_size[1]
+        end = (norm_x, norm_y)
+
+        camera.update_position( (end[0] - self.start[0]),
+                                (end[1] - self.start[1]))
+        self.rotation = False
+        return True
+
+    def do_rotation(self, camera, window):
+        if not self.rotation: return False
+        new_end_screen = glfw.GetCursorPos(window)
+        window_size = glfw.GetWindowSize(window)
+
+        norm_x = -1.0 + 2.0 * new_end_screen[0] / window_size[0]
+        norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
+        new_end = (norm_x, norm_y)
+
+        camera.update_position( (new_end[0] - self.start[0]),
+                (new_end[1] - self.start[1]))
+        self.start = new_end
+        return True
+        
 class RenderingContext(object):
     def __init__(self, width = 600, height = 800, title = "vol_render"):
         glfw.Init()
@@ -103,13 +133,10 @@ class RenderingContext(object):
             exit()
 
         glfw.MakeContextCurrent(self.window)
-        glfw.SetFramebufferSizeCallback(self.window, framebuffer_size_callback)
-        glfw.SetMouseButtonCallback(self.window, mouse_button_callback)
-        global window
+        #glfw.SetFramebufferSizeCallback(self.window, framebuffer_size_callback)
         window = self.window
 
     def start_loop(self, scene, camera):
-        global draw, c, start
         c = camera
         scene.set_camera(camera)
         scene.add_shader_from_file("max_intensity_frag.glsl")
@@ -118,30 +145,25 @@ class RenderingContext(object):
         f = 0
         N = 10.0
         print "Starting rendering..."
-        callbacks = KeyCallbacks(camera)
-        callbacks.add(close_window, "escape")
-        callbacks.add(zoomin, "w")
-        callbacks.add(zoomout, "s")
-        glfw.SetKeyCallback(window, callbacks)
-
+        callbacks = Events(camera)
+        callbacks.add_key_callback(close_window, "escape")
+        callbacks.add_key_callback(zoomin, "w")
+        callbacks.add_key_callback(zoomout, "s")
+        mouse_callbacks = MouseRotation()
+        callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
+            glfw.MOUSE_BUTTON_LEFT)
+        callbacks.add_mouse_callback(mouse_callbacks.stop_rotation,
+            glfw.MOUSE_BUTTON_LEFT, action="release")
+        callbacks.add_default(mouse_callbacks.do_rotation)
+        glfw.SetKeyCallback(self.window, callbacks.key_call)
+        glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
+        callbacks.draw = True
         while not glfw.WindowShouldClose(self.window):
-            if rotation:
-                new_end_screen = glfw.GetCursorPos(self.window)
-                window_size = glfw.GetWindowSize(self.window)
-
-                norm_x = -1.0 + 2.0 * new_end_screen[0] / window_size[0]
-                norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
-                new_end = (norm_x, norm_y)
-
-                c.update_position( (new_end[0] - start[0]),
-                        (new_end[1] - start[1]))
-                start = new_end
-                draw = True
-
-            if draw or callbacks.draw:
+            callbacks(self.window)
+            if callbacks.draw:
                 scene.set_camera(c)
                 scene.render()
-                draw = callbacks.draw = False
+                callbacks.draw = False
             glfw.SwapBuffers(self.window)
             glfw.PollEvents()
 
