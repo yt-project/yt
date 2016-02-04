@@ -51,9 +51,7 @@ bbox_vertices = np.array(
 
 
 class TrackballCamera(object):
-    def __init__(self, 
-                 position=np.array([0.0, 0.0, 1.0]),
-                 focus=np.array([0.0, 0.0, 0.0]),
+    def __init__(self, position=(0.0, 0.0, 1.0), focus=(0.0, 0.0, 0.0),
                  fov=45.0, near_plane=1.0, far_plane=20.0, aspect_ratio=8.0/6.0):
         self.view_matrix = np.zeros((4, 4), dtype=np.float32)
         self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
