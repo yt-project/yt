@@ -76,7 +76,7 @@ class TrackballCamera(object):
             z = 0.0
         else:
             z = np.sqrt(1.0 - mag**2)
-        return np.array([x, y, z])
+        return np.array([x, -y, z])
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
         old = self._map_to_surface(start_x, start_y)
@@ -85,7 +85,7 @@ class TrackballCamera(object):
         # dot product
         w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
 
-        # cross product
+        # cross product gives the rotation axis
         x = old[1]*new[2] - old[2]*new[1]
         y = old[2]*new[0] - old[0]*new[2]
         z = old[0]*new[1] - old[1]*new[0]
@@ -100,16 +100,12 @@ class TrackballCamera(object):
 
     def compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        self.position = np.dot(rotation_matrix, self.position)
+        self.position = np.linalg.norm(self.position)*rotation_matrix[2]
+        up = rotation_matrix[1]
 
-        self.view_matrix = np.zeros ( (4, 4), dtype = 'float32', order = 'C')
-        
-        # the upper-left 3x3 submatrix is the rotation matrix
-        self.view_matrix[0:3,0:3] = rotation_matrix
-
-        # fill in remaining components
-        self.view_matrix[2][3] = -np.linalg.norm(self.position)
-        self.view_matrix[3][3] = 1.0
+        self.view_matrix = get_lookat_matrix(self.focus + self.position, 
+                                             self.focus, 
+                                             up)
 
         self.projection_matrix = get_perspective_matrix(self.fov,
                                                         self.aspect_ratio,
