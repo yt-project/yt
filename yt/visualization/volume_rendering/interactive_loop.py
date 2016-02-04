@@ -3,7 +3,7 @@ import numpy as np
 import OpenGL.GL as GL
 from collections import defaultdict
 
-from interactive_vr import BlockCollection, SceneGraph, Camera
+from interactive_vr import BlockCollection, SceneGraph, TrackballCamera
 
 
 class Events(object):
@@ -126,8 +126,10 @@ class MouseRotation(object):
         norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
         new_end = (norm_x, norm_y)
 
-        camera.update_position( (new_end[0] - self.start[0]),
-                (new_end[1] - self.start[1]))
+        camera.update_orientation(self.start[0],
+                                  self.start[1],
+                                  new_end[0],
+                                  new_end[1])
         self.start = new_end
         return True
         
@@ -147,9 +149,9 @@ class RenderingContext(object):
         window = self.window
 
     def start_loop(self, scene, camera):
-        c = camera
         scene.set_camera(camera)
         scene.add_shader_from_file("max_intensity_frag.glsl")
+        camera.compute_matrices()
         frame_start = glfw.GetTime()
         fps_start = glfw.GetTime()
         f = 0
@@ -174,11 +176,12 @@ class RenderingContext(object):
         while not glfw.WindowShouldClose(self.window):
             callbacks(self.window)
             if callbacks.draw:
-                scene.set_camera(c)
+                scene.set_camera(camera)
                 scene.render()
                 callbacks.draw = False
             glfw.SwapBuffers(self.window)
             glfw.PollEvents()
+            camera.compute_matrices()
 
             frame_start = glfw.GetTime()
             f += 1
