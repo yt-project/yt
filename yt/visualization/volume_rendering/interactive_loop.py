@@ -1,6 +1,7 @@
 import cyglfw3 as glfw
 import numpy as np
 from OpenGL.GL import glViewport
+from collections import defaultdict
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
 
@@ -41,6 +42,52 @@ def framebuffer_size_callback(window, width, height):
     glViewport(0, 0, width, height)
     draw = True
 
+class KeyCallbacks(object):
+    def __init__(self):
+        self.callbacks = defaultdict(list)
+
+    def __call__(self, window, key, scancode, action, mods):
+        for f in self.callbacks[None] + self.callbacks[key, action, mods]:
+            f(window, key, scancode, action, mods)
+
+    def add_default(self, func):
+        self.callbacks[None].append(func)
+
+    def add(self, func, key, action = "press", mods = None):
+        if isinstance(key, str):
+            key = getattr(glfw, "KEY_%s" % key.upper())
+        if isinstance(action, str):
+            action = getattr(glfw, action.upper())
+        if not isinstance(mods, tuple):
+            mods = (mods, )
+        mod = 0
+        for m in mods:
+            if isinstance(m, str):
+                m = getattr(glfw, "MOD_%s" % m.upper())
+            elif m is None:
+                m = 0
+            mod |= m
+        # We can allow for multiple
+        self.callbacks[key, action, mod].append(func)
+
+callbacks = KeyCallbacks()
+
+def close_window(window, key, scancode, action, mods):
+    glfw.SetWindowShouldClose(window, True)
+callbacks.add(close_window, "escape")
+
+def zoomin(window, key, scancode, action, mods):
+    global draw, c
+    c.position -= (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
+    draw = True
+callbacks.add(zoomin, "w")
+
+def zoomout(window, key, scancode, action, mods):
+    global draw, c
+    c.position += (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
+    draw = True
+callbacks.add(zoomout, "s")
+
 def key_callback(window, key, scancode, action, mods):
     global draw, c
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
@@ -66,7 +113,7 @@ def start_context():
         exit()
 
     glfw.MakeContextCurrent(window)
-    glfw.SetKeyCallback(window, key_callback)
+    glfw.SetKeyCallback(window, callbacks)
     glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
     glfw.SetMouseButtonCallback(window, mouse_button_callback)
 
