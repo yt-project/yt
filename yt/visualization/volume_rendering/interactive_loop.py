@@ -1,6 +1,6 @@
 import cyglfw3 as glfw
 import numpy as np
-from OpenGL.GL import glViewport
+import OpenGL.GL as GL
 from collections import defaultdict
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
@@ -69,7 +69,7 @@ class Events(object):
         d[key, action, mod].append(func)
 
 def framebuffer_size_callback(window, width, height):
-    glViewport(0, 0, width, height)
+    GL.glViewport(0, 0, width, height)
     return True
 
 def close_window(camera, window, key, scancode, action, mods):
