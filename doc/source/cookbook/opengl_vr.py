@@ -16,13 +16,16 @@ np.clip(oor2, 1e-6, 1e60, oor2)
 data = {'x_field': 10**x, 'y_field': 10**y, 'z_field': 10**z, 'sphere':oor2}
 
 ds = yt.load_uniform_grid(data, [N, N, N], 1.0, nprocs=4)
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 dd = ds.all_data()
-collection.add_data(dd, "z_field")
+#collection.add_data(dd, "sphere")
+collection.add_data(dd, "density")
 
 scene.add_collection(collection)
 
-position = (-5.0, -5.0, 5.0)
-c = TrackballCamera(position = position, focus = ds.domain_center)
+position = (1.0, 1.0, 1.0)
+c = TrackballCamera(position = position, focus = ds.domain_center,
+                    near_plane = 0.1)
 
 rc.start_loop(scene, c)
