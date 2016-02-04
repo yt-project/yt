@@ -43,6 +43,6 @@ cdef extern from "ewah.h":
         void inplace_logicalnot()
         void swap(EWAHBoolArray &x)
 
-ctypedef EWAHBoolArray[np.uint32_t] ewah_bool_array
+ctypedef EWAHBoolArray[np.uint64_t] ewah_bool_array
 ctypedef vector[size_t] bitset_array
 ctypedef map[np.uint64_t, ewah_bool_array] ewah_map

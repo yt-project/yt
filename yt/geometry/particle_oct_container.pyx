@@ -362,7 +362,7 @@ cdef class ParticleForest:
         # Initialize
         cdef int i
         cdef np.int64_t p
-        cdef np.uint64_t mi
+        # cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -371,6 +371,9 @@ cdef class ParticleForest:
         cdef np.int32_t order = self.index_order1
         cdef np.int64_t total_hits = 0
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
+        cdef np.uint64_t nmi
+        cdef np.ndarray[np.uint64_t, ndim=1] mi 
+        mi = np.zeros(pos.shape[0], dtype="uint64")
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -378,6 +381,7 @@ cdef class ParticleForest:
             dds[i] = self.dds_mi1[i]
         # cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Mark index of particles that are in this file
+        nmi = 0
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
@@ -388,9 +392,14 @@ cdef class ParticleForest:
                 ppos[i] = pos[p,i]
             if skip == 1: continue
             # mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
-            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
+            mi[nmi] = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
             # mask[mi] = 1
-            bitmasks._set(mi)
+            nmi += 1 
+        # Add in order
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(mi[:nmi])
+        for i in range(nmi):
+            p = ind[i]
+            bitmasks._set(mi[p])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -448,10 +457,10 @@ cdef class ParticleForest:
                                                                LE, dds1, dds2)
                 nsub_mi += 1
         # Only subs of particles in the mask
-        # sub_mi1 = sub_mi1[:nsub_mi]
-        # sub_mi2 = sub_mi2[:nsub_mi]
-        # cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
+        sub_mi1 = sub_mi1[:nsub_mi]
+        sub_mi2 = sub_mi2[:nsub_mi]
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
+        # cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
         last_submi = last_mi = 0
         for i in range(nsub_mi):
             p = ind[i]
@@ -612,6 +621,9 @@ cdef class ParticleForest:
             pos[j] = self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
             DLE[j] = self.left_edge[j]
+        cmask_g._set(2097151+1)
+        for j in range(5):
+            cmask_g._set(j)
         selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 

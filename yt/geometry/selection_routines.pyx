@@ -237,23 +237,16 @@ cdef class SelectorObject:
                                                 continue
                                         else:
                                             ind1_n[n,m] = <np.uint64_t>(adv)
-                                        print ind1_n[n,m]
                                         neighbors[n_neighbors[m],m] = n
                                         n_neighbors[m] += 1
-                                print '{}: {}, {}, {}'.format(mi1,n_neighbors[0],n_neighbors[1],n_neighbors[2])
-                                print max_index1
-                                nlist = []
                                 for iil in range(n_neighbors[0]):
                                     l = neighbors[iil,0]
                                     for iim in range(n_neighbors[1]):
                                         m = neighbors[iim,1]
                                         for iin in range(n_neighbors[2]):
                                             n = neighbors[iin,2]
-                                            mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                            nlist.append(mi1_n)
-                                            print '{}: {}, {}, {}'.format(mi1_n,ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
+                                            mi1_n = <np.uint64_t>encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                             mm_ghosts._set(mi1_n)
-                                print 'mi1: {} total, {} unique'.format(mi1,len(nlist),len(set(nlist)))
                     # Continue refining
                     elif level < (max_level1 + max_level2): # both morton indices...
                         self.recursive_morton_mask(level+1, npos, ndds, DLE, 
