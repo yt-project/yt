@@ -1001,6 +1001,50 @@ def get_rotation_matrix(theta, rot_vector):
 
     return R
 
+def quaternion_mult(q1, q2):
+    '''
+
+    Multiply two quaternions. The inputs are 4-component numpy arrays
+    in the order [w, x, y, z].
+
+    '''
+    w = q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3]
+    x = q1[0]*q2[1] + q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2]
+    y = q1[0]*q2[2] + q1[2]*q2[0] + q1[3]*q2[1] - q1[1]*q2[3]
+    z = q1[0]*q2[3] + q1[3]*q2[0] + q1[1]*q2[2] - q1[2]*q2[1]
+    return np.array([w, x, y, z])
+
+def quaternion_to_rotation_matrix(quaternion):
+    """
+
+    This converts a quaternion representation of on orientation to
+    a rotation matrix. The input is a 4-component numpy array in
+    the order [w, x, y, z], and the output is a 3x3 matrix stored
+    as a 2D numpy array.
+
+    """
+
+    w = quaternion[0]
+    x = quaternion[1]
+    y = quaternion[2]
+    z = quaternion[3]
+
+    R = np.empty((3, 3), dtype=np.float64)
+
+    R[0][0] = 1.0 - 2.0*y**2 - 2.0*z**2
+    R[0][1] = 2.0*x*y + 2.0*w*z
+    R[0][2] = 2.0*x*z - 2.0*w*y
+
+    R[1][0] = 2.0*x*y - 2.0*w*z
+    R[1][1] = 1.0 - 2.0*x**2 - 2.0*z**2
+    R[1][2] = 2.0*y*z + 2.0*w*x
+
+    R[2][0] = 2.0*x*z + 2.0*w*y
+    R[2][1] = 2.0*y*z - 2.0*w*x
+    R[2][2] = 1.0 - 2.0*x**2 - 2.0*y**2
+
+    return R
+
 def get_ortho_basis(normal):
     xprime = np.cross([0.0,1.0,0.0],normal)
     if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
