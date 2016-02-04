@@ -5,15 +5,12 @@ from collections import defaultdict
 
 from interactive_vr import BlockCollection, SceneGraph, Camera
 
-def framebuffer_size_callback(window, width, height):
-    global draw
-    glViewport(0, 0, width, height)
-    draw = True
 
 class Events(object):
     def __init__(self, camera):
         self.key_callbacks = defaultdict(list)
         self.mouse_callbacks = defaultdict(list)
+        self.framebuffer_callbacks = []
         self.render_events = []
         self.camera = camera
         self.draw = True
@@ -28,6 +25,12 @@ class Events(object):
         draw = False
         for f in self.mouse_callbacks[key, action, mods]:
             draw = f(self.camera, window, key, action, mods) or draw
+        self.draw = self.draw or draw
+
+    def framebuffer_call(self, window, width, height):
+        draw = False
+        for f in self.framebuffer_callbacks:
+            draw = f(window, width, height) or draw
         self.draw = self.draw or draw
 
     def __call__(self, window):
@@ -45,6 +48,9 @@ class Events(object):
     def add_mouse_callback(self, func, key, action = "press", mods = None):
         self._add_callback(self.mouse_callbacks, func, key, action, mods)
 
+    def add_framebuffer_callback(self, func):
+        self.framebuffer_callbacks.append(func)
+
     def _add_callback(self, d, func, key, action, mods):
         if isinstance(key, str):
             key = getattr(glfw, "KEY_%s" % key.upper())
@@ -61,6 +67,10 @@ class Events(object):
             mod |= m
         # We can allow for multiple
         d[key, action, mod].append(func)
+
+def framebuffer_size_callback(window, width, height):
+    glViewport(0, 0, width, height)
+    return True
 
 def close_window(camera, window, key, scancode, action, mods):
     glfw.SetWindowShouldClose(window, True)
@@ -133,7 +143,6 @@ class RenderingContext(object):
             exit()
 
         glfw.MakeContextCurrent(self.window)
-        #glfw.SetFramebufferSizeCallback(self.window, framebuffer_size_callback)
         window = self.window
 
     def start_loop(self, scene, camera):
@@ -154,7 +163,10 @@ class RenderingContext(object):
             glfw.MOUSE_BUTTON_LEFT)
         callbacks.add_mouse_callback(mouse_callbacks.stop_rotation,
             glfw.MOUSE_BUTTON_LEFT, action="release")
+        callbacks.add_framebuffer_callback(framebuffer_size_callback)
         callbacks.add_default(mouse_callbacks.do_rotation)
+        glfw.SetFramebufferSizeCallback(self.window,
+            callbacks.framebuffer_call)
         glfw.SetKeyCallback(self.window, callbacks.key_call)
         glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
         callbacks.draw = True
