@@ -43,13 +43,16 @@ def framebuffer_size_callback(window, width, height):
     draw = True
 
 class KeyCallbacks(object):
+    draw = True
     def __init__(self, camera):
         self.callbacks = defaultdict(list)
         self.camera = camera
 
     def __call__(self, window, key, scancode, action, mods):
+        draw = False
         for f in self.callbacks[None] + self.callbacks[key, action, mods]:
-            f(self.camera, window, key, scancode, action, mods)
+            draw = f(self.camera, window, key, scancode, action, mods) or draw
+        self.draw = draw
 
     def add_default(self, func):
         self.callbacks[None].append(func)
@@ -75,16 +78,14 @@ def close_window(camera, window, key, scancode, action, mods):
     glfw.SetWindowShouldClose(window, True)
 
 def zoomin(camera, window, key, scancode, action, mods):
-    global draw
     camera.position -= (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
-    draw = True
+    return True
 
 def zoomout(camera, window, key, scancode, action, mods):
-    global draw
     camera.position += (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
-    draw = True
+    return True
 
 def start_context():
     global window
@@ -133,10 +134,10 @@ def start_loop(scene, camera):
             start = new_end
             draw = True
 
-        if draw:
+        if draw or callbacks.draw:
             scene.set_camera(c)
             scene.render()
-            draw = False
+            draw = callbacks.draw = False
         glfw.SwapBuffers(window)
         glfw.PollEvents()
 
