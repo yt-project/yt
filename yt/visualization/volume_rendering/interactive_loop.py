@@ -76,13 +76,23 @@ def close_window(camera, window, key, scancode, action, mods):
     glfw.SetWindowShouldClose(window, True)
 
 def zoomin(camera, window, key, scancode, action, mods):
-    camera.position -= (camera.position - camera.focus) / \
+    camera.position -= 0.05 * (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
+    print camera.position, camera.focus
     return True
 
 def zoomout(camera, window, key, scancode, action, mods):
-    camera.position += (camera.position - camera.focus) / \
+    camera.position += 0.05 * (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
+    print camera.position, camera.focus
+    return True
+
+def closeup(camera, window, key, scancode, action, mods):
+    camera.position = (0.01, 0.01, 0.01)
+    return True
+
+def reset(camera, window, key, scancode, action, mods):
+    camera.position = (-1.0, -1.0, -1.0)
     return True
 
 def printit(*args):
@@ -134,13 +144,13 @@ class MouseRotation(object):
         return True
         
 class RenderingContext(object):
-    def __init__(self, width = 600, height = 800, title = "vol_render"):
+    def __init__(self, width = 800, height = 600, title = "vol_render"):
         glfw.Init()
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        self.window = glfw.CreateWindow(800, 600, 'vol_render')
+        self.window = glfw.CreateWindow(width, height, title)
         if not self.window:
             glfw.Terminate()
             exit()
@@ -161,6 +171,8 @@ class RenderingContext(object):
         callbacks.add_key_callback(close_window, "escape")
         callbacks.add_key_callback(zoomin, "w")
         callbacks.add_key_callback(zoomout, "s")
+        callbacks.add_key_callback(closeup, "z")
+        callbacks.add_key_callback(reset, "r")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)
