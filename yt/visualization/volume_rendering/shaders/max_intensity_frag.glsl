@@ -34,7 +34,8 @@ void main()
 
     vec4 world_location = inverse_view * eyePos;
 
-    float step_size = length(right_edge - left_edge) / dx.x / 100000.0;
+    // Five samples
+    vec3 step_size = dx / 5.0;
     vec3 dir = normalize(world_location.xyz - v_camera_pos.xyz);
     vec3 curr_color = vec3(0.0);
 
