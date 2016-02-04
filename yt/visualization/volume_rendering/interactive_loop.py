@@ -84,7 +84,6 @@ def zoomin(camera, window, key, scancode, action, mods):
 def zoomout(camera, window, key, scancode, action, mods):
     camera.position += 0.05 * (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
-    print camera.position, camera.focus
     return True
 
 def closeup(camera, window, key, scancode, action, mods):
@@ -194,9 +193,15 @@ class RenderingContext(object):
                 camera.compute_matrices()
                 scene.set_camera(camera)
                 scene.render()
-                callbacks.draw = False
                 glfw.SwapBuffers(self.window)
+                callbacks.draw = False
             glfw.PollEvents()
+            frame_start = glfw.GetTime()
+            f += 1
+            if f == N:
+                #print "FPS:", N / float(frame_start - fps_start)
+                fps_start = glfw.GetTime()
+                f = 0
 
         print "Finished rendering"
         glfw.Terminate()
