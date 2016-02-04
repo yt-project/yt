@@ -2,7 +2,7 @@ import cyglfw3 as glfw
 import numpy as np
 from OpenGL.GL import glViewport
 
-from interactive_vr import BlockCollection, SceneGraph, Camera
+from interactive_vr import BlockCollection, SceneGraph, TrackballCamera
 
 draw = True
 start = None
@@ -31,7 +31,7 @@ def mouse_button_callback(window, button, action, mods):
         norm_y = 1.0 - 2.0 * end_screen[1] / window_size[1]
         end = (norm_x, norm_y)
 
-        c.update_position( (end[0] - start[0]), (end[1] - start[1]))
+        c.update_orientation(start[0], start[1], end[0], end[1])
 
         rotation = False
         draw = True
@@ -90,10 +90,12 @@ def start_loop(scene, camera):
             norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
             new_end = (norm_x, norm_y)
 
-            c.update_position( (new_end[0] - start[0]),
-                    (new_end[1] - start[1]))
+            c.update_orientation(start[0], start[1], new_end[0], new_end[1])
+
             start = new_end
             draw = True
+
+        c.compute_matrices()
 
         if draw:
             scene.set_camera(c)
