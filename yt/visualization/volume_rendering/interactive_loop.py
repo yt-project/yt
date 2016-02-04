@@ -43,12 +43,13 @@ def framebuffer_size_callback(window, width, height):
     draw = True
 
 class KeyCallbacks(object):
-    def __init__(self):
+    def __init__(self, camera):
         self.callbacks = defaultdict(list)
+        self.camera = camera
 
     def __call__(self, window, key, scancode, action, mods):
         for f in self.callbacks[None] + self.callbacks[key, action, mods]:
-            f(window, key, scancode, action, mods)
+            f(self.camera, window, key, scancode, action, mods)
 
     def add_default(self, func):
         self.callbacks[None].append(func)
@@ -70,34 +71,20 @@ class KeyCallbacks(object):
         # We can allow for multiple
         self.callbacks[key, action, mod].append(func)
 
-callbacks = KeyCallbacks()
-
-def close_window(window, key, scancode, action, mods):
+def close_window(camera, window, key, scancode, action, mods):
     glfw.SetWindowShouldClose(window, True)
-callbacks.add(close_window, "escape")
 
-def zoomin(window, key, scancode, action, mods):
-    global draw, c
-    c.position -= (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
+def zoomin(camera, window, key, scancode, action, mods):
+    global draw
+    camera.position -= (camera.position - camera.focus) / \
+                np.linalg.norm(camera.position - camera.focus)
     draw = True
-callbacks.add(zoomin, "w")
 
-def zoomout(window, key, scancode, action, mods):
-    global draw, c
-    c.position += (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
+def zoomout(camera, window, key, scancode, action, mods):
+    global draw
+    camera.position += (camera.position - camera.focus) / \
+        np.linalg.norm(camera.position - camera.focus)
     draw = True
-callbacks.add(zoomout, "s")
-
-def key_callback(window, key, scancode, action, mods):
-    global draw, c
-    if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
-        glfw.SetWindowShouldClose(window, True)
-    if key == glfw.KEY_W and action == glfw.PRESS:
-        c.position -= (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
-        draw = True
-    if key == glfw.KEY_S and action == glfw.PRESS:
-        c.position += (c.position - c.focus) / np.linalg.norm(c.position - c.focus)
-        draw = True
 
 def start_context():
     global window
@@ -113,7 +100,6 @@ def start_context():
         exit()
 
     glfw.MakeContextCurrent(window)
-    glfw.SetKeyCallback(window, callbacks)
     glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
     glfw.SetMouseButtonCallback(window, mouse_button_callback)
 
@@ -127,6 +113,11 @@ def start_loop(scene, camera):
     f = 0
     N = 10.0
     print "Starting rendering..."
+    callbacks = KeyCallbacks(camera)
+    callbacks.add(close_window, "escape")
+    callbacks.add(zoomin, "w")
+    callbacks.add(zoomout, "s")
+    glfw.SetKeyCallback(window, callbacks)
 
     while not glfw.WindowShouldClose(window):
         if rotation:
