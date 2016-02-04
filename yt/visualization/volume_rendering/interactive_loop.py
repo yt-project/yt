@@ -30,7 +30,7 @@ class Events(object):
     def framebuffer_call(self, window, width, height):
         draw = False
         for f in self.framebuffer_callbacks:
-            draw = f(window, width, height) or draw
+            draw = f(self.camera, window, width, height) or draw
         self.draw = self.draw or draw
 
     def __call__(self, window):
@@ -68,8 +68,9 @@ class Events(object):
         # We can allow for multiple
         d[key, action, mod].append(func)
 
-def framebuffer_size_callback(window, width, height):
+def framebuffer_size_callback(camera, window, width, height):
     GL.glViewport(0, 0, width, height)
+    camera.aspect_ratio = float(width)/height
     return True
 
 def close_window(camera, window, key, scancode, action, mods):

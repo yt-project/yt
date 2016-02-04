@@ -167,7 +167,8 @@ class BlockCollection:
     def __init__(self):
         self.data_source = None
 
-        self.blocks = [] # A collection of PartionedGrid objects
+        self.blocks = {} # A collection of PartionedGrid objects
+        self.block_order = []
 
         self.gl_buffer_name = None
         self.gl_texture_names = []
@@ -207,26 +208,19 @@ class BlockCollection:
         """
         self.data_source = data_source
         self.data_source.tiles.set_fields([field], [True], True)
-
-    def set_camera(self, camera):
-        r"""Sets the camera for the block collection.
-
-        Parameters
-        ----------
-        camera : Camera
-            A simple camera object.
-
-        """
-        self.blocks = []
+        self.blocks = {}
+        self.block_order = []
+        # Every time we change our data source, we wipe all existing ones.
+        # We now set up our vertices into our current data source.
         vert = []
         self.min_val = 1e60
         self.max_val = -1e60
-        for block in self.data_source.tiles.traverse(viewpoint = camera.position):
+        for i, block in enumerate(self.data_source.tiles.traverse()):
             self.min_val = min(self.min_val, block.my_data[0].min())
             self.max_val = max(self.max_val, block.my_data[0].max())
-            self.blocks.append(block)
+            self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
-        self.camera = camera
+            self.block_order.append(id(block))
 
         # Now we set up our buffer
         vert = np.concatenate(vert)
@@ -238,7 +232,23 @@ class BlockCollection:
         self.gl_vao_name = GL.glGenVertexArrays(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.gl_buffer_name)
         GL.glBufferData(GL.GL_ARRAY_BUFFER, vert.nbytes, vert, GL.GL_STATIC_DRAW)
+        self._load_textures()
         redraw = True
+
+    def set_camera(self, camera):
+        r"""Sets the camera for the block collection.
+
+        Parameters
+        ----------
+        camera : Camera
+            A simple camera object.
+
+        """
+        self.block_order = []
+        for block in self.data_source.tiles.traverse(viewpoint = camera.position):
+            self.block_order.append(id(block))
+        self.camera = camera
+        self.redraw = True
 
     def run_program(self, shader_program):
         r"""Runs a given shader program on the block collection.
@@ -262,7 +272,6 @@ class BlockCollection:
 
         self._set_uniforms(shader_program)
         GL.glActiveTexture(GL.GL_TEXTURE0)
-        self._load_textures()
         dx_loc = GL.glGetUniformLocation(shader_program, "dx")
         left_edge_loc = GL.glGetUniformLocation(shader_program, "left_edge")
         right_edge_loc = GL.glGetUniformLocation(shader_program, "right_edge")
@@ -271,11 +280,13 @@ class BlockCollection:
 
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.gl_buffer_name)
         GL.glActiveTexture(GL.GL_TEXTURE0)
-        for i in range(0, len(self.blocks)):
-            self._set_bounds(self.blocks[i], shader_program,
+        for bi in self.block_order:
+            tex_i, block = self.blocks[bi]
+            ti = self.gl_texture_names[tex_i]
+            self._set_bounds(block, shader_program,
                 dx_loc, left_edge_loc, right_edge_loc)
-            GL.glBindTexture(GL.GL_TEXTURE_3D, self.gl_texture_names[i])
-            GL.glDrawArrays(GL.GL_TRIANGLES, i*36, 36)
+            GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
+            GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
 
         GL.glDisableVertexAttribArray(vert_location)
         GL.glBindVertexArray(0)
@@ -327,7 +338,9 @@ class BlockCollection:
             if len(self.blocks) == 1:
                 self.gl_texture_names = [self.gl_texture_names]
 
-        for block, texture_name in zip(self.blocks, self.gl_texture_names):
+        for block_id in sorted(self.blocks):
+            tex_i, block = self.blocks[block_id]
+            texture_name = self.gl_texture_names[tex_i]
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / (self.max_val - self.min_val)
