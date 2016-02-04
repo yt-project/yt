@@ -100,12 +100,10 @@ class TrackballCamera(object):
 
     def compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        self.position = np.linalg.norm(self.position)*rotation_matrix[2]
+        self.position = self.position*rotation_matrix[2]
         up = rotation_matrix[1]
 
-        self.view_matrix = get_lookat_matrix(self.focus + self.position, 
-                                             self.focus, 
-                                             up)
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, up)
 
         self.projection_matrix = get_perspective_matrix(np.radians(self.fov),
                                                         self.aspect_ratio,
