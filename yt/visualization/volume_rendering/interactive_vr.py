@@ -107,7 +107,7 @@ class TrackballCamera(object):
                                              self.focus, 
                                              up)
 
-        self.projection_matrix = get_perspective_matrix(self.fov,
+        self.projection_matrix = get_perspective_matrix(np.radians(self.fov),
                                                         self.aspect_ratio,
                                                         self.near_plane,
                                                         self.far_plane)
