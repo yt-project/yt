@@ -100,7 +100,7 @@ class TrackballCamera(object):
 
     def compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        self.position = np.dot(rotation_matrix, self.position)
+        self.position = np.linalg.norm(self.position)*rotation_matrix[2]
 
         self.view_matrix = np.zeros ( (4, 4), dtype = 'float32', order = 'C')
         
