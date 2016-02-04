@@ -258,8 +258,7 @@ class BlockCollection:
 
         GL.glVertexAttribPointer(vert_location, 4, GL.GL_FLOAT, False, 0, None)
         GL.glEnableVertexAttribArray(vert_location)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        GL.glClear(GL.GL_DEPTH_BUFFER_BIT)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self._set_uniforms(shader_program)
         GL.glActiveTexture(GL.GL_TEXTURE0)

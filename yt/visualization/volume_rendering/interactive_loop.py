@@ -188,19 +188,12 @@ class RenderingContext(object):
         while not glfw.WindowShouldClose(self.window):
             callbacks(self.window)
             if callbacks.draw:
+                camera.compute_matrices()
                 scene.set_camera(camera)
                 scene.render()
                 callbacks.draw = False
-            glfw.SwapBuffers(self.window)
+                glfw.SwapBuffers(self.window)
             glfw.PollEvents()
-            camera.compute_matrices()
-
-            frame_start = glfw.GetTime()
-            f += 1
-            if f == N:
-                print "FPS:", N / float(frame_start - fps_start)
-                fps_start = glfw.GetTime()
-                f = 0
 
         print "Finished rendering"
         glfw.Terminate()
