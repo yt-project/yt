@@ -9,7 +9,8 @@ from yt.utilities.math_utils import \
     get_lookat_matrix, \
     get_perspective_matrix, \
     quaternion_mult, \
-    quaternion_to_rotation_matrix
+    quaternion_to_rotation_matrix, \
+    rotation_matrix_to_quaternion
     
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -51,8 +52,11 @@ bbox_vertices = np.array(
 
 
 class TrackballCamera(object):
-    def __init__(self, position=(0.0, 0.0, 1.0), focus=(0.0, 0.0, 0.0),
-                 fov=45.0, near_plane=1.0, far_plane=20.0, aspect_ratio=8.0/6.0):
+    def __init__(self, 
+                 position=np.array([0.0, 0.0, 1.0]),
+                 focus=np.array([0.0, 0.0, 0.0]),
+                 up=np.array([0.0, 1.0, 0.0]),
+                 fov=45.0, near_plane=0.01, far_plane=20.0, aspect_ratio=8.0/6.0):
         self.view_matrix = np.zeros((4, 4), dtype=np.float32)
         self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
         self.position = np.array(position)
@@ -61,7 +65,14 @@ class TrackballCamera(object):
         self.near_plane = near_plane
         self.far_plane = far_plane
         self.aspect_ratio = aspect_ratio
-        self.orientation = np.array([1.0, 0.0, 0.0, 0.0])
+        self.up = up
+
+        self.view_matrix = get_lookat_matrix(self.position, 
+                                             self.focus,
+                                             self.up)
+
+        rotation_matrix = self.view_matrix[0:3,0:3]
+        self.orientation = rotation_matrix_to_quaternion(rotation_matrix)
 
     def _map_to_surface(self, mouse_x, mouse_y):
         # right now this just maps to the surface of
@@ -98,8 +109,9 @@ class TrackballCamera(object):
 
     def compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        self.position = self.position*rotation_matrix[2]
-        up = rotation_matrix[1]
+        dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
+        self.position = dp + self.focus
+        self.up = rotation_matrix[1]
 
         self.view_matrix = get_lookat_matrix(self.position, self.focus, up)
 

@@ -1020,7 +1020,9 @@ def quaternion_to_rotation_matrix(quaternion):
     This converts a quaternion representation of on orientation to
     a rotation matrix. The input is a 4-component numpy array in
     the order [w, x, y, z], and the output is a 3x3 matrix stored
-    as a 2D numpy array.
+    as a 2D numpy array.  We follow the approach in
+    "3D Math Primer for Graphics and Game Development" by
+    Dunn and Parberry.
 
     """
 
@@ -1044,6 +1046,69 @@ def quaternion_to_rotation_matrix(quaternion):
     R[2][2] = 1.0 - 2.0*x**2 - 2.0*y**2
 
     return R
+
+def rotation_matrix_to_quaternion(rot_matrix):
+    '''
+
+    Convert a rotation matrix-based representation of an 
+    orientation to a quaternion. The input should be a 
+    3x3 rotation matrix, while the output will be a 
+    4-component numpy array. We follow the approach in
+    "3D Math Primer for Graphics and Game Development" by
+    Dunn and Parberry.
+
+    '''
+    m11 = rot_matrix[0][0]
+    m12 = rot_matrix[0][1]
+    m13 = rot_matrix[0][2]
+    m21 = rot_matrix[1][0]
+    m22 = rot_matrix[1][1]
+    m23 = rot_matrix[1][2]
+    m31 = rot_matrix[2][0]
+    m32 = rot_matrix[2][1]
+    m33 = rot_matrix[2][2]
+
+    four_w_squared_minus_1 = m11 + m22 + m33
+    four_x_squared_minus_1 = m11 - m22 - m33 
+    four_y_squared_minus_1 = m22 - m11 - m33 
+    four_z_squared_minus_1 = m33 - m11 - m22
+    max_index = 0
+    four_max_squared_minus_1 = four_w_squared_minus_1
+    if (four_x_squared_minus_1 > four_max_squared_minus_1):
+        four_max_squared_minus_1 = four_x_squared_minus_1
+        max_index = 1
+    if (four_y_squared_minus_1 > four_max_squared_minus_1):
+        four_max_squared_minus_1 = four_y_squared_minus_1
+        max_index = 2
+    if (four_z_squared_minus_1 > four_max_squared_minus_1):
+        four_max_squared_minus_1 = four_z_squared_minus_1
+        max_index = 3
+
+    max_val = 0.5*np.sqrt(four_max_squared_minus_1 + 1.0)
+    mult = 0.25 / max_val
+
+    if (max_index == 0):
+        w = max_val
+        x = (m23 - m32) * mult
+        y = (m31 - m13) * mult 
+        z = (m12 - m21) * mult
+    elif (max_index == 1):
+        x = max_val
+        w = (m23 - m32) * mult
+        y = (m12 + m21) * mult
+        z = (m31 + m13) * mult
+    elif (max_index == 2):
+        y = max_val
+        w = (m31 - m13) * mult
+        x = (m12 + m21) * mult
+        z = (m23 + m32) * mult
+    elif (max_index == 3):
+        z = max_val
+        w = (m12 - m21) * mult
+        x = (m31 + m13) * mult
+        y = (m23 + m32) * mult
+ 
+    return np.array([w, x, y, z])
 
 def get_ortho_basis(normal):
     xprime = np.cross([0.0,1.0,0.0],normal)
