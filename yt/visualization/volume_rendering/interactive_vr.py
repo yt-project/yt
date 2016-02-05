@@ -52,6 +52,19 @@ bbox_vertices = np.array(
 
 
 class TrackballCamera(object):
+    """
+
+    This class implements a basic "Trackball" or "Arcball" camera control system
+    that allows for unconstrained 3D rotations without suffering from Gimbal lock.
+    Following Ken Shoemake's orginal C implementation (Graphics Gems IV, III.1)
+    we project mouse movements onto the unit sphere and use quaternions to
+    represent the corresponding rotation.
+
+    See also:
+    https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
+
+    """
+
     def __init__(self, 
                  position=(0.0, 0.0, 1.0),
                  focus=(0.0, 0.0, 0.0),
@@ -75,8 +88,7 @@ class TrackballCamera(object):
         self.orientation = rotation_matrix_to_quaternion(rotation_matrix)
 
     def _map_to_surface(self, mouse_x, mouse_y):
-        # right now this just maps to the surface of
-        # the unit sphere
+        # right now this just maps to the surface of the unit sphere
         x, y = mouse_x, mouse_y
         mag = np.sqrt(x*x + y*y)
         if (mag > 1.0):
@@ -91,7 +103,7 @@ class TrackballCamera(object):
         old = self._map_to_surface(start_x, start_y)
         new = self._map_to_surface(end_x, end_y)
 
-        # dot product
+        # dot product controls the angle of the rotation
         w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
 
         # cross product gives the rotation axis
@@ -145,12 +157,15 @@ class Camera:
         self.focus = np.array(focus)
 
     def get_viewpoint(self):
-        return position
+        return self.position
+
     def get_view_matrix(self):
         return get_lookat_matrix(self.position, self.focus, self.up)
+
     def get_projection_matrix(self):
         return get_perspective_matrix(np.radians(self.fov), self.aspect_ratio, self.near_plane,
                 self.far_plane)
+
     def update_position(self, theta, phi):
         rho = np.linalg.norm(self.position)
         curr_theta = np.arctan2( self.position[1], self.position[0] )
