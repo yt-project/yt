@@ -309,9 +309,6 @@ class BlockCollection:
             ti = self.gl_texture_names[tex_i]
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
-
-        for n in ("model_vertex", "in_dx", "in_left_edge", "in_right_edge"):
-            self.disable_vert_attrib(shader_program, n)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
     def _set_uniforms(self, shader_program):
