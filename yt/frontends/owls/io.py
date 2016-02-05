@@ -123,7 +123,7 @@ class IOHandlerOWLS(BaseIOHandler):
             f.close()
 
     def _initialize_index(self, data_file, regions):
-        ptype = self.ds.ptype
+        ptype = self.ptype
         f = _get_h5_handle(data_file.filename)
         if ptype == "all":
             pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()

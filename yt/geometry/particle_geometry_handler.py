@@ -37,6 +37,13 @@ class ParticleIndex(Index):
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
+    @property
+    def ptype(self):
+        if hasattr(self.dataset, "ptype"):
+            return self.dataset.ptype
+        else:
+            return "all"
+
     def _setup_geometry(self):
         mylog.debug("Initializing Particle Geometry Handler.")
         self._initialize_particle_handler()
@@ -61,7 +68,7 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        ptype = self.dataset.ptype
+        ptype = self.ptype
         if ptype == "all":
             self.total_particles = sum(
                     sum(d.total_particles.values()) for d in self.data_files)
@@ -98,7 +105,10 @@ class ParticleIndex(Index):
         #   * Broadcast back a serialized octree to join
         #
         # For now we will do this in serial.
-        ptype = self.dataset.ptype
+        ptype = self.ptype
+        # Set the ptype attribute of self.io dynamically here, so we don't
+        # need to assume that the dataset has the attribute.
+        self.io.ptype = ptype
         morton = np.empty(self.total_particles, dtype="uint64")
         ind = 0
         for data_file in self.data_files:
