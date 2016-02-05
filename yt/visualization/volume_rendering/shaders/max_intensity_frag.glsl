@@ -1,15 +1,15 @@
 #version 330
 in vec4 v_model;
 in vec3 v_camera_pos;
+in vec3 dx;
+in vec3 left_edge;
+in vec3 right_edge;
 flat in mat4 inverse_proj;
 flat in mat4 inverse_view;
 out vec4 output_color;
 
 uniform sampler3D ds_tex;
 //layout (binding = 1) uniform sampler2D depth_tex;
-uniform vec3 dx;
-uniform vec3 left_edge;
-uniform vec3 right_edge;
 uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 
 bool within_bb(vec3 pos)

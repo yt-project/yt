@@ -165,6 +165,7 @@ class Camera:
 
 class BlockCollection:
     def __init__(self):
+        self.vert_attrib = {}
         self.data_source = None
 
         self.blocks = {} # A collection of PartionedGrid objects
@@ -192,6 +193,23 @@ class BlockCollection:
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
         GL.glBlendEquation(GL.GL_MAX)
 
+
+    def add_vert_attrib(self, name, arr):
+        self.vert_attrib[name] = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name])
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
+
+    def bind_vert_attrib(self, program, name, size):
+        loc = GL.glGetAttribLocation(program, name)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name])
+        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
+        GL.glEnableVertexAttribArray(loc)
+
+    def disable_vert_attrib(self, program, name):
+        loc = GL.glGetAttribLocation(program, name)
+        GL.glDisableVertexAttribArray(loc)
+        GL.glBindVertexArray(0)
+
     def add_data(self, data_source, field):
         r"""Adds a source of data for the block collection.
 
@@ -212,7 +230,7 @@ class BlockCollection:
         self.block_order = []
         # Every time we change our data source, we wipe all existing ones.
         # We now set up our vertices into our current data source.
-        vert = []
+        vert, dx, le, re = [], [], [], []
         self.min_val = 1e60
         self.max_val = -1e60
         for i, block in enumerate(self.data_source.tiles.traverse()):
@@ -220,18 +238,27 @@ class BlockCollection:
             self.max_val = max(self.max_val, block.my_data[0].max())
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
+            dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
+            dx.append(dds.astype('f4'))
+            le.append(block.LeftEdge.astype('f4'))
+            re.append(block.RightEdge.astype('f4'))
             self.block_order.append(id(block))
 
         # Now we set up our buffer
         vert = np.concatenate(vert)
-        if self.gl_buffer_name != None:
-            GL.glDeleteBuffers(1, [self.gl_buffer_name])
-        self.gl_buffer_name = GL.glGenBuffers(1)
+        dx = np.concatenate(dx)
+        le = np.concatenate(le)
+        re = np.concatenate(re)
         if self.gl_vao_name != None:
             GL.glDeleteVertexArrays(1, [self.gl_vao_name])
         self.gl_vao_name = GL.glGenVertexArrays(1)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.gl_buffer_name)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, vert.nbytes, vert, GL.GL_STATIC_DRAW)
+
+        self.add_vert_attrib("model_vertex", vert)
+        self.add_vert_attrib("in_dx", dx)
+        self.add_vert_attrib("in_left_edge", le)
+        self.add_vert_attrib("in_right_edge", re)
+
+        # Now we set up our 
         self._load_textures()
         redraw = True
 
@@ -262,41 +289,29 @@ class BlockCollection:
         GL.glUseProgram(shader_program)
 
         GL.glBindVertexArray(self.gl_vao_name)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.gl_buffer_name)
 
-        vert_location = GL.glGetAttribLocation(shader_program, "model_vertex")
+        self.bind_vert_attrib(shader_program, "model_vertex", 4)
+        self.bind_vert_attrib(shader_program, "in_dx", 3)
+        self.bind_vert_attrib(shader_program, "in_left_edge", 3)
+        self.bind_vert_attrib(shader_program, "in_right_edge", 3)
 
-        GL.glVertexAttribPointer(vert_location, 4, GL.GL_FLOAT, False, 0, None)
-        GL.glEnableVertexAttribArray(vert_location)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self._set_uniforms(shader_program)
         GL.glActiveTexture(GL.GL_TEXTURE0)
-        dx_loc = GL.glGetUniformLocation(shader_program, "dx")
-        left_edge_loc = GL.glGetUniformLocation(shader_program, "left_edge")
-        right_edge_loc = GL.glGetUniformLocation(shader_program, "right_edge")
         camera_loc = GL.glGetUniformLocation(shader_program, "camera_pos")
         GL.glUniform3fv(camera_loc, 1, self.camera.position)
 
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.gl_buffer_name)
         GL.glActiveTexture(GL.GL_TEXTURE0)
         for bi in self.block_order:
             tex_i, block = self.blocks[bi]
             ti = self.gl_texture_names[tex_i]
-            self._set_bounds(block, shader_program,
-                dx_loc, left_edge_loc, right_edge_loc)
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
 
-        GL.glDisableVertexAttribArray(vert_location)
-        GL.glBindVertexArray(0)
+        for n in ("model_vertex", "in_dx", "in_left_edge", "in_right_edge"):
+            self.disable_vert_attrib(shader_program, n)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-
-    def _set_bounds(self, block, shader_program, dx, le, re):
-        dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
-        GL.glUniform3fv(dx, 1, dds)
-        GL.glUniform3fv(le, 1, block.LeftEdge)
-        GL.glUniform3fv(re, 1, block.RightEdge)
 
     def _set_uniforms(self, shader_program):
         project_loc = GL.glGetUniformLocation(shader_program, "projection")
@@ -321,6 +336,7 @@ class BlockCollection:
         return transformed_box
 
     def _load_textures(self):
+        print "Loading textures."
         if len(self.gl_texture_names) == 0:
             self.gl_texture_names = GL.glGenTextures(len(self.blocks))
             if len(self.blocks) == 1:
