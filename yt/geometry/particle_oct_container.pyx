@@ -401,6 +401,8 @@ cdef class ParticleForest:
     @cython.cdivision(True)
     def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
                                  np.ndarray[np.uint8_t, ndim=1] mask,
+                                 np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                 np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id):
         # Initialize
         cdef np.uint64_t i, p, mi, nsub_mi#, last_mi, last_submi
@@ -420,10 +422,6 @@ cdef class ParticleForest:
             RE[i] = self.right_edge[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
-        cdef np.ndarray[np.uint64_t, ndim=1] sub_mi1 
-        cdef np.ndarray[np.uint64_t, ndim=1] sub_mi2 
-        sub_mi1 = np.zeros(pos.shape[0], dtype="uint64")
-        sub_mi2 = np.zeros(pos.shape[0], dtype="uint64")
         nsub_mi = 0
         # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
