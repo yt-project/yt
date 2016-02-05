@@ -60,14 +60,20 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        self.total_particles = sum(
-                sum(d.total_particles.values()) for d in self.data_files)
+        ptype = self.dataset.ptype
+        if ptype == "all":
+            self.total_particles = sum(
+                    sum(d.total_particles.values()) for d in self.data_files)
+        else:
+            self.total_particles = sum(
+                    d.total_particles[ptype] for d in self.data_files)
         ds = self.dataset
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
             over_refine = ds.over_refine_factor)
         self.oct_handler.n_ref = ds.n_ref
-        mylog.info("Allocating for %0.3e particles", self.total_particles)
+        mylog.info("Allocating for %0.3e particles (%s)",
+                   self.total_particles, ptype)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
@@ -90,10 +96,14 @@ class ParticleIndex(Index):
         #   * Broadcast back a serialized octree to join
         #
         # For now we will do this in serial.
+        ptype = self.dataset.ptype
         morton = np.empty(self.total_particles, dtype="uint64")
         ind = 0
         for data_file in self.data_files:
-            npart = sum(data_file.total_particles.values())
+            if ptype == "all":
+                npart = sum(data_file.total_particles.values())
+            else:
+                npart = data_file.total_particles[ptype]
             morton[ind:ind + npart] = \
                 self.io._initialize_index(data_file, self.regions)
             ind += npart
