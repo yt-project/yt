@@ -180,30 +180,44 @@ cdef class SelectorObject:
                                     BoolArrayCollection mm,
                                     BoolArrayCollection mm_ghosts,
                                     BoolArrayCollection mm_coll,
-                                    np.ndarray[np.uint8_t, ndim=1] mi_bool,
-                                    np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts,
-                                    np.ndarray[np.uint8_t, ndim=1] mi_bool_refn,
+                                    np.uint8_t[:] mi_bool,
+                                    np.uint8_t[:] mi_bool_ghosts,
+                                    np.uint8_t[:] mi_bool_refn,
                                     np.uint64_t n_sub_ghosts, 
                                     int ngz = 0):
-        cdef np.uint64_t mi2, mi1_n
+        cdef np.uint64_t mi2, mi1_n, reset_bool
         cdef np.float64_t npos[3]
         cdef np.float64_t cpos[3] # Center of cell
         cdef np.float64_t ndds[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
-        cdef np.ndarray[np.uint64_t, ndim=2] ind1_n
-        cdef np.ndarray[np.uint64_t, ndim=2] ind2_n
-        cdef np.ndarray[np.int32_t, ndim=2] neighbors
+        cdef np.uint64_t[:,:] ind1_n
+        cdef np.uint64_t[:,:] ind2_n
+        cdef np.int32_t[:,:] neighbors
         cdef np.uint64_t max_index1 = <np.uint64_t>(1 << max_level1)
         cdef np.uint64_t max_index2 = <np.uint64_t>(1 << max_level2)
         cdef int i, j, k, l, m, n, iil, iim, iin
         cdef np.int64_t adv, maj, rem
         cdef np.int32_t n_neighbors[3]
-        cdef np.ndarray[np.uint8_t, ndim=1] mi2_bool
-        cdef np.ndarray[np.uint8_t, ndim=1] mi2_bool_ghosts
-        neighbors = np.zeros((2*ngz+1,3), dtype=np.int32)
-        ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
-        ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
+        cdef void* pointers[5]
+        cdef np.uint8_t[:] mi2_bool
+        cdef np.uint8_t[:] mi2_bool_ghosts
+        cdef np.uint64_t s = (1<<(max_level2*3))
+        pointers[0] = malloc(sizeof(np.uint8_t) * s)
+        pointers[1] = malloc(sizeof(np.uint8_t) * s)
+        pointers[2] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
+        pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
+        pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
+        mi2_bool = <np.uint8_t[:s]> pointers[0]
+        mi2_bool_ghosts = <np.uint8_t[:s]> pointers[1]
+        neighbors = <np.int32_t[:2*ngz+1,:3]> pointers[2]
+        ind1_n = <np.uint64_t[:2*ngz+1,:3]> pointers[3]
+        ind2_n = <np.uint64_t[:2*ngz+1,:3]> pointers[4]
+        neighbors[:,:] = 0
+        ind1_n[:,:] = 0
+        ind2_n[:,:] = 0
+        mi2_bool[:] = 0
+        mi2_bool_ghosts[:] = 0
         for i in range(3):
             ndds[i] = dds[i]/2
         # Loop over octs
@@ -226,8 +240,9 @@ cdef class SelectorObject:
                         # Otherwise, add neighbors at this level and continue
                         if mm_coll._isref(mi1):
                             mi_bool_refn[mi1] = 1
-                            mi2_bool = np.zeros(1 << (max_level2 * 3), dtype='uint8')
-                            mi2_bool_ghosts = np.zeros(1 << (max_level2 * 3), dtype='uint8')
+                            for reset_bool in range(mi2_bool.shape[0]):
+                                mi2_bool[reset_bool] = 0
+                                mi2_bool_ghosts[reset_bool] = 0
                             self.recursive_morton_mask(level+1, npos, ndds, DLE, 
                                                        max_level1, max_level2,
                                                        mi1, mm, mm_ghosts, mm_coll, 
@@ -331,6 +346,8 @@ cdef class SelectorObject:
                     mm_ghosts._set(<np.uint64_t>m)
                     if mi_bool_refn[m]:
                         mm_ghosts._set_refn(<np.uint64_t>m)
+        for i in range(5):
+            free(pointers[i])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

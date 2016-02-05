@@ -655,11 +655,13 @@ cdef class ParticleForest:
             pos[j] = self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
             DLE[j] = self.left_edge[j]
+        print "starting morton"
         selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 
                                        mi_bool, mi_bool_ghosts,
                                        mi_bool_refn, n_sub_ghosts, ngz=ngz)
+        print "done with morton"
         # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
@@ -730,7 +732,7 @@ cdef class ParticleForest:
                                     refined_g = dereference(it_mi1_g).second
                                     if refined_g.intersects(refined_d):
                                         file_mask_g[ifile] = 1
-                                elif cmask_g.get(mi1):
+                                elif cmask_g._get(mi1):
                                     # This shouldn't happen, the selector should always
                                     # refine where the data is refined.
                                     print "mi1 = {} coarsely selected by ghost, but refined in data.".format(mi1)
