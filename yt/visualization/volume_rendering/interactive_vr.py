@@ -166,14 +166,13 @@ class Camera:
 class BlockCollection:
     def __init__(self):
         self.vert_attrib = {}
+        self.gl_vao_name = None
         self.data_source = None
 
         self.blocks = {} # A collection of PartionedGrid objects
         self.block_order = []
 
-        self.gl_buffer_name = None
         self.gl_texture_names = []
-        self.gl_vao_name = None
 
         self.redraw = True
 
@@ -201,9 +200,9 @@ class BlockCollection:
 
     def bind_vert_attrib(self, program, name, size):
         loc = GL.glGetAttribLocation(program, name)
+        GL.glEnableVertexAttribArray(loc)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name])
         GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
-        GL.glEnableVertexAttribArray(loc)
 
     def disable_vert_attrib(self, program, name):
         loc = GL.glGetAttribLocation(program, name)
@@ -239,9 +238,10 @@ class BlockCollection:
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
             dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
-            dx.append(dds.astype('f4'))
-            le.append(block.LeftEdge.astype('f4'))
-            re.append(block.RightEdge.astype('f4'))
+            n = vert[-1].size/4
+            dx.append([dds.astype('f4') for _ in range(n)])
+            le.append([block.LeftEdge.astype('f4') for _ in range(n)])
+            re.append([block.RightEdge.astype('f4') for _ in range(n)])
             self.block_order.append(id(block))
 
         # Now we set up our buffer
@@ -249,6 +249,7 @@ class BlockCollection:
         dx = np.concatenate(dx)
         le = np.concatenate(le)
         re = np.concatenate(re)
+        print vert.shape, dx.shape
         if self.gl_vao_name != None:
             GL.glDeleteVertexArrays(1, [self.gl_vao_name])
         self.gl_vao_name = GL.glGenVertexArrays(1)

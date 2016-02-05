@@ -23,8 +23,8 @@ void main()
     inverse_proj = inverse(projection);
     inverse_view = inverse(lookat);
     gl_Position = projection * lookat * model_vertex;
-    dx = in_dx;
-    left_edge = in_left_edge;
-    right_edge = in_right_edge;
+    dx = vec3(in_dx);
+    left_edge = vec3(in_left_edge);
+    right_edge = vec3(in_right_edge);
 
 }
