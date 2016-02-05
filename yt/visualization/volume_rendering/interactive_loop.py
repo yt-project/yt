@@ -200,7 +200,7 @@ class RenderingContext(object):
             frame_start = glfw.GetTime()
             f += 1
             if f == N:
-                #print "FPS:", N / float(frame_start - fps_start)
+                print "FPS:", N / float(frame_start - fps_start)
                 fps_start = glfw.GetTime()
                 f = 0
 
