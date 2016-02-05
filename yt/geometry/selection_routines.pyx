@@ -153,12 +153,19 @@ cdef class SelectorObject:
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
+        mi_bool = np.zeros(1 << (order1 * 3), dtype="uint8")
+        mi_bool_ghosts = np.zeros(1 << (order1 * 3), dtype="uint8")
+        mi_bool_refn = np.zeros(1 << (order1 * 3), dtype="uint8")
         cdef int i
         for i in range(3):
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
         self.recursive_morton_mask(0, pos, dds, DLE, order1, order2, FLAG, 
-                                   morton_mask, morton_mask, mm_coll, ngz=ngz)
+                                   morton_mask, morton_mask, mm_coll, 
+                                   mi_bool, mi_bool_ghosts, mi_bool_refn, ngz=ngz)
         return morton_mask
 
     @cython.boundscheck(False)
@@ -171,6 +178,9 @@ cdef class SelectorObject:
                                     BoolArrayCollection mm,
                                     BoolArrayCollection mm_ghosts,
                                     BoolArrayCollection mm_coll,
+                                    np.ndarray[np.uint8_t, ndim=1] mi_bool,
+                                    np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts,
+                                    np.ndarray[np.uint8_t, ndim=1] mi_bool_refn,
                                     int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t npos[3]
@@ -186,6 +196,8 @@ cdef class SelectorObject:
         cdef int i, j, k, l, m, n, iil, iim, iin
         cdef np.int64_t adv, maj, rem
         cdef np.int32_t n_neighbors[3]
+        cdef np.ndarray[np.uint8_t, ndim=1] mi2_bool
+        cdef np.ndarray[np.uint8_t, ndim=1] mi2_bool_ghosts
         neighbors = np.zeros((2*ngz+1,3), dtype=np.int32)
         ind1_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
         ind2_n = np.zeros((2*ngz+1,3), dtype=np.uint64)
@@ -206,23 +218,26 @@ cdef class SelectorObject:
                     # First morton
                     if level == max_level1:
                         mi1 = bounded_morton_dds(npos[0],npos[1],npos[2], DLE, ndds)
-                        # mi1_n = encode_morton_64bit(<np.uint64_t>(npos[0]/ndds[0]),
-                        #                             <np.uint64_t>(npos[1]/ndds[1]),
-                        #                             <np.uint64_t>(npos[2]/ndds[2]))
-                        # if mi1 != mi1_n:
-                        #     raise Exception("bounded_morton_dds:  {}\n ".format(mi1)+
-                        #                     "encode_morton_64bit: {}\n ".format(mi1_n)+
-                        #                     "npos = [{}, {}, {}] \n".format(npos[0],npos[1],npos[2])+
-                        #                     "ndds = [{}, {}, {}] \n".format(ndds[0],ndds[1],ndds[2])+
-                        #                     "DLE  = [{}, {}, {}] \n".format(DLE[0],DLE[1],DLE[2]))
+                        mi_bool[mi1] = 1
                         # If cell needs refinement, continue refining.
                         # Otherwise, add neighbors at this level and continue
                         if mm_coll._isref(mi1):
+                            mi_bool_refn[mi1] = 1
+                            mi2_bool = np.zeros(1 << (max_level2 * 3), dtype='uint8')
+                            mi2_bool_ghosts = np.zeros(1 << (max_level2 * 3), dtype='uint8')
                             self.recursive_morton_mask(level+1, npos, ndds, DLE, 
                                                        max_level1, max_level2,
-                                                       mi1, mm, mm_ghosts, mm_coll, ngz=ngz)
+                                                       mi1, mm, mm_ghosts, mm_coll, 
+                                                       mi2_bool, mi2_bool_ghosts, 
+                                                       mi_bool_refn, ngz=ngz)
+                            # Add refined levels in order
+                            for m in range(mi2_bool.shape[0]):
+                                if mi2_bool[m]:
+                                    mm._set_map(mi1, <np.uint64_t>m)
+                            for m in range(mi2_bool_ghosts.shape[0]):
+                                if mi2_bool_ghosts[m]:
+                                    mm_ghosts._set_map(mi1, <np.uint64_t>m)
                         else:
-                            mm._set(mi1)
                             if (ngz > 0):
                                 decode_morton_64bit(mi1,ind1)
                                 for m in range(3):
@@ -246,12 +261,14 @@ cdef class SelectorObject:
                                         for iin in range(n_neighbors[2]):
                                             n = neighbors[iin,2]
                                             mi1_n = <np.uint64_t>encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                            mm_ghosts._set(mi1_n)
+                                            mi_bool_ghosts[mi1_n] = 1
                     # Continue refining
                     elif level < (max_level1 + max_level2): # both morton indices...
                         self.recursive_morton_mask(level+1, npos, ndds, DLE, 
                                                    max_level1, max_level2,
-                                                   mi1, mm, mm_ghosts, mm_coll, ngz=ngz)
+                                                   mi1, mm, mm_ghosts, mm_coll, 
+                                                   mi_bool, mi_bool_ghosts, 
+                                                   mi_bool_refn, ngz=ngz)
                     # Second morton (max_level1 + max_level2)
                     else:
                         decode_morton_64bit(mi1,ind1)
@@ -259,7 +276,7 @@ cdef class SelectorObject:
                             ind2[m] = <np.uint64_t>((npos[m]-DLE[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
                         # Add selected cell
                         mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                        mm._set(mi1,mi2)
+                        mi_bool[mi2] = 1
                         # Add neighbors of selected cell
                         if (ngz > 0):
                             for m in range(3):
@@ -294,7 +311,22 @@ cdef class SelectorObject:
                                         n = neighbors[iin,2]
                                         mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
                                         mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
-                                        mm_ghosts._set(mi1_n,mi2)
+                                        # TODO: handle wrapping
+                                        if mi1_n == mi1:
+                                            mi_bool_ghosts[mi2] = 1
+                                        # else:
+                                        #     print("Missing wrapped refinmed ghost cell: mi1 = {}, mi2 = {}".format(mi1_n,mi2))
+        # Set coarse morton indices in order
+        if level == 0:
+            for m in range(mi_bool.shape[0]):
+                if mi_bool[m]:
+                    mm._set(<np.uint64_t>m)
+                    if mi_bool_refn[m]:
+                        mm._set_refn(<np.uint64_t>m)
+                if mi_bool_ghosts[m]:
+                    mm_ghosts._set(<np.uint64_t>m)
+                    if mi_bool_refn[m]:
+                        mm_ghosts._set_refn(<np.uint64_t>m)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

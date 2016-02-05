@@ -40,6 +40,7 @@ from libcpp.map cimport map
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
+import struct
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -348,7 +349,7 @@ cdef class ParticleForest:
         # This will be an on/off flag for which morton index values are touched
         # by particles.
         # This is the simple way, for now.
-        # self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
+        self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
         self.bitmasks = nfiles*[None]
         for i in range(nfiles):
             self.bitmasks[i] = BoolArrayCollection()
@@ -362,7 +363,7 @@ cdef class ParticleForest:
         # Initialize
         cdef int i
         cdef np.int64_t p
-        # cdef np.uint64_t mi
+        cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -371,17 +372,13 @@ cdef class ParticleForest:
         cdef np.int32_t order = self.index_order1
         cdef np.int64_t total_hits = 0
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
-        cdef np.uint64_t nmi
-        cdef np.ndarray[np.uint64_t, ndim=1] mi 
-        mi = np.zeros(pos.shape[0], dtype="uint64")
+        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds[i] = self.dds_mi1[i]
-        # cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Mark index of particles that are in this file
-        nmi = 0
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
@@ -390,16 +387,14 @@ cdef class ParticleForest:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip == 1: continue
+            if skip==1: continue
             # mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order)
-            mi[nmi] = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
-            # mask[mi] = 1
-            nmi += 1 
+            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
+            mask[mi] = 1
         # Add in order
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(mi[:nmi])
-        for i in range(nmi):
-            p = ind[i]
-            bitmasks._set(mi[p])
+        for i in range(mask.shape[0]):
+            if mask[i]:
+                bitmasks._set(<np.uint64_t>i)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -409,18 +404,18 @@ cdef class ParticleForest:
         # Initialize
         cdef int i#, p, nsub_mi
         cdef np.int64_t p
-        cdef np.uint64_t mi, nsub_mi, last_mi, last_submi
+        cdef np.uint64_t mi, nsub_mi#, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
-        cdef np.int64_t total_hits = 0
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
+        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks.sum(axis=1).astype('uint8')#[:,file_id]
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
-        cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
+        # cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -436,19 +431,16 @@ cdef class ParticleForest:
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
-                if pos[p,i] > RE[i]:
-                    skip = 1
-                    break
-                if pos[p,i] < LE[i]:
+                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip == 1: continue
+            if skip==1: continue
             # Only look if collision at coarse index
             # mi = bounded_morton(ppos[0], ppos[1], ppos[2], LE, RE, order1)
             mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
-            if total_refn.get(mi): 
-                total_hits += 1
+            #if total_refn.get(mi): 
+            if mask[mi] > 1:
                 # Determine sub index within cell of primary index
                 sub_mi1[nsub_mi] = mi
                 # sub_mi2[nsub_mi] = bounded_morton_relative(ppos[0], ppos[1], ppos[2],
@@ -461,7 +453,7 @@ cdef class ParticleForest:
         sub_mi2 = sub_mi2[:nsub_mi]
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
         # cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
-        last_submi = last_mi = 0
+        # last_submi = last_mi = 0
         for i in range(nsub_mi):
             p = ind[i]
             # Make sure its sorted by second index
@@ -473,9 +465,16 @@ cdef class ParticleForest:
             # else:
             #     last_submi = 0
             # last_mi = sub_mi1[p]
-            # Set bitmasks                                                 
+            # Set bitmasks
             bitmasks._set(sub_mi1[p],sub_mi2[p])
-        return total_hits
+        return nsub_mi
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def find_collisions(self):
+        self.find_collisions_coarse()
+        self.find_collisions_refined()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -501,7 +500,7 @@ cdef class ParticleForest:
         coll_refn[0].swap(arr_refn)
         nc = coll_refn[0].numberOfOnes()
         nm = coll_keys[0].numberOfOnes()
-        print("{}/{} collisions at coarse refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        print("{: 10d}/{: 10d} collisions at coarse refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -539,7 +538,39 @@ cdef class ParticleForest:
             iarr = map_keys[mi1]
             nm += iarr.numberOfOnes()
             preincrement(it_mi1)
-        print("{}/{} collisions at refined refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        print("{: 10d}/{: 10d} collisions at refined refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+
+    def save_bitmasks(self,fname=None):
+        cdef BoolArrayCollection b1
+        cdef bytes serial_BAC
+        # TODO: default file name
+        if fname is None:
+            raise NotImplementedError("Default filename for bitmask not set.")
+        f = open(fname,'wb')
+        f.write(struct.pack('Q',self.nfiles))
+        for ifile in range(self.nfiles):
+            b1 = self.bitmasks[ifile]
+            serial_BAC = b1._dumps()
+            f.write(struct.pack('Q',len(serial_BAC)))
+            f.write(serial_BAC)
+        f.close()
+
+    def load_bitmasks(self,fname=None):
+        cdef BoolArrayCollection b1
+        cdef np.uint64_t nfiles
+        cdef np.uint64_t size_serial
+        # TODO: default file name
+        if fname is None:
+            raise NotImplementedError("Default filename for bitmask not set.")
+        f = open(fname,'rb')
+        nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+        if nfiles != self.nfiles:
+            raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+        for ifile in range(nfiles):
+            b1 = self.bitmasks[ifile]
+            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            b1._loads(f.read(size_serial))
+        f.close()
 
     def check(self):
         cdef np.uint64_t mi1
@@ -616,18 +647,22 @@ cdef class ParticleForest:
         cdef np.int32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
+        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
+        mi_bool = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
+        mi_bool_ghosts = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
+        mi_bool_refn = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         # Find mask of selected morton indices
         for j in range(3):
             pos[j] = self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
             DLE[j] = self.left_edge[j]
-        cmask_g._set(2097151+1)
-        for j in range(5):
-            cmask_g._set(j)
         selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 
-                                       ngz=ngz)
+                                       mi_bool, mi_bool_ghosts,
+                                       mi_bool_refn, ngz=ngz)
         # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]

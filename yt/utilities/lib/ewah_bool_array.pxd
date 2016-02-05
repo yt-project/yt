@@ -17,6 +17,22 @@ cimport numpy as np
 cimport cython
 from libcpp.vector cimport vector
 from libcpp.map cimport map
+from libcpp.string cimport string
+
+# Streams req for c++ IO
+cdef extern from "<ostream>" namespace "std":
+    cdef cppclass ostream[T]:
+        pass
+cdef extern from "<istream>" namespace "std":
+    cdef cppclass istream[T]:
+        pass
+
+cdef extern from "<sstream>" namespace "std":
+    cdef cppclass stringstream:
+        stringstream() except +
+        string str()
+        ostream write(char *, size_t)
+        istream read(char *, size_t)
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[uword]:
@@ -42,7 +58,12 @@ cdef extern from "ewah.h":
         void logicalnot(EWAHBoolArray &x)
         void inplace_logicalnot()
         void swap(EWAHBoolArray &x)
+        void read(stringstream &incoming, bint savesizeinbits)
+        void readBuffer(stringstream &incoming, const size_t buffersize)
+        void write(stringstream &out, bint savesizeinbits)
+        void writeBuffer(stringstream &out)
 
 ctypedef EWAHBoolArray[np.uint64_t] ewah_bool_array
 ctypedef vector[size_t] bitset_array
 ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
+ctypedef stringstream sstream

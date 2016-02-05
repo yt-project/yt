@@ -76,7 +76,7 @@ class ParticleIndex(Index):
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
 
-    def _initialize_index(self, noref=False):
+    def _initialize_index(self, fname=None, noref=False):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
           self.total_particles)
@@ -86,9 +86,16 @@ class ParticleIndex(Index):
                 ds.domain_left_edge, ds.domain_right_edge,
                 N, len(self.data_files), ds.over_refine_factor,
                 ds.n_ref)
-        self._initialize_coarse_index()
-        if not noref:
-            self._initialize_refined_index()
+        # Load indices from file if provided
+        if fname is not None and os.path.isfile(fname):
+            self.regions.load_bitmasks(fname=fname)
+            self.regions.find_collisions()
+        else:
+            self._initialize_coarse_index()
+            if not noref:
+                self._initialize_refined_index()
+            if fname is not None:
+                self.regions.save_bitmasks(fname=fname)
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))

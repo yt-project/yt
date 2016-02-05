@@ -15,7 +15,8 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 from libcpp.map cimport map
 from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_map, ewah_bool_array
+    ewah_map, ewah_bool_array, sstream
+from cython.operator cimport dereference, preincrement
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
@@ -43,6 +44,20 @@ cdef class BoolArrayCollection:
 
     def set(self, i1, i2 = FLAG):
         self._set(i1, i2)
+
+    cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2):
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        ewah_coll[0][i1].set(i2)
+
+    def set_map(self, i1, i2):
+        self._set_map(i1, i2)
+
+    cdef void _set_refn(self, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        ewah_refn[0].set(i1)
+
+    def set_refn(self, i1):
+        self._set_refn(i1)
 
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
@@ -110,7 +125,95 @@ cdef class BoolArrayCollection:
     def count_coarse(self):
         return self._count_coarse()
 
-    # TODO: routines to return number of coarse/refined/total cells
+    cdef void _append(self, BoolArrayCollection solf):
+        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll1 = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll2 = <map[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef map[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t nrefn, mi1
+        # Keys
+        ewah_keys1[0].logicalor(ewah_keys2[0], swap)
+        ewah_keys1[0].swap(swap)
+        # Refined
+        ewah_refn1[0].logicalor(ewah_refn2[0], swap)
+        ewah_refn1[0].swap(swap)
+        # Map
+        it_map = ewah_coll1[0].begin()
+        while it_map1 != ewah_coll1[0].end():
+            mi1 = dereference(it_map1).first
+            mi1_ewah1 = dereference(it_map1).second
+            it_map2 = ewah_coll2[0].find(mi1)
+            if it_map2 != ewah_coll2[0].end():
+                mi1_ewah2 = dereference(it_map2).second
+                mi1_ewah1.logicalor(mi1_ewah2, swap)
+                mi1_ewah1.swap(swap)
+            preincrement(it_map1)
+
+    def append(self, solf):
+        return self._append(solf)
+
+    cdef bytes _dumps(self):
+        # TODO: write word size
+        cdef sstream ss
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef map[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef np.uint64_t nrefn, mi1
+        cdef ewah_bool_array mi1_ewah
+        # Write mi1 ewah & refinment ewah
+        ewah_keys[0].write(ss,1)
+        ewah_refn[0].write(ss,1)
+        # Number of refined bool arrays
+        nrefn = <np.uint64_t>(ewah_refn[0].numberOfOnes())
+        ss.write(<const char *> &nrefn, sizeof(nrefn))
+        # Loop over refined bool arrays
+        it_map = ewah_coll[0].begin()
+        while it_map != ewah_coll[0].end():
+            mi1 = dereference(it_map).first
+            mi1_ewah = dereference(it_map).second
+            ss.write(<const char *> &mi1, sizeof(mi1))
+            mi1_ewah.write(ss,1)
+            preincrement(it_map)
+        # Return type cast python bytes string
+        return <bytes>ss.str()
+
+    def dumps(self):
+        return self._dumps()
+
+    cdef void _loads(self, bytes s):
+        # TODO: write word size
+        cdef sstream ss
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef map[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef np.uint64_t nrefn, mi1
+        cdef ewah_bool_array mi1_ewah
+        cdef int i
+        # Write string to string stream
+        ss.write(s, len(s))
+        # Read keys and refinment arrays
+        ewah_keys[0].read(ss,1)
+        ewah_refn[0].read(ss,1)
+        # Read and check number of refined cells
+        ss.read(<char *> (&nrefn), sizeof(nrefn))
+        if nrefn != ewah_refn[0].numberOfOnes():
+            raise Exception("Error in read. File indicates {} refinements, but bool array has {}.".format(nrefn,ewah_refn[0].numberOfOnes()))
+        # Loop over refined cells
+        for i in range(nrefn):
+            ss.read(<char *> (&mi1), sizeof(mi1))
+            ewah_coll[0][mi1].read(ss,1)
+            # or...
+            #mi1_ewah.read(ss,1)
+            #ewah_coll[0][mi1].swap(mi1_ewah)
+
+    def loads(self, s):
+        return self._loads(s)
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
