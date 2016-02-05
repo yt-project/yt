@@ -74,6 +74,7 @@ cdef class SelectorObject:
 				    np.ndarray[np.uint8_t, ndim=1] mi_bool,
 				    np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts,
 				    np.ndarray[np.uint8_t, ndim=1] mi_refn,
+				    np.uint64_t n_sub_ghosts,
                                     int ngz = ?)
     cdef BoolArrayCollection get_morton_mask(self,
                         np.float64_t DLE[3],

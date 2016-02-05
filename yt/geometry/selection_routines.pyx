@@ -160,12 +160,14 @@ cdef class SelectorObject:
         mi_bool_ghosts = np.zeros(1 << (order1 * 3), dtype="uint8")
         mi_bool_refn = np.zeros(1 << (order1 * 3), dtype="uint8")
         cdef int i
+        cdef np.uint64_t n_sub_ghosts = 0
         for i in range(3):
             pos[i] = 0
             dds[i] = (DRE[i] - DLE[i])
         self.recursive_morton_mask(0, pos, dds, DLE, order1, order2, FLAG, 
                                    morton_mask, morton_mask, mm_coll, 
-                                   mi_bool, mi_bool_ghosts, mi_bool_refn, ngz=ngz)
+                                   mi_bool, mi_bool_ghosts, mi_bool_refn, 
+                                   n_sub_ghosts, ngz=ngz)
         return morton_mask
 
     @cython.boundscheck(False)
@@ -181,6 +183,7 @@ cdef class SelectorObject:
                                     np.ndarray[np.uint8_t, ndim=1] mi_bool,
                                     np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts,
                                     np.ndarray[np.uint8_t, ndim=1] mi_bool_refn,
+                                    np.uint64_t n_sub_ghosts, 
                                     int ngz = 0):
         cdef np.uint64_t mi2, mi1_n
         cdef np.float64_t npos[3]
@@ -229,7 +232,7 @@ cdef class SelectorObject:
                                                        max_level1, max_level2,
                                                        mi1, mm, mm_ghosts, mm_coll, 
                                                        mi2_bool, mi2_bool_ghosts, 
-                                                       mi_bool_refn, ngz=ngz)
+                                                       mi_bool_refn, n_sub_ghosts, ngz=ngz)
                             # Add refined levels in order
                             for m in range(mi2_bool.shape[0]):
                                 if mi2_bool[m]:
@@ -268,7 +271,7 @@ cdef class SelectorObject:
                                                    max_level1, max_level2,
                                                    mi1, mm, mm_ghosts, mm_coll, 
                                                    mi_bool, mi_bool_ghosts, 
-                                                   mi_bool_refn, ngz=ngz)
+                                                   mi_bool_refn, n_sub_ghosts, ngz=ngz)
                     # Second morton (max_level1 + max_level2)
                     else:
                         decode_morton_64bit(mi1,ind1)
@@ -314,10 +317,11 @@ cdef class SelectorObject:
                                         # TODO: handle wrapping
                                         if mi1_n == mi1:
                                             mi_bool_ghosts[mi2] = 1
-                                        # else:
-                                        #     print("Missing wrapped refinmed ghost cell: mi1 = {}, mi2 = {}".format(mi1_n,mi2))
+                                        else:
+                                            n_sub_ghosts += 1
         # Set coarse morton indices in order
         if level == 0:
+            print("{} wrapped ghost cells".format(n_sub_ghosts))
             for m in range(mi_bool.shape[0]):
                 if mi_bool[m]:
                     mm._set(<np.uint64_t>m)

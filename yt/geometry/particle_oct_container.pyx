@@ -500,7 +500,7 @@ cdef class ParticleForest:
         coll_refn[0].swap(arr_refn)
         nc = coll_refn[0].numberOfOnes()
         nm = coll_keys[0].numberOfOnes()
-        print("{: 10d}/{: 10d} collisions at coarse refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -538,7 +538,7 @@ cdef class ParticleForest:
             iarr = map_keys[mi1]
             nm += iarr.numberOfOnes()
             preincrement(it_mi1)
-        print("{: 10d}/{: 10d} collisions at refined refinemented. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     def save_bitmasks(self,fname=None):
         cdef BoolArrayCollection b1
@@ -650,6 +650,7 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
+        cdef np.uint64_t n_sub_ghosts
         mi_bool = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_ghosts = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_refn = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
@@ -662,7 +663,7 @@ cdef class ParticleForest:
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 
                                        mi_bool, mi_bool_ghosts,
-                                       mi_bool_refn, ngz=ngz)
+                                       mi_bool_refn, n_sub_ghosts, ngz=ngz)
         # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
