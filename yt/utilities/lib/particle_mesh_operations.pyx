@@ -15,7 +15,7 @@ Simple integrators for the radiative transfer equation
 
 cimport numpy as np
 cimport cython
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -178,10 +178,9 @@ def sample_field_at_positions(np.ndarray[np.float64_t, ndim=3] arr,
                               np.ndarray[np.float64_t, ndim=1] pos_y,
                               np.ndarray[np.float64_t, ndim=1] pos_z):
     cdef np.float64_t idds[3]
-    cdef np.float64_t pp[3]
     cdef int dims[3]
     cdef int ind[3]
-    cdef int i, j, npart
+    cdef int i, npart
     npart = pos_x.shape[0]
     cdef np.ndarray[np.float64_t, ndim=1] sample
     sample = np.zeros(npart, dtype='float64')
@@ -348,9 +347,8 @@ def recursive_particle_assignment(grids, grid,
     #every particle we are fed, we can assume it exists on our grid
     #must fill in the grid_particle_count array
     #and particle_indices for every grid
-    cdef long i,j,level
+    cdef long i, j
     cdef long npart = pos_x.shape[0]
-    cdef long ncells = left_edges.shape[0]
     cdef np.ndarray[np.int32_t, ndim=1] assigned       = np.zeros(npart,dtype='int32')
     cdef np.ndarray[np.int32_t, ndim=1] never_assigned = np.ones(npart,dtype='int32')
     for i in np.unique(grid.child_index_mask):

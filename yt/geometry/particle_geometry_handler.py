@@ -18,6 +18,7 @@ import numpy as np
 import os
 import weakref
 
+from yt.funcs import only_on_root
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
@@ -72,8 +73,8 @@ class ParticleIndex(Index):
             [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
             over_refine = ds.over_refine_factor)
         self.oct_handler.n_ref = ds.n_ref
-        mylog.info("Allocating for %0.3e particles (%s)",
-                   self.total_particles, ptype)
+        only_on_root(mylog.info, "Allocating for %0.3e particles (%s)",
+                     self.total_particles, ptype)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
@@ -83,7 +84,7 @@ class ParticleIndex(Index):
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
         tot = sum(self.oct_handler.recursively_count().values())
-        mylog.info("Identified %0.3e octs", tot)
+        only_on_root(mylog.info, "Identified %0.3e octs", tot)
 
     def _initialize_indices(self):
         # This will be replaced with a parallel-aware iteration step.

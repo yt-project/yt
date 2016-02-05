@@ -96,14 +96,12 @@ def off_axis_projection(data_source, center, normal_vector,
     -------
     image : array
         An (N,N) array of the final integrated values, in float64 form.
-    sc : Scene instance
-        A Scene instance that was created and can be modified for further use.
 
     Examples
     --------
 
-    >>> image, sc = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-                      0.2, N, "temperature", "density")
+    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
+    ...                             0.2, N, "temperature", "density")
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
@@ -199,4 +197,4 @@ def off_axis_projection(data_source, center, normal_vector,
             image[:,:,0] /= image[:,:,1]
             image[mask] = 0
 
-    return image[:,:,0], sc
+    return image[:,:,0]

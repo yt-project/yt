@@ -128,7 +128,7 @@ cdef class LinearElementMesh:
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
                                   np.ndarray indices_in):
-        cdef int i, j, ind
+        cdef int i, j
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int nt = self.tpe*ne
@@ -264,7 +264,6 @@ cdef class QuadraticElementMesh:
                                   np.ndarray indices_in,
                                   np.ndarray field_data):
         cdef int i, j, ind, idim
-        cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int npatch = 6*ne;
 
