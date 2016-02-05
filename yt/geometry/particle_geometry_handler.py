@@ -107,11 +107,12 @@ class ParticleIndex(Index):
         self.regions.find_collisions_coarse()
 
     def _initialize_refined_index(self):
+        mask = self.regions.masks.sum(axis=1).astype('uint8')
         pb = get_pbar("Initializing refined index", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for pos in self.io._yield_coordinates(data_file):
-                self.regions._refined_index_data_file(pos, data_file.file_id)
+                self.regions._refined_index_data_file(pos, mask, data_file.file_id)
         pb.finish()
         self.regions.find_collisions_refined()
             

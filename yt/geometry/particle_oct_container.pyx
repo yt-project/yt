@@ -361,7 +361,7 @@ cdef class ParticleForest:
     def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                                 np.uint64_t file_id):
         # Initialize
-        cdef int i
+        cdef np.uint64_t i
         cdef np.int64_t p
         cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
@@ -393,18 +393,17 @@ cdef class ParticleForest:
             mask[mi] = 1
         # Add in order
         for i in range(mask.shape[0]):
-            if mask[i]:
-                bitmasks._set(<np.uint64_t>i)
+            if mask[i] == 1:
+                bitmasks._set(i)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                 np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.uint64_t file_id):
         # Initialize
-        cdef int i#, p, nsub_mi
-        cdef np.int64_t p
-        cdef np.uint64_t mi, nsub_mi#, last_mi, last_submi
+        cdef np.uint64_t i, p, mi, nsub_mi#, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -413,7 +412,6 @@ cdef class ParticleForest:
         cdef np.float64_t dds2[3]
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
-        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks.sum(axis=1).astype('uint8')#[:,file_id]
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
         # cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
         # Copy things from structure (type cast)
@@ -650,7 +648,7 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
-        cdef np.uint64_t n_sub_ghosts
+        cdef np.uint64_t n_sub_ghosts = 0
         mi_bool = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_ghosts = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_refn = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
