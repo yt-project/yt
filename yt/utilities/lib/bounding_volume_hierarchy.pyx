@@ -82,7 +82,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
         
     # normal vector
     cdef np.float64_t N[3]
-    cross(e1, e1, N);
+    cross(e1, e2, N);
 
     cdef np.float64_t dotprod = dot(N, ray.direction)
     if not dotprod < 0.0:
@@ -99,12 +99,12 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
 
     t /= dotprod
 
-    if not t >= ray.t_far:
+    if not t <= ray.t_far:
         # closer intersection already found
         return False
 
-#    assert(t >= 0.0)
-#    assert(t <= ray.t_far)
+    assert(t >= 0.0)
+    assert(t <= ray.t_far)
     
     # 3D point of intersection
     cdef np.float64_t p[3]
@@ -122,7 +122,6 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
             v0 = p[2]      - tri.p0[2]
             v1 = tri.p1[2] - tri.p0[2]
             v2 = tri.p2[2] - tri.p0[2]
-    
         else:
             u0 = p[0]      - tri.p0[0]
             u1 = tri.p1[0] - tri.p0[0]
@@ -150,7 +149,6 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
             v2 = tri.p2[1] - tri.p0[1]
 
     cdef np.float64_t temp = u1*v2 - u2*v1
-
     if not (temp is not  0.0):
         # denominator is invalid
         return False
@@ -184,34 +182,20 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
 @cython.cdivision(True)
 cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
 
-    cdef np.float64_t tx1 = (bbox.left_edge[0]  - 
-                             ray.origin[0])*ray.inv_dir[0]
-    cdef np.float64_t tx2 = (bbox.right_edge[0] -
-                             ray.origin[0])*ray.inv_dir[0]
+    cdef np.float64_t tmin = -1.0e300
+    cdef np.float64_t tmax =  1.0e300
  
-    cdef np.float64_t tmin = fmin(tx1, tx2)
-    cdef np.float64_t tmax = fmax(tx1, tx2)
+    cdef np.int64_t i
+    cdef np.float64_t t1, t2
+    for i in range(3):
+        t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
+        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i]
+ 
+        tmin = fmax(tmin, fmin(t1, t2))
+        tmax = fmin(tmax, fmax(t1, t2))
+ 
+    return tmax > fmax(tmin, 0.0)
 
-    cdef np.float64_t ty1 = (bbox.left_edge[1]  -
-                             ray.origin[1])*ray.inv_dir[1]
-    cdef np.float64_t ty2 = (bbox.right_edge[1] -
-                             ray.origin[1])*ray.inv_dir[1]
- 
-    tmin = fmax(tmin, fmin(ty1, ty2))
-    tmax = fmin(tmax, fmax(ty1, ty2))
-
-    cdef np.float64_t tz1 = (bbox.left_edge[2]  -
-                             ray.origin[2])*ray.inv_dir[2]
-    cdef np.float64_t tz2 = (bbox.right_edge[2] -
-                             ray.origin[2])*ray.inv_dir[2]
- 
-    tmin = fmax(tmin, fmin(tz1, tz2))
-    tmax = fmin(tmax, fmax(tz1, tz2))
-
-    if not (tmax > 0):
-        return False
- 
-    return tmax >= tmin;
 
 cdef class BVH:
     cdef BVHNode* root
@@ -249,7 +233,7 @@ cdef class BVH:
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
                     tri.centroid[k] = (tri.p0[k] + tri.p1[k] + tri.p2[k]) / 3.0
-                    tri.bbox.left_edge[k] = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
+                    tri.bbox.left_edge[k]  = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
                     tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
 
         # recursive build
@@ -282,11 +266,11 @@ cdef class BVH:
         cdef BBox box = self.triangles[begin].bbox
         for i in range(begin+1, end):
             for j in range(3):
-                box.left_edge[j] = fmax(box.left_edge[j], 
+                box.left_edge[j] = fmin(box.left_edge[j],
                                         self.triangles[i].bbox.left_edge[j])
-                box.right_edge[j] = fmin(box.right_edge[j], 
+                box.right_edge[j] = fmax(box.right_edge[j], 
                                          self.triangles[i].bbox.right_edge[j])
-        node.bbox = box       
+        node.bbox = box
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -300,7 +284,7 @@ cdef class BVH:
         ray.direction[1]  = 0.0
         ray.direction[2]  = 1.0
         ray.t_near        = 0.0
-        ray.t_far         = 1e300
+        ray.t_far         = 1.0e300
         ray.elem_id       = -1
 
         cdef int i 
@@ -315,24 +299,20 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node):
 
+        
+
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
-            print 'bailing'
-            print node.bbox.left_edge[0], node.bbox.left_edge[1], node.bbox.left_edge[2]
-            print node.bbox.right_edge[0], node.bbox.right_edge[1], node.bbox.right_edge[2]
             return
 
         # check for leaf
         cdef np.int64_t i, hit
         cdef Triangle* tri
         if (node.end - node.begin) == 1:
-            print 'testing triangles'
             for i in range(node.begin, node.end):
                 tri = &(self.triangles[i])
                 hit = ray_triangle_intersect(ray, tri)
-                if hit:
-                    print hit
-
+            return
         # if not leaf, intersect with left and right children
         self._recursive_intersect(ray, node.left)
         self._recursive_intersect(ray, node.right)
