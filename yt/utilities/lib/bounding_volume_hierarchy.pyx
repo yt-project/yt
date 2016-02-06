@@ -246,6 +246,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node):
+
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
             return
@@ -286,14 +287,15 @@ cdef class BVH:
             ax = 2
 
         # split in half along that dimension
-        cdef np.float64_t split = 0.5*(node.bbox.right_edge[ax] - 
+        cdef np.float64_t split = 0.5*(node.bbox.right_edge[ax] +
                                        node.bbox.left_edge[ax])
 
         # sort triangle list
         cdef np.int64_t mid = self.partition(begin, end, ax, split)
+
         if(mid == begin or mid == end):
             mid = begin + (end-begin)/2
-
+            
         node.left = self._build(begin, mid)
         node.right = self._build(mid, end)
 
