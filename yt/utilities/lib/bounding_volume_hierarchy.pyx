@@ -182,7 +182,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox* bbox):
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
 
     cdef np.float64_t tx1 = (bbox.left_edge[0]  - 
                              ray.origin[0])*ray.inv_dir[0]
@@ -228,12 +228,13 @@ cdef class BVH:
         self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
-        self.triangles = <Triangle*> malloc(num_tri * sizeof(Triangle))
-        
+
+        # fill our array of triangles
         cdef np.int64_t i, j, k
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
+        self.triangles = <Triangle*> malloc(num_tri * sizeof(Triangle))
         for i in range(num_elem):
             offset = 12*i
             for j in range(12):
@@ -250,8 +251,11 @@ cdef class BVH:
                     tri.centroid[k] = (tri.p0[k] + tri.p1[k] + tri.p2[k]) / 3.0
                     tri.bbox.left_edge[k] = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
                     tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
-                    
-        self.root = self.build(0, num_tri)
+
+        # recursive build
+        self.root = self._build(0, num_tri)
+
+        self.intersect()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -287,16 +291,63 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef BVHNode* build(self, np.int64_t begin, np.int64_t end):
+    cdef void intersect(self):
+        cdef Ray ray
+        ray.origin[0]     = -5.0
+        ray.origin[1]     = 0.0
+        ray.origin[2]     = 1.0
+        ray.direction[0]  = 1.0
+        ray.direction[1]  = 0.0
+        ray.direction[2]  = 0.0
+        ray.t_near        = 0.0
+        ray.t_far         = 1e300
+        
+        cdef int i 
+        for i in range(3):
+            ray.inv_dir[i] = 1.0 / ray.direction[i]
+        
+        self._recursive_intersect(&ray, self.root)
+        print ray.elem_id
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node):
+
+        # check for bbox intersection:
+        if not ray_bbox_intersect(ray, node.bbox):
+            return
+
+        # check for leaf
+        cdef np.int64_t i, hit
+        cdef Triangle* tri
+        if (node.end - node.begin) == 1:
+            print 'testing triangles'
+            for i in range(node.begin, node.end):
+                tri = &(self.triangles[i])
+                hit = ray_triangle_intersect(ray, tri)
+                if hit:
+                    print hit
+
+        # if not leaf, intersect with left and right children
+        self._recursive_intersect(ray, node.left)
+        self._recursive_intersect(ray, node.right)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end):
         cdef BVHNode *node = <BVHNode* > malloc(sizeof(BVHNode))
         node.begin = begin
         node.end = end
 
         self._get_node_bbox(node, begin, end)
         
+        # check for leaf
         if (end - begin) == 1:
             return node
         
+        # compute longest dimension
         cdef np.int64_t ax = 0
         cdef np.float64_t d = fabs(node.bbox.right_edge[0] - 
                                    node.bbox.left_edge[0])
@@ -305,14 +356,16 @@ cdef class BVH:
         if fabs(node.bbox.right_edge[2] - node.bbox.left_edge[2]) > d:
             ax = 2
 
+        # split in half along that dimension
         cdef np.float64_t split = 0.5*(node.bbox.right_edge[ax] - 
                                        node.bbox.left_edge[ax])
 
+        # sort triangle list
         cdef np.int64_t mid = self.partition(begin, end, ax, split)
         if(mid == begin or mid == end):
             mid = begin + (end-begin)/2
 
-        node.left = self.build(begin, mid)
-        node.right = self.build(mid, end)
+        node.left = self._build(begin, mid)
+        node.right = self._build(mid, end)
 
         return node
