@@ -144,6 +144,7 @@ class MouseRotation(object):
         return True
         
 class RenderingContext(object):
+    should_quit = False
     def __init__(self, width = 800, height = 600, title = "vol_render"):
         glfw.Init()
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
@@ -161,14 +162,12 @@ class RenderingContext(object):
         glfw.SwapBuffers(self.window)
         glfw.PollEvents()
 
-    def start_loop(self, scene, camera):
+    def setup_loop(self, scene, camera):
         scene.set_camera(camera)
         scene.add_shader_from_file("max_intensity_frag.glsl")
         camera.compute_matrices()
         frame_start = glfw.GetTime()
         fps_start = glfw.GetTime()
-        f = 0
-        N = 10.0
         print "Starting rendering..."
         callbacks = Events(camera)
         callbacks.add_key_callback(close_window, "escape")
@@ -188,7 +187,15 @@ class RenderingContext(object):
         glfw.SetKeyCallback(self.window, callbacks.key_call)
         glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
         callbacks.draw = True
-        while not glfw.WindowShouldClose(self.window):
+        return callbacks
+
+    def start_loop(self, scene, camera):
+        callbacks = self.setup_loop(scene, camera)
+        for i in self(scene, camera, callbacks):
+            pass
+
+    def __call__(self, scene, camera, callbacks):
+        while not glfw.WindowShouldClose(self.window) or self.should_quit:
             callbacks(self.window)
             if callbacks.draw:
                 camera.compute_matrices()
@@ -197,12 +204,5 @@ class RenderingContext(object):
                 glfw.SwapBuffers(self.window)
                 callbacks.draw = False
             glfw.PollEvents()
-            frame_start = glfw.GetTime()
-            f += 1
-            if f == N:
-                #print "FPS:", N / float(frame_start - fps_start)
-                fps_start = glfw.GetTime()
-                f = 0
-
-        print "Finished rendering"
+            yield self
         glfw.Terminate()
