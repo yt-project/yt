@@ -9,38 +9,6 @@ cdef extern from "mesh_construction.h":
         MAX_NUM_TRI
     int triangulate_hex[MAX_NUM_TRI][3]
 
-# ray data structure
-cdef struct Ray:
-    np.float64_t origin[3]
-    np.float64_t direction[3]
-    np.float64_t inv_dir[3]
-    np.float64_t data_val
-    np.float64_t t_near
-    np.float64_t t_far
-    np.int64_t elem_id
-
-# axis-aligned bounding box
-cdef struct BBox:
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
-
-# node for the bounding volume hierarchy
-cdef struct BVHNode:
-    np.int64_t begin
-    np.int64_t end
-    BVHNode* left
-    BVHNode* right
-    BBox bbox
-    
-# triangle data structure
-cdef struct Triangle:
-    np.float64_t p0[3]
-    np.float64_t p1[3]
-    np.float64_t p2[3]
-    np.int64_t elem_id
-    np.float64_t centroid[3]
-    BBox bbox
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -198,9 +166,6 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
 
 
 cdef class BVH:
-    cdef BVHNode* root
-    cdef Triangle* triangles
-    cdef np.float64_t[:, ::1] vertices
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -239,7 +204,6 @@ cdef class BVH:
         # recursive build
         self.root = self._build(0, num_tri)
 
-        self.intersect()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -275,32 +239,13 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void intersect(self):
-        cdef Ray ray
-        ray.origin[0]     = 0.0
-        ray.origin[1]     = 0.0
-        ray.origin[2]     = -5.0
-        ray.direction[0]  = 0.0
-        ray.direction[1]  = 0.0
-        ray.direction[2]  = 1.0
-        ray.t_near        = 0.0
-        ray.t_far         = 1.0e300
-        ray.elem_id       = -1
-
-        cdef int i 
-        for i in range(3):
-            ray.inv_dir[i] = 1.0 / ray.direction[i]
-        
-        self._recursive_intersect(&ray, self.root)
-        print ray.elem_id
+    cdef void intersect(self, Ray* ray):
+        self._recursive_intersect(ray, self.root)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node):
-
-        
-
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
             return
