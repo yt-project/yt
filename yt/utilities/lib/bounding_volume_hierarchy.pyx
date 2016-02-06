@@ -293,15 +293,16 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void intersect(self):
         cdef Ray ray
-        ray.origin[0]     = -5.0
+        ray.origin[0]     = 0.0
         ray.origin[1]     = 0.0
-        ray.origin[2]     = 1.0
-        ray.direction[0]  = 1.0
+        ray.origin[2]     = -5.0
+        ray.direction[0]  = 0.0
         ray.direction[1]  = 0.0
-        ray.direction[2]  = 0.0
+        ray.direction[2]  = 1.0
         ray.t_near        = 0.0
         ray.t_far         = 1e300
-        
+        ray.elem_id       = -1
+
         cdef int i 
         for i in range(3):
             ray.inv_dir[i] = 1.0 / ray.direction[i]
@@ -316,6 +317,9 @@ cdef class BVH:
 
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
+            print 'bailing'
+            print node.bbox.left_edge[0], node.bbox.left_edge[1], node.bbox.left_edge[2]
+            print node.bbox.right_edge[0], node.bbox.right_edge[1], node.bbox.right_edge[2]
             return
 
         # check for leaf
