@@ -28,7 +28,7 @@ from yt.utilities.lib.grid_traversal cimport \
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
-    bounded_morton_dds
+    bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -120,6 +120,36 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     else:
         raise RuntimeError
 
+cdef class MortonSelector:
+    cdef np.int32_t level
+    cdef np.float64_t pos[3]
+    cdef np.float64_t dds[3]
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
+    cdef np.int32_t order1
+    cdef np.int32_t order2
+    cdef np.uint64_t max_index1
+    cdef np.uint64_t max_index2
+
+    def __cinit__(self, selector, DLE, DRE, order1, order2):
+        # Copy input
+        cdef int i
+        self.selector = selector
+        for i in range(3):
+            self.DLE[i] = DLE[i]
+            self.DRE[i] = DRE[i]
+        self.order1 = order1
+        self.order2 = order2
+        self.max_index1 = <np.uint64_t>(1 << order1)
+        self.max_index2 = <np.uint64_t>(1 << order2)
+        # Initialize level
+        self.level = 0
+        for i in range(3):
+            self.pos[i] = DLE[i]
+            self.dds[i] = (DRE[i] - DLE[i])
+        # Initalize arrays with memory views
+        
+
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
@@ -193,13 +223,13 @@ cdef class SelectorObject:
         cdef np.uint64_t ind2[3]
         cdef np.uint64_t[:,:] ind1_n
         cdef np.uint64_t[:,:] ind2_n
-        cdef np.int32_t[:,:] neighbors
+        cdef np.uint32_t[:,:] neighbors
         cdef np.uint64_t max_index1 = <np.uint64_t>(1 << max_level1)
         cdef np.uint64_t max_index2 = <np.uint64_t>(1 << max_level2)
         cdef int i, j, k, l, m, n, iil, iim, iin
         cdef np.int64_t adv, maj, rem
         cdef np.int32_t n_neighbors[3]
-        cdef void* pointers[5]
+        cdef void* pointers[6]
         cdef np.uint8_t[:] mi2_bool
         cdef np.uint8_t[:] mi2_bool_ghosts
         cdef np.uint64_t s = (1<<(max_level2*3))
@@ -208,9 +238,11 @@ cdef class SelectorObject:
         pointers[2] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
         pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
         pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
+        pointers[5] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
+        pointers[6] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
         mi2_bool = <np.uint8_t[:s]> pointers[0]
         mi2_bool_ghosts = <np.uint8_t[:s]> pointers[1]
-        neighbors = <np.int32_t[:2*ngz+1,:3]> pointers[2]
+        neighbors = <np.uint32_t[:2*ngz+1,:3]> pointers[2]
         ind1_n = <np.uint64_t[:2*ngz+1,:3]> pointers[3]
         ind2_n = <np.uint64_t[:2*ngz+1,:3]> pointers[4]
         neighbors[:,:] = 0
@@ -218,6 +250,13 @@ cdef class SelectorObject:
         ind2_n[:,:] = 0
         mi2_bool[:] = 0
         mi2_bool_ghosts[:] = 0
+        # LANGMM
+        cdef np.uint32_t n_coarse, n_refined
+        cdef np.uint64_t* neighbor_list1
+        cdef np.uint64_t* neighbor_list2
+        neighbor_list1 = <np.uint64_t*> pointers[5]
+        neighbor_list2 = <np.uint64_t*> pointers[6]
+        # LANGMM
         for i in range(3):
             ndds[i] = dds[i]/2
         # Loop over octs
@@ -256,30 +295,15 @@ cdef class SelectorObject:
                                 if mi2_bool_ghosts[m]:
                                     mm_ghosts._set_map(mi1, <np.uint64_t>m)
                         else:
+                            # Look for neighbors
                             if (ngz > 0):
-                                decode_morton_64bit(mi1,ind1)
-                                for m in range(3):
-                                    n_neighbors[m] = 0
-                                for n,l in enumerate(range(-ngz,(ngz+1))):
-                                    for m in range(3):
-                                        adv = <np.int64_t>(ind1[m] + l)
-                                        if (adv < 0) or (adv >= max_index1):
-                                            if self.periodicity[m]:
-                                                ind1_n[n,m] = <np.uint64_t>(adv % max_index1)
-                                            else:
-                                                continue
-                                        else:
-                                            ind1_n[n,m] = <np.uint64_t>(adv)
-                                        neighbors[n_neighbors[m],m] = n
-                                        n_neighbors[m] += 1
-                                for iil in range(n_neighbors[0]):
-                                    l = neighbors[iil,0]
-                                    for iim in range(n_neighbors[1]):
-                                        m = neighbors[iim,1]
-                                        for iin in range(n_neighbors[2]):
-                                            n = neighbors[iin,2]
-                                            mi1_n = <np.uint64_t>encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                            mi_bool_ghosts[mi1_n] = 1
+                                n_coarse = morton_neighbors_coarse(mi1, max_index1, 
+                                                                   self.periodicity,
+                                                                   ngz, neighbors,
+                                                                   ind1_n, neighbor_list1)
+                                for m in range(n_coarse):
+                                    mi1_n = neighbor_list1[m]
+                                    mi_bool_ghosts[mi1_n] = 1
                     # Continue refining
                     elif level < (max_level1 + max_level2): # both morton indices...
                         self.recursive_morton_mask(level+1, npos, ndds, DLE, 
@@ -297,43 +321,19 @@ cdef class SelectorObject:
                         mi_bool[mi2] = 1
                         # Add neighbors of selected cell
                         if (ngz > 0):
-                            for m in range(3):
-                                n_neighbors[m] = 0
-                            for n,l in enumerate(range(-ngz,(ngz+1))):
-                                for m in range(3):
-                                    adv = <np.int64_t>(ind2[m]+l)
-                                    maj = adv / max_index2
-                                    rem = adv % max_index2
-                                    if adv < 0:
-                                        if not self.periodicity[m] and (ind1[m]+(maj-1) < 0):
-                                            continue
-                                        else:
-                                            ind1_n[n,m] = <np.uint64_t>((<np.int64_t>(ind1[m]+(maj-1))) % max_index1)
-                                            ind2_n[n,m] = <np.uint64_t>(rem)
-                                    elif adv >= max_index2:
-                                        if not self.periodicity[m] and (ind1[m]+(maj+1) >= max_index1):
-                                            continue
-                                        else:
-                                            ind1_n[n,m] = <np.uint64_t>((<np.int64_t>(ind1[m]+(maj+1))) % max_index1)
-                                            ind2_n[n,m] = <np.uint64_t>(rem)
-                                    else:
-                                        ind1_n[n,m] = ind1[m]
-                                        ind2_n[n,m] = <np.uint64_t>(adv)
-                                    neighbors[n_neighbors[m],m] = n
-                                    n_neighbors[m] += 1
-                            for iil in range(n_neighbors[0]):
-                                l = neighbors[iil,0]
-                                for iim in range(n_neighbors[1]):
-                                    m = neighbors[iim,1]
-                                    for iin in range(n_neighbors[2]):
-                                        n = neighbors[iin,2]
-                                        mi1_n = encode_morton_64bit(ind1_n[l,0],ind1_n[m,1],ind1_n[n,2])
-                                        mi2 = encode_morton_64bit(ind2_n[l,0],ind2_n[m,1],ind2_n[n,2])
-                                        # TODO: handle wrapping
-                                        if mi1_n == mi1:
-                                            mi_bool_ghosts[mi2] = 1
-                                        else:
-                                            n_sub_ghosts += 1
+                            n_refined = morton_neighbors_refined(mi1, mi2,
+                                                                 max_index1, max_index2,
+                                                                 self.periodicity, ngz,
+                                                                 neighbors, ind1_n, ind2_n,
+                                                                 neighbor_list1, neighbor_list2)
+                            for m in range(n_refined):
+                                mi1_n = neighbor_list1[m]
+                                mi2 = neighbor_list2[m]
+                                # TODO: handle wrapping
+                                if mi1_n == mi1:
+                                    mi_bool_ghosts[mi2] = 1
+                                else:
+                                    n_sub_ghosts += 1
         # Set coarse morton indices in order
         if level == 0:
             print("{} wrapped ghost cells".format(n_sub_ghosts))
@@ -346,7 +346,7 @@ cdef class SelectorObject:
                     mm_ghosts._set(<np.uint64_t>m)
                     if mi_bool_refn[m]:
                         mm_ghosts._set_refn(<np.uint64_t>m)
-        for i in range(5):
+        for i in range(7):
             free(pointers[i])
 
     @cython.boundscheck(False)
