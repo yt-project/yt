@@ -353,7 +353,10 @@ class AbsorptionSpectrum(object):
                 # the virtual window into which the line is deposited initially 
                 # spans a region of 2 coarse spectral bins 
                 # (one on each side of the center_index) but the window
-                # can expand as necessary to assure everything is accounted for
+                # can expand as necessary.
+                # it will continue to expand until the tau value in the far
+                # edge of the wings is less than the min_tau value or it 
+                # reaches the edge of the spectrum
                 window_width_in_bins = 2
 
                 while True:
