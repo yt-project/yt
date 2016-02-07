@@ -19,6 +19,7 @@ from libcpp.algorithm cimport sort
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
 from cython.operator cimport dereference, preincrement
+import numpy as np
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
@@ -242,6 +243,14 @@ cdef class SparseUnorderedBitmask:
         for i in range(entries[0].size()):
             ind = entries[0][i]
             mask[ind] = 1
+
+    def to_array(self):
+        cdef np.ndarray[np.uint64_t, ndim=1] rv
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        rv = np.empty(entries[0].size())
+        for i in range(entries[0].size()):
+            rv[i] = entries[0][i]
+        return np.unique(rv)
 
     def __dealloc__(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
