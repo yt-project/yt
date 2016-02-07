@@ -317,15 +317,19 @@ class AbsorptionSpectrum(object):
             #    10; this will assure we don't get spikes in the deposited
             #    spectra from uneven numbers of vbins per bin
             resolution = thermal_width / self.bin_width 
-            vbin_width = self.bin_width / \
-                         10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
-            vbin_width = vbin_width.in_units('angstrom').d
+            n_vbins_per_bin = 10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
+            vbin_width = self.bin_width.d / n_vbins_per_bin
 
             # the virtual window into which the line is deposited initially 
             # spans a region of 5 thermal_widths, but this may expand
-            n_vbins = np.ceil(5*thermal_width.d/vbin_width)
-            vbin_window_width = n_vbins*vbin_width
+            #n_vbins = np.ceil(5*thermal_width.d/vbin_width)
 
+            # the virtual window into which the line is deposited initially
+            # spans at least five times the thermal width but can expand as 
+            # needed
+            #n_vbins = 5 * np.ceil(resolution.d) * (self.bin_width.d / vbin_width)
+            #vbin_window_width = n_vbins*vbin_width # in angstroms
+            
             if (thermal_width < self.bin_width).any():
                 mylog.info(("%d out of %d line components will be " + \
                             "deposited as unresolved lines.") %
@@ -337,18 +341,23 @@ class AbsorptionSpectrum(object):
                             (line['label'], line['wavelength']),
                             thermal_width.size)
 
+
             # for a given transition, step through each location in the 
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(valid_lines, njobs=-1):
-                my_vbin_window_width = vbin_window_width[i]
-                my_n_vbins = n_vbins[i]
-                my_vbin_width = vbin_width[i]
+                window_width_in_bins = 2
 
                 while True:
+                    left_index = (center_index[i] - \
+                            window_width_in_bins/2).clip(0, self.n_lambda-1)
+                    right_index = (center_index[i] + \
+                            window_width_in_bins/2).clip(0, self.n_lambda-1)
+                    n_vbins = (right_index - left_index) * n_vbins_per_bin[i]
+                    
                     vbins = \
-                        np.linspace(lambda_1[i]-my_vbin_window_width/2.,
-                                    lambda_1[i]+my_vbin_window_width/2., 
-                                    my_n_vbins, endpoint=False)
+                        np.linspace(self.lambda_field[left_index].d,
+                                    self.lambda_field[right_index].d,
+                                    n_vbins, endpoint=False)
 
                     vbins, vtau = \
                         tau_profile(
@@ -359,34 +368,20 @@ class AbsorptionSpectrum(object):
                     # If tau has not dropped below min tau threshold by the
                     # edges (ie the wings), then widen the wavelength 
                     # window and repeat process. 
+                    try: vtau[0] < min_tau and vtau[-1] < min_tau
+                    except: import pdb; pdb.set_trace()
                     if (vtau[0] < min_tau and vtau[-1] < min_tau):
                         break
-                    my_vbin_window_width *= 2
-                    my_n_vbins *= 2
-
-                # identify the extrema of the vbin_window so as to speed
-                # up searching over the entire lambda_field array
-                bins_from_center = np.ceil((my_vbin_window_width/2.) / \
-                                           self.bin_width.d) + 1
-                left_index = (center_index[i] - bins_from_center).clip(0, self.n_lambda)
-                right_index = (center_index[i] + bins_from_center).clip(0, self.n_lambda)
-                window_width = right_index - left_index
-
-                # run digitize to identify which vbins are deposited into which
-                # global lambda bins.
-                # shift global lambda bins over by half a bin width; 
-                # this has the effect of assuring np.digitize will place 
-                # the vbins in the closest bin center.
-                binned = np.digitize(vbins, 
-                                     self.lambda_field[left_index:right_index] \
-                                     + (0.5 * self.bin_width))
+                    window_width_in_bins *= 2
 
                 # numerically integrate the virtual bins to calculate a
                 # virtual equivalent width; then sum the virtual equivalent
                 # widths and deposit into each spectral bin
-                vEW = vtau * my_vbin_width
-                EW = [vEW[binned == j].sum() for j in np.arange(window_width)]
-                EW = np.array(EW)/self.bin_width.d
+                vEW = vtau * vbin_width[i]
+                EW = np.zeros(right_index - left_index)
+                for k in np.arange(right_index - left_index):
+                    EW[k] = vEW[n_vbins_per_bin[i]*k:n_vbins_per_bin[i]*(k+1)].sum()
+                EW = EW/self.bin_width.d
                 self.tau_field[left_index:right_index] += EW
 
                 # write out absorbers to file if the column density of
@@ -412,8 +407,8 @@ class AbsorptionSpectrum(object):
 
             del column_density, delta_lambda, lambda_obs, center_index, \
                 thermal_b, thermal_width, lambda_1, cdens, thermb, dlambda, \
-                vlos, resolution, vbin_width, n_vbins, vbin_window_width, \
-                valid_lines, vbins, vtau, vEW
+                vlos, resolution, vbin_width, n_vbins, window_width_in_bins, \
+                n_vbins_per_bin, valid_lines, vbins, vtau, vEW
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
