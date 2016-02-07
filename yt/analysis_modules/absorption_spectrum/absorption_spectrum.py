@@ -378,9 +378,12 @@ class AbsorptionSpectrum(object):
                             delta_lambda=dlambda[lixel], lambda_bins=vbins)
 
                     # If tau has not dropped below min tau threshold by the
-                    # edges (ie the wings), then widen the wavelength 
-                    # window and repeat process. 
-                    if (vtau[0] < min_tau and vtau[-1] < min_tau):
+                    # edges (ie the wings), then widen the wavelength
+                    # window and repeat process. Alternatively, it is OK
+                    # for the wings to not be low if you're bumping up against
+                    # the edge of the spectrum
+                    if ((vtau[0] < min_tau or left_index == 0) and \
+                        (vtau[-1] < min_tau or right_index == self.n_lambda-1)):
                         break
                     window_width_in_bins *= 2
 
