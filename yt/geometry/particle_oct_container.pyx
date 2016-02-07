@@ -447,7 +447,7 @@ cdef class ParticleForest:
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
         # cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
         # last_submi = last_mi = 0
         for i in range(nsub_mi):
