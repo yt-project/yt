@@ -14,6 +14,8 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 #-----------------------------------------------------------------------------
 
 from libcpp.map cimport map
+from libcpp.vector cimport vector
+from libcpp.algorithm cimport sort
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
 from cython.operator cimport dereference, preincrement
@@ -225,3 +227,22 @@ cdef class BoolArrayCollection:
         del ewah_coar
         del ewah_coll
 
+cdef class SparseUnorderedBitmask:
+    def __cinit__(self):
+        cdef vector[np.uint64_t] *entries = new vector[np.uint64_t]()
+        self.entries = <void *> entries
+
+    cdef void _set(self, np.uint64_t ind):
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        entries[0].push_back(ind)
+
+    cdef void _fill(self, np.uint8_t[:] mask):
+        cdef np.uint64_t i, ind
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        for i in range(entries[0].size()):
+            ind = entries[0][i]
+            mask[ind] = 1
+
+    def __dealloc__(self):
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        del entries
