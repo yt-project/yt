@@ -21,3 +21,8 @@ cdef class BoolArrayCollection:
     cdef void _append(self, BoolArrayCollection solf)
     cdef bytes _dumps(self)
     cdef void _loads(self, bytes s)
+
+cdef class SparseUnorderedBitmask:
+    cdef void* entries
+    cdef void _set(self, np.uint64_t ind)
+    cdef void _fill(self, np.uint8_t[:] mask)
