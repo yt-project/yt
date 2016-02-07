@@ -45,6 +45,23 @@ cdef class BoolArrayCollection:
     def set(self, i1, i2 = FLAG):
         self._set(i1, i2)
 
+    cdef void _set_coarse(self, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        ewah_keys[0].set(i1)
+
+    def set_coarse(self, i1):
+        return self._set_coarse(i1)
+
+    cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2):
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        # Note the 0 here, for dereferencing
+        ewah_refn[0].set(i1)
+        ewah_coll[0][i1].set(i2)
+
+    def set_refined(self, i1, i2):
+        return self._set_refined(i1, i2)
+        
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2):
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         ewah_coll[0][i1].set(i2)

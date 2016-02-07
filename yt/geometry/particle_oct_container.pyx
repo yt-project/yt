@@ -321,11 +321,13 @@ cdef class ParticleForest:
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
-    cdef list bitmasks
+    cdef public list bitmasks
     cdef BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
-                 n_ref = 64, index_order1 = 7, index_order2 = 7):
+                 n_ref = 64, index_order1 = None, index_order2 = None):
+        if index_order1 is None: index_order1 = 7
+        if index_order2 is None: index_order2 = 7
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
@@ -394,7 +396,7 @@ cdef class ParticleForest:
         # Add in order
         for i in range(mask.shape[0]):
             if mask[i]:
-                bitmasks._set(<np.uint64_t>i)
+                bitmasks._set_coarse(<np.uint64_t>i)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -466,7 +468,7 @@ cdef class ParticleForest:
             #     last_submi = 0
             # last_mi = sub_mi1[p]
             # Set bitmasks
-            bitmasks._set(sub_mi1[p],sub_mi2[p])
+            bitmasks._set_refined(sub_mi1[p],sub_mi2[p])
         return nsub_mi
 
     @cython.boundscheck(False)
@@ -540,9 +542,23 @@ cdef class ParticleForest:
             preincrement(it_mi1)
         print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
+    def calcsize_bitmasks(self):
+        cdef BoolArrayCollection b1
+        cdef bytes serial_BAC
+        cdef int ifile
+        cdef int out = 0
+        out += struct.calcsize('Q')
+        for ifile in range(self.nfiles):
+            b1 = self.bitmasks[ifile]
+            serial_BAC = b1._dumps()
+            out += struct.calcsize('Q')
+            out += len(serial_BAC)
+        return out
+
     def save_bitmasks(self,fname=None):
         cdef BoolArrayCollection b1
         cdef bytes serial_BAC
+        cdef int ifile
         # TODO: default file name
         if fname is None:
             raise NotImplementedError("Default filename for bitmask not set.")

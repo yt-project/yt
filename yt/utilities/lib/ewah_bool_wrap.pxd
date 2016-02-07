@@ -7,6 +7,8 @@ cdef class BoolArrayCollection:
     cdef void* ewah_coar
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
+    cdef void _set_coarse(self, np.uint64_t i1)
+    cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint64_t i1)
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)

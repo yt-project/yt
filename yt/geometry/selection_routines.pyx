@@ -324,7 +324,7 @@ cdef class SelectorObject:
             print("{} wrapped ghost cells".format(n_sub_ghosts))
             for m in range(mi_bool.shape[0]):
                 if mi_bool[m]:
-                    mm._set(<np.uint64_t>m)
+                    mm._set_coarse(<np.uint64_t>m)
                     if mi_bool_refn[m]:
                         mm._set_refn(<np.uint64_t>m)
                 if mi_bool_ghosts[m]:
