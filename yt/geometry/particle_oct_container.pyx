@@ -363,7 +363,7 @@ cdef class ParticleForest:
     def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                                 np.uint64_t file_id):
         # Initialize
-        cdef int i
+        cdef np.uint64_t i
         cdef np.int64_t p
         cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
@@ -395,18 +395,19 @@ cdef class ParticleForest:
             mask[mi] = 1
         # Add in order
         for i in range(mask.shape[0]):
-            if mask[i]:
+            if mask[i] == 1:
                 bitmasks._set_coarse(<np.uint64_t>i)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                 np.ndarray[np.uint8_t, ndim=1] mask,
+                                 np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                 np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id):
         # Initialize
-        cdef int i#, p, nsub_mi
-        cdef np.int64_t p
-        cdef np.uint64_t mi, nsub_mi#, last_mi, last_submi
+        cdef np.uint64_t i, p, mi, nsub_mi#, last_mi, last_submi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -415,7 +416,6 @@ cdef class ParticleForest:
         cdef np.float64_t dds2[3]
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
-        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks.sum(axis=1).astype('uint8')#[:,file_id]
         cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
         # cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
         # Copy things from structure (type cast)
@@ -424,10 +424,6 @@ cdef class ParticleForest:
             RE[i] = self.right_edge[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
-        cdef np.ndarray[np.uint64_t, ndim=1] sub_mi1 
-        cdef np.ndarray[np.uint64_t, ndim=1] sub_mi2 
-        sub_mi1 = np.zeros(pos.shape[0], dtype="uint64")
-        sub_mi2 = np.zeros(pos.shape[0], dtype="uint64")
         nsub_mi = 0
         # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
@@ -453,7 +449,7 @@ cdef class ParticleForest:
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi1,sub_mi2))
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
         # cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
         # last_submi = last_mi = 0
         for i in range(nsub_mi):
@@ -666,7 +662,7 @@ cdef class ParticleForest:
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
         cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
-        cdef np.uint64_t n_sub_ghosts
+        cdef np.uint64_t n_sub_ghosts = 0
         mi_bool = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_ghosts = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
         mi_bool_refn = np.zeros(1 << (self.index_order1 * 3), dtype="uint8")
@@ -675,11 +671,13 @@ cdef class ParticleForest:
             pos[j] = self.left_edge[j]
             dds[j] = self.right_edge[j] - self.left_edge[j]
             DLE[j] = self.left_edge[j]
+        print "starting morton"
         selector.recursive_morton_mask(0, pos, dds, DLE,
                                        self.index_order1, self.index_order2, 
                                        FLAG, cmask_s, cmask_g, self.collisions, 
                                        mi_bool, mi_bool_ghosts,
                                        mi_bool_refn, n_sub_ghosts, ngz=ngz)
+        print "done with morton"
         # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
@@ -750,7 +748,7 @@ cdef class ParticleForest:
                                     refined_g = dereference(it_mi1_g).second
                                     if refined_g.intersects(refined_d):
                                         file_mask_g[ifile] = 1
-                                elif cmask_g.get(mi1):
+                                elif cmask_g._get(mi1):
                                     # This shouldn't happen, the selector should always
                                     # refine where the data is refined.
                                     print "mi1 = {} coarsely selected by ghost, but refined in data.".format(mi1)

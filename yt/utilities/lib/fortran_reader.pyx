@@ -30,7 +30,7 @@ cdef extern from "endian_swap.h":
     void FIX_FLOAT( float )
 
 cdef extern from "platform_dep.h":
-    void *alloca(int)
+    void *alloca(size_t)
 
 cdef extern from "stdio.h":
     cdef int SEEK_SET

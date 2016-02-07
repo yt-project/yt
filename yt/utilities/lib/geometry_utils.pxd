@@ -16,7 +16,7 @@ Particle Deposition onto Octs
 cimport numpy as np
 cimport cython
 from libc.float cimport DBL_MANT_DIG
-from libc.math cimport frexp,ldexp
+from libc.math cimport frexp, ldexp, sqrt
 
 DEF ORDER_MAX=20
 DEF INDEX_MAX_64=2097151
@@ -103,7 +103,7 @@ cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]
     d = 0.0
     for j in range(3):
         d+=(p[j]-q[j])**2
-    return np.sqrt(d)
+    return sqrt(d)
 
 # Todo: allow radius reported independently in each dimension for rectangular domain
 @cython.cdivision(True)
@@ -129,7 +129,7 @@ cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q
         if (lvl+1 >= order):
             done = 1
         for j in range(3):
-            dds[j] = (DRE[j] - DLE[j])/(1 << int(lvl+1))
+            dds[j] = (DRE[j] - DLE[j])/(1 << (<int> lvl+1))
             pidx_next[j] = <np.uint64_t>((p[j] - DLE[j])/dds[j])
             qidx_next[j] = <np.uint64_t>((q[j] - DLE[j])/dds[j])
         for j in range(3):
@@ -149,7 +149,7 @@ cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q
     cx[0] = c[0]
     cy[0] = c[1]
     cz[0] = c[2]
-    return np.sqrt(rad)
+    return sqrt(rad)
 
 #-----------------------------------------------------------------------------
 # 21 bits spread over 64 with 2 bits in between
