@@ -15,11 +15,16 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 from libcpp.map cimport map
 from libcpp.vector cimport vector
+from libcpp.pair cimport pair
 from libcpp.algorithm cimport sort
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
 from cython.operator cimport dereference, preincrement
 import numpy as np
+
+cdef extern from "<algorithm>" namespace "std" nogil:
+    void sort[Iter](Iter first, Iter last)
+    void sort[Iter, Compare](Iter first, Iter last, Compare comp)
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
@@ -272,3 +277,40 @@ cdef class SparseUnorderedBitmask:
     def __dealloc__(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         del entries
+
+# cdef class SparseUnorderedRefinedBitmask:
+#     def __cinit__(self):
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = new vector[pair(np.uint64_t,np.uint64_t)]()
+#         self.entries = <void *> entries
+
+#     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
+#         entries[0].push_back(pair(ind1,ind2))
+
+#     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
+#         cdef np.uint64_t i, ind1, ind2
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
+#         for i in range(entries[0].size()):
+#             ind1 = entries[0][i].first
+#             ind2 = entries[0][i].second
+#             mask1[ind1] = 1
+#             mask2[ind2] = 1
+
+#     cdef void _remove_duplicates(self):
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
+#         sort(entries[0].begin(), entries[0].end())
+#         entries[0].erase(unique(entries[0].begin(), entries[0].end(), entries[0].end()))
+
+#     def to_array(self):
+#         cdef np.ndarray[np.uint64_t, ndim=2] rv
+#         self._remove_duplicates()
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
+#         rv = np.empty((2,entries[0].size()))
+#         for i in range(entries[0].size()):
+#             rv[0,i] = entries[0][i].first
+#             rv[1,i] = entries[0][i].second
+#         return rv
+
+#     def __dealloc__(self):
+#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
+#         del entries

@@ -120,36 +120,6 @@ def mask_fill(np.ndarray[np.float64_t, ndim=1] out,
     else:
         raise RuntimeError
 
-cdef class MortonSelector:
-    cdef np.int32_t level
-    cdef np.float64_t pos[3]
-    cdef np.float64_t dds[3]
-    cdef np.float64_t DLE[3]
-    cdef np.float64_t DRE[3]
-    cdef np.int32_t order1
-    cdef np.int32_t order2
-    cdef np.uint64_t max_index1
-    cdef np.uint64_t max_index2
-
-    def __cinit__(self, selector, DLE, DRE, order1, order2):
-        # Copy input
-        cdef int i
-        self.selector = selector
-        for i in range(3):
-            self.DLE[i] = DLE[i]
-            self.DRE[i] = DRE[i]
-        self.order1 = order1
-        self.order2 = order2
-        self.max_index1 = <np.uint64_t>(1 << order1)
-        self.max_index2 = <np.uint64_t>(1 << order2)
-        # Initialize level
-        self.level = 0
-        for i in range(3):
-            self.pos[i] = DLE[i]
-            self.dds[i] = (DRE[i] - DLE[i])
-        # Initalize arrays with memory views
-        
-
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
@@ -171,6 +141,15 @@ cdef class SelectorObject:
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
                 self.periodicity[i] = ds.periodicity[i]
+
+
+    def get_periodicity(self):
+        cdef int i
+        cdef np.ndarray[np.uint8_t, ndim=1] periodicity
+        periodicity = np.zeros(3, dtype='uint8')
+        for i in range(3):
+            periodicity[i] = self.periodicity[i]
+        return periodicity
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -215,6 +194,7 @@ cdef class SelectorObject:
                                     np.uint8_t[:] mi_bool_refn,
                                     np.uint64_t n_sub_ghosts, 
                                     int ngz = 0):
+        cdef np.uint8_t periodicity[3]
         cdef np.uint64_t mi2, mi1_n, reset_bool
         cdef np.float64_t npos[3]
         cdef np.float64_t cpos[3] # Center of cell
@@ -229,7 +209,7 @@ cdef class SelectorObject:
         cdef int i, j, k, l, m, n, iil, iim, iin
         cdef np.int64_t adv, maj, rem
         cdef np.int32_t n_neighbors[3]
-        cdef void* pointers[6]
+        cdef void* pointers[7]
         cdef np.uint8_t[:] mi2_bool
         cdef np.uint8_t[:] mi2_bool_ghosts
         cdef np.uint64_t s = (1<<(max_level2*3))
@@ -259,6 +239,7 @@ cdef class SelectorObject:
         # LANGMM
         for i in range(3):
             ndds[i] = dds[i]/2
+            periodicity[i] = <np.uint8_t>self.periodicity[i]
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -298,7 +279,7 @@ cdef class SelectorObject:
                             # Look for neighbors
                             if (ngz > 0):
                                 n_coarse = morton_neighbors_coarse(mi1, max_index1, 
-                                                                   self.periodicity,
+                                                                   periodicity,
                                                                    ngz, neighbors,
                                                                    ind1_n, neighbor_list1)
                                 for m in range(n_coarse):
@@ -323,7 +304,7 @@ cdef class SelectorObject:
                         if (ngz > 0):
                             n_refined = morton_neighbors_refined(mi1, mi2,
                                                                  max_index1, max_index2,
-                                                                 self.periodicity, ngz,
+                                                                 periodicity, ngz,
                                                                  neighbors, ind1_n, ind2_n,
                                                                  neighbor_list1, neighbor_list2)
                             for m in range(n_refined):
@@ -2199,3 +2180,5 @@ cdef class HaloParticlesSelector(SelectorObject):
         return ("halo_particles", self.halo_id)
 
 halo_particles_selector = HaloParticlesSelector
+
+

@@ -452,7 +452,7 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
-                                         bint periodicity[3], np.uint32_t nn, 
+                                         np.uint8_t periodicity[3], np.uint32_t nn, 
                                          np.uint32_t[:,:] index,
                                          np.uint64_t[:,:] ind1_n,
                                          np.uint64_t *neighbors):
@@ -496,7 +496,7 @@ cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1
 @cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2, 
                                           np.uint64_t max_index1, np.uint64_t max_index2,
-                                          bint periodicity[3], np.uint32_t nn, 
+                                          np.uint8_t periodicity[3], np.uint32_t nn, 
                                           np.uint32_t[:,:] index,
                                           np.uint64_t[:,:] ind1_n,
                                           np.uint64_t[:,:] ind2_n,
@@ -506,7 +506,7 @@ cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2,
     cdef np.uint64_t ind1[3]
     cdef np.uint64_t ind2[3]
     cdef np.uint32_t count[3]
-    cdef np.uint64_t adv
+    cdef np.uint64_t adv, maj, rem
     cdef int i, j, k, ii, ij, ik
     for i in range(3):
         count[i] = 0

@@ -101,3 +101,4 @@ cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
     elif rel < -dw * 0.5:
         rel += dw
     return rel
+
