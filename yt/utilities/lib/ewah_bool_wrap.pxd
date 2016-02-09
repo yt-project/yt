@@ -26,9 +26,15 @@ cdef class SparseUnorderedBitmask:
     cdef void* entries
     cdef void _set(self, np.uint64_t ind)
     cdef void _fill(self, np.uint8_t[:] mask)
+    cdef void _reset(self)
+    cdef to_array(self)
+    cdef void _remove_duplicates(self)
 
-# cdef class SparseUnorderedRefinedBitmask:
-#     cdef void* entries
-#     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
-#     cdef void _remove_duplicates(self)
-#     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
+cdef class SparseUnorderedRefinedBitmask:
+    cdef void* entries1
+    cdef void* entries2
+    cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
+    cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
+    cdef void _reset(self)
+    cdef to_array(self)
+    cdef void _remove_duplicates(self)

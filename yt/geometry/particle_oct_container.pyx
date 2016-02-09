@@ -37,7 +37,7 @@ from yt.utilities.lib.ewah_bool_array cimport \
     ewah_bool_array
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport \
-    BoolArrayCollection
+    BoolArrayCollection, SparseUnorderedBitmask, SparseUnorderedRefinedBitmask
 from libcpp.map cimport map
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
@@ -631,10 +631,26 @@ cdef class ParticleForest:
         # self.index_octree.add(mi, self.index_order1)
         # self.index_octree.finalize()
 
+    def get_DLE(self):
+        cdef int i
+        cdef np.ndarray[np.float64_t, ndim=1] DLE
+        DLE = np.zeros(3, dtype='float64')
+        for i in range(3):
+            DLE[i] = self.left_edge[i]
+        return DLE
+    def get_DRE(self):
+        cdef int i
+        cdef np.ndarray[np.float64_t, ndim=1] DRE
+        DRE = np.zeros(3, dtype='float64')
+        for i in range(3):
+            DRE[i] = self.right_edge[i]
+        return DRE
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector, int ngz = 0):
+    def identify_data_files(self, SelectorObject selector, int ngz = 0,
+                            bint flag_refined_ghosts = 0):
         cdef BoolArrayCollection cmask_d = BoolArrayCollection()
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
@@ -648,32 +664,20 @@ cdef class ParticleForest:
         cdef ewah_bool_array refined_d, refined_s, refined_g
         cdef ewah_bool_array coarse_d, coarse_s, coarse_g
         cdef ewah_bool_array total_d, total_s, total_g
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dds[3]
-        # cdef np.float64_t DLE[3]
-        # cdef np.float64_t DRE[3]
-        cdef np.ndarray[np.float64_t, ndim=1] DLE
-        cdef np.ndarray[np.float64_t, ndim=1] DRE
-        cdef int j
         cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         cdef np.uint64_t mi1
         cdef np.int32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
         # Find mask of selected morton indices
-        #print type(self.left_edge)
-        DLE = np.zeros(3, dtype='float64')
-        DRE = np.zeros(3, dtype='float64')
-        for j in range(3):
-            pos[j] = self.left_edge[j]
-            dds[j] = self.right_edge[j] - self.left_edge[j]
-            DLE[j] = self.left_edge[j]
-            DRE[j] = self.right_edge[j]
-        print "starting morton"
         cdef ParticleForestSelector morton_selector
-        morton_selector = ParticleForestSelector(selector,self,DLE,DRE,ngz=ngz)
-        morton_selector.find_files(cmask_s, cmask_g)
-        print "done with morton"
+        morton_selector = ParticleForestSelector(selector,self,ngz=ngz,
+                                                 flag_refined_ghosts=flag_refined_ghosts)
+        morton_selector.fill_masks(cmask_s, cmask_g)
+        morton_selector.find_files(file_mask_p,file_mask_g)
+        print "Internal: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
         # Extract info
         mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
         mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
@@ -693,8 +697,6 @@ cdef class ParticleForest:
                                                                                  refined_g.numberOfOnes(),
                                                                                  total_g.numberOfOnes()))
         # Compare with mask of particles
-        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
-        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
         for ifile in range(self.nfiles):
             # Only continue if the file is not already selected
             if not file_mask_p[ifile]:
@@ -716,9 +718,7 @@ cdef class ParticleForest:
                     it_mi1_d = mask_d.begin()
                     while it_mi1_d != mask_d.end():
                         mi1 = dereference(it_mi1_d).first
-                        print("File {}: {}".format(ifile,mi1))
                         if cmask_d._isref(mi1):
-                            print("File {}: {} refined".format(ifile,mi1))
                             refined_d = dereference(it_mi1_d).second
                             # Selector
                             if cmask_s._isref(mi1):
@@ -737,7 +737,6 @@ cdef class ParticleForest:
                                 file_mask_p[ifile] = 1
                                 file_mask_g[ifile] = 0
                                 break
-                            print("File {}: {}, after selector".format(ifile,mi1))
                             # Ghost zones
                             if not file_mask_p[ifile] and not file_mask_g[ifile]:
                                 if cmask_g._isref(mi1):
@@ -752,17 +751,12 @@ cdef class ParticleForest:
                                     # refine where the data is refined.
                                     print "mi1 = {} coarsely selected by ghost, but refined in data.".format(mi1)
                                     file_mask_g[ifile] = 1
-                            print("File {}: {}, after ghost".format(ifile,mi1))
-                        #print("File {}: {}, before increment".format(ifile,mi1))
                         preincrement(it_mi1_d)
-                        #print("File {}: {}, after increment".format(ifile,mi1))
         cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
         cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
         print "After: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
-        file_idx_p, = np.where(file_mask_p)
-        file_idx_g, = np.where(file_mask_g)
-        print "After after"
-        #morton_selector.__dealloc__()
+        file_idx_p = np.where(file_mask_p)[0].astype('int32')
+        file_idx_g = np.where(file_mask_g)[0].astype('int32')
         return file_idx_p, file_idx_g
 
     @cython.boundscheck(False)
@@ -917,7 +911,7 @@ cdef class ParticleForestSelector:
     cdef SelectorObject selector
     cdef ParticleForest forest
     cdef np.uint32_t ngz
-    cdef np.uint64_t n_sub_ghosts
+    cdef bint flag_refined_ghosts
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef np.uint8_t periodicity[3]
@@ -925,32 +919,43 @@ cdef class ParticleForestSelector:
     cdef np.int32_t order2
     cdef np.uint64_t max_index1
     cdef np.uint64_t max_index2
-    cdef void* pointers[10]
+    cdef void* pointers[7]
     cdef np.uint64_t[:,:] ind1_n
     cdef np.uint64_t[:,:] ind2_n
     cdef np.uint32_t[:,:] neighbors
-    cdef np.uint32_t n_coarse
-    cdef np.uint32_t n_refined
     cdef np.uint64_t* neighbor_list1
     cdef np.uint64_t* neighbor_list2
-    cdef np.uint8_t[:] mi1_bool
-    cdef np.uint8_t[:] mi1_bool_ghosts
-    cdef np.uint8_t[:] mi2_bool
-    cdef np.uint8_t[:] mi2_bool_ghosts
-    cdef np.uint8_t[:] mi_bool_refn
+    cdef np.uint8_t[:] file_mask_p
+    cdef np.uint8_t[:] file_mask_g
+    cdef SparseUnorderedBitmask coarse_select
+    cdef SparseUnorderedBitmask coarse_ghosts
+    cdef SparseUnorderedBitmask coarse_refn_select
+    cdef SparseUnorderedBitmask coarse_refn_ghosts
+    cdef SparseUnorderedRefinedBitmask refined_select
+    cdef SparseUnorderedRefinedBitmask refined_ghosts
+    cdef np.uint64_t n_coarse_select
+    cdef np.uint64_t n_coarse_ghosts
+    cdef np.uint64_t n_refined_select
+    cdef np.uint64_t n_refined_ghosts
+    cdef np.uint64_t max_vector_size
 
-    def __cinit__(self, selector, forest, DLE, DRE, ngz=0):
+    def __cinit__(self, selector, forest, ngz=0, flag_refined_ghosts=False):
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1] periodicity = np.zeros(3, dtype='uint8')
+        cdef np.ndarray[np.float64_t, ndim=1] DLE = np.zeros(3, dtype='float64')
+        cdef np.ndarray[np.float64_t, ndim=1] DRE = np.zeros(3, dtype='float64')
         self.selector = selector
         self.forest = forest
         self.ngz = ngz
-        self.n_sub_ghosts = 0
+        self.flag_refined_ghosts = flag_refined_ghosts
+        self.max_vector_size = <np.uint64_t>1e7
         # Things from the forest & selector
         periodicity = selector.get_periodicity()
+        DLE = forest.get_DLE()
+        DRE = forest.get_DRE()
         for i in range(3):
-            self.DLE[i] = DLE[i]#forest.left_edge[i]
-            self.DRE[i] = DRE[i]#forest.right_edge[i]
+            self.DLE[i] = DLE[i]
+            self.DRE[i] = DRE[i]
             self.periodicity[i] = periodicity[i]
         self.order1 = forest.index_order1
         self.order2 = forest.index_order2
@@ -961,36 +966,38 @@ cdef class ParticleForestSelector:
         self.pointers[0] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
         self.pointers[1] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
         self.pointers[2] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        self.pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
-        self.pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
-        self.pointers[5] = malloc( sizeof(np.uint8_t) * s1)
-        self.pointers[6] = malloc( sizeof(np.uint8_t) * s1)
-        self.pointers[7] = malloc( sizeof(np.uint8_t) * s2)
-        self.pointers[8] = malloc( sizeof(np.uint8_t) * s2)
-        self.pointers[9] = malloc( sizeof(np.uint8_t) * s1)
+        self.pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
+        self.pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
+        self.pointers[5] = malloc( sizeof(np.uint8_t) * forest.nfiles)
+        self.pointers[6] = malloc( sizeof(np.uint8_t) * forest.nfiles)
         self.neighbors = <np.uint32_t[:2*ngz+1,:3]> self.pointers[0]
         self.ind1_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[1]
         self.ind2_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[2]
         self.neighbor_list1 = <np.uint64_t*> self.pointers[3]
         self.neighbor_list2 = <np.uint64_t*> self.pointers[4]
-        self.mi1_bool = <np.uint8_t[:s1]> self.pointers[5]
-        self.mi1_bool_ghosts = <np.uint8_t[:s1]> self.pointers[6]
-        self.mi2_bool = <np.uint8_t[:s2]> self.pointers[7]
-        self.mi2_bool_ghosts = <np.uint8_t[:s2]> self.pointers[8]
-        self.mi_bool_refn = <np.uint8_t[:s1]> self.pointers[9]
+        self.file_mask_p = <np.uint8_t[:forest.nfiles]> self.pointers[5]
+        self.file_mask_g = <np.uint8_t[:forest.nfiles]> self.pointers[6]
         self.neighbors[:,:] = 0
-        self.mi1_bool[:] = 0
-        self.mi1_bool_ghosts[:] = 0
-        self.mi2_bool[:] = 0
-        self.mi2_bool_ghosts[:] = 0
-        self.mi_bool_refn[:] = 0
+        self.file_mask_p[:] = 0
+        self.file_mask_g[:] = 0
+        self.coarse_select = SparseUnorderedBitmask()
+        self.coarse_ghosts = SparseUnorderedBitmask()
+        self.coarse_refn_select = SparseUnorderedBitmask()
+        self.coarse_refn_ghosts = SparseUnorderedBitmask()
+        self.refined_select = SparseUnorderedRefinedBitmask()
+        self.refined_ghosts = SparseUnorderedRefinedBitmask()
 
     def __dealloc__(self):
         cdef int i
-        for i in range(10):
+        for i in range(7):
             free(self.pointers[i])
 
-    def find_files(self, BoolArrayCollection mm, BoolArrayCollection mm_ghosts):
+    def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        # Variables for testing
+        cdef ewah_bool_array swap
+        cdef ewah_bool_array arr1
+        cdef ewah_bool_array arr2
+        # Normal variables
         cdef int i, m
         cdef np.int32_t level = 0
         cdef np.uint64_t mi1
@@ -1000,82 +1007,186 @@ cdef class ParticleForestSelector:
         for i in range(3):
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
+        self.n_coarse_select = 0
+        self.n_coarse_ghosts = 0
+        self.n_refined_select = 0
+        self.n_refined_ghosts = 0
         # Recurse
-        self.recursive_morton_mask(level, pos, dds, mi1,
-                                   mm, mm_ghosts)
+        self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
-        print("{} wrapped ghost cells".format(self.n_sub_ghosts))
-        for m in range(self.mi1_bool.shape[0]):
-            if self.mi1_bool[m]:
-                mm._set_coarse(<np.uint64_t>m)
-                if self.mi_bool_refn[m]:
-                    mm._set_refn(<np.uint64_t>m)
-            if self.mi1_bool_ghosts[m]:
-                mm_ghosts._set(<np.uint64_t>m)
-                if self.mi_bool_refn[m]:
-                    mm_ghosts._set_refn(<np.uint64_t>m)
+        self.set_coarse_list(mm_s, mm_g)
+        self.set_refined_list(mm_s, mm_g)
 
+    def find_files(self,
+                   np.ndarray[np.uint8_t, ndim=1] file_mask_p,
+                   np.ndarray[np.uint8_t, ndim=1] file_mask_g):
+        cdef int i
+        # Fill with input
+        for i in range(file_mask_p.shape[0]):
+            self.file_mask_p[i] = file_mask_p[i]
+            self.file_mask_g[i] = file_mask_g[i]
+        # Recurse
+        # Fill with results 
+        for i in range(file_mask_p.shape[0]):
+            file_mask_p[i] = self.file_mask_p[i]
+            file_mask_g[i] = self.file_mask_g[i]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef bint is_refined(self, np.uint64_t mi1):
         # TODO: Add check for files here
         return self.forest.collisions._isref(mi1)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void add_coarse(self, np.uint64_t mi1):
-        self.mi1_bool[mi1] = 1
+        self.coarse_select._set(mi1)
+        self.n_coarse_select += 1
+        if not self.flag_refined_ghosts or not self.is_refined(mi1):
+            if (self.ngz > 0):
+                self.add_neighbors_coarse(mi1)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
-        self.mi2_bool[mi2] = 1
+        self.refined_select._set(mi1, mi2)
+        self.n_refined_select += 1
+        if (self.ngz > 0):# and self.flag_refined_ghosts:
+            self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_neighbors_coarse(self, np.uint64_t mi1):
         cdef int m
+        cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
-        self.n_coarse = morton_neighbors_coarse(mi1, self.max_index1, 
-                                                self.periodicity,
-                                                self.ngz, self.neighbors,
-                                                self.ind1_n, self.neighbor_list1)
-        for m in range(self.n_coarse):
+        ntot = morton_neighbors_coarse(mi1, self.max_index1, 
+                                       self.periodicity,
+                                       self.ngz, self.neighbors,
+                                       self.ind1_n, self.neighbor_list1)
+        for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
-            self.mi1_bool_ghosts[mi1_n] = 1
+            self.coarse_ghosts._set(mi1_n)
+            self.n_coarse_ghosts += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_neighbors_refined(self, np.uint64_t mi2, np.uint64_t mi1):
         cdef int m
+        cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
-        self.n_refined = morton_neighbors_refined(mi1, mi2,
-                                                  self.max_index1, self.max_index2,
-                                                  self.periodicity, self.ngz,
-                                                  self.neighbors, self.ind1_n, self.ind2_n,
-                                                  self.neighbor_list1, self.neighbor_list2)
-        for m in range(self.n_refined):
+        ntot = morton_neighbors_refined(mi1, mi2,
+                                        self.max_index1, self.max_index2,
+                                        self.periodicity, self.ngz,
+                                        self.neighbors, self.ind1_n, self.ind2_n,
+                                        self.neighbor_list1, self.neighbor_list2)
+        for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
             mi2 = self.neighbor_list2[m]
-            self.mi1_bool_ghosts[mi1_n] = 1
-            # TODO: handle wrapping
-            if mi1_n == mi1:
-                self.mi2_bool_ghosts[mi2] = 1
-            else:
-                self.n_sub_ghosts += 1
+            self.coarse_ghosts._set(mi1_n)
+            self.n_coarse_ghosts += 1
+            if self.flag_refined_ghosts:
+                self.refined_ghosts._set(mi1_n,mi2)
+                self.n_refined_ghosts += 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_coarse_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        cdef int i
+        cdef np.ndarray[np.uint64_t, ndim=1] marr_s
+        cdef np.ndarray[np.uint64_t, ndim=1] marr_g
+        marr_s = self.coarse_select.to_array()
+        marr_g = self.coarse_ghosts.to_array()
+        # print("Coarse: # selector = {}, # ghost = {}".format(marr_s.shape[0],marr_g.shape[0]))
+        # print("Coarse: # selector = {}, # ghost = {}".format(np.unique(marr_s).shape[0],
+        #                                                      np.unique(marr_g).shape[0]))
+        for i in range(marr_s.shape[0]):
+            mm_s._set_coarse(<np.uint64_t>marr_s[i])
+        for i in range(marr_g.shape[0]):
+            mm_g._set_coarse(<np.uint64_t>marr_g[i])
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_refined_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        cdef int i
+        cdef np.uint64_t mi1
+        cdef np.ndarray[np.uint64_t, ndim=2] marr_s
+        cdef np.ndarray[np.uint64_t, ndim=2] marr_g
+        marr_s = self.refined_select.to_array()
+        marr_g = self.refined_ghosts.to_array()
+        # print("Refined: # selector = {}, # ghost = {}".format(np.unique(marr_s[:,0]).shape[0],
+        #                                                       np.unique(marr_g[:,0]).shape[0]))
+        for mi1 in np.unique(marr_s[:,0]):
+            mm_s._set_refn(mi1)
+        for mi1 in np.unique(marr_g[:,0]):
+            mm_g._set_refn(mi1)
+        for i in range(marr_s.shape[0]):
+            mm_s._set_map(marr_s[i,0], marr_s[i,1])
+        for i in range(marr_g.shape[0]):
+            mm_g._set_map(marr_g[i,0], marr_g[i,1])
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_refined_list_partial(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        cdef int i
+        cdef np.uint64_t mi1
+        cdef np.ndarray[np.uint64_t, ndim=2] marr_s
+        cdef np.ndarray[np.uint64_t, ndim=2] marr_g
+        marr_s = self.refined_select.to_array()
+        marr_g = self.refined_ghosts.to_array()
+        for mi1 in np.unique(marr_s[:,0]):
+            self.coarse_refn_select._set(mi1)
+        for mi1 in np.unique(marr_g[:,0]):
+            self.coarse_refn_ghosts._set(mi1)
+        for i in range(marr_s.shape[0]):
+            mm_s._set_map(marr_s[i,0], marr_s[i,1])
+        for i in range(marr_g.shape[0]):
+            mm_g._set_map(marr_g[i,0], marr_g[i,1])
+        self.refined_select._reset()
+        self.refined_ghosts._reset()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void recursive_morton_mask(self, np.int32_t level, np.float64_t pos[3], 
-                                    np.float64_t dds[3], np.uint64_t mi1,
-                                    BoolArrayCollection mm,
-                                    BoolArrayCollection mm_ghosts):
-        cdef np.uint64_t mi2, mi1_n, reset_bool
+                                    np.float64_t dds[3], np.uint64_t mi1):
+        cdef np.uint64_t mi2
         cdef np.float64_t npos[3]
         cdef np.float64_t cpos[3] # Center of cell
         cdef np.float64_t ndds[3]
+        cdef np.uint64_t nlevel
+        cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
-        cdef int i, j, k, l, m, n
+        cdef int i, j, k, m
         for i in range(3):
             ndds[i] = dds[i]/2
+        nlevel = level + 1
+        # Clean up
+        if self.n_coarse_select > self.max_vector_size:
+            # print("Coarse select vector reached {}".format(self.n_coarse_select))
+            self.coarse_select._remove_duplicates()
+            self.n_coarse_select = 0
+        if self.n_coarse_ghosts > self.max_vector_size:
+            # print("Coarse ghosts vector reached {}".format(self.n_coarse_ghosts))
+            self.coarse_ghosts._remove_duplicates()
+            self.n_coarse_ghosts = 0
+        if self.n_refined_select > self.max_vector_size:
+            # print("Refined select vector reached {}".format(self.n_refined_select))
+            self.refined_select._remove_duplicates()
+            self.n_refined_select = 0
+        if self.n_refined_ghosts > self.max_vector_size:
+            # print("Refined ghosts vector reached {}".format(self.n_refined_ghosts))
+            self.refined_ghosts._remove_duplicates()
+            self.n_refined_ghosts = 0
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -1088,48 +1199,21 @@ cdef class ParticleForestSelector:
                     cpos[2] = npos[2] + ndds[2]/2
                     # Only recurse into selected cells
                     if not self.selector.select_cell(cpos, ndds): continue
-                    # Refine to coarse level
-                    if level < self.order1:
-                        self.recursive_morton_mask(level+1, npos, ndds, mi1,
-                                                   mm, mm_ghosts)
-                    # Coarse level
-                    elif level == self.order1:
-                        mi1 = bounded_morton_dds(npos[0],npos[1],npos[2], self.DLE, ndds)
-                        self.add_coarse(mi1)
-                        print "Adding coarse"
-                        # If cell needs refinement, continue refining.
-                        # Otherwise, add neighbors at this level and continue
+                    if nlevel < self.order1:
+                        self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                    elif nlevel == self.order1:
+                        mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
                         if self.is_refined(mi1):
-                            self.mi_bool_refn[mi1] = 1
-                            for reset_bool in range(self.mi2_bool.shape[0]):
-                                self.mi2_bool[reset_bool] = 0
-                                self.mi2_bool_ghosts[reset_bool] = 0
-                            self.recursive_morton_mask(level+1, npos, ndds, mi1,
-                                                       mm, mm_ghosts)
-                            # Add refined levels in order
-                            for m in range(self.mi2_bool.shape[0]):
-                                if self.mi2_bool[m]:
-                                    mm._set_map(mi1, <np.uint64_t>m)
-                            for m in range(self.mi2_bool_ghosts.shape[0]):
-                                if self.mi2_bool_ghosts[m]:
-                                    mm_ghosts._set_map(mi1, <np.uint64_t>m)
-                        elif (self.ngz > 0):
-                            # Look for neighbors
-                            self.add_neighbors_coarse(mi1)
-                    # Refine to refined level
-                    elif level < (self.order1 + self.order2):
-                        self.recursive_morton_mask(level+1, npos, ndds, mi1,
-                                                   mm, mm_ghosts)
-                    # Refined level
-                    elif level == (self.order1 + self.order2):
+                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                        self.add_coarse(mi1)
+                    elif nlevel < (self.order1 + self.order2):
+                        self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                    elif nlevel == (self.order1 + self.order2):
                         decode_morton_64bit(mi1,ind1)
                         for m in range(3):
-                            ind2[m] = <np.uint64_t>((npos[m]-self.DLE[m]-ndds[m]*ind1[m]*self.max_index2)/ndds[m])
-                        mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
+                            DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
+                        mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
                         self.add_refined(mi1,mi2)
-                        # Add neighbors
-                        if (self.ngz > 0):
-                            self.add_neighbors_refined(mi1,mi2)
 
 cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list

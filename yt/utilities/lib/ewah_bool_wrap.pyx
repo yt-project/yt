@@ -23,8 +23,7 @@ from cython.operator cimport dereference, preincrement
 import numpy as np
 
 cdef extern from "<algorithm>" namespace "std" nogil:
-    void sort[Iter](Iter first, Iter last)
-    void sort[Iter, Compare](Iter first, Iter last, Compare comp)
+    Iter unique[Iter](Iter first, Iter last)
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
@@ -266,51 +265,98 @@ cdef class SparseUnorderedBitmask:
             ind = entries[0][i]
             mask[ind] = 1
 
-    def to_array(self):
+    cdef void _reset(self):
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        entries[0].erase(entries[0].begin(), entries[0].end())
+
+    cdef to_array(self):
         cdef np.ndarray[np.uint64_t, ndim=1] rv
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        rv = np.empty(entries[0].size())
+        rv = np.empty(entries[0].size(), dtype='uint64')
         for i in range(entries[0].size()):
             rv[i] = entries[0][i]
-        return np.unique(rv)
+        return np.unique(rv).astype(np.uint64)
+
+    cdef void _remove_duplicates(self):
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        cdef vector[np.uint64_t].iterator last
+        sort(entries[0].begin(), entries[0].end())
+        last = unique(entries[0].begin(), entries[0].end())
+        entries[0].erase(last, entries[0].end())
 
     def __dealloc__(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         del entries
 
-# cdef class SparseUnorderedRefinedBitmask:
-#     def __cinit__(self):
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = new vector[pair(np.uint64_t,np.uint64_t)]()
-#         self.entries = <void *> entries
+cdef class SparseUnorderedRefinedBitmask:
+    def __cinit__(self):
+        cdef vector[np.uint64_t] *entries1 = new vector[np.uint64_t]()
+        cdef vector[np.uint64_t] *entries2 = new vector[np.uint64_t]()
+        self.entries1 = <void *> entries1
+        self.entries2 = <void *> entries2
 
-#     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
-#         entries[0].push_back(pair(ind1,ind2))
+    cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        entries1[0].push_back(ind1)
+        entries2[0].push_back(ind2)
 
-#     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
-#         cdef np.uint64_t i, ind1, ind2
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
-#         for i in range(entries[0].size()):
-#             ind1 = entries[0][i].first
-#             ind2 = entries[0][i].second
-#             mask1[ind1] = 1
-#             mask2[ind2] = 1
+    cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
+        cdef np.uint64_t i, ind
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        for i in range(entries1[0].size()):
+            ind = entries1[0][i]
+            mask1[ind] = 1
+            ind = entries2[0][i]
+            mask2[ind] = 1
 
-#     cdef void _remove_duplicates(self):
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
-#         sort(entries[0].begin(), entries[0].end())
-#         entries[0].erase(unique(entries[0].begin(), entries[0].end(), entries[0].end()))
+    cdef void _reset(self):
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        entries1[0].erase(entries1[0].begin(), entries1[0].end())
+        entries2[0].erase(entries2[0].begin(), entries2[0].end())
 
-#     def to_array(self):
-#         cdef np.ndarray[np.uint64_t, ndim=2] rv
-#         self._remove_duplicates()
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
-#         rv = np.empty((2,entries[0].size()))
-#         for i in range(entries[0].size()):
-#             rv[0,i] = entries[0][i].first
-#             rv[1,i] = entries[0][i].second
-#         return rv
+    cdef to_array(self):
+        cdef np.ndarray[np.uint64_t, ndim=2] rv
+        # cdef np.ndarray[np.uint64_t, ndim=1] iv
+        # cdef np.ndarray[np.uint64_t, ndim=1] _
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        rv = np.empty((entries1[0].size(),2),dtype='uint64')
+        for i in range(entries1[0].size()):
+            rv[i,0] = entries1[0][i]
+            rv[i,1] = entries2[0][i]
+        _, iv = np.unique(np.ascontiguousarray(rv).view(np.dtype((np.void, rv.dtype.itemsize * rv.shape[1]))),
+                          return_index=True)
+        return rv[iv]
 
-#     def __dealloc__(self):
-#         cdef vector[pair(np.uint64_t,np.uint64_t)] *entries = <vector[pair(np.uint64_t,np.uint64_t)]*> self.entries
-#         del entries
+    cdef void _remove_duplicates(self):
+        cdef np.ndarray[np.uint64_t, ndim=2] rv
+        cdef np.ndarray[long, ndim=1] iv
+        cdef np.uint64_t m
+        cdef vector[np.uint64_t].iterator last1
+        cdef vector[np.uint64_t].iterator last2
+        # cdef np.ndarray[np.uint64_t, ndim=1] _
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        rv = np.empty((entries1[0].size(),2),dtype='uint64')
+        for i in range(entries1[0].size()):
+            rv[i,0] = entries1[0][i]
+            rv[i,1] = entries2[0][i]
+        _, iv = np.unique(np.ascontiguousarray(rv).view(np.dtype((np.void, rv.dtype.itemsize * rv.shape[1]))),
+                          return_index=True)
+        last1 = entries1[0].begin() + iv.shape[0]
+        last2 = entries2[0].begin() + iv.shape[0]
+        for m in range(iv.shape[0]):
+            entries1[0][m] = rv[iv[m],0]
+            entries2[0][m] = rv[iv[m],1]
+        entries1[0].erase(last1, entries1[0].end())
+        entries2[0].erase(last2, entries2[0].end())
+
+    def __dealloc__(self):
+        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        del entries1
+        del entries2
+

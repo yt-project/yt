@@ -218,8 +218,8 @@ cdef class SelectorObject:
         pointers[2] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
         pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
         pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        pointers[5] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
-        pointers[6] = malloc( sizeof(np.uint64_t) * (2*ngz+1))
+        pointers[5] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
+        pointers[6] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
         mi2_bool = <np.uint8_t[:s]> pointers[0]
         mi2_bool_ghosts = <np.uint8_t[:s]> pointers[1]
         neighbors = <np.uint32_t[:2*ngz+1,:3]> pointers[2]

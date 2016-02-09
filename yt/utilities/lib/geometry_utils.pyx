@@ -546,7 +546,7 @@ cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2,
                 neighbors1[ntot] = encode_morton_64bit(ind1_n[i,0],
                                                        ind1_n[j,1],
                                                        ind1_n[k,2])
-                neighbors1[ntot] = encode_morton_64bit(ind2_n[i,0],
+                neighbors2[ntot] = encode_morton_64bit(ind2_n[i,0],
                                                        ind2_n[j,1],
                                                        ind2_n[k,2])
                 ntot += 1
