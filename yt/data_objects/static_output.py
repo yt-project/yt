@@ -988,7 +988,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
+    def add_deposited_particle_field(self, deposit_field, method,
+                                     weight_field='particle_mass', kernel_name='cubic'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -1005,6 +1006,8 @@ class Dataset(object):
            `particle_deposit` namespace as `methodname_deposit`.  Current
            methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
            `weighted_mean`, `mesh_id`, and `nearest`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition other than method `count`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
@@ -1025,13 +1028,13 @@ class Dataset(object):
 
         def _deposit_field(field, data):
             """
-            Create a grid field for particle wuantities weighted by particle
-            mass, using cloud-in-cell deposition.
+            Create a grid field for particle quantities weighted by the weight_field 
+            (default particle_mass), using cloud-in-cell deposition.
             """
             pos = data[ptype, "particle_position"]
             # get back into density
             if method != 'count':
-                pden = data[ptype, "particle_mass"]
+                pden = data[ptype, weight_field]
                 top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
                                    method=method, kernel_name=kernel_name)
                 bottom = data.deposit(pos, [pden], method=method,
