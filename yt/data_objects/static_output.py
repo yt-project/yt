@@ -988,8 +988,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method,
-                                     weight_field='particle_mass', kernel_name='cubic'):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
+                                     weight_field='particle_mass'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -1006,13 +1006,13 @@ class Dataset(object):
            `particle_deposit` namespace as `methodname_deposit`.  Current
            methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
            `weighted_mean`, `mesh_id`, and `nearest`.
-        weight_field : string, default 'particle_mass'
-           Weighting field name for deposition other than method `count`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition other than method `count`.
 
         Returns
         -------
