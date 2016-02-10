@@ -55,5 +55,6 @@ void main()
         ray_position += dir * step_size;
         ray_in_bb = within_bb(ray_position);
     }
+
     output_color = vec4(curr_color.rrr, 1.0);
 }

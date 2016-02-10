@@ -192,7 +192,7 @@ class YTUnitsNotReducible(YTException):
         self.unit = unit
         self.units_base = units_base
         YTException.__init__(self)
-        
+
     def __str__(self):
         err = "The unit '%s' cannot be reduced to a single expression within " \
           "the %s base system of units." % (self.unit, self.units_base)
@@ -203,13 +203,13 @@ class YTEquivalentDimsError(YTUnitOperationError):
         self.old_units = old_units
         self.new_units = new_units
         self.base = base
-    
+
     def __str__(self):
         err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units, 
+          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units,
                                                             self.new_units, self.base)
         return err
-    
+
 class YTUfuncUnitError(YTException):
     def __init__(self, ufunc, unit1, unit2):
         self.ufunc = ufunc
@@ -530,3 +530,10 @@ class YTDimensionalityError(YTException):
     def __str__(self):
         return 'Dimensionality specified was %s but we need %s' % (
             self.wrong, self.right)
+
+class YTInvalidShaderType(YTException):
+    def __init__(self, source):
+        self.source = source
+
+    def __str__(self):
+        return "Can't identify shader_type for file '%s.'" % (self.source)

@@ -1,6 +1,6 @@
 import os
+import re
 import OpenGL.GL as GL
-from OpenGL.GL import shaders
 
 import numpy as np
 from yt.utilities.math_utils import \
@@ -11,7 +11,44 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
-    
+from yt.utilities.exceptions import YTInvalidShaderType
+
+import matplotlib.cm as cm
+
+def _compile_shader(source, shader_type=None):
+    if shader_type is None:
+        try:
+            shader_type = re.match("^.*\.(vertex|fragment)shader$",
+                                   source).groups()[0]
+        except AttributeError:
+            raise YTInvalidShaderType(source)
+
+    sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
+    shader = GL.glCreateShader(
+        eval("GL.GL_{}_SHADER".format(shader_type.upper()))
+    )
+
+    with open(os.path.join(sh_directory, source), 'r') as fp:
+        GL.glShaderSource(shader, fp.read())
+    GL.glCompileShader(shader)
+    result = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
+    if not(result):
+        raise RuntimeError(GL.glGetShaderInfoLog(shader))
+    return shader
+
+def link_shader_program(shaders):
+    """Create a shader program with from compiled shaders."""
+    program = GL.glCreateProgram()
+    for shader in shaders:
+        GL.glAttachShader(program, _compile_shader(shader))
+    GL.glLinkProgram(program)
+    # check linking error
+    result = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
+    if not(result):
+        raise RuntimeError(GL.glGetProgramInfoLog(program))
+    return program
+
+
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
        [ 0.,  0.,  1.,  1.],
@@ -48,8 +85,16 @@ bbox_vertices = np.array(
        [ 0.,  1.,  1.,  1.],
        [ 1.,  1.,  1.,  1.],
        [ 0.,  1.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.]])
+       [ 1.,  0.,  1.,  1.]], dtype=np.float32)
 
+FULLSCREEN_QUAD = np.array(
+    [-1.0, -1.0, 0.0,
+     +1.0, -1.0, 0.0,
+     -1.0, +1.0, 0.0,
+     -1.0, +1.0, 0.0,
+     +1.0, -1.0, 0.0,
+     +1.0, +1.0, 0.0], dtype=np.float32
+)
 
 class TrackballCamera(object):
     """
@@ -65,7 +110,7 @@ class TrackballCamera(object):
 
     """
 
-    def __init__(self, 
+    def __init__(self,
                  position=(0.0, 0.0, 1.0),
                  focus=(0.0, 0.0, 0.0),
                  up=(0.0, 1.0, 0.0),
@@ -79,8 +124,11 @@ class TrackballCamera(object):
         self.far_plane = far_plane
         self.aspect_ratio = aspect_ratio
         self.up = np.array(up)
+        cmap = cm.get_cmap("algae")
+        self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
+        self.cmap_new = True
 
-        self.view_matrix = get_lookat_matrix(self.position, 
+        self.view_matrix = get_lookat_matrix(self.position,
                                              self.focus,
                                              self.up)
 
@@ -125,8 +173,8 @@ class TrackballCamera(object):
         self.position = dp + self.focus
         self.up = rotation_matrix[1]
 
-        self.view_matrix = get_lookat_matrix(self.position, 
-                                             self.focus, 
+        self.view_matrix = get_lookat_matrix(self.position,
+                                             self.focus,
                                              self.up)
 
         self.projection_matrix = get_perspective_matrix(np.radians(self.fov),
@@ -177,6 +225,7 @@ class Camera:
         self.position[0] = rho * np.sin(curr_phi) * np.cos(curr_theta)
         self.position[1] = rho * np.sin(curr_phi) * np.sin(curr_theta)
         self.position[2] = rho * np.cos(curr_phi)
+
 
 class BlockCollection:
     def __init__(self):
@@ -264,8 +313,7 @@ class BlockCollection:
         dx = np.concatenate(dx)
         le = np.concatenate(le)
         re = np.concatenate(re)
-        print vert.shape, dx.shape
-        if self.gl_vao_name != None:
+        if self.gl_vao_name is not None:
             GL.glDeleteVertexArrays(1, [self.gl_vao_name])
         self.gl_vao_name = GL.glGenVertexArrays(1)
 
@@ -274,9 +322,8 @@ class BlockCollection:
         self.add_vert_attrib("in_left_edge", le)
         self.add_vert_attrib("in_right_edge", re)
 
-        # Now we set up our 
+        # Now we set up our
         self._load_textures()
-        redraw = True
 
     def set_camera(self, camera):
         r"""Sets the camera for the block collection.
@@ -311,6 +358,7 @@ class BlockCollection:
         self.bind_vert_attrib(shader_program, "in_left_edge", 3)
         self.bind_vert_attrib(shader_program, "in_right_edge", 3)
 
+        # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self._set_uniforms(shader_program)
@@ -324,7 +372,16 @@ class BlockCollection:
             ti = self.gl_texture_names[tex_i]
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
+
+        # # This breaks on OSX, since it was already removed once, and re-added
+        # # twice, I'm leaving this as a comment
+        # for attrib in ["model_vertex", "in_dx",
+        #                "in_left_edge", "in_right_edge"]:
+        #     self.disable_vert_attrib(shader_program, attrib)
+
+        # Release bind
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+
 
     def _set_uniforms(self, shader_program):
         project_loc = GL.glGetUniformLocation(shader_program, "projection")
@@ -333,7 +390,6 @@ class BlockCollection:
 
         project = self.camera.get_projection_matrix()
         view = self.camera.get_view_matrix()
-
         viewport = np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'float32')
 
         GL.glUniformMatrix4fv(project_loc, 1, GL.GL_TRUE, project)
@@ -383,16 +439,127 @@ class BlockCollection:
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+
 class SceneGraph:
     def __init__(self):
         self.collections = []
+        self.fb_uniforms = {}
+        self.fbo = None
+        self.fb_texture = None
+        self.cmap_texture = None
         self.camera = None
-
-        self.gl_vert_shader = None
-        self.gl_frag_shader = None
         self.shader_program = None
 
-        self.camera = None
+        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        self.width = width
+        self.height = height
+
+        self.fb_shader_program = link_shader_program(
+            ["passthrough.vertexshader", "apply_colormap.fragmentshader"]
+        )
+        for key in ["fb_texture", "cmap"]:
+            self.fb_uniforms[key] = \
+                GL.glGetUniformLocation(self.fb_shader_program, key)
+
+        self.fb_vao_name = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(self.fb_vao_name)
+
+        quad_attrib = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, quad_attrib)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, FULLSCREEN_QUAD.nbytes,
+                        FULLSCREEN_QUAD, GL.GL_STATIC_DRAW)
+        GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
+
+        # unbind
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+        GL.glBindVertexArray(0)
+
+        self.setup_fb(self.width, self.height)
+
+    def setup_cmap_tex(self):
+        '''Creates 1D texture that will hold colormap in framebuffer'''
+        self.cmap_texture = GL.glGenTextures(1)   # create target texture
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
+                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+
+
+    def update_cmap_tex(self):
+        '''Updates 1D texture with colormap that's used in framebuffer'''
+        if self.camera is None or not self.camera.cmap_new:
+            return
+
+        if self.cmap_texture is None:
+            self.setup_cmap_tex()
+
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
+                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+
+        self.camera.cmap_new = False
+
+
+    def setup_fb(self, width, height):
+        '''Setups FrameBuffer that will be used as container
+           for 1 pass of rendering'''
+        # Clean up old FB and Texture
+        if self.fb_texture is not None and \
+            GL.glIsTexture(self.fb_texture):
+                GL.glDeleteTextures([self.fb_texture])
+        if self.fbo is not None and GL.glIsFramebuffer(self.fbo):
+            GL.glDeleteFramebuffers(1, [self.fbo])
+
+
+        # initialize FrameBuffer
+        self.fbo = GL.glGenFramebuffers(1)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
+
+        depthbuffer = GL.glGenRenderbuffers(1)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depthbuffer)
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24,
+                                 width, height)
+        GL.glFramebufferRenderbuffer(
+            GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
+            depthbuffer
+        )
+        # end of FrameBuffer initialization
+
+        # generate the texture we render to, and set parameters
+        self.fb_texture = GL.glGenTextures(1)   # create target texture
+        # bind to new texture, all future texture functions will modify this
+        # particular one
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
+        # set how our texture behaves on x,y boundaries
+        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT)
+        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT)
+        # set how our texture is filtered
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+
+        # occupy width x height texture memory, (None at the end == empty
+        # image)
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, width,
+                        height, 0, GL.GL_RGBA, GL.GL_UNSIGNED_INT, None)
+
+        # --- end texture init
+
+        # Set "fb_texture" as our colour attachement #0
+        GL.glFramebufferTexture2D(
+            GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
+            self.fb_texture,
+            0 # mipmap level, normally 0
+        )
+
+        # verify that everything went well
+        status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
+        assert status == GL.GL_FRAMEBUFFER_COMPLETE, status
+
 
     def add_collection(self, collection):
         r"""Adds a block collection to the scene. Collections must not overlap.
@@ -438,23 +605,9 @@ class SceneGraph:
             The location of the shader source file to read.
 
         """
-        vr_directory = os.path.dirname(__file__)
-        frag_path = "shaders/" + filename
-        vert_path = "shaders/vert.glsl"
-        frag_abs = os.path.join(vr_directory, frag_path)
-        vert_abs = os.path.join(vr_directory, vert_path)
-
-        shader_file = open(frag_abs, 'r')
-        self.gl_frag_shader = shaders.compileShader(shader_file.read(), GL.GL_FRAGMENT_SHADER)
-
-        vert_file = open(vert_abs, 'r')
-        self.gl_vert_shader = shaders.compileShader(vert_file.read(), GL.GL_VERTEX_SHADER)
-
-        self.shader_program = GL.glCreateProgram()
-        GL.glAttachShader(self.shader_program, self.gl_vert_shader)
-        GL.glAttachShader(self.shader_program, self.gl_frag_shader)
-
-        GL.glLinkProgram(self.shader_program)
+        self.shader_program = link_shader_program(
+            ['default.vertexshader', filename]
+        )
 
     def render(self):
         """ Renders one frame of the scene.
@@ -464,5 +617,49 @@ class SceneGraph:
         provided to the add_shader_from_file function.
 
         """
+
+        # get size of current viewport
+        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        if (width, height) != (self.width, self.height):
+            # size of viewport changed => fb needs to be recreated
+            self.setup_fb(width, height)
+            self.width = width
+            self.width = height
+
+        # Handle colormap
+        self.update_cmap_tex()
+
+        # bind to fb
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
+        # clear the color and depth buffer
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+        # render collections to fb
         for collection in self.collections:
             collection.run_program(self.shader_program)
+        # unbind FB
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+        # 2 pass of rendering
+        GL.glUseProgram(self.fb_shader_program)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        # bind to the result of 1 pass
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
+        # Set our "fb_texture" sampler to user Texture Unit 0
+        GL.glUniform1i(self.fb_uniforms["fb_texture"], 0);
+
+        GL.glActiveTexture(GL.GL_TEXTURE1)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glUniform1i(self.fb_uniforms["cmap"], 1);
+
+        # clear the color and depth buffer
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        # Bind to Vertex array that contains simple quad filling fullscreen,
+        # that was defined in __init__()
+        GL.glBindVertexArray(self.fb_vao_name)
+        GL.glEnableVertexAttribArray(0)
+        # Draw our 2 triangles
+        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
+        # Clean up
+        GL.glDisableVertexAttribArray(0)
+        GL.glBindVertexArray(0)

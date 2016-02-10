@@ -1,0 +1,12 @@
+#version 330 core
+
+in vec2 UV;
+
+out vec4 color;
+
+uniform sampler2D fb_texture;
+uniform sampler1D cmap;
+
+void main(){
+   color = texture(cmap, texture(fb_texture, UV).x);
+}

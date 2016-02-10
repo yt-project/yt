@@ -1,5 +1,7 @@
 import cyglfw3 as glfw
 import numpy as np
+import random
+import matplotlib.cm as cm
 import OpenGL.GL as GL
 from collections import defaultdict
 
@@ -87,6 +89,14 @@ def zoomout(camera, window, key, scancode, action, mods):
         np.linalg.norm(camera.position - camera.focus)
     return True
 
+def cmap_cycle(camera, window, key, scancode, action, mods):
+    cmap = ['algae', 'kamae', 'viridis', 'inferno', 'magma']
+    cmap = cm.get_cmap(random.choice(cmap))
+    camera.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
+    camera.cmap_new = True
+    print("Setting colormap to {}".format(cmap.name))
+    return True
+
 def closeup(camera, window, key, scancode, action, mods):
     camera.position = (0.01, 0.01, 0.01)
     return True
@@ -142,7 +152,7 @@ class MouseRotation(object):
                                   new_end[1])
         self.start = new_end
         return True
-        
+
 class RenderingContext(object):
     should_quit = False
     def __init__(self, width = 800, height = 600, title = "vol_render"):
@@ -164,7 +174,7 @@ class RenderingContext(object):
 
     def setup_loop(self, scene, camera):
         scene.set_camera(camera)
-        scene.add_shader_from_file("max_intensity_frag.glsl")
+        scene.add_shader_from_file("max_intensity.fragmentshader")
         camera.compute_matrices()
         frame_start = glfw.GetTime()
         fps_start = glfw.GetTime()
@@ -174,6 +184,7 @@ class RenderingContext(object):
         callbacks.add_key_callback(zoomin, "w")
         callbacks.add_key_callback(zoomout, "s")
         callbacks.add_key_callback(closeup, "z")
+        callbacks.add_key_callback(cmap_cycle, "c")
         callbacks.add_key_callback(reset, "r")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
