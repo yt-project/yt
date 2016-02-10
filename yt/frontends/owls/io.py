@@ -127,14 +127,15 @@ class IOHandlerOWLS(BaseIOHandler):
         f = _get_h5_handle(data_file.filename)
         if ptype == "all":
             pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+            keys = f.keys()
         else:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][int(ptype[-1])]
+            keys = [ptype]
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
-        for key in f.keys():
+        for key in keys:
             if not key.startswith("PartType"): continue
             if "Coordinates" not in f[key]: continue
-            if ptype != "all" and key != ptype: continue
             ds = f[key]["Coordinates"]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
