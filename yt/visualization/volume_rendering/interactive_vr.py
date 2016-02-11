@@ -459,6 +459,7 @@ class SceneGraph:
         self.cmap_texture = None
         self.camera = None
         self.shader_program = None
+        self.min_val, self.max_val = 1e60, -1e60
 
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
         self.width = width
@@ -467,7 +468,7 @@ class SceneGraph:
         self.fb_shader_program = link_shader_program(
             ["passthrough.vertexshader", "apply_colormap.fragmentshader"]
         )
-        for key in ["fb_texture", "cmap"]:
+        for key in ["fb_texture", "cmap", "min_val", "max_val"]:
             self.fb_uniforms[key] = \
                 GL.glGetUniformLocation(self.fb_shader_program, key)
 
@@ -532,7 +533,7 @@ class SceneGraph:
 
         depthbuffer = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depthbuffer)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT24,
+        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
                                  width, height)
         GL.glFramebufferRenderbuffer(
             GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
@@ -554,8 +555,8 @@ class SceneGraph:
 
         # occupy width x height texture memory, (None at the end == empty
         # image)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA, width,
-                        height, 0, GL.GL_RGBA, GL.GL_UNSIGNED_INT, None)
+        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA32F, width,
+                        height, 0, GL.GL_RGBA, GL.GL_FLOAT, None)
 
         # --- end texture init
 
@@ -585,6 +586,8 @@ class SceneGraph:
 
         """
         self.collections.append(collection)
+        self.min_val = min(self.min_val, collection.min_val)
+        self.max_val = max(self.max_val, collection.max_val)
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
@@ -619,6 +622,13 @@ class SceneGraph:
             ['default.vertexshader', filename]
         )
 
+    def _retrieve_framebuffer(self):
+        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
+                                       GL.GL_UNSIGNED_BYTE)
+        arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
+        return arr.reshape((width, height, 3))
+            
     def render(self):
         """ Renders one frame of the scene.
 
@@ -638,6 +648,7 @@ class SceneGraph:
 
         # Handle colormap
         self.update_cmap_tex()
+
 
         # bind to fb
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
@@ -662,6 +673,8 @@ class SceneGraph:
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
         GL.glUniform1i(self.fb_uniforms["cmap"], 1);
 
+        GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
+        GL.glUniform1f(self.fb_uniforms["max_val"], self.max_val)
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         # Bind to Vertex array that contains simple quad filling fullscreen,

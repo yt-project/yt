@@ -170,6 +170,23 @@ def reset(event_coll, event):
     event_coll.camera.position = (-1.0, -1.0, -1.0)
     return True
 
+@register_event("print_limits")
+def print_limits(event_coll, event):
+    print event_coll.scene.min_val,
+    print event_coll.scene.max_val
+    return False
+
+@register_event("up_lower")
+def up_lower(event_coll, event):
+    event_coll.scene.min_val += 1
+    print event_coll.scene.min_val
+    return True
+
+@register_event("debug_buffer")
+def debug_buffer(event_coll, event):
+    buffer = event_coll.scene._retrieve_framebuffer()
+    print buffer.min(), buffer.max()
+
 class MouseRotation(object):
     def __init__(self):
         self.start = None

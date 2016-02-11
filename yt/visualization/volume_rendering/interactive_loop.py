@@ -42,6 +42,9 @@ class RenderingContext(object):
         callbacks.add_key_callback("camera_proj", "p")
         callbacks.add_key_callback("shader_max", "1")
         callbacks.add_key_callback("shader_proj", "2")
+        callbacks.add_key_callback("print_limits", "l")
+        callbacks.add_key_callback("up_lower", "u")
+        callbacks.add_key_callback("debug_buffer", "d")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)

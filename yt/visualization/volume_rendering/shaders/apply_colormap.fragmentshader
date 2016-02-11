@@ -6,7 +6,10 @@ out vec4 color;
 
 uniform sampler2D fb_texture;
 uniform sampler1D cmap;
+uniform float min_val;
+uniform float max_val;
 
 void main(){
-   color = texture(cmap, texture(fb_texture, UV).x);
+   float scaled = (texture(fb_texture, UV).x - min_val)/(max_val - min_val);
+   color = texture(cmap, scaled);
 }
