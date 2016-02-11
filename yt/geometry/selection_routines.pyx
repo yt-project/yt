@@ -26,7 +26,8 @@ from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
+from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection, \
+    SparseUnorderedBitmask, SparseUnorderedRefinedBitmask
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
     bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 
@@ -142,7 +143,6 @@ cdef class SelectorObject:
                 self.domain_width[i] = DRE[i] - DLE[i]
                 self.periodicity[i] = ds.periodicity[i]
 
-
     def get_periodicity(self):
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1] periodicity
@@ -150,185 +150,6 @@ cdef class SelectorObject:
         for i in range(3):
             periodicity[i] = self.periodicity[i]
         return periodicity
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef BoolArrayCollection get_morton_mask(self,
-                        np.float64_t DLE[3], np.float64_t DRE[3],
-                        np.int32_t order1, np.int32_t order2, 
-                        BoolArrayCollection mm_coll, int ngz = 0):
-        cdef BoolArrayCollection morton_mask = BoolArrayCollection()
-        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dds[3]
-        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool
-        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_ghosts
-        cdef np.ndarray[np.uint8_t, ndim=1] mi_bool_refn
-        mi_bool = np.zeros(1 << (order1 * 3), dtype="uint8")
-        mi_bool_ghosts = np.zeros(1 << (order1 * 3), dtype="uint8")
-        mi_bool_refn = np.zeros(1 << (order1 * 3), dtype="uint8")
-        cdef int i
-        cdef np.uint64_t n_sub_ghosts = 0
-        for i in range(3):
-            pos[i] = 0
-            dds[i] = (DRE[i] - DLE[i])
-        self.recursive_morton_mask(0, pos, dds, DLE, order1, order2, FLAG, 
-                                   morton_mask, morton_mask, mm_coll, 
-                                   mi_bool, mi_bool_ghosts, mi_bool_refn, 
-                                   n_sub_ghosts, ngz=ngz)
-        return morton_mask
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void recursive_morton_mask(self, np.int32_t level, np.float64_t pos[3], 
-                                    np.float64_t dds[3], np.float64_t DLE[3],
-                                    np.int32_t max_level1, np.int32_t max_level2,
-                                    np.uint64_t mi1,
-                                    BoolArrayCollection mm,
-                                    BoolArrayCollection mm_ghosts,
-                                    BoolArrayCollection mm_coll,
-                                    np.uint8_t[:] mi_bool,
-                                    np.uint8_t[:] mi_bool_ghosts,
-                                    np.uint8_t[:] mi_bool_refn,
-                                    np.uint64_t n_sub_ghosts, 
-                                    int ngz = 0):
-        cdef np.uint8_t periodicity[3]
-        cdef np.uint64_t mi2, mi1_n, reset_bool
-        cdef np.float64_t npos[3]
-        cdef np.float64_t cpos[3] # Center of cell
-        cdef np.float64_t ndds[3]
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
-        cdef np.uint64_t[:,:] ind1_n
-        cdef np.uint64_t[:,:] ind2_n
-        cdef np.uint32_t[:,:] neighbors
-        cdef np.uint64_t max_index1 = <np.uint64_t>(1 << max_level1)
-        cdef np.uint64_t max_index2 = <np.uint64_t>(1 << max_level2)
-        cdef int i, j, k, l, m, n, iil, iim, iin
-        cdef np.int64_t adv, maj, rem
-        cdef np.int32_t n_neighbors[3]
-        cdef void* pointers[7]
-        cdef np.uint8_t[:] mi2_bool
-        cdef np.uint8_t[:] mi2_bool_ghosts
-        cdef np.uint64_t s = (1<<(max_level2*3))
-        pointers[0] = malloc(sizeof(np.uint8_t) * s)
-        pointers[1] = malloc(sizeof(np.uint8_t) * s)
-        pointers[2] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
-        pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        pointers[5] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
-        pointers[6] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
-        mi2_bool = <np.uint8_t[:s]> pointers[0]
-        mi2_bool_ghosts = <np.uint8_t[:s]> pointers[1]
-        neighbors = <np.uint32_t[:2*ngz+1,:3]> pointers[2]
-        ind1_n = <np.uint64_t[:2*ngz+1,:3]> pointers[3]
-        ind2_n = <np.uint64_t[:2*ngz+1,:3]> pointers[4]
-        neighbors[:,:] = 0
-        ind1_n[:,:] = 0
-        ind2_n[:,:] = 0
-        mi2_bool[:] = 0
-        mi2_bool_ghosts[:] = 0
-        # LANGMM
-        cdef np.uint32_t n_coarse, n_refined
-        cdef np.uint64_t* neighbor_list1
-        cdef np.uint64_t* neighbor_list2
-        neighbor_list1 = <np.uint64_t*> pointers[5]
-        neighbor_list2 = <np.uint64_t*> pointers[6]
-        # LANGMM
-        for i in range(3):
-            ndds[i] = dds[i]/2
-            periodicity[i] = <np.uint8_t>self.periodicity[i]
-        # Loop over octs
-        for i in range(2):
-            npos[0] = pos[0] + i*ndds[0]
-            cpos[0] = npos[0] + ndds[0]/2
-            for j in range(2):
-                npos[1] = pos[1] + j*ndds[1]
-                cpos[1] = npos[1] + ndds[1]/2
-                for k in range(2):
-                    npos[2] = pos[2] + k*ndds[2]
-                    cpos[2] = npos[2] + ndds[2]/2
-                    # Only recurse into selected cells
-                    if not self.select_cell(cpos, ndds): continue
-                    # First morton
-                    if level == max_level1:
-                        mi1 = bounded_morton_dds(npos[0],npos[1],npos[2], DLE, ndds)
-                        mi_bool[mi1] = 1
-                        # If cell needs refinement, continue refining.
-                        # Otherwise, add neighbors at this level and continue
-                        if mm_coll._isref(mi1):
-                            mi_bool_refn[mi1] = 1
-                            for reset_bool in range(mi2_bool.shape[0]):
-                                mi2_bool[reset_bool] = 0
-                                mi2_bool_ghosts[reset_bool] = 0
-                            self.recursive_morton_mask(level+1, npos, ndds, DLE, 
-                                                       max_level1, max_level2,
-                                                       mi1, mm, mm_ghosts, mm_coll, 
-                                                       mi2_bool, mi2_bool_ghosts, 
-                                                       mi_bool_refn, n_sub_ghosts, ngz=ngz)
-                            # Add refined levels in order
-                            for m in range(mi2_bool.shape[0]):
-                                if mi2_bool[m]:
-                                    mm._set_map(mi1, <np.uint64_t>m)
-                            for m in range(mi2_bool_ghosts.shape[0]):
-                                if mi2_bool_ghosts[m]:
-                                    mm_ghosts._set_map(mi1, <np.uint64_t>m)
-                        else:
-                            # Look for neighbors
-                            if (ngz > 0):
-                                n_coarse = morton_neighbors_coarse(mi1, max_index1, 
-                                                                   periodicity,
-                                                                   ngz, neighbors,
-                                                                   ind1_n, neighbor_list1)
-                                for m in range(n_coarse):
-                                    mi1_n = neighbor_list1[m]
-                                    mi_bool_ghosts[mi1_n] = 1
-                    # Continue refining
-                    elif level < (max_level1 + max_level2): # both morton indices...
-                        self.recursive_morton_mask(level+1, npos, ndds, DLE, 
-                                                   max_level1, max_level2,
-                                                   mi1, mm, mm_ghosts, mm_coll, 
-                                                   mi_bool, mi_bool_ghosts, 
-                                                   mi_bool_refn, n_sub_ghosts, ngz=ngz)
-                    # Second morton (max_level1 + max_level2)
-                    else:
-                        decode_morton_64bit(mi1,ind1)
-                        for m in range(3):
-                            ind2[m] = <np.uint64_t>((npos[m]-DLE[m]-ndds[m]*ind1[m]*max_index2)/ndds[m])
-                        # Add selected cell
-                        mi2 = encode_morton_64bit(ind2[0],ind2[1],ind2[2])
-                        mi_bool[mi2] = 1
-                        # Add neighbors of selected cell
-                        if (ngz > 0):
-                            n_refined = morton_neighbors_refined(mi1, mi2,
-                                                                 max_index1, max_index2,
-                                                                 periodicity, ngz,
-                                                                 neighbors, ind1_n, ind2_n,
-                                                                 neighbor_list1, neighbor_list2)
-                            for m in range(n_refined):
-                                mi1_n = neighbor_list1[m]
-                                mi2 = neighbor_list2[m]
-                                # TODO: handle wrapping
-                                if mi1_n == mi1:
-                                    mi_bool_ghosts[mi2] = 1
-                                else:
-                                    n_sub_ghosts += 1
-        # Set coarse morton indices in order
-        if level == 0:
-            print("{} wrapped ghost cells".format(n_sub_ghosts))
-            for m in range(mi_bool.shape[0]):
-                if mi_bool[m]:
-                    mm._set_coarse(<np.uint64_t>m)
-                    if mi_bool_refn[m]:
-                        mm._set_refn(<np.uint64_t>m)
-                if mi_bool_ghosts[m]:
-                    mm_ghosts._set(<np.uint64_t>m)
-                    if mi_bool_refn[m]:
-                        mm_ghosts._set_refn(<np.uint64_t>m)
-        for i in range(7):
-            free(pointers[i])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -676,6 +497,97 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def fill_mask_morton(self, left_edge, right_edge, order1, order2, 
+                         mask_coll, ngz=0):
+        cdef int i, j
+        cdef np.uint32_t ntot
+        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+        cdef np.uint64_t ind1[3]
+        cdef np.uint64_t ind2[3]
+        cdef np.float64_t DLE[3]
+        cdef np.float64_t DRE[3]
+        cdef np.float64_t dds1[3]
+        cdef np.float64_t dds2[3]
+        cdef np.float64_t lpos1[3]
+        cdef np.float64_t lpos2[3]
+        cdef np.float64_t rpos1[3]
+        cdef np.float64_t rpos2[3]
+        cdef np.uint64_t max_index1 = (1 << order1)
+        cdef np.uint64_t max_index2 = (1 << order2)
+        cdef BoolArrayCollection mask_s = BoolArrayCollection()
+        cdef BoolArrayCollection mask_g = BoolArrayCollection()
+        cdef SparseUnorderedBitmask list_coarse_s = SparseUnorderedBitmask()
+        cdef SparseUnorderedBitmask list_coarse_g = SparseUnorderedBitmask()
+        cdef SparseUnorderedRefinedBitmask list_refined_s = SparseUnorderedRefinedBitmask()
+        cdef SparseUnorderedRefinedBitmask list_refined_g = SparseUnorderedRefinedBitmask()
+        cdef np.uint32_t[:,:] index = np.zeros((2*ngz+1, 3), dtype='uint32')
+        cdef np.uint64_t[:,:] ind1_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+        cdef np.uint64_t[:,:] ind2_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+        cdef np.uint64_t[:] neighbors1 = np.zeros((2*ngz+1)**3, dtype='uint64')
+        cdef np.uint64_t[:] neighbors2 = np.zeros((2*ngz+1)**3, dtype='uint64')
+        for i in range(3):
+            DLE[i] = left_edge[i]
+            DRE[i] = right_edge[i]
+            dds1[i] = (DRE[i] - DLE[i])/max_index1
+            dds2[i] = dds1[i]/max_index2
+        # Coarse
+        for mi1 in range(1 << (order1*3)):
+            list_coarse_s._prune()
+            list_coarse_g._prune()
+            list_refined_s._prune()
+            list_refined_g._prune()
+            decode_morton_64bit(mi1, ind1)
+            for i in range(3):
+                lpos1[i] = DLE[i] + (<np.float64_t>ind1[i])*dds1[i]
+                rpos1[i] = lpos1[i] + dds1[i]
+            if self.select_bbox(lpos1, rpos1):
+                list_coarse_s._set(mi1)
+                # Neighbors
+                if (ngz > 0):
+                    ntot = morton_neighbors_coarse(mi1, max_index1, self.periodicity,
+                                                   ngz, index, ind1_n, neighbors1)
+                    for i in range(ntot):
+                        mi1_n = neighbors1[i]
+                        list_coarse_g._set(mi1_n)
+                # Refinement
+                if mask_coll.isref(mi1):
+                    for mi2 in range(1 << (order1*3)):
+                        decode_morton_64bit(mi2, ind2)
+                        for i in range(3):
+                            lpos2[i] = DLE[i] + \
+                                       (<np.float64_t>ind1[i])*dds1[i] + \
+                                       (<np.float64_t>ind2[i])*dds2[i]
+                            rpos2[i] = lpos2[i] + dds2[i]
+                        if self.select_bbox(lpos2, rpos2):
+                            list_refined_s._set(mi1, mi2)
+                        if (ngz > 0):
+                            ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
+                                                            self.periodicity, ngz, 
+                                                            index, ind1_n, ind2_n,
+                                                            neighbors1, neighbors2)
+                            for i in range(3):
+                                mi1_n = neighbors1[i]
+                                mi2_n = neighbors2[i]
+                                list_refined_g._set(mi1_n, mi2_n)
+        # Add indices to mask
+        print("Adding coarse indices to masks...")
+        for mi1 in list_coarse_s.to_array():
+            mask_s._set_coarse(mi1)
+        for mi1_n in list_coarse_g.to_array():
+            mask_g._set_coarse(mi1_n)
+        print("Adding refined indices to masks...")
+        refarr_s = list_refined_s.to_array()
+        for i in range(refarr_s.shape[0]):
+            mask_s._set_refined(refarr_s[i,0],refarr_s[i,1])
+        refarr_g = list_refined_g.to_array()
+        for i in range(refarr_g.shape[0]):
+            mask_g._set_refined(refarr_g[i,0],refarr_g[i,1])
+        # Return masks
+        return mask_s, mask_g
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                               grid_visitor_function *func,
                               np.uint8_t *cached_mask = NULL):
@@ -920,6 +832,17 @@ cdef class SphereSelector(SelectorObject):
             pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
             return 1
         return self.select_point(pos)
+        # langmm: added to allow sphere to interesect edge/corner of cell
+        # cdef int i
+        # cdef np.float64_t d2 = self.radius2
+        # for i in range(3):
+        #     if self.center[i] < (pos[i] - 0.5*dds[i]):
+        #         d2 -= (self.center[i] - (pos[i] - 0.5*dds[i]))**2
+        #     elif self.center[i] > (pos[i] + 0.5*dds[i]):
+        #         d2 -= (self.center[i] - (pos[i] + 0.5*dds[i]))**2
+        # if d2 > 0:
+        #     return 1
+        # return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

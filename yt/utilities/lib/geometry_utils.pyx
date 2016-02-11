@@ -436,6 +436,19 @@ def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_morton_point(np.uint64_t index):
+    cdef int j
+    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=1] position
+    position = np.zeros(3, 'uint64')
+    morton_to_point(index, p)
+    for j in range(3):
+        position[j] = p[j]
+    return position
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
     # This is inspired by the scurve package by user cortesi on GH.
     cdef int i, j
@@ -452,10 +465,10 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
-                                         np.uint8_t periodicity[3], np.uint32_t nn, 
+                                         bint periodicity[3], np.uint32_t nn, 
                                          np.uint32_t[:,:] index,
                                          np.uint64_t[:,:] ind1_n,
-                                         np.uint64_t *neighbors):
+                                         np.uint64_t[:] neighbors):
     cdef np.uint32_t ntot = 0
     cdef np.uint64_t ind1[3]
     cdef np.uint32_t count[3]
@@ -496,12 +509,12 @@ cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1
 @cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2, 
                                           np.uint64_t max_index1, np.uint64_t max_index2,
-                                          np.uint8_t periodicity[3], np.uint32_t nn, 
+                                          bint periodicity[3], np.uint32_t nn, 
                                           np.uint32_t[:,:] index,
                                           np.uint64_t[:,:] ind1_n,
                                           np.uint64_t[:,:] ind2_n,
-                                          np.uint64_t *neighbors1,
-                                          np.uint64_t *neighbors2):
+                                          np.uint64_t[:] neighbors1,
+                                          np.uint64_t[:] neighbors2):
     cdef np.uint32_t ntot = 0
     cdef np.uint64_t ind1[3]
     cdef np.uint64_t ind2[3]

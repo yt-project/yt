@@ -311,16 +311,16 @@ cdef inline np.uint64_t bounded_morton_relative_dds(np.float64_t x, np.float64_t
 
   
 cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
-                                         np.uint8_t periodicity[3], np.uint32_t nn, 
+                                         bint periodicity[3], np.uint32_t nn, 
                                          np.uint32_t[:,:] index,
                                          np.uint64_t[:,:] ind1_n,
-                                         np.uint64_t *neighbors)
+                                         np.uint64_t[:] neighbors)
 
 cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2,
                                           np.uint64_t max_index1, np.uint64_t max_index2,
-                                          np.uint8_t periodicity[3], np.uint32_t nn,
+                                          bint periodicity[3], np.uint32_t nn,
                                           np.uint32_t[:,:] index,
                                           np.uint64_t[:,:] ind1_n,
                                           np.uint64_t[:,:] ind2_n,
-                                          np.uint64_t *neighbors1,
-                                          np.uint64_t *neighbors2)
+                                          np.uint64_t[:] neighbors1,
+                                          np.uint64_t[:] neighbors2)

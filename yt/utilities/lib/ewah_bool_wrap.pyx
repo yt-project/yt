@@ -26,6 +26,7 @@ cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
+cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
 
 cdef class BoolArrayCollection:
 
@@ -38,6 +39,53 @@ cdef class BoolArrayCollection:
         self.ewah_refn = <void *> ewah_refn
         self.ewah_coar = <void *> ewah_coar
         self.ewah_coll = <void *> ewah_coll
+
+    cdef bint _richcmp(self, BoolArrayCollection solf, int op):
+
+        cdef ewah_bool_array *arr1
+        cdef ewah_bool_array *arr2
+        cdef map[np.uint64_t, ewah_bool_array] *map1
+        cdef map[np.uint64_t, ewah_bool_array] *map2
+        cdef map[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        # == 
+        if op == 2: 
+            # Keys
+            arr1 = <ewah_bool_array *> self.ewah_keys
+            arr2 = <ewah_bool_array *> solf.ewah_keys
+            if arr1[0] != arr2[0]:
+                return 0
+            # Refn
+            arr1 = <ewah_bool_array *> self.ewah_refn
+            arr2 = <ewah_bool_array *> solf.ewah_refn
+            if arr1[0] != arr2[0]:
+                return 0
+            # Map
+            map1 = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+            map2 = <map[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+            it_map1 = map1[0].begin()
+            while (it_map1 != map1[0].end()):
+                it_map2 = map2[0].find(dereference(it_map1).first)
+                if it_map2 == map2[0].end():
+                    return 0
+                if dereference(it_map1).second != dereference(it_map2).second:
+                    return 0
+                preincrement(it_map1)
+            # Match
+            return 1
+        # !=
+        elif op == 3:
+            if self == solf:
+                return 0
+            return 1
+        else:
+            options = ['<','<=','==','!=','>','>=']
+            raise NotImplementedError("Operator {} is not yet implemented.".format(options[op]))
+
+    def __richcmp__(BoolArrayCollection self, BoolArrayCollection solf, int op):
+        if self._richcmp(solf, op):
+            return True
+        else:
+            return False
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
@@ -95,6 +143,14 @@ cdef class BoolArrayCollection:
 
     def get(self, i1, i2 = FLAG):
         return self._get(i1, i2)
+
+    cdef bint _get_coarse(self, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        if not ewah_keys[0].get(i1): return 0
+        return 1
+
+    def get_coarse(self, i1):
+        return self._get_coarse(i1)
 
     cdef bint _contains(self, np.uint64_t i):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
@@ -249,14 +305,25 @@ cdef class BoolArrayCollection:
         del ewah_coar
         del ewah_coll
 
+    def print_info(self, prefix=''):
+        print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
+                                                                     self._count_coarse(),
+                                                                     self._count_refined(),
+                                                                     self._count_total()))
+
 cdef class SparseUnorderedBitmask:
     def __cinit__(self):
         cdef vector[np.uint64_t] *entries = new vector[np.uint64_t]()
         self.entries = <void *> entries
+        self.total = 0
 
     cdef void _set(self, np.uint64_t ind):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         entries[0].push_back(ind)
+        self.total += 1
+
+    def set(self, ind):
+        self._set(ind)
 
     cdef void _fill(self, np.uint8_t[:] mask):
         cdef np.uint64_t i, ind
@@ -268,6 +335,7 @@ cdef class SparseUnorderedBitmask:
     cdef void _reset(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         entries[0].erase(entries[0].begin(), entries[0].end())
+        self.total = 0
 
     cdef to_array(self):
         cdef np.ndarray[np.uint64_t, ndim=1] rv
@@ -284,6 +352,11 @@ cdef class SparseUnorderedBitmask:
         last = unique(entries[0].begin(), entries[0].end())
         entries[0].erase(last, entries[0].end())
 
+    cdef void _prune(self):
+        if self.total > MAX_VECTOR_SIZE:
+            self._remove_duplicates()
+            self.total = 0
+
     def __dealloc__(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         del entries
@@ -294,12 +367,17 @@ cdef class SparseUnorderedRefinedBitmask:
         cdef vector[np.uint64_t] *entries2 = new vector[np.uint64_t]()
         self.entries1 = <void *> entries1
         self.entries2 = <void *> entries2
+        self.total = 0
 
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
         cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
         cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
         entries1[0].push_back(ind1)
         entries2[0].push_back(ind2)
+        self.total += 1
+
+    def set(self, ind1, ind2):
+        self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
         cdef np.uint64_t i, ind
@@ -316,6 +394,7 @@ cdef class SparseUnorderedRefinedBitmask:
         cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
         entries1[0].erase(entries1[0].begin(), entries1[0].end())
         entries2[0].erase(entries2[0].begin(), entries2[0].end())
+        self.total = 0
 
     cdef to_array(self):
         cdef np.ndarray[np.uint64_t, ndim=2] rv
@@ -353,6 +432,11 @@ cdef class SparseUnorderedRefinedBitmask:
             entries2[0][m] = rv[iv[m],1]
         entries1[0].erase(last1, entries1[0].end())
         entries2[0].erase(last2, entries2[0].end())
+
+    cdef void _prune(self):
+        if self.total > MAX_VECTOR_SIZE:
+            self._remove_duplicates()
+            self.total = 0
 
     def __dealloc__(self):
         cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
