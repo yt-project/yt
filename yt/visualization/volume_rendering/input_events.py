@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import wraps
 import OpenGL.GL as GL
 import cyglfw3 as glfw
@@ -7,6 +7,9 @@ import matplotlib.cm as cm
 import random
 
 event_registry = {}
+
+GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
+                       'mods', 'width', 'height'])
 
 class EventCollection(object):
     def __init__(self, camera):
@@ -19,26 +22,30 @@ class EventCollection(object):
 
     def key_call(self, window, key, scancode, action, mods):
         draw = False
+        event = GLFWEvent(window, key, scancode, action, mods, None, None)
         for f in self.key_callbacks[key, action, mods]:
-            draw = f(self.camera, window, key, scancode, action, mods) or draw
+            draw = f(self, event) or draw
         self.draw = self.draw or draw
 
     def mouse_call(self, window, key, action, mods):
+        event = GLFWEvent(window, key, None, action, mods, None, None)
         draw = False
         for f in self.mouse_callbacks[key, action, mods]:
-            draw = f(self.camera, window, key, action, mods) or draw
+            draw = f(self, event) or draw
         self.draw = self.draw or draw
 
     def framebuffer_call(self, window, width, height):
+        event = GLFWEvent(window, None, None, None, None, width, height)
         draw = False
         for f in self.framebuffer_callbacks:
-            draw = f(self.camera, window, width, height) or draw
+            draw = f(self, event) or draw
         self.draw = self.draw or draw
 
     def __call__(self, window):
+        event = GLFWEvent(window, None, None, None, None, None, None)
         draw = False
         for f in self.render_events:
-            draw = f(self.camera, window) or draw
+            draw = f(self, event) or draw
         self.draw = self.draw or draw
 
     def add_render_callback(self, func):
@@ -79,59 +86,57 @@ def register_event(name):
     return _f
 
 @register_event("framebuffer_size")
-def framebuffer_size_callback(camera, window, width, height):
-    GL.glViewport(0, 0, width, height)
-    camera.aspect_ratio = float(width)/height
+def framebuffer_size_callback(event_coll, event):
+    GL.glViewport(0, 0, event.width, event.height)
+    event_coll.camera.aspect_ratio = float(event.width)/event.height
     return True
 
 @register_event("close_window")
-def close_window(camera, window, key, scancode, action, mods):
-    glfw.SetWindowShouldClose(window, True)
+def close_window(event_coll, event):
+    glfw.SetWindowShouldClose(event.window, True)
 
 @register_event("zoomin")
-def zoomin(camera, window, key, scancode, action, mods):
+def zoomin(event_coll, event):
+    camera = event_coll.camera
     camera.position -= 0.05 * (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
-    print camera.position, camera.focus
     return True
 
 @register_event("zoomout")
-def zoomout(camera, window, key, scancode, action, mods):
+def zoomout(event_coll, event):
+    camera = event_coll.camera
     camera.position += 0.05 * (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
     return True
 
 @register_event("cmap_cycle")
-def cmap_cycle(camera, window, key, scancode, action, mods):
+def cmap_cycle(event_coll, event):
     cmap = ['algae', 'kamae', 'viridis', 'inferno', 'magma']
     cmap = cm.get_cmap(random.choice(cmap))
-    camera.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
-    camera.cmap_new = True
+    event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
+        dtype=np.float32)
+    event_coll.camera.cmap_new = True
     print("Setting colormap to {}".format(cmap.name))
     return True
 
 @register_event("closeup")
-def closeup(camera, window, key, scancode, action, mods):
-    camera.position = (0.01, 0.01, 0.01)
+def closeup(event_coll, event):
+    event_coll.camera.position = (0.01, 0.01, 0.01)
     return True
 
 @register_event("reset")
-def reset(camera, window, key, scancode, action, mods):
-    camera.position = (-1.0, -1.0, -1.0)
+def reset(event_coll, event):
+    event_coll.camera.position = (-1.0, -1.0, -1.0)
     return True
-
-@register_event("printit")
-def printit(*args):
-    print args
 
 class MouseRotation(object):
     def __init__(self):
         self.start = None
         self.rotation = False
 
-    def start_rotation(self, camera, window, key, action, mods):
-        start_screen = glfw.GetCursorPos(window) # Screen coordinates
-        window_size = glfw.GetWindowSize(window)
+    def start_rotation(self, event_coll, event):
+        start_screen = glfw.GetCursorPos(event.window) # Screen coordinates
+        window_size = glfw.GetWindowSize(event.window)
 
         norm_x = -1.0 + 2.0 * start_screen[0] / window_size[0]
         norm_y = 1.0 - 2.0 * start_screen[1] / window_size[1]
@@ -139,33 +144,30 @@ class MouseRotation(object):
         self.rotation = True
         return False
 
-    def stop_rotation(self, camera, window, key, action, mods):
-        end_screen = glfw.GetCursorPos(window)
-        window_size = glfw.GetWindowSize(window)
+    def stop_rotation(self, event_coll, event):
+        end_screen = glfw.GetCursorPos(event.window)
+        window_size = glfw.GetWindowSize(event.window)
 
         norm_x = -1.0 + 2.0 * end_screen[0] / window_size[0]
         norm_y = 1.0 - 2.0 * end_screen[1] / window_size[1]
         end = (norm_x, norm_y)
 
-        camera.update_orientation(self.start[0],
-                                  self.start[1],
-                                  end[0], end[1])
+        event_coll.camera.update_orientation(
+            self.start[0], self.start[1], end[0], end[1])
         self.rotation = False
         return True
 
-    def do_rotation(self, camera, window):
+    def do_rotation(self, event_coll, event):
         if not self.rotation: return False
-        new_end_screen = glfw.GetCursorPos(window)
-        window_size = glfw.GetWindowSize(window)
+        new_end_screen = glfw.GetCursorPos(event.window)
+        window_size = glfw.GetWindowSize(event.window)
 
         norm_x = -1.0 + 2.0 * new_end_screen[0] / window_size[0]
         norm_y = 1.0 - 2.0 * new_end_screen[1] / window_size[1]
         new_end = (norm_x, norm_y)
 
-        camera.update_orientation(self.start[0],
-                                  self.start[1],
-                                  new_end[0],
-                                  new_end[1])
+        event_coll.camera.update_orientation(
+            self.start[0], self.start[1], new_end[0], new_end[1])
         self.start = new_end
         return True
 
