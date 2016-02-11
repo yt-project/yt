@@ -1026,6 +1026,20 @@ class Dataset(object):
             raise RuntimeError
 
         units = self.field_info[ptype, deposit_field].units
+        take_log = self.field_info[ptype, deposit_field].take_log
+        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
+        if method == "count":
+            field_name = "%s_count" % ptype
+            if ("deposit", field_name) in self.field_info:
+                mylog.warning("The deposited field %s already exist" % field_name)
+                return ("deposit", field_name)
+            else:
+                units = "dimensionless"
+                take_log = False
 
         def _deposit_field(field, data):
             """
@@ -1044,15 +1058,11 @@ class Dataset(object):
                                              input_units=units)
             return d
 
-        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
-                    "nearest": "nn", "simple_smooth": "ss"}
-        field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
             units=units,
-            take_log=False,
+            take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 

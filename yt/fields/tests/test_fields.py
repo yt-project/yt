@@ -197,24 +197,23 @@ def test_all_fields():
 def test_add_deposited_particle_field():
     # NOT tested: "std", "mesh_id", "nearest" and "simple_smooth"
     global base_ds
-    # Test "count" method
     ad = base_ds.all_data()
-    ret = ad[("deposit", "io_count")]
-    assert_equal(ret.sum(), ad['particle_ones'].sum())
 
-    # Test "sum" and "cic" method
-    for method in ["sum", "cic"]:
+    # Test "count", "sum" and "cic" method
+    for method in ["count", "sum", "cic"]:
         fn = base_ds.add_deposited_particle_field(('io', 'particle_mass'), method)
-        assert_equal(fn, ('deposit', 'io_%s_mass' % method))
-        ad = base_ds.all_data()
+        expected_fn = 'io_%s' if method == "count" else 'io_%s_mass'
+        assert_equal(fn, ('deposit', expected_fn % method))
         ret = ad[fn]
-        assert_almost_equal(ret.sum(), ad['particle_mass'].sum())
+        if method == "count":
+            assert_equal(ret.sum(), ad['particle_ones'].sum())
+        else:
+            assert_almost_equal(ret.sum(), ad['particle_mass'].sum())
 
     # Test "weighted_mean" method
     fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'weighted_mean',
                                               weight_field='particle_ones')
     assert_equal(fn, ('deposit', 'io_avg_ones'))
-    ad = base_ds.all_data()
     ret = ad[fn]
     # The sum should equal the number of cells that have particles
     assert_equal(ret.sum(), np.count_nonzero(ad[("deposit", "io_count")]))
