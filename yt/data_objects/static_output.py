@@ -1035,7 +1035,7 @@ class Dataset(object):
         if method == "count":
             field_name = "%s_count" % ptype
             if ("deposit", field_name) in self.field_info:
-                mylog.warning("The deposited field %s already exist" % field_name)
+                mylog.warning("The deposited field %s already exists" % field_name)
                 return ("deposit", field_name)
             else:
                 units = "dimensionless"
