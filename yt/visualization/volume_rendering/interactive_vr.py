@@ -8,6 +8,7 @@ from yt.utilities.math_utils import \
     get_scale_matrix, \
     get_lookat_matrix, \
     get_perspective_matrix, \
+    get_orthographic_matrix, \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
@@ -117,6 +118,7 @@ class TrackballCamera(object):
                  fov=45.0, near_plane=0.01, far_plane=20.0, aspect_ratio=8.0/6.0):
         self.view_matrix = np.zeros((4, 4), dtype=np.float32)
         self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
+        self.proj_func = get_perspective_matrix
         self.position = np.array(position)
         self.focus = np.array(focus)
         self.fov = fov
@@ -177,10 +179,10 @@ class TrackballCamera(object):
                                              self.focus,
                                              self.up)
 
-        self.projection_matrix = get_perspective_matrix(np.radians(self.fov),
-                                                        self.aspect_ratio,
-                                                        self.near_plane,
-                                                        self.far_plane)
+        self.projection_matrix = self.proj_func(self.fov,
+                                                self.aspect_ratio,
+                                                self.near_plane,
+                                                self.far_plane)
 
     def get_viewpoint(self):
         return self.position
@@ -211,8 +213,8 @@ class Camera:
         return get_lookat_matrix(self.position, self.focus, self.up)
 
     def get_projection_matrix(self):
-        return get_perspective_matrix(np.radians(self.fov), self.aspect_ratio, self.near_plane,
-                self.far_plane)
+        return self.proj_func(self.fov, self.aspect_ratio, self.near_plane,
+                              self.far_plane)
 
     def update_position(self, theta, phi):
         rho = np.linalg.norm(self.position)

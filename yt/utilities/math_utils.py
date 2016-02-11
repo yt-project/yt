@@ -128,7 +128,7 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
 
     c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = np.abs(a - b)
-    
+
     p_directions = [i for i,p in enumerate(periodicity) if p is True]
     np_directions = [i for i,p in enumerate(periodicity) if p is False]
     for d in p_directions:
@@ -781,7 +781,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     Parameters
     ----------
     fovy : scalar
-        The angle in radians of the field of view.
+        The angle in degrees of the field of view.
 
     aspect : scalar
         The aspect ratio of width / height for the projection.
@@ -816,7 +816,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
 
     """
 
-    tan_half_fovy = np.tan(fovy / 2)
+    tan_half_fovy = np.tan(np.radians(fovy) / 2)
 
     result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
     result[0][0] = 1 / (aspect * tan_half_fovy)
@@ -824,6 +824,65 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     result[2][2] = - (z_far + z_near) / (z_far - z_near)
     result[3][2] = -1
     result[2][3] = -(2 * z_far * z_near) / (z_far - z_near)
+
+    return result
+
+def get_orthographic_matrix(maxr, aspect, z_near, z_far):
+    """
+    Given a field of view in radians, an aspect ratio, and a near
+    and far plane distance, this routine computes the transformation matrix
+    corresponding to perspective projection using homogenous coordinates.
+
+    Parameters
+    ----------
+    maxr : scalar
+        should be max(|x|, |y|)
+
+    aspect : scalar
+        The aspect ratio of width / height for the projection.
+
+    z_near : scalar
+        The distance of the near plane from the camera.
+
+    z_far : scalar
+        The distance of the far plane from the camera.
+
+    Returns
+    -------
+    persp_matrix : ndarray
+        A new 4x4 2D array. Represents a perspective transformation
+        in homogeneous coordinates. Note that this matrix does not
+        actually perform the projection. After multiplying a 4D
+        vector of the form (x_0, y_0, z_0, 1.0), the point will be
+        transformed to some (x_1, y_1, z_1, w). The final projection
+        is applied by performing a divide by w, that is
+        (x_1/w, y_1/w, z_1/w, w/w). The matrix uses a row-major
+        ordering, rather than the column major ordering typically
+        used by OpenGL.
+
+    Notes
+    -----
+    The usage of 4D homogeneous coordinates is for OpenGL and GPU
+    hardware that automatically performs the divide by w operation.
+    See the following for more details about the OpenGL perpective matrices.
+
+    http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
+    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    http://www.songho.ca/opengl/gl_projectionmatrix.html
+
+    """
+
+    r = maxr * aspect
+    t = maxr
+    l = -r
+    b = -t
+
+    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+    result[0][0] = 2.0 / (r - l)
+    result[1][1] = 2.0 / (t - b)
+    result[2][2] = -2.0 / (z_far - z_near)
+    result[3][2] = -(z_far + z_near) / (z_far - z_near)
+    result[3][3] = 1
 
     return result
 
@@ -1050,9 +1109,9 @@ def quaternion_to_rotation_matrix(quaternion):
 def rotation_matrix_to_quaternion(rot_matrix):
     '''
 
-    Convert a rotation matrix-based representation of an 
-    orientation to a quaternion. The input should be a 
-    3x3 rotation matrix, while the output will be a 
+    Convert a rotation matrix-based representation of an
+    orientation to a quaternion. The input should be a
+    3x3 rotation matrix, while the output will be a
     4-component numpy array. We follow the approach in
     "3D Math Primer for Graphics and Game Development" by
     Dunn and Parberry.
@@ -1069,8 +1128,8 @@ def rotation_matrix_to_quaternion(rot_matrix):
     m33 = rot_matrix[2][2]
 
     four_w_squared_minus_1 = m11 + m22 + m33
-    four_x_squared_minus_1 = m11 - m22 - m33 
-    four_y_squared_minus_1 = m22 - m11 - m33 
+    four_x_squared_minus_1 = m11 - m22 - m33
+    four_y_squared_minus_1 = m22 - m11 - m33
     four_z_squared_minus_1 = m33 - m11 - m22
     max_index = 0
     four_max_squared_minus_1 = four_w_squared_minus_1
@@ -1090,7 +1149,7 @@ def rotation_matrix_to_quaternion(rot_matrix):
     if (max_index == 0):
         w = max_val
         x = (m23 - m32) * mult
-        y = (m31 - m13) * mult 
+        y = (m31 - m13) * mult
         z = (m12 - m21) * mult
     elif (max_index == 1):
         x = max_val
@@ -1107,7 +1166,7 @@ def rotation_matrix_to_quaternion(rot_matrix):
         w = (m12 - m21) * mult
         x = (m31 + m13) * mult
         y = (m23 + m32) * mult
- 
+
     return np.array([w, x, y, z])
 
 def get_ortho_basis(normal):

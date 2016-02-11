@@ -38,6 +38,8 @@ class RenderingContext(object):
         callbacks.add_key_callback("closeup", "z")
         callbacks.add_key_callback("cmap_cycle", "c")
         callbacks.add_key_callback("reset", "r")
+        callbacks.add_key_callback("camera_orto", "o")
+        callbacks.add_key_callback("camera_proj", "p")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)

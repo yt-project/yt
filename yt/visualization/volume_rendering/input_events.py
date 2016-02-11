@@ -1,4 +1,8 @@
 from collections import defaultdict, namedtuple
+from yt.utilities.math_utils import \
+    get_perspective_matrix, \
+    get_orthographic_matrix
+from yt.utilities.exceptions import YTInvalidShaderType
 from functools import wraps
 import OpenGL.GL as GL
 import cyglfw3 as glfw
@@ -107,6 +111,24 @@ def zoomout(event_coll, event):
     camera = event_coll.camera
     camera.position += 0.05 * (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
+    return True
+
+@register_event("camera_orto")
+def camera_orto(event_coll, event):
+    camera = event_coll.camera
+    if camera.proj_func == get_orthographic_matrix:
+        return False
+    camera.proj_func = get_orthographic_matrix
+    camera.fov = np.tan(np.radians(camera.fov) / 2.0)
+    return True
+
+@register_event("camera_proj")
+def camera_proj(event_coll, event):
+    camera = event_coll.camera
+    if camera.proj_func == get_perspective_matrix:
+        return False
+    camera.proj_func = get_perspective_matrix
+    camera.fov = np.degrees(np.arctan(camera.fov) * 2.0)
     return True
 
 @register_event("cmap_cycle")
