@@ -33,7 +33,7 @@ def setup():
         fields.append(("gas", fname))
         units.append(code_units)
 
-    base_ds = fake_random_ds(4, fields=fields, units=units, particles=10)
+    base_ds = fake_random_ds(4, fields=fields, units=units, particles=20)
 
     base_ds.index
     base_ds.cosmological_simulation = 1
@@ -195,12 +195,29 @@ def test_all_fields():
             yield TestFieldAccess(field, nproc)
 
 def test_add_deposited_particle_field():
+    # NOT tested: "std", "mesh_id", "nearest" and "simple_smooth"
     global base_ds
-    fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'count')
-    assert_equal(fn, ('deposit', 'io_count_ones'))
+    # Test "count" method
+    ad = base_ds.all_data()
+    ret = ad[("deposit", "io_count")]
+    assert_equal(ret.sum(), ad['particle_ones'].sum())
+
+    # Test "sum" and "cic" method
+    for method in ["sum", "cic"]:
+        fn = base_ds.add_deposited_particle_field(('io', 'particle_mass'), method)
+        assert_equal(fn, ('deposit', 'io_%s_mass' % method))
+        ad = base_ds.all_data()
+        ret = ad[fn]
+        assert_almost_equal(ret.sum(), ad['particle_mass'].sum())
+
+    # Test "weighted_mean" method
+    fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'weighted_mean',
+                                              weight_field='particle_ones')
+    assert_equal(fn, ('deposit', 'io_avg_ones'))
     ad = base_ds.all_data()
     ret = ad[fn]
-    assert_equal(ret.sum(), ad['particle_ones'].sum())
+    # The sum should equal the number of cells that have particles
+    assert_equal(ret.sum(), np.count_nonzero(ad[("deposit", "io_count")]))
 
 @requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
 def test_add_smoothed_particle_field():
