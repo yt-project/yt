@@ -516,6 +516,8 @@ cdef class SelectorObject:
         cdef np.uint64_t max_index2 = (1 << order2)
         cdef BoolArrayCollection mask_s = BoolArrayCollection()
         cdef BoolArrayCollection mask_g = BoolArrayCollection()
+        cdef np.uint8_t[:] bool_coarse_s = np.zeros(1<<(3*order1), dtype='uint8')
+        cdef np.uint8_t[:] bool_coarse_g = np.zeros(1<<(3*order1), dtype='uint8')
         cdef SparseUnorderedBitmask list_coarse_s = SparseUnorderedBitmask()
         cdef SparseUnorderedBitmask list_coarse_g = SparseUnorderedBitmask()
         cdef SparseUnorderedRefinedBitmask list_refined_s = SparseUnorderedRefinedBitmask()
@@ -532,8 +534,8 @@ cdef class SelectorObject:
             dds2[i] = dds1[i]/max_index2
         # Coarse
         for mi1 in range(1 << (order1*3)):
-            list_coarse_s._prune()
-            list_coarse_g._prune()
+            # list_coarse_s._prune()
+            # list_coarse_g._prune()
             list_refined_s._prune()
             list_refined_g._prune()
             decode_morton_64bit(mi1, ind1)
@@ -541,14 +543,16 @@ cdef class SelectorObject:
                 lpos1[i] = DLE[i] + (<np.float64_t>ind1[i])*dds1[i]
                 rpos1[i] = lpos1[i] + dds1[i]
             if self.select_bbox(lpos1, rpos1):
-                list_coarse_s._set(mi1)
+                bool_coarse_s[mi1] = 1
+                #list_coarse_s._set(mi1)
                 # Neighbors
                 if (ngz > 0):
                     ntot = morton_neighbors_coarse(mi1, max_index1, self.periodicity,
                                                    ngz, index, ind1_n, neighbors1)
                     for i in range(ntot):
                         mi1_n = neighbors1[i]
-                        list_coarse_g._set(mi1_n)
+                        bool_coarse_g[mi1_n] = 1
+                        #list_coarse_g._set(mi1_n)
                 # Refinement
                 if mask_coll.isref(mi1):
                     for mi2 in range(1 << (order1*3)):
@@ -570,18 +574,24 @@ cdef class SelectorObject:
                                 mi2_n = neighbors2[i]
                                 list_refined_g._set(mi1_n, mi2_n)
         # Add indices to mask
-        print("Adding coarse indices to masks...")
-        for mi1 in list_coarse_s.to_array():
-            mask_s._set_coarse(mi1)
-        for mi1_n in list_coarse_g.to_array():
-            mask_g._set_coarse(mi1_n)
-        print("Adding refined indices to masks...")
-        refarr_s = list_refined_s.to_array()
-        for i in range(refarr_s.shape[0]):
-            mask_s._set_refined(refarr_s[i,0],refarr_s[i,1])
-        refarr_g = list_refined_g.to_array()
-        for i in range(refarr_g.shape[0]):
-            mask_g._set_refined(refarr_g[i,0],refarr_g[i,1])
+        for mi1 in range(bool_coarse_s.shape[0]):
+            if bool_coarse_s[mi1]:
+                mask_s._set_coarse(mi1)
+        for mi1_n in range(bool_coarse_g.shape[0]):
+            if bool_coarse_g[mi1_n]:
+                mask_g._set_coarse(mi1_n)
+        # for mi1 in list_coarse_s.to_array():
+        #     mask_s._set_coarse(mi1)
+        # for mi1_n in list_coarse_g.to_array():
+        #     mask_g._set_coarse(mi1_n)
+        list_refined_s._fill_ewah(mask_s)
+        list_refined_g._fill_ewah(mask_g)
+        # refarr_s = list_refined_s.to_array()
+        # for i in range(refarr_s.shape[0]):
+        #     mask_s._set_refined(refarr_s[i,0],refarr_s[i,1])
+        # refarr_g = list_refined_g.to_array()
+        # for i in range(refarr_g.shape[0]):
+        #     mask_g._set_refined(refarr_g[i,0],refarr_g[i,1])
         # Return masks
         return mask_s, mask_g
 

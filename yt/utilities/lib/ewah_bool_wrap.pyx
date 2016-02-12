@@ -13,9 +13,10 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from libcpp.map cimport map
+from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
+from libcpp.set cimport set as cset
 from libcpp.algorithm cimport sort
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
@@ -44,9 +45,9 @@ cdef class BoolArrayCollection:
 
         cdef ewah_bool_array *arr1
         cdef ewah_bool_array *arr2
-        cdef map[np.uint64_t, ewah_bool_array] *map1
-        cdef map[np.uint64_t, ewah_bool_array] *map2
-        cdef map[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef cmap[np.uint64_t, ewah_bool_array] *map1
+        cdef cmap[np.uint64_t, ewah_bool_array] *map2
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         # == 
         if op == 2: 
             # Keys
@@ -60,8 +61,8 @@ cdef class BoolArrayCollection:
             if arr1[0] != arr2[0]:
                 return 0
             # Map
-            map1 = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-            map2 = <map[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+            map1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+            map2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
             it_map1 = map1[0].begin()
             while (it_map1 != map1[0].end()):
                 it_map2 = map2[0].find(dereference(it_map1).first)
@@ -208,11 +209,11 @@ cdef class BoolArrayCollection:
     cdef void _append(self, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll1 = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll2 = <map[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef map[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
         cdef np.uint64_t nrefn, mi1
         # Keys
@@ -241,8 +242,8 @@ cdef class BoolArrayCollection:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef map[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         # Write mi1 ewah & refinment ewah
@@ -270,8 +271,8 @@ cdef class BoolArrayCollection:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef map[np.uint64_t, ewah_bool_array] *ewah_coll = <map[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef map[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         cdef int i
@@ -332,6 +333,13 @@ cdef class SparseUnorderedBitmask:
             ind = entries[0][i]
             mask[ind] = 1
 
+    cdef void _fill_ewah(self, BoolArrayCollection mm):
+        cdef np.uint64_t i, ind
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        for i in range(entries[0].size()):
+            ind = entries[0][i]
+            mm._set_coarse(ind)
+
     cdef void _reset(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         entries[0].erase(entries[0].begin(), entries[0].end())
@@ -340,10 +348,11 @@ cdef class SparseUnorderedBitmask:
     cdef to_array(self):
         cdef np.ndarray[np.uint64_t, ndim=1] rv
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        self._remove_duplicates()
         rv = np.empty(entries[0].size(), dtype='uint64')
         for i in range(entries[0].size()):
             rv[i] = entries[0][i]
-        return np.unique(rv).astype(np.uint64)
+        return rv
 
     cdef void _remove_duplicates(self):
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
@@ -361,77 +370,97 @@ cdef class SparseUnorderedBitmask:
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         del entries
 
+# vector version
 cdef class SparseUnorderedRefinedBitmask:
     def __cinit__(self):
-        cdef vector[np.uint64_t] *entries1 = new vector[np.uint64_t]()
-        cdef vector[np.uint64_t] *entries2 = new vector[np.uint64_t]()
-        self.entries1 = <void *> entries1
-        self.entries2 = <void *> entries2
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = new vector[pair[np.uint64_t,np.uint64_t]]()
+        self.entries = <void *> entries
         self.total = 0
 
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        entries1[0].push_back(ind1)
-        entries2[0].push_back(ind2)
+        cdef pair[np.uint64_t,np.uint64_t] ind
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        ind.first = ind1
+        ind.second = ind2
+        entries[0].push_back(ind)
         self.total += 1
+
 
     def set(self, ind1, ind2):
         self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
         cdef np.uint64_t i, ind
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        for i in range(entries1[0].size()):
-            ind = entries1[0][i]
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        it = entries[0].begin()
+        while it != entries[0].end():
+            ind = dereference(it).first
             mask1[ind] = 1
-            ind = entries2[0][i]
+            ind = dereference(it).second
             mask2[ind] = 1
+            preincrement(it)
+
+    cdef void _fill_ewah(self, BoolArrayCollection mm):
+        cdef np.uint64_t mi1, mi2
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        it = entries[0].begin()
+        while it != entries[0].end():
+            mi1 = dereference(it).first
+            mi2 = dereference(it).second
+            mm._set_refined(mi1, mi2)
+            preincrement(it)
+
 
     cdef void _reset(self):
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        entries1[0].erase(entries1[0].begin(), entries1[0].end())
-        entries2[0].erase(entries2[0].begin(), entries2[0].end())
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        entries[0].erase(entries[0].begin(), entries[0].end())
         self.total = 0
 
     cdef to_array(self):
+        cdef int i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
-        # cdef np.ndarray[np.uint64_t, ndim=1] iv
-        # cdef np.ndarray[np.uint64_t, ndim=1] _
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        rv = np.empty((entries1[0].size(),2),dtype='uint64')
-        for i in range(entries1[0].size()):
-            rv[i,0] = entries1[0][i]
-            rv[i,1] = entries2[0][i]
-        _, iv = np.unique(np.ascontiguousarray(rv).view(np.dtype((np.void, rv.dtype.itemsize * rv.shape[1]))),
-                          return_index=True)
-        return rv[iv]
+        self._remove_duplicates()
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        rv = np.empty((entries[0].size(),2),dtype='uint64')
+        it = entries[0].begin()
+        i = 0
+        while it != entries[0].end():
+            rv[i,0] = dereference(it).first
+            rv[i,1] = dereference(it).second
+            i += 1
+            preincrement(it)
+        return rv
 
     cdef void _remove_duplicates(self):
-        cdef np.ndarray[np.uint64_t, ndim=2] rv
-        cdef np.ndarray[long, ndim=1] iv
-        cdef np.uint64_t m
-        cdef vector[np.uint64_t].iterator last1
-        cdef vector[np.uint64_t].iterator last2
-        # cdef np.ndarray[np.uint64_t, ndim=1] _
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        rv = np.empty((entries1[0].size(),2),dtype='uint64')
-        for i in range(entries1[0].size()):
-            rv[i,0] = entries1[0][i]
-            rv[i,1] = entries2[0][i]
-        _, iv = np.unique(np.ascontiguousarray(rv).view(np.dtype((np.void, rv.dtype.itemsize * rv.shape[1]))),
-                          return_index=True)
-        last1 = entries1[0].begin() + iv.shape[0]
-        last2 = entries2[0].begin() + iv.shape[0]
-        for m in range(iv.shape[0]):
-            entries1[0][m] = rv[iv[m],0]
-            entries2[0][m] = rv[iv[m],1]
-        entries1[0].erase(last1, entries1[0].end())
-        entries2[0].erase(last2, entries2[0].end())
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator last
+        sort(entries[0].begin(), entries[0].end())
+        last = unique(entries[0].begin(), entries[0].end())
+        entries[0].erase(last, entries[0].end())
+        # http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+        # cdef np.ndarray[np.uint64_t, ndim=2] rv
+        # cdef np.ndarray[np.uint64_t, ndim=2] rv_uni
+        # cdef np.uint64_t m
+        # cdef vector[np.uint64_t].iterator last1
+        # cdef vector[np.uint64_t].iterator last2
+        # # cdef np.ndarray[np.uint64_t, ndim=1] _
+        # cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
+        # cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
+        # rv = np.empty((entries1[0].size(),2),dtype='uint64')
+        # for i in range(entries1[0].size()):
+        #     rv[i,0] = entries1[0][i]
+        #     rv[i,1] = entries2[0][i]
+        # rv_uni = np.unique(np.ascontiguousarray(rv).view(np.dtype((np.void, rv.dtype.itemsize * rv.shape[1])))).view(rv.dtype).reshape(-1,rv.shape[1])
+        # last1 = entries1[0].begin() + rv_uni.shape[0]
+        # last2 = entries2[0].begin() + rv_uni.shape[0]
+        # for m in range(rv_uni.shape[0]):
+        #     entries1[0][m] = rv_uni[m,0]
+        #     entries2[0][m] = rv_uni[m,1]
+        # entries1[0].erase(last1, entries1[0].end())
+        # entries2[0].erase(last2, entries2[0].end())
 
     cdef void _prune(self):
         if self.total > MAX_VECTOR_SIZE:
@@ -439,8 +468,78 @@ cdef class SparseUnorderedRefinedBitmask:
             self.total = 0
 
     def __dealloc__(self):
-        cdef vector[np.uint64_t] *entries1 = <vector[np.uint64_t]*> self.entries1
-        cdef vector[np.uint64_t] *entries2 = <vector[np.uint64_t]*> self.entries2
-        del entries1
-        del entries2
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        del entries
+
+# Set version
+# cdef class SparseUnorderedRefinedBitmask:
+#     def __cinit__(self):
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = new cset[pair[np.uint64_t,np.uint64_t]]()
+#         self.entries = <void *> entries
+#         self.total = 0
+
+#     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
+#         cdef pair[np.uint64_t,np.uint64_t] ind
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         ind.first = ind1
+#         ind.second = ind2
+#         entries[0].insert(ind)
+#         self.total += 1
+
+#     def set(self, ind1, ind2):
+#         self._set(ind1, ind2)
+
+#     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
+#         cdef np.uint64_t ind
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+#         it = entries[0].begin()
+#         while it != entries[0].end():
+#             ind = dereference(it).first
+#             mask1[ind] = 1
+#             ind = dereference(it).second
+#             mask2[ind] = 1
+#             preincrement(it)
+
+#     cdef void _fill_ewah(self, BoolArrayCollection mm):
+#         cdef np.uint64_t mi1, mi2
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+#         it = entries[0].begin()
+#         while it != entries[0].end():
+#             mi1 = dereference(it).first
+#             mi2 = dereference(it).second
+#             mm._set_refined(mi1, mi2)
+#             preincrement(it)
+
+#     cdef void _reset(self):
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         entries[0].clear()
+#         self.total = 0
+
+#     cdef to_array(self):
+#         cdef int i
+#         cdef np.ndarray[np.uint64_t, ndim=2] rv
+#         self._remove_duplicates()
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+#         rv = np.empty((entries[0].size(),2),dtype='uint64')
+#         it = entries[0].begin()
+#         i = 0
+#         while it != entries[0].end():
+#             rv[i,0] = dereference(it).first
+#             rv[i,1] = dereference(it).second
+#             i += 1
+#             preincrement(it)
+#         return rv
+
+#     cdef void _remove_duplicates(self):
+#         pass
+
+#     cdef void _prune(self):
+#         pass
+
+#     def __dealloc__(self):
+#         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+#         del entries
 
