@@ -103,6 +103,17 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 
 
 cdef class BVH:
+    '''
+
+    This class implements a bounding volume hierarchy (BVH), a spatial acceleration
+    structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of 
+    partitioning the *volume* of the parent to create the children, we partition the 
+    triangles themselves into 'left' or 'right' sub-trees. The bounding volume for a
+    node is then determined by computing the bounding volume of the triangles that
+    belong to it. This allows us to quickly discard triangles that are not close 
+    to intersecting a given ray.
+
+    '''
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -144,8 +155,12 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.int64_t partition(self, np.int64_t begin, np.int64_t end,
-                              np.int64_t ax, np.float64_t split) nogil:
+    cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
+                               np.int64_t ax, np.float64_t split) nogil:
+        # this re-orders the triangle array so that all of the triangles 
+        # to the left of mid have centroids less than or equal to "split" 
+        # along the direction "ax". All the triangles to the right of mid 
+        # will have centroids *greater* than "split" along "ax".
         cdef np.int64_t mid = begin
         while (begin != end):
             if self.triangles[mid].centroid[ax] > split:
@@ -214,6 +229,9 @@ cdef class BVH:
         if (end - begin) <= 8:
             return node
         
+        # we use the "split in the middle of the longest axis approach"
+        # see: http://www.vadimkravcenko.com/bvh-tree-building/
+
         # compute longest dimension
         cdef np.int64_t ax = 0
         cdef np.float64_t d = fabs(node.bbox.right_edge[0] - 
@@ -228,11 +246,12 @@ cdef class BVH:
                                        node.bbox.left_edge[ax])
 
         # sort triangle list
-        cdef np.int64_t mid = self.partition(begin, end, ax, split)
+        cdef np.int64_t mid = self._partition(begin, end, ax, split)
 
         if(mid == begin or mid == end):
             mid = begin + (end-begin)/2
-            
+        
+        # recursively build sub-trees
         node.left = self._build(begin, mid)
         node.right = self._build(mid, end)
 
