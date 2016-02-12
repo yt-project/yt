@@ -116,11 +116,11 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("bitarray", 
                 ["yt/utilities/lib/bitarray.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"])
-    config.add_extension("bounding_volume_hierarchy", 
+    config.add_extension("bounding_volume_hierarchy",
                          ["yt/utilities/lib/bounding_volume_hierarchy.pyx"],
-                         libraries=["m"], 
+                         libraries=["m"],
                          depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd"])
-    config.add_extension("particle_mesh_operations", 
+    config.add_extension("particle_mesh_operations",
                 ["yt/utilities/lib/particle_mesh_operations.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("contour_finding", 

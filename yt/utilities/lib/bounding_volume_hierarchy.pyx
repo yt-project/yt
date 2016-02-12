@@ -37,118 +37,56 @@ cdef void cross(const np.float64_t* a,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
-    # guts of this are cribbed from "3D Math Primer for Graphics 
-    # and Game Development", section A.16
+# https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
     # edge vectors
     cdef np.float64_t e1[3]
     cdef np.float64_t e2[3]
     cdef int i
     for i in range(3):
-        e1[i] = tri.p1[i] - tri.p0[i];
-        e2[i] = tri.p2[i] - tri.p1[i];
-        
-    # normal vector
-    cdef np.float64_t N[3]
-    cross(e1, e2, N);
+        e1[i] = tri.p1[i] - tri.p0[i]
+        e2[i] = tri.p2[i] - tri.p0[i]
 
-    cdef np.float64_t dotprod = dot(N, ray.direction)
-    if not dotprod < 0.0:
-        # ray is travelling the wrong direction
+    cdef np.float64_t P[3]
+    cross(ray.direction, e2, P)
+
+    cdef np.float64_t det, inv_det
+    det = dot(e1, P)
+    if(det > -1.0e-10 and det < 1.0e-10): 
         return False
+    inv_det = 1.0 / det
 
-    # distance along ray
-    cdef np.float64_t d = dot(N, tri.p0)
-    cdef np.float64_t t = d - dot(N, ray.origin) 
-
-    if not t <= 0.0:
-        # ray origin is behind triangle
-        return False
-
-    t /= dotprod
-
-    if not t <= ray.t_far:
-        # closer intersection already found
-        return False
-
-    assert(t >= 0.0)
-    assert(t <= ray.t_far)
-    
-    # 3D point of intersection
-    cdef np.float64_t p[3]
+    cdef np.float64_t T[3]
     for i in range(3):
-        p[i] = ray.origin[i] + ray.direction[i]*t
-        
-    cdef np.float64_t u0, u1, u2, v0, v1, v2
-        
-    if fabs(N[0]) > fabs(N[1]):
-        if fabs(N[0]) > fabs(N[2]):
-            u0 = p[1]      - tri.p0[1]
-            u1 = tri.p1[1] - tri.p0[1]
-            u2 = tri.p2[1] - tri.p0[1]
+        T[i] = ray.origin[i] - tri.p0[i] 
 
-            v0 = p[2]      - tri.p0[2]
-            v1 = tri.p1[2] - tri.p0[2]
-            v2 = tri.p2[2] - tri.p0[2]
-        else:
-            u0 = p[0]      - tri.p0[0]
-            u1 = tri.p1[0] - tri.p0[0]
-            u2 = tri.p2[0] - tri.p0[0]
-            
-            v0 = p[1]      - tri.p0[1]
-            v1 = tri.p1[1] - tri.p0[1]
-            v2 = tri.p2[1] - tri.p0[1]
-    else:
-        if fabs(N[1]) > fabs(N[2]):
-            u0 = p[0]      - tri.p0[0]
-            u1 = tri.p1[0] - tri.p0[0]
-            u2 = tri.p2[0] - tri.p0[0]
-
-            v0 = p[2]      - tri.p0[2]
-            v1 = tri.p1[2] - tri.p0[2]
-            v2 = tri.p2[2] - tri.p0[2]
-        else:
-            u0 = p[0]      - tri.p0[0]
-            u1 = tri.p1[0] - tri.p0[0]
-            u2 = tri.p2[0] - tri.p0[0]
-
-            v0 = p[1]      - tri.p0[1]
-            v1 = tri.p1[1] - tri.p0[1]
-            v2 = tri.p2[1] - tri.p0[1]
-
-    cdef np.float64_t temp = u1*v2 - u2*v1
-    if not (temp is not  0.0):
-        # denominator is invalid
+    cdef np.float64_t u = dot(T, P) * inv_det
+    if(u < 0.0 or u > 1.0):
         return False
 
-    temp = 1.0/temp
+    cdef np.float64_t Q[3]
+    cross(T, e1, Q)
 
-    cdef np.float64_t a = (u0*v2 - u2*v0)*temp
-    if not (a >= 0.0):
-        # barycentric coord out of range
+    cdef np.float64_t v = dot(ray.direction, Q) * inv_det
+    if(v < 0.0 or u + v  > 1.0):
         return False
 
-    cdef np.float64_t b = (u1*v0 - u0*v1)*temp
-    if not (b >= 0.0):
-        # barycentric coord out of range
-        return False
+    cdef np.float64_t t = dot(e2, Q) * inv_det
 
-    cdef np.float64_t c = 1.0 - a - b
-    if not (c >= 0.0):
-        # barycentric coord out of range
-        return False
+    if(t > 1.0e-10 and t < ray.t_far):
+        ray.t_far = t
+        ray.data_val = 1.0
+        ray.elem_id = tri.elem_id
+        return True
 
-    # we have a hit, update ray
-    ray.t_far = t
-    ray.elem_id = tri.elem_id
-
-    return True
+    return False
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
+# https://tavianator.com/fast-branchless-raybounding-box-intersections/
 
     cdef np.float64_t tmin = -1.0e300
     cdef np.float64_t tmax =  1.0e300
@@ -157,12 +95,11 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
     cdef np.float64_t t1, t2
     for i in range(3):
         t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
-        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i]
- 
+        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i] 
         tmin = fmax(tmin, fmin(t1, t2))
         tmax = fmin(tmax, fmax(t1, t2))
  
-    return tmax > fmax(tmin, 0.0)
+    return tmax >= fmax(tmin, 0.0)
 
 
 cdef class BVH:
@@ -203,7 +140,6 @@ cdef class BVH:
 
         # recursive build
         self.root = self._build(0, num_tri)
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -259,6 +195,7 @@ cdef class BVH:
                 tri = &(self.triangles[i])
                 hit = ray_triangle_intersect(ray, tri)
             return
+
         # if not leaf, intersect with left and right children
         self._recursive_intersect(ray, node.left)
         self._recursive_intersect(ray, node.right)
