@@ -275,7 +275,10 @@ class BlockCollection:
         GL.glDisableVertexAttribArray(loc)
         GL.glBindVertexArray(0)
 
-    def add_data(self, data_source, field):
+    def set_fields_log(self, log_field):
+        self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
+
+    def add_data(self, data_source, field, log_field=True):
         r"""Adds a source of data for the block collection.
 
         Given a `data_source` and a `field` to populate from, adds the data
@@ -290,7 +293,7 @@ class BlockCollection:
 
         """
         self.data_source = data_source
-        self.data_source.tiles.set_fields([field], [True], True)
+        self.data_source.tiles.set_fields([field], [log_field], log_field)
         self.blocks = {}
         self.block_order = []
         # Every time we change our data source, we wipe all existing ones.
@@ -299,8 +302,8 @@ class BlockCollection:
         self.min_val = 1e60
         self.max_val = -1e60
         for i, block in enumerate(self.data_source.tiles.traverse()):
-            self.min_val = min(self.min_val, block.my_data[0].min())
-            self.max_val = max(self.max_val, block.my_data[0].max())
+            self.min_val = min(self.min_val, np.nanmin(block.my_data[0].min()))
+            self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
             dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape

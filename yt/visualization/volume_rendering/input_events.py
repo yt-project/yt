@@ -136,12 +136,18 @@ def camera_proj(event_coll, event):
 def shader_max(event_coll, event):
     scene = event_coll.scene
     scene.add_shader_from_file("max_intensity.fragmentshader")
+    for collection in scene.collections:
+        collection.set_fields_log(True)
+    GL.glBlendEquation(GL.GL_MAX)
     return True
 
 @register_event("shader_proj")
 def shader_proj(event_coll, event):
     scene = event_coll.scene
     scene.add_shader_from_file("projection.fragmentshader")
+    for collection in scene.collections:
+        collection.set_fields_log(False)
+    GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
 @register_event("cmap_cycle")
