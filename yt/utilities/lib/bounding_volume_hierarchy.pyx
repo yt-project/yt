@@ -36,7 +36,7 @@ cdef void cross(const np.float64_t* a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
+cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
 # https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
     # edge vectors
@@ -85,7 +85,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox):
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 # https://tavianator.com/fast-branchless-raybounding-box-intersections/
 
     cdef np.float64_t tmin = -1.0e300
@@ -145,7 +145,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef np.int64_t partition(self, np.int64_t begin, np.int64_t end,
-                              np.int64_t ax, np.float64_t split):
+                              np.int64_t ax, np.float64_t split) nogil:
         cdef np.int64_t mid = begin
         while (begin != end):
             if self.triangles[mid].centroid[ax] > split:
@@ -161,7 +161,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _get_node_bbox(self, BVHNode* node, 
-                             np.int64_t begin, np.int64_t end):
+                             np.int64_t begin, np.int64_t end) nogil:
         cdef np.int64_t i, j
         cdef BBox box = self.triangles[begin].bbox
         for i in range(begin+1, end):
@@ -175,13 +175,13 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void intersect(self, Ray* ray):
+    cdef void intersect(self, Ray* ray) nogil:
         self._recursive_intersect(ray, self.root)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node):
+    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil:
 
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
@@ -190,7 +190,7 @@ cdef class BVH:
         # check for leaf
         cdef np.int64_t i, hit
         cdef Triangle* tri
-        if (node.end - node.begin) == 1:
+        if (node.end - node.begin) <= 8:
             for i in range(node.begin, node.end):
                 tri = &(self.triangles[i])
                 hit = ray_triangle_intersect(ray, tri)
@@ -203,7 +203,7 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end):
+    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end) nogil:
         cdef BVHNode *node = <BVHNode* > malloc(sizeof(BVHNode))
         node.begin = begin
         node.end = end
@@ -211,7 +211,7 @@ cdef class BVH:
         self._get_node_bbox(node, begin, end)
         
         # check for leaf
-        if (end - begin) == 1:
+        if (end - begin) <= 8:
             return node
         
         # compute longest dimension

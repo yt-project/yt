@@ -39,9 +39,9 @@ cdef class BVH:
     cdef Triangle* triangles
     cdef np.float64_t[:, ::1] vertices
     cdef np.int64_t partition(self, np.int64_t begin, np.int64_t end,
-                              np.int64_t ax, np.float64_t split)
-    cdef void intersect(self, Ray* ray)
+                              np.int64_t ax, np.float64_t split) nogil
+    cdef void intersect(self, Ray* ray) nogil
     cdef void _get_node_bbox(self, BVHNode* node, 
-                             np.int64_t begin, np.int64_t end)
-    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node)
-    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end)
+                             np.int64_t begin, np.int64_t end) nogil
+    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil
+    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end) nogil
