@@ -16,12 +16,13 @@ GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
                        'mods', 'width', 'height'])
 
 class EventCollection(object):
-    def __init__(self, camera):
+    def __init__(self, scene, camera):
         self.key_callbacks = defaultdict(list)
         self.mouse_callbacks = defaultdict(list)
         self.framebuffer_callbacks = []
         self.render_events = []
         self.camera = camera
+        self.scene = scene
         self.draw = True
 
     def key_call(self, window, key, scancode, action, mods):
@@ -129,6 +130,18 @@ def camera_proj(event_coll, event):
         return False
     camera.proj_func = get_perspective_matrix
     camera.fov = np.degrees(np.arctan(camera.fov) * 2.0)
+    return True
+
+@register_event("shader_max")
+def shader_max(event_coll, event):
+    scene = event_coll.scene
+    scene.add_shader_from_file("max_intensity.fragmentshader")
+    return True
+
+@register_event("shader_proj")
+def shader_proj(event_coll, event):
+    scene = event_coll.scene
+    scene.add_shader_from_file("projection.fragmentshader")
     return True
 
 @register_event("cmap_cycle")

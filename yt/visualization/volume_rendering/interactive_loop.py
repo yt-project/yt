@@ -31,7 +31,7 @@ class RenderingContext(object):
         frame_start = glfw.GetTime()
         fps_start = glfw.GetTime()
         print "Starting rendering..."
-        callbacks = EventCollection(camera)
+        callbacks = EventCollection(scene, camera)
         callbacks.add_key_callback("close_window", "escape")
         callbacks.add_key_callback("zoomin", "w")
         callbacks.add_key_callback("zoomout", "s")
@@ -40,6 +40,8 @@ class RenderingContext(object):
         callbacks.add_key_callback("reset", "r")
         callbacks.add_key_callback("camera_orto", "o")
         callbacks.add_key_callback("camera_proj", "p")
+        callbacks.add_key_callback("shader_max", "1")
+        callbacks.add_key_callback("shader_proj", "2")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)
