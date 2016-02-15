@@ -293,7 +293,7 @@ class BlockCollection:
 
         """
         self.data_source = data_source
-        self.data_source.tiles.set_fields([field], [log_field], log_field)
+        self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
         self.blocks = {}
         self.block_order = []
         # Every time we change our data source, we wipe all existing ones.
@@ -313,6 +313,11 @@ class BlockCollection:
             re.append([block.RightEdge.astype('f4') for _ in range(n)])
             self.block_order.append(id(block))
 
+        LE = np.array([b.LeftEdge
+                       for i, b in self.blocks.values()]).min(axis=0)
+        RE = np.array([b.RightEdge
+                       for i, b in self.blocks.values()]).max(axis=0)
+        self.diagonal = np.sqrt(((RE - LE) ** 2).sum())
         # Now we set up our buffer
         vert = np.concatenate(vert)
         dx = np.concatenate(dx)
@@ -433,7 +438,7 @@ class BlockCollection:
             texture_name = self.gl_texture_names[tex_i]
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
-            n_data = (n_data - self.min_val) / (self.max_val - self.min_val)
+            n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
             GL.glBindTexture(GL.GL_TEXTURE_3D, texture_name)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)

@@ -54,6 +54,6 @@ void main()
         ray_position += dir * step_size;
         ray_in_bb = within_bb(ray_position);
     }
-    total_value *= 1e3;
+    //total_value *= 1e3;
     output_color = vec4(total_value, total_value, total_value, 1.0);
 }
