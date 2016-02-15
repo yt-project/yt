@@ -258,6 +258,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             start_index = dobj.field_data_start[i]
             end_index = dobj.field_data_end[i]
             pcount = end_index - start_index
+            if pcount == 0: continue
             field_end = field_start + end_index - start_index
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
