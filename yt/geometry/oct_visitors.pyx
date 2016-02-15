@@ -17,7 +17,7 @@ Oct visitor functions
 cimport cython
 cimport numpy
 import numpy
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 from libc.stdlib cimport malloc, free
 from yt.geometry.oct_container cimport OctreeContainer
 

@@ -17,11 +17,10 @@ A refine-by-two AMR-specific quadtree
 import numpy as np
 cimport numpy as np
 cimport cython
-from fp_utils cimport fmax
 
 from libc.stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
-from fp_utils cimport fmax
+from yt.utilities.lib.fp_utils cimport fmax
 
 from yt.utilities.exceptions import YTIntDomainOverflow
 

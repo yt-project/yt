@@ -313,7 +313,7 @@ class StereoPerspectiveLens(Lens):
 
     def _get_positions_vectors(self, camera, disparity):
 
-        single_resolution_x = np.floor(camera.resolution[0]) / 2
+        single_resolution_x = int(np.floor(camera.resolution[0]) / 2)
 
         east_vec = camera.unit_vectors[0]
         north_vec = camera.unit_vectors[1]
@@ -681,7 +681,7 @@ class StereoSphericalLens(Lens):
         if self.disparity is None:
             self.disparity = camera.width[0] / 1000.
 
-        single_resolution_x = np.floor(camera.resolution[0])/2
+        single_resolution_x = int(np.floor(camera.resolution[0]) / 2)
         px = np.linspace(-np.pi, np.pi, single_resolution_x,
                          endpoint=True)[:, None]
         py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1],
