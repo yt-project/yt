@@ -460,6 +460,8 @@ class SceneGraph:
         self.camera = None
         self.shader_program = None
         self.min_val, self.max_val = 1e60, -1e60
+        self.cmap_min, self.cmap_max = 0.0, 0.01
+        self.diagonal = 0.0
 
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
         self.width = width
@@ -468,7 +470,8 @@ class SceneGraph:
         self.fb_shader_program = link_shader_program(
             ["passthrough.vertexshader", "apply_colormap.fragmentshader"]
         )
-        for key in ["fb_texture", "cmap", "min_val", "max_val"]:
+        for key in ["fb_texture", "cmap", "min_val", "scale",
+                    "cmap_min", "cmap_max"]:
             self.fb_uniforms[key] = \
                 GL.glGetUniformLocation(self.fb_shader_program, key)
 
@@ -588,6 +591,7 @@ class SceneGraph:
         self.collections.append(collection)
         self.min_val = min(self.min_val, collection.min_val)
         self.max_val = max(self.max_val, collection.max_val)
+        self.diagonal = max(self.diagonal, collection.diagonal)
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
@@ -628,7 +632,7 @@ class SceneGraph:
                                        GL.GL_UNSIGNED_BYTE)
         arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
         return arr.reshape((width, height, 3))
-            
+
     def render(self):
         """ Renders one frame of the scene.
 
@@ -674,7 +678,10 @@ class SceneGraph:
         GL.glUniform1i(self.fb_uniforms["cmap"], 1);
 
         GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
-        GL.glUniform1f(self.fb_uniforms["max_val"], self.max_val)
+        GL.glUniform1f(self.fb_uniforms["scale"],
+                       (self.max_val - self.min_val) * self.diagonal)
+        GL.glUniform1f(self.fb_uniforms["cmap_min"], self.cmap_min)
+        GL.glUniform1f(self.fb_uniforms["cmap_max"], self.cmap_max)
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         # Bind to Vertex array that contains simple quad filling fullscreen,
