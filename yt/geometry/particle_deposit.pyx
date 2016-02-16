@@ -20,7 +20,6 @@ from libc.stdlib cimport malloc, free
 cimport cython
 from libc.math cimport sqrt
 
-from fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 

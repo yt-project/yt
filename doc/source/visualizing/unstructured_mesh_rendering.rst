@@ -14,7 +14,7 @@ most recent development version of yt from our channel:
 
 .. code-block:: bash
 
-    conda install -c http://use.yt/with_conda/ yt
+    conda install -c http://use.yt/with_conda/ yt=3.3_dev
 
 If you want to install from source, you can use the ``get_yt.sh`` script.
 Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 
@@ -114,7 +114,7 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
     cam = sc.camera
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -142,7 +142,7 @@ You can also overplot the mesh boundaries:
     cam = sc.camera
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -174,7 +174,7 @@ using the mesh labelled by "connect2":
     cam = sc.camera
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
    
     # increase the default resolution
@@ -205,7 +205,7 @@ that we want to look at the last one.
     cam = sc.camera
     camera_position = ds.arr([3.0, 3.0, 3.0], 'code_length')
     cam.set_width(ds.arr([2.0, 2.0, 2.0], 'code_length'))
-    north_vector = ds.arr([0.0, 1.0, 0.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')
     cam.set_position(camera_position, north_vector)
 
     # increase the default resolution
@@ -236,10 +236,47 @@ MOOSE dataset:
     # adjust the camera position and orientation
     cam = sc.camera
     camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.width = ds.arr([0.04, 0.04, 0.04], 'code_length')
     cam.set_position(camera_position, north_vector)
 
+    # increase the default resolution
+    cam.resolution = (800, 800)
+
+    # render, draw the element boundaries, and save
+    sc.render()
+    sc.annotate_mesh_lines()
+    sc.save()
+
+The dataset in the above example contains displacement fields, so this is a good
+opportunity to demonstrate their use. The following example is exactly like the
+above, except we scale the displacements by a factor of a 10.0, and additionally 
+add an offset to the mesh by 1.0 unit in the x-direction:
+
+.. python-script::
+
+    import yt
+
+    # We load the last time frame
+    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1,
+                 displacements={'connect2': (10.0, [0.01, 0.0, 0.0])})
+
+    # create a default scene
+    sc = yt.create_scene(ds, ("connect2", "temp"))
+
+    # override the default colormap. This time we also override
+    # the default color bounds
+    ms = sc.get_source(0)
+    ms.cmap = 'hot'
+    ms.color_bounds = (500.0, 1700.0)
+
+    # adjust the camera position and orientation
+    cam = sc.camera
+    camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
+    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
+    cam.set_position(camera_position, north_vector)
+    
     # increase the default resolution
     cam.resolution = (800, 800)
 
@@ -270,7 +307,7 @@ camera position according to some opening angle:
     cam = Camera(ds, lens_type='perspective')
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
    
     # tell our scene to use it
@@ -303,7 +340,7 @@ with two meshes on it:
     cam = Camera(ds)
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
-    ds.arr([0.0, 1.0, 0.0], 'dimensionless'))
+                     ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
     cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
     cam.resolution = (800, 800)
 
@@ -348,7 +385,7 @@ disk each time.
     cam = sc.camera
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -398,7 +435,7 @@ file with a fixed camera position:
 	cam = Camera(ds)
 	camera_position = ds.arr([0.1, 0.0, 0.1], 'code_length')
 	cam.focus = ds.domain_center
-	north_vector = ds.arr([0.3032476, 0.71782557, -0.62671153], 'dimensionless')
+	north_vector = ds.arr([-0.3032476, -0.71782557, 0.62671153], 'dimensionless')
 	cam.width = ds.arr([ 0.04,  0.04,  0.04], 'code_length')
 	cam.resolution = (800, 800)
 	cam.set_position(camera_position, north_vector)

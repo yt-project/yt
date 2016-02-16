@@ -15,7 +15,7 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 
 DEF Nch = 4
 

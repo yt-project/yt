@@ -19,7 +19,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from libc.math cimport abs
-from fp_utils cimport fmin, fmax, i64min, i64max
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
 
 cdef extern from "stdlib.h":
