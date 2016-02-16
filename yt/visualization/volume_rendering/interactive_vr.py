@@ -459,7 +459,7 @@ class SceneGraph:
         self.cmap_texture = None
         self.camera = None
         self.shader_program = None
-        self.min_val, self.max_val = 1e60, -1e60
+        self.scene_min_val, self.scene_max_val = 1e60, -1e60
         self.cmap_min, self.cmap_max = 0.0, 0.01
         self.diagonal = 0.0
 
@@ -515,7 +515,6 @@ class SceneGraph:
         GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
                            GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
         GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-
         self.camera.cmap_new = False
 
 
@@ -589,9 +588,15 @@ class SceneGraph:
 
         """
         self.collections.append(collection)
-        self.min_val = min(self.min_val, collection.min_val)
-        self.max_val = max(self.max_val, collection.max_val)
+        self.update_minmax(collection)
+
+    def update_minmax(self, collection):
+        self.scene_min_val = min(self.scene_min_val, collection.min_val)
+        self.scene_max_val = max(self.scene_max_val, collection.max_val)
         self.diagonal = max(self.diagonal, collection.diagonal)
+        # Figure out a way to change it on the fly
+        self.cmap_min = self.scene_min_val
+        self.cmap_max = self.scene_max_val
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
@@ -653,7 +658,6 @@ class SceneGraph:
         # Handle colormap
         self.update_cmap_tex()
 
-
         # bind to fb
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
         # clear the color and depth buffer
@@ -677,9 +681,9 @@ class SceneGraph:
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
         GL.glUniform1i(self.fb_uniforms["cmap"], 1);
 
-        GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
-        GL.glUniform1f(self.fb_uniforms["scale"],
-                       (self.max_val - self.min_val) * self.diagonal)
+        scale = (self.scene_max_val - self.scene_min_val) * self.diagonal
+        GL.glUniform1f(self.fb_uniforms["min_val"], self.scene_min_val)
+        GL.glUniform1f(self.fb_uniforms["scale"], scale)
         GL.glUniform1f(self.fb_uniforms["cmap_min"], self.cmap_min)
         GL.glUniform1f(self.fb_uniforms["cmap_max"], self.cmap_max)
         # clear the color and depth buffer

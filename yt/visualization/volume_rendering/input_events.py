@@ -138,6 +138,9 @@ def shader_max(event_coll, event):
     scene.add_shader_from_file("max_intensity.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(True)
+    # That is clumsy
+    for collection in scene.collections:
+        scene.update_minmax(collection)
     GL.glBlendEquation(GL.GL_MAX)
     return True
 
@@ -147,6 +150,9 @@ def shader_proj(event_coll, event):
     scene.add_shader_from_file("projection.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(False)
+    # That is clumsy
+    for collection in scene.collections:
+        scene.update_minmax(collection)
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
