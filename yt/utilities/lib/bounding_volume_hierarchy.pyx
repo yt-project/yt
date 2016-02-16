@@ -256,3 +256,42 @@ cdef class BVH:
         node.right = self._build(mid, end)
 
         return node
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void cast_rays(np.float64_t* image,
+                    const np.float64_t* origins,
+                    const np.float64_t* direction,
+                    const int N, 
+                    BVH bvh) nogil:
+
+    cdef Ray ray
+    cdef int i, j, offset
+    
+    for i in range(3):
+        ray.direction[i] = direction[i]
+        ray.inv_dir[i] = 1.0 / direction[i]      
+   
+    for i in range(N):
+        for j in range(3):
+            ray.origin[j] = origins[N*j + i]
+        ray.t_far = 1e30
+        ray.t_near = 0.0
+        ray.data_val = 0
+        bvh.intersect(&ray)
+        image[i] = ray.data_val
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image, 
+                   np.ndarray[np.float64_t, ndim=2] origins,
+                   np.ndarray[np.float64_t, ndim=1] direction,
+                   BVH bvh):
+    
+    cdef int N = origins.shape[0]
+    cast_rays(<np.float64_t*> image.data,
+              <np.float64_t*> origins.data, 
+              <np.float64_t*> direction.data, N, bvh)
