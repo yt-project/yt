@@ -159,9 +159,14 @@ def test_orientation():
                      [-0.3, -0.1, 0.8] ]
     center = [0.5, 0.5, 0.5]
     width = [1.0, 1.0, 1.0]
-    for orientation in orientations:
+
+    for i, orientation in enumerate(orientations):
         image = off_axis_projection(ds, center, orientation, width,
                                     512, "density", no_ghost=False)
+
         def offaxis_image_func(filename_prefix):
             return image.write_image(filename_prefix)
-        yield GenericImageTest(ds, offaxis_image_func, decimals)
+
+        test = GenericImageTest(ds, offaxis_image_func, decimals)
+        test.prefix = "oap_orientation_{}".format(i)
+        yield test
