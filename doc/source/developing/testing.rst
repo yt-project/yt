@@ -453,12 +453,19 @@ Here is an example test function:
    @requires_ds(my_ds)
    def test_my_ds():
        ds = data_dir_load(my_ds)
+
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
            plt.savefig(filename_prefix)
        test = GenericImageTest(ds, create_image, 12)
+
+       # this ensures the test has a unique key in the
+       # answer test storage file
+       test.prefix = "my_unique_name"
+
        # this ensures a nice test name in nose's output
        test_my_ds.__description__ = test.description
+
        yield test_my_ds
 
 Another good example of an image comparison test is the
