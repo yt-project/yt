@@ -158,7 +158,7 @@ def test_orientation():
                      [0.5, 0.4, 0.7],
                      [-0.3, -0.1, 0.8] ]
     center = [0.5, 0.5, 0.5]
-    width = [0.04, 0.04, 0.4]
+    width = [1.0, 1.0, 1.0]
     for orientation in orientations:
         image = off_axis_projection(ds, center, orientation, width,
                                     512, "density", no_ghost=False)
