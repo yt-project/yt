@@ -590,13 +590,15 @@ class SceneGraph:
         self.collections.append(collection)
         self.update_minmax(collection)
 
-    def update_minmax(self, collection):
+    def update_minmax(self, collection, scale_off=1.0):
+        self.scene_min_val, self.scene_max_val = 1e60, -1e60
+        self.cmap_min, self.cmap_max = 0.0, 0.01
         self.scene_min_val = min(self.scene_min_val, collection.min_val)
         self.scene_max_val = max(self.scene_max_val, collection.max_val)
         self.diagonal = max(self.diagonal, collection.diagonal)
         # Figure out a way to change it on the fly
         self.cmap_min = self.scene_min_val
-        self.cmap_max = self.scene_max_val
+        self.cmap_max = self.scene_max_val * scale_off
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.

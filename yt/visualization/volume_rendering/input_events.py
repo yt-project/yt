@@ -116,6 +116,7 @@ def zoomout(event_coll, event):
 
 @register_event("camera_orto")
 def camera_orto(event_coll, event):
+    print("Changing to orthographic camera")
     camera = event_coll.camera
     if camera.proj_func == get_orthographic_matrix:
         return False
@@ -125,6 +126,7 @@ def camera_orto(event_coll, event):
 
 @register_event("camera_proj")
 def camera_proj(event_coll, event):
+    print("Changing to perspective camera")
     camera = event_coll.camera
     if camera.proj_func == get_perspective_matrix:
         return False
@@ -134,25 +136,27 @@ def camera_proj(event_coll, event):
 
 @register_event("shader_max")
 def shader_max(event_coll, event):
+    print("Changing shader to max(intensity)")
     scene = event_coll.scene
     scene.add_shader_from_file("max_intensity.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(True)
     # That is clumsy
     for collection in scene.collections:
-        scene.update_minmax(collection)
+        scene.update_minmax(collection, 1.0)
     GL.glBlendEquation(GL.GL_MAX)
     return True
 
 @register_event("shader_proj")
 def shader_proj(event_coll, event):
+    print("Changing shader to projection")
     scene = event_coll.scene
     scene.add_shader_from_file("projection.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(False)
     # That is clumsy
     for collection in scene.collections:
-        scene.update_minmax(collection)
+        scene.update_minmax(collection, 0.01)
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
@@ -178,14 +182,14 @@ def reset(event_coll, event):
 
 @register_event("print_limits")
 def print_limits(event_coll, event):
-    print event_coll.scene.min_val,
-    print event_coll.scene.max_val
+    print event_coll.scene.scene_min_val,
+    print event_coll.scene.scene_max_val
     return False
 
 @register_event("up_lower")
 def up_lower(event_coll, event):
-    event_coll.scene.min_val += 1
-    print event_coll.scene.min_val
+    event_coll.scene.scene_min_val += 1
+    print event_coll.scene.scene_min_val
     return True
 
 @register_event("debug_buffer")
