@@ -324,10 +324,9 @@ class AbsorptionSpectrum(object):
 
             # only locations in the wavelength range of the spectrum
             # are valid for processing
-            valid_lines = np.where((lambda_obs > self.lambda_min) &
-                                   (lambda_obs < self.lambda_max))[0]
             filter_lines = (lambda_obs > self.lambda_min) & \
                            (lambda_obs < self.lambda_max)
+            valid_lines = np.where(filter_lines)[0]
 
             # a note to the user about which lines components are unresolved
             if (thermal_width[filter_lines] < self.bin_width).any():
@@ -419,7 +418,7 @@ class AbsorptionSpectrum(object):
                                                 'redshift': field_data['redshift'][lixel],
                                                 'redshift_eff': field_data['redshift_eff'][lixel],
                                                 'v_pec': peculiar_velocity})
-                pbar.update(lixel)
+                pbar.update(i)
             pbar.finish()
 
             del column_density, delta_lambda, lambda_obs, center_index, \
