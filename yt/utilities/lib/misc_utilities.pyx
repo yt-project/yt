@@ -20,8 +20,15 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from libc.math cimport abs, sqrt
-from fp_utils cimport fmin, fmax, i64min, i64max
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
+
+from libc.stdlib cimport malloc, free
+from libc.string cimport strcmp
+
+from cython.view cimport memoryview
+from cpython cimport buffer
+
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -1012,3 +1019,128 @@ def gravitational_binding_energy(
     pbar.finish()
 
     return total_potential
+
+# The OnceIndirect code is from:
+# http://stackoverflow.com/questions/10465091/assembling-a-cython-memoryview-from-numpy-arrays/12991519#12991519
+# This is under the CC-BY-SA license.
+
+cdef class OnceIndirect:
+    cdef object _objects
+    cdef void** buf
+    cdef int ndim
+    cdef int n_rows
+    cdef int buf_len
+    cdef Py_ssize_t* shape
+    cdef Py_ssize_t* strides
+    cdef Py_ssize_t* suboffsets
+    cdef Py_ssize_t itemsize
+    cdef bytes format
+    cdef int is_readonly
+
+    def __cinit__(self, object rows, want_writable=True, want_format=True, allow_indirect=False):
+        """
+        Set want_writable to False if you don't want writable data. (This may
+        prevent copies.)
+        Set want_format to False if your input doesn't support PyBUF_FORMAT (unlikely)
+        Set allow_indirect to True if you are ok with the memoryview being indirect
+        in dimensions other than the first. (This may prevent copies.)
+
+        An example usage:
+
+        cdef double[::cython.view.indirect, ::1] vectors =
+            OnceIndirect([object.vector for object in objects])
+        """
+        demand = buffer.PyBUF_INDIRECT if allow_indirect else buffer.PyBUF_STRIDES
+        if want_writable:
+            demand |= buffer.PyBUF_WRITABLE
+        if want_format:
+            demand |= buffer.PyBUF_FORMAT
+        self._objects = [memoryview(row, demand) for row in rows]
+        self.n_rows = len(self._objects)
+        self.buf_len = sizeof(void*) * self.n_rows
+        self.buf = <void**>malloc(self.buf_len)
+        self.ndim = 1 + self._objects[0].ndim
+        self.shape = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+        self.strides = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+        self.suboffsets = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+
+        cdef memoryview example_obj = self._objects[0]
+        self.itemsize = example_obj.itemsize
+
+        if want_format:
+            self.format = example_obj.view.format
+        else:
+            self.format = None
+        self.is_readonly |= example_obj.view.readonly
+
+        for dim in range(self.ndim):
+            if dim == 0:
+                self.shape[dim] = self.n_rows
+                self.strides[dim] = sizeof(void*)
+                self.suboffsets[dim] = 0
+            else:
+                self.shape[dim] = example_obj.view.shape[dim - 1]
+                self.strides[dim] = example_obj.view.strides[dim - 1]
+                if example_obj.view.suboffsets == NULL:
+                    self.suboffsets[dim] = -1
+                else:
+                    self.suboffsets[dim] = example_obj.suboffsets[dim - 1]
+
+        cdef memoryview obj
+        cdef int i = 0
+        for obj in self._objects:
+            assert_similar(example_obj, obj)
+            self.buf[i] = obj.view.buf
+            i += 1
+
+    def __getbuffer__(self, Py_buffer* buff, int flags):
+        if (flags & buffer.PyBUF_INDIRECT) != buffer.PyBUF_INDIRECT:
+            raise Exception("don't want to copy data")
+        if flags & buffer.PyBUF_WRITABLE and self.is_readonly:
+            raise Exception("couldn't provide writable, you should have demanded it earlier")
+        if flags & buffer.PyBUF_FORMAT:
+            if self.format is None:
+                raise Exception("couldn't provide format, you should have demanded it earlier")
+            buff.format = self.format
+        else:
+            buff.format = NULL
+
+        buff.buf = <void*>self.buf
+        buff.obj = self
+        buff.len = self.buf_len
+        buff.readonly = self.is_readonly
+        buff.ndim = self.ndim
+        buff.shape = self.shape
+        buff.strides = self.strides
+        buff.suboffsets = self.suboffsets
+        buff.itemsize = self.itemsize
+        buff.internal = NULL
+
+    def __dealloc__(self):
+        free(self.buf)
+        free(self.shape)
+        free(self.strides)
+        free(self.suboffsets)
+
+cdef int assert_similar(memoryview left_, memoryview right_) except -1:
+    cdef Py_buffer left = left_.view
+    cdef Py_buffer right = right_.view
+    assert left.ndim == right.ndim
+    cdef int i
+    for i in range(left.ndim):
+        assert left.shape[i] == right.shape[i], (left_.shape, right_.shape)
+        assert left.strides[i] == right.strides[i], (left_.strides, right_.strides)
+
+    if left.suboffsets == NULL:
+        assert right.suboffsets == NULL, (left_.suboffsets, right_.suboffsets)
+    else:
+        for i in range(left.ndim):
+            assert left.suboffsets[i] == right.suboffsets[i], (left_.suboffsets, right_.suboffsets)
+
+    if left.format == NULL:
+        assert right.format == NULL, (bytes(left.format), bytes(right.format))
+    else:
+        #alternatively, compare as Python strings:
+        #assert bytes(left.format) == bytes(right.format)
+        assert strcmp(left.format, right.format) == 0, (bytes(left.format), bytes(right.format))
+    return 0

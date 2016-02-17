@@ -8,15 +8,14 @@ from yt.geometry.selection_routines cimport \
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     SparseOctreeContainer
-from yt.geometry.oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct, \
-    fill_file_indices_oind, fill_file_indices_rind
+from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport \
     ParticleDepositOperation
 from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures
+from yt.utilities.lib.misc_utilities import OnceIndirect
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
@@ -1556,6 +1555,9 @@ cdef class ARTIORootMeshContainer:
         if fields is None:
             fields = []
         nf = len(fields)
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        if nf > 0: field_pointers = OnceIndirect(fields)
+        cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         cdef np.ndarray[np.int64_t, ndim=1] domain_ind
@@ -1570,17 +1572,9 @@ cdef class ARTIORootMeshContainer:
                 continue
             domain_ind[sfc - self.sfc_start] = j
             j += 1
-        cdef np.float64_t **field_pointers
-        cdef np.float64_t *field_vals
         cdef np.float64_t pos[3]
         cdef np.float64_t left_edge[3]
         cdef int coords[3]
-        cdef np.ndarray[np.float64_t, ndim=1] tarr
-        field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
-        field_vals = <np.float64_t*>alloca(sizeof(np.float64_t) * nf)
-        for i in range(nf):
-            tarr = fields[i]
-            field_pointers[i] = <np.float64_t *> tarr.data
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 1
         cdef np.int64_t offset, moff

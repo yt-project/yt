@@ -487,7 +487,7 @@ class MeshSource(OpaqueSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.finalize_image(camera, self.sampler.aimage)
+        self.finalize_image(camera)
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap()
 
@@ -503,14 +503,22 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
-    def finalize_image(self, camera, image):
+    def finalize_image(self, camera):
         sam = self.sampler
+
+        # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
         sam.aimage = sam.aimage.reshape(Nx, Ny)
         sam.image_used = sam.image_used.reshape(Nx, Ny)
         sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
         sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+
+        # rotate
+        sam.aimage = np.rot90(sam.aimage, k=2)
+        sam.image_used = np.rot90(sam.image_used, k=2)
+        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
+        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""

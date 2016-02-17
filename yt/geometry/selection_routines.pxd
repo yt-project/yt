@@ -15,8 +15,7 @@ Geometry selection routine imports.
 #-----------------------------------------------------------------------------
 
 cimport numpy as np
-from oct_visitors cimport Oct, OctVisitorData, \
-    oct_visitor_function
+from oct_visitors cimport Oct, OctVisitor
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
 
@@ -43,12 +42,11 @@ cdef class SelectorObject:
     cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
                         int level,
-                        oct_visitor_function *func,
-                        OctVisitorData *data,
+                        OctVisitor visitor,
                         int visit_covered = ?)
-    cdef void visit_oct_cells(self, OctVisitorData *data, Oct *root, Oct *ch,
+    cdef void visit_oct_cells(self, Oct *root, Oct *ch,
                               np.float64_t spos[3], np.float64_t sdds[3],
-                              oct_visitor_function *func, int i, int j, int k)
+                              OctVisitor visitor, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
                                np.int32_t level, Oct *o = ?) nogil

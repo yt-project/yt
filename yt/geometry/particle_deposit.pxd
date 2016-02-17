@@ -20,7 +20,7 @@ from libc.stdlib cimport malloc, free
 cimport cython
 from libc.math cimport sqrt
 
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 from .oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 
 cdef extern from "platform_dep.h":
@@ -138,5 +138,5 @@ cdef class ParticleDepositOperation:
     cdef public int update_values
     cdef void process(self, int dim[3], np.float64_t left_edge[3],
                       np.float64_t dds[3], np.int64_t offset,
-                      np.float64_t ppos[3], np.float64_t *fields,
+                      np.float64_t ppos[3], np.float64_t[:] fields,
                       np.int64_t domain_ind)

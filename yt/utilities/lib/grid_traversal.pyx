@@ -20,7 +20,7 @@ cimport cython
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
     lrint, fabs, atan, atan2, asin, cos, sin, sqrt
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
