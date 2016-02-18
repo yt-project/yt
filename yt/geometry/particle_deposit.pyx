@@ -401,8 +401,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
         self.wf[ii[2], ii[1], ii[0], offset] += fields[0] * fields[1]
 
     def finalize(self):
-        wf = np.asarray(self.owf)
-        w = np.asarray(self.ow)
+        wf = np.asarray(self.wf)
+        w = np.asarray(self.w)
         rv = wf / w
         rv.shape = self.nvals
         return rv
