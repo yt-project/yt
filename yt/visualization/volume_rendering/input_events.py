@@ -141,9 +141,7 @@ def shader_max(event_coll, event):
     scene.add_shader_from_file("max_intensity.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(True)
-    # That is clumsy
-    for collection in scene.collections:
-        scene.update_minmax(collection, 1.0)
+    scene.update_minmax()
     GL.glBlendEquation(GL.GL_MAX)
     return True
 
@@ -154,9 +152,7 @@ def shader_proj(event_coll, event):
     scene.add_shader_from_file("projection.fragmentshader")
     for collection in scene.collections:
         collection.set_fields_log(False)
-    # That is clumsy
-    for collection in scene.collections:
-        scene.update_minmax(collection, 0.01)
+    scene.update_minmax()
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
@@ -168,6 +164,35 @@ def cmap_cycle(event_coll, event):
         dtype=np.float32)
     event_coll.camera.cmap_new = True
     print("Setting colormap to {}".format(cmap.name))
+    return True
+
+@register_event("cmap_max_up")
+def cmap_max_up(event_coll, event):
+    return _cmap_adjust(event_coll.camera, True, 2.0)
+
+@register_event("cmap_max_down")
+def cmap_max_down(event_coll, event):
+    return _cmap_adjust(event_coll.camera, True, 0.5)
+
+@register_event("cmap_min_up")
+def cmap_min_up(event_coll, event):
+    return _cmap_adjust(event_coll.camera, False, 2.0)
+
+@register_event("cmap_min_down")
+def cmap_min_down(event_coll, event):
+    return _cmap_adjust(event_coll.camera, False, 0.5)
+
+@register_event("cmap_toggle_log")
+def cmap_toggle_log(event_coll, event):
+    event_coll.camera.cmap_log = not event_coll.camera.cmap_log
+    return True
+
+def _cmap_adjust(camera, upper, factor):
+    if upper:
+        camera.cmap_max *= factor
+    else:
+        camera.cmap_min *= factor
+    print("cmap limits: ", camera.cmap_min, camera.cmap_max)
     return True
 
 @register_event("closeup")
@@ -182,15 +207,9 @@ def reset(event_coll, event):
 
 @register_event("print_limits")
 def print_limits(event_coll, event):
-    print event_coll.scene.scene_min_val,
-    print event_coll.scene.scene_max_val
+    print event_coll.scene.min_val,
+    print event_coll.scene.max_val
     return False
-
-@register_event("up_lower")
-def up_lower(event_coll, event):
-    event_coll.scene.scene_min_val += 1
-    print event_coll.scene.scene_min_val
-    return True
 
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):

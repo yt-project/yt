@@ -128,6 +128,9 @@ class TrackballCamera(object):
         self.up = np.array(up)
         cmap = cm.get_cmap("algae")
         self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
+        self.cmap_min = 1e-6
+        self.cmap_max = 1.0
+        self.cmap_log = True
         self.cmap_new = True
 
         self.view_matrix = get_lookat_matrix(self.position,
@@ -294,6 +297,7 @@ class BlockCollection:
         """
         self.data_source = data_source
         self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
+        self.data_logged = log_field
         self.blocks = {}
         self.block_order = []
         # Every time we change our data source, we wipe all existing ones.
@@ -459,8 +463,8 @@ class SceneGraph:
         self.cmap_texture = None
         self.camera = None
         self.shader_program = None
-        self.scene_min_val, self.scene_max_val = 1e60, -1e60
-        self.cmap_min, self.cmap_max = 0.0, 0.01
+        self.min_val, self.max_val = 1e60, -1e60
+        self.cmap_log = True
         self.diagonal = 0.0
 
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
@@ -471,7 +475,7 @@ class SceneGraph:
             ["passthrough.vertexshader", "apply_colormap.fragmentshader"]
         )
         for key in ["fb_texture", "cmap", "min_val", "scale",
-                    "cmap_min", "cmap_max"]:
+                    "cmap_min", "cmap_max", "cmap_log"]:
             self.fb_uniforms[key] = \
                 GL.glGetUniformLocation(self.fb_shader_program, key)
 
@@ -588,17 +592,15 @@ class SceneGraph:
 
         """
         self.collections.append(collection)
-        self.update_minmax(collection)
+        self.update_minmax()
 
-    def update_minmax(self, collection, scale_off=1.0):
-        self.scene_min_val, self.scene_max_val = 1e60, -1e60
-        self.cmap_min, self.cmap_max = 0.0, 0.01
-        self.scene_min_val = min(self.scene_min_val, collection.min_val)
-        self.scene_max_val = max(self.scene_max_val, collection.max_val)
-        self.diagonal = max(self.diagonal, collection.diagonal)
-        # Figure out a way to change it on the fly
-        self.cmap_min = self.scene_min_val
-        self.cmap_max = self.scene_max_val * scale_off
+    def update_minmax(self):
+        self.min_val, self.max_val, self.diagonal = 1e60, -1e60, -1e60
+        for collection in self.collections:
+            self.min_val = min(self.min_val, collection.min_val)
+            self.max_val = max(self.max_val, collection.max_val)
+            # doesn't make sense for multiple collections
+            self.diagonal = max(self.diagonal, collection.diagonal)
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
@@ -683,11 +685,12 @@ class SceneGraph:
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
         GL.glUniform1i(self.fb_uniforms["cmap"], 1);
 
-        scale = (self.scene_max_val - self.scene_min_val) * self.diagonal
-        GL.glUniform1f(self.fb_uniforms["min_val"], self.scene_min_val)
+        scale = (self.max_val - self.min_val) * self.diagonal
+        GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
         GL.glUniform1f(self.fb_uniforms["scale"], scale)
-        GL.glUniform1f(self.fb_uniforms["cmap_min"], self.cmap_min)
-        GL.glUniform1f(self.fb_uniforms["cmap_max"], self.cmap_max)
+        GL.glUniform1f(self.fb_uniforms["cmap_min"], self.camera.cmap_min)
+        GL.glUniform1f(self.fb_uniforms["cmap_max"], self.camera.cmap_max)
+        GL.glUniform1f(self.fb_uniforms["cmap_log"], float(self.camera.cmap_log))
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         # Bind to Vertex array that contains simple quad filling fullscreen,
