@@ -26,6 +26,7 @@ class RenderingContext(object):
 
     def setup_loop(self, scene, camera):
         scene.set_camera(camera)
+        scene.update_minmax()
         scene.add_shader_from_file("max_intensity.fragmentshader")
         camera.compute_matrices()
         frame_start = glfw.GetTime()

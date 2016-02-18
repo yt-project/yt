@@ -134,6 +134,7 @@ def camera_proj(event_coll, event):
     camera.fov = np.degrees(np.arctan(camera.fov) * 2.0)
     return True
 
+
 @register_event("shader_max")
 def shader_max(event_coll, event):
     print("Changing shader to max(intensity)")
@@ -200,6 +201,10 @@ def cmap_min_down(event_coll, event):
 
 @register_event("cmap_toggle_log")
 def cmap_toggle_log(event_coll, event):
+    if event_coll.scene.data_logged:
+        print("Data is logged already, can't toggle scale to linear")
+        return False
+
     if not event_coll.camera.cmap_log:
         event_coll.camera.cmap_max = np.log10(event_coll.camera.cmap_max)
         event_coll.camera.cmap_min = np.log10(event_coll.camera.cmap_min)

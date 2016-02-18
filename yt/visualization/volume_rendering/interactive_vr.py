@@ -202,7 +202,6 @@ class TrackballCamera(object):
         self.cmap_log = iflog
         self.cmap_min = minval
         self.cmap_max = maxval
-        print("CMAP updated to: ", self.cmap_min, self.cmap_max, self.cmap_log)
 
 class Camera:
     def __init__(self, position = (0, 0, 0), fov = 60.0, near_plane = 0.01,
@@ -450,7 +449,6 @@ class BlockCollection:
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
-            print n_data.min(), n_data.max()
             GL.glBindTexture(GL.GL_TEXTURE_3D, texture_name)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
@@ -603,7 +601,6 @@ class SceneGraph:
         self.update_minmax()
 
     def update_minmax(self):
-        print("update_minmax ->")
         self.min_val, self.max_val, self.diagonal = 1e60, -1e60, -1e60
         self.data_logged = False
 
@@ -707,7 +704,10 @@ class SceneGraph:
         GL.glUniform1f(self.fb_uniforms["scale"], scale)
         GL.glUniform1f(self.fb_uniforms["cmap_min"], self.camera.cmap_min)
         GL.glUniform1f(self.fb_uniforms["cmap_max"], self.camera.cmap_max)
-        GL.glUniform1f(self.fb_uniforms["cmap_log"], float(self.camera.cmap_log))
+        if self.data_logged:
+            GL.glUniform1f(self.fb_uniforms["cmap_log"], float(False))
+        else:
+            GL.glUniform1f(self.fb_uniforms["cmap_log"], float(self.camera.cmap_log))
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         # Bind to Vertex array that contains simple quad filling fullscreen,
