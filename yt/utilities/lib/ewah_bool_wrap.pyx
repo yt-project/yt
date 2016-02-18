@@ -22,6 +22,7 @@ from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
 from cython.operator cimport dereference, preincrement
 import numpy as np
+cimport numpy as np
 
 cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)

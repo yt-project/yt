@@ -842,7 +842,6 @@ cdef class ParticleForestSelector:
     cdef SelectorObject selector
     cdef ParticleForest forest
     cdef np.uint32_t ngz
-    cdef bint flag_files
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef bint periodicity[3]
@@ -886,7 +885,6 @@ cdef class ParticleForestSelector:
         self.selector = selector
         self.forest = forest
         self.ngz = ngz
-        self.flag_files = 0
         # Things from the forest & selector
         periodicity = selector.get_periodicity()
         DLE = forest.get_DLE()
@@ -1021,8 +1019,7 @@ cdef class ParticleForestSelector:
             self.file_mask_p[i] = file_mask_p[i]
             self.file_mask_g[i] = file_mask_g[i]
         # Recurse
-        self.flag_files = 1
-        self.recursive_morton_mask(level, pos, dds, mi1)
+        self.recursive_morton_files(level, pos, dds, mi1)
         # Fill with results 
         for i in range(self.nfiles):
             file_mask_p[i] = self.file_mask_p[i]
@@ -1030,24 +1027,27 @@ cdef class ParticleForestSelector:
                 file_mask_g[i] = 0
             else:
                 file_mask_g[i] = self.file_mask_g[i]
-        self.flag_files = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef bint is_refined(self, np.uint64_t mi1):
+        return self.forest.collisions._isref(mi1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef bint is_refined_files(self, np.uint64_t mi1):
         cdef int i
         cdef BoolArrayCollection fmask
         if self.forest.collisions._isref(mi1):
-            if self.flag_files == 1:
-                # Don't refine if files all selected already
-                for i in range(self.nfiles):
+            # Don't refine if files all selected already
+            for i in range(self.nfiles):
+                if self.file_mask_p[i] == 0:
                     fmask = self.forest.bitmasks[i]
-                    if not self.file_mask_p[i] and fmask._isref(mi1):
+                    if fmask._isref(mi1) == 1:
                         return 1
-                return 0
-            else:
-                return 1
+            return 0
         else:
             return 0
 
@@ -1055,20 +1055,11 @@ cdef class ParticleForestSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_coarse(self, np.uint64_t mi1):
-        cdef int i
-        cdef BoolArrayCollection fmask
         cdef bint flag_ref = self.is_refined(mi1)
         IF BoolType == 'Bool':
             self.coarse_select_bool[mi1] = 1
         ELSE:
             self.coarse_select_list._set(mi1)
-        # Flag files
-        if (self.flag_files == 1) and (flag_ref == 0):
-            for i in range(self.nfiles):
-                if self.file_mask_p[i] == 0:
-                    fmask = self.forest.bitmasks[i]
-                    if fmask._get_coarse(mi1) == 1:
-                        self.file_mask_p[i] = 1
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 0:
@@ -1081,20 +1072,33 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
+    cdef void set_files_coarse(self, np.uint64_t mi1):
         cdef int i
         cdef BoolArrayCollection fmask
+        cdef bint flag_ref = self.is_refined(mi1)
+        # Flag files at coarse level
+        if flag_ref == 0:
+            for i in range(self.nfiles):
+                if self.file_mask_p[i] == 0:
+                    fmask = self.forest.bitmasks[i]
+                    if fmask._get_coarse(mi1) == 1:
+                        self.file_mask_p[i] = 1
+        # Neighbors
+        IF RefinedGhosts == 0:
+            if (self.ngz > 0):
+                self.set_files_neighbors_coarse(mi1)
+        ELSE:
+            if (flag_ref == 0) and (self.ngz > 0):
+                self.set_files_neighbors_coarse(mi1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
         IF BoolType == 'Bool':
             self.refined_select_bool[mi2] = 1
         ELSE:
             self.refined_select_list._set(mi1, mi2)
-        # Flag files
-        if self.flag_files == 1:
-            for i in range(self.nfiles):
-                if self.file_mask_p[i] == 0:
-                    fmask = self.forest.bitmasks[i]
-                    if fmask._get(mi1, mi2) == 1:
-                        self.file_mask_p[i] = 1
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 1:
@@ -1104,11 +1108,27 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef void set_files_refined(self, np.uint64_t mi1, np.uint64_t mi2):
+        cdef int i
+        cdef BoolArrayCollection fmask
+        # Flag files
+        for i in range(self.nfiles):
+            if self.file_mask_p[i] == 0:
+                fmask = self.forest.bitmasks[i]
+                if fmask._get(mi1, mi2) == 1:
+                    self.file_mask_p[i] = 1
+        # Neighbors
+        IF RefinedGhosts == 1:
+            if (self.ngz > 0):
+                self.set_files_neighbors_refined(mi1, mi2)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void add_neighbors_coarse(self, np.uint64_t mi1):
-        cdef int i, m
+        cdef int m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
-        cdef BoolArrayCollection fmask
         ntot = morton_neighbors_coarse(mi1, self.max_index1, 
                                        self.periodicity,
                                        self.ngz, self.neighbors,
@@ -1119,23 +1139,34 @@ cdef class ParticleForestSelector:
                 self.coarse_ghosts_bool[mi1_n] = 1
             ELSE:
                 self.coarse_ghosts_list._set(mi1_n)
-        if self.flag_files == 1:
-            for m in range(ntot):
-                mi1_n = self.neighbor_list1[m]
-                for i in range(self.nfiles):
-                    if self.file_mask_g[i] == 0:
-                        fmask = self.forest.bitmasks[i]
-                        if fmask._get_coarse(mi1_n) == 1:
-                            self.file_mask_g[i] = 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_files_neighbors_coarse(self, np.uint64_t mi1):
+        cdef int i, m
+        cdef np.uint32_t ntot
+        cdef np.uint64_t mi1_n
+        cdef BoolArrayCollection fmask
+        ntot = morton_neighbors_coarse(mi1, self.max_index1, 
+                                       self.periodicity,
+                                       self.ngz, self.neighbors,
+                                       self.ind1_n, self.neighbor_list1)
+        for m in range(ntot):
+            mi1_n = self.neighbor_list1[m]
+            for i in range(self.nfiles):
+                if self.file_mask_g[i] == 0:
+                    fmask = self.forest.bitmasks[i]
+                    if fmask._get_coarse(mi1_n) == 1:
+                        self.file_mask_g[i] = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_neighbors_refined(self, np.uint64_t mi1, np.uint64_t mi2):
-        cdef int i, m
+        cdef int m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n, mi2_n
-        cdef BoolArrayCollection fmask
         ntot = morton_neighbors_refined(mi1, mi2,
                                         self.max_index1, self.max_index2,
                                         self.periodicity, self.ngz,
@@ -1163,22 +1194,36 @@ cdef class ParticleForestSelector:
                 ELSE:
                     if self.is_refined(mi1_n) == 1:
                         self.refined_ghosts_list._set(mi1_n, mi2_n)
-        if self.flag_files == 1:
-            for m in range(ntot):
-                mi1_n = self.neighbor_list1[m]
-                mi2_n = self.neighbor_list2[m]
-                if self.is_refined(mi1_n) == 1:
-                    for i in range(self.nfiles):
-                        if self.file_mask_g[i] == 0:
-                            fmask = self.forest.bitmasks[i]
-                            if fmask._get(mi1_n, mi2_n) == 1:
-                                self.file_mask_g[i] = 1
-                else:
-                    for i in range(self.nfiles):
-                        if self.file_mask_g[i] == 0:
-                            fmask = self.forest.bitmasks[i]
-                            if fmask._get_coarse(mi1_n) == 1:
-                                self.file_mask_g[i] = 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_files_neighbors_refined(self, np.uint64_t mi1, np.uint64_t mi2):
+        cdef int i, m
+        cdef np.uint32_t ntot
+        cdef np.uint64_t mi1_n, mi2_n
+        cdef BoolArrayCollection fmask
+        ntot = morton_neighbors_refined(mi1, mi2,
+                                        self.max_index1, self.max_index2,
+                                        self.periodicity, self.ngz,
+                                        self.neighbors, self.ind1_n, self.ind2_n,
+                                        self.neighbor_list1, self.neighbor_list2)
+        for m in range(ntot):
+            mi1_n = self.neighbor_list1[m]
+            mi2_n = self.neighbor_list2[m]
+            if self.is_refined(mi1_n) == 1:
+                for i in range(self.nfiles):
+                    if self.file_mask_g[i] == 0:
+                        fmask = self.forest.bitmasks[i]
+                        if fmask._get(mi1_n, mi2_n) == 1:
+                            self.file_mask_g[i] = 1
+            else:
+                for i in range(self.nfiles):
+                    if self.file_mask_g[i] == 0:
+                        fmask = self.forest.bitmasks[i]
+                        if fmask._get_coarse(mi1_n) == 1:
+                            self.file_mask_g[i] = 1
+                            break # If not refined, only one file should be selected
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1316,6 +1361,51 @@ cdef class ParticleForestSelector:
                             DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
                         self.add_refined(mi1,mi2)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void recursive_morton_files(self, np.int32_t level, np.float64_t pos[3], 
+                                     np.float64_t dds[3], np.uint64_t mi1):
+        cdef np.uint64_t mi2
+        cdef np.float64_t npos[3]
+        cdef np.float64_t rpos[3]
+        cdef np.float64_t ndds[3]
+        cdef np.uint64_t nlevel
+        cdef np.float64_t DLE[3]
+        cdef np.uint64_t ind1[3]
+        cdef np.uint64_t ind2[3]
+        cdef int i, j, k, m
+        for i in range(3):
+            ndds[i] = dds[i]/2
+        nlevel = level + 1
+        # Loop over octs
+        for i in range(2):
+            npos[0] = pos[0] + i*ndds[0]
+            rpos[0] = npos[0] + ndds[0]
+            for j in range(2):
+                npos[1] = pos[1] + j*ndds[1]
+                rpos[1] = npos[1] + ndds[1]
+                for k in range(2):
+                    npos[2] = pos[2] + k*ndds[2]
+                    rpos[2] = npos[2] + ndds[2]
+                    # Only recurse into selected cells
+                    if not self.selector.select_bbox(npos, rpos): continue
+                    if nlevel < self.order1:
+                        self.recursive_morton_files(nlevel, npos, ndds, mi1)
+                    elif nlevel == self.order1:
+                        mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
+                        if self.is_refined_files(mi1):
+                            self.recursive_morton_files(nlevel, npos, ndds, mi1)
+                        self.set_files_coarse(mi1)
+                    elif nlevel < (self.order1 + self.order2):
+                        self.recursive_morton_files(nlevel, npos, ndds, mi1)
+                    elif nlevel == (self.order1 + self.order2):
+                        decode_morton_64bit(mi1,ind1)
+                        for m in range(3):
+                            DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
+                        mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
+                        self.set_files_refined(mi1,mi2)
 
 cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list
