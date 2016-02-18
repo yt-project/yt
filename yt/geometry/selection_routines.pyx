@@ -26,8 +26,9 @@ from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection, \
-    SparseUnorderedBitmask, SparseUnorderedRefinedBitmask
+from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
+# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet #as SparseUnorderedBitmask
+# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet #as SparseUnorderedRefinedBitmask
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
     bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 
@@ -494,106 +495,85 @@ cdef class SelectorObject:
                 pos[0] += dds[0]
         return total
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    def fill_mask_morton(self, left_edge, right_edge, order1, order2, 
-                         mask_coll, ngz=0):
-        cdef int i, j
-        cdef np.uint32_t ntot
-        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
-        cdef np.float64_t DLE[3]
-        cdef np.float64_t DRE[3]
-        cdef np.float64_t dds1[3]
-        cdef np.float64_t dds2[3]
-        cdef np.float64_t lpos1[3]
-        cdef np.float64_t lpos2[3]
-        cdef np.float64_t rpos1[3]
-        cdef np.float64_t rpos2[3]
-        cdef np.uint64_t max_index1 = (1 << order1)
-        cdef np.uint64_t max_index2 = (1 << order2)
-        cdef BoolArrayCollection mask_s = BoolArrayCollection()
-        cdef BoolArrayCollection mask_g = BoolArrayCollection()
-        cdef np.uint8_t[:] bool_coarse_s = np.zeros(1<<(3*order1), dtype='uint8')
-        cdef np.uint8_t[:] bool_coarse_g = np.zeros(1<<(3*order1), dtype='uint8')
-        cdef SparseUnorderedBitmask list_coarse_s = SparseUnorderedBitmask()
-        cdef SparseUnorderedBitmask list_coarse_g = SparseUnorderedBitmask()
-        cdef SparseUnorderedRefinedBitmask list_refined_s = SparseUnorderedRefinedBitmask()
-        cdef SparseUnorderedRefinedBitmask list_refined_g = SparseUnorderedRefinedBitmask()
-        cdef np.uint32_t[:,:] index = np.zeros((2*ngz+1, 3), dtype='uint32')
-        cdef np.uint64_t[:,:] ind1_n = np.zeros((2*ngz+1, 3), dtype='uint64')
-        cdef np.uint64_t[:,:] ind2_n = np.zeros((2*ngz+1, 3), dtype='uint64')
-        cdef np.uint64_t[:] neighbors1 = np.zeros((2*ngz+1)**3, dtype='uint64')
-        cdef np.uint64_t[:] neighbors2 = np.zeros((2*ngz+1)**3, dtype='uint64')
-        for i in range(3):
-            DLE[i] = left_edge[i]
-            DRE[i] = right_edge[i]
-            dds1[i] = (DRE[i] - DLE[i])/max_index1
-            dds2[i] = dds1[i]/max_index2
-        # Coarse
-        for mi1 in range(1 << (order1*3)):
-            # list_coarse_s._prune()
-            # list_coarse_g._prune()
-            list_refined_s._prune()
-            list_refined_g._prune()
-            decode_morton_64bit(mi1, ind1)
-            for i in range(3):
-                lpos1[i] = DLE[i] + (<np.float64_t>ind1[i])*dds1[i]
-                rpos1[i] = lpos1[i] + dds1[i]
-            if self.select_bbox(lpos1, rpos1):
-                bool_coarse_s[mi1] = 1
-                #list_coarse_s._set(mi1)
-                # Neighbors
-                if (ngz > 0):
-                    ntot = morton_neighbors_coarse(mi1, max_index1, self.periodicity,
-                                                   ngz, index, ind1_n, neighbors1)
-                    for i in range(ntot):
-                        mi1_n = neighbors1[i]
-                        bool_coarse_g[mi1_n] = 1
-                        #list_coarse_g._set(mi1_n)
-                # Refinement
-                if mask_coll.isref(mi1):
-                    for mi2 in range(1 << (order1*3)):
-                        decode_morton_64bit(mi2, ind2)
-                        for i in range(3):
-                            lpos2[i] = DLE[i] + \
-                                       (<np.float64_t>ind1[i])*dds1[i] + \
-                                       (<np.float64_t>ind2[i])*dds2[i]
-                            rpos2[i] = lpos2[i] + dds2[i]
-                        if self.select_bbox(lpos2, rpos2):
-                            list_refined_s._set(mi1, mi2)
-                        if (ngz > 0):
-                            ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
-                                                            self.periodicity, ngz, 
-                                                            index, ind1_n, ind2_n,
-                                                            neighbors1, neighbors2)
-                            for i in range(3):
-                                mi1_n = neighbors1[i]
-                                mi2_n = neighbors2[i]
-                                list_refined_g._set(mi1_n, mi2_n)
-        # Add indices to mask
-        for mi1 in range(bool_coarse_s.shape[0]):
-            if bool_coarse_s[mi1]:
-                mask_s._set_coarse(mi1)
-        for mi1_n in range(bool_coarse_g.shape[0]):
-            if bool_coarse_g[mi1_n]:
-                mask_g._set_coarse(mi1_n)
-        # for mi1 in list_coarse_s.to_array():
-        #     mask_s._set_coarse(mi1)
-        # for mi1_n in list_coarse_g.to_array():
-        #     mask_g._set_coarse(mi1_n)
-        list_refined_s._fill_ewah(mask_s)
-        list_refined_g._fill_ewah(mask_g)
-        # refarr_s = list_refined_s.to_array()
-        # for i in range(refarr_s.shape[0]):
-        #     mask_s._set_refined(refarr_s[i,0],refarr_s[i,1])
-        # refarr_g = list_refined_g.to_array()
-        # for i in range(refarr_g.shape[0]):
-        #     mask_g._set_refined(refarr_g[i,0],refarr_g[i,1])
-        # Return masks
-        return mask_s, mask_g
+    # @cython.boundscheck(False)
+    # @cython.wraparound(False)
+    # @cython.cdivision(True)
+    # def fill_mask_morton(self, left_edge, right_edge, order1, order2, 
+    #                      mask_coll, ngz=0):
+    #     cdef int i, j
+    #     cdef np.uint32_t ntot
+    #     cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+    #     cdef np.uint64_t ind1[3]
+    #     cdef np.uint64_t ind2[3]
+    #     cdef np.float64_t DLE[3]
+    #     cdef np.float64_t DRE[3]
+    #     cdef np.float64_t dds1[3]
+    #     cdef np.float64_t dds2[3]
+    #     cdef np.float64_t lpos1[3]
+    #     cdef np.float64_t lpos2[3]
+    #     cdef np.float64_t rpos1[3]
+    #     cdef np.float64_t rpos2[3]
+    #     cdef np.uint64_t max_index1 = (1 << order1)
+    #     cdef np.uint64_t max_index2 = (1 << order2)
+    #     cdef BoolArrayCollection mask_s = BoolArrayCollection()
+    #     cdef BoolArrayCollection mask_g = BoolArrayCollection()
+    #     cdef np.uint8_t[:] bool_coarse_g = np.zeros(1<<(3*order1), dtype='uint8')
+    #     cdef SparseUnorderedBitmaskSet list_coarse_g = SparseUnorderedBitmaskSet()
+    #     cdef SparseUnorderedRefinedBitmaskSet list_refined_g = SparseUnorderedRefinedBitmaskSet()
+    #     cdef np.uint32_t[:,:] index = np.zeros((2*ngz+1, 3), dtype='uint32')
+    #     cdef np.uint64_t[:,:] ind1_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+    #     cdef np.uint64_t[:,:] ind2_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+    #     cdef np.uint64_t[:] neighbors1 = np.zeros((2*ngz+1)**3, dtype='uint64')
+    #     cdef np.uint64_t[:] neighbors2 = np.zeros((2*ngz+1)**3, dtype='uint64')
+    #     for i in range(3):
+    #         DLE[i] = left_edge[i]
+    #         DRE[i] = right_edge[i]
+    #         dds1[i] = (DRE[i] - DLE[i])/max_index1
+    #         dds2[i] = dds1[i]/max_index2
+    #     # Coarse
+    #     for mi1 in range(1 << (order1*3)):
+    #         # list_coarse_g._prune()
+    #         # list_refined_g._prune()
+    #         decode_morton_64bit(mi1, ind1)
+    #         for i in range(3):
+    #             lpos1[i] = DLE[i] + (<np.float64_t>ind1[i])*dds1[i]
+    #             rpos1[i] = lpos1[i] + dds1[i]
+    #         if self.select_bbox(lpos1, rpos1):
+    #             mask_s._set_coarse(mi1)
+    #             # Neighbors
+    #             if (ngz > 0):
+    #                 ntot = morton_neighbors_coarse(mi1, max_index1, self.periodicity,
+    #                                                ngz, index, ind1_n, neighbors1)
+    #                 for i in range(ntot):
+    #                     mi1_n = neighbors1[i]
+    #                     bool_coarse_g[mi1_n] = 1
+    #                     #list_coarse_g._set(mi1_n)
+    #             # Refinement
+    #             if mask_coll.isref(mi1):
+    #                 for mi2 in range(1 << (order1*3)):
+    #                     decode_morton_64bit(mi2, ind2)
+    #                     for i in range(3):
+    #                         lpos2[i] = DLE[i] + \
+    #                                    (<np.float64_t>ind1[i])*dds1[i] + \
+    #                                    (<np.float64_t>ind2[i])*dds2[i]
+    #                         rpos2[i] = lpos2[i] + dds2[i]
+    #                     if self.select_bbox(lpos2, rpos2):
+    #                         mask_s._set_refined(mi1, mi2)
+    #                     if (ngz > 0):
+    #                         ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
+    #                                                         self.periodicity, ngz, 
+    #                                                         index, ind1_n, ind2_n,
+    #                                                         neighbors1, neighbors2)
+    #                         for i in range(3):
+    #                             mi1_n = neighbors1[i]
+    #                             mi2_n = neighbors2[i]
+    #                             list_refined_g._set(mi1_n, mi2_n)
+    #     # Add indices to mask
+    #     mask_g._set_coarse_array(bool_coarse_g)
+    #     # list_coarse_g._fill_ewah(mask_g)
+    #     list_refined_g._fill_ewah(mask_g)
+    #     # Return masks
+    #     return mask_s, mask_g
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

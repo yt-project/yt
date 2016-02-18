@@ -36,13 +36,33 @@ from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_bool_array
 #from yt.utilities.lib.ewah_bool_wrap cimport \
-from ..utilities.lib.ewah_bool_wrap cimport \
-    BoolArrayCollection, SparseUnorderedBitmask, SparseUnorderedRefinedBitmask
+from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from libcpp.map cimport map
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
 import struct
+
+# Changes the container used to store morton indicies for selectors
+DEF BoolType = "Bool" 
+# If set to 1, ghost zones are added after all selected cells are identified.
+# If set to 0, ghost zones are added as cells are selected
+DEF GhostsAfter = 1 
+# If set to 1, ghost cells are added at the refined level
+DEF RefinedGhosts = 1
+# If set to 1, ghost cells are added at the refined level reguardless of if the 
+# coarse cell containing it is refined in the selector.
+# If set to 0, ghost cells are only added at the refined level if the coarse index 
+# for the ghost cell is refined in the selector.
+DEF RefinedExternalGhosts = 1
+
+IF BoolType == 'Vector':
+    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
+    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskVector as SparseUnorderedRefinedBitmask
+ELSE:
+    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
+    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
+
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -649,115 +669,26 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def identify_data_files(self, SelectorObject selector, int ngz = 0,
-                            bint flag_refined_ghosts = 0):
-        cdef BoolArrayCollection cmask_d = BoolArrayCollection()
+    def identify_data_files(self, SelectorObject selector, int ngz = 0):
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
-        cdef BoolArrayCollection cmask_coll = BoolArrayCollection()
-        cdef map[np.int64_t,ewah_bool_array] mask_d
-        cdef map[np.int64_t,ewah_bool_array] mask_s
-        cdef map[np.int64_t,ewah_bool_array] mask_g
-        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_d
-        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_s
-        cdef map[np.int64_t,ewah_bool_array].iterator it_mi1_g
-        cdef ewah_bool_array refined_d, refined_s, refined_g
-        cdef ewah_bool_array coarse_d, coarse_s, coarse_g
-        cdef ewah_bool_array total_d, total_s, total_g
-        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
-        cdef np.uint64_t mi1
-        cdef np.int32_t ifile
-        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
-        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
-        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
-        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
         # Find mask of selected morton indices
         cdef ParticleForestSelector morton_selector
-        morton_selector = ParticleForestSelector(selector,self,ngz=ngz,
-                                                 flag_refined_ghosts=flag_refined_ghosts)
+        morton_selector = ParticleForestSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
-        morton_selector.find_files(file_mask_p,file_mask_g)
-        print "Internal: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
-        # Extract info
-        mask_s = (<map[np.int64_t,ewah_bool_array] *> cmask_s.ewah_coll)[0]
-        mask_g = (<map[np.int64_t,ewah_bool_array] *> cmask_g.ewah_coll)[0]
-        cmask_s._ewah_coarse()
-        cmask_g._ewah_coarse()
-        coarse_s = (<ewah_bool_array*> cmask_s.ewah_coar)[0]
-        coarse_g = (<ewah_bool_array*> cmask_g.ewah_coar)[0]
-        # if 1:
-        #     total_s = (<ewah_bool_array*> cmask_s.ewah_keys)[0]
-        #     total_g = (<ewah_bool_array*> cmask_g.ewah_keys)[0]
-        #     refined_s = (<ewah_bool_array*> cmask_s.ewah_refn)[0]
-        #     refined_g = (<ewah_bool_array*> cmask_g.ewah_refn)[0]
-        #     print("Selector: {: 8d} coarse, {: 8d} refined, {: 8d} total".format(coarse_s.numberOfOnes(),
-        #                                                                          refined_s.numberOfOnes(),
-        #                                                                          total_s.numberOfOnes()))
-        #     print("Ghost   : {: 8d} coarse, {: 8d} refined, {: 8d} total".format(coarse_g.numberOfOnes(),
-        #                                                                          refined_g.numberOfOnes(),
-        #                                                                          total_g.numberOfOnes()))
-        # Compare with mask of particles
-        for ifile in range(self.nfiles):
-            # Only continue if the file is not already selected
-            if not file_mask_p[ifile]:
-                cmask_d = self.bitmasks[ifile]
-                # Do coarse levels
-                cmask_d._ewah_coarse()
-                coarse_d = (<ewah_bool_array*> cmask_d.ewah_keys)[0]
-                refined_d = (<ewah_bool_array*> cmask_d.ewah_refn)[0]
-                if coarse_s.intersects(coarse_d):
-                    file_mask_p[ifile] = 1
-                    file_mask_g[ifile] = 0 # No intersection
-                elif coarse_g.intersects(coarse_d):
-                    file_mask_g[ifile] = 1
-                else:
-                    # Do refinement at collisions
-                    mask_d = (<map[np.int64_t,ewah_bool_array] *> cmask_d.ewah_coll)[0]
-                    if (mask_d.begin() == mask_d.end()) and (refined_d.numberOfOnes() > 0):
-                        print("File {}: Data mask is empty, but there should be {} refined cells.".format(ifile,refined_d.numberOfOnes()))
-                    it_mi1_d = mask_d.begin()
-                    while it_mi1_d != mask_d.end():
-                        mi1 = dereference(it_mi1_d).first
-                        if cmask_d._isref(mi1):
-                            refined_d = dereference(it_mi1_d).second
-                            # Selector
-                            if cmask_s._isref(mi1):
-                                it_mi1_s = mask_s.find(mi1)
-                                if (it_mi1_s == mask_s.end()):
-                                    raise RuntimeError("Refinement indicated in selected region, but bool array for mi1 = {} not found".format(mi1))
-                                refined_s = dereference(it_mi1_s).second
-                                if refined_s.intersects(refined_d):
-                                    file_mask_p[ifile] = 1
-                                    file_mask_g[ifile] = 0
-                                    break
-                            elif cmask_s._get(mi1):
-                                # This shouldn't happen, the selector should always
-                                # refine where the data is refined.
-                                print "mi1 = {} coarsely selected by selector, but refined in data.".format(mi1)
-                                file_mask_p[ifile] = 1
-                                file_mask_g[ifile] = 0
-                                break
-                            # Ghost zones
-                            if not file_mask_p[ifile] and not file_mask_g[ifile]:
-                                if cmask_g._isref(mi1):
-                                    it_mi1_g = mask_g.find(mi1)
-                                    if (it_mi1_g == mask_g.end()):
-                                        raise RuntimeError("Refinement indicated in ghost zones, but bool array for mi1 = {} not found".format(mi1))
-                                    refined_g = dereference(it_mi1_g).second
-                                    if refined_g.intersects(refined_d):
-                                        file_mask_g[ifile] = 1
-                                elif cmask_g._get(mi1):
-                                    # This shouldn't happen, the selector should always
-                                    # refine where the data is refined.
-                                    print "mi1 = {} coarsely selected by ghost, but refined in data.".format(mi1)
-                                    file_mask_g[ifile] = 1
-                        preincrement(it_mi1_d)
-        cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
-        cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
-        print "After: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
-        file_idx_p = np.where(file_mask_p)[0].astype('int32')
-        file_idx_g = np.where(file_mask_g)[0].astype('int32')
-        return file_idx_p, file_idx_g
+        return morton_selector.masks_to_files(cmask_s, cmask_g)
+        # Other version
+        # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
+        # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        # file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        # file_mask_g = np.zeros(self.nfiles, dtype="uint8")
+        # morton_selector.find_files(file_mask_p,file_mask_g)
+        # cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
+        # cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
+        # print "After: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
+        # file_idx_p = np.where(file_mask_p)[0].astype('int32')
+        # file_idx_g = np.where(file_mask_g)[0].astype('int32')
+        # return file_idx_p, file_idx_g
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -911,15 +842,18 @@ cdef class ParticleForestSelector:
     cdef SelectorObject selector
     cdef ParticleForest forest
     cdef np.uint32_t ngz
-    cdef bint flag_refined_ghosts
+    cdef bint flag_files
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef bint periodicity[3]
-    cdef np.int32_t order1
-    cdef np.int32_t order2
+    cdef np.uint32_t order1
+    cdef np.uint32_t order2
     cdef np.uint64_t max_index1
     cdef np.uint64_t max_index2
-    cdef void* pointers[9]
+    IF BoolType == "Bool":
+        cdef void* pointers[11]
+    ELSE:
+        cdef void* pointers[7]
     cdef np.uint64_t[:,:] ind1_n
     cdef np.uint64_t[:,:] ind2_n
     cdef np.uint32_t[:,:] neighbors
@@ -928,15 +862,23 @@ cdef class ParticleForestSelector:
     cdef np.uint32_t nfiles
     cdef np.uint8_t[:] file_mask_p
     cdef np.uint8_t[:] file_mask_g
-    # cdef SparseUnorderedBitmask coarse_select
-    # cdef SparseUnorderedBitmask coarse_ghosts
-    cdef SparseUnorderedRefinedBitmask refined_select
-    cdef SparseUnorderedRefinedBitmask refined_ghosts
-    cdef np.uint8_t[:] coarse_select_bool
-    cdef np.uint8_t[:] coarse_ghosts_bool
-    cdef bint flag_files
+    # Uncompressed boolean
+    IF BoolType == "Bool":
+        cdef np.uint8_t[:] coarse_select_bool
+        cdef np.uint8_t[:] coarse_ghosts_bool
+        cdef np.uint8_t[:] refined_select_bool
+        cdef np.uint8_t[:] refined_ghosts_bool
+        cdef SparseUnorderedRefinedBitmask refined_ghosts_list
+        cdef BoolArrayCollection select_ewah
+        cdef BoolArrayCollection ghosts_ewah
+    # Vectors
+    ELSE:
+        cdef SparseUnorderedBitmask coarse_select_list
+        cdef SparseUnorderedBitmask coarse_ghosts_list
+        cdef SparseUnorderedRefinedBitmask refined_select_list
+        cdef SparseUnorderedRefinedBitmask refined_ghosts_list
 
-    def __cinit__(self, selector, forest, ngz=0, flag_refined_ghosts=False):
+    def __cinit__(self, selector, forest, ngz=0):
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1] periodicity = np.zeros(3, dtype='uint8')
         cdef np.ndarray[np.float64_t, ndim=1] DLE = np.zeros(3, dtype='float64')
@@ -944,7 +886,7 @@ cdef class ParticleForestSelector:
         self.selector = selector
         self.forest = forest
         self.ngz = ngz
-        self.flag_refined_ghosts = flag_refined_ghosts
+        self.flag_files = 0
         # Things from the forest & selector
         periodicity = selector.get_periodicity()
         DLE = forest.get_DLE()
@@ -956,8 +898,6 @@ cdef class ParticleForestSelector:
         self.order1 = forest.index_order1
         self.order2 = forest.index_order2
         self.nfiles = forest.nfiles
-        cdef np.uint64_t s1 = (1<<(self.order1*3))
-        cdef np.uint64_t s2 = (1<<(self.order2*3))
         self.max_index1 = <np.uint64_t>(1 << self.order1)
         self.max_index2 = <np.uint64_t>(1 << self.order2)
         self.pointers[0] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
@@ -967,8 +907,6 @@ cdef class ParticleForestSelector:
         self.pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
         self.pointers[5] = malloc( sizeof(np.uint8_t) * forest.nfiles)
         self.pointers[6] = malloc( sizeof(np.uint8_t) * forest.nfiles)
-        self.pointers[7] = malloc( sizeof(np.uint8_t) * s1)
-        self.pointers[8] = malloc( sizeof(np.uint8_t) * s1)
         self.neighbors = <np.uint32_t[:2*ngz+1,:3]> self.pointers[0]
         self.ind1_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[1]
         self.ind2_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[2]
@@ -979,26 +917,42 @@ cdef class ParticleForestSelector:
         self.neighbors[:,:] = 0
         self.file_mask_p[:] = 0
         self.file_mask_g[:] = 0
-        # self.coarse_select = SparseUnorderedBitmask()
-        # self.coarse_ghosts = SparseUnorderedBitmask()
-        self.refined_select = SparseUnorderedRefinedBitmask()
-        self.refined_ghosts = SparseUnorderedRefinedBitmask()
-        self.coarse_select_bool = <np.uint8_t[:s1]> self.pointers[7]
-        self.coarse_ghosts_bool = <np.uint8_t[:s1]> self.pointers[8]
-        self.coarse_select_bool[:] = 0
-        self.coarse_ghosts_bool[:] = 0
-        self.flag_files = 0
+        # Uncompressed Boolean
+        IF BoolType == "Bool":
+            cdef np.uint64_t s1 = (1<<(self.order1*3))
+            cdef np.uint64_t s2 = (1<<(self.order2*3))
+            self.pointers[7] = malloc( sizeof(np.uint8_t) * s1)
+            self.pointers[8] = malloc( sizeof(np.uint8_t) * s1)
+            self.pointers[9] = malloc( sizeof(np.uint8_t) * s2)
+            self.pointers[10] = malloc( sizeof(np.uint8_t) * s2)
+            self.coarse_select_bool = <np.uint8_t[:s1]> self.pointers[7]
+            self.coarse_ghosts_bool = <np.uint8_t[:s1]> self.pointers[8]
+            self.refined_select_bool = <np.uint8_t[:s2]> self.pointers[9]
+            self.refined_ghosts_bool = <np.uint8_t[:s2]> self.pointers[10]
+            self.coarse_select_bool[:] = 0
+            self.coarse_ghosts_bool[:] = 0
+            self.refined_select_bool[:] = 0
+            self.refined_ghosts_bool[:] = 0
+            self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
+            self.select_ewah = BoolArrayCollection()
+            self.ghosts_ewah = BoolArrayCollection()
+        # Vectors
+        ELSE:
+            self.coarse_select_list = SparseUnorderedBitmask()
+            self.coarse_ghosts_list = SparseUnorderedBitmask()
+            self.refined_select_list = SparseUnorderedRefinedBitmask()
+            self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
 
     def __dealloc__(self):
         cdef int i
-        for i in range(9):
-            free(self.pointers[i])
+        IF BoolType == 'Bool':
+            for i in range(11):
+                free(self.pointers[i])
+        ELSE:
+            for i in range(7):
+                free(self.pointers[i])
 
     def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        # Variables for testing
-        cdef ewah_bool_array swap
-        cdef ewah_bool_array arr1
-        cdef ewah_bool_array arr2
         # Normal variables
         cdef int i
         cdef np.int32_t level = 0
@@ -1012,13 +966,43 @@ cdef class ParticleForestSelector:
         # Recurse
         self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
-        # self.set_coarse_list(mm_s, mm_g)
-        self.set_coarse_bool(mm_s, mm_g)
-        self.set_refined_list(mm_s, mm_g)
+        IF BoolType == 'Bool':
+            self.set_coarse_bool(mm_s, mm_g)
+            self.set_refined_list(mm_s, mm_g)
+            self.set_refined_bool(mm_s, mm_g)
+        ELSE:
+            self.set_coarse_list(mm_s, mm_g)
+            self.set_refined_list(mm_s, mm_g)
+        IF GhostsAfter == 1:
+            self.add_ghost_zones(mm_s, mm_g)
         # Print things
         if 0:
             mm_s.print_info("Selector: ")
             mm_g.print_info("Ghost   : ")
+
+    def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        cdef BoolArrayCollection mm_d
+        cdef np.int32_t ifile
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
+        # Compare with mask of particles
+        for ifile in range(self.nfiles):
+            # Only continue if the file is not already selected
+            if not file_mask_p[ifile]:
+                mm_d = self.forest.bitmasks[ifile]
+                if mm_d._intersects(mm_s):
+                    file_mask_p[ifile] = 1
+                    file_mask_g[ifile] = 0 # No intersection
+                elif mm_d._intersects(mm_g):
+                    file_mask_g[ifile] = 1
+        cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
+        cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
+        file_idx_p = np.where(file_mask_p)[0].astype('int32')
+        file_idx_g = np.where(file_mask_g)[0].astype('int32')
+        return file_idx_p, file_idx_g
+
 
     def find_files(self,
                    np.ndarray[np.uint8_t, ndim=1] file_mask_p,
@@ -1042,7 +1026,10 @@ cdef class ParticleForestSelector:
         # Fill with results 
         for i in range(self.nfiles):
             file_mask_p[i] = self.file_mask_p[i]
-            file_mask_g[i] = self.file_mask_g[i]
+            if file_mask_p[i]:
+                file_mask_g[i] = 0
+            else:
+                file_mask_g[i] = self.file_mask_g[i]
         self.flag_files = 0
 
     @cython.boundscheck(False)
@@ -1052,7 +1039,7 @@ cdef class ParticleForestSelector:
         cdef int i
         cdef BoolArrayCollection fmask
         if self.forest.collisions._isref(mi1):
-            if self.flag_files:
+            if self.flag_files == 1:
                 # Don't refine if files all selected already
                 for i in range(self.nfiles):
                     fmask = self.forest.bitmasks[i]
@@ -1071,18 +1058,25 @@ cdef class ParticleForestSelector:
         cdef int i
         cdef BoolArrayCollection fmask
         cdef bint flag_ref = self.is_refined(mi1)
-        #self.coarse_select._set(mi1)
-        self.coarse_select_bool[mi1] = 1
+        IF BoolType == 'Bool':
+            self.coarse_select_bool[mi1] = 1
+        ELSE:
+            self.coarse_select_list._set(mi1)
         # Flag files
-        if self.flag_files and not flag_ref:
+        if (self.flag_files == 1) and (flag_ref == 0):
             for i in range(self.nfiles):
-                fmask = self.forest.bitmasks[i]
-                if fmask._get_coarse(mi1):
-                    self.file_mask_p[i] = 1
+                if self.file_mask_p[i] == 0:
+                    fmask = self.forest.bitmasks[i]
+                    if fmask._get_coarse(mi1) == 1:
+                        self.file_mask_p[i] = 1
         # Neighbors
-        if not self.flag_refined_ghosts or not flag_ref:
-            if (self.ngz > 0):
-                self.add_neighbors_coarse(mi1)
+        IF GhostsAfter == 0:
+            IF RefinedGhosts == 0:
+                if (self.ngz > 0):
+                    self.add_neighbors_coarse(mi1)
+            ELSE:
+                if (self.ngz > 0) and (flag_ref == 0):
+                    self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1090,16 +1084,22 @@ cdef class ParticleForestSelector:
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
         cdef int i
         cdef BoolArrayCollection fmask
-        self.refined_select._set(mi1, mi2)
+        IF BoolType == 'Bool':
+            self.refined_select_bool[mi2] = 1
+        ELSE:
+            self.refined_select_list._set(mi1, mi2)
         # Flag files
-        if self.flag_files:
+        if self.flag_files == 1:
             for i in range(self.nfiles):
-                fmask = self.forest.bitmasks[i]
-                if fmask._get(mi1, mi2):
-                    self.file_mask_p[i] = 1
+                if self.file_mask_p[i] == 0:
+                    fmask = self.forest.bitmasks[i]
+                    if fmask._get(mi1, mi2) == 1:
+                        self.file_mask_p[i] = 1
         # Neighbors
-        if (self.ngz > 0):# and self.flag_refined_ghosts:
-            self.add_neighbors_refined(mi1, mi2)
+        IF GhostsAfter == 0:
+            IF RefinedGhosts == 1:
+                if (self.ngz > 0):
+                    self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1115,15 +1115,18 @@ cdef class ParticleForestSelector:
                                        self.ind1_n, self.neighbor_list1)
         for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
-            self.coarse_ghosts_bool[mi1_n] = 1
-            # self.coarse_ghosts._set(mi1_n)
-        if self.flag_files:
+            IF BoolType == 'Bool':
+                self.coarse_ghosts_bool[mi1_n] = 1
+            ELSE:
+                self.coarse_ghosts_list._set(mi1_n)
+        if self.flag_files == 1:
             for m in range(ntot):
                 mi1_n = self.neighbor_list1[m]
                 for i in range(self.nfiles):
-                    fmask = self.forest.bitmasks[i]
-                    if fmask._get_coarse(mi1_n):
-                        self.file_mask_g[i] = 1
+                    if self.file_mask_g[i] == 0:
+                        fmask = self.forest.bitmasks[i]
+                        if fmask._get_coarse(mi1_n) == 1:
+                            self.file_mask_g[i] = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1131,7 +1134,7 @@ cdef class ParticleForestSelector:
     cdef void add_neighbors_refined(self, np.uint64_t mi1, np.uint64_t mi2):
         cdef int i, m
         cdef np.uint32_t ntot
-        cdef np.uint64_t mi1_n
+        cdef np.uint64_t mi1_n, mi2_n
         cdef BoolArrayCollection fmask
         ntot = morton_neighbors_refined(mi1, mi2,
                                         self.max_index1, self.max_index2,
@@ -1140,74 +1143,126 @@ cdef class ParticleForestSelector:
                                         self.neighbor_list1, self.neighbor_list2)
         for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
-            mi2 = self.neighbor_list2[m]
-            # self.coarse_ghosts._set(mi1_n)
-            self.coarse_ghosts_bool[mi1_n] = 1
-            if self.flag_refined_ghosts:
-                self.refined_ghosts._set(mi1_n,mi2)
-        if self.flag_files:
+            mi2_n = self.neighbor_list2[m]
+            IF BoolType == 'Bool':
+                self.coarse_ghosts_bool[mi1_n] = 1
+                IF RefinedExternalGhosts == 1:
+                    if mi1_n == mi1:
+                        self.refined_ghosts_bool[mi2_n] = 1 
+                    else:
+                        self.refined_ghosts_list._set(mi1_n, mi2_n)
+                ELSE:
+                    if mi1_n == mi1:
+                        self.refined_ghosts_bool[mi2_n] = 1 
+                    elif self.is_refined(mi1_n) == 1: 
+                        self.refined_ghosts_list._set(mi1_n, mi2_n)
+            ELSE:
+                self.coarse_ghosts_list._set(mi1_n)
+                IF RefinedExternalGhosts == 1:
+                    self.refined_ghosts_list._set(mi1_n, mi2_n)
+                ELSE:
+                    if self.is_refined(mi1_n) == 1:
+                        self.refined_ghosts_list._set(mi1_n, mi2_n)
+        if self.flag_files == 1:
             for m in range(ntot):
                 mi1_n = self.neighbor_list1[m]
-                mi2 = self.neighbor_list2[m]
-                if self.is_refined(mi1_n):
+                mi2_n = self.neighbor_list2[m]
+                if self.is_refined(mi1_n) == 1:
                     for i in range(self.nfiles):
-                        fmask = self.forest.bitmasks[i]
-                        if fmask._get(mi1_n, mi2):
-                            self.file_mask_g[i] = 1
+                        if self.file_mask_g[i] == 0:
+                            fmask = self.forest.bitmasks[i]
+                            if fmask._get(mi1_n, mi2_n) == 1:
+                                self.file_mask_g[i] = 1
                 else:
                     for i in range(self.nfiles):
-                        fmask = self.forest.bitmasks[i]
-                        if fmask._get_coarse(mi1_n):
-                            self.file_mask_g[i] = 1
+                        if self.file_mask_g[i] == 0:
+                            fmask = self.forest.bitmasks[i]
+                            if fmask._get_coarse(mi1_n) == 1:
+                                self.file_mask_g[i] = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_coarse_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        self.coarse_select._fill_ewah(mm_s)
-        self.coarse_ghosts._fill_ewah(mm_g)
-        # cdef int i
-        # cdef np.ndarray[np.uint64_t, ndim=1] marr_s
-        # cdef np.ndarray[np.uint64_t, ndim=1] marr_g
-        # marr_s = self.coarse_select.to_array()
-        # marr_g = self.coarse_ghosts.to_array()
-        # for i in range(marr_s.shape[0]):
-        #     mm_s._set_coarse(<np.uint64_t>marr_s[i])
-        # for i in range(marr_g.shape[0]):
-        #     mm_g._set_coarse(<np.uint64_t>marr_g[i])
+        self.coarse_select_list._fill_ewah(mm_s)
+        IF GhostsAfter == 0:
+            self.coarse_ghosts_list._fill_ewah(mm_g)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void set_refined_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        IF BoolType != 'Bool':
+            self.refined_select_list._fill_ewah(mm_s)
+        IF GhostsAfter == 0:
+            self.refined_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_coarse_bool(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         cdef np.uint64_t mi1
-        for mi1 in range(self.coarse_select_bool.shape[0]):
-            if self.coarse_select_bool[mi1]:
-                mm_s._set_coarse(mi1)
-        for mi1 in range(self.coarse_ghosts_bool.shape[0]):
-            if self.coarse_ghosts_bool[mi1]:
-                mm_g._set_coarse(mi1)
+        mm_s._set_coarse_array(self.coarse_select_bool)
+        self.coarse_select_bool[:] = 0
+        IF GhostsAfter == 0:
+            mm_g._set_coarse_array(self.coarse_ghosts_bool)
+            self.coarse_ghosts_bool[:] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void set_refined_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        self.refined_select._fill_ewah(mm_s)
-        self.refined_ghosts._fill_ewah(mm_g)
-        # cdef int i
-        # cdef np.uint64_t mi1
-        # cdef np.ndarray[np.uint64_t, ndim=2] marr_s
-        # cdef np.ndarray[np.uint64_t, ndim=2] marr_g
-        # marr_s = self.refined_select.to_array()
-        # marr_g = self.refined_ghosts.to_array()
-        # # for mi1 in np.unique(marr_s[:,0]):
-        # #     mm_s._set_refn(mi1)
-        # # for mi1 in np.unique(marr_g[:,0]):
-        # #     mm_g._set_refn(mi1)
-        # for i in range(marr_s.shape[0]):
-        #     mm_s._set_refined(marr_s[i,0], marr_s[i,1])
-        # for i in range(marr_g.shape[0]):
-        #     mm_g._set_refined(marr_g[i,0], marr_g[i,1])
+    cdef void set_refined_bool(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        mm_s._append(self.select_ewah)
+        IF GhostsAfter == 0:
+            mm_g._append(self.ghosts_ewah)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void push_refined_bool(self, np.uint64_t mi1):
+        cdef np.uint64_t mi2
+        self.select_ewah._set_refined_array(mi1, self.refined_select_bool)
+        self.refined_select_bool[:] = 0
+        IF GhostsAfter == 0:
+            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+            self.refined_ghosts_bool[:] = 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void add_ghost_zones(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+        cdef np.uint64_t s1 = (1<<(self.order1*3))
+        cdef np.uint64_t s2 = (1<<(self.order2*3))
+        # Get ghost zones, unordered
+        for mi1 in range(s1):
+            if mm_s._get_coarse(mi1):
+                IF RefinedGhosts:
+                    if self.is_refined(mi1):
+                        for mi2 in range(s2):
+                            if mm_s._get(mi1, mi2):
+                                self.add_neighbors_refined(mi1, mi2)
+                        IF BoolType == 'Bool':
+                            # self.push_refined_bool(mi1)
+                            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+                            self.refined_ghosts_bool[:] = 0
+                    else:
+                        self.add_neighbors_coarse(mi1)
+                ELSE:
+                    self.add_neighbors_coarse(mi1)
+        # Add ghost zones to bool array in order
+        IF BoolType == 'Bool':
+            mm_g._set_coarse_array(self.coarse_ghosts_bool)
+            self.coarse_ghosts_bool[:] = 0
+            # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
+            self.refined_ghosts_list._fill_ewah(mm_g)
+            # print("Before refined bool: {: 6d}".format(mm_g._count_refined()))
+            # print("Bool to be appended: {: 6d}".format(self.ghosts_ewah._count_refined()))
+            mm_g._append(self.ghosts_ewah)
+            # print("After             :  {: 6d}".format(mm_g._count_refined()))
+        ELSE:
+            self.coarse_ghosts_list._fill_ewah(mm_g)
+            self.refined_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1227,10 +1282,11 @@ cdef class ParticleForestSelector:
             ndds[i] = dds[i]/2
         nlevel = level + 1
         # Clean up
-        # self.coarse_select._prune()
-        # self.coarse_ghosts._prune()
-        self.refined_select._prune()
-        self.refined_ghosts._prune()
+        IF BoolType == 'Vector':
+            self.coarse_select_list._prune()
+            self.coarse_ghosts_list._prune()
+            self.refined_select_list._prune()
+            self.refined_ghosts_list._prune()
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -1250,6 +1306,8 @@ cdef class ParticleForestSelector:
                         if self.is_refined(mi1):
                             self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                         self.add_coarse(mi1)
+                        IF BoolType == 'Bool':
+                            self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
                         self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == (self.order1 + self.order2):
