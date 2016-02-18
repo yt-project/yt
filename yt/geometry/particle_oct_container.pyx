@@ -343,7 +343,7 @@ cdef class ParticleForest:
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
-    cdef public list bitmasks
+    cdef BoolArrayCollection[:] bitmasks
     cdef public BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
@@ -374,9 +374,10 @@ cdef class ParticleForest:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
-        self.bitmasks = nfiles*[None]
-        for i in range(nfiles):
-            self.bitmasks[i] = BoolArrayCollection()
+        cdef np.ndarray[object, ndim=1] bitmasks
+        bitmasks = np.array([BoolArrayCollection() for i in range(nfiles)],
+                            dtype="object")
+        self.bitmasks = bitmasks
         self.collisions = BoolArrayCollection()
 
     @cython.boundscheck(False)
@@ -422,6 +423,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
@@ -488,6 +490,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def find_collisions(self):
         self.find_collisions_coarse()
         self.find_collisions_refined()
@@ -495,6 +498,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def find_collisions_coarse(self):
         # TODO: count collisions at second level
         cdef int nc, nm
@@ -521,6 +525,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def find_collisions_refined(self):
         cdef np.int32_t ifile, nc, nm
         cdef BoolArrayCollection bitmask
@@ -1035,6 +1040,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef bint is_refined(self, np.uint64_t mi1):
         cdef int i
         cdef BoolArrayCollection fmask
@@ -1054,6 +1060,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void add_coarse(self, np.uint64_t mi1):
         cdef int i
         cdef BoolArrayCollection fmask
@@ -1081,6 +1088,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
         cdef int i
         cdef BoolArrayCollection fmask
@@ -1104,6 +1112,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void add_neighbors_coarse(self, np.uint64_t mi1):
         cdef int i, m
         cdef np.uint32_t ntot
@@ -1131,6 +1140,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void add_neighbors_refined(self, np.uint64_t mi1, np.uint64_t mi2):
         cdef int i, m
         cdef np.uint32_t ntot
