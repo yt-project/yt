@@ -1,5 +1,4 @@
 cimport numpy as np
-from libcpp.map cimport map
 
 cdef class BoolArrayCollection:
     cdef void* ewah_coll
