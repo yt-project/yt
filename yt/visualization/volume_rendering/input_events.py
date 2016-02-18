@@ -168,31 +168,45 @@ def cmap_cycle(event_coll, event):
 
 @register_event("cmap_max_up")
 def cmap_max_up(event_coll, event):
-    return _cmap_adjust(event_coll.camera, True, 2.0)
+    if event_coll.camera.cmap_log:
+        event_coll.camera.cmap_max += 0.5
+    else:
+        event_coll.camera.cmap_max *= 2.0
+    return True
 
 @register_event("cmap_max_down")
 def cmap_max_down(event_coll, event):
-    return _cmap_adjust(event_coll.camera, True, 0.5)
+    if event_coll.camera.cmap_log:
+        event_coll.camera.cmap_max -= 0.5
+    else:
+        event_coll.camera.cmap_max *= 0.5
+    return True
 
 @register_event("cmap_min_up")
 def cmap_min_up(event_coll, event):
-    return _cmap_adjust(event_coll.camera, False, 2.0)
+    if event_coll.camera.cmap_log:
+        event_coll.camera.cmap_min += 0.5
+    else:
+        event_coll.camera.cmap_min *= 2.0
+    return True
 
 @register_event("cmap_min_down")
 def cmap_min_down(event_coll, event):
-    return _cmap_adjust(event_coll.camera, False, 0.5)
+    if event_coll.camera.cmap_log:
+        event_coll.camera.cmap_min -= 0.5
+    else:
+        event_coll.camera.cmap_min *= 0.5
+    return True
 
 @register_event("cmap_toggle_log")
 def cmap_toggle_log(event_coll, event):
-    event_coll.camera.cmap_log = not event_coll.camera.cmap_log
-    return True
-
-def _cmap_adjust(camera, upper, factor):
-    if upper:
-        camera.cmap_max *= factor
+    if not event_coll.camera.cmap_log:
+        event_coll.camera.cmap_max = np.log10(event_coll.camera.cmap_max)
+        event_coll.camera.cmap_min = np.log10(event_coll.camera.cmap_min)
     else:
-        camera.cmap_min *= factor
-    print("cmap limits: ", camera.cmap_min, camera.cmap_max)
+        event_coll.camera.cmap_max = 10.0 ** event_coll.camera.cmap_max
+        event_coll.camera.cmap_min = 10.0 ** event_coll.camera.cmap_min
+    event_coll.camera.cmap_log = not event_coll.camera.cmap_log
     return True
 
 @register_event("closeup")
@@ -207,8 +221,8 @@ def reset(event_coll, event):
 
 @register_event("print_limits")
 def print_limits(event_coll, event):
-    print event_coll.scene.min_val,
-    print event_coll.scene.max_val
+    print event_coll.scene.min_val, event_coll.scene.max_val
+    print event_coll.camera.cmap_min, event_coll.camera.cmap_max, event_coll.camera.cmap_log
     return False
 
 @register_event("debug_buffer")

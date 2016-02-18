@@ -115,7 +115,8 @@ class TrackballCamera(object):
                  position=(0.0, 0.0, 1.0),
                  focus=(0.0, 0.0, 0.0),
                  up=(0.0, 1.0, 0.0),
-                 fov=45.0, near_plane=0.01, far_plane=20.0, aspect_ratio=8.0/6.0):
+                 fov=45.0, near_plane=0.01, far_plane=20.0,
+                 aspect_ratio=8.0/6.0):
         self.view_matrix = np.zeros((4, 4), dtype=np.float32)
         self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
         self.proj_func = get_perspective_matrix
@@ -128,8 +129,8 @@ class TrackballCamera(object):
         self.up = np.array(up)
         cmap = cm.get_cmap("algae")
         self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
-        self.cmap_min = 1e-6
-        self.cmap_max = 1.0
+        self.cmap_min = 1e55
+        self.cmap_max = -1e55
         self.cmap_log = True
         self.cmap_new = True
 
@@ -196,6 +197,12 @@ class TrackballCamera(object):
     def get_projection_matrix(self):
         return self.projection_matrix
 
+
+    def update_cmap_minmax(self, minval, maxval, iflog):
+        self.cmap_log = iflog
+        self.cmap_min = minval
+        self.cmap_max = maxval
+        print("CMAP updated to: ", self.cmap_min, self.cmap_max, self.cmap_log)
 
 class Camera:
     def __init__(self, position = (0, 0, 0), fov = 60.0, near_plane = 0.01,
@@ -443,6 +450,7 @@ class BlockCollection:
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
+            print n_data.min(), n_data.max()
             GL.glBindTexture(GL.GL_TEXTURE_3D, texture_name)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
@@ -464,8 +472,8 @@ class SceneGraph:
         self.camera = None
         self.shader_program = None
         self.min_val, self.max_val = 1e60, -1e60
-        self.cmap_log = True
         self.diagonal = 0.0
+        self.data_logged = True
 
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
         self.width = width
@@ -595,12 +603,21 @@ class SceneGraph:
         self.update_minmax()
 
     def update_minmax(self):
+        print("update_minmax ->")
         self.min_val, self.max_val, self.diagonal = 1e60, -1e60, -1e60
+        self.data_logged = False
+
         for collection in self.collections:
             self.min_val = min(self.min_val, collection.min_val)
             self.max_val = max(self.max_val, collection.max_val)
             # doesn't make sense for multiple collections
             self.diagonal = max(self.diagonal, collection.diagonal)
+            self.data_logged = self.data_logged or collection.data_logged
+
+        if self.camera is not None:
+            self.camera.update_cmap_minmax(self.min_val, self.max_val,
+                                           self.data_logged)
+
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.

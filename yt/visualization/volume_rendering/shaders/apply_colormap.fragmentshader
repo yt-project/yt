@@ -19,8 +19,6 @@ void main(){
 
    if (cmap_log > 0.5) {
       scaled = log(scaled) / log(10.f);
-      cm = log(cm) / log(10.f);
-      cp = log(cp) / log(10.f);
    }
    color = texture(cmap, (scaled - cm) / (cp - cm));
 }
