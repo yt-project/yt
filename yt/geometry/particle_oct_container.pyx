@@ -54,7 +54,7 @@ DEF RefinedGhosts = 1
 # coarse cell containing it is refined in the selector.
 # If set to 0, ghost cells are only added at the refined level if the coarse index 
 # for the ghost cell is refined in the selector.
-DEF RefinedExternalGhosts = 1
+DEF RefinedExternalGhosts = 0
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -1044,7 +1044,7 @@ cdef class ParticleForestSelector:
             # Don't refine if files all selected already
             for i in range(self.nfiles):
                 if self.file_mask_p[i] == 0:
-                    fmask = self.forest.bitmasks[i]
+                    fmask = <BoolArrayCollection>self.forest.bitmasks[i]
                     if fmask._isref(mi1) == 1:
                         return 1
             return 0
