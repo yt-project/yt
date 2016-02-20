@@ -75,7 +75,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
 
     if(t > 1.0e-10 and t < ray.t_far):
         ray.t_far = t
-        ray.data_val = 1.0
+        ray.data_val = (1.0 - u - v)*tri.d0 + u*tri.d1 + v*tri.d2
         ray.elem_id = tri.elem_id
         return True
 
@@ -120,7 +120,8 @@ cdef class BVH:
     @cython.cdivision(True)
     def __init__(self,
                  np.float64_t[:, ::1] vertices,
-                 np.int64_t[:, ::1] indices):
+                 np.int64_t[:, ::1] indices,
+                 np.float64_t[:, ::1] field_data):
         
         self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
@@ -141,6 +142,9 @@ cdef class BVH:
                 v0 = indices[i][triangulate_hex[j][0]]
                 v1 = indices[i][triangulate_hex[j][1]]
                 v2 = indices[i][triangulate_hex[j][2]]
+                tri.d0 = field_data[i][triangulate_hex[j][0]]
+                tri.d1 = field_data[i][triangulate_hex[j][1]]
+                tri.d2 = field_data[i][triangulate_hex[j][2]]
                 for k in range(3):
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]

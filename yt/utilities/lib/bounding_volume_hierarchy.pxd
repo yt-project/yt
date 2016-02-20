@@ -30,6 +30,7 @@ cdef struct Triangle:
     np.float64_t p0[3]
     np.float64_t p1[3]
     np.float64_t p2[3]
+    np.float64_t d0, d1, d2
     np.int64_t elem_id
     np.float64_t centroid[3]
     BBox bbox

@@ -31,7 +31,10 @@ def test_bounding_volume_hierarchy():
     vertices = ds.index.meshes[0].connectivity_coords
     indices  = ds.index.meshes[0].connectivity_indices - 1
 
-    bvh = BVH(vertices, indices)
+    ad = ds.all_data()
+    field_data = ad['connect1', 'diffused']
+
+    bvh = BVH(vertices, indices, field_data)
 
     cam = Camera()
     cam.set_position(np.array([8.0, 8.0, 8.0]))
