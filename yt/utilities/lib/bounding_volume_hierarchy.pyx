@@ -3,6 +3,7 @@ import numpy as np
 cimport numpy as np
 from libc.math cimport fabs, fmax, fmin
 from libc.stdlib cimport malloc, free
+from cython.parallel import parallel, prange
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -271,21 +272,27 @@ cdef void cast_rays(np.float64_t* image,
                     const int N, 
                     BVH bvh) nogil:
 
-    cdef Ray ray
-    cdef int i, j, offset
+    cdef Ray* ray 
+    cdef int i, j, k
     
-    for i in range(3):
-        ray.direction[i] = direction[i]
-        ray.inv_dir[i] = 1.0 / direction[i]      
-   
-    for i in range(N):
-        for j in range(3):
-            ray.origin[j] = origins[N*j + i]
-        ray.t_far = 1e30
-        ray.t_near = 0.0
-        ray.data_val = 0
-        bvh.intersect(&ray)
-        image[i] = ray.data_val
+    with nogil, parallel():
+       
+        ray = <Ray *> malloc(sizeof(Ray))
+    
+        for k in range(3):
+            ray.direction[k] = direction[k]
+            ray.inv_dir[k] = 1.0 / direction[k]
+
+        for i in prange(N):
+            for j in range(3):
+                ray.origin[j] = origins[N*j + i]
+            ray.t_far = 1e30
+            ray.t_near = 0.0
+            ray.data_val = 0
+            bvh.intersect(ray)
+            image[i] = ray.data_val
+
+        free(ray)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

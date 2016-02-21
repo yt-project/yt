@@ -124,6 +124,8 @@ cython_extensions = [
               libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"]),
     Extension("yt.utilities.lib.bounding_volume_hierarchy",
               ["yt/utilities/lib/bounding_volume_hierarchy.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
               libraries=["m"], depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd"]),
     Extension("yt.utilities.lib.contour_finding",
               ["yt/utilities/lib/contour_finding.pyx"],
