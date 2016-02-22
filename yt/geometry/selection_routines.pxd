@@ -53,6 +53,8 @@ cdef class SelectorObject:
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3], 
                                 np.float64_t dds[3], int dim[3],

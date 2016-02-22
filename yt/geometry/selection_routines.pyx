@@ -354,6 +354,10 @@ cdef class SelectorObject:
                                np.float64_t right_edge[3]) nogil:
         return 0
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return 0
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -780,6 +784,23 @@ cdef class PointSelector(SelectorObject):
         else:
             return 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # point definitely can only be in one cell
+        if (left_edge[0] <= self.p[0] <= right_edge[0] and
+            left_edge[1] <= self.p[1] <= right_edge[1] and
+            left_edge[2] <= self.p[2] <= right_edge[2]):
+            if ((left_edge[0] == self.p[0]) or (self.p[0] == right_edge[0]) or
+                (left_edge[1] == self.p[1]) or (self.p[1] == right_edge[1]) or
+                (left_edge[2] == self.p[2]) or (self.p[2] == right_edge[2])):
+                return 2
+            return 1
+        else:
+            return 0
+
     def _hash_vals(self):
         return (("p[0]", self.p[0]),
                 ("p[1]", self.p[1]),
@@ -891,6 +912,46 @@ cdef class SphereSelector(SelectorObject):
             dist += closest*closest
             if dist > self.radius2: return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef np.float64_t box_center, relcenter, closest, farthest, cdist, fdist, edge
+        cdef int i
+        if (left_edge[0] <= self.center[0] < right_edge[0] and
+            left_edge[1] <= self.center[1] < right_edge[1] and
+            left_edge[2] <= self.center[2] < right_edge[2]):
+            fdist = 0
+            for i in range(3):
+                fdist += max(self.center[i] - left_edge[i],
+                             right_edge[i] - self.center[i])**2
+                if fdist >= self.radius2:
+                    return 2
+            return 1
+        for i in range(3):
+            if not self.check_box[i]: continue
+            if right_edge[i] < self.bbox[i][0] or \
+               left_edge[i] > self.bbox[i][1]:
+                return 0
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        cdist = 0
+        fdist = 0
+        for i in range(3):
+            # Early terminate
+            edge = right_edge[i] - left_edge[i]
+            box_center = edge/2.0
+            relcenter = self.difference(box_center, self.center[i], i)
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
+            cdist += closest*closest
+            fdist += farthest*farthest
+            if cdist > self.radius2: return 0
+        if fdist < self.radius2:
+            return 2
+        else:
+            return 1
 
     def _hash_vals(self):
         return (("radius", self.radius),

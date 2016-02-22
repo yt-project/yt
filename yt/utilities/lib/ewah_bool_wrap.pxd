@@ -27,11 +27,33 @@ cdef class BoolArrayCollection:
     cdef bytes _dumps(self)
     cdef void _loads(self, bytes s)
 
+cdef class BoolArrayCollectionUncompressed:
+    cdef int nele
+    cdef void* ewah_coll
+    cdef void* ewah_keys
+    cdef void* ewah_refn
+
+    cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
+    cdef void _set_coarse(self, np.uint64_t i1)
+    cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2)
+    cdef void _set_coarse_array(self, np.uint8_t[:] arr)
+    cdef void _set_refined_array(self, np.uint64_t mi1, np.uint8_t[:] arr)
+    cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2)
+    cdef void _set_refn(self, np.uint64_t i1)
+    cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)
+    cdef bint _get_coarse(self, np.uint64_t i1)
+    cdef bint _isref(self, np.uint64_t i)
+    cdef int _count_total(self)
+    cdef int _count_refined(self)
+    cdef void _append(self, BoolArrayCollectionUncompressed solf)
+    cdef bint _intersects(self, BoolArrayCollectionUncompressed solf)
+
 cdef class SparseUnorderedBitmaskSet:
     cdef void* entries
     cdef void _set(self, np.uint64_t ind)
     cdef void _fill(self, np.uint8_t[:] mask)
     cdef void _fill_ewah(self, BoolArrayCollection mm)
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm)
     cdef void _reset(self)
     cdef to_array(self)
 
@@ -41,6 +63,7 @@ cdef class SparseUnorderedBitmaskVector:
     cdef void _set(self, np.uint64_t ind)
     cdef void _fill(self, np.uint8_t[:] mask)
     cdef void _fill_ewah(self, BoolArrayCollection mm)
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm)
     cdef void _reset(self)
     cdef to_array(self)
     cdef void _remove_duplicates(self)
@@ -51,6 +74,7 @@ cdef class SparseUnorderedRefinedBitmaskSet:
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
     cdef void _fill_ewah(self, BoolArrayCollection mm)
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm)
     cdef void _reset(self)
     cdef to_array(self)
 
@@ -60,6 +84,7 @@ cdef class SparseUnorderedRefinedBitmaskVector:
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
     cdef void _fill_ewah(self, BoolArrayCollection mm)
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm)
     cdef void _reset(self)
     cdef to_array(self)
     cdef void _remove_duplicates(self)

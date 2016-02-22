@@ -18,6 +18,7 @@ from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.set cimport set as cset
 from libcpp.algorithm cimport sort
+from libc.stdlib cimport malloc, free, qsort
 from yt.utilities.lib.ewah_bool_array cimport \
     ewah_map, ewah_bool_array, sstream
 from cython.operator cimport dereference, preincrement
@@ -29,11 +30,6 @@ cdef extern from "<algorithm>" namespace "std" nogil:
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
-
-# cdef class BoolArrayCollectionMap:
-
-#     def __cinit__(self):
-#         cdef map[np.uint32,BoolArrayCollection] *bool_map = 
 
 cdef class BoolArrayCollection:
 
@@ -378,6 +374,198 @@ cdef class BoolArrayCollection:
                                                                      self._count_refined(),
                                                                      self._count_total()))
 
+cdef class BoolArrayCollectionUncompressed:
+
+    def __cinit__(self, np.uint64_t nele):
+        self.nele = <int>nele
+        self.ewah_keys = malloc(sizeof(np.uint8_t)*nele)
+        self.ewah_refn = malloc(sizeof(np.uint8_t)*nele)
+        cdef ewah_map *ewah_coll = new ewah_map()
+        self.ewah_coll = <void *> ewah_coll
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:nele]>self.ewah_refn
+        cdef np.uint64_t i
+        for i in range(nele):
+            ewah_keys[i] = 0
+            ewah_refn[i] = 0
+
+    def compress(self, BoolArrayCollection solf):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> solf.ewah_refn
+        cdef np.uint8_t[:] bool_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] bool_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef np.uint64_t i
+        for i in range(bool_keys.size):
+            if bool_keys[i] == 1:
+                ewah_keys[0].set(i)
+            if bool_refn[i] == 1:
+                ewah_refn[0].set(i)
+        solf.ewah_coll = <void *> self.ewah_coll
+        return solf
+
+    cdef void _set(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        ewah_keys[i1] = 1
+        # Note the 0 here, for dereferencing
+        if i2 != FLAG:
+            ewah_refn[i1] = 1
+            ewah_coll[0][i1].set(i2)
+
+    cdef void _set_coarse(self, np.uint64_t i1):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        ewah_keys[i1] = 1
+
+    cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2):
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        # Note the 0 here, for dereferencing
+        ewah_refn[i1] = 1
+        ewah_coll[0][i1].set(i2)
+
+    cdef void _set_coarse_array(self, np.uint8_t[:] arr):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint64_t i1
+        for i1 in range(arr.shape[0]):
+            if arr[i1] == 1:
+                ewah_keys[i1] = 1
+
+    cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        cdef np.uint64_t i2
+        for i2 in range(arr.shape[0]):
+            if arr[i2] == 1:
+                ewah_refn[i1] = 1
+                ewah_coll[0][i1].set(i2)
+
+    cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2):
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        ewah_coll[0][i1].set(i2)
+
+    cdef void _set_refn(self, np.uint64_t i1):
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        ewah_refn[i1] = 1
+
+    cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        # Note the 0 here, for dereferencing
+        if ewah_keys[i1] == 0: return 0
+        if (ewah_refn[i1] == 0) or (i2 == FLAG): 
+            return 1
+        return ewah_coll[0][i1].get(i2)
+
+    cdef bint _get_coarse(self, np.uint64_t i1):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        if (ewah_keys[i1] == 0): return 0
+        return 1
+
+    cdef bint _isref(self, np.uint64_t i):
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        return <bint>ewah_refn[i]
+
+    cdef int _count_total(self):
+        cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint64_t i
+        cdef int out = 0
+        for i in range(ewah_keys.size):
+            out += ewah_keys[i]
+        return out
+
+    cdef int _count_refined(self):
+        cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef np.uint64_t i
+        cdef int out = 0
+        for i in range(ewah_refn.size):
+            out += ewah_refn[i]
+        return out
+
+    cdef void _append(self, BoolArrayCollectionUncompressed solf):
+        cdef np.uint8_t[:] ewah_keys1 = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn1 = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef np.uint8_t[:] ewah_keys2 = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn2 = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t nrefn, mi1
+        # Keys
+        for mi1 in range(ewah_keys2.size):
+            if ewah_keys2[mi1] == 1:
+                ewah_keys1[mi1] = 1
+        # Refined
+        for mi1 in range(ewah_refn2.size):
+            if ewah_refn2[mi1] == 1:
+                ewah_refn1[mi1] = 1
+        # Map
+        it_map2 = ewah_coll2[0].begin()
+        while it_map2 != ewah_coll2[0].end():
+            mi1 = dereference(it_map2).first
+            mi1_ewah2 = dereference(it_map2).second
+            it_map1 = ewah_coll1[0].find(mi1)
+            if it_map1 == ewah_coll1[0].end():
+                ewah_coll1[0][mi1] = mi1_ewah2
+            else:
+                mi1_ewah1 = dereference(it_map1).second
+                mi1_ewah1.logicalor(mi1_ewah2, swap)
+                mi1_ewah1.swap(swap)
+            preincrement(it_map2)
+
+    cdef bint _intersects(self, BoolArrayCollectionUncompressed solf):
+        cdef np.uint8_t[:] ewah_keys1 = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn1 = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef np.uint8_t[:] ewah_keys2 = <np.uint8_t[:self.nele]>self.ewah_keys
+        cdef np.uint8_t[:] ewah_refn2 = <np.uint8_t[:self.nele]>self.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t mi1
+        # No intersection
+        for mi1 in range(ewah_keys1.size):
+            if (ewah_keys1[mi1] == 1) and (ewah_keys2[mi1] == 1):
+                break
+        if (mi1 < ewah_keys1.size):
+            return 0
+        # Intersection at refined level
+        for mi1 in range(ewah_refn1.size):
+            if (ewah_refn1[mi1] == 1) and (ewah_refn2[mi1] == 1):
+                it_map1 = ewah_coll1[0].begin()
+                while (it_map1 != ewah_coll1[0].end()):
+                    mi1 = dereference(it_map1).first
+                    it_map2 = ewah_coll2[0].find(mi1)
+                    if it_map2 != ewah_coll2[0].end():
+                        mi1_ewah1 = dereference(it_map1).second
+                        mi1_ewah2 = dereference(it_map2).second
+                        if mi1_ewah1.intersects(mi1_ewah2):
+                            return 1
+                    preincrement(it_map1)
+                break
+        # Intersection at coarse level or refined inside coarse
+        if mi1 == ewah_refn1.size:
+            return 1
+        return 0
+
+    def __dealloc__(self):
+        cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
+        free(self.ewah_keys)
+        free(self.ewah_refn)
+        del ewah_coll
+
+    def print_info(self, prefix=''):
+        cdef int nrefn = self._count_refined()
+        cdef int nkeys = self._count_total()
+        print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
+                                                                     nkeys - nrefn,
+                                                                     nrefn,
+                                                                     nkeys))
+
+    
+
 # Vector version
 cdef class SparseUnorderedBitmaskVector:
     def __cinit__(self):
@@ -401,6 +589,14 @@ cdef class SparseUnorderedBitmaskVector:
             mask[ind] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
+        self._remove_duplicates()
+        cdef np.uint64_t i, ind
+        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
+        for i in range(entries[0].size()):
+            ind = entries[0][i]
+            mm._set_coarse(ind)
+
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
         cdef np.uint64_t i, ind
         cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
@@ -471,6 +667,16 @@ cdef class SparseUnorderedBitmaskSet:
             mm._set_coarse(ind)
             preincrement(it)
 
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
+        cdef np.uint64_t ind
+        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
+        cdef cset[np.uint64_t].iterator it
+        it = entries[0].begin()
+        while it != entries[0].end():
+            ind = dereference(it)
+            mm._set_coarse(ind)
+            preincrement(it)
+
     cdef void _reset(self):
         cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
         entries[0].clear()
@@ -526,6 +732,18 @@ cdef class SparseUnorderedRefinedBitmaskVector:
             preincrement(it)
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
+        self._remove_duplicates()
+        cdef np.uint64_t mi1, mi2
+        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        it = entries[0].begin()
+        while it != entries[0].end():
+            mi1 = dereference(it).first
+            mi2 = dereference(it).second
+            mm._set_refined(mi1, mi2)
+            preincrement(it)
+
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
         cdef np.uint64_t mi1, mi2
         cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
@@ -624,6 +842,17 @@ cdef class SparseUnorderedRefinedBitmaskSet:
             preincrement(it)
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
+        cdef np.uint64_t mi1, mi2
+        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+        it = entries[0].begin()
+        while it != entries[0].end():
+            mi1 = dereference(it).first
+            mi2 = dereference(it).second
+            mm._set_refined(mi1, mi2)
+            preincrement(it)
+
+    cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         cdef np.uint64_t mi1, mi2
         cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
         cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it

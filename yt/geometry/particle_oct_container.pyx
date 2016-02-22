@@ -54,7 +54,9 @@ DEF RefinedGhosts = 1
 # coarse cell containing it is refined in the selector.
 # If set to 0, ghost cells are only added at the refined level if the coarse index 
 # for the ghost cell is refined in the selector.
-DEF RefinedExternalGhosts = 0
+DEF RefinedExternalGhosts = 1
+# If set to 1, bitmaps are only compressed before looking for files
+DEF UseUncompressed = 1
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -62,6 +64,11 @@ IF BoolType == 'Vector':
 ELSE:
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
+
+IF UseUncompressed == 1:
+    from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
+ELSE:
+    from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection as BoolArrayColl
 
 
 cdef class ParticleOctreeContainer(OctreeContainer):
@@ -873,8 +880,8 @@ cdef class ParticleForestSelector:
         cdef np.uint8_t[:] refined_select_bool
         cdef np.uint8_t[:] refined_ghosts_bool
         cdef SparseUnorderedRefinedBitmask refined_ghosts_list
-        cdef BoolArrayCollection select_ewah
-        cdef BoolArrayCollection ghosts_ewah
+        cdef BoolArrayColl select_ewah
+        cdef BoolArrayColl ghosts_ewah
     # Vectors
     ELSE:
         cdef SparseUnorderedBitmask coarse_select_list
@@ -966,22 +973,33 @@ cdef class ParticleForestSelector:
         for i in range(3):
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
+        # Uncompressed version
+        IF UseUncompressed:
+            mm_s0 = BoolArrayColl
+            mm_g0 = BoolArrayColl
+        ELSE:
+            mm_s0 = mm_s
+            mm_g0 = mm_g
         # Recurse
         self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
         IF BoolType == 'Bool':
-            self.set_coarse_bool(mm_s, mm_g)
-            self.set_refined_list(mm_s, mm_g)
-            self.set_refined_bool(mm_s, mm_g)
+            self.set_coarse_bool(mm_s0, mm_g0)
+            self.set_refined_list(mm_s0, mm_g0)
+            self.set_refined_bool(mm_s0, mm_g0)
         ELSE:
-            self.set_coarse_list(mm_s, mm_g)
-            self.set_refined_list(mm_s, mm_g)
+            self.set_coarse_list(mm_s0, mm_g0)
+            self.set_refined_list(mm_s0, mm_g0)
         IF GhostsAfter == 1:
-            self.add_ghost_zones(mm_s, mm_g)
+            self.add_ghost_zones(mm_s0, mm_g0)
         # Print things
         if 0:
-            mm_s.print_info("Selector: ")
-            mm_g.print_info("Ghost   : ")
+            mm_s0.print_info("Selector: ")
+            mm_g0.print_info("Ghost   : ")
+        # Compress
+        IF UseUncompressed:
+            mm_s0.compress(mm_s)
+            mm_g0.compress(mm_g)
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         cdef BoolArrayCollection mm_d
@@ -1061,7 +1079,7 @@ cdef class ParticleForestSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef void add_coarse(self, np.uint64_t mi1):
+    cdef void add_coarse(self, np.uint64_t mi1, int bbox = 2):
         cdef bint flag_ref = self.is_refined(mi1)
         IF BoolType == 'Bool':
             self.coarse_select_bool[mi1] = 1
@@ -1070,10 +1088,10 @@ cdef class ParticleForestSelector:
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 0:
-                if (self.ngz > 0):
+                if (self.ngz > 0) and (bbox == 2):
                     self.add_neighbors_coarse(mi1)
             ELSE:
-                if (self.ngz > 0) and (flag_ref == 0):
+                if (self.ngz > 0) and (flag_ref == 0) and (bbox == 2):
                     self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
@@ -1103,7 +1121,7 @@ cdef class ParticleForestSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2):
+    cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2):
         IF BoolType == 'Bool':
             self.refined_select_bool[mi2] = 1
         ELSE:
@@ -1111,7 +1129,7 @@ cdef class ParticleForestSelector:
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 1:
-                if (self.ngz > 0):
+                if (self.ngz > 0) and (bbox == 2):
                     self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
@@ -1242,24 +1260,36 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void set_coarse_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        self.coarse_select_list._fill_ewah(mm_s)
+    cdef void set_coarse_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
+        IF UseUncompressed:
+            self.coarse_select_list._fill_bool(mm_s)
+        ELSE:
+            self.coarse_select_list._fill_ewah(mm_s)
         IF GhostsAfter == 0:
-            self.coarse_ghosts_list._fill_ewah(mm_g)
+            IF UseUncompressed:
+                self.coarse_ghosts_list._fill_bool(mm_g)
+            ELSE:
+                self.coarse_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void set_refined_list(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    cdef void set_refined_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         IF BoolType != 'Bool':
-            self.refined_select_list._fill_ewah(mm_s)
+            IF UseUncompressed:
+                self.refined_select_list._fill_bool(mm_s)
+            ELSE:
+                self.refined_select_list._fill_ewah(mm_s)
         IF GhostsAfter == 0:
-            self.refined_ghosts_list._fill_ewah(mm_g)
+            IF UseUncompressed:
+                self.refined_ghosts_list._fill_bool(mm_g)
+            ELSE:
+                self.refined_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void set_coarse_bool(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    cdef void set_coarse_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1
         mm_s._set_coarse_array(self.coarse_select_bool)
         self.coarse_select_bool[:] = 0
@@ -1270,7 +1300,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void set_refined_bool(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    cdef void set_refined_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         mm_s._append(self.select_ewah)
         IF GhostsAfter == 0:
             mm_g._append(self.ghosts_ewah)
@@ -1289,7 +1319,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void add_ghost_zones(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    cdef void add_ghost_zones(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
         cdef np.uint64_t s1 = (1<<(self.order1*3))
         cdef np.uint64_t s2 = (1<<(self.order2*3))
@@ -1314,14 +1344,21 @@ cdef class ParticleForestSelector:
             mm_g._set_coarse_array(self.coarse_ghosts_bool)
             self.coarse_ghosts_bool[:] = 0
             # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
-            self.refined_ghosts_list._fill_ewah(mm_g)
+            IF UseUncompressed:
+                self.refined_ghosts_list._fill_bool(mm_g)
+            ELSE:
+                self.refined_ghosts_list._fill_ewah(mm_g)
             # print("Before refined bool: {: 6d}".format(mm_g._count_refined()))
             # print("Bool to be appended: {: 6d}".format(self.ghosts_ewah._count_refined()))
             mm_g._append(self.ghosts_ewah)
             # print("After             :  {: 6d}".format(mm_g._count_refined()))
         ELSE:
-            self.coarse_ghosts_list._fill_ewah(mm_g)
-            self.refined_ghosts_list._fill_ewah(mm_g)
+            IF UseUncompressed:
+                self.coarse_ghosts_list._fill_bool(mm_g)
+                self.refined_ghosts_list._fill_bool(mm_g)
+            ELSE:
+                self.coarse_ghosts_list._fill_ewah(mm_g)
+                self.refined_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1336,7 +1373,7 @@ cdef class ParticleForestSelector:
         cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
-        cdef int i, j, k, m
+        cdef int i, j, k, m, sbbox
         for i in range(3):
             ndds[i] = dds[i]/2
         nlevel = level + 1
@@ -1357,14 +1394,16 @@ cdef class ParticleForestSelector:
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
-                    if not self.selector.select_bbox(npos, rpos): continue
+                    sbbox = self.selector.select_bbox(npos, rpos)
+                    # sbbox = self.selector.select_bbox_edge(npos, rpos)
+                    if sbbox == 0: continue
                     if nlevel < self.order1:
                         self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == self.order1:
                         mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
-                        if self.is_refined(mi1):
+                        if (self.is_refined(mi1) == 1):
                             self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                        self.add_coarse(mi1)
+                        self.add_coarse(mi1)#,sbbox)
                         IF BoolType == 'Bool':
                             self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
@@ -1374,7 +1413,7 @@ cdef class ParticleForestSelector:
                         for m in range(3):
                             DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
-                        self.add_refined(mi1,mi2)
+                        self.add_refined(mi1,mi2)#,sbbox)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
