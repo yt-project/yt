@@ -240,6 +240,7 @@ class FieldInfoContainer(dict):
         # the derived field and exit. If used as a decorator, function will
         # be None. In that case, we return a function that will be applied
         # to the function that the decorator is applied to.
+        kwargs.setdefault('ds', self.ds)
         if function is None:
             def create_function(f):
                 self[name] = DerivedField(name, f, **kwargs)
@@ -274,6 +275,7 @@ class FieldInfoContainer(dict):
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
+        kwargs.setdefault('ds', self.ds)
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
