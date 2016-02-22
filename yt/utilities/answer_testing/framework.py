@@ -681,8 +681,17 @@ def compare_image_lists(new_result, old_result, decimals):
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) is None
-        for fn in fns: os.remove(fn)
+        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [line.strip() for line in results.split('\n')
+                             if line.endswith(".png")]
+                for fn in tempfiles:
+                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                sys.stderr.write('\n')
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)
 
 class VRImageComparisonTest(AnswerTestingTest):
     _type_name = "VRImageComparison"

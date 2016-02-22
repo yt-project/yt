@@ -342,13 +342,56 @@ class MeshSource(OpaqueSource):
         self.mesh = None
         self.current_image = None
 
+        # default color map
+        self._cmap = 'algae'
+        self._color_bounds = None
+
+        # default mesh annotation options
+        self._annotate_mesh = False
+        self._mesh_line_color = None
+        self._mesh_line_alpha = 1.0
+
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
 
         self.scene = mesh_traversal.YTEmbreeScene()
-
         self.build_mesh()
+
+    def cmap():
+        '''
+        This is the name of the colormap that will be used when rendering
+        this MeshSource object. Should be a string, like 'algae', or 'hot'.
+        
+        '''
+
+        def fget(self):
+            return self._cmap
+
+        def fset(self, cmap_name):
+            self._cmap = cmap_name
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    cmap = property(**cmap())
+
+    def color_bounds():
+        '''
+        These are the bounds that will be used with the colormap to the display
+        the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
+        None, the bounds will be automatically inferred from the max and min of 
+        the rendered data.
+
+        '''
+        def fget(self):
+            return self._color_bounds
+
+        def fset(self, bounds):
+            self._color_bounds = bounds
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    color_bounds = property(**color_bounds())
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -381,26 +424,22 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
-            mylog.warning("High order elements not yet supported, " +
-                          "dropping to 1st order.")
-            field_data = field_data[:, 0:8]
-            indices = indices[:, 0:8]
-            self.mesh = mesh_construction.LinearElementMesh(self.scene,
-                                                            vertices,
-                                                            indices,
-                                                            field_data)
+            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+                                                               vertices,
+                                                               indices,
+                                                               field_data)
         else:
             # if this is another type of higher-order element, we demote
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("27-node hexes not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
             elif indices.shape[1] == 10:
                 # tetrahedral
-                mylog.warning("High order elements not yet supported, " +
+                mylog.warning("10-node tetrahedral elements not yet supported, " +
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
@@ -410,7 +449,7 @@ class MeshSource(OpaqueSource):
                                                             indices,
                                                             field_data)
 
-    def render(self, camera, zbuffer=None, cmap='algae', color_bounds=None):
+    def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
         Parameters
@@ -440,6 +479,7 @@ class MeshSource(OpaqueSource):
         elif zbuffer.rgba.shape != shape:
             zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
                               zbuffer.z.reshape(shape[:2]))
+        self.zbuffer = zbuffer
 
         self.sampler = new_mesh_sampler(camera, self)
 
@@ -447,22 +487,26 @@ class MeshSource(OpaqueSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.finalize_image(camera, self.sampler.aimage)
-
+        self.finalize_image(camera)
         self.data = self.sampler.aimage
-        self.current_image = self.apply_colormap(cmap=cmap,
-                                                 color_bounds=color_bounds)
+        self.current_image = self.apply_colormap()
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
                            self.sampler.zbuffer)
-        zbuffer.rgba = ImageArray(zbuffer.rgba.astype('uint8'))
+        zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
-        self.zbuffer.rgba = self.zbuffer.rgba.astype('uint8')
         self.current_image = self.zbuffer.rgba
+
+        if self._annotate_mesh:
+            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
+                                                          self._mesh_line_alpha)
+
         return self.current_image
 
-    def finalize_image(self, camera, image):
+    def finalize_image(self, camera):
         sam = self.sampler
+
+        # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
         sam.aimage = sam.aimage.reshape(Nx, Ny)
@@ -470,7 +514,13 @@ class MeshSource(OpaqueSource):
         sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
         sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
 
-    def annotate_mesh_lines(self, color=None, alpha=255):
+        # rotate
+        sam.aimage = np.rot90(sam.aimage, k=2)
+        sam.image_used = np.rot90(sam.image_used, k=2)
+        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
+        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
+
+    def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
 
         Modifies this MeshSource by drawing the mesh lines.
@@ -479,13 +529,17 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        colors: array of ints, shape (4), optional
+        color: array of ints, shape (4), optional
             The RGBA value to use to draw the mesh lines.
             Default is black.
         alpha : float, optional
             The opacity of the mesh lines. Default is 255 (solid).
 
         """
+
+        self.annotate_mesh = True
+        self._mesh_line_color = color
+        self._mesh_line_alpha = alpha
 
         if color is None:
             color = np.array([0, 0, 0, alpha])
@@ -499,10 +553,7 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
-    def apply_colormap(self, cmap='algae', color_bounds=None):
-        self.current_image = apply_colormap(self.data,
-                                            color_bounds=color_bounds,
-                                            cmap_name=cmap)
+    def apply_colormap(self):
         '''
 
         Applies a colormap to the current image without re-rendering.
@@ -522,10 +573,14 @@ class MeshSource(OpaqueSource):
 
 
         '''
-        alpha = self.current_image[:, :, 3]
+
+        image = apply_colormap(self.data,
+                               color_bounds=self._color_bounds,
+                               cmap_name=self._cmap)/255.
+        alpha = image[:, :, 3]
         alpha[self.sampler.image_used == -1] = 0.0
-        self.current_image[:, :, 3] = alpha        
-        return self.current_image
+        image[:, :, 3] = alpha        
+        return image
 
     def __repr__(self):
         disp = "<Mesh Source>:%s " % str(self.data_source)

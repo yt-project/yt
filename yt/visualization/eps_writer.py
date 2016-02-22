@@ -311,7 +311,7 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
@@ -496,7 +496,7 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.insert_image_yt(p)
@@ -522,7 +522,12 @@ class DualEPS(object):
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
-            plot.plots[self.field].hide_colorbar()
+            if isinstance(plot, PlotWindow):
+                plot.hide_colorbar()
+                plot.hide_axes()
+            else:
+                plot.plots[self.field]._toggle_axes(False)
+                plot.plots[self.field]._toggle_colorbar(False)
             plot.refresh()
             _p1 = plot.plots[self.field].figure
             force_square = True
@@ -538,16 +543,13 @@ class DualEPS(object):
         else:
             raise RuntimeError("Unknown plot type")
 
-        _p1.axes[0].set_axis_off()  # remove axes
         _p1.axes[0].set_position([0,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
         size = (_p1.get_size_inches() * _p1.dpi).astype('int')
 
-        # Account for 1 pixel line width of the axis box and
-        # non-square images after removing the colorbar.
-        yshift = -1.0 / _p1.dpi * 2.54
+        # Account for non-square images after removing the colorbar.
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
         if force_square:
             yscale = scale * float(size[1]) / float(size[0])
@@ -555,7 +557,7 @@ class DualEPS(object):
             yscale = scale
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1]+yshift, image,
+        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              width=scale*self.figsize[0],
                                              height=yscale*self.figsize[1]))
 
@@ -703,7 +705,8 @@ class DualEPS(object):
 
         Examples
         --------
-        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> p = SlicePlot(ds, 0, 'density')
+        >>> p.hide_colorbar()
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.insert_image_yt(p)
@@ -737,7 +740,8 @@ class DualEPS(object):
                     print("Colorbar label not available")
                     _zlabel = ''
             else:
-                _zlabel = pyxize_label(plot.z_title)
+                _, _, z_title = plot._get_field_title(self.field, plot.profile)
+                _zlabel = pyxize_label(z_title)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin is None:
@@ -1255,27 +1259,28 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    plots : `yt.visualization.plot_window.PlotWindow`
-        yt PlotWindow that has the plots to be used.
+    plots : ``PlotWindow`` instance, ``PhasePlot`` instance, or list of plots
+        yt plots to be used.
 
     Examples
     --------
-    >>> pc = PlotCollection(ds)
-    >>> p = pc.add_slice('Density',0,use_colorbar=False)
-    >>> p.set_width(0.1,'kpc')
-    >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
-    >>> p1.set_width(0.1,'kpc')
-    >>> p1.set_cmap('hot')
-    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'H2I_Fraction'],
-    >>>                         weight='CellMassMsun')
-    >>> p1.set_xlim(1e18,3e20)
-    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'Temperature'],
-    >>>                         weight='CellMassMsun')
-    >>> p1.set_xlim(1e18,3e20)
-    >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
-    >>>                   yt_nocbar=False, margins=(0.5,0.5))
+    >>> p1 = SlicePlot(ds, 0, 'density')
+    >>> p1.set_width(10, 'kpc')
+    >>>
+    >>> p2 = SlicePlot(ds, 0, 'temperature')
+    >>> p2.set_width(10, 'kpc')
+    >>> p2.set_cmap('temperature', 'hot')
+    >>>
+    >>> sph = ds.sphere(ds.domain_center, (10, 'kpc'))
+    >>> p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
+    ...                weight_field='cell_mass')
+    >>>
+    >>> p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+    >>>
+    >>> mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
+    ...                   bare_axes=True, yt_nocbar=False, margins=(0.5,0.5))
     """
-    # Determine whether the plots are organized in a PlotWindow, or list 
+    # Determine whether the plots are organized in a PlotWindow, or list
     # of PlotWindows
     if isinstance(plots, (PlotWindow, PhasePlot)):
         if fields is None:
@@ -1326,14 +1331,14 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
     Examples
     --------
-    >>> p = pc.add_slice('Density',0,use_colorbar=False)
+    >>> p = SlicePlot(ds, 0, 'density')
     >>> p.set_width(0.1,'kpc')
     >>> single_plot(p, savefig="figure1")
     """
     d = DualEPS(figsize=figsize)
     d.insert_image_yt(plot, field=field)
     d.axis_box_yt(plot, bare_axes=bare_axes, **kwargs)
-    if colorbar:
+    if colorbar and not isinstance(plot, ProfilePlot):
         d.colorbar_yt(plot, orientation=cb_orient)
     if savefig is not None:
         d.save_fig(savefig, format=file_format)

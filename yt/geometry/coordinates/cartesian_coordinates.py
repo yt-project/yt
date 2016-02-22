@@ -23,7 +23,7 @@ from .coordinate_handler import \
     cylindrical_to_cartesian
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh
+    pixelize_element_mesh, pixelize_off_axis_cartesian
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 import yt.visualization._MPL as _MPL
 
@@ -86,7 +86,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = np.expand_dims(field_data, 1)
             # if this is a higher-order element, we demote to 1st order
             # here, for now.
-            elif field_data.shape[1] == 27 or field_data.shape[1] == 20:
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning("High order elements not yet supported, " +
                               "dropping to 1st order.")
@@ -134,7 +134,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['dx'])[::-1]
-        buff = _MPL.CPixelize(data_source['x'], data_source['y'],
+        buff = pixelize_off_axis_cartesian(
+                              data_source['x'], data_source['y'],
                               data_source['z'], data_source['px'],
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],

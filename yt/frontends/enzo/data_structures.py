@@ -277,14 +277,15 @@ class EnzoHierarchy(GridIndex):
             active_particles = True
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
-        elif version == 2.2:
-            active_particles = True
-            nap = {}
-            for type in self.parameters.get("AppendActiveParticleType", []):
-                nap[type] = []
         else:
-            active_particles = False
-            nap = None
+            if "AppendActiveParticleType" in self.parameters:
+                nap = {}
+                active_particles = True
+                for type in self.parameters.get("AppendActiveParticleType", []):
+                    nap[type] = []
+            else:
+                nap = None
+                active_particles = False
         for grid_id in range(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
@@ -394,7 +395,7 @@ class EnzoHierarchy(GridIndex):
         fields = []
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
-            if np.any(select_grids) is False:
+            if not np.any(select_grids):
                 current_ptypes = self.dataset.particle_types
                 new_ptypes = [p for p in current_ptypes if p != ptype]
                 self.dataset.particle_types = new_ptypes
@@ -959,6 +960,14 @@ class EnzoDataset(Dataset):
         if ("%s" % (args[0])).endswith(".hierarchy"):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
+
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = [_ for _ in files if _.endswith(".hierarchy")
+                      and os.path.exists(
+                        os.path.join(base, _.rsplit(".", 1)[0]))]
+        # Typically, Enzo won't have nested outputs.
+        return candidates, (len(candidates) == 0)
 
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory

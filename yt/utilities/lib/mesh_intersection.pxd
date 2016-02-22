@@ -11,3 +11,8 @@ cdef void patchIntersectFunc(Patch* patches,
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item, 
                           rtcg.RTCBounds* bounds_o) nogil
+
+cdef void patchSurfaceFunc(const Patch& patch, 
+                           const float u, 
+                           const float v,
+                           float[3] S) nogil

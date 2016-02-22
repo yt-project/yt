@@ -1,5 +1,6 @@
 import numpy as np
-from yt.utilities.lib.CICDeposit import CICSample_3
+from yt.utilities.lib.particle_mesh_operations import \
+    CICSample_3
 from yt.funcs import get_pbar
 from yt.units.yt_array import uconcatenate
 from yt.extern.six import string_types

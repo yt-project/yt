@@ -293,6 +293,22 @@ class Dataset(object):
     def _is_valid(cls, *args, **kwargs):
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        """
+        This is a class method that accepts a directory (base), a list of files
+        in that directory, and a list of subdirectories.  It should return a
+        list of filenames (defined relative to the supplied directory) and a
+        boolean as to whether or not further directories should be recursed.
+        
+        This function doesn't need to catch all possibilities, nor does it need
+        to filter possibilities.
+        """
+        return [], True
+
+    def close(self):
+        pass
+
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
@@ -423,7 +439,7 @@ class Dataset(object):
             if nfields == 0:
                 mylog.debug("zero common fields: skipping particle union 'all'")
         self.field_info.setup_extra_union_fields()
-        mylog.info("Loading field plugins.")
+        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -660,7 +676,15 @@ class Dataset(object):
         coordinates. Returns a list of field values in the same order as
         the input *fields*.
         """
-        return self.point(coords)[fields]
+        point = self.point(coords)
+        ret = []
+        field_list = ensure_list(fields)
+        for field in field_list:
+            ret.append(point[field])
+        if len(field_list) == 1:
+            return ret[0]
+        else:
+            return ret
 
     def find_field_values_at_points(self, fields, coords):
         """
@@ -668,19 +692,26 @@ class Dataset(object):
         [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field
         values in the same order as the input *fields*.
 
-        This is quite slow right now as it creates a new data object for each
-        point.  If an optimized version exists on the Index object we'll use
-        that instead.
         """
-        if hasattr(self,"index") and \
-                hasattr(self.index,"_find_field_values_at_points"):
-            return self.index._find_field_values_at_points(fields,coords)
+        # If an optimized version exists on the Index object we'll use that
+        try:
+            return self.index._find_field_values_at_points(fields, coords)
+        except AttributeError:
+            pass
 
         fields = ensure_list(fields)
-        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
-        for i,coord in enumerate(coords):
-            out[:][i] = self.point(coord)[fields]
-        return out
+        out = []
+
+        # This may be slow because it creates a data object for each point
+        for field_index, field in enumerate(fields):
+            funit = self._get_field_info[field].units
+            out.append(self.arr(np.empty((len(coords),)), funit))
+            for coord_index, coord in enumerate(coords):
+                out[field_index][coord_index] = self.point(coord)[fields]
+        if len(fields) == 1:
+            return out[0]
+        else:
+            return out
 
     # Now all the object related stuff
     def all_data(self, find_max=False, **kwargs):
@@ -968,7 +999,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
+                                     weight_field='particle_mass'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -983,13 +1015,15 @@ class Dataset(object):
         method : string
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
-           methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
-           `weighted_mean`, `mesh_id`, and `nearest`.
+           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
+           `mesh_id`, and `nearest`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition method `weighted_mean`.
 
         Returns
         -------
@@ -1001,38 +1035,45 @@ class Dataset(object):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
+
         units = self.field_info[ptype, deposit_field].units
+        take_log = self.field_info[ptype, deposit_field].take_log
+        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
+        if method == "count":
+            field_name = "%s_count" % ptype
+            if ("deposit", field_name) in self.field_info:
+                mylog.warning("The deposited field %s already exists" % field_name)
+                return ("deposit", field_name)
+            else:
+                units = "dimensionless"
+                take_log = False
 
         def _deposit_field(field, data):
             """
-            Create a grid field for particle wuantities weighted by particle
-            mass, using cloud-in-cell deposition.
+            Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
-            # get back into density
-            if method != 'count':
-                pden = data[ptype, "particle_mass"]
-                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method, kernel_name=kernel_name)
-                bottom = data.deposit(pos, [pden], method=method,
-                                      kernel_name=kernel_name)
-                top[bottom == 0] = 0.0
-                bnz = bottom.nonzero()
-                top[bnz] /= bottom[bnz]
-                d = data.ds.arr(top, input_units=units)
+            if method == 'weighted_mean':
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
+                                                   data[ptype, weight_field]],
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
+                d[np.isnan(d)] = 0.0
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method,
-                                             kernel_name=kernel_name))
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
             return d
-        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
-        field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
             units=units,
-            take_log=False,
+            take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 

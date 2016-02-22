@@ -799,6 +799,10 @@ class PhasePlot(ImagePlotContainer):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log], scales[z_log]
 
+    def _recreate_frb(self):
+        # needed for API compatibility with PlotWindow
+        pass
+
     def _setup_plots(self):
         if self._plot_valid:
             return

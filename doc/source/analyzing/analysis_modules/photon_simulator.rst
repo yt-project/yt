@@ -354,7 +354,7 @@ Let's just take a quick look at the raw events object:
 
 .. code:: python
 
-    print events
+    print(events)
 
 .. code:: python
 

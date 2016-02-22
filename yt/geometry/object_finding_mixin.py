@@ -24,7 +24,7 @@ from yt.utilities.lib.misc_utilities import \
 from yt.geometry.grid_container import \
     MatchPointsToGrids, \
     GridTree
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     HUGE
 from yt.utilities.exceptions import YTTooParallel
 

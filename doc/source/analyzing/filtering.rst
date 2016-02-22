@@ -40,9 +40,9 @@ array a conditional.  As a general example of this:
     import numpy as np
     a = np.arange(5)
     bigger_than_two = (a > 2)
-    print "Original Array: a = \n%s" % a
-    print "Boolean Mask: bigger_than_two = \n%s" % bigger_than_two
-    print "Masked Array: a[bigger_than_two] = \n%s" % a[bigger_than_two]
+    print("Original Array: a = \n%s" % a)
+    print("Boolean Mask: bigger_than_two = \n%s" % bigger_than_two)
+    print("Masked Array: a[bigger_than_two] = \n%s" % a[bigger_than_two])
 
 Similarly, if you've created a yt data object (e.g. a region, a sphere), you 
 can examine its field values as a NumPy array by simply indexing it with the 
@@ -55,10 +55,10 @@ set a simple mask based on the contents of one of our fields.
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     hot = ad["temperature"].in_units('K') > 1e6
-    print 'Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"]
-    print "Boolean Mask: hot = \n%s" % hot
-    print 'Temperature of "hot" data: ad["temperature"][hot] = \n%s' % \
-          ad['temperature'][hot]
+    print('Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"])
+    print("Boolean Mask: hot = \n%s" % hot)
+    print('Temperature of "hot" data: ad["temperature"][hot] = \n%s' %
+          ad['temperature'][hot])
 
 This was a simple example, but one can make the conditionals that define
 a boolean mask have multiple parts, and one can stack masks together to
@@ -71,9 +71,9 @@ used if you simply need to access the NumPy arrays:
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
-    print 'Density of all data: ad["density"] = \n%s' % ad['density']
-    print 'Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' % \
-           ad['density'][overpressure_and_fast]
+    print('Density of all data: ad["density"] = \n%s' % ad['density'])
+    print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
+          ad['density'][overpressure_and_fast])
 
 .. _cut-regions:
 

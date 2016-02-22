@@ -10,7 +10,7 @@
 
 #ifndef ASSERT
 #include <stdio.h>
-#define ASSERT(exp) { if(!(exp)) { fprintf(stderr,"Failed assertion %s, line: %d\n",#exp,__LINE__); exit(1); } }
+#define ASSERT(exp) { if(!(exp)) { fprintf(stderr,"Failed assertion %s, line: %d\n",#exp,__LINE__); } }
 #endif
 
 #ifndef HEAPALLOC
@@ -443,9 +443,18 @@ void cosmology_set_thread_safe_range(CosmologyParameters *c, double amin, double
 
 double cosmology_get_value_from_table(CosmologyParameters *c, double a, double table[])
 {
-  int idx = (int)(c->ndex*(log10(a)-c->la[0]));
+  // This is special case code for boundary conditions
+  double la = log10(a);
+  if (fabs(la - c->la[c->size-1]) < 1.0e-14) {
+    return table[c->size-1];
+  } else if (fabs(la - c->la[0]) < 1.0e-14) {
+    return table[0];
+  }
 
-  ASSERT(idx>=0 && idx<c->size);
+  int idx = (int)(c->ndex*(la-c->la[0]));
+
+  // Note that because we do idx+1 below, we need -1 here.
+  ASSERT(idx>=0 && (idx<c->size-1));
 
   /*
   //  Do it as a function of aUni rather than la to ensure exact inversion

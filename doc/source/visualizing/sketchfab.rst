@@ -64,7 +64,7 @@ instance:
 
 .. code-block:: python
 
-   print surface["temperature"].min(), surface["temperature"].max()
+   print(surface["temperature"].min(), surface["temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
