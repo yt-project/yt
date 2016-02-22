@@ -128,7 +128,7 @@ cdef class BVH:
                   np.int64_t[:, ::1] indices,
                   np.float64_t[:, ::1] field_data):
         
-        self.leaf_size = 8
+        self.leaf_size = 16
         self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
