@@ -14,24 +14,31 @@ cdef extern from "mesh_construction.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.float64_t dot(const np.float64_t* a, 
-                      const np.float64_t* b) nogil:
-    cdef np.int64_t i
-    cdef np.float64_t rv = 0.0
-    for i in range(3):
-        rv += a[i]*b[i]
-    return rv
+cdef inline np.float64_t dot(const np.float64_t a[3], 
+                             const np.float64_t b[3]) nogil:
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2] 
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void cross(const np.float64_t* a, 
-                const np.float64_t* b,
-                np.float64_t* c) nogil:
+cdef inline void cross(const np.float64_t a[3], 
+                       const np.float64_t b[3],
+                       np.float64_t c[3]) nogil:
     c[0] = a[1]*b[2] - a[2]*b[1]
     c[1] = a[2]*b[0] - a[0]*b[2]
     c[2] = a[0]*b[1] - a[1]*b[0]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void subtract(const np.float64_t a[3], 
+                          const np.float64_t b[3],
+                          np.float64_t c[3]) nogil:
+    c[0] = a[0] - b[0]
+    c[1] = a[1] - b[1]
+    c[2] = a[2] - b[2]
 
 
 @cython.boundscheck(False)
@@ -43,10 +50,8 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
     # edge vectors
     cdef np.float64_t e1[3]
     cdef np.float64_t e2[3]
-    cdef int i
-    for i in range(3):
-        e1[i] = tri.p1[i] - tri.p0[i]
-        e2[i] = tri.p2[i] - tri.p0[i]
+    subtract(tri.p1, tri.p0, e1)
+    subtract(tri.p2, tri.p0, e2)
 
     cdef np.float64_t P[3]
     cross(ray.direction, e2, P)
@@ -58,8 +63,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
     inv_det = 1.0 / det
 
     cdef np.float64_t T[3]
-    for i in range(3):
-        T[i] = ray.origin[i] - tri.p0[i] 
+    subtract(ray.origin, tri.p0, T)
 
     cdef np.float64_t u = dot(T, P) * inv_det
     if(u < 0.0 or u > 1.0):
@@ -119,10 +123,10 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __init__(self,
-                 np.float64_t[:, ::1] vertices,
-                 np.int64_t[:, ::1] indices,
-                 np.float64_t[:, ::1] field_data):
+    def __cinit__(self,
+                  np.float64_t[:, ::1] vertices,
+                  np.int64_t[:, ::1] indices,
+                  np.float64_t[:, ::1] field_data):
         
         self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
@@ -303,6 +307,4 @@ def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image,
                    BVH bvh):
     
     cdef int N = origins.shape[0]
-    cast_rays(<np.float64_t*> image.data,
-              <np.float64_t*> origins.data, 
-              <np.float64_t*> direction.data, N, bvh)
+    cast_rays(&image[0], &origins[0, 0], &direction[0], N, bvh)
