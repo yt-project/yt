@@ -128,6 +128,7 @@ cdef class BVH:
                   np.int64_t[:, ::1] indices,
                   np.float64_t[:, ::1] field_data):
         
+        self.leaf_size = 8
         self.vertices = vertices
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
@@ -161,7 +162,7 @@ cdef class BVH:
         self.root = self._recursive_build(0, num_tri)
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
-        if node.end - node.begin > 8:
+        if node.end - node.begin > self.leaf_size:
             self._recursive_free(node.left)
             self._recursive_free(node.right)
         free(node)
@@ -223,7 +224,7 @@ cdef class BVH:
         # check for leaf
         cdef np.int64_t i, hit
         cdef Triangle* tri
-        if (node.end - node.begin) <= 8:
+        if (node.end - node.begin) <= self.leaf_size:
             for i in range(node.begin, node.end):
                 tri = &(self.triangles[i])
                 hit = ray_triangle_intersect(ray, tri)
@@ -244,7 +245,7 @@ cdef class BVH:
         self._get_node_bbox(node, begin, end)
         
         # check for leaf
-        if (end - begin) <= 8:
+        if (end - begin) <= self.leaf_size:
             return node
         
         # we use the "split in the middle of the longest axis approach"

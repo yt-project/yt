@@ -38,6 +38,7 @@ cdef struct Triangle:
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
+    cdef np.int64_t leaf_size
     cdef np.float64_t[:, ::1] vertices
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil
