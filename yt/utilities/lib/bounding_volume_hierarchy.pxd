@@ -45,4 +45,5 @@ cdef class BVH:
     cdef void _get_node_bbox(self, BVHNode* node, 
                              np.int64_t begin, np.int64_t end) nogil
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil
-    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end) nogil
+    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil
+    cdef void _recursive_free(self, BVHNode* node) nogil

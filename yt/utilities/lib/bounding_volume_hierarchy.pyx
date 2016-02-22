@@ -158,8 +158,17 @@ cdef class BVH:
                     tri.bbox.left_edge[k]  = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
                     tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
 
-        # recursive build
-        self.root = self._build(0, num_tri)
+        self.root = self._recursive_build(0, num_tri)
+
+    cdef void _recursive_free(self, BVHNode* node) nogil:
+        if node.end - node.begin > 8:
+            self._recursive_free(node.left)
+            self._recursive_free(node.right)
+        free(node)
+
+    def __dealloc__(self):
+        self._recursive_free(self.root)
+        free(self.triangles)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -227,7 +236,7 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef BVHNode* _build(self, np.int64_t begin, np.int64_t end) nogil:
+    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil:
         cdef BVHNode *node = <BVHNode* > malloc(sizeof(BVHNode))
         node.begin = begin
         node.end = end
@@ -261,8 +270,8 @@ cdef class BVH:
             mid = begin + (end-begin)/2
         
         # recursively build sub-trees
-        node.left = self._build(begin, mid)
-        node.right = self._build(mid, end)
+        node.left = self._recursive_build(begin, mid)
+        node.right = self._recursive_build(mid, end)
 
         return node
 
