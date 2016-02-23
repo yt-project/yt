@@ -944,8 +944,12 @@ cdef class ParticleForestSelector:
             self.refined_select_bool[:] = 0
             self.refined_ghosts_bool[:] = 0
             self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
-            self.select_ewah = BoolArrayCollection()
-            self.ghosts_ewah = BoolArrayCollection()
+            IF UseUncompressed:
+                self.select_ewah = BoolArrayColl(s1)
+                self.ghosts_ewah = BoolArrayColl(s1)
+            ELSE:
+                self.select_ewah = BoolArrayCollection()
+                self.ghosts_ewah = BoolArrayCollection()
         # Vectors
         ELSE:
             self.coarse_select_list = SparseUnorderedBitmask()
@@ -974,9 +978,12 @@ cdef class ParticleForestSelector:
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
         # Uncompressed version
+        cdef BoolArrayColl mm_s0
+        cdef BoolArrayColl mm_g0
         IF UseUncompressed:
-            mm_s0 = BoolArrayColl
-            mm_g0 = BoolArrayColl
+            cdef np.uint64_t s1 = (1<<(self.order1*3))
+            mm_s0 = BoolArrayColl(s1)
+            mm_g0 = BoolArrayColl(s1)
         ELSE:
             mm_s0 = mm_s
             mm_g0 = mm_g
@@ -1261,12 +1268,12 @@ cdef class ParticleForestSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_coarse_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        IF UseUncompressed:
+        IF UseUncompressed == 1:
             self.coarse_select_list._fill_bool(mm_s)
         ELSE:
             self.coarse_select_list._fill_ewah(mm_s)
         IF GhostsAfter == 0:
-            IF UseUncompressed:
+            IF UseUncompressed == 1:
                 self.coarse_ghosts_list._fill_bool(mm_g)
             ELSE:
                 self.coarse_ghosts_list._fill_ewah(mm_g)
@@ -1276,12 +1283,12 @@ cdef class ParticleForestSelector:
     @cython.cdivision(True)
     cdef void set_refined_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         IF BoolType != 'Bool':
-            IF UseUncompressed:
+            IF UseUncompressed == 1:
                 self.refined_select_list._fill_bool(mm_s)
             ELSE:
                 self.refined_select_list._fill_ewah(mm_s)
         IF GhostsAfter == 0:
-            IF UseUncompressed:
+            IF UseUncompressed == 1:
                 self.refined_ghosts_list._fill_bool(mm_g)
             ELSE:
                 self.refined_ghosts_list._fill_ewah(mm_g)
