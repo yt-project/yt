@@ -57,6 +57,8 @@ DEF RefinedGhosts = 1
 DEF RefinedExternalGhosts = 1
 # If set to 1, bitmaps are only compressed before looking for files
 DEF UseUncompressed = 1
+# If set to 1, only cells at the edge of selectors are used
+DEF OnlyRefineEdges = 0
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -1095,11 +1097,19 @@ cdef class ParticleForestSelector:
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 0:
-                if (self.ngz > 0) and (bbox == 2):
-                    self.add_neighbors_coarse(mi1)
+                if (self.ngz > 0): 
+                    IF OnlyRefineEdges == 1:
+                        if (bbox == 2):
+                            self.add_neighbors_coarse(mi1)
+                    ELSE:
+                        self.add_neighbors_coarse(mi1)
             ELSE:
-                if (self.ngz > 0) and (flag_ref == 0) and (bbox == 2):
-                    self.add_neighbors_coarse(mi1)
+                if (self.ngz > 0) and (flag_ref == 0):
+                    IF OnlyRefineEdges == 1:
+                        if (bbox == 2):
+                            self.add_neighbors_coarse(mi1)
+                    ELSE:
+                        self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1136,8 +1146,12 @@ cdef class ParticleForestSelector:
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 1:
-                if (self.ngz > 0) and (bbox == 2):
-                    self.add_neighbors_refined(mi1, mi2)
+                if (self.ngz > 0):
+                    IF OnlyRefineEdges == 1:
+                        if (bbox == 2):
+                            self.add_neighbors_refined(mi1, mi2)
+                    ELSE:
+                        self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1401,16 +1415,24 @@ cdef class ParticleForestSelector:
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
-                    sbbox = self.selector.select_bbox(npos, rpos)
-                    # sbbox = self.selector.select_bbox_edge(npos, rpos)
+                    IF OnlyRefineEdges == 1:
+                        sbbox = self.selector.select_bbox_edge(npos, rpos)
+                    ELSE:
+                        sbbox = self.selector.select_bbox(npos, rpos)
                     if sbbox == 0: continue
                     if nlevel < self.order1:
                         self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == self.order1:
                         mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
-                        if (self.is_refined(mi1) == 1):
-                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                        self.add_coarse(mi1)#,sbbox)
+                        IF OnlyRefineEdges == 1:
+                            if sbbox == 2: # an edge cell
+                                if self.is_refined(mi1) == 1:
+                                    self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                            self.add_coarse(mi1, sbbox)
+                        ELSE:
+                            if self.is_refined(mi1) == 1:
+                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                            self.add_coarse(mi1)
                         IF BoolType == 'Bool':
                             self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
@@ -1420,7 +1442,10 @@ cdef class ParticleForestSelector:
                         for m in range(3):
                             DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
-                        self.add_refined(mi1,mi2)#,sbbox)
+                        IF OnlyRefineEdges == 1:
+                            self.add_refined(mi1,mi2,sbbox)
+                        ELSE:
+                            self.add_refined(mi1,mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

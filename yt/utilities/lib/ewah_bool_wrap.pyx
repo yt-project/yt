@@ -33,7 +33,8 @@ cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
 
 DEF UncompressedFormat = 'Pointer'
 
-ctypedef np.uint8_t bitarrtype
+#ctypedef np.uint8_t bitarrtype
+ctypedef bint bitarrtype
 
 cdef class BoolArrayCollection:
 
