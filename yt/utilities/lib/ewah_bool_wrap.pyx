@@ -17,6 +17,7 @@ from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.set cimport set as cset
+from libcpp.map cimport map
 from libcpp.algorithm cimport sort
 from libc.stdlib cimport malloc, free, qsort
 from yt.utilities.lib.ewah_bool_array cimport \
@@ -35,6 +36,302 @@ DEF UncompressedFormat = 'Pointer'
 
 #ctypedef np.uint8_t bitarrtype
 ctypedef bint bitarrtype
+
+cdef class FileBitmasks:
+
+    def __cinit__(self, np.uint32_t nfiles):
+        cdef int i
+        self.nfiles = nfiles
+        cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
+        cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
+        cdef ewah_map **ewah_coll = <ewah_map **>malloc(nfiles*sizeof(ewah_map*))
+        for i in range(nfiles):
+            ewah_keys[i] = new ewah_bool_array()
+            ewah_refn[i] = new ewah_bool_array()
+            ewah_coll[i] = new ewah_map()
+        self.ewah_keys = <void **>ewah_keys
+        self.ewah_refn = <void **>ewah_refn
+        self.ewah_coll = <void **>ewah_coll
+
+    cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile):
+        cdef BoolArrayCollection out = BoolArrayCollection()
+        cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
+        cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>self.ewah_refn
+        cdef ewah_map **ewah_coll = <ewah_map **>self.ewah_coll
+        out.ewah_keys = <void *>ewah_keys[ifile]
+        out.ewah_refn = <void *>ewah_refn[ifile]
+        out.ewah_coll = <void *>ewah_coll[ifile]
+        # TODO: make sure ewah arrays are not deallocated when out is clean up
+        return out
+
+    cdef void _find_collisions(self, BoolArrayCollection coll, bint verbose = 0):
+        self._find_collisions_coarse(coll, verbose)
+        self._find_collisions_refined(coll, verbose)
+
+    cdef void _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose = 0):
+        cdef np.int32_t ifile
+        cdef ewah_bool_array arr_two, arr_swap, arr_keys, arr_refn
+        cdef ewah_bool_array* iarr
+        cdef ewah_bool_array* coll_keys
+        cdef ewah_bool_array* coll_refn
+        coll_keys = (<ewah_bool_array*> coll.ewah_keys)
+        coll_refn = (<ewah_bool_array*> coll.ewah_refn)
+        for ifile in range(self.nfiles):
+            iarr = (<ewah_bool_array **>self.ewah_keys)[ifile]
+            arr_keys.logicaland(iarr[0], arr_two)
+            arr_keys.logicalor(iarr[0], arr_swap)
+            arr_keys.swap(arr_swap)
+            arr_refn.logicalor(arr_two, arr_swap)
+            arr_refn.swap(arr_swap)
+        coll_keys[0].swap(arr_keys)
+        coll_refn[0].swap(arr_refn)
+        # Print
+        cdef int nc, nm
+        if verbose == 1:
+            nc = coll_refn[0].numberOfOnes()
+            nm = coll_keys[0].numberOfOnes()
+            print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+
+    cdef void _find_collisions_refined(self, BoolArrayCollection coll, bint verbose = 0):
+        cdef np.int32_t ifile
+        cdef ewah_bool_array iarr, arr_two, arr_swap
+        cdef map[np.uint64_t, ewah_bool_array] map_keys, map_refn
+        cdef map[np.uint64_t, ewah_bool_array]* coll_coll
+        cdef map[np.uint64_t, ewah_bool_array]* map_bitmask
+        coll_coll = (<map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll)
+        for ifile in range(self.nfiles):
+            map_bitmask = (<map[np.uint64_t, ewah_bool_array]**> self.ewah_coll)[ifile]
+            it_mi1 = map_bitmask[0].begin()
+            while it_mi1 != map_bitmask[0].end():
+                mi1 = dereference(it_mi1).first
+                iarr = dereference(it_mi1).second
+                map_keys[mi1].logicaland(iarr, arr_two)
+                map_keys[mi1].logicalor(iarr, arr_swap)
+                map_keys[mi1].swap(arr_swap)
+                map_refn[mi1].logicalor(arr_two, arr_swap)
+                map_refn[mi1].swap(arr_swap)
+                preincrement(it_mi1)
+        coll_coll[0] = map_refn
+        # Print
+        cdef int nc, nm
+        if verbose == 1:
+            nc = 0
+            nm = 0
+            it_mi1 = map_refn.begin()
+            while it_mi1 != map_refn.end():
+                mi1 = dereference(it_mi1).first
+                iarr = dereference(it_mi1).second
+                nc += iarr.numberOfOnes()
+                iarr = map_keys[mi1]
+                nm += iarr.numberOfOnes()
+                preincrement(it_mi1)
+            print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+
+    cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2 = FLAG):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        ewah_keys[0].set(i1)
+        if i2 != FLAG:
+            ewah_refn[0].set(i1)
+            ewah_coll[0][i1].set(i2)
+
+    cdef void _set_coarse(self, np.uint32_t ifile, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        ewah_keys[0].set(i1)
+
+    cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        ewah_refn[0].set(i1)
+        ewah_coll[0][i1].set(i2)
+
+    cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef np.uint64_t i1
+        for i1 in range(arr.shape[0]):
+            if arr[i1] == 1:
+                ewah_keys[0].set(i1)
+
+    cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t i1, np.uint8_t[:] arr):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef np.uint64_t i2
+        for i2 in range(arr.shape[0]):
+            if arr[i2] == 1:
+                ewah_refn[0].set(i1)
+                ewah_coll[0][i1].set(i2)
+
+    cdef void _set_map(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2):
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        ewah_coll[0][i1].set(i2)
+
+    cdef void _set_refn(self, np.uint32_t ifile, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        ewah_refn[0].set(i1)
+
+    cdef bint _get(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2 = FLAG):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        if (ewah_keys[0].get(i1) == 0): return 0
+        if (ewah_refn[0].get(i1) == 0) or (i2 == FLAG): 
+            return 1
+        return ewah_coll[0][i1].get(i2)
+
+    cdef bint _get_coarse(self, np.uint32_t ifile, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        return ewah_keys[0].get(i1)
+
+    cdef bint _isref(self, np.uint32_t ifile, np.uint64_t i):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        return ewah_refn[0].get(i)
+
+    cdef int _count_coarse(self, np.uint32_t ifile):
+        return self._count_total(ifile) - self._count_refined(ifile)
+
+    cdef int _count_total(self, np.uint32_t ifile):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef int out
+        out = ewah_keys.numberOfOnes()
+        return out
+
+    cdef int _count_refined(self, np.uint32_t ifile):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef int out
+        out = ewah_refn.numberOfOnes()
+        return out
+
+    cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
+        cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t nrefn, mi1
+        # Keys
+        ewah_keys1[0].logicalor(ewah_keys2[0], swap)
+        ewah_keys1[0].swap(swap)
+        # Refined
+        ewah_refn1[0].logicalor(ewah_refn2[0], swap)
+        ewah_refn1[0].swap(swap)
+        # Map
+        it_map2 = ewah_coll2[0].begin()
+        while it_map2 != ewah_coll2[0].end():
+            mi1 = dereference(it_map2).first
+            mi1_ewah2 = dereference(it_map2).second
+            it_map1 = ewah_coll1[0].find(mi1)
+            if it_map1 == ewah_coll1[0].end():
+                ewah_coll1[0][mi1] = mi1_ewah2
+            else:
+                mi1_ewah1 = dereference(it_map1).second
+                mi1_ewah1.logicalor(mi1_ewah2, swap)
+                mi1_ewah1.swap(swap)
+            preincrement(it_map2)
+
+    cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf):
+        cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t mi1
+        # No intersection
+        if ewah_keys1[0].intersects(ewah_keys2[0]) == 0:
+            return 0
+        # Intersection at refined level
+        if ewah_refn1[0].intersects(ewah_refn2[0]) == 1:
+            it_map1 = ewah_coll1[0].begin()
+            while (it_map1 != ewah_coll1[0].end()):
+                mi1 = dereference(it_map1).first
+                it_map2 = ewah_coll2[0].find(mi1)
+                if it_map2 != ewah_coll2[0].end():
+                    mi1_ewah1 = dereference(it_map1).second
+                    mi1_ewah2 = dereference(it_map2).second
+                    if mi1_ewah1.intersects(mi1_ewah2):
+                        return 1
+                preincrement(it_map1)
+        # Intersection at coarse level or refined inside coarse
+        else:
+            return 1
+        return 0
+
+    cdef bytes _dumps(self, np.uint32_t ifile):
+        # TODO: write word size
+        cdef sstream ss
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef np.uint64_t nrefn, mi1
+        cdef ewah_bool_array mi1_ewah
+        # Write mi1 ewah & refinment ewah
+        ewah_keys[0].write(ss,1)
+        ewah_refn[0].write(ss,1)
+        # Number of refined bool arrays
+        nrefn = <np.uint64_t>(ewah_refn[0].numberOfOnes())
+        ss.write(<const char *> &nrefn, sizeof(nrefn))
+        # Loop over refined bool arrays
+        it_map = ewah_coll[0].begin()
+        while it_map != ewah_coll[0].end():
+            mi1 = dereference(it_map).first
+            mi1_ewah = dereference(it_map).second
+            ss.write(<const char *> &mi1, sizeof(mi1))
+            mi1_ewah.write(ss,1)
+            preincrement(it_map)
+        # Return type cast python bytes string
+        return <bytes>ss.str()
+
+    cdef void _loads(self, np.uint32_t ifile, bytes s):
+        # TODO: write word size
+        cdef sstream ss
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef np.uint64_t nrefn, mi1
+        cdef ewah_bool_array mi1_ewah
+        cdef int i
+        # Write string to string stream
+        ss.write(s, len(s))
+        # Read keys and refinment arrays
+        ewah_keys[0].read(ss,1)
+        ewah_refn[0].read(ss,1)
+        # Read and check number of refined cells
+        ss.read(<char *> (&nrefn), sizeof(nrefn))
+        if nrefn != ewah_refn[0].numberOfOnes():
+            raise Exception("Error in read. File indicates {} refinements, but bool array has {}.".format(nrefn,ewah_refn[0].numberOfOnes()))
+        # Loop over refined cells
+        for i in range(nrefn):
+            ss.read(<char *> (&mi1), sizeof(mi1))
+            ewah_coll[0][mi1].read(ss,1)
+            # or...
+            #mi1_ewah.read(ss,1)
+            #ewah_coll[0][mi1].swap(mi1_ewah)
+
+    def __dealloc__(self):
+        cdef ewah_bool_array *ewah_keys
+        cdef ewah_bool_array *ewah_refn
+        cdef ewah_map *ewah_coll
+        for ifile in range(self.nfiles):
+            ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+            ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+            ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+            del ewah_keys
+            del ewah_refn
+            del ewah_coll
+
+    def print_info(self, ifile, prefix=''):
+        print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
+                                                                     self._count_coarse(ifile),
+                                                                     self._count_refined(ifile),
+                                                                     self._count_total(ifile)))
 
 cdef class BoolArrayCollection:
 

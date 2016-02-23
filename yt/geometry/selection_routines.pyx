@@ -926,7 +926,7 @@ cdef class SphereSelector(SelectorObject):
             fdist = 0
             for i in range(3):
                 edge = right_edge[i] - left_edge[i]
-                box_center = edge/2.0
+                box_center = (right_edge[i] + left_edge[i])/2.0
                 relcenter = self.difference(box_center, self.center[i], i)
                 farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
                 fdist += farthest*farthest
@@ -942,9 +942,6 @@ cdef class SphereSelector(SelectorObject):
         fdist = 0
         for i in range(3):
             # Early terminate
-            # edge = right_edge[i] - left_edge[i]
-            # box_center = edge/2.0
-            # relcenter = self.difference(box_center, self.center[i], i)
             box_center = (right_edge[i] + left_edge[i])/2.0
             relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
@@ -1046,6 +1043,26 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i
+        for i in range(3):
+            if (right_edge[i] < self.left_edge[i] and \
+                left_edge[i] >= self.right_edge_shift[i]) or \
+                left_edge[i] >= self.right_edge[i]:
+                return 0
+        for i in range(3):
+            if left_edge[i] < self.right_edge_shift[i]:
+                if right_edge[i] >= self.right_edge_shift[i]:
+                    return 2
+            elif left_edge[i] < self.left_edge[i] or \
+                 right_edge[i] >= self.right_edge[i]:
+                return 2
+        return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
@@ -1088,6 +1105,10 @@ cdef class CutRegionSelector(SelectorObject):
         self._positions = set(tuple(position) for position in positions)
 
     cdef int select_bbox(self,  np.float64_t left_edge[3],
+                     np.float64_t right_edge[3]) nogil:
+        return 1
+
+    cdef int select_bbox_dge(self,  np.float64_t left_edge[3],
                      np.float64_t right_edge[3]) nogil:
         return 1
 
@@ -1171,6 +1192,55 @@ cdef class DiskSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 1
+        cdef np.float64_t *arr[2]
+        cdef np.float64_t pos[3], H, D, R2, temp
+        cdef int i, j, k, n
+        cdef int all_under = 1
+        cdef int all_over = 1
+        cdef int any_radius = 0
+        # A moment of explanation (revised):
+        #    The disk and bounding box collide if any of the following are true:
+        #    1) the center of the disk is inside the bounding box
+        #    2) any corner of the box lies inside the disk
+        #    3) the box spans the plane (!all_under and !all_over) and at least
+        #       one corner is within the cylindrical radius
+
+        # check if disk center lies inside bbox
+        if left_edge[0] <= self.center[0] <= right_edge[0] and \
+           left_edge[1] <= self.center[1] <= right_edge[1] and \
+           left_edge[2] <= self.center[2] <= right_edge[2] :
+            return 1
+
+        # check all corners
+        arr[0] = left_edge
+        arr[1] = right_edge
+        for i in range(2):
+            pos[0] = arr[i][0]
+            for j in range(2):
+                pos[1] = arr[j][1]
+                for k in range(2):
+                    pos[2] = arr[k][2]
+                    H = D = 0
+                    for n in range(3):
+                        temp = self.difference(pos[n], self.center[n], n)
+                        H += (temp * self.norm_vec[n])
+                        D += temp*temp
+                    R2 = (D - H*H)
+                    if R2 < self.radius2 :
+                        any_radius = 1
+                        if fabs(H) < self.height: return 1
+                    if H < 0: all_over = 0
+                    if H > 0: all_under = 0
+        if all_over == 0 and all_under == 0 and any_radius == 1: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # Until we can get our OBB/OBB intersection correct, disable this.
+        return 2
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n
@@ -1298,6 +1368,41 @@ cdef class CuttingPlaneSelector(SelectorObject):
             return 0
         return 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i, j, k, n
+        cdef np.float64_t *arr[2]
+        cdef np.float64_t pos[3]
+        cdef np.float64_t gd
+        arr[0] = left_edge
+        arr[1] = right_edge
+        all_under = 1
+        all_over = 1
+        # Check each corner
+        for i in range(2):
+            pos[0] = arr[i][0]
+            for j in range(2):
+                pos[1] = arr[j][1]
+                for k in range(2):
+                    pos[2] = arr[k][2]
+                    gd = self.d
+                    for n in range(3):
+                        gd += pos[n] * self.norm_vec[n]
+                    # this allows corners and faces on the low-end to
+                    # collide, while not selecting cells on the high-side
+                    if i == 0 and j == 0 and k == 0 :
+                        if gd <= 0: all_over = 0
+                        if gd >= 0: all_under = 0
+                    else :
+                        if gd < 0: all_over = 0
+                        if gd > 0: all_under = 0
+        if all_over == 1 or all_under == 1:
+            return 0
+        return 2 # a box of non-zeros volume can't be inside a plane
+
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),
                 ("norm_vec[1]", self.norm_vec[1]),
@@ -1387,6 +1492,15 @@ cdef class SliceSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
+            return 2 # a box with non-zero volume can't be inside a plane
         return 0
 
     def _hash_vals(self):
@@ -1486,6 +1600,16 @@ cdef class OrthoRaySelector(SelectorObject):
         if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
+           left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
+            return 2 # a box of non-zero volume can't be inside a ray
         return 0
 
     def _hash_vals(self):
@@ -1703,6 +1827,32 @@ cdef class RaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i
+        cdef np.uint8_t cm = 1
+        cdef VolumeContainer vc
+        cdef IntegrationAccumulator ia
+        cdef np.float64_t dt, t
+        for i in range(3):
+            vc.left_edge[i] = left_edge[i]
+            vc.right_edge[i] = right_edge[i]
+            vc.dds[i] = right_edge[i] - left_edge[i]
+            vc.idds[i] = 1.0/vc.dds[i]
+            vc.dims[i] = 1
+        t = dt = 0.0
+        ia.t = &t
+        ia.dt = &dt
+        ia.child_mask = &cm
+        ia.hits = 0
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        if ia.hits > 0:
+            return 2 # a box of non-zero volume cannot be inside a ray
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3],
                                np.float64_t dds[3]) nogil:
         # This is terribly inefficient for Octrees.  For grids, it will never
@@ -1847,6 +1997,43 @@ cdef class EllipsoidSelector(SelectorObject):
             dist += closest * closest
         if dist <= self.mag[0]**2: return 1
         return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # This is the sphere selection
+        cdef int i
+        cdef np.float64_t box_center, relcenter, closest, farthest, cdist, fdist, edge
+        if left_edge[0] <= self.center[0] <= right_edge[0] and \
+           left_edge[1] <= self.center[1] <= right_edge[1] and \
+           left_edge[2] <= self.center[2] <= right_edge[2]:
+            fdist = 0
+            for i in range(3):
+                edge = right_edge[i] - left_edge[i]
+                box_center = (right_edge[i] + left_edge[i])/2.0
+                relcenter = self.difference(box_center, self.center[i], i)
+                farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
+                fdist += farthest*farthest
+                if fdist >= self.mag[0]**2: return 2
+            return 1
+        # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
+        cdist = 0
+        fdist = 0
+        for i in range(3):
+            box_center = (right_edge[i] + left_edge[i])/2.0
+            relcenter = self.difference(box_center, self.center[i], i)
+            edge = right_edge[i] - left_edge[i]
+            closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
+            farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
+            cdist += closest * closest
+            fdist += farthest * farthest
+            if cdist > self.mag[0]**2: return 0
+        if fdist < self.mag[0]**2:
+            return 1
+        else:
+            return 2
 
     def _hash_vals(self):
         return (("vec[0][0]", self.vec[0][0]),
@@ -2078,6 +2265,10 @@ cdef class AlwaysSelector(SelectorObject):
         return 1
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return 1
+
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         return 1
 
