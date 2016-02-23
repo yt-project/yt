@@ -920,21 +920,21 @@ cdef class SphereSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         cdef np.float64_t box_center, relcenter, closest, farthest, cdist, fdist, edge
         cdef int i
-        if (left_edge[0] <= self.center[0] < right_edge[0] and
-            left_edge[1] <= self.center[1] < right_edge[1] and
-            left_edge[2] <= self.center[2] < right_edge[2]):
-            fdist = 0
-            for i in range(3):
-                fdist += max(self.center[i] - left_edge[i],
-                             right_edge[i] - self.center[i])**2
-                if fdist >= self.radius2:
-                    return 2
-            return 1
-        for i in range(3):
-            if not self.check_box[i]: continue
-            if right_edge[i] < self.bbox[i][0] or \
-               left_edge[i] > self.bbox[i][1]:
-                return 0
+        # if (left_edge[0] <= self.center[0] < right_edge[0] and
+        #     left_edge[1] <= self.center[1] < right_edge[1] and
+        #     left_edge[2] <= self.center[2] < right_edge[2]):
+        #     fdist = 0
+        #     for i in range(3):
+        #         fdist += max(self.center[i] - left_edge[i],
+        #                      right_edge[i] - self.center[i])**2
+        #         if fdist >= self.radius2:
+        #             return 2
+        #     return 1
+        # for i in range(3):
+        #     if not self.check_box[i]: continue
+        #     if right_edge[i] < self.bbox[i][0] or \
+        #        left_edge[i] > self.bbox[i][1]:
+        #         return 0
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         cdist = 0
         fdist = 0
@@ -949,9 +949,9 @@ cdef class SphereSelector(SelectorObject):
             fdist += farthest*farthest
             if cdist > self.radius2: return 0
         if fdist < self.radius2:
-            return 2
-        else:
             return 1
+        else:
+            return 2
 
     def _hash_vals(self):
         return (("radius", self.radius),

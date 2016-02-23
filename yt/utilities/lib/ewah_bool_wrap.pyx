@@ -33,6 +33,8 @@ cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
 
 DEF UncompressedFormat = 'Pointer'
 
+ctypedef np.uint8_t bitarrtype
+
 cdef class BoolArrayCollection:
 
     def __cinit__(self):
@@ -389,16 +391,16 @@ cdef class BoolArrayCollectionUncompressed:
         self.ewah_coll = <void *> ewah_coll
         cdef np.uint64_t i
         IF UncompressedFormat == 'MemoryView':
-            self.ewah_keys = malloc(sizeof(np.uint8_t)*nele)
-            self.ewah_refn = malloc(sizeof(np.uint8_t)*nele)
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:nele]>self.ewah_keys
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:nele]>self.ewah_refn
+            self.ewah_keys = malloc(sizeof(bitarrtype)*nele)
+            self.ewah_refn = malloc(sizeof(bitarrtype)*nele)
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:nele]>self.ewah_refn
             for i in range(nele):
                 ewah_keys[i] = 0
                 ewah_refn[i] = 0
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *>malloc(sizeof(np.uint8_t)*nele)
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *>malloc(sizeof(np.uint8_t)*nele)
+            cdef bitarrtype *ewah_keys = <bitarrtype *>malloc(sizeof(bitarrtype)*nele)
+            cdef bitarrtype *ewah_refn = <bitarrtype *>malloc(sizeof(bitarrtype)*nele)
             for i in range(nele):
                 ewah_keys[i] = 0
                 ewah_refn[i] = 0
@@ -410,11 +412,11 @@ cdef class BoolArrayCollectionUncompressed:
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> solf.ewah_refn
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] bool_keys = <np.uint8_t[:self.nele]>self.ewah_keys
-            cdef np.uint8_t[:] bool_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] bool_keys = <bitarrtype[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] bool_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *bool_keys = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *bool_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *bool_keys = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *bool_refn = <bitarrtype *> self.ewah_refn
         for i in range(self.nele):
             if bool_keys[i] == 1:
                 ewah_keys[0].set(i)
@@ -427,11 +429,11 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         ewah_keys[i1] = 1
         # Note the 0 here, for dereferencing
@@ -441,16 +443,16 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _set_coarse(self, np.uint64_t i1):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         ewah_keys[i1] = 1
 
     cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         # Note the 0 here, for dereferencing
         ewah_refn[i1] = 1
@@ -458,9 +460,9 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i1
         for i1 in range(arr.shape[0]):
             if arr[i1] == 1:
@@ -468,9 +470,9 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         cdef np.uint64_t i2
         for i2 in range(arr.shape[0]):
@@ -484,18 +486,18 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _set_refn(self, np.uint64_t i1):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         ewah_refn[i1] = 1
 
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         # Note the 0 here, for dereferencing
         if ewah_keys[i1] == 0: return 0
@@ -505,25 +507,25 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef bint _get_coarse(self, np.uint64_t i1):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         return <bint>ewah_keys[i1]
         # if (ewah_keys[i1] == 0): return 0
         # return 1
 
     cdef bint _isref(self, np.uint64_t i):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         return <bint>ewah_refn[i]
 
     cdef int _count_total(self):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys = <np.uint8_t[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele]>self.ewah_keys
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i
         cdef int out = 0
         for i in range(self.nele):
@@ -532,9 +534,9 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef int _count_refined(self):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_refn = <np.uint8_t[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele]>self.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef np.uint64_t i
         cdef int out = 0
         for i in range(self.nele):
@@ -543,15 +545,15 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef void _append(self, BoolArrayCollectionUncompressed solf):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys1 = <np.uint8_t[:self.nele]>self.ewah_keys
-            cdef np.uint8_t[:] ewah_refn1 = <np.uint8_t[:self.nele]>self.ewah_refn
-            cdef np.uint8_t[:] ewah_keys2 = <np.uint8_t[:solf.nele]>solf.ewah_keys
-            cdef np.uint8_t[:] ewah_refn2 = <np.uint8_t[:solf.nele]>solf.ewah_refn
+            cdef bitarrtype[:] ewah_keys1 = <bitarrtype[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_refn1 = <bitarrtype[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_keys2 = <bitarrtype[:solf.nele]>solf.ewah_keys
+            cdef bitarrtype[:] ewah_refn2 = <bitarrtype[:solf.nele]>solf.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys1 = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *ewah_refn1 = <np.uint8_t *> self.ewah_refn
-            cdef np.uint8_t *ewah_keys2 = <np.uint8_t *> solf.ewah_keys
-            cdef np.uint8_t *ewah_refn2 = <np.uint8_t *> solf.ewah_refn
+            cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
+            cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
+            cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
@@ -582,15 +584,15 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef bint _intersects(self, BoolArrayCollectionUncompressed solf):
         IF UncompressedFormat == 'MemoryView':
-            cdef np.uint8_t[:] ewah_keys1 = <np.uint8_t[:self.nele]>self.ewah_keys
-            cdef np.uint8_t[:] ewah_refn1 = <np.uint8_t[:self.nele]>self.ewah_refn
-            cdef np.uint8_t[:] ewah_keys2 = <np.uint8_t[:solf.nele]>solf.ewah_keys
-            cdef np.uint8_t[:] ewah_refn2 = <np.uint8_t[:solf.nele]>solf.ewah_refn
+            cdef bitarrtype[:] ewah_keys1 = <bitarrtype[:self.nele]>self.ewah_keys
+            cdef bitarrtype[:] ewah_refn1 = <bitarrtype[:self.nele]>self.ewah_refn
+            cdef bitarrtype[:] ewah_keys2 = <bitarrtype[:solf.nele]>solf.ewah_keys
+            cdef bitarrtype[:] ewah_refn2 = <bitarrtype[:solf.nele]>solf.ewah_refn
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys1 = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *ewah_refn1 = <np.uint8_t *> self.ewah_refn
-            cdef np.uint8_t *ewah_keys2 = <np.uint8_t *> solf.ewah_keys
-            cdef np.uint8_t *ewah_refn2 = <np.uint8_t *> solf.ewah_refn
+            cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
+            cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
+            cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
@@ -626,8 +628,8 @@ cdef class BoolArrayCollectionUncompressed:
             free(self.ewah_keys)
             free(self.ewah_refn)
         ELIF UncompressedFormat == 'Pointer':
-            cdef np.uint8_t *ewah_keys = <np.uint8_t *> self.ewah_keys
-            cdef np.uint8_t *ewah_refn = <np.uint8_t *> self.ewah_refn
+            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
             free(ewah_keys)
             free(ewah_refn)
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
