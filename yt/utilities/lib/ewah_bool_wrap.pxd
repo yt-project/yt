@@ -28,7 +28,8 @@ cdef class BoolArrayCollection:
     cdef void _loads(self, bytes s)
 
 cdef class BoolArrayCollectionUncompressed:
-    cdef int nele
+    cdef int nele1
+    cdef int nele2
     cdef void* ewah_coll
     cdef void* ewah_keys
     cdef void* ewah_refn
@@ -37,7 +38,9 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _set_coarse(self, np.uint64_t i1)
     cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr)
+    cdef void _set_coarse_array_ptr(self, np.uint8_t *arr)
     cdef void _set_refined_array(self, np.uint64_t mi1, np.uint8_t[:] arr)
+    cdef void _set_refined_array_ptr(self, np.uint64_t mi1, np.uint8_t *arr)
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint64_t i1)
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)
@@ -47,6 +50,7 @@ cdef class BoolArrayCollectionUncompressed:
     cdef int _count_refined(self)
     cdef void _append(self, BoolArrayCollectionUncompressed solf)
     cdef bint _intersects(self, BoolArrayCollectionUncompressed solf)
+    cdef void _compress(self, BoolArrayCollection solf)
 
 cdef class SparseUnorderedBitmaskSet:
     cdef void* entries

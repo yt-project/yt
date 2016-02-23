@@ -57,6 +57,7 @@ DEF RefinedGhosts = 1
 DEF RefinedExternalGhosts = 1
 # If set to 1, bitmaps are only compressed before looking for files
 DEF UseUncompressed = 1
+DEF UseUncompressedView = 0
 # If set to 1, only cells at the edge of selectors are used
 DEF OnlyRefineEdges = 0
 
@@ -863,6 +864,8 @@ cdef class ParticleForestSelector:
     cdef np.uint32_t order2
     cdef np.uint64_t max_index1
     cdef np.uint64_t max_index2
+    cdef np.uint64_t s1
+    cdef np.uint64_t s2
     IF BoolType == "Bool":
         cdef void* pointers[11]
     ELSE:
@@ -877,10 +880,16 @@ cdef class ParticleForestSelector:
     cdef np.uint8_t[:] file_mask_g
     # Uncompressed boolean
     IF BoolType == "Bool":
-        cdef np.uint8_t[:] coarse_select_bool
-        cdef np.uint8_t[:] coarse_ghosts_bool
-        cdef np.uint8_t[:] refined_select_bool
-        cdef np.uint8_t[:] refined_ghosts_bool
+        IF UseUncompressedView == 1:
+            cdef np.uint8_t[:] refined_select_bool
+            cdef np.uint8_t[:] refined_ghosts_bool
+            cdef np.uint8_t[:] coarse_select_bool
+            cdef np.uint8_t[:] coarse_ghosts_bool
+        ELSE:
+            cdef np.uint8_t *refined_select_bool
+            cdef np.uint8_t *refined_ghosts_bool
+            cdef np.uint8_t *coarse_select_bool
+            cdef np.uint8_t *coarse_ghosts_bool
         cdef SparseUnorderedRefinedBitmask refined_ghosts_list
         cdef BoolArrayColl select_ewah
         cdef BoolArrayColl ghosts_ewah
@@ -912,6 +921,8 @@ cdef class ParticleForestSelector:
         self.nfiles = forest.nfiles
         self.max_index1 = <np.uint64_t>(1 << self.order1)
         self.max_index2 = <np.uint64_t>(1 << self.order2)
+        self.s1 = <np.uint64_t>(1 << (self.order1*3))
+        self.s2 = <np.uint64_t>(1 << (self.order2*3))
         self.pointers[0] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
         self.pointers[1] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
         self.pointers[2] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
@@ -931,24 +942,35 @@ cdef class ParticleForestSelector:
         self.file_mask_g[:] = 0
         # Uncompressed Boolean
         IF BoolType == "Bool":
-            cdef np.uint64_t s1 = (1<<(self.order1*3))
-            cdef np.uint64_t s2 = (1<<(self.order2*3))
-            self.pointers[7] = malloc( sizeof(np.uint8_t) * s1)
-            self.pointers[8] = malloc( sizeof(np.uint8_t) * s1)
-            self.pointers[9] = malloc( sizeof(np.uint8_t) * s2)
-            self.pointers[10] = malloc( sizeof(np.uint8_t) * s2)
-            self.coarse_select_bool = <np.uint8_t[:s1]> self.pointers[7]
-            self.coarse_ghosts_bool = <np.uint8_t[:s1]> self.pointers[8]
-            self.refined_select_bool = <np.uint8_t[:s2]> self.pointers[9]
-            self.refined_ghosts_bool = <np.uint8_t[:s2]> self.pointers[10]
-            self.coarse_select_bool[:] = 0
-            self.coarse_ghosts_bool[:] = 0
-            self.refined_select_bool[:] = 0
-            self.refined_ghosts_bool[:] = 0
+            self.pointers[7] = malloc( sizeof(np.uint8_t) * self.s2)
+            self.pointers[8] = malloc( sizeof(np.uint8_t) * self.s2)
+            self.pointers[9] = malloc( sizeof(np.uint8_t) * self.s1)
+            self.pointers[10] = malloc( sizeof(np.uint8_t) * self.s1)
+            IF UseUncompressedView == 1:
+                self.refined_select_bool = <np.uint8_t[:self.s2]> self.pointers[7]
+                self.refined_ghosts_bool = <np.uint8_t[:self.s2]> self.pointers[8]
+                self.coarse_select_bool = <np.uint8_t[:self.s1]> self.pointers[9]
+                self.coarse_ghosts_bool = <np.uint8_t[:self.s1]> self.pointers[10]
+                self.refined_select_bool[:] = 0
+                self.refined_ghosts_bool[:] = 0
+                self.coarse_select_bool[:] = 0
+                self.coarse_ghosts_bool[:] = 0
+            ELSE:
+                self.refined_select_bool = <np.uint8_t *> self.pointers[7]
+                self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
+                self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
+                self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
+                cdef np.uint64_t mi
+                for mi in range(self.s2):
+                    self.refined_select_bool[mi] = 0
+                    self.refined_ghosts_bool[mi] = 0
+                for mi in range(self.s1):
+                    self.coarse_select_bool[mi] = 0
+                    self.coarse_ghosts_bool[mi] = 0
             self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
-            IF UseUncompressed:
-                self.select_ewah = BoolArrayColl(s1)
-                self.ghosts_ewah = BoolArrayColl(s1)
+            IF UseUncompressed == 1:
+                self.select_ewah = BoolArrayColl(self.s1, self.s2)
+                self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
             ELSE:
                 self.select_ewah = BoolArrayCollection()
                 self.ghosts_ewah = BoolArrayCollection()
@@ -982,10 +1004,9 @@ cdef class ParticleForestSelector:
         # Uncompressed version
         cdef BoolArrayColl mm_s0
         cdef BoolArrayColl mm_g0
-        IF UseUncompressed:
-            cdef np.uint64_t s1 = (1<<(self.order1*3))
-            mm_s0 = BoolArrayColl(s1)
-            mm_g0 = BoolArrayColl(s1)
+        IF UseUncompressed == 1:
+            mm_s0 = BoolArrayColl(self.s1, self.s2)
+            mm_g0 = BoolArrayColl(self.s1, self.s2)
         ELSE:
             mm_s0 = mm_s
             mm_g0 = mm_g
@@ -1006,9 +1027,9 @@ cdef class ParticleForestSelector:
             mm_s0.print_info("Selector: ")
             mm_g0.print_info("Ghost   : ")
         # Compress
-        IF UseUncompressed:
-            mm_s0.compress(mm_s)
-            mm_g0.compress(mm_g)
+        IF UseUncompressed == 1:
+            mm_s0._compress(mm_s)
+            mm_g0._compress(mm_g)
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         cdef BoolArrayCollection mm_d
@@ -1312,11 +1333,21 @@ cdef class ParticleForestSelector:
     @cython.cdivision(True)
     cdef void set_coarse_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1
-        mm_s._set_coarse_array(self.coarse_select_bool)
-        self.coarse_select_bool[:] = 0
+        IF UseUncompressedView == 1:
+            mm_s._set_coarse_array(self.coarse_select_bool)
+            self.coarse_select_bool[:] = 0
+        ELSE:
+            mm_s._set_coarse_array_ptr(self.coarse_select_bool)
+            for mi1 in range(self.s1):
+                self.coarse_select_bool[mi1] = 0
         IF GhostsAfter == 0:
-            mm_g._set_coarse_array(self.coarse_ghosts_bool)
-            self.coarse_ghosts_bool[:] = 0
+            IF UseUncompressedView == 1:
+                mm_g._set_coarse_array(self.coarse_ghosts_bool)
+                self.coarse_ghosts_bool[:] = 0
+            ELSE:
+                mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+                for mi1 in range(self.s1):
+                    self.coarse_ghosts_bool[mi1] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1330,42 +1361,60 @@ cdef class ParticleForestSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void push_refined_bool(self, np.uint64_t mi1):
-        cdef np.uint64_t mi2
-        self.select_ewah._set_refined_array(mi1, self.refined_select_bool)
-        self.refined_select_bool[:] = 0
+        IF UseUncompressedView == 1:
+            self.select_ewah._set_refined_array(mi1, self.refined_select_bool)
+            self.refined_select_bool[:] = 0
+        ELSE:
+            cdef np.uint64_t mi2
+            self.select_ewah._set_refined_array_ptr(mi1, self.refined_select_bool)
+            for mi2 in range(self.s2):
+                self.refined_select_bool[mi2] = 0
         IF GhostsAfter == 0:
-            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-            self.refined_ghosts_bool[:] = 0
+            IF UseUncompressedView == 1:
+                self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+                self.refined_ghosts_bool[:] = 0
+            ELSE:
+                self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+                for mi2 in range(self.s2):
+                    self.refined_ghosts_bool[mi2] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_ghost_zones(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
-        cdef np.uint64_t s1 = (1<<(self.order1*3))
-        cdef np.uint64_t s2 = (1<<(self.order2*3))
         # Get ghost zones, unordered
-        for mi1 in range(s1):
+        for mi1 in range(self.s1):
             if mm_s._get_coarse(mi1):
-                IF RefinedGhosts:
+                IF RefinedGhosts == 1:
                     if self.is_refined(mi1):
-                        for mi2 in range(s2):
+                        for mi2 in range(self.s2):
                             if mm_s._get(mi1, mi2):
                                 self.add_neighbors_refined(mi1, mi2)
                         IF BoolType == 'Bool':
                             # self.push_refined_bool(mi1)
-                            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-                            self.refined_ghosts_bool[:] = 0
+                            IF UseUncompressedView == 1:
+                                self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+                                self.refined_ghosts_bool[:] = 0
+                            ELSE:
+                                self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+                                for mi2 in range(self.s2):
+                                    self.refined_ghosts_bool[mi2] = 0
                     else:
                         self.add_neighbors_coarse(mi1)
                 ELSE:
                     self.add_neighbors_coarse(mi1)
         # Add ghost zones to bool array in order
         IF BoolType == 'Bool':
-            mm_g._set_coarse_array(self.coarse_ghosts_bool)
-            self.coarse_ghosts_bool[:] = 0
+            IF UseUncompressedView == 1:
+                mm_g._set_coarse_array(self.coarse_ghosts_bool)
+                self.coarse_ghosts_bool[:] = 0
+            ELSE:
+                mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+                for mi1 in range(self.s1):
+                    self.coarse_ghosts_bool[mi1] = 0
             # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
-            IF UseUncompressed:
+            IF UseUncompressed == 1:
                 self.refined_ghosts_list._fill_bool(mm_g)
             ELSE:
                 self.refined_ghosts_list._fill_ewah(mm_g)
@@ -1374,7 +1423,7 @@ cdef class ParticleForestSelector:
             mm_g._append(self.ghosts_ewah)
             # print("After             :  {: 6d}".format(mm_g._count_refined()))
         ELSE:
-            IF UseUncompressed:
+            IF UseUncompressed == 1:
                 self.coarse_ghosts_list._fill_bool(mm_g)
                 self.refined_ghosts_list._fill_bool(mm_g)
             ELSE:
