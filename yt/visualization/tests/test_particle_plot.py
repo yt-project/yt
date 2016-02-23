@@ -21,6 +21,7 @@ from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
     assert_fname, WIDTH_SPECS, ATTR_ARGS
+from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
     fake_particle_ds, assert_array_almost_equal
 from yt.utilities.answer_testing.framework import \
@@ -105,6 +106,38 @@ def test_particle_projection_answers():
                                                'ParticleProjectionPlot')
                 test_particle_projection_answers.__name__ = test.description
                 yield test
+
+
+@requires_ds(g30, big_data=True)
+def test_particle_projection_filter():
+    '''
+
+    This tests particle projection plots for filter fields.
+    
+
+    '''
+
+    def formed_star(pfilter, data):
+        filter = data["all", "creation_time"] > 0
+        return filter
+
+    add_particle_filter("formed_star", function=formed_star, filtered_type='all',
+                        requires=["creation_time"])
+
+    plot_field = ('formed_star', 'particle_mass')
+
+    decimals = 12
+    ds = data_dir_load(g30)
+    ds.add_particle_filter('formed_star')
+    for ax in 'xyz':
+        attr_name = "set_log"
+        args = PROJ_ATTR_ARGS[attr_name]
+        test = PlotWindowAttributeTest(ds, plot_field, ax,
+                                       attr_name,
+                                       args, decimals,
+                                       'ParticleProjectionPlot')
+        test_particle_projection_filter.__name__ = test.description
+        yield test
 
 
 @requires_ds(g30, big_data=True)
