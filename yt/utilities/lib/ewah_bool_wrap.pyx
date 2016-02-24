@@ -25,6 +25,7 @@ from yt.utilities.lib.ewah_bool_array cimport \
 from cython.operator cimport dereference, preincrement
 import numpy as np
 cimport numpy as np
+cimport cython
 
 cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)
@@ -146,6 +147,10 @@ cdef class FileBitmasks:
         ewah_refn[0].set(i1)
         ewah_coll[0][i1].set(i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef np.uint64_t i1
@@ -153,6 +158,10 @@ cdef class FileBitmasks:
             if arr[i1] == 1:
                 ewah_keys[0].set(i1)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t i1, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]

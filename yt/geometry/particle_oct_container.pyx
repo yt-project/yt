@@ -1476,6 +1476,7 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void push_refined_bool(self, np.uint64_t mi1):
         IF UseUncompressedView == 1:
             self.select_ewah._set_refined_array(mi1, self.refined_select_bool)
