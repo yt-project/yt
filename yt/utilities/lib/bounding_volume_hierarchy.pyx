@@ -10,6 +10,10 @@ cdef extern from "mesh_construction.h":
         MAX_NUM_TRI
     int triangulate_hex[MAX_NUM_TRI][3]
 
+# define some constants
+cdef np.float64_t DETERMINANT_EPS = 1.0e-10
+cdef np.float64_t INF = np.inf
+cdef np.int64_t   LEAF_SIZE = 16
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -58,7 +62,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
 
     cdef np.float64_t det, inv_det
     det = dot(e1, P)
-    if(det > -1.0e-10 and det < 1.0e-10): 
+    if(det > -DETERMINANT_EPS and det < DETERMINANT_EPS): 
         return False
     inv_det = 1.0 / det
 
@@ -78,7 +82,7 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
 
     cdef np.float64_t t = dot(e2, Q) * inv_det
 
-    if(t > 1.0e-10 and t < ray.t_far):
+    if(t > DETERMINANT_EPS and t < ray.t_far):
         ray.t_far = t
         ray.data_val = (1.0 - u - v)*tri.d0 + u*tri.d1 + v*tri.d2
         ray.elem_id = tri.elem_id
@@ -93,8 +97,8 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
 cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 # https://tavianator.com/fast-branchless-raybounding-box-intersections/
 
-    cdef np.float64_t tmin = -1.0e300
-    cdef np.float64_t tmax =  1.0e300
+    cdef np.float64_t tmin = -INF
+    cdef np.float64_t tmax =  INF
  
     cdef np.int64_t i
     cdef np.float64_t t1, t2
@@ -127,9 +131,7 @@ cdef class BVH:
                   np.float64_t[:, ::1] vertices,
                   np.int64_t[:, ::1] indices,
                   np.float64_t[:, ::1] field_data):
-        
-        self.leaf_size = 16
-        self.vertices = vertices
+
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
 
@@ -162,7 +164,7 @@ cdef class BVH:
         self.root = self._recursive_build(0, num_tri)
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
-        if node.end - node.begin > self.leaf_size:
+        if node.end - node.begin > LEAF_SIZE:
             self._recursive_free(node.left)
             self._recursive_free(node.right)
         free(node)
@@ -224,7 +226,7 @@ cdef class BVH:
         # check for leaf
         cdef np.int64_t i, hit
         cdef Triangle* tri
-        if (node.end - node.begin) <= self.leaf_size:
+        if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
                 tri = &(self.triangles[i])
                 hit = ray_triangle_intersect(ray, tri)
@@ -245,7 +247,7 @@ cdef class BVH:
         self._get_node_bbox(node, begin, end)
         
         # check for leaf
-        if (end - begin) <= self.leaf_size:
+        if (end - begin) <= LEAF_SIZE:
             return node
         
         # we use the "split in the middle of the longest axis approach"
@@ -300,7 +302,7 @@ cdef void cast_rays(np.float64_t* image,
         for i in prange(N):
             for j in range(3):
                 ray.origin[j] = origins[N*j + i]
-            ray.t_far = 1e30
+            ray.t_far = INF
             ray.t_near = 0.0
             ray.data_val = 0
             bvh.intersect(ray)
