@@ -1,6 +1,8 @@
 import os
 import re
+import contextlib
 import OpenGL.GL as GL
+from collections import OrderedDict
 
 import numpy as np
 from yt.utilities.math_utils import \
@@ -247,7 +249,14 @@ class Camera:
 class SceneComponent(object):
     name = None
     def __init__(self):
-        self._uniform_funcs = {}
+        self._uniform_funcs = OrderedDict()
+        self.vert_attrib = OrderedDict()
+        self.vert_arrays = OrderedDict()
+
+    def _initialize_vertex_array(self, name):
+        if name in self.vert_arrays:
+            GL.glDeleteVertexArrays(1, [self.vert_arrays[name]])
+        self.vert_arrays[name] = GL.glGenVertexArrays(1)
 
     def _guess_uniform_func(self, value):
         # We make a best-effort guess.
@@ -291,12 +300,40 @@ class SceneComponent(object):
         loc = GL.glGetUniformLocation(shader_program, name)
         return self._uniform_funcs[name](loc, value)
 
+    def run_program(self, shader_program):
+        GL.glUseProgram(shader_program)
+        if len(self.vert_arrays) != 1:
+            raise NotImplementedError
+        for vert_name in self.vert_arrays:
+            GL.glBindVertexArray(self.vert_arrays[vert_name])
+        for an in self.vert_attrib:
+            self.bind_vert_attrib(shader_program, an)
+        self._set_uniforms(shader_program)
+        self.draw()
+        for an in self.vert_attrib:
+            self.disable_vert_attrib(shader_program, an)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+
+    def add_vert_attrib(self, name, arr, each):
+        self.vert_attrib[name] = (GL.glGenBuffers(1), each)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name][0])
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
+
+    def bind_vert_attrib(self, program, name):
+        bind_loc, size = self.vert_attrib[name]
+        loc = GL.glGetAttribLocation(program, name)
+        GL.glEnableVertexAttribArray(loc)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
+        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
+
+    def disable_vert_attrib(self, program, name):
+        loc = GL.glGetAttribLocation(program, name)
+        GL.glDisableVertexAttribArray(loc)
+
 class BlockCollection(SceneComponent):
     name = "block_collection"
     def __init__(self):
         super(BlockCollection, self).__init__()
-        self.vert_attrib = {}
-        self.gl_vao_name = None
         self.data_source = None
 
         self.blocks = {} # A collection of PartionedGrid objects
@@ -321,23 +358,6 @@ class BlockCollection(SceneComponent):
         GL.glBlendColor(1.0, 1.0, 1.0, 1.0)
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
         GL.glBlendEquation(GL.GL_MAX)
-
-
-    def add_vert_attrib(self, name, arr):
-        self.vert_attrib[name] = GL.glGenBuffers(1)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
-
-    def bind_vert_attrib(self, program, name, size):
-        loc = GL.glGetAttribLocation(program, name)
-        GL.glEnableVertexAttribArray(loc)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name])
-        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
-
-    def disable_vert_attrib(self, program, name):
-        loc = GL.glGetAttribLocation(program, name)
-        GL.glDisableVertexAttribArray(loc)
-        GL.glBindVertexArray(0)
 
     def set_fields_log(self, log_field):
         self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
@@ -388,16 +408,14 @@ class BlockCollection(SceneComponent):
         dx = np.concatenate(dx)
         le = np.concatenate(le)
         re = np.concatenate(re)
-        if self.gl_vao_name is not None:
-            GL.glDeleteVertexArrays(1, [self.gl_vao_name])
-        self.gl_vao_name = GL.glGenVertexArrays(1)
 
-        self.add_vert_attrib("model_vertex", vert)
-        self.add_vert_attrib("in_dx", dx)
-        self.add_vert_attrib("in_left_edge", le)
-        self.add_vert_attrib("in_right_edge", re)
+        self._initialize_vertex_array("block_info")
+        self.add_vert_attrib("model_vertex", vert, 4)
+        self.add_vert_attrib("in_dx", dx, 3)
+        self.add_vert_attrib("in_left_edge", le, 3)
+        self.add_vert_attrib("in_right_edge", re, 3)
 
-        # Now we set up our
+        # Now we set up our textures
         self._load_textures()
 
     def set_camera(self, camera):
@@ -415,48 +433,21 @@ class BlockCollection(SceneComponent):
         self.camera = camera
         self.redraw = True
 
-    def run_program(self, shader_program):
-        r"""Runs a given shader program on the block collection.
-
-        Parameters
-        ----------
-        shader_program : int
-            An integer name for an OpenGL shader program.
-
+    def draw(self):
+        r"""Runs a given shader program on the block collection.  It is assumed
+        that the GL Context has been set up, which is typically handled by the
+        run_program method.
         """
-        GL.glUseProgram(shader_program)
-
-        GL.glBindVertexArray(self.gl_vao_name)
-
-        self.bind_vert_attrib(shader_program, "model_vertex", 4)
-        self.bind_vert_attrib(shader_program, "in_dx", 3)
-        self.bind_vert_attrib(shader_program, "in_left_edge", 3)
-        self.bind_vert_attrib(shader_program, "in_right_edge", 3)
 
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-
-        self._set_uniforms(shader_program)
         GL.glActiveTexture(GL.GL_TEXTURE0)
-        camera_loc = GL.glGetUniformLocation(shader_program, "camera_pos")
-        GL.glUniform3fv(camera_loc, 1, self.camera.position)
 
-        GL.glActiveTexture(GL.GL_TEXTURE0)
         for bi in self.block_order:
             tex_i, block = self.blocks[bi]
             ti = self.gl_texture_names[tex_i]
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
-
-        # # This breaks on OSX, since it was already removed once, and re-added
-        # # twice, I'm leaving this as a comment
-        # for attrib in ["model_vertex", "in_dx",
-        #                "in_left_edge", "in_right_edge"]:
-        #     self.disable_vert_attrib(shader_program, attrib)
-
-        # Release bind
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-
 
     def _set_uniforms(self, shader_program):
         self._set_uniform(shader_program, "projection",
@@ -465,6 +456,8 @@ class BlockCollection(SceneComponent):
                 self.camera.get_view_matrix())
         self._set_uniform(shader_program, "viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+        self._set_uniform(shader_program, "camera_pos",
+                self.camera.position)
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
