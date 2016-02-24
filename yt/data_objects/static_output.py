@@ -435,7 +435,9 @@ class Dataset(object):
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
-            self.add_particle_union(pu)
+            nfields = self.add_particle_union(pu)
+            if nfields == 0:
+                mylog.debug("zero common fields: skipping particle union 'all'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
@@ -487,9 +489,17 @@ class Dataset(object):
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
-        fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw
-                                   and len(f[s]) > 0])
+
+        # find fields common to all particle types in the union
+        fields = set_intersection(
+            [f[s] for s in union if s in self.particle_types_raw]
+        )
+
+        if len(fields) == 0:
+            # don't create this union if no fields are common to all
+            # particle types
+            return len(fields)
+
         for field in fields:
             units = set([])
             for s in union:
@@ -508,6 +518,7 @@ class Dataset(object):
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
         self.field_info.find_dependencies(new_fields)
+        return len(new_fields)
 
     def add_particle_filter(self, filter):
         # This requires an index
