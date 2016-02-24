@@ -357,13 +357,15 @@ setup(
     packages=find_packages(),
     setup_requires=[
         'numpy',
-        'cython>=0.22'
+        'cython>=0.22',
     ],
     install_requires=[
         # 'matplotlib',  # messes up nosetests will be fixed in future PRs
+        'setuptools>=18.0',
         'sympy',
         'numpy',
         'IPython',
+        'cython',
     ],
     cmdclass={'build_ext': build_ext, 'build_py': build_py},
     author="The yt project",
