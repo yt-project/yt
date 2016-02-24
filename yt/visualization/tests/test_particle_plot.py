@@ -131,13 +131,13 @@ def test_particle_projection_filter():
     ds.add_particle_filter('formed_star')
     for ax in 'xyz':
         attr_name = "set_log"
-        args = PROJ_ATTR_ARGS[attr_name]
-        test = PlotWindowAttributeTest(ds, plot_field, ax,
-                                       attr_name,
-                                       args, decimals,
-                                       'ParticleProjectionPlot')
-        test_particle_projection_filter.__name__ = test.description
-        yield test
+        for args in PROJ_ATTR_ARGS[attr_name]:
+            test = PlotWindowAttributeTest(ds, plot_field, ax,
+                                           attr_name,
+                                           args, decimals,
+                                           'ParticleProjectionPlot')
+            test_particle_projection_filter.__name__ = test.description
+            yield test
 
 
 @requires_ds(g30, big_data=True)
