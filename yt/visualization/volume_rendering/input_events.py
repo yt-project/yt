@@ -139,10 +139,16 @@ def camera_proj(event_coll, event):
 def shader_max(event_coll, event):
     print("Changing shader to max(intensity)")
     scene = event_coll.scene
-    scene.add_shader_from_file("max_intensity.fragmentshader")
+    scene.fb_shaders = ["passthrough.vertexshader",
+                        "apply_colormap.fragmentshader"]
+    scene.update_fb_shaders()
+    scene.shaders = ["default.vertexshader",
+                     "max_intensity.fragmentshader"]
+    scene.update_shaders()
     for collection in scene.collections:
         collection.set_fields_log(True)
     scene.update_minmax()
+    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
     GL.glBlendEquation(GL.GL_MAX)
     return True
 
@@ -150,10 +156,34 @@ def shader_max(event_coll, event):
 def shader_proj(event_coll, event):
     print("Changing shader to projection")
     scene = event_coll.scene
-    scene.add_shader_from_file("projection.fragmentshader")
+    scene.fb_shaders = ["passthrough.vertexshader",
+                        "apply_colormap.fragmentshader"]
+    scene.update_fb_shaders()
+    scene.shaders = ["default.vertexshader",
+                     "projection.fragmentshader"]
+    scene.update_shaders()
     for collection in scene.collections:
         collection.set_fields_log(False)
     scene.update_minmax()
+    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
+    GL.glBlendEquation(GL.GL_FUNC_ADD)
+    return True
+
+@register_event("shader_test")
+def shader_test(event_coll, event):
+    print("Changing shader to projection")
+    scene = event_coll.scene
+    scene.shaders = ["default.vertexshader",
+                     "transfer_function.fragmentshader"]
+    scene.update_shaders()
+    scene.fb_shaders = ["passthrough.vertexshader",
+                        "noop.fragmentshader"]
+    scene.update_fb_shaders()
+    for collection in scene.collections:
+        collection.set_fields_log(True)
+    #scene.update_minmax()
+    # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
+    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
@@ -277,3 +307,30 @@ class MouseRotation(object):
         self.start = new_end
         return True
 
+class BlendFuncs(object):
+    possibilities = (
+        "GL_ZERO", "GL_ONE", "GL_SRC_COLOR", "GL_ONE_MINUS_SRC_COLOR",
+        "GL_DST_COLOR", "GL_ONE_MINUS_DST_COLOR", "GL_SRC_ALPHA",
+        "GL_ONE_MINUS_SRC_ALPHA", "GL_DST_ALPHA", "GL_ONE_MINUS_DST_ALPHA",
+        "GL_CONSTANT_COLOR", "GL_ONE_MINUS_CONSTANT_COLOR",
+        "GL_CONSTANT_ALPHA", "GL_ONE_MINUS_CONSTANT_ALPHA")
+    source_i = 0
+    dest_i = 0
+
+    def next_source(self, event_coll, event):
+        self.source_i = (self.source_i + 1) % len(self.possibilities)
+        s = getattr(GL, self.possibilities[self.source_i])
+        d = getattr(GL, self.possibilities[self.dest_i])
+        print "Setting source to %s and dest to %s" % (
+            self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        GL.glBlendFunc(s, d)
+        return True
+
+    def next_dest(self, event_coll, event):
+        self.dest_i = (self.dest_i + 1) % len(self.possibilities)
+        s = getattr(GL, self.possibilities[self.source_i])
+        d = getattr(GL, self.possibilities[self.dest_i])
+        print "Setting source to %s and dest to %s" % (
+            self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        GL.glBlendFunc(s, d)
+        return True

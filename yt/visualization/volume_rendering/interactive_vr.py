@@ -24,7 +24,10 @@ def _compile_shader(source, shader_type=None):
         except AttributeError:
             raise YTInvalidShaderType(source)
 
-    sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
+    if os.path.isfile(source):
+        sh_directory = ''
+    else:
+        sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
     shader = GL.glCreateShader(
         eval("GL.GL_{}_SHADER".format(shader_type.upper()))
     )
@@ -39,14 +42,18 @@ def _compile_shader(source, shader_type=None):
 
 def link_shader_program(shaders):
     """Create a shader program with from compiled shaders."""
+    compiled_shaders = []
     program = GL.glCreateProgram()
     for shader in shaders:
-        GL.glAttachShader(program, _compile_shader(shader))
+        compiled_shaders.append(_compile_shader(shader))
+        GL.glAttachShader(program, compiled_shaders[-1])
     GL.glLinkProgram(program)
     # check linking error
     result = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
     if not(result):
         raise RuntimeError(GL.glGetProgramInfoLog(program))
+    for shader in compiled_shaders:
+        GL.glDeleteShader(shader)
     return program
 
 
@@ -469,6 +476,7 @@ class SceneGraph:
         self.cmap_texture = None
         self.camera = None
         self.shader_program = None
+        self.fb_shader_program = None
         self.min_val, self.max_val = 1e60, -1e60
         self.diagonal = 0.0
         self.data_logged = True
@@ -477,13 +485,9 @@ class SceneGraph:
         self.width = width
         self.height = height
 
-        self.fb_shader_program = link_shader_program(
-            ["passthrough.vertexshader", "apply_colormap.fragmentshader"]
-        )
-        for key in ["fb_texture", "cmap", "min_val", "scale",
-                    "cmap_min", "cmap_max", "cmap_log"]:
-            self.fb_uniforms[key] = \
-                GL.glGetUniformLocation(self.fb_shader_program, key)
+        self.fb_shaders = ["passthrough.vertexshader",
+                           "apply_colormap.fragmentshader"]
+        self.update_fb_shaders()
 
         self.fb_vao_name = GL.glGenVertexArrays(1)
         GL.glBindVertexArray(self.fb_vao_name)
@@ -499,6 +503,16 @@ class SceneGraph:
         GL.glBindVertexArray(0)
 
         self.setup_fb(self.width, self.height)
+
+    def update_fb_shaders(self, fb_shaders=None):
+        if self.fb_shader_program is not None:
+            GL.glDeleteProgram(self.fb_shader_program)
+        self.fb_shader_program = \
+            link_shader_program(fb_shaders or self.fb_shaders)
+        for key in ["fb_texture", "cmap", "min_val", "scale",
+                    "cmap_min", "cmap_max", "cmap_log"]:
+            self.fb_uniforms[key] = \
+                GL.glGetUniformLocation(self.fb_shader_program, key)
 
     def setup_cmap_tex(self):
         '''Creates 1D texture that will hold colormap in framebuffer'''
@@ -645,9 +659,14 @@ class SceneGraph:
             The location of the shader source file to read.
 
         """
-        self.shader_program = link_shader_program(
-            ['default.vertexshader', filename]
-        )
+        self.shaders = ['default.vertexshader', filename]
+        self.update_shaders()
+
+    def update_shaders(self, shaders=None):
+        if self.shader_program is not None:
+            GL.glDeleteProgram(self.shader_program)
+            print("Deleted program")
+        self.shader_program = link_shader_program(shaders or self.shaders)
 
     def _retrieve_framebuffer(self):
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
@@ -697,7 +716,7 @@ class SceneGraph:
 
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glUniform1i(self.fb_uniforms["cmap"], 1);
+        GL.glUniform1i(self.fb_uniforms["cmap"], 1)
 
         scale = (self.max_val - self.min_val) * self.diagonal
         GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
@@ -719,3 +738,5 @@ class SceneGraph:
         # Clean up
         GL.glDisableVertexAttribArray(0)
         GL.glBindVertexArray(0)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
