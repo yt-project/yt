@@ -244,9 +244,57 @@ class Camera:
         self.position[1] = rho * np.sin(curr_phi) * np.sin(curr_theta)
         self.position[2] = rho * np.cos(curr_phi)
 
-
-class BlockCollection:
+class SceneComponent(object):
+    name = None
     def __init__(self):
+        self._uniform_funcs = {}
+
+    def _guess_uniform_func(self, value):
+        # We make a best-effort guess.
+        # This does NOT work with arrays of uniforms.
+        # First look at the dtype kind.  Fortunately, this falls into either
+        # 'f' or 'i', which matches nicely with OpenGL.
+        # Note that in some implementations, it seems there is also a 'd' type,
+        # but we will not be using that here.
+        kind = value.dtype.kind
+        if kind not in 'if':
+            raise YTUnknownUniformKind(kind)
+        if len(value.shape) == 1:
+            if value.size > 4:
+                raise YTUnknownUniformSize(value.size)
+            func = self._set_scalar_uniform(kind, value.size)
+        elif len(value.shape) == 2:
+            if value.shape[0] != value.shape[1]:
+                raise YTUnknownUniformSize(value.shape)
+            func = self._set_matrix_uniform(kind, value.shape)
+        else:
+            raise YTUnknownUniformSize(value.shape)
+        return func
+
+    def _set_scalar_uniform(self, kind, size_spec):
+        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+        def _func(location, value):
+            return gl_func(location, 1, value)
+        return _func
+
+    def _set_matrix_uniform(self, kind, size_spec):
+        assert(size_spec[0] == size_spec[1])
+        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+        def _func(location, value):
+            return gl_func(location, 1, GL.GL_TRUE, value)
+        return _func
+
+    def _set_uniform(self, shader_program, name, value):
+        # We need to figure out how to pass it in.
+        if name not in self._uniform_funcs:
+            self._uniform_funcs[name] = self._guess_uniform_func(value)
+        loc = GL.glGetUniformLocation(shader_program, name)
+        return self._uniform_funcs[name](loc, value)
+
+class BlockCollection(SceneComponent):
+    name = "block_collection"
+    def __init__(self):
+        super(BlockCollection, self).__init__()
         self.vert_attrib = {}
         self.gl_vao_name = None
         self.data_source = None
@@ -411,17 +459,12 @@ class BlockCollection:
 
 
     def _set_uniforms(self, shader_program):
-        project_loc = GL.glGetUniformLocation(shader_program, "projection")
-        lookat_loc = GL.glGetUniformLocation(shader_program, "lookat")
-        viewport_loc = GL.glGetUniformLocation(shader_program, "viewport")
-
-        project = self.camera.get_projection_matrix()
-        view = self.camera.get_view_matrix()
-        viewport = np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'float32')
-
-        GL.glUniformMatrix4fv(project_loc, 1, GL.GL_TRUE, project)
-        GL.glUniformMatrix4fv(lookat_loc, 1, GL.GL_TRUE, view)
-        GL.glUniform4fv(viewport_loc, 1, viewport)
+        self._set_uniform(shader_program, "projection",
+                self.camera.get_projection_matrix())
+        self._set_uniform(shader_program, "lookat",
+                self.camera.get_view_matrix())
+        self._set_uniform(shader_program, "viewport",
+                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)

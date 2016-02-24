@@ -537,3 +537,17 @@ class YTInvalidShaderType(YTException):
 
     def __str__(self):
         return "Can't identify shader_type for file '%s.'" % (self.source)
+
+class YTUnknownUniformKind(YTException):
+    def __init__(self, kind):
+        self.kind = kind
+
+    def __str__(self):
+        return "Can't determine kind specification for %s" % (self.kind)
+
+class YTUnknownUniformSize(YTException):
+    def __init__(self, size_spec):
+        self.size_spec = size_spec
+
+    def __str__(self):
+        return "Can't determine size specification for %s" % (self.size_spec)
