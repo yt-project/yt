@@ -435,7 +435,9 @@ class Dataset(object):
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
-            self.add_particle_union(pu)
+            nfields = self.add_particle_union(pu)
+            if nfields == 0:
+                mylog.debug("zero common fields: skipping particle union 'all'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
@@ -487,9 +489,17 @@ class Dataset(object):
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
-        fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw
-                                   and len(f[s]) > 0])
+
+        # find fields common to all particle types in the union
+        fields = set_intersection(
+            [f[s] for s in union if s in self.particle_types_raw]
+        )
+
+        if len(fields) == 0:
+            # don't create this union if no fields are common to all
+            # particle types
+            return len(fields)
+
         for field in fields:
             units = set([])
             for s in union:
@@ -508,6 +518,7 @@ class Dataset(object):
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
         self.field_info.find_dependencies(new_fields)
+        return len(new_fields)
 
     def add_particle_filter(self, filter):
         # This requires an index
@@ -988,7 +999,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
+                                     weight_field='particle_mass'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -1003,13 +1015,15 @@ class Dataset(object):
         method : string
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
-           methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
-           `weighted_mean`, `mesh_id`, and `nearest`.
+           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
+           `mesh_id`, and `nearest`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition method `weighted_mean`.
 
         Returns
         -------
@@ -1021,38 +1035,45 @@ class Dataset(object):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
+
         units = self.field_info[ptype, deposit_field].units
+        take_log = self.field_info[ptype, deposit_field].take_log
+        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
+        if method == "count":
+            field_name = "%s_count" % ptype
+            if ("deposit", field_name) in self.field_info:
+                mylog.warning("The deposited field %s already exists" % field_name)
+                return ("deposit", field_name)
+            else:
+                units = "dimensionless"
+                take_log = False
 
         def _deposit_field(field, data):
             """
-            Create a grid field for particle wuantities weighted by particle
-            mass, using cloud-in-cell deposition.
+            Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
-            # get back into density
-            if method != 'count':
-                pden = data[ptype, "particle_mass"]
-                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method, kernel_name=kernel_name)
-                bottom = data.deposit(pos, [pden], method=method,
-                                      kernel_name=kernel_name)
-                top[bottom == 0] = 0.0
-                bnz = bottom.nonzero()
-                top[bnz] /= bottom[bnz]
-                d = data.ds.arr(top, input_units=units)
+            if method == 'weighted_mean':
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
+                                                   data[ptype, weight_field]],
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
+                d[np.isnan(d)] = 0.0
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method,
-                                             kernel_name=kernel_name))
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
             return d
-        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
-        field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
             units=units,
-            take_log=False,
+            take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 

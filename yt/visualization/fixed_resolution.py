@@ -615,8 +615,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
-        x_data = self.data_source.dd[self.x_field]
-        y_data = self.data_source.dd[self.y_field]
+        ftype = item[0]
+        x_data = self.data_source.dd[ftype, self.x_field]
+        y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
         # convert to pixels

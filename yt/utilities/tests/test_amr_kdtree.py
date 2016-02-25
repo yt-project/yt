@@ -19,8 +19,9 @@ from yt.utilities.lib.amr_kdtools import depth_traverse, \
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
-from yt.testing import assert_equal
+from yt.testing import assert_equal, assert_almost_equal, fake_amr_ds
 import numpy as np
+import itertools
 
 
 def test_amr_kdtree_coverage():
@@ -61,3 +62,23 @@ def test_amr_kdtree_coverage():
         tree_ok *= np.all(dims > 0)
 
     yield assert_equal, True, tree_ok
+
+def test_amr_kdtree_set_fields():
+    ds = fake_amr_ds(fields=["density", "pressure"])
+    dd = ds.all_data()
+
+    fields = ds.field_list
+    dd.tiles.set_fields(fields, [True, True], False)
+    gold = {}
+    for i, block in enumerate(dd.tiles.traverse()):
+        gold[i] = [data.copy() for data in block.my_data]
+
+    for log_fields in itertools.product([True, False], [True, False]):
+        dd.tiles.set_fields(fields, log_fields, False)
+        for iblock, block in enumerate(dd.tiles.traverse()):
+            for i in range(len(fields)):
+                if log_fields[i]:
+                    data = block.my_data[i]
+                else:
+                    data = np.log10(block.my_data[i])
+                assert_almost_equal(gold[iblock][i], data)

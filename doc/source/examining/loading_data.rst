@@ -434,8 +434,8 @@ original position as a node variable, rather than updating the actual vertex
 positions with time. For analysis and visualization, it is often useful to turn 
 these displacements on or off, and to be able to scale them arbitrarily to 
 emphasize certain features of the solution. To allow this, if ``yt`` detects 
-displacement fields in an Exodus II dataset (using the convention that they will
- be named ``disp_x``, ``disp_y``, etc...), it will add optionally add these to 
+displacement fields in an Exodus II dataset (using the convention that they will 
+be named ``disp_x``, ``disp_y``, etc...), it will optionally add these to 
 the mesh vertex positions for the purposes of visualization. Displacement fields 
 can be controlled when a dataset is loaded by passing in an optional dictionary 
 to the ``yt.load`` command. This feature is turned off by default, meaning that 
