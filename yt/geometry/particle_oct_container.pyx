@@ -73,6 +73,8 @@ ELSE: # If not uncompressed, dosn't apply
     DEF UseUncompressedView = 1
 # If Set to 1, file bitmasks are managed by cython
 DEF UseCythonBitmasks = 0
+# If Set to 1, auto fill child cells for cells
+DEF FillChildCells = 0
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -1549,6 +1551,25 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef void fill_subcells(self, np.int32_t level, np.float64_t pos[3],
+                            np.float64_t dds[3]):
+        cdef int i, j, k
+        cdef np.uint64_t mi
+        cdef np.uint64_t ind1[3]
+        cdef np.uint64_t indexgap = self.max_index1 - (1 << level)
+        cdef np.float64_t dds_mi1[3]
+        for i in range(3):
+            dds_mi1[i] = (self.DRE[i] - self.DLE[i])/self.max_index1
+            ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.forest.dds_mi1[i])
+        for i in range(indexgap):
+            for j in range(indexgap):
+                for k in range(indexgap):
+                    mi = encode_morton_64bit(ind1[0]+i, ind1[1]+j, ind1[2]+k)
+                    self.add_coarse(mi)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void recursive_morton_mask(self, np.int32_t level, np.float64_t pos[3], 
                                     np.float64_t dds[3], np.uint64_t mi1):
         cdef np.uint64_t mi2
@@ -1586,9 +1607,16 @@ cdef class ParticleForestSelector:
                         sbbox = self.selector.select_bbox_edge(npos, rpos)
                     ELSE:
                         sbbox = self.selector.select_bbox(npos, rpos)
+                        if sbbox == 1: sbbox = 2
                     if sbbox == 0: continue
                     if nlevel < self.order1:
-                        self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                        IF FillChildCells == 1:
+                            if sbbox == 1:
+                                self.fill_subcells(nlevel, npos, ndds)
+                            else:
+                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                        ELSE:
+                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == self.order1:
                         mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
                         IF OnlyRefineEdges == 1:
