@@ -96,7 +96,7 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 def test_unbalanced_dataset():
     ds = data_dir_load(g56)
     halo = ds.halo("Group", 0)
-    my_ids = halo["member_ids"]
+    halo["member_ids"]
     assert True
 
 # fof/subhalo catalog with no member ids in first file
@@ -110,5 +110,5 @@ def test_3file_halo():
     # this halo's particles are distributed over 3 files with the
     # middle file being empty
     halo = ds.halo("Group", 6)
-    my_ids = halo["member_ids"]
+    halo["member_ids"]
     assert True

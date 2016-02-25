@@ -300,7 +300,6 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         fields = []
         scalar_fields = []
         id_fields = {}
-        pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.ds.particle_types_raw:
                 fields.append((ptype, "particle_identifier"))
