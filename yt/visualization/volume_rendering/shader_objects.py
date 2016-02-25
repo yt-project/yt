@@ -1,4 +1,7 @@
 import OpenGL as GL
+from yt.extern.six import add_metaclass
+
+known_shaders = {}
 
 class ShaderProgram(object):
     def __init__(self, vertex_shader = None, fragment_shader = None):
@@ -85,10 +88,17 @@ class ShaderProgram(object):
         loc = GL.glGetAttribLocation(self.program, name)
         GL.glDisableVertexAttribArray(loc)
 
+class RegisteredShader(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if getattr(cls, "_shader_name", None) is not None:
+            known_shaders[cls._shader_name] = cls
 
+@add_metaclass(RegisteredShader)
 class Shader(object):
     shader = None
     _source = None
+    _shader_name = None
     def __init__(self, source = None):
         if source:
             self.compile(source)
@@ -138,24 +148,32 @@ class VertexShader(Shader):
 
 class ApplyColormapFragmentShader(FragmentShader):
     _source = "apply_colormap.fragmentshader"
+    _shader_name = "apply_colormap.f"
 
 class MaxIntensityFragmentShader(FragmentShader):
     _source = "max_intensity.fragmentshader"
+    _shader_name = "max_intensity.f"
 
 class NoOpFragmentShader(FragmentShader):
     _source = "noop.fragmentshader"
+    _shader_name = "noop.f"
 
 class PassthroughFragmentShader(FragmentShader):
     _source = "passthrough.fragmentshader"
+    _shader_name = "passthrough.f"
 
 class ProjectionFragmentShader(FragmentShader):
     _source = "projection.fragmentshader"
+    _shader_name = "projection.f"
 
 class TransferFunctionFragmentShader(FragmentShader):
     _source = "transfer_function.fragmentshader"
+    _shader_name = "transfer_function.f"
 
 class DefaultVertexShader(VertexShader):
     _source = "default.vertexshader"
+    _shader_name = "default.v"
 
 class PassthroughVertexShader(VertexShader):
     _source = "passthrough.vertexshader"
+    _shader_name = "passthrough.v"

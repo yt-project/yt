@@ -9,6 +9,7 @@ import cyglfw3 as glfw
 import numpy as np
 import matplotlib.cm as cm
 import random
+from .shader_objects import known_shaders
 
 event_registry = {}
 

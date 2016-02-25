@@ -248,10 +248,22 @@ class Camera:
 
 class SceneComponent(object):
     name = None
+    _program = None
+    _program_invalid = True
+    fragment_shader = None
+    vertex_shader = None
     def __init__(self):
         self._uniform_funcs = OrderedDict()
         self.vert_attrib = OrderedDict()
         self.vert_arrays = OrderedDict()
+
+    @property
+    def program(self):
+        if self._program_invalid:
+            self._program = ShaderProgram(self.vertex_shader,
+                self.fragment_shader)
+            self._program_invalid = False
+        return self._program
 
     def _initialize_vertex_array(self, name):
         if name in self.vert_arrays:
@@ -277,10 +289,28 @@ class SceneComponent(object):
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name][0])
         GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
 
+    def set_shader(self, name):
+        r""" Compiles and links a fragment shader from a set of known shaders.
+
+        Parameters
+        ----------
+        name : String
+            The name of the fragment shader to use.
+
+        """
+        shader = known_shaders[name]()
+        if shader.shader_type == "vertex":
+            self.vertex_shader = shader
+        elif shader.shader_type == "fragment":
+            self.fragment_shader = shader
+        else:
+            raise KeyError(shader.shader_type)
+
 class BlockCollection(SceneComponent):
     name = "block_collection"
     def __init__(self):
         super(BlockCollection, self).__init__()
+        self.set_shader("max_intensity.f")
         self.data_source = None
 
         self.blocks = {} # A collection of PartionedGrid objects
@@ -448,7 +478,6 @@ class BlockCollection(SceneComponent):
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
-
 
 class SceneGraph:
     def __init__(self):
@@ -628,28 +657,6 @@ class SceneGraph:
         self.camera = camera
         for collection in self.collections:
             collection.set_camera(camera)
-
-    def add_shader_from_file(self, filename):
-        r""" Compiles and links a fragment shader.
-
-        Given a `filename`, compiles and links the given fragment shader. This
-        function also compiles a fixed vertex shader. This function then attaches
-        these shaders to the current scene.
-
-        Parameters
-        ----------
-        filename : String
-            The location of the shader source file to read.
-
-        """
-        self.shaders = ['default.vertexshader', filename]
-        self.update_shaders()
-
-    def update_shaders(self, shaders=None):
-        if self.shader_program is not None:
-            GL.glDeleteProgram(self.shader_program)
-            print("Deleted program")
-        self.shader_program = link_shader_program(shaders or self.shaders)
 
     def _retrieve_framebuffer(self):
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
