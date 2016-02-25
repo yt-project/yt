@@ -1,5 +1,8 @@
-import OpenGL as GL
+import os
+import OpenGL.GL as GL
+import contextlib
 from yt.extern.six import add_metaclass
+from collections import OrderedDict
 
 known_shaders = {}
 
@@ -12,6 +15,7 @@ class ShaderProgram(object):
             self.link(vertex_shader, fragment_shader)
         else:
             raise RuntimeError
+        self._uniform_funcs = OrderedDict()
 
     def link(self, vertex_shader, fragment_shader):
         # There are more types of shaders, but for now we only allow v&f.
@@ -22,8 +26,8 @@ class ShaderProgram(object):
             fragment_shader = FragmentShader(fragment_shader)
         self.vertex_shader = vertex_shader
         self.fragment_shader = fragment_shader
-        GL.glAttachShader(self.program, vertex_shader)
-        GL.glAttachShader(self.program, fragment_shader)
+        GL.glAttachShader(self.program, vertex_shader.shader)
+        GL.glAttachShader(self.program, fragment_shader.shader)
         GL.glLinkProgram(self.program)
         result = GL.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
         if not result:
@@ -36,7 +40,12 @@ class ShaderProgram(object):
         # 'f' or 'i', which matches nicely with OpenGL.
         # Note that in some implementations, it seems there is also a 'd' type,
         # but we will not be using that here.
-        kind = value.dtype.kind
+        if isinstance(value, int):
+            return GL.glUniform1i
+        elif isinstance(value, float):
+            return GL.glUniform1f
+        else:
+            kind = value.dtype.kind
         if kind not in 'if':
             raise YTUnknownUniformKind(kind)
         if len(value.shape) == 1:
@@ -77,8 +86,7 @@ class ShaderProgram(object):
         yield
         GL.glUseProgram(0)
 
-    def bind_vert_attrib(self, name):
-        bind_loc, size = self.vert_attrib[name]
+    def bind_vert_attrib(self, name, bind_loc, size):
         loc = GL.glGetAttribLocation(self.program, name)
         GL.glEnableVertexAttribArray(loc)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
@@ -96,7 +104,7 @@ class RegisteredShader(type):
 
 @add_metaclass(RegisteredShader)
 class Shader(object):
-    shader = None
+    _shader = None
     _source = None
     _shader_name = None
     def __init__(self, source = None):
@@ -133,7 +141,13 @@ class Shader(object):
         result = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
         if not(result):
             raise RuntimeError(GL.glGetShaderInfoLog(shader))
-        self.shader = shader
+        self._shader = shader
+
+    @property
+    def shader(self):
+        if self._shader is None:
+            self.compile()
+        return self._shader
 
     def __del__(self):
         # This is not guaranteed to be called

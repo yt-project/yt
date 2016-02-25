@@ -15,6 +15,7 @@ from yt.utilities.math_utils import \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
 from yt.utilities.exceptions import YTInvalidShaderType
+from .shader_objects import known_shaders, ShaderProgram
 
 import matplotlib.cm as cm
 
@@ -253,7 +254,6 @@ class SceneComponent(object):
     fragment_shader = None
     vertex_shader = None
     def __init__(self):
-        self._uniform_funcs = OrderedDict()
         self.vert_attrib = OrderedDict()
         self.vert_arrays = OrderedDict()
 
@@ -270,18 +270,19 @@ class SceneComponent(object):
             GL.glDeleteVertexArrays(1, [self.vert_arrays[name]])
         self.vert_arrays[name] = GL.glGenVertexArrays(1)
 
-    def run_program(self, shader_program):
-        with shader_program.enable():
+    def run_program(self):
+        with self.program.enable():
             if len(self.vert_arrays) != 1:
                 raise NotImplementedError
             for vert_name in self.vert_arrays:
                 GL.glBindVertexArray(self.vert_arrays[vert_name])
             for an in self.vert_attrib:
-                shader_program.bind_vert_attrib(an)
-            self._set_uniforms(shader_program)
+                bind_loc, size = self.vert_attrib[an]
+                self.program.bind_vert_attrib(an, bind_loc, size)
+            self._set_uniforms(self.program)
             self.draw()
             for an in self.vert_attrib:
-                shader_program.disable_vert_attrib(an)
+                self.program.disable_vert_attrib(an)
             GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
     def add_vert_attrib(self, name, arr, each):
@@ -310,6 +311,7 @@ class BlockCollection(SceneComponent):
     name = "block_collection"
     def __init__(self):
         super(BlockCollection, self).__init__()
+        self.set_shader("default.v")
         self.set_shader("max_intensity.f")
         self.data_source = None
 
@@ -479,10 +481,10 @@ class BlockCollection(SceneComponent):
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
-class SceneGraph:
+class SceneGraph(SceneComponent):
     def __init__(self):
+        super(SceneGraph, self).__init__()
         self.collections = []
-        self.fb_uniforms = {}
         self.fbo = None
         self.fb_texture = None
         self.cmap_texture = None
@@ -497,12 +499,14 @@ class SceneGraph:
         self.width = width
         self.height = height
 
-        self.fb_shaders = ["passthrough.vertexshader",
-                           "apply_colormap.fragmentshader"]
-        self.update_fb_shaders()
+        self.set_shader("passthrough.v")
+        self.set_shader("apply_colormap.f")
 
-        self.fb_vao_name = GL.glGenVertexArrays(1)
-        GL.glBindVertexArray(self.fb_vao_name)
+        self._init_framebuffer()
+
+    def _init_framebuffer(self):
+        self._initialize_vertex_array("fb_vbo")
+        GL.glBindVertexArray(self.vert_arrays["fb_vbo"])
 
         quad_attrib = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, quad_attrib)
@@ -515,16 +519,6 @@ class SceneGraph:
         GL.glBindVertexArray(0)
 
         self.setup_fb(self.width, self.height)
-
-    def update_fb_shaders(self, fb_shaders=None):
-        if self.fb_shader_program is not None:
-            GL.glDeleteProgram(self.fb_shader_program)
-        self.fb_shader_program = \
-            link_shader_program(fb_shaders or self.fb_shaders)
-        for key in ["fb_texture", "cmap", "min_val", "scale",
-                    "cmap_min", "cmap_max", "cmap_log"]:
-            self.fb_uniforms[key] = \
-                GL.glGetUniformLocation(self.fb_shader_program, key)
 
     def setup_cmap_tex(self):
         '''Creates 1D texture that will hold colormap in framebuffer'''
@@ -641,7 +635,6 @@ class SceneGraph:
             self.camera.update_cmap_minmax(self.min_val, self.max_val,
                                            self.data_logged)
 
-
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
 
@@ -665,7 +658,7 @@ class SceneGraph:
         arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
         return arr.reshape((width, height, 3))
 
-    def render(self):
+    def run_program(self):
         """ Renders one frame of the scene.
 
         Renders the scene using the current collection and camera set by calls
@@ -692,36 +685,36 @@ class SceneGraph:
 
         # render collections to fb
         for collection in self.collections:
-            collection.run_program(self.shader_program)
+            collection.run_program()
         # unbind FB
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
         # 2 pass of rendering
-        GL.glUseProgram(self.fb_shader_program)
+        GL.glUseProgram(self.program.program)
         GL.glActiveTexture(GL.GL_TEXTURE0)
         # bind to the result of 1 pass
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
         # Set our "fb_texture" sampler to user Texture Unit 0
-        GL.glUniform1i(self.fb_uniforms["fb_texture"], 0);
+        self.program._set_uniform("fb_texture", 0)
 
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glUniform1i(self.fb_uniforms["cmap"], 1)
+        self.program._set_uniform("cmap", 1)
 
         scale = (self.max_val - self.min_val) * self.diagonal
-        GL.glUniform1f(self.fb_uniforms["min_val"], self.min_val)
-        GL.glUniform1f(self.fb_uniforms["scale"], scale)
-        GL.glUniform1f(self.fb_uniforms["cmap_min"], self.camera.cmap_min)
-        GL.glUniform1f(self.fb_uniforms["cmap_max"], self.camera.cmap_max)
+        self.program._set_uniform("min_val", self.min_val)
+        self.program._set_uniform("scale", scale)
+        self.program._set_uniform("cmap_min", self.camera.cmap_min)
+        self.program._set_uniform("cmap_max", self.camera.cmap_max)
         if self.data_logged:
-            GL.glUniform1f(self.fb_uniforms["cmap_log"], float(False))
+            self.program._set_uniform("cmap_log", float(False))
         else:
-            GL.glUniform1f(self.fb_uniforms["cmap_log"], float(self.camera.cmap_log))
+            self.program._set_uniform("cmap_log", float(self.camera.cmap_log))
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         # Bind to Vertex array that contains simple quad filling fullscreen,
         # that was defined in __init__()
-        GL.glBindVertexArray(self.fb_vao_name)
+        GL.glBindVertexArray(self.vert_arrays["fb_vbo"])
         GL.glEnableVertexAttribArray(0)
         # Draw our 2 triangles
         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
@@ -730,3 +723,5 @@ class SceneGraph:
         GL.glBindVertexArray(0)
         GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
         GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+
+    render = run_program

@@ -140,12 +140,11 @@ def camera_proj(event_coll, event):
 def shader_max(event_coll, event):
     print("Changing shader to max(intensity)")
     scene = event_coll.scene
-    scene.fb_shaders = ["passthrough.vertexshader",
-                        "apply_colormap.fragmentshader"]
-    scene.update_fb_shaders()
-    scene.shaders = ["default.vertexshader",
-                     "max_intensity.fragmentshader"]
-    scene.update_shaders()
+    for coll in scene.collections:
+        coll.set_shader("default.v")
+        coll.set_shader("max_intensity.f")
+    scene.set_shader("passthrough.v")
+    scene.set_shader("apply_colormap.f")
     for collection in scene.collections:
         collection.set_fields_log(True)
     scene.update_minmax()
@@ -157,12 +156,11 @@ def shader_max(event_coll, event):
 def shader_proj(event_coll, event):
     print("Changing shader to projection")
     scene = event_coll.scene
-    scene.fb_shaders = ["passthrough.vertexshader",
-                        "apply_colormap.fragmentshader"]
-    scene.update_fb_shaders()
-    scene.shaders = ["default.vertexshader",
-                     "projection.fragmentshader"]
-    scene.update_shaders()
+    for coll in scene.collections:
+        coll.set_shader("default.v")
+        coll.set_shader("projection.f")
+    scene.set_shader("passthrough.v")
+    scene.set_shader("apply_colormap.f")
     for collection in scene.collections:
         collection.set_fields_log(False)
     scene.update_minmax()
@@ -174,12 +172,11 @@ def shader_proj(event_coll, event):
 def shader_test(event_coll, event):
     print("Changing shader to projection")
     scene = event_coll.scene
-    scene.shaders = ["default.vertexshader",
-                     "transfer_function.fragmentshader"]
-    scene.update_shaders()
-    scene.fb_shaders = ["passthrough.vertexshader",
-                        "noop.fragmentshader"]
-    scene.update_fb_shaders()
+    for coll in scene.collections:
+        coll.set_shader("default.v")
+        coll.set_shader("transfer_function.f")
+    scene.set_shader("passthrough.v")
+    scene.set_shader("noop.f")
     for collection in scene.collections:
         collection.set_fields_log(True)
     #scene.update_minmax()
