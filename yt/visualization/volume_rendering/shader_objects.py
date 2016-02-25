@@ -21,10 +21,70 @@ class ShaderProgram(object):
         self.fragment_shader = fragment_shader
         GL.glAttachShader(self.program, vertex_shader)
         GL.glAttachShader(self.program, fragment_shader)
-        GL.glLinkProgram(program)
+        GL.glLinkProgram(self.program)
         result = GL.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
         if not result:
             raise RuntimeError(GL.glGetProgramInfoLog(self.program))
+
+    def _guess_uniform_func(self, value):
+        # We make a best-effort guess.
+        # This does NOT work with arrays of uniforms.
+        # First look at the dtype kind.  Fortunately, this falls into either
+        # 'f' or 'i', which matches nicely with OpenGL.
+        # Note that in some implementations, it seems there is also a 'd' type,
+        # but we will not be using that here.
+        kind = value.dtype.kind
+        if kind not in 'if':
+            raise YTUnknownUniformKind(kind)
+        if len(value.shape) == 1:
+            if value.size > 4:
+                raise YTUnknownUniformSize(value.size)
+            func = self._set_scalar_uniform(kind, value.size)
+        elif len(value.shape) == 2:
+            if value.shape[0] != value.shape[1]:
+                raise YTUnknownUniformSize(value.shape)
+            func = self._set_matrix_uniform(kind, value.shape)
+        else:
+            raise YTUnknownUniformSize(value.shape)
+        return func
+
+    def _set_scalar_uniform(self, kind, size_spec):
+        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+        def _func(location, value):
+            return gl_func(location, 1, value)
+        return _func
+
+    def _set_matrix_uniform(self, kind, size_spec):
+        assert(size_spec[0] == size_spec[1])
+        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+        def _func(location, value):
+            return gl_func(location, 1, GL.GL_TRUE, value)
+        return _func
+
+    def _set_uniform(self, name, value):
+        # We need to figure out how to pass it in.
+        if name not in self._uniform_funcs:
+            self._uniform_funcs[name] = self._guess_uniform_func(value)
+        loc = GL.glGetUniformLocation(self.program, name)
+        return self._uniform_funcs[name](loc, value)
+
+    @contextlib.contextmanager
+    def enable(self):
+        GL.glUseProgram(self.program)
+        yield
+        GL.glUseProgram(0)
+
+    def bind_vert_attrib(self, name):
+        bind_loc, size = self.vert_attrib[name]
+        loc = GL.glGetAttribLocation(self.program, name)
+        GL.glEnableVertexAttribArray(loc)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
+        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
+
+    def disable_vert_attrib(self, name):
+        loc = GL.glGetAttribLocation(self.program, name)
+        GL.glDisableVertexAttribArray(loc)
+
 
 class Shader(object):
     shader = None

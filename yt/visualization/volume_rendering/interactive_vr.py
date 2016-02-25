@@ -258,77 +258,24 @@ class SceneComponent(object):
             GL.glDeleteVertexArrays(1, [self.vert_arrays[name]])
         self.vert_arrays[name] = GL.glGenVertexArrays(1)
 
-    def _guess_uniform_func(self, value):
-        # We make a best-effort guess.
-        # This does NOT work with arrays of uniforms.
-        # First look at the dtype kind.  Fortunately, this falls into either
-        # 'f' or 'i', which matches nicely with OpenGL.
-        # Note that in some implementations, it seems there is also a 'd' type,
-        # but we will not be using that here.
-        kind = value.dtype.kind
-        if kind not in 'if':
-            raise YTUnknownUniformKind(kind)
-        if len(value.shape) == 1:
-            if value.size > 4:
-                raise YTUnknownUniformSize(value.size)
-            func = self._set_scalar_uniform(kind, value.size)
-        elif len(value.shape) == 2:
-            if value.shape[0] != value.shape[1]:
-                raise YTUnknownUniformSize(value.shape)
-            func = self._set_matrix_uniform(kind, value.shape)
-        else:
-            raise YTUnknownUniformSize(value.shape)
-        return func
-
-    def _set_scalar_uniform(self, kind, size_spec):
-        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
-        def _func(location, value):
-            return gl_func(location, 1, value)
-        return _func
-
-    def _set_matrix_uniform(self, kind, size_spec):
-        assert(size_spec[0] == size_spec[1])
-        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
-        def _func(location, value):
-            return gl_func(location, 1, GL.GL_TRUE, value)
-        return _func
-
-    def _set_uniform(self, shader_program, name, value):
-        # We need to figure out how to pass it in.
-        if name not in self._uniform_funcs:
-            self._uniform_funcs[name] = self._guess_uniform_func(value)
-        loc = GL.glGetUniformLocation(shader_program, name)
-        return self._uniform_funcs[name](loc, value)
-
     def run_program(self, shader_program):
-        GL.glUseProgram(shader_program)
-        if len(self.vert_arrays) != 1:
-            raise NotImplementedError
-        for vert_name in self.vert_arrays:
-            GL.glBindVertexArray(self.vert_arrays[vert_name])
-        for an in self.vert_attrib:
-            self.bind_vert_attrib(shader_program, an)
-        self._set_uniforms(shader_program)
-        self.draw()
-        for an in self.vert_attrib:
-            self.disable_vert_attrib(shader_program, an)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+        with shader_program.enable():
+            if len(self.vert_arrays) != 1:
+                raise NotImplementedError
+            for vert_name in self.vert_arrays:
+                GL.glBindVertexArray(self.vert_arrays[vert_name])
+            for an in self.vert_attrib:
+                shader_program.bind_vert_attrib(an)
+            self._set_uniforms(shader_program)
+            self.draw()
+            for an in self.vert_attrib:
+                shader_program.disable_vert_attrib(an)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
     def add_vert_attrib(self, name, arr, each):
         self.vert_attrib[name] = (GL.glGenBuffers(1), each)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name][0])
         GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
-
-    def bind_vert_attrib(self, program, name):
-        bind_loc, size = self.vert_attrib[name]
-        loc = GL.glGetAttribLocation(program, name)
-        GL.glEnableVertexAttribArray(loc)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
-        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
-
-    def disable_vert_attrib(self, program, name):
-        loc = GL.glGetAttribLocation(program, name)
-        GL.glDisableVertexAttribArray(loc)
 
 class BlockCollection(SceneComponent):
     name = "block_collection"
@@ -450,13 +397,13 @@ class BlockCollection(SceneComponent):
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
 
     def _set_uniforms(self, shader_program):
-        self._set_uniform(shader_program, "projection",
+        shader_program._set_uniform("projection",
                 self.camera.get_projection_matrix())
-        self._set_uniform(shader_program, "lookat",
+        shader_program._set_uniform("lookat",
                 self.camera.get_view_matrix())
-        self._set_uniform(shader_program, "viewport",
+        shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        self._set_uniform(shader_program, "camera_pos",
+        shader_program._set_uniform("camera_pos",
                 self.camera.position)
 
     def _compute_geometry(self, block, bbox_vertices):
