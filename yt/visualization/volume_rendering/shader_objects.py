@@ -32,6 +32,13 @@ class ShaderProgram(object):
         result = GL.glGetProgramiv(self.program, GL.GL_LINK_STATUS)
         if not result:
             raise RuntimeError(GL.glGetProgramInfoLog(self.program))
+        vertex_shader.delete_shader()
+        fragment_shader.delete_shader()
+
+    def delete_program(self):
+        if self.program is not None:
+            GL.glDeleteProgram(self.program)
+            self.program = None
 
     def _guess_uniform_func(self, value):
         # We make a best-effort guess.
@@ -149,10 +156,14 @@ class Shader(object):
             self.compile()
         return self._shader
 
-    def __del__(self):
-        # This is not guaranteed to be called
+    def delete_shader(self):
         if self.shader is not None:
             GL.glDeleteShader(self.shader)
+            self._shader = None
+
+    def __del__(self):
+        # This is not guaranteed to be called
+        self.delete_shader()
 
 class FragmentShader(Shader):
     shader_type = "fragment"

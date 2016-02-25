@@ -260,6 +260,8 @@ class SceneComponent(object):
     @property
     def program(self):
         if self._program_invalid:
+            if self._program is not None:
+                self._program.delete_program()
             self._program = ShaderProgram(self.vertex_shader,
                 self.fragment_shader)
             self._program_invalid = False
@@ -306,6 +308,7 @@ class SceneComponent(object):
             self.fragment_shader = shader
         else:
             raise KeyError(shader.shader_type)
+        self._program_invalid = True
 
 class BlockCollection(SceneComponent):
     name = "block_collection"
