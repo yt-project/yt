@@ -28,6 +28,7 @@ class ShaderProgram(object):
 
 class Shader(object):
     shader = None
+    _source = None
     def __init__(self, source = None):
         if source:
             self.compile(source)
@@ -45,7 +46,10 @@ class Shader(object):
             raise YTInvalidShaderType(source)
         return open(fn, 'r').read()
 
-    def compile(self, source, parameters = None):
+    def compile(self, source = None, parameters = None):
+        if source is None:
+            source = self._source
+            if source is None: raise RuntimeError
         if parameters is not None:
             raise NotImplementedError
         source = self._get_source(source)
@@ -71,3 +75,27 @@ class FragmentShader(Shader):
 
 class VertexShader(Shader):
     shader_type = "vertex"
+
+class ApplyColormapFragmentShader(FragmentShader):
+    _source = "apply_colormap.fragmentshader"
+
+class MaxIntensityFragmentShader(FragmentShader):
+    _source = "max_intensity.fragmentshader"
+
+class NoOpFragmentShader(FragmentShader):
+    _source = "noop.fragmentshader"
+
+class PassthroughFragmentShader(FragmentShader):
+    _source = "passthrough.fragmentshader"
+
+class ProjectionFragmentShader(FragmentShader):
+    _source = "projection.fragmentshader"
+
+class TransferFunctionFragmentShader(FragmentShader):
+    _source = "transfer_function.fragmentshader"
+
+class DefaultVertexShader(VertexShader):
+    _source = "default.vertexshader"
+
+class PassthroughVertexShader(VertexShader):
+    _source = "passthrough.vertexshader"
