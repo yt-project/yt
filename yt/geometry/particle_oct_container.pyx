@@ -74,7 +74,7 @@ ELSE: # If not uncompressed, dosn't apply
 # If Set to 1, file bitmasks are managed by cython
 DEF UseCythonBitmasks = 0
 # If Set to 1, auto fill child cells for cells
-DEF FillChildCells = 0
+DEF FillChildCells = 1
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -1556,14 +1556,15 @@ cdef class ParticleForestSelector:
         cdef int i, j, k
         cdef np.uint64_t mi
         cdef np.uint64_t ind1[3]
-        cdef np.uint64_t indexgap = self.max_index1 - (1 << level)
+        cdef np.uint64_t indexgap[3]
         cdef np.float64_t dds_mi1[3]
         for i in range(3):
             dds_mi1[i] = (self.DRE[i] - self.DLE[i])/self.max_index1
             ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.forest.dds_mi1[i])
-        for i in range(indexgap):
-            for j in range(indexgap):
-                for k in range(indexgap):
+            indexgap[i] = <np.uint64_t>(dds[i]/self.forest.dds_mi1[i])
+        for i in range(indexgap[0]):
+            for j in range(indexgap[1]):
+                for k in range(indexgap[2]):
                     mi = encode_morton_64bit(ind1[0]+i, ind1[1]+j, ind1[2]+k)
                     self.add_coarse(mi)
 
