@@ -273,7 +273,7 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     # adjust the camera position and orientation
     cam = sc.camera
     camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
     cam.set_position(camera_position, north_vector)
     
