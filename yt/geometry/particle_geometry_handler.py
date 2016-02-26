@@ -90,7 +90,6 @@ class ParticleIndex(Index):
         # Load indices from file if provided
         if fname is not None and os.path.isfile(fname):
             self.regions.load_bitmasks(fname=fname)
-            self.regions.find_collisions()
         else:
             self._initialize_coarse_index()
             if not noref:

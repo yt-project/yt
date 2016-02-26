@@ -25,6 +25,8 @@ cdef class FileBitmasks:
     cdef int _count_coarse(self, np.uint32_t ifile)
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf)
+    cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
+    cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
     cdef bytes _dumps(self, np.uint32_t ifile)
     cdef void _loads(self, np.uint32_t ifile, bytes s)
 
@@ -52,6 +54,8 @@ cdef class BoolArrayCollection:
     cdef int _count_coarse(self)
     cdef void _append(self, BoolArrayCollection solf)
     cdef bint _intersects(self, BoolArrayCollection solf)
+    cdef void _logicalxor(self, BoolArrayCollection solf, BoolArrayCollection out)
+    cdef void _logicaland(self, BoolArrayCollection solf, BoolArrayCollection out)
     cdef bytes _dumps(self)
     cdef void _loads(self, bytes s)
 

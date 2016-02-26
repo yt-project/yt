@@ -13,6 +13,7 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import struct
 from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
@@ -242,9 +243,17 @@ cdef class FileBitmasks:
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # No intersection
         if ewah_keys1[0].intersects(ewah_keys2[0]) == 0:
             return 0
+        # Intersection at coarse level
+        ewah_keys1[0].logicalxor(ewah_refn1[0],ewah_coar1)
+        ewah_keys2[0].logicalxor(ewah_refn2[0],ewah_coar2)
+        if ewah_coar1.intersects(ewah_keys2[0]) == 1:
+            return 1
+        if ewah_coar2.intersects(ewah_keys1[0]) == 1:
+            return 1
         # Intersection at refined level
         if ewah_refn1[0].intersects(ewah_refn2[0]) == 1:
             it_map1 = ewah_coll1[0].begin()
@@ -257,10 +266,84 @@ cdef class FileBitmasks:
                     if mi1_ewah1.intersects(mi1_ewah2):
                         return 1
                 preincrement(it_map1)
-        # Intersection at coarse level or refined inside coarse
-        else:
-            return 1
         return 0
+    
+    cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
+        cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
+        # Keys
+        ewah_keys1[0].logicalxor(ewah_keys2[0],ewah_keys_out[0])
+        # Refn
+        ewah_refn1[0].logicalxor(ewah_refn2[0],ewah_refn_out[0])
+        # Coll
+        it_map1 = ewah_coll1[0].begin()
+        while (it_map1 != ewah_coll1[0].end()):
+            mi1 = dereference(it_map1).first
+            mi1_ewah1 = dereference(it_map1).second
+            it_map2 = ewah_coll2[0].find(mi1)
+            if it_map2 == ewah_coll2[0].end():
+                ewah_coll_out[0][mi1] = mi1_ewah1
+            else:
+                mi1_ewah2 = dereference(it_map2).second
+                mi1_ewah1.logicalxor(mi1_ewah2, swap)
+                ewah_coll_out[0][mi1] = swap
+            preincrement(it_map1)
+        it_map2 = ewah_coll2[0].begin()
+        while (it_map2 != ewah_coll2[0].end()):
+            mi1 = dereference(it_map2).first
+            mi1_ewah2 = dereference(it_map2).second
+            it_map1 = ewah_coll1[0].find(mi1)
+            if it_map1 == ewah_coll1[0].end():
+                ewah_coll_out[0][mi1] = mi1_ewah2
+            preincrement(it_map2)
+
+    def logicalxor(self, ifile, solf, out):
+        return self._logicalxor(ifile, solf, out)
+
+    cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
+        cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
+        # Keys
+        ewah_keys1[0].logicaland(ewah_keys2[0],ewah_keys_out[0])
+        # Refn
+        ewah_refn1[0].logicaland(ewah_refn2[0],ewah_refn_out[0])
+        # Coll
+        if ewah_refn_out[0].numberOfOnes() > 0:
+            it_map1 = ewah_coll1[0].begin()
+            while (it_map1 != ewah_coll1[0].end()):
+                mi1 = dereference(it_map1).first
+                it_map2 = ewah_coll2[0].find(mi1)
+                if it_map2 != ewah_coll2[0].end():
+                    mi1_ewah1 = dereference(it_map1).second
+                    mi1_ewah2 = dereference(it_map2).second
+                    mi1_ewah1.logicaland(mi1_ewah2, swap)
+                    ewah_coll_out[0][mi1] = swap
+                preincrement(it_map1)
+
+    def logicaland(self, ifile, solf, out):
+        return self._logicaland(ifile, solf, out)
 
     cdef bytes _dumps(self, np.uint32_t ifile):
         # TODO: write word size
@@ -314,6 +397,29 @@ cdef class FileBitmasks:
             # or...
             #mi1_ewah.read(ss,1)
             #ewah_coll[0][mi1].swap(mi1_ewah)
+
+    def save(self, fname):
+        cdef bytes serial_BAC
+        cdef int ifile
+        f = open(fname,'wb')
+        f.write(struct.pack('Q',self.nfiles))
+        for ifile in range(self.nfiles):
+            serial_BAC = self._dumps(ifile)
+            f.write(struct.pack('Q',len(serial_BAC)))
+            f.write(serial_BAC)
+        f.close()
+
+    def load(self, fname):
+        cdef np.uint64_t nfiles
+        cdef np.uint64_t size_serial
+        f = open(fname,'rb')
+        nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+        if nfiles != self.nfiles:
+            raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+        for ifile in range(nfiles):
+            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            self._loads(ifile, f.read(size_serial))
+        f.close()
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys
@@ -570,25 +676,26 @@ cdef class BoolArrayCollection:
         return self._append(solf)
 
     cdef bint _intersects(self, BoolArrayCollection solf):
-        # self._ewah_coarse()
-        # solf._ewah_coarse()
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        # cdef ewah_bool_array *ewah_coar1 = <ewah_bool_array *> self.ewah_coar
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        # cdef ewah_bool_array *ewah_coar2 = <ewah_bool_array *> solf.ewah_coar
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # No intersection
         if ewah_keys1[0].intersects(ewah_keys2[0]) == 0:
             return 0
         # Intersection at coarse level
-        # if ewah_coar1[0].intersects(ewah_coar2[0]) == 1:
-        #     return 1
+        ewah_keys1[0].logicalxor(ewah_refn1[0],ewah_coar1)
+        ewah_keys2[0].logicalxor(ewah_refn2[0],ewah_coar2)
+        if ewah_coar1.intersects(ewah_keys2[0]) == 1:
+            return 1
+        if ewah_coar2.intersects(ewah_keys1[0]) == 1:
+            return 1
         # Intersection at refined level
         if ewah_refn1[0].intersects(ewah_refn2[0]) == 1:
             it_map1 = ewah_coll1[0].begin()
@@ -601,10 +708,84 @@ cdef class BoolArrayCollection:
                     if mi1_ewah1.intersects(mi1_ewah2):
                         return 1
                 preincrement(it_map1)
-        # Intersection at coarse level or refined inside coarse
-        else:
-            return 1
         return 0
+
+    cdef void _logicalxor(self, BoolArrayCollection solf, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
+        cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
+        # Keys
+        ewah_keys1[0].logicalxor(ewah_keys2[0],ewah_keys_out[0])
+        # Refn
+        ewah_refn1[0].logicalxor(ewah_refn2[0],ewah_refn_out[0])
+        # Coll
+        it_map1 = ewah_coll1[0].begin()
+        while (it_map1 != ewah_coll1[0].end()):
+            mi1 = dereference(it_map1).first
+            mi1_ewah1 = dereference(it_map1).second
+            it_map2 = ewah_coll2[0].find(mi1)
+            if it_map2 == ewah_coll2[0].end():
+                ewah_coll_out[0][mi1] = mi1_ewah1
+            else:
+                mi1_ewah2 = dereference(it_map2).second
+                mi1_ewah1.logicalxor(mi1_ewah2, swap)
+                ewah_coll_out[0][mi1] = swap
+            preincrement(it_map1)
+        it_map2 = ewah_coll2[0].begin()
+        while (it_map2 != ewah_coll2[0].end()):
+            mi1 = dereference(it_map2).first
+            mi1_ewah2 = dereference(it_map2).second
+            it_map1 = ewah_coll1[0].find(mi1)
+            if it_map1 == ewah_coll1[0].end():
+                ewah_coll_out[0][mi1] = mi1_ewah2
+            preincrement(it_map2)
+
+    def logicalxor(self, solf, out):
+        return self._logicalxor(solf, out)
+
+    cdef void _logicaland(self, BoolArrayCollection solf, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
+        cdef np.uint64_t mi1
+        cdef ewah_bool_array ewah_coar1, ewah_coar2
+        # Keys
+        ewah_keys1[0].logicaland(ewah_keys2[0],ewah_keys_out[0])
+        # Refn
+        ewah_refn1[0].logicaland(ewah_refn2[0],ewah_refn_out[0])
+        # Coll
+        if ewah_refn_out[0].numberOfOnes() > 0:
+            it_map1 = ewah_coll1[0].begin()
+            while (it_map1 != ewah_coll1[0].end()):
+                mi1 = dereference(it_map1).first
+                mi1_ewah1 = dereference(it_map1).second
+                it_map2 = ewah_coll2[0].find(mi1)
+                if it_map2 != ewah_coll2[0].end():
+                    mi1_ewah2 = dereference(it_map2).second
+                    mi1_ewah1.logicaland(mi1_ewah2, swap)
+                    ewah_coll_out[0][mi1] = swap
+                preincrement(it_map1)
+
+    def logicaland(self, solf, out):
+        return self._logicaland(solf, out)
 
     cdef bytes _dumps(self):
         # TODO: write word size
@@ -664,6 +845,21 @@ cdef class BoolArrayCollection:
 
     def loads(self, s):
         return self._loads(s)
+
+    def save(self, fname):
+        cdef bytes serial_BAC
+        f = open(fname,'wb')
+        serial_BAC = self._dumps()
+        f.write(struct.pack('Q',len(serial_BAC)))
+        f.write(serial_BAC)
+        f.close()
+
+    def load(self, fname):
+        cdef np.uint64_t size_serial
+        f = open(fname,'rb')
+        size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+        self._loads(f.read(size_serial))
+        f.close()
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys

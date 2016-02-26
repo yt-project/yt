@@ -48,15 +48,11 @@ DEF BoolType = "Bool"
 # If set to 1, ghost zones are added after all selected cells are identified.
 # If set to 0, ghost zones are added as cells are selected
 DEF GhostsAfter = 0
-IF GhostsAfter == 1:
-    # These have no effect if ghost zones are done at the end
-    DEF OnlyRefineEdges = 0
-    DEF OnlyGhostsAtEdges = 0
-ELSE:
-    # If set to 1, only cells at the edge of selectors are refined
-    DEF OnlyRefineEdges = 0
-    # If set to 1, only cells at the edge of selectors are given ghost zones
-    DEF OnlyGhostsAtEdges = 1
+# If set to 1, only cells at the edge of selectors are given ghost zones
+# This has no effect if ghost zones are done at the end
+DEF OnlyGhostsAtEdges = 1
+# If set to 1, only cells at the edge of selectors are refined
+DEF OnlyRefineEdges = 1
 # If set to 1, ghost cells are added at the refined level
 DEF RefinedGhosts = 1
 # If set to 1, ghost cells are added at the refined level reguardless of if the 
@@ -66,15 +62,19 @@ DEF RefinedGhosts = 1
 DEF RefinedExternalGhosts = 1
 # If set to 1, bitmaps are only compressed before looking for files
 DEF UseUncompressed = 1
-IF UseUncompressed == 1:
-    # If set to 1, uncompressed bitmaps are passed around as memory views rather than pointers
-    DEF UseUncompressedView = 0
-ELSE: # If not uncompressed, dosn't apply
-    DEF UseUncompressedView = 1
+# If set to 1, uncompressed bitmaps are passed around as memory views rather than pointers
+# Does not apply if UseUncompressed = 0 (i.e. automatically is 1)
+DEF UseUncompressedView = 0
 # If Set to 1, file bitmasks are managed by cython
-DEF UseCythonBitmasks = 0
+DEF UseCythonBitmasks = 1
 # If Set to 1, auto fill child cells for cells
-DEF FillChildCells = 1
+DEF FillChildCellsCoarse = 1
+DEF FillChildCellsRefined = 1
+# Super to handle any case where you need to know edges
+# Must be set to 1 if OnlyGhostsAtEdges, OnlyRefineEdges,
+# FillChildCellCoarse, or FilleChildCellRefined is 1
+DEF DetectEdges = 1
+DEF SaveCollisions = 1
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -370,7 +370,7 @@ cdef class ParticleForest:
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
-    IF UseCythonBitmasks:
+    IF UseCythonBitmasks == 1:
         cdef FileBitmasks bitmasks
     ELSE:
         cdef BoolArrayCollection[:] bitmasks
@@ -404,7 +404,7 @@ cdef class ParticleForest:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
-        IF UseCythonBitmasks:
+        IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
             cdef np.ndarray[object, ndim=1] bitmasks
@@ -413,11 +413,32 @@ cdef class ParticleForest:
             self.bitmasks = bitmasks
         self.collisions = BoolArrayCollection()
 
+    def _bitmask_logicaland(self, ifile, bcoll, out):
+        IF UseCythonBitmasks == 1:
+            self.bitmasks._logicaland(ifile, bcoll, out)
+        ELSE:
+            cdef BoolArrayCollection bitmasks = self.bitmasks[ifile]
+            return bitmasks._logicaland(bcoll, out)
+
+    def _bitmask_intersects(self, ifile, bcoll):
+        IF UseCythonBitmasks == 1:
+            return self.bitmasks._intersects(ifile, bcoll)
+        ELSE:
+            cdef BoolArrayCollection bitmasks = self.bitmasks[ifile]
+            return bitmasks._intersects(bcoll)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                                 np.uint64_t file_id):
+        return self.__coarse_index_data_file(pos, file_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void __coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                                       np.uint64_t file_id):
         # Initialize
         cdef np.uint64_t i
         cdef np.int64_t p
@@ -429,7 +450,7 @@ cdef class ParticleForest:
         cdef np.float64_t dds[3]
         cdef np.int32_t order = self.index_order1
         cdef np.int64_t total_hits = 0
-        IF UseCythonBitmasks:
+        IF UseCythonBitmasks == 1:
             cdef FileBitmasks bitmasks = self.bitmasks
         ELSE:
             cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
@@ -458,8 +479,6 @@ cdef class ParticleForest:
                     bitmasks._set_coarse(file_id, i)
                 ELSE:
                     bitmasks._set_coarse(<np.uint64_t>i)
-        # TODO: Make sure bitmasks pointers are not lost
-        # IF UseCythonBitmasks:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -470,6 +489,17 @@ cdef class ParticleForest:
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id):
+        return self.__refined_index_data_file(pos, mask, sub_mi1, sub_mi2, file_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef np.uint64_t __refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                               np.ndarray[np.uint8_t, ndim=1] mask,
+                                               np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                               np.ndarray[np.uint64_t, ndim=1] sub_mi2,
+                                               np.uint64_t file_id):
         # Initialize
         cdef np.uint64_t i, p, mi, nsub_mi#, last_mi, last_submi
         cdef np.float64_t ppos[3]
@@ -480,7 +510,7 @@ cdef class ParticleForest:
         cdef np.float64_t dds2[3]
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
-        IF UseCythonBitmasks:
+        IF UseCythonBitmasks == 1:
             cdef FileBitmasks bitmasks = self.bitmasks
         ELSE:
             cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
@@ -532,8 +562,6 @@ cdef class ParticleForest:
                 bitmasks._set_refined(file_id, sub_mi1[p],sub_mi2[p])
             ELSE:
                 bitmasks._set_refined(sub_mi1[p],sub_mi2[p])
-        # TODO: Make sure bitmask pointers not hanging
-        # IF UseCythonBitmasks:
         return nsub_mi
 
     @cython.boundscheck(False)
@@ -636,51 +664,89 @@ cdef class ParticleForest:
                 serial_BAC = b1._dumps()
             out += struct.calcsize('Q')
             out += len(serial_BAC)
+        IF SaveCollisions:
+            serial_BAC = self.collisions._dumps()
+            out += struct.calcsize('Q')
+            out += len(serial_BAC)
         return out
 
     def save_bitmasks(self,fname=None):
-        # TODO: All Cython
-        IF UseCythonBitmasks == 0:
-            cdef BoolArrayCollection b1
-        cdef bytes serial_BAC
-        cdef int ifile
         # TODO: default file name
         if fname is None:
             raise NotImplementedError("Default filename for bitmask not set.")
-        f = open(fname,'wb')
-        f.write(struct.pack('Q',self.nfiles))
-        for ifile in range(self.nfiles):
-            IF UseCythonBitmasks == 1:
+        IF UseCythonBitmasks == 1:
+            cdef bytes serial_BAC
+            cdef int ifile
+            cdef np.uint64_t size_serial
+            f = open(fname,'wb')
+            f.write(struct.pack('Q',self.nfiles))
+            for ifile in range(self.nfiles):
                 serial_BAC = self.bitmasks._dumps(ifile)
-            ELSE:
+                f.write(struct.pack('Q',len(serial_BAC)))
+                f.write(serial_BAC)
+            IF SaveCollisions == 1:
+                serial_BAC = self.collisions._dumps()
+                f.write(struct.pack('Q',len(serial_BAC)))
+                f.write(serial_BAC)
+            f.close()
+            # self.bitmasks.save(fname)
+        ELSE:
+            cdef BoolArrayCollection b1
+            cdef bytes serial_BAC
+            cdef int ifile
+            f = open(fname,'wb')
+            f.write(struct.pack('Q',self.nfiles))
+            for ifile in range(self.nfiles):
                 b1 = self.bitmasks[ifile]
                 serial_BAC = b1._dumps()
-            f.write(struct.pack('Q',len(serial_BAC)))
-            f.write(serial_BAC)
-        f.close()
+                f.write(struct.pack('Q',len(serial_BAC)))
+                f.write(serial_BAC)
+            IF SaveCollisions == 1:
+                b1 = self.collisions
+                serial_BAC = b1._dumps()
+                f.write(struct.pack('Q',len(serial_BAC)))
+                f.write(serial_BAC)
+            f.close()
 
     def load_bitmasks(self,fname=None):
-        # TODO: All Cython
-        IF UseCythonBitmasks == 0:
-            cdef BoolArrayCollection b1
-        cdef np.uint64_t nfiles
-        cdef np.uint64_t size_serial
         # TODO: default file name
         if fname is None:
             raise NotImplementedError("Default filename for bitmask not set.")
-        f = open(fname,'rb')
-        nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-        if nfiles != self.nfiles:
-            raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
-        for ifile in range(nfiles):
-            IF UseCythonBitmasks == 1:
+        IF UseCythonBitmasks == 1:
+            cdef np.uint64_t nfiles
+            cdef np.uint64_t size_serial
+            f = open(fname,'rb')
+            nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            if nfiles != self.nfiles:
+                raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+            for ifile in range(nfiles):
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
                 self.bitmasks._loads(ifile, f.read(size_serial))
-            ELSE:
+            IF SaveCollisions == 1:
+                size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+                self.collisions._loads(f.read(size_serial))
+            f.close()
+            IF SaveCollisions == 0:
+                self.find_collisions()
+            # self.bitmasks.load(fname)
+        ELSE:
+            cdef BoolArrayCollection b1
+            cdef np.uint64_t nfiles
+            cdef np.uint64_t size_serial
+            f = open(fname,'rb')
+            nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            if nfiles != self.nfiles:
+                raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+            for ifile in range(nfiles):
                 b1 = self.bitmasks[ifile]
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
                 b1._loads(f.read(size_serial))
-        f.close()
+            IF SaveCollisions == 1:
+                size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+                self.collisions._loads(f.read(size_serial))
+            f.close()
+            IF SaveCollisions == 0:
+                self.find_collisions()
 
     def check(self):
         cdef np.uint64_t mi1
@@ -1109,8 +1175,8 @@ cdef class ParticleForestSelector:
             mm_g0._compress(mm_g)
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        IF UseCythonBitmasks:
-            cdef FileBitmasks mm_d
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks mm_d = self.forest.bitmasks
         ELSE:
             cdef BoolArrayCollection mm_d
         cdef np.int32_t ifile
@@ -1121,9 +1187,8 @@ cdef class ParticleForestSelector:
         # Compare with mask of particles
         for ifile in range(self.nfiles):
             # Only continue if the file is not already selected
-            if not file_mask_p[ifile]:
+            if file_mask_p[ifile] == 0:
                 IF UseCythonBitmasks == 1:
-                    mm_d = self.forest.bitmasks
                     if mm_d._intersects(ifile, mm_s):
                         file_mask_p[ifile] = 1
                         file_mask_g[ifile] = 0 # No intersection
@@ -1551,22 +1616,39 @@ cdef class ParticleForestSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void fill_subcells(self, np.int32_t level, np.float64_t pos[3],
-                            np.float64_t dds[3]):
+    cdef void fill_subcells_mi1(self, np.float64_t pos[3], np.float64_t dds[3]):
         cdef int i, j, k
         cdef np.uint64_t mi
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t indexgap[3]
-        cdef np.float64_t dds_mi1[3]
         for i in range(3):
-            dds_mi1[i] = (self.DRE[i] - self.DLE[i])/self.max_index1
             ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.forest.dds_mi1[i])
             indexgap[i] = <np.uint64_t>(dds[i]/self.forest.dds_mi1[i])
         for i in range(indexgap[0]):
             for j in range(indexgap[1]):
                 for k in range(indexgap[2]):
                     mi = encode_morton_64bit(ind1[0]+i, ind1[1]+j, ind1[2]+k)
-                    self.add_coarse(mi)
+                    self.add_coarse(mi, 1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void fill_subcells_mi2(self, np.float64_t pos[3], np.float64_t dds[3]):
+        cdef int i, j, k
+        cdef np.uint64_t mi1, mi2
+        cdef np.uint64_t ind1[3]
+        cdef np.uint64_t ind2[3]
+        cdef np.uint64_t indexgap[3]
+        for i in range(3):
+            ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.forest.dds_mi1[i])
+            ind2[i] = <np.uint64_t>((pos[i] - (self.DLE[i]+self.forest.dds_mi1[i]*ind1[i]))/self.forest.dds_mi2[i])
+            indexgap[i] = <np.uint64_t>(dds[i]/self.forest.dds_mi2[i])
+        mi1 = encode_morton_64bit(ind1[0], ind1[1], ind1[2])
+        for i in range(indexgap[0]):
+            for j in range(indexgap[1]):
+                for k in range(indexgap[2]):
+                    mi2 = encode_morton_64bit(ind2[0]+i, ind2[1]+j, ind2[2]+k)
+                    self.add_refined(mi1, mi2, 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1602,18 +1684,17 @@ cdef class ParticleForestSelector:
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
-                    IF (OnlyRefineEdges == 1):
-                        sbbox = self.selector.select_bbox_edge(npos, rpos)
-                    ELIF (OnlyGhostsAtEdges):
+                    IF DetectEdges == 1:
                         sbbox = self.selector.select_bbox_edge(npos, rpos)
                     ELSE:
                         sbbox = self.selector.select_bbox(npos, rpos)
-                        if sbbox == 1: sbbox = 2
                     if sbbox == 0: continue
+                    IF DetectEdges == 0:
+                        sbbox = 2
                     if nlevel < self.order1:
-                        IF FillChildCells == 1:
+                        IF FillChildCellsCoarse == 1:
                             if sbbox == 1:
-                                self.fill_subcells(nlevel, npos, ndds)
+                                self.fill_subcells_mi1(npos, ndds)
                             else:
                                 self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                         ELSE:
@@ -1624,26 +1705,26 @@ cdef class ParticleForestSelector:
                             if sbbox == 2: # an edge cell
                                 if self.is_refined(mi1) == 1:
                                     self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                            self.add_coarse(mi1, sbbox)
                         ELSE:
                             if self.is_refined(mi1) == 1:
                                 self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                            self.add_coarse(mi1)
+                        self.add_coarse(mi1, sbbox)
                         IF BoolType == 'Bool':
                             self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
-                        self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                        IF FillChildCellsRefined == 1:
+                            if sbbox == 1:
+                                self.fill_subcells_mi2(npos, ndds)
+                            else:
+                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                        ELSE:
+                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == (self.order1 + self.order2):
                         decode_morton_64bit(mi1,ind1)
                         for m in range(3):
                             DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
-                        IF (OnlyRefineEdges == 1):
-                            self.add_refined(mi1,mi2,sbbox)
-                        ELIF (OnlyGhostsAtEdges == 1):
-                            self.add_refined(mi1,mi2,sbbox)
-                        ELSE:
-                            self.add_refined(mi1,mi2)
+                        self.add_refined(mi1,mi2,sbbox)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
