@@ -125,6 +125,7 @@ class Camera(Orientation):
             if isinstance(value, YTArray):
                 value = value.in_units("code_length")
             self._position = value
+            self.normal_vector = self.focus - self._position
             self.switch_orientation()
 
         def fdel(self):
