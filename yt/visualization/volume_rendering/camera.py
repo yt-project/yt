@@ -98,7 +98,8 @@ class Camera(Orientation):
             data_source = data_source_or_all(data_source)
             self._focus = data_source.ds.domain_center
             self._position = data_source.ds.domain_right_edge
-            self._width = 1.5*data_source.ds.domain_width
+            self._width = data_source.ds.arr(
+                [1.5*data_source.ds.domain_width.max()]*3)
             self._domain_center = data_source.ds.domain_center
             self._domain_width = data_source.ds.domain_width
         if auto:
