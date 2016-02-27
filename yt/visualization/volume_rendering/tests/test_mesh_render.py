@@ -22,6 +22,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.visualization.volume_rendering.api import \
     MeshSource, \
     Camera, \
+    Scene, \
     create_scene
 
 
@@ -47,6 +48,14 @@ def test_surface_mesh_render():
     return images
 
 
+def compare(ds, im, test_prefix, decimals=12):
+    def mesh_render_image_func(filename_prefix):
+        return im.write_image(filename_prefix)
+
+    test = GenericImageTest(ds, mesh_render_image_func, decimals)
+    test.prefix = test_prefix
+    return test
+
 hex8 = "MOOSE_sample_data/out.e-s010"
 hex8_fields = [('connect1', 'diffused'), ('connect2', 'convected')]
 
@@ -57,13 +66,7 @@ def test_hex8_render():
         ds = data_dir_load(hex8, kwargs={'step':-1})
         sc = create_scene(ds, field)
         im = sc.render()
-
-        def mesh_render_image_func(filename_prefix):
-            return im.write_image(filename_prefix)
-
-        test = GenericImageTest(ds, mesh_render_image_func, 12)
-        test.prefix = "render_answers_hex8_%s_%s" % field
-        yield test
+        yield compare(ds, im, "render_answers_hex8_%s_%s" % field)
 
 
 tet4 = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
@@ -76,13 +79,7 @@ def test_tet4_render():
         ds = data_dir_load(tet4, kwargs={'step':-1})
         sc = create_scene(ds, field)
         im = sc.render()
-
-        def mesh_render_image_func(filename_prefix):
-            return im.write_image(filename_prefix)
-
-        test = GenericImageTest(ds, mesh_render_image_func, 12)
-        test.prefix = "render_answers_tet4_%s_%s" % field
-        yield test
+        yield compare(ds, im, "render_answers_tet4_%s_%s" % field)
 
 
 hex20 = "MOOSE_sample_data/mps_out.e"
@@ -95,10 +92,57 @@ def test_hex20_render():
         ds = data_dir_load(hex20, kwargs={'step':-1})
         sc = create_scene(ds, field)
         im = sc.render()
+        yield compare(ds, im, "render_answers_hex20_%s_%s" % field)
 
-        def mesh_render_image_func(filename_prefix):
-            return im.write_image(filename_prefix)
 
-        test = GenericImageTest(ds, mesh_render_image_func, 12)
-        test.prefix = "render_answers_hex20_%s_%s" % field
-        yield test
+wedge6 = "MOOSE_sample_data/wedge_out.e"
+wedge6_fields = [('connect1', 'diffused')]
+
+@requires_ds(wedge6)
+@requires_module("pyembree")
+def test_wedge6_render():
+    for field in wedge6_fields:
+        ds = data_dir_load(wedge6, kwargs={'step':-1})
+        sc = create_scene(ds, field)
+        im = sc.render()
+        yield compare(ds, im, "render_answers_wedge6_%s_%s" % field)
+
+
+@requires_ds(hex8)
+@requires_module("pyembree")
+def test_perspective_mesh_render():
+    ds = data_dir_load(hex8)
+    sc = create_scene(ds, ("connect2", "diffused"))
+
+    cam = Camera(ds, lens_type='perspective')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.set_position(cam_pos, north_vector)
+    sc.camera = cam
+    cam.resolution = (800, 800)
+    im = sc.render()
+    yield compare(ds, im, "perspective_mesh_render")
+
+
+@requires_ds(hex8)
+@requires_module("pyembree")
+def test_composite_mesh_render():
+    ds = data_dir_load(hex8)
+    sc = Scene()
+    cam = Camera(ds)
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
+                     ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
+    cam.resolution = (800, 800)
+    sc.camera = cam
+
+    ms1 = MeshSource(ds, ('connect1', 'diffused'))
+    ms2 = MeshSource(ds, ('connect2', 'diffused'))
+
+    sc.add_source(ms1)
+    sc.add_source(ms2)
+
+    im = sc.render()
+    yield compare(ds, im, "composite_mesh_render")
