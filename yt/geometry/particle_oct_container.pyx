@@ -1154,7 +1154,22 @@ cdef class ParticleForestSelector:
             mm_s0 = mm_s
             mm_g0 = mm_g
         # Recurse
-        self.recursive_morton_mask(level, pos, dds, mi1)
+        IF FillChildCellsCoarse == 1:
+            cdef np.float64_t rpos[3]
+            for i in range(3):
+                rpos[i] = self.DRE[i]
+            sbbox = self.selector.select_bbox_edge(pos, rpos)
+            if sbbox == 1:
+                self.fill_subcells_mi1(pos, dds)
+                for mi1 in range(self.s1):
+                    mm_s0._set_coarse(mi1)
+                IF UseUncompressed == 1:
+                    mm_s0._compress(mm_s)
+                return
+            else:
+                self.recursive_morton_mask(level, pos, dds, mi1)
+        ELSE:
+            self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
         IF BoolType == 'Bool':
             self.set_coarse_bool(mm_s0, mm_g0)
