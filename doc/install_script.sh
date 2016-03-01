@@ -42,7 +42,7 @@ then
 else
     if [ $INST_YT_SOURCE -eq 0 ]
     then
-        echo "yt must be compiled from source if INST_CONDA is set"
+        echo "yt must be compiled from source if INST_CONDA is not set"
         echo "Please set INST_YT_SOURCE to 1 and re-run."
         exit 1
     fi
@@ -469,8 +469,8 @@ then
         EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
     elif [ `uname` = "Linux" ]
     then
-            EMBREE="embree-2.8.0.x86_64.linux"
-            EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
+        EMBREE="embree-2.8.0.x86_64.linux"
+        EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
     else
         echo "Unstructured mesh rendering is not supported on this platform."
         echo "Set INST_UNSTRUCTURED=0 and re-run the install script."
