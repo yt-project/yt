@@ -1,6 +1,5 @@
 import os
 import re
-import contextlib
 import OpenGL.GL as GL
 from collections import OrderedDict
 
@@ -10,11 +9,11 @@ from yt.utilities.math_utils import \
     get_scale_matrix, \
     get_lookat_matrix, \
     get_perspective_matrix, \
-    get_orthographic_matrix, \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
-from yt.utilities.exceptions import YTInvalidShaderType
+from yt.utilities.exceptions import \
+    YTInvalidShaderType
 from .shader_objects import known_shaders, ShaderProgram
 
 import matplotlib.cm as cm

@@ -3,6 +3,10 @@ import OpenGL.GL as GL
 import contextlib
 from yt.extern.six import add_metaclass
 from collections import OrderedDict
+from yt.utilities.exceptions import \
+    YTInvalidShaderType, \
+    YTUnknownUniformKind, \
+    YTUnknownUniformSize
 
 known_shaders = {}
 

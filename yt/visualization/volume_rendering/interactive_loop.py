@@ -1,12 +1,9 @@
 import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
-import os
 from .input_events import EventCollection, MouseRotation
 
 from yt import write_bitmap
-from interactive_vr import BlockCollection, SceneGraph, TrackballCamera
-
 
 class EGLRenderingContext(object):
     def __init__(self, width = 800, height = 600, title = "vol_render"):
@@ -93,8 +90,6 @@ class RenderingContext(object):
         scene.set_camera(camera)
         scene.update_minmax()
         camera.compute_matrices()
-        frame_start = glfw.GetTime()
-        fps_start = glfw.GetTime()
         print "Starting rendering..."
         callbacks = EventCollection(scene, camera)
         callbacks.add_key_callback("close_window", "escape")

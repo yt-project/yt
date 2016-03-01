@@ -26,7 +26,6 @@ Authors
 import os
 import sys
 import time
-from timeit import default_timer as clock
 
 #-----------------------------------------------------------------------------
 # Platform-dependent imports and functions

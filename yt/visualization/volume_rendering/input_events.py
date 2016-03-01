@@ -2,14 +2,11 @@ from collections import defaultdict, namedtuple
 from yt.utilities.math_utils import \
     get_perspective_matrix, \
     get_orthographic_matrix
-from yt.utilities.exceptions import YTInvalidShaderType
-from functools import wraps
 import OpenGL.GL as GL
 import cyglfw3 as glfw
 import numpy as np
 import matplotlib.cm as cm
 import random
-from .shader_objects import known_shaders
 
 event_registry = {}
 
