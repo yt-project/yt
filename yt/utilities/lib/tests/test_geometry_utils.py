@@ -174,6 +174,46 @@ def test_morton_qsort(seed=1,recursive=False,use_loop=False):
                             print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
     assert_array_equal(sort_out,sort_ans)
 
+def test_get_morton_neighbors_coarse():
+    from yt.utilities.lib.geometry_utils import get_morton_neighbors_coarse
+    imax = 5
+    ngz = 1
+    tests = {(7,1):np.array([35, 49,56,48, 33,40,32, 42,34, 3, 17,24,16, 
+                             1,8,0, 10,2, 21, 28,20, 5, 12,4, 14, 6], dtype='uint64'),
+             (7,0):np.array([35, 49,56,48, 33,40,32, 42,34, 3, 17,24,16, 
+                             1,8,0, 10,2, 21, 28,20, 5, 12,4, 14, 6], dtype='uint64'),
+             (0,1):np.array([4, 6,7,70, 132,133,196, 5,68, 256, 258,259,322, 
+                             384,385,448, 257,320, 2, 3,66, 128, 129,192, 1, 64], dtype='uint64'),
+             (0,0):np.array([4, 6,7, 5, 2, 3, 1], dtype='uint64'),
+             (448,1):np.array([192, 64,0,9, 82,18,27, 128,137, 228, 100,36,45, 
+                               118,54,63, 164,173, 320, 256,265, 338, 274,283, 384, 393], dtype='uint64'),
+             (448,0):np.array([228, 118,63, 173, 338, 283, 393], dtype='uint64')}
+    for (mi1, periodic), ans in tests.iteritems():
+        n1 = get_morton_neighbors_coarse(mi1, imax, periodic, ngz)
+        assert_equal(np.sort(n1),np.sort(ans))
+
+def test_get_morton_neighbors_refined():
+    from yt.utilities.lib.geometry_utils import get_morton_neighbors_refined
+    imax1 = 5
+    imax2 = 5
+    ngz = 1
+    tests = {(  7,  7,1):(np.array([  7,  7, 7, 7,  7, 7, 7,  7, 7, 7,  7, 7, 7, 7,7,7,  7,7,  7,  7, 7, 7,  7,7,  7, 7], dtype='uint64'),
+                          np.array([ 35, 49,56,48, 33,40,32, 42,34, 3, 17,24,16, 1,8,0, 10,2, 21, 28,20, 5, 12,4, 14, 6], dtype='uint64')),
+             (  7,  7,0):(np.array([  7,  7, 7, 7,  7, 7, 7,  7, 7, 7,  7, 7, 7, 7,7,7,  7,7,  7,  7, 7, 7,  7,7,  7, 7], dtype='uint64'),
+                          np.array([ 35, 49,56,48, 33,40,32, 42,34, 3, 17,24,16, 1,8,0, 10,2, 21, 28,20, 5, 12,4, 14, 6], dtype='uint64')),
+             (  0,  0,1):(np.array([0, 0,0,64, 128,128,192, 0,64, 256, 256,256,320, 384,384,448, 256,320, 0, 0,64, 128, 128,192, 0, 64], dtype='uint64'),
+                          np.array([4, 6,7,70, 132,133,196, 5,68, 256, 258,259,322, 384,385,448, 257,320, 2, 3,66, 128, 129,192, 1, 64], dtype='uint64')),
+             (  0,  0,0):(np.array([0, 0,0, 0, 0, 0, 0], dtype='uint64'),
+                          np.array([4, 6,7, 5, 2, 3, 1], dtype='uint64')),
+             (448,448,1):(np.array([192, 64,0,64, 192,128,192, 128,192, 448, 320,256,320, 448,384,448, 384,448, 320, 256,320, 448, 384,448, 384, 448], dtype='uint64'),
+                          np.array([192, 64,0, 9,  82, 18, 27, 128,137, 228, 100, 36, 45, 118, 54, 63, 164,173, 320, 256,265, 338, 274,283, 384, 393], dtype='uint64')),
+             (448,448,0):(np.array([448, 448,448, 448, 448, 448, 448], dtype='uint64'),
+                          np.array([228, 118, 63, 173, 338, 283, 393], dtype='uint64'))}
+    for (mi1, mi2, periodic), (ans1, ans2) in tests.iteritems():
+        n1, n2 = get_morton_neighbors_refined(mi1, mi2, imax1, imax2, periodic, ngz)
+        assert_equal(np.sort(n1),np.sort(ans1))
+        assert_equal(np.sort(n2),np.sort(ans2))
+
 def test_morton_neighbor():
     from yt.utilities.lib.geometry_utils import morton_neighbor, get_morton_indices, get_morton_index
     order = 20

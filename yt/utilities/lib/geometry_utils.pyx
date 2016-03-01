@@ -464,6 +464,24 @@ def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_morton_neighbors_coarse(mi1, max_index1, periodic, nn):
+    cdef int i
+    cdef np.uint32_t ntot
+    cdef np.ndarray[np.uint32_t, ndim=2] index = np.zeros((2*nn+1,3), dtype='uint32')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind1_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef bint periodicity[3]
+    if periodic:
+        for i in range(3): periodicity[i] = 1
+    else:
+        for i in range(3): periodicity[i] = 0
+    ntot = morton_neighbors_coarse(mi1, max_index1, periodicity, nn,
+                                   index, ind1_n, neighbors)
+    return np.resize(neighbors, (ntot,))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
                                          bint periodicity[3], np.uint32_t nn, 
                                          np.uint32_t[:,:] index,
@@ -473,7 +491,7 @@ cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1
     cdef np.uint64_t ind1[3]
     cdef np.uint32_t count[3]
     cdef np.uint32_t origin[3]
-    cdef np.uint64_t adv
+    cdef np.int64_t adv
     cdef int i, j, k, ii, ij, ik
     for i in range(3):
         count[i] = 0
@@ -490,14 +508,22 @@ cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1
                 count[k] += 1
         else:
             for k in range(3):
-                adv = <np.int64_t>(ind1[k] + i)
-                if (adv < 0) or (adv >= max_index1):
+                adv = <np.int64_t>((<np.int64_t>ind1[k]) + i)
+                if (adv < 0): 
+                    if periodicity[k]:
+                        while adv < 0:
+                            adv += max_index1
+                        ind1_n[j,k] = <np.uint64_t>(adv % max_index1)
+                    else:
+                        continue
+                elif (adv >= max_index1):
                     if periodicity[k]:
                         ind1_n[j,k] = <np.uint64_t>(adv % max_index1)
                     else:
                         continue
                 else:
                     ind1_n[j,k] = <np.uint64_t>(adv)
+                # print(i,k,adv,max_index1,ind1_n[j,k],adv % max_index1)
                 index[count[k],k] = j
                 count[k] += 1
     # Iterate over ever combinations
@@ -517,6 +543,28 @@ cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_morton_neighbors_refined(mi1, mi2, max_index1, max_index2, periodic, nn):
+    cdef int i
+    cdef np.uint32_t ntot
+    cdef np.ndarray[np.uint32_t, ndim=2] index = np.zeros((2*nn+1,3), dtype='uint32')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind1_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind2_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors1 = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors2 = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef bint periodicity[3]
+    if periodic:
+        for i in range(3): periodicity[i] = 1
+    else:
+        for i in range(3): periodicity[i] = 0
+    ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
+                                    periodicity, nn,
+                                    index, ind1_n, ind2_n, 
+                                    neighbors1, neighbors2)
+    return np.resize(neighbors1, (ntot,)), np.resize(neighbors2, (ntot,))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2, 
                                           np.uint64_t max_index1, np.uint64_t max_index2,
                                           bint periodicity[3], np.uint32_t nn, 
@@ -530,7 +578,7 @@ cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2,
     cdef np.uint64_t ind2[3]
     cdef np.uint32_t count[3]
     cdef np.uint32_t origin[3]
-    cdef np.uint64_t adv, maj, rem
+    cdef np.int64_t adv, maj, rem, adv1
     cdef int i, j, k, ii, ij, ik
     for i in range(3):
         count[i] = 0
@@ -550,20 +598,32 @@ cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2,
         else:
             for k in range(3):
                 adv = <np.int64_t>(ind2[k] + i)
-                maj = adv / max_index2
-                rem = adv % max_index2
+                maj = adv / (<np.int64_t>max_index2)
+                rem = adv % (<np.int64_t>max_index2)
                 if adv < 0:
-                    if not periodicity[k] and (ind1[k]+(maj-1) < 0):
-                        continue
+                    adv1 = <np.int64_t>(ind1[k] + (maj-1))
+                    if adv1 < 0:
+                        if periodicity[k]:
+                            while adv1 < 0:
+                                adv1 += max_index1
+                            ind1_n[j,k] = <np.uint64_t>adv1
+                        else:
+                            continue
                     else:
-                        ind1_n[j,k] = <np.uint64_t>((<np.int64_t>(ind1[k]+(maj-1))) % max_index1)
-                        ind2_n[j,k] = <np.uint64_t>(rem)
+                        ind1_n[j,k] = <np.uint64_t>adv1
+                    while adv < 0:
+                        adv += max_index2
+                    ind2_n[j,k] = <np.uint64_t>adv
                 elif adv >= max_index2:
-                    if not periodicity[k] and (ind1[k]+(maj+1) >= max_index1):
-                        continue
+                    adv1 = <np.int64_t>(ind1[k] + maj)
+                    if adv1 >= max_index1:
+                        if periodicity[k]:
+                            ind1_n[j,k] = <np.uint64_t>(adv1 % <np.int64_t>max_index1)
+                        else:
+                            continue
                     else:
-                        ind1_n[j,k] = <np.uint64_t>((<np.int64_t>(ind1[k]+(maj+1))) % max_index1)
-                        ind2_n[j,k] = <np.uint64_t>(rem)
+                        ind1_n[j,k] = <np.uint64_t>adv1
+                    ind2_n[j,k] = <np.uint64_t>rem
                 else:
                     ind1_n[j,k] = ind1[k]
                     ind2_n[j,k] = <np.uint64_t>(adv)
