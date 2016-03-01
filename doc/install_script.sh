@@ -30,6 +30,12 @@ INST_YT_SOURCE=0   # Should yt itself be installed from source?
 # INST_CONDA=0
 # INST_YT_SOURCE=1
 
+if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+then
+    DEST_DIR=${YT_DEST}
+    INST_CONDA=0
+fi
+
 if [ $INST_CONDA -ne 0 ]
 then
     DEST_SUFFIX="yt-conda"
@@ -43,13 +49,12 @@ else
     DEST_SUFFIX="yt-`uname -m`"
 fi
 
-DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
-BRANCH="yt" # This is the branch to which we will forcibly update.
-
-if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+if [ ! -z "${DEST_DIR}" ]
 then
-    DEST_DIR=${YT_DEST}
+    DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 fi
+
+BRANCH="yt" # This is the branch to which we will forcibly update.
 
 # What follows are some other options that you may or may not need to change.
 
