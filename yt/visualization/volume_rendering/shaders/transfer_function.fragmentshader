@@ -9,6 +9,7 @@ flat in mat4 inverse_view;
 out vec4 output_color;
 
 uniform sampler3D ds_tex;
+uniform sampler1D cmap;
 //layout (binding = 1) uniform sampler2D depth_tex;
 uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 
@@ -39,6 +40,7 @@ void main()
     vec3 dir = normalize(world_location.xyz - v_camera_pos.xyz);
     vec4 curr_color = vec4(0.0);
     float dist = dot(step_size, abs(dir));
+    float v;
     dist = length(step_size * dir);
 
     vec3 ray_position = world_location.xyz;
@@ -47,21 +49,20 @@ void main()
     vec3 range = right_edge - left_edge;
     bool ray_in_bb = true;
     vec4 new_color;
-    float v;
     while (ray_in_bb) {
         tex_curr_pos = (ray_position - left_edge)/range;
 
         vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
-        if (abs(tex_sample.r - 0.2) < 0.05) {
-            v = (tex_sample.r - 0.2);
-            v = exp(-v*v/0.0005);
-            new_color = v * vec4(0.0, 0.0, 1.0, 0.0123);
-        } else if (abs(tex_sample.r - 0.3) < 0.1) {
-            v = (tex_sample.r - 0.3);
-            v = exp(-v*v/0.0001);
-            new_color = v * vec4(1.0, 0.0, 0.0, 0.5);
-        }
-
+        //new_color = texture(cmap, tex_sample.r);
+	if (abs(tex_sample.r - 0.2) < 0.05) {
+	     v = (tex_sample.r - 0.2);
+	     v = exp(-v*v/0.0005);
+	     new_color = v * vec4(0.0, 0.0, 1.0, 0.0123);
+	} else if (abs(tex_sample.r - 0.3) < 0.1) {
+	     v = (tex_sample.r - 0.3);
+	     v = exp(-v*v/0.0001);
+	     new_color = v * vec4(1.0, 0.0, 0.0, 0.5);
+	}
         curr_color = dist*new_color + clamp(1.0 - new_color.a, 0.0, 1.0) * curr_color;
         ray_position += dir * step_size;
         ray_in_bb = within_bb(ray_position);

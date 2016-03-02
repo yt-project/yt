@@ -286,6 +286,11 @@ class SceneComponent(object):
                 self.program.disable_vert_attrib(an)
             GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
 
+            ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+            debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
+                                           GL.GL_UNSIGNED_BYTE)
+
+
     def add_vert_attrib(self, name, arr, each):
         self.vert_attrib[name] = (GL.glGenBuffers(1), each)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name][0])
@@ -316,6 +321,7 @@ class BlockCollection(SceneComponent):
         self.set_shader("default.v")
         self.set_shader("max_intensity.f")
         self.data_source = None
+        self.cmap_texture = None
 
         self.blocks = {} # A collection of PartionedGrid objects
         self.block_order = []
@@ -333,6 +339,29 @@ class BlockCollection(SceneComponent):
         GL.glDepthFunc(GL.GL_LESS)
 
         self._init_blending()
+
+    def setup_cmap_tex(self):
+        '''Creates 1D texture that will hold colormap in framebuffer'''
+        data = np.load("/home/xarth/tf.npy")
+        self.cmap_texture = GL.glGenTextures(1)   # create target texture
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, data.shape[0],
+                        0, GL.GL_RGBA, GL.GL_FLOAT, data)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+
+    def update_cmap_tex(self):
+        '''Updates 1D texture with colormap that's used in framebuffer'''
+        if self.fragment_shader._shader_name != "transfer_function.f":
+            return
+
+        if self.cmap_texture is None:
+            self.setup_cmap_tex()
+        else:
+            return
 
     def _init_blending(self):
         GL.glEnable(GL.GL_BLEND)
@@ -383,7 +412,7 @@ class BlockCollection(SceneComponent):
                        for i, b in self.blocks.values()]).min(axis=0)
         RE = np.array([b.RightEdge
                        for i, b in self.blocks.values()]).max(axis=0)
-        self.diagonal = np.sqrt(((RE - LE) ** 2).sum())
+        self.diagonal = 1.0 # np.sqrt(((RE - LE) ** 2).sum())
         # Now we set up our buffer
         vert = np.concatenate(vert)
         dx = np.concatenate(dx)
@@ -419,16 +448,16 @@ class BlockCollection(SceneComponent):
         that the GL Context has been set up, which is typically handled by the
         run_program method.
         """
-
         # clear the color and depth buffer
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        GL.glActiveTexture(GL.GL_TEXTURE0)
 
+        GL.glActiveTexture(GL.GL_TEXTURE0)
         for bi in self.block_order:
             tex_i, block = self.blocks[bi]
             ti = self.gl_texture_names[tex_i]
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
+        #GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
 
     def _set_uniforms(self, shader_program):
         shader_program._set_uniform("projection",
@@ -439,6 +468,10 @@ class BlockCollection(SceneComponent):
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
                 self.camera.position)
+        if self.cmap_texture is not None:
+            GL.glActiveTexture(GL.GL_TEXTURE3)
+            GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+            shader_program._set_uniform("cmap", 1)
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
@@ -482,6 +515,10 @@ class BlockCollection(SceneComponent):
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
+            GL.glBindTexture(GL.GL_TEXTURE_3D, 0)
+
+        self.update_cmap_tex()
+
 
 class SceneGraph(SceneComponent):
     def __init__(self):

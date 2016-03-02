@@ -37,7 +37,7 @@ class EGLRenderingContext(object):
         self.surface = EGL.eglCreatePbufferSurface(self.display, self.config,
             pbuffer_attribs)
         EGL.eglBindAPI(EGL.EGL_OPENGL_API)
-        
+
         self.context = EGL.eglCreateContext(self.display, self.config,
             EGL.EGL_NO_CONTEXT, None)
 
