@@ -278,12 +278,13 @@ class EnzoHierarchy(GridIndex):
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
         else:
-            nap = {}
             if "AppendActiveParticleType" in self.parameters:
+                nap = {}
                 active_particles = True
                 for type in self.parameters.get("AppendActiveParticleType", []):
                     nap[type] = []
             else:
+                nap = None
                 active_particles = False
         for grid_id in range(self.num_grids):
             pbar.update(grid_id)

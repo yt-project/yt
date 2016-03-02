@@ -87,7 +87,7 @@ class DerivedField(object):
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
-                 dimensions=None):
+                 dimensions=None, ds=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -95,6 +95,7 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
+        self.ds = ds
 
         self._function = function
 
@@ -142,11 +143,11 @@ class DerivedField(object):
         return dd
 
     def get_units(self):
-        u = Unit(self.units)
+        u = Unit(self.units, registry=self.ds.unit_registry)
         return u.latex_representation()
 
     def get_projected_units(self):
-        u = Unit(self.units)*Unit('cm')
+        u = Unit(self.units, registry=self.ds.unit_registry)*Unit('cm')
         return u.latex_representation()
 
     def check_available(self, data):
@@ -220,7 +221,7 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = Unit(self.units)
+            units = Unit(self.units, registry=self.ds.unit_registry)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\ \ (%s)" % (units.latex_representation())

@@ -19,7 +19,7 @@ from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
 from yt.funcs import mylog, iterable
 from yt.utilities.lib.grid_traversal import \
-        PartitionedGrid
+    PartitionedGrid
 from yt.data_objects.api import ImageArray
 import numpy as np
 
@@ -151,8 +151,6 @@ def off_axis_projection(data_source, center, normal_vector,
         vol.set_fields(fields)
     camera = Camera(data_source)
     camera.set_width(width)
-    camera.switch_orientation(normal_vector=normal_vector,
-                              north_vector=north_vector)
     if not iterable(resolution):
         resolution = [resolution]*2
     camera.resolution = resolution
@@ -160,6 +158,20 @@ def off_axis_projection(data_source, center, normal_vector,
         width = data_source.ds.arr([width]*3)
     camera.position = center - width[2]*camera.normal_vector
     camera.focus = center
+    
+    # If north_vector is None, we set the default here.
+    # This is chosen so that if normal_vector is one of the 
+    # cartesian coordinate axes, the projection will match
+    # the corresponding on-axis projection.
+    if north_vector is None:
+        vecs = np.identity(3)
+        t = np.cross(vecs, normal_vector).sum(axis=1)
+        ax = t.argmax()
+        east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
+        north_vector = np.cross(normal_vector, east_vector).ravel()
+    camera.switch_orientation(normal_vector,
+                              north_vector)
+
     sc.camera = camera
     sc.add_source(vol)
 

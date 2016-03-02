@@ -14,7 +14,7 @@ most recent development version of yt from our channel:
 
 .. code-block:: bash
 
-    conda install -c http://use.yt/with_conda/ yt
+    conda install -c http://use.yt/with_conda/ yt=3.3_dev
 
 If you want to install from source, you can use the ``get_yt.sh`` script.
 Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 

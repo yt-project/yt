@@ -178,3 +178,6 @@ from yt.utilities.math_utils import \
 
 from yt.units.unit_systems import UnitSystem
 from yt.units.unit_object import unit_system_registry
+
+from yt.analysis_modules.list_modules import \
+    amods
