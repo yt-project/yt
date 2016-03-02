@@ -1,5 +1,3 @@
-# cython: profile=True
-
 """
 This file contains the ElementMesh classes, which represent the target that the 
 rays will be cast at when rendering finite element data. This class handles
@@ -130,7 +128,7 @@ cdef class LinearElementMesh:
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
                                   np.ndarray indices_in):
-        cdef int i, j, ind
+        cdef int i, j
         cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int nt = self.tpe*ne
@@ -251,7 +249,7 @@ cdef class QuadraticElementMesh:
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices, 
                  np.ndarray indices,
-                 np.ndarray data):
+                 np.ndarray field_data):
 
         # only 20-point hexes are supported right now.
         if indices.shape[1] == 20:
@@ -259,13 +257,13 @@ cdef class QuadraticElementMesh:
         else:
             raise NotImplementedError
 
-        self._build_from_indices(scene, vertices, indices)
+        self._build_from_indices(scene, vertices, indices, field_data)
 
     cdef void _build_from_indices(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
-                                  np.ndarray indices_in):
+                                  np.ndarray indices_in,
+                                  np.ndarray field_data):
         cdef int i, j, ind, idim
-        cdef int nv = vertices_in.shape[0]
         cdef int ne = indices_in.shape[0]
         cdef int npatch = 6*ne;
 
@@ -282,7 +280,9 @@ cdef class QuadraticElementMesh:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
-                self._set_bounding_sphere(patch)
+                patch.indices = indices_in
+                patch.vertices = vertices_in
+                patch.field_data = field_data
 
         self.patches = patches
         self.mesh = mesh
@@ -290,31 +290,8 @@ cdef class QuadraticElementMesh:
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, self.patches)
         rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
-        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh, 
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
-
-    cdef void _set_bounding_sphere(self, Patch* patch):
-
-        # set the center to be the centroid of the patch vertices
-        cdef int i, j
-        for j in range(8):
-            for i in range(3):
-                patch.center[i] += patch.v[j][i]
-        for i in range(3):
-            patch.center[i] /= 8.0
-
-        # set the radius to be slightly larger than the distance between
-        # the center and the farthest vertex
-        cdef float r = 0.0
-        cdef float d
-        for j in range(8):
-            d = 0.0
-            for i in range(3):
-                d += (patch.v[j][i] - patch.center[i])**2
-            d = sqrt(d)
-            r = fmax(r, d)
-        patch.radius = 1.05*r
 
     def __dealloc__(self):
         free(self.patches)
-

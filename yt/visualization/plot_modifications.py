@@ -33,7 +33,8 @@ from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_element_mesh, pixelize_off_axis_cartesian
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
@@ -829,14 +830,16 @@ class CuttingQuiverCallback(PlotCallback):
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
-        pixX = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
+        pixX = pixelize_off_axis_cartesian(
+                               plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                int(nx), int(ny),
                                (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
+        pixY = pixelize_off_axis_cartesian(
+                               plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
@@ -1577,8 +1580,9 @@ class MeshLinesCallback(PlotCallback):
                                     offset, self.thresh)
         img = np.squeeze(np.transpose(img, (yax, xax, ax)))
 
-        # convert to RGBA 
-        image = np.zeros((800, 800, 4), dtype=np.uint8)
+        # convert to RGBA
+        size = plot.frb.buff_size
+        image = np.zeros((size[0], size[1], 4), dtype=np.uint8)
         image[:, :, 0][img > 0.0] = 0
         image[:, :, 1][img > 0.0] = 0
         image[:, :, 2][img > 0.0] = 0

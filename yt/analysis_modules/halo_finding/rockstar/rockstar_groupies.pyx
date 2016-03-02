@@ -373,8 +373,7 @@ cdef class RockstarGroupiesInterface:
         # Define fof object
 
         # Find number of particles
-        cdef np.int64_t i, j, k, ind, offset
-        cdef np.int64_t num_particles = pind.shape[0]
+        cdef np.int64_t i, j, k, ind
         global global_particles
 
         # Allocate space for correct number of particles

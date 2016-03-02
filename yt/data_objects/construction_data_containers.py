@@ -40,9 +40,9 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
     YTTooManyVertices
-from yt.utilities.lib.QuadTree import \
+from yt.utilities.lib.quad_tree import \
     QuadTree
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 from yt.utilities.lib.misc_utilities import \
     fill_region, fill_region_float
@@ -702,11 +702,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
+        op = cls(self.ActiveDimensions, kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.copy(order="C")
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):

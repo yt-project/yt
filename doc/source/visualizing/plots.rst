@@ -328,7 +328,7 @@ projection through a simulation.
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
-   image, sc = yt.off_axis_projection(ds, c, L, W, N, "density")
+   image = yt.off_axis_projection(ds, c, L, W, N, "density")
    yt.write_image(np.log10(image), "%s_offaxis_projection.png" % ds)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
@@ -795,9 +795,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print profile.x
+   print(profile.x)
    # print the profiled cell_mass field
-   print profile['cell_mass']
+   print(profile['cell_mass'])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for

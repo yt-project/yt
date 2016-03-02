@@ -277,14 +277,15 @@ class EnzoHierarchy(GridIndex):
             active_particles = True
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
-        elif version == 2.2:
-            active_particles = True
-            nap = {}
-            for type in self.parameters.get("AppendActiveParticleType", []):
-                nap[type] = []
         else:
-            active_particles = False
-            nap = None
+            if "AppendActiveParticleType" in self.parameters:
+                nap = {}
+                active_particles = True
+                for type in self.parameters.get("AppendActiveParticleType", []):
+                    nap[type] = []
+            else:
+                nap = None
+                active_particles = False
         for grid_id in range(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
@@ -394,7 +395,7 @@ class EnzoHierarchy(GridIndex):
         fields = []
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
-            if np.any(select_grids) is False:
+            if not np.any(select_grids):
                 current_ptypes = self.dataset.particle_types
                 new_ptypes = [p for p in current_ptypes if p != ptype]
                 self.dataset.particle_types = new_ptypes

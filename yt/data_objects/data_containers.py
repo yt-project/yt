@@ -1054,6 +1054,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                    "of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
             self.field_parameters.update(data_source.field_parameters)
+        self.quantities = DerivedQuantityCollection(self)
 
     @property
     def selector(self):
@@ -1457,7 +1458,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-        self.quantities = DerivedQuantityCollection(self)
 
     def cut_region(self, field_cuts, field_parameters=None):
         """

@@ -11,5 +11,8 @@ cdef void sample_wedge(void* userPtr,
 cdef void sample_tetra(void* userPtr,
                        rtcr.RTCRay& ray) nogil
 
+cdef void sample_hex20(void* userPtr,
+                       rtcr.RTCRay& ray) nogil
+
 cdef void sample_element(void* userPtr,
                          rtcr.RTCRay& ray) nogil

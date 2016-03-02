@@ -30,9 +30,9 @@ specify which particular particle type we want to query:
 
 .. code-block:: python
 
-   print ad["humans", "particle_position"]
-   print ad["dogs", "particle_position"]
-   print ad["dinosaurs", "particle_position"]
+   print(ad["humans", "particle_position"])
+   print(ad["dogs", "particle_position"])
+   print(ad["dinosaurs", "particle_position"])
 
 Each of these three fields may have different sizes.  In order to enable
 falling back on asking only for a field by the name, yt will use the most
@@ -43,7 +43,7 @@ velocity:
 
 .. code-block:: python
 
-   print ad["particle_velocity"]
+   print(ad["particle_velocity"])
 
 it would select ``dinosaurs`` as the field type.
 
@@ -54,7 +54,7 @@ types (described below) versus the gas fields:
 
 .. code-block:: python
 
-   print ad["deposit", "dark_matter_density"] / ad["gas", "density"]
+   print(ad["deposit", "dark_matter_density"] / ad["gas", "density"])
 
 The ``deposit`` field type is a mesh field, so it will have the same shape as
 the gas density.  If we weren't using ``deposit``, and instead directly
@@ -201,7 +201,9 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
-As an example, you might browse the available fields like so:::
+As an example, you might browse the available fields like so:
+
+.. code-block:: python
 
   print(dir(ds.fields))
   print(dir(ds.fields.gas))
@@ -225,8 +227,8 @@ of ``field_list``).  You can view these lists by examining a dataset like this:
 .. code-block:: python
 
    ds = yt.load("my_data")
-   print ds.field_list
-   print ds.derived_field_list
+   print(ds.field_list)
+   print(ds.derived_field_list)
 
 By using the ``field_info()`` class, one can access information about a given
 field, like its default units or the source code for it.  
@@ -235,8 +237,8 @@ field, like its default units or the source code for it.
 
    ds = yt.load("my_data")
    ds.index
-   print ds.field_info["gas", "pressure"].get_units()
-   print ds.field_info["gas", "pressure"].get_source()
+   print(ds.field_info["gas", "pressure"].get_units())
+   print(ds.field_info["gas", "pressure"].get_source())
 
 Particle Fields
 ---------------
@@ -277,7 +279,7 @@ the two most commonly used field parameters.
 
    ad.set_field_parameter("wickets", 13)
 
-   print ad.get_field_parameter("wickets")
+   print(ad.get_field_parameter("wickets"))
 
 If a field parameter is not set, ``get_field_parameter`` will return None.  
 Within a field function, these can then be retrieved and used in the same way.
@@ -427,7 +429,7 @@ yt defines this field as a plugin, and it can be added like so:
    fn, = add_nearest_neighbor_field("all", "particle_position", ds)
 
    dd = ds.all_data()
-   print dd[fn]
+   print(dd[fn])
 
 Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 ``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By
