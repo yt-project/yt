@@ -342,7 +342,7 @@ class BlockCollection(SceneComponent):
 
     def setup_cmap_tex(self):
         '''Creates 1D texture that will hold colormap in framebuffer'''
-        data = np.load("/home/xarth/tf.npy")
+        data = np.load("tf.npy")
         self.cmap_texture = GL.glGenTextures(1)   # create target texture
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
@@ -387,7 +387,7 @@ class BlockCollection(SceneComponent):
 
         """
         self.data_source = data_source
-        self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
+        self.data_source.tiles.set_fields([field], [log_field], no_ghost=True)
         self.data_logged = log_field
         self.blocks = {}
         self.block_order = []

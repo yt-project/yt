@@ -183,6 +183,27 @@ def shader_test(event_coll, event):
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
+@register_event("shader_lines")
+def shader_lines(event_coll, event):
+    print("Changing shader to projection")
+    scene = event_coll.scene
+    for coll in scene.collections:
+        coll.set_shader("default.v")
+        coll.set_shader("drawlines.f")
+    scene.set_shader("passthrough.v")
+    scene.set_shader("noop.f")
+    for collection in scene.collections:
+        collection.set_fields_log(True)
+    #scene.update_minmax()
+    # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
+    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
+    #GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    #GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
+    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
+    GL.glBlendEquation(GL.GL_MAX)
+    return True
+
+
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
     cmap = ['algae', 'kamae', 'viridis', 'inferno', 'magma']

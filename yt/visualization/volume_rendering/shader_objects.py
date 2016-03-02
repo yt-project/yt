@@ -199,6 +199,10 @@ class TransferFunctionFragmentShader(FragmentShader):
     _source = "transfer_function.fragmentshader"
     _shader_name = "transfer_function.f"
 
+class DrawLinesFragmentShader(FragmentShader):
+    _source = "drawlines.fragmentshader"
+    _shader_name = "drawlines.f"
+
 class DefaultVertexShader(VertexShader):
     _source = "default.vertexshader"
     _shader_name = "default.v"

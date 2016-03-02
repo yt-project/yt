@@ -1,7 +1,7 @@
 import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
-from .input_events import EventCollection, MouseRotation
+from .input_events import EventCollection, MouseRotation, BlendFuncs
 
 from yt import write_bitmap
 
@@ -103,6 +103,7 @@ class RenderingContext(object):
         callbacks.add_key_callback("shader_max", "1")
         callbacks.add_key_callback("shader_proj", "2")
         callbacks.add_key_callback("shader_test", "3")
+        callbacks.add_key_callback("shader_lines", "4")
         callbacks.add_key_callback("print_limits", "h")
         callbacks.add_key_callback("debug_buffer", "d")
         callbacks.add_key_callback("cmap_max_up", "right_bracket")
@@ -111,6 +112,9 @@ class RenderingContext(object):
         callbacks.add_key_callback("cmap_min_down", "apostrophe")
         callbacks.add_key_callback("cmap_toggle_log", "l")
         mouse_callbacks = MouseRotation()
+        blend_callbacks = BlendFuncs()
+        callbacks.add_key_callback(blend_callbacks.next_source, "8")
+        callbacks.add_key_callback(blend_callbacks.next_dest, "9")
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)
         callbacks.add_mouse_callback(mouse_callbacks.stop_rotation,
