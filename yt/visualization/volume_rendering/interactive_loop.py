@@ -111,6 +111,8 @@ class RenderingContext(object):
         callbacks.add_key_callback("cmap_min_up", "semicolon")
         callbacks.add_key_callback("cmap_min_down", "apostrophe")
         callbacks.add_key_callback("cmap_toggle_log", "l")
+        callbacks.add_key_callback("nplane_closer", "m")
+        callbacks.add_key_callback("nplane_further", "n")
         mouse_callbacks = MouseRotation()
         blend_callbacks = BlendFuncs()
         callbacks.add_key_callback(blend_callbacks.next_source, "8")

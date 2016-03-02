@@ -282,6 +282,18 @@ def debug_buffer(event_coll, event):
     buffer = event_coll.scene._retrieve_framebuffer()
     print buffer.min(), buffer.max()
 
+@register_event("nplane_closer")
+def nplane_closer(event_coll, event):
+    print("nearplane", event_coll.camera.near_plane)
+    event_coll.camera.near_plane /= 2.0
+    return True
+
+@register_event("nplane_further")
+def nplane_further(event_coll, event):
+    print("nearplane", event_coll.camera.near_plane)
+    event_coll.camera.near_plane *= 2.0
+    return True
+
 class MouseRotation(object):
     def __init__(self):
         self.start = None
