@@ -17,6 +17,10 @@ from yt.units.unit_object import Unit, unit_system_registry, _get_system_unit_st
 from yt.utilities import physical_constants as pc
 
 class UnitSystemConstants(object):
+    """
+    A class to faciliate conversions of physical constants into a given unit
+    system specified by *name*.
+    """
     def __init__(self, name):
         self.name = name
 
@@ -30,14 +34,34 @@ class UnitSystemConstants(object):
         return getattr(pc, item).in_base(self.name)
 
 class UnitSystem(object):
+    """
+    Create a UnitSystem for facilitating conversions to a default set of units.
+
+    Parameters
+    ----------
+    name : string
+        The name of the unit system. Will be used as the key in the *unit_system_registry*
+        dict to reference the unit system by.
+    length_unit : string
+        The base length unit of this unit system.
+    mass_unit : string
+        The base mass unit of this unit system.
+    time_unit : string
+        The base time unit of this unit system.
+    temperature_unit : string, optional
+        The base temperature unit of this unit system. Defaults to "K".
+    angle_unit : string, optional
+        The base angle unit of this unit system. Defaults to "rad".
+    curent_mks_unit : string, optional
+        The base current unit of this unit system. Only used in MKS or MKS-based unit systems.
+    registry : :class:`yt.units.unit_registry.UnitRegistry` object
+        The unit registry associated with this unit system. Only useful for defining unit
+        systems based on code units.
+    """
     def __init__(self, name, length_unit, mass_unit, time_unit,
-                 temperature_unit=None, angle_unit=None, current_mks_unit=None,
+                 temperature_unit="K", angle_unit="rad", current_mks_unit=None,
                  registry=None):
         self.registry = registry
-        if temperature_unit is None:
-            temperature_unit = "K"
-        if angle_unit is None:
-            angle_unit = "rad"
         self.units_map = {dimensions.length: Unit(length_unit, registry=self.registry),
                           dimensions.mass: Unit(mass_unit, registry=self.registry),
                           dimensions.time: Unit(time_unit, registry=self.registry),
