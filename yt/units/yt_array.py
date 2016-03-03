@@ -346,7 +346,8 @@ class YTArray(np.ndarray):
                 if registry is None:
                     pass
                 else:
-                    input_array.units.registry = registry
+                    units = Unit(str(input_array.units), registry=registry)
+                    input_array.units = units
             elif isinstance(input_units, Unit):
                 input_array.units = input_units
             else:
