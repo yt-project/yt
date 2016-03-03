@@ -1,3 +1,5 @@
+# This is for the experimental OpenGL Volume Rendering
+
 import os
 import OpenGL.GL as GL
 import contextlib

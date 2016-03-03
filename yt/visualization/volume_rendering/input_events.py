@@ -1,3 +1,5 @@
+# This is for the experimental OpenGL Volume Rendering
+
 from collections import defaultdict, namedtuple
 from yt.utilities.math_utils import \
     get_perspective_matrix, \

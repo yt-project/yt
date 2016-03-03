@@ -1,3 +1,5 @@
+# This is for the experimental OpenGL Volume Rendering
+
 import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
