@@ -84,15 +84,13 @@ class Scene(object):
 
     _current = None
     _camera = None
+    _unit_registry = None
 
     def __init__(self):
         r"""Create a new Scene instance"""
         super(Scene, self).__init__()
         self.sources = OrderedDict()
         self.last_render = None
-        self.unit_registry = UnitRegistry()
-        # This will be updated when we add a volume source
-        self.unit_registry.add("unitary", 1.0, length)
         # A non-public attribute used to get around the fact that we can't
         # pass kwargs into _repr_png_()
         self._sigma_clip = None
@@ -410,6 +408,31 @@ class Scene(object):
             self._camera = None
         return locals()
     camera = property(**camera())
+
+    def unit_registry():
+        def fget(self):
+            ur = self._unit_registry
+            if ur is None:
+                ur = UnitRegistry()
+                # This will be updated when we add a volume source
+                ur.add("unitary", 1.0, length)
+            self._unit_registry = ur
+            return self._unit_registry
+
+        def fset(self, value):
+            self._unit_registry = value
+            self.camera.width = \
+                YTArray(self.camera.width.in_units('unitary'), registry=value)
+            self.camera.focus = \
+                YTArray(self.camera.focus.in_units('unitary'), registry=value)
+            self.camera.position = \
+                YTArray(self.camera.position.in_units('unitary'), registry=value)
+
+        def fdel(self):
+            del self._unit_registry
+            self._unit_registry = None
+        return locals()
+    unit_registry = property(**unit_registry())
 
     def set_camera(self, camera):
         r"""
