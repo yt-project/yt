@@ -877,7 +877,7 @@ class Dataset(object):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
@@ -923,7 +923,7 @@ class Dataset(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
