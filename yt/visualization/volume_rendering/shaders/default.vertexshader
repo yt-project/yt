@@ -21,7 +21,7 @@ void main()
     v_model = model_vertex;
     v_camera_pos = camera_pos;
     inverse_proj = inverse(projection);
-    inverse_view = inverse(lookat);
+    inverse_view = inverse(projection * lookat);
     gl_Position = projection * lookat * model_vertex;
     dx = vec3(in_dx);
     left_edge = vec3(in_left_edge);

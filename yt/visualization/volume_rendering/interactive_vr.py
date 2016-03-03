@@ -401,7 +401,8 @@ class BlockCollection(SceneComponent):
             self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
-            dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
+            dds = (block.RightEdge - block.LeftEdge)
+            dds /= [(_ - 1) for _ in block.my_data[0].shape]
             n = vert[-1].size/4
             dx.append([dds.astype('f4') for _ in range(n)])
             le.append([block.LeftEdge.astype('f4') for _ in range(n)])
@@ -414,10 +415,10 @@ class BlockCollection(SceneComponent):
                        for i, b in self.blocks.values()]).max(axis=0)
         self.diagonal = 1.0 # np.sqrt(((RE - LE) ** 2).sum())
         # Now we set up our buffer
-        vert = np.concatenate(vert)
-        dx = np.concatenate(dx)
-        le = np.concatenate(le)
-        re = np.concatenate(re)
+        vert = np.array(vert, order='C')
+        dx = np.array(dx, order='C')
+        le = np.array(le, order='C')
+        re = np.array(re, order='C')
 
         self._initialize_vertex_array("block_info")
         self.add_vert_attrib("model_vertex", vert, 4)

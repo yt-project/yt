@@ -30,10 +30,10 @@ void main()
     ndcPos.w = 1.0;
 
     vec4 clipPos = ndcPos / gl_FragCoord.w;
-    vec4 eyePos = inverse_proj * clipPos;
+    vec4 eyePos = inverse_view * clipPos;
     eyePos /= eyePos.w;
 
-    vec4 world_location = inverse_view * eyePos;
+    vec4 world_location = inverse_view * clipPos;
 
     // Five samples
     vec3 step_size = dx / 5.0;

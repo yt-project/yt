@@ -28,6 +28,6 @@ scene.add_collection(collection)
 
 position = (1.0, 1.0, 1.0)
 c = TrackballCamera(position = position, focus = ds.domain_center,
-                    near_plane = 0.1)
+                    far_plane = 10.0, near_plane = 0.1)
 
 rc.start_loop(scene, c)

@@ -179,7 +179,8 @@ def shader_test(event_coll, event):
     #scene.update_minmax()
     # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
     #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
-    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    #GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
