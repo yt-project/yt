@@ -23,7 +23,6 @@ import numpy as np
 
 
 class Camera(Orientation):
-
     r"""A representation of a point of view into a Scene.
 
     It is defined by a position (the location of the camera
@@ -35,6 +34,8 @@ class Camera(Orientation):
 
     Parameters
     ----------
+    scene: A :class:`yt.visualization.volume_rendering.scene.Scene` object
+        A scene object that the camera will be attached to.
     data_source: :class:`AMR3DData` or :class:`Dataset`, optional
         This is the source to be rendered, which can be any arbitrary yt
         data object or dataset.
@@ -50,7 +51,7 @@ class Camera(Orientation):
 
     Examples
     --------
-    
+
     In this example, the camera is set using defaults that are chosen
     to be reasonable for the argument Dataset.
 
@@ -83,24 +84,26 @@ class Camera(Orientation):
     _position = None
     _resolution = None
 
-    def __init__(self, data_source=None, lens_type='plane-parallel',
+    def __init__(self, scene, data_source=None, lens_type='plane-parallel',
                  auto=False):
-        """Initialize a Camera Instance"""
+        self.scene = scene
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
         self.light = None
+        self.data_source = data_source_or_all(data_source)
         self._resolution = (512, 512)
-        self._width = np.array([1.0, 1.0, 1.0])
-        self._focus = np.array([0.0]*3)
-        self._position = np.array([1.0]*3)
-        if data_source is not None:
-            data_source = data_source_or_all(data_source)
-            self._focus = data_source.ds.domain_center
-            self._position = data_source.ds.domain_right_edge
-            self._width = 1.5*data_source.ds.domain_width
-            self._domain_center = data_source.ds.domain_center
-            self._domain_width = data_source.ds.domain_width
+        if self.data_source is not None:
+            self._focus = self.data_source.ds.domain_center
+            self._position = self.data_source.ds.domain_right_edge
+            self._width = 1.5*self.data_source.ds.domain_width
+            self._domain_center = self.data_source.ds.domain_center
+            self._domain_width = self.data_source.ds.domain_width
+        else:
+            self._focus = scene.arr([0.0, 0.0, 0.0], 'unitary')
+            self._width = scene.arr([1.0, 1.0, 1.0], 'unitary')
+            self._position = scene.arr([1.0, 1.0, 1.0], 'unitary')
+
         if auto:
             self.set_defaults_from_data_source(data_source)
 
@@ -214,10 +217,14 @@ class Camera(Orientation):
             'stereo-spherical'
 
         """
-        if lens_type not in lenses:
-            mylog.error("Lens type not available")
-            raise RuntimeError()
-        self.lens = lenses[lens_type]()
+        if isinstance(lens_type, Lens):
+            self.lens = lens_type
+        elif lens_type not in lenses:
+            raise RuntimeError(
+                "Lens type %s not in available list of available lens "
+                "types (%s)" % (lens_type, list(lenses.keys())))
+        else:
+            self.lens = lenses[lens_type]()
         self.lens.set_camera(self)
 
     def set_defaults_from_data_source(self, data_source):
@@ -269,15 +276,6 @@ class Camera(Orientation):
             depth directions. If a scalar, assumes that the width is the same in
             all three directions.
         """
-        try:
-            width = width.in_units('code_length')
-        except (AttributeError, UnitParseError):
-            raise ValueError(
-                'Volume rendering width must be a YTArray that can be '
-                'converted to code units')
-
-        if not iterable(width):
-            width = YTArray([width.d]*3, width.units)  # Can't get code units.
         self.width = width
         self.switch_orientation()
 
