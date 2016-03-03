@@ -12,13 +12,27 @@ The volume rendering Scene class.
 # -----------------------------------------------------------------------------
 
 
+import functools
 import numpy as np
 from collections import OrderedDict
 from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues, string_types
+from yt.units.dimensions import \
+    length
+from yt.units.unit_registry import \
+    UnitRegistry
+from yt.units.yt_array import \
+    YTQuantity, \
+    YTArray
 from .camera import Camera
-from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridSource, RenderSource, MeshSource
+from .render_source import \
+    OpaqueSource, \
+    BoxSource, \
+    CoordinateVectorSource, \
+    GridSource, \
+    RenderSource, \
+    MeshSource, \
+    VolumeSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -75,9 +89,10 @@ class Scene(object):
         r"""Create a new Scene instance"""
         super(Scene, self).__init__()
         self.sources = OrderedDict()
-        self.camera = None
-        # An image array containing the last rendered image of the scene
         self.last_render = None
+        self.unit_registry = UnitRegistry()
+        # This will be updated when we add a volume source
+        self.unit_registry.add("unitary", 1.0, length)
         # A non-public attribute used to get around the fact that we can't
         # pass kwargs into _repr_png_()
         self._sigma_clip = None
@@ -123,6 +138,26 @@ class Scene(object):
             keyname = 'source_%02i' % len(self.sources)
 
         self.sources[keyname] = render_source
+
+        if isinstance(render_source, (VolumeSource, MeshSource, GridSource)):
+            if hasattr(self, 'unit_registry'):
+                current_scaling = self.unit_registry['unitary'][0]
+                source_reg = render_source.data_source.ds.unit_registry
+                if current_scaling != source_reg['unitary'][0]:
+                    for source in self.sources.items():
+                        data_source = getattr(source, 'data_source', None)
+                        if data_source is None:
+                            continue
+                        scaling = data_source.ds.unit_registry['unitary'][0]
+                        if scaling != source_reg['unitary'][0]:
+                            raise NotImplementedError(
+                                "Scenes including VolumeSource instances based "
+                                "on datasets with different unit scalings is "
+                                "not yet supported."
+                            )
+            self.unit_registry = UnitRegistry(
+                add_default_symbols=False,
+                lut=render_source.data_source.ds.unit_registry.lut)
 
         return self
 
@@ -541,6 +576,92 @@ class Scene(object):
             return self
         else:
             raise YTNotInsideNotebook
+
+    _arr = None
+    @property
+    def arr(self):
+        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+
+        The returned YTArray will be dimensionless by default, but can be
+        cast to arbitrary units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_array : iterable
+            A tuple, list, or array to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units object
+            The units of the array. Powers must be specified using python syntax
+            (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the returned array data
+
+        Examples
+        --------
+
+        >>> a = sc.arr([1, 2, 3], 'cm')
+        >>> b = sc.arr([4, 5, 6], 'm')
+        >>> a + b
+        YTArray([ 401.,  502.,  603.]) cm
+        >>> b + a
+        YTArray([ 4.01,  5.02,  6.03]) m
+
+        Arrays returned by this function know about the scene's unit system
+
+        >>> a = sc.arr(np.ones(5), 'unitary')
+        >>> a.in_units('Mpc')
+        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+                 1.00010449]) Mpc
+
+        """
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        return self._arr
+
+    _quan = None
+    @property
+    def quan(self):
+        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+
+        The returned YTQuantity will be dimensionless by default, but can be
+        cast to arbitrary units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_scalar : an integer or floating point scalar
+            The scalar to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units
+            The units of the quantity. Powers must be specified using python
+            syntax (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the array data.
+
+        Examples
+        --------
+
+        >>> a = sc.quan(1, 'cm')
+        >>> b = sc.quan(2, 'm')
+        >>> a + b
+        201.0 cm
+        >>> b + a
+        2.01 m
+
+        Quantities created this way automatically know about the unit system
+        of the scene
+
+        >>> a = ds.quan(5, 'unitary')
+        >>> a.in_cgs()
+        1.543e+25 cm
+
+        """
+        if self._quan is not None:
+            return self._quan
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        return self._quan
 
     def _repr_png_(self):
         if self.last_render is None:
