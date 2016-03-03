@@ -89,6 +89,10 @@ class PlaneParallelLens(Lens):
         super(PlaneParallelLens, self).__init__()
 
     def _get_sampler_params(self, camera, render_source):
+        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
+        camera.width[1] = camera.width[0] \
+            * (1. * camera.resolution[1] / camera.resolution[0])
+
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
