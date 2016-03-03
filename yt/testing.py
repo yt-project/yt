@@ -373,7 +373,7 @@ def fake_vr_orientation_test_ds(N = 96):
         idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
                              np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
                                             np.logical_and(z3d > -dy, z3d < dy)) )
-    arr[idx] = 0.8
+        arr[idx] = 0.8
 
     # three cubes on +z
     dz = 0.05
