@@ -26,75 +26,9 @@ from yt.visualization.volume_rendering.api import \
     off_axis_projection
 
 
-def setup_ds():
-
-    N = 96
-
-    xmin = ymin = zmin = -1.0
-    xmax = ymax = zmax = 1.0
-
-    dcoord = (xmax - xmin)/N
-
-    arr = np.zeros((N, N, N), dtype=np.float64)
-    arr[:, :, :] = 1.e-4
-
-    bbox = np.array([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
-
-    # coordinates -- in the notation data[i, j, k]
-    x = (np.arange(N) + 0.5)*(xmax - xmin)/N + xmin
-    y = (np.arange(N) + 0.5)*(ymax - ymin)/N + ymin
-    z = (np.arange(N) + 0.5)*(zmax - zmin)/N + zmin
-
-    x3d, y3d, z3d = np.meshgrid(x, y, z, indexing="ij")
-
-    # sphere at the origin
-    c = np.array([0.5*(xmin + xmax), 0.5*(ymin + ymax), 0.5*(zmin + zmax)])
-
-    r = np.sqrt((x3d - c[0])**2 + (y3d - c[1])**2 + (z3d - c[2])**2)
-    arr[r < 0.05] = 1.0
-
-    arr[abs(x3d - xmin) < 2*dcoord] = 0.3
-    arr[abs(y3d - ymin) < 2*dcoord] = 0.3
-    arr[abs(z3d - zmin) < 2*dcoord] = 0.3
-
-    # single cube on +x
-    xc = 0.75
-    dx = 0.05
-    idx = np.logical_and(np.logical_and(x3d > xc-dx, x3d < xc+dx),
-                         np.logical_and(np.logical_and(y3d > -dx, y3d < dx),
-                                        np.logical_and(z3d > -dx, z3d < dx)))
-
-    arr[idx] = 1.0
-
-    # two cubes on +y
-    dy = 0.05
-    for yc in [0.65, 0.85]:
-
-        idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
-                             np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
-                                            np.logical_and(z3d > -dy, z3d < dy)))
-
-        arr[idx] = 0.8
-
-    # three cubes on +z
-    dz = 0.05
-    for zc in [0.5, 0.7, 0.9]:
-
-        idx = np.logical_and(np.logical_and(z3d > zc-dz, z3d < zc+dz),
-                             np.logical_and(np.logical_and(x3d > -dz, x3d < dz),
-                                            np.logical_and(y3d > -dz, y3d < dz)))
-
-        arr[idx] = 0.6
-
-    data = dict(density=(arr, "g/cm**3"))
-    ds = load_uniform_grid(data, arr.shape, bbox=bbox)
-
-    return ds
-
-
 @requires_answer_testing()
 def test_orientation():
-    ds = setup_ds()
+    ds = yt.testing.fake_vr_orientation_test_ds()
 
     sc = Scene()
 
