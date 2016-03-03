@@ -77,7 +77,7 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
         source = VolumeSource(data_source, field=field)
 
     sc.add_source(source)
-    sc.camera = Camera(data_source=data_source, lens_type=lens_type)
+    sc.add_camera(data_source=data_source, lens_type=lens_type)
     return sc
 
 

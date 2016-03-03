@@ -20,7 +20,9 @@ from yt.units.unit_registry import UnitParseError
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.extern.six import string_types
 from .utils import data_source_or_all
-from .lens import lenses
+from .lens import \
+    lenses, \
+    Lens
 import numpy as np
 
 
