@@ -333,10 +333,6 @@ class BlockCollection(SceneComponent):
         self.geometry_loaded = False
 
         self.camera = None
-        GL.glEnable(GL.GL_CULL_FACE)
-        GL.glCullFace(GL.GL_BACK)
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthFunc(GL.GL_LESS)
 
         self._init_blending()
 
@@ -452,6 +448,10 @@ class BlockCollection(SceneComponent):
         # clear the color and depth buffer
 
         GL.glActiveTexture(GL.GL_TEXTURE0)
+        GL.glEnable(GL.GL_CULL_FACE)
+        GL.glCullFace(GL.GL_BACK)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
         for bi in self.block_order:
             tex_i, block = self.blocks[bi]
             ti = self.gl_texture_names[tex_i]
@@ -752,6 +752,8 @@ class SceneGraph(SceneComponent):
             self.program._set_uniform("cmap_log", float(self.camera.cmap_log))
         # clear the color and depth buffer
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glDisable(GL.GL_CULL_FACE)
         # Bind to Vertex array that contains simple quad filling fullscreen,
         # that was defined in __init__()
         GL.glBindVertexArray(self.vert_arrays["fb_vbo"])

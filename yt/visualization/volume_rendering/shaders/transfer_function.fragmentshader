@@ -42,15 +42,17 @@ void main()
     float v;
     float dist = length(step_size);
 
-    vec3 ray_position = world_location.xyz;
+    vec3 ray_position = world_location.xyz + dir*step_size*1e-6;
 
     vec3 tex_curr_pos = vec3(0.0);
     vec3 range = right_edge - left_edge;
     vec4 new_color;
-    while (within_bb(ray_position)) {
+    bool ray_in_bb = true;
+    while (ray_in_bb) {
         tex_curr_pos = (ray_position - left_edge)/range;
         vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
         //new_color = texture(cmap, tex_sample.r);
+        new_color = vec4(0.0);
 	if (abs(tex_sample.r - 0.2) < 0.05) {
 	     v = (tex_sample.r - 0.2);
 	     v = exp(-v*v/0.0005);
@@ -60,9 +62,10 @@ void main()
 	     v = exp(-v*v/0.0001);
 	     new_color = v * vec4(1.0, 0.0, 0.0, 0.5);
 	}
-        curr_color = dist*new_color + clamp(1.0 - new_color.a, 0.0, 1.0) * curr_color;
+        curr_color = dist*new_color + clamp(1.0 - dist*new_color.a, 0.0, 1.0) * curr_color;
         ray_position += dir * step_size;
+        ray_in_bb = within_bb(ray_position);
     }
 
-    output_color = clamp(curr_color/dist, 0.0, 1.0);
+    output_color = clamp(curr_color, 0.0, 1.0);
 }
