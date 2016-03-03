@@ -13,13 +13,30 @@ Volume Rendering Camera Class
 
 from yt.funcs import iterable, mylog, ensure_numpy_array
 from yt.utilities.orientation import Orientation
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.units.unit_registry import UnitParseError
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.extern.six import string_types
 from .utils import data_source_or_all
 from .lens import lenses
 import numpy as np
+
+
+def _sanitize_camera_property_units(value, scene):
+    if iterable(value):
+        if isinstance(value, YTArray):
+            san_value = scene.arr(value.in_units('unitary'))
+        else:
+            san_value = scene.arr(value, 'unitary')
+    else:
+        if isinstance(value, YTQuantity):
+            san_value = scene.arr([value.d]*3, value.units)
+            san_value.convert_to_units('unitary')
+        else:
+            san_value = scene.arr([value]*3, 'unitary')
+    return san_value
 
 
 class Camera(Orientation):
@@ -124,9 +141,8 @@ class Camera(Orientation):
             return self._position
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._position = value
+            position = _sanitize_camera_property_units(value, self.scene)
+            self._position = position
             self.switch_orientation()
 
         def fdel(self):
@@ -144,9 +160,8 @@ class Camera(Orientation):
             return self._width
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._width = value
+            width = _sanitize_camera_property_units(value, self.scene)
+            self._width = width
             self.switch_orientation()
 
         def fdel(self):
@@ -166,9 +181,8 @@ class Camera(Orientation):
             return self._focus
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._focus = value
+            focus = _sanitize_camera_property_units(value, self.scene)
+            self._focus = focus
             self.switch_orientation()
 
         def fdel(self):
