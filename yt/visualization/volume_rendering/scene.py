@@ -289,6 +289,66 @@ class Scene(object):
 
         return im
 
+    def add_camera(self, data_source=None, lens_type='plane-parallel',
+                   auto=False):
+        r"""Add a camera to the Scene.
+
+        It is defined by a position (the location of the camera
+        in the simulation domain,), a focus (the point at which the
+        camera is pointed), a width (the width of the snapshot that will
+        be taken, a resolution (the number of pixels in the image), and
+        a north_vector (the "up" direction in the resulting image). A
+        camera can use a variety of different Lens objects.
+
+        Parameters
+        ----------
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
+        lens_type: string, optional
+            This specifies the type of lens to use for rendering. Current
+            options are 'plane-parallel', 'perspective', and 'fisheye'. See
+            :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+            Default: 'plane-parallel'
+        auto: boolean
+            If True, build smart defaults using the data source extent. This
+            can be time-consuming to iterate over the entire dataset to find
+            the positional bounds. Default: False
+
+        Examples
+        --------
+
+        In this example, the camera is set using defaults that are chosen
+        to be reasonable for the argument Dataset.
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> sc = Scene()
+        >>> sc.add_camera()
+
+        Here, we set the camera properties manually:
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
+        >>> cam.position = np.array([0.5, 0.5, -1.0])
+        >>> cam.focus = np.array([0.5, 0.5, 0.0])
+        >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
+
+        Finally, we create a camera with a non-default lens:
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> sc = Scene()
+        >>> sc.add_camera(ds, lens_type='perspective')
+
+        """
+        self._camera = Camera(self, data_source, lens_type, auto)
+        return self.camera
+
     def camera():
         doc = r"""The camera property.
 
@@ -299,13 +359,16 @@ class Scene(object):
         def fget(self):
             cam = self._camera
             if cam is None:
-                cam = Camera()
+                cam = Camera(self)
             self._camera = cam
             return self._camera
 
         def fset(self, value):
-            # Should add better validation here
-            self._camera = value
+            cam = Camera(self, value.data_source, value.lens)
+            cam.width = value.width
+            cam.focus = value.focus
+            cam.position = value.position
+            self._camera = cam
 
         def fdel(self):
             del self._camera
