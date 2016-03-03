@@ -12,8 +12,7 @@ Answer test to verify VR orientation and rotation is correct
 
 
 import numpy as np
-
-from yt import load_uniform_grid
+from yt import testing
 from yt.utilities.answer_testing.framework import \
     requires_answer_testing, \
     VRImageComparisonTest, \
@@ -28,7 +27,7 @@ from yt.visualization.volume_rendering.api import \
 
 @requires_answer_testing()
 def test_orientation():
-    ds = yt.testing.fake_vr_orientation_test_ds()
+    ds = testing.fake_vr_orientation_test_ds()
 
     sc = Scene()
 
