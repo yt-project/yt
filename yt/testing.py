@@ -383,7 +383,7 @@ def fake_vr_orientation_test_ds(N = 96):
                                             np.logical_and(y3d > -dz, y3d < dz)) )
         arr[idx] = 0.6
 
-    data = dict(Density = arr)
+    data = dict(density = (arr, "g/cm**3"))
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
