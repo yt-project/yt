@@ -181,12 +181,11 @@ class AMRKDTree(ParallelAnalysisInterface):
                          min_level=min_level, max_level=max_level,
                          data_source=data_source)
 
-    def set_fields(self, fields, log_fields, no_ghost):
+    def set_fields(self, fields, log_fields, no_ghost, force=False):
         new_fields = self.data_source._determine_fields(fields)
-        self.regenerate_data = \
-            self.fields is None or \
-            len(self.fields) != len(new_fields) or \
-            self.fields != new_fields
+        self.regenerate_data = self.fields is None or \
+                               len(self.fields) != len(new_fields) or \
+                               self.fields != new_fields or force
         self.fields = new_fields
 
         if self.log_fields is not None:
@@ -325,7 +324,6 @@ class AMRKDTree(ParallelAnalysisInterface):
         node.data = brick
         if not self._initialized:
             self.brick_dimensions.append(dims)
-        self.regenerate_data = False
         return brick
 
     def locate_brick(self, position):
