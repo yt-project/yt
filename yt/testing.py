@@ -350,11 +350,6 @@ def fake_vr_orientation_test_ds(N = 96):
     r = np.sqrt((x3d - c[0])**2 + (y3d - c[1])**2 + (z3d - c[2])**2)
     arr[r < 0.05] = 1.0
 
-    # coordinate planes
-    ixy = np.logical_and(x3d > 0.0, y3d > 0.0)
-    iyz = np.logical_and(y3d > 0.0, z3d > 0.0)
-    ixz = np.logical_and(x3d > 0.0, z3d > 0.0)
-
     arr[abs(x3d - xmin) < 2*dcoord] = 0.3
     arr[abs(y3d - ymin) < 2*dcoord] = 0.3
     arr[abs(z3d - zmin) < 2*dcoord] = 0.3
