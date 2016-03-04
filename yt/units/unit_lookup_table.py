@@ -208,6 +208,7 @@ prefixable_units = (
     "statV",
     "ohm",
     "statohm",
+    "Sv",
 )
 
 default_base_units = {
