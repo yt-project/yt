@@ -14,7 +14,7 @@ The default unit symbol lookup table.
 
 from yt.units import dimensions
 from yt.utilities.physical_ratios import \
-    cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, \
+    cm_per_pc, cm_per_ly, cm_per_au, cm_per_rsun, cm_per_m, \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
@@ -122,6 +122,8 @@ default_unit_symbol_lut = {
     "me": (mass_electron_grams, dimensions.mass, 0.0, r"m_e"),
     "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
     "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
+    'Sv': (cm_per_m**2, dimensions.length**2/dimensions.time**2, 0.0, 
+           r"\rm{Sv}"),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
