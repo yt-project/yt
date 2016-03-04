@@ -13,6 +13,7 @@ Lens Classes
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
+from __future__ import division
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -91,7 +92,7 @@ class PlaneParallelLens(Lens):
     def _get_sampler_params(self, camera, render_source):
         # Enforce width[1] / width[0] = resolution[1] / resolution[0]
         camera.width[1] = camera.width[0] \
-            * (1. * camera.resolution[1] / camera.resolution[0])
+            * (camera.resolution[1] / camera.resolution[0])
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -156,7 +157,7 @@ class PerspectiveLens(Lens):
     def _get_sampler_params(self, camera, render_source):
         # Enforce width[1] / width[0] = resolution[1] / resolution[0]
         camera.width[1] = camera.width[0] \
-            * (1. * camera.resolution[1] / camera.resolution[0])
+            * (camera.resolution[1] / camera.resolution[0])
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
