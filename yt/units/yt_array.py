@@ -451,12 +451,23 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self):
+    def convert_to_base(self, unit_system="cgs"):
         """
-        Convert the array and units to the equivalent base units.
+        Convert the array and units to the equivalent base units in
+        the specified unit system.
 
+        Parameters
+        ----------
+        unit_system : string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units of cgs are used.
+
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> E.convert_to_base(unit_system="galactic")
         """
-        return self.convert_to_units(self.units.get_base_equivalent())
+        return self.convert_to_units(self.units.get_base_equivalent(unit_system))
 
     def convert_to_cgs(self):
         """
@@ -506,17 +517,23 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self):
+    def in_base(self, unit_system="cgs"):
         """
-        Creates a copy of this array with the data in the equivalent base units,
-        and returns it.
+        Creates a copy of this array with the data in the specified unit system,
+        and returns it in that system's base units.
 
-        Returns
-        -------
-        Quantity object with data converted to cgs units.
+        Parameters
+        ----------
+        unit_system : string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units of cgs are used.
 
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> E_new = E.in_base(unit_system="galactic")
         """
-        return self.in_units(self.units.get_base_equivalent())
+        return self.in_units(self.units.get_base_equivalent(unit_system))
 
     def in_cgs(self):
         """
@@ -695,7 +712,7 @@ class YTArray(np.ndarray):
             The Pint UnitRegistry to use in the conversion. If one is not
             supplied, the default one will be used. NOTE: This is not
             the same as a yt UnitRegistry object.
-            
+
         Examples
         --------
         >>> a = YTQuantity(4.0, "cm**2/s")
@@ -708,7 +725,7 @@ class YTArray(np.ndarray):
         units = []
         for unit, pow in powers_dict.items():
             # we have to do this because Pint doesn't recognize
-            # "yr" as "year" 
+            # "yr" as "year"
             if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
                 unit = str(unit).replace("yr","year")
             units.append("%s**(%s)" % (unit, Rational(pow)))
@@ -1515,9 +1532,9 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     Examples
     --------
     >>> sp = ds.sphere("c", (100,"kpc"))
-    >>> a = sphere["density"]
-    >>> b = sphere["temperature"]
-    >>> c = sphere["velocity_x"]
+    >>> a = sp["density"]
+    >>> b = sp["temperature"]
+    >>> c = sp["velocity_x"]
     >>> yt.savetxt("sphere.dat", [a,b,c], header='My sphere stuff', delimiter="\t")
     """
     if not isinstance(arrays, list):

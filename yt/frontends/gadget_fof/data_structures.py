@@ -138,7 +138,7 @@ class GadgetFOFDataset(Dataset):
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
                  n_ref=16, over_refine_factor=1,
-                 unit_base=None, units_override=None):
+                 unit_base=None, units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
@@ -150,7 +150,8 @@ class GadgetFOFDataset(Dataset):
             raise RuntimeError("units_override is not supported for GadgetFOFDataset. "+
                                "Use unit_base instead.")
         super(GadgetFOFDataset, self).__init__(filename, dataset_type,
-                                               units_override=units_override)
+                                               units_override=units_override,
+                                               unit_system=unit_system)
 
     def add_field(self, *args, **kwargs):
         super(GadgetFOFDataset, self).add_field(*args, **kwargs)
@@ -334,9 +335,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
           dict([(ptype, False)
                 for ptype, pnum in self.particle_count.items()
                 if pnum > 0])
+        has_ids = False
 
         for data_file in self.data_files:
-            fl, sl, _units = self.io._identify_fields(data_file)
+            fl, sl, idl, _units = self.io._identify_fields(data_file)
             units.update(_units)
             field_list.extend([f for f in fl
                                if f not in field_list])
@@ -344,7 +346,8 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
                                       if f not in scalar_field_list])
             for ptype in found_fields:
                 found_fields[ptype] |= data_file.total_particles[ptype]
-            if all(found_fields.values()): break
+            has_ids |= len(idl) > 0
+            if all(found_fields.values()) and has_ids: break
 
         self.field_list = field_list
         self.scalar_field_list = scalar_field_list

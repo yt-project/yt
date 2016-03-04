@@ -13,6 +13,7 @@ Lens Classes
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
+from __future__ import division
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -89,6 +90,10 @@ class PlaneParallelLens(Lens):
         super(PlaneParallelLens, self).__init__()
 
     def _get_sampler_params(self, camera, render_source):
+        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
+        camera.width[1] = camera.width[0] \
+            * (camera.resolution[1] / camera.resolution[0])
+
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
@@ -150,6 +155,10 @@ class PerspectiveLens(Lens):
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
+        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
+        camera.width[1] = camera.width[0] \
+            * (camera.resolution[1] / camera.resolution[0])
+
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
@@ -272,9 +281,12 @@ class StereoPerspectiveLens(Lens):
         return self.current_image
 
     def _get_sampler_params(self, camera, render_source):
-        # We should move away from pre-generation of vectors like this and into
-        # the usage of on-the-fly generation in the VolumeIntegrator module
-        # We might have a different width and back_center
+        # Enforce width[1] / width[0] = 2 * resolution[1] / resolution[0]
+        # For stereo-type lens, images for left and right eye are pasted together,
+        # so the resolution of single-eye image will be 50% of the whole one.
+        camera.width[1] = camera.width[0] \
+            * (2. * camera.resolution[1] / camera.resolution[0])
+
         if self.disparity is None:
             self.disparity = camera.width[0] / 2.e3
 
