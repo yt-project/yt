@@ -167,9 +167,10 @@ class YTUnitOperationError(YTException, ValueError):
         YTException.__init__(self)
 
     def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
+        err = "The %s operator for YTArrays with units (%s) " \
+              % (self.operation, self.unit1, )
         if self.unit2 is not None:
-            err += "and (%s) " % self.unit2
+            err += "and (%s) " % (self.unit2, )
         err += "is not well defined."
         return err
 
@@ -530,3 +531,11 @@ class YTDimensionalityError(YTException):
     def __str__(self):
         return 'Dimensionality specified was %s but we need %s' % (
             self.wrong, self.right)
+
+class YTImmutableUnitsError(YTException):
+    def __init__(self, replacement):
+        self.replacement = replacement
+
+    def __str__(self):
+        return ('YTIndexArray does not support in-place unit conversions. '
+                'Use %s instead.' % self.replacement)

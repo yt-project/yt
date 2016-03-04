@@ -21,6 +21,7 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
+from yt.units.index_array import YTIndexArray
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
@@ -139,7 +140,9 @@ class AMRGridPatch(YTSelectionContainer):
             self.dds[1] = self.ds.domain_right_edge[1] - self.ds.domain_left_edge[1]
         if self.ds.dimensionality < 3:
             self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
-        self.dds = self.ds.arr(self.dds, "code_length")
+        # TODO update units appropriately for non-spatial data
+        self.dds = YTIndexArray(self.dds, ('code_length', ) * 3,
+                                registry=self.ds.unit_registry)
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)

@@ -95,8 +95,8 @@ class PlaneParallelLens(Lens):
             image = self.new_image(camera)
 
         sampler_params =\
-            dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F'),
-                                        self.back_center.ravel()]),
+            dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F').d,
+                                        self.back_center.ravel().d]),
                  vp_dir=self.box_vectors[2],  # All the same
                  center=self.back_center,
                  bounds=(-camera.width[0] / 2.0, camera.width[0] / 2.0,
@@ -488,7 +488,7 @@ class FisheyeLens(Lens):
         vp *= self.radius
         uv = np.ones(3, dtype='float64')
         positions = np.ones((camera.resolution[0], camera.resolution[0], 3),
-            dtype='float64') * camera.position
+            dtype='float64') * camera.position.d
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba

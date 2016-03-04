@@ -186,7 +186,12 @@ class Unit(Expr):
                     raise UnitParseError(msg)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
+            if registry is not None:
+                registry = unit_expr.registry
             unit_expr = unit_expr.expr
+        elif hasattr(unit_expr, 'units'):
+            if isinstance(unit_expr.units, Unit):
+                unit_expr = unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \
@@ -441,6 +446,10 @@ class Unit(Expr):
     def latex_representation(self):
         return self.latex_repr
 
+    @property
+    def is_homogeneous(self):
+        return True
+
 #
 # Unit manipulation functions
 #
@@ -628,3 +637,45 @@ def _get_system_unit_string(dimensions, base_units):
             power_string = ""
         units.append("(%s)%s" % (unit_string, power_string))
     return " * ".join(units)
+
+class UnitTuple(tuple):
+
+    def __new__(cls, *args):
+        if len(args) == 1:
+            try:
+                return super(UnitTuple, cls).__new__(cls, *args)
+            except TypeError:
+                # whatever we were handed isn't iterable
+                pass
+        return super(UnitTuple, cls).__new__(cls, args)
+
+    def __getitem__(self, item):
+        if item is Ellipsis:
+            item = slice(None, None, None)
+        ret = super(UnitTuple, self).__getitem__(item)
+        if isinstance(ret, tuple):
+            ret = UnitTuple(ret)
+        return ret
+
+    @property
+    def is_homogeneous(self):
+        s0 = self[0]
+        return all(s0 == u for u in self)
+
+    @property
+    def is_code_unit(self):
+        return all(u.is_code_unit for u in self)
+
+    @property
+    def is_dimensionless(self):
+        return all(u.is_dimensionless for u in self)
+
+    def same_dimensions_as(self, other):
+        return all(u.same_dimensions_as(o) for u, o in zip(self, other))
+
+    def __mul__(self, other):
+        ret = super(UnitTuple, self).__mul__(other)
+        return UnitTuple(ret)
+
+    def __pow__(self, power):
+        return UnitTuple(u**power for u in self)

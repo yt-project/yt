@@ -36,6 +36,7 @@ from yt.funcs import \
     get_memory_usage, \
     iterable, \
     only_on_root
+from yt.units.index_array import YTIndexArray
 from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
@@ -363,12 +364,14 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                 np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
-        code_length = self.ds.domain_width.units
-        data['px'] = self.ds.arr(px, code_length)
-        data['py'] = self.ds.arr(py, code_length)
+        units = self.ds.domain_width.units
+        px_units = units[xax]
+        py_units = units[yax]
+        data['px'] = self.ds.arr(px, px_units)
+        data['py'] = self.ds.arr(py, py_units)
         data['weight_field'] = nwvals
-        data['pdx'] = self.ds.arr(pdx, code_length)
-        data['pdy'] = self.ds.arr(pdy, code_length)
+        data['pdx'] = self.ds.arr(pdx, px_units)
+        data['pdy'] = self.ds.arr(pdy, py_units)
         data['fields'] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.hsplit(data.pop('fields'), len(fields))
@@ -418,7 +421,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
-            # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
             # This is done for cases where our path element does not have a CGS
@@ -426,7 +428,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
             # will not be necessary at all, as the final conversion will occur
             # at the display layer.
             if not dl.units.is_dimensionless:
-                dl.convert_to_units(self.ds.unit_system["length"])
+                dl.convert_to_units(self.ds.unit_system[dl.units.dimensions])
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             d = chunk[field] * dl
@@ -583,7 +585,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge_units = edge.units
         else:
             edge_units = 'code_length'
-        return self.ds.arr(edge, edge_units)
+        return YTIndexArray(edge, edge_units, registry=self.ds.unit_registry)
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr

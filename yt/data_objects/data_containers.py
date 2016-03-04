@@ -37,6 +37,8 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 import yt.units.dimensions as ytdims
+from yt.units.index_array import \
+    YTIndexArray
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -187,10 +189,13 @@ class YTDataContainer(object):
         if center is None:
             self.center = None
             return
+        elif isinstance(center, YTIndexArray):
+            self.center = center
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.copy())
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
+            # TODO make this DTRT for nonspatial data
             if isinstance(center[0], YTQuantity):
                 self.center = self.ds.arr([c.copy() for c in center])
                 self.center.convert_to_units('code_length')
@@ -205,7 +210,11 @@ class YTDataContainer(object):
             elif center.startswith("max_"):
                 self.center = self.ds.find_max(center[4:])[1]
         else:
+            # TODO make this DTRT for nonspatial data
             self.center = self.ds.arr(center, 'code_length', dtype='float64')
+        # ensure the center attribute is an YTIndexArray to properly handle
+        # nonspatial data
+        self.center = YTIndexArray(self.center)
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):

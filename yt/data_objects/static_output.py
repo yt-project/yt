@@ -60,6 +60,8 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 from yt.units.unit_systems import create_code_unit_system
+from yt.units.index_array import \
+    YTIndexArray
 from yt.data_objects.region_expression import \
     RegionExpression
 
@@ -70,7 +72,8 @@ from yt.geometry.coordinates.api import \
     CylindricalCoordinateHandler, \
     SphericalCoordinateHandler, \
     GeographicCoordinateHandler, \
-    SpectralCubeCoordinateHandler
+    SpectralCubeCoordinateHandler, \
+    CustomCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -263,10 +266,12 @@ class Dataset(object):
             self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
+        coords = self.coordinates
+        units = tuple(coords.axes_units.values())
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            v = self.arr(v, "code_length")
+            v = YTIndexArray(v, units, registry=self.unit_registry)
             setattr(self, n, v)
 
     def __reduce__(self):
@@ -489,6 +494,8 @@ class Dataset(object):
             cls = GeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
+        elif self.geometry == "custom":
+            cls = CustomCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
         self.coordinates = cls(self, **kwargs)

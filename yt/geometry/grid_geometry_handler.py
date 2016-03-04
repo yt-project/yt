@@ -26,6 +26,9 @@ from yt.funcs import \
     ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
+from yt.units.yt_array import YTArray
+from yt.units.index_array import \
+    YTIndexArray
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
@@ -97,11 +100,15 @@ class GridIndex(Index):
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        coords = self.ds.coordinates
+        units = tuple(coords.axes_units.values())
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = self.ds.arr(np.zeros((self.num_grids,3),
-                                    self.float_type), 'code_length')
-        self.grid_right_edge = self.ds.arr(np.ones((self.num_grids,3),
-                                    self.float_type), 'code_length')
+        self.grid_left_edge = YTIndexArray(np.zeros((self.num_grids,3),
+                                    self.float_type), units,
+                                    registry = self.ds.unit_registry)
+        self.grid_right_edge = YTIndexArray(np.ones((self.num_grids,3),
+                                    self.float_type), units,
+                                    registry = self.ds.unit_registry)
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
         self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
 
@@ -134,19 +141,6 @@ class GridIndex(Index):
             self.level_stats[level]['numgrids'] = np.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
-
-    @property
-    def grid_corners(self):
-        return np.array([
-          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
-          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
-        ], dtype='float64')
 
     def lock_grids_to_parents(self):
         r"""This function locks grid edges to their parents.
@@ -249,11 +243,12 @@ class GridIndex(Index):
         return self.grids[ind], ind
 
     def _get_grid_tree(self):
-
-        left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
-                               'code_length')
-        right_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
-                                'code_length')
+        coords = self.ds.coordinates
+        units = tuple(coords.axes_units.values())
+        left_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
+                               units, registry=self.ds.unit_registry)
+        right_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
+                                units, registry=self.ds.unit_registry)
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')

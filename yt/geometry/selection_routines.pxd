@@ -24,8 +24,9 @@ ctypedef fused anyfloat:
     np.float64_t
 
 cdef inline _ensure_code(arr):
+    # If it's a YTArray, convert it.  If not, don't.
     if hasattr(arr, "units"):
-        if "code_length" == str(arr.units):
+        if arr.units.is_code_unit:
             return arr
         arr.convert_to_units("code_length")
     return arr
