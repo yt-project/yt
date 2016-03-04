@@ -51,7 +51,8 @@ def new_volume_render_sampler(camera, render_source):
     kwargs = {'lens_type': params['lens_type']}
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
-        args[4][:] = render_source.zbuffer.rgba[:]
+        args[4][:] = np.reshape(render_source.zbuffer.rgba[:], \
+            (camera.resolution[0], camera.resolution[1], 4))
     else:
         kwargs['zbuffer'] = np.ones(params['image'].shape[:2], "float64")
 
