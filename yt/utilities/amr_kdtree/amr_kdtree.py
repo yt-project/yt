@@ -189,7 +189,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         set_dirty(self.tree.trunk, regenerate_data)
         self.fields = new_fields
 
-        if self.log_fields is not None:
+        if self.log_fields is not None and not regenerate_data:
             flip_log = map(operator.ne, self.log_fields, log_fields)
         else:
             flip_log = [False] * len(log_fields)
