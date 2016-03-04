@@ -396,10 +396,6 @@ class Scene(object):
         """
 
         def fget(self):
-            cam = self._camera
-            if cam is None:
-                cam = Camera(self)
-            self._camera = cam
             return self._camera
 
         def fset(self, value):
@@ -427,12 +423,13 @@ class Scene(object):
 
         def fset(self, value):
             self._unit_registry = value
-            self.camera.width = \
-                YTArray(self.camera.width.in_units('unitary'), registry=value)
-            self.camera.focus = \
-                YTArray(self.camera.focus.in_units('unitary'), registry=value)
-            self.camera.position = \
-                YTArray(self.camera.position.in_units('unitary'), registry=value)
+            if self.camera is not None:
+                self.camera.width = YTArray(
+                    self.camera.width.in_units('unitary'), registry=value)
+                self.camera.focus = YTArray(
+                    self.camera.focus.in_units('unitary'), registry=value)
+                self.camera.position = YTArray(
+                    self.camera.position.in_units('unitary'), registry=value)
 
         def fdel(self):
             del self._unit_registry
