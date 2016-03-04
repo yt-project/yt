@@ -358,7 +358,7 @@ class YTArray(np.ndarray):
         elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
-                               input_array[0].units)
+                               input_array[0].units, registry=registry)
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
@@ -370,7 +370,10 @@ class YTArray(np.ndarray):
             # Nothing provided. Make dimensionless...
             units = Unit()
         elif isinstance(input_units, Unit):
-            units = input_units
+            if registry and registry is not input_units.registry:
+                units = Unit(str(input_units), registry=registry)
+            else:
+                units = input_units
         else:
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
