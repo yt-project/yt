@@ -113,6 +113,7 @@ class Camera(Orientation):
         self.data_source = data_source_or_all(data_source)
         self._resolution = (512, 512)
         if self.data_source is not None:
+            self.scene.set_new_unit_registry(data_source.ds.unit_registry)
             self._focus = self.data_source.ds.domain_center
             self._position = self.data_source.ds.domain_right_edge
             self._width = 1.5*self.data_source.ds.domain_width

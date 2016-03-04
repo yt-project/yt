@@ -135,29 +135,33 @@ class Scene(object):
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
 
+        if isinstance(render_source, (VolumeSource, MeshSource, GridSource)):
+            self.set_new_unit_registry(
+                render_source.data_source.ds.unit_registry)
+
         self.sources[keyname] = render_source
 
-        if isinstance(render_source, (VolumeSource, MeshSource, GridSource)):
-            if hasattr(self, 'unit_registry'):
-                current_scaling = self.unit_registry['unitary'][0]
-                source_reg = render_source.data_source.ds.unit_registry
-                if current_scaling != source_reg['unitary'][0]:
-                    for source in self.sources.items():
-                        data_source = getattr(source, 'data_source', None)
-                        if data_source is None:
-                            continue
-                        scaling = data_source.ds.unit_registry['unitary'][0]
-                        if scaling != source_reg['unitary'][0]:
-                            raise NotImplementedError(
-                                "Scenes including VolumeSource instances based "
-                                "on datasets with different unit scalings is "
-                                "not yet supported."
-                            )
-            self.unit_registry = UnitRegistry(
-                add_default_symbols=False,
-                lut=render_source.data_source.ds.unit_registry.lut)
-
         return self
+
+    def set_new_unit_registry(self, input_registry):
+        self.unit_registry = UnitRegistry(
+            add_default_symbols=False,
+            lut=input_registry.lut)
+
+        # Validate that the new unit registry makes sense
+        current_scaling = self.unit_registry['unitary'][0]
+        if current_scaling != input_registry['unitary'][0]:
+            for source in self.sources.items():
+                data_source = getattr(source, 'data_source', None)
+                if data_source is None:
+                    continue
+                scaling = data_source.ds.unit_registry['unitary'][0]
+                if scaling != current_scaling:
+                    raise NotImplementedError(
+                        "Simultaneously rendering data from datasets with "
+                        "different units is not supported"
+                    )
+
 
     def render(self, camera=None):
         r"""Render all sources in the Scene.
