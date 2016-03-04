@@ -188,7 +188,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                                self.fields != new_fields or force
         self.fields = new_fields
 
-        if self.log_fields is not None:
+        if self.log_fields is not None and not self.regenerate_data:
             flip_log = map(operator.ne, self.log_fields, log_fields)
         else:
             flip_log = [False] * len(log_fields)
@@ -198,6 +198,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         del self.bricks, self.brick_dimensions
         self.brick_dimensions = []
         bricks = []
+
         for b in self.traverse():
             map(_apply_log, b.my_data, flip_log, log_fields)
             bricks.append(b)
@@ -214,6 +215,8 @@ class AMRKDTree(ParallelAnalysisInterface):
     def traverse(self, viewpoint=None):
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             yield self.get_brick_data(node)
+        if self.regenerate_data:
+            self.regenerate_data = False
 
     def slice_traverse(self, viewpoint = None):
         if not hasattr(self.ds.index, "grid"):
