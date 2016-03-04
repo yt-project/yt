@@ -3084,10 +3084,10 @@ No source available.
       def _vorticity_x(field, data):
           f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
                 data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
-                / (div_fac*just_one(data["index", "dy"]).in_cgs())
+                / (div_fac*just_one(data["index", "dy"]))
           f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
                 data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
-                / (div_fac*just_one(data["index", "dz"].in_cgs()))
+                / (div_fac*just_one(data["index", "dz"]))
           new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                                 dtype=np.float64),
                                   f.units)
@@ -3220,7 +3220,7 @@ No source available.
       def _cylindrical_r(field, data):
           normal = data.get_field_parameter("normal")
           coords = get_periodic_rvec(data)
-          return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
+          return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_base(unit_system.name)
   
 
 ('index', 'cylindrical_theta')
@@ -3251,7 +3251,7 @@ No source available.
       def _cylindrical_z(field, data):
           normal = data.get_field_parameter("normal")
           coords = get_periodic_rvec(data)
-          return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_cgs()
+          return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_base(unit_system.name)
   
 
 ('index', 'disk_angle')
@@ -3424,7 +3424,7 @@ No source available.
 
       def _spherical_r(field, data):
           coords = get_periodic_rvec(data)
-          return data.ds.arr(get_sph_r(coords), "code_length").in_cgs()
+          return data.ds.arr(get_sph_r(coords), "code_length").in_base(unit_system.name)
   
 
 ('index', 'spherical_theta')

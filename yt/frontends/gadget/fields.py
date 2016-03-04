@@ -66,7 +66,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             self.add_field( (ptype, metal_name+"_density"),
                             function=_Density_wrap(i), 
                             particle_type=True,
-                            units="g/cm**3")
+                            units=self.ds.unit_system["density"])
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "ElectronAbundance") in self.ds.field_list:
@@ -77,7 +77,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                 a_e = data[ptype, 'ElectronAbundance']
                 mu = 4.0 / (3.0 * x_H + 1.0 + 4.0 * x_H * a_e)
                 ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
-                return ret.in_units('K')
+                return ret.in_units(self.ds.unit_system["temperature"])
         else:
             def _temperature(field, data):
                 # Assume cosmic abundances
@@ -86,13 +86,13 @@ class GadgetFieldInfo(SPHFieldInfo):
                 # Assume zero ionization
                 mu = 4.0 / (3.0 * x_H + 1.0)
                 ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
-                return ret.in_units('K')
+                return ret.in_units(self.ds.unit_system["temperature"])
 
         self.add_field(
             (ptype, "Temperature"),
             function=_temperature,
             particle_type=True,
-            units="K")
+            units=self.ds.unit_system["temperature"])
 
         # For now, we hardcode num_neighbors.  We should make this configurable
         # in the future.

@@ -1,3 +1,4 @@
+import numpy as np
 #
 # Physical Constants and Units Conversion Factors
 #
@@ -70,8 +71,13 @@ sec_per_hr   = 3600.0
 sec_per_min  = 60.0
 day_per_year = 365.25
 
-# velocities
+# velocities, accelerations
 speed_of_light_cm_per_s = 2.99792458e10
+standard_gravity_cm_per_s2 = 9.80665e2
+
+# some constants
+newton_cgs = 6.67384e-8
+planck_cgs = 6.62606957e-27
 
 # temperature / energy
 boltzmann_constant_erg_per_K = 1.3806488e-16
@@ -114,9 +120,14 @@ HUGE = 1.0e90
 TINY = 1.0e-40
 
 # Planck units
-planck_mass_grams = 2.17650925245e-05
-planck_length_cm = 1.6161992557e-33
+hbar_cgs = 0.5*planck_cgs/np.pi
+planck_mass_grams = np.sqrt(hbar_cgs*speed_of_light_cm_per_s/newton_cgs)
+planck_length_cm = np.sqrt(hbar_cgs*newton_cgs/speed_of_light_cm_per_s**3)
 planck_time_s = planck_length_cm / speed_of_light_cm_per_s
 planck_energy_erg = planck_mass_grams * speed_of_light_cm_per_s * speed_of_light_cm_per_s
 planck_temperature_K = planck_energy_erg / boltzmann_constant_erg_per_K
-planck_charge_esu = 5.62274532302e-09
+planck_charge_esu = np.sqrt(hbar_cgs*speed_of_light_cm_per_s)
+
+# Imperial and other non-metric units
+grams_per_pound = 453.59237
+pascal_per_atm = 101325.0

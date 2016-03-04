@@ -803,7 +803,8 @@ consistent with the grid structure of the latter), its data may be loaded with t
 
 .. rubric:: Caveats
 
-* Please be careful that the units are correctly utilized; yt assumes cgs.
+* Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
+  other :ref:`unit systems <unit_systems>` is also possible. 
 
 .. _loading-gadget-data:
 
@@ -1065,7 +1066,6 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Some functions may behave oddly, and parallelism will be disappointing or
   non-existent in most cases.
 * No consistency checks are performed on the index
@@ -1123,7 +1123,6 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
 
@@ -1176,7 +1175,6 @@ have assumed your data is stored in the three-dimensional array
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
@@ -1230,7 +1228,6 @@ Here, we have selected only the first mesh to load.
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.

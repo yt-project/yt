@@ -288,7 +288,7 @@ class StreamDataset(Dataset):
     _dataset_type = 'stream'
 
     def __init__(self, stream_handler, storage_filename=None,
-                 geometry="cartesian"):
+                 geometry="cartesian", unit_system="cgs"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -299,7 +299,8 @@ class StreamDataset(Dataset):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type)
+        Dataset.__init__(self, name, self._dataset_type, 
+                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -521,7 +522,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
                       velocity_unit=None, magnetic_unit=None,
                       periodicity=(True, True, True),
-                      geometry="cartesian"):
+                      geometry="cartesian", unit_system="cgs"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -694,7 +695,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry = geometry)
+    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
 
     check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
 
@@ -721,7 +722,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry="cartesian", refine_by=2):
+                   geometry="cartesian", refine_by=2, unit_system="cgs"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -875,7 +876,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry)
+    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
     return sds
 
 
@@ -1015,7 +1016,8 @@ def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian"):
+                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian",
+                   unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1134,7 +1136,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(handler, geometry=geometry)
+    sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
     sds.n_ref = n_ref
     sds.over_refine_factor = over_refine_factor
 
@@ -1243,7 +1245,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
                          mass_unit = None, time_unit = None,
                          velocity_unit = None, magnetic_unit = None,
                          periodicity=(True, True, True),
-                         geometry = "cartesian"):
+                         geometry = "cartesian", unit_system="cgs"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1360,7 +1362,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamHexahedralDataset(handler, geometry = geometry)
+    sds = StreamHexahedralDataset(handler, geometry=geometry, unit_system=unit_system)
 
     return sds
 
@@ -1472,7 +1474,8 @@ def load_octree(octree_mask, data,
                 mass_unit=None, time_unit=None,
                 velocity_unit=None, magnetic_unit=None,
                 periodicity=(True, True, True),
-                over_refine_factor = 1, partial_coverage = 1):
+                over_refine_factor = 1, partial_coverage = 1,
+                unit_system="cgs"):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1573,7 +1576,7 @@ def load_octree(octree_mask, data,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamOctreeDataset(handler)
+    sds = StreamOctreeDataset(handler, unit_system=unit_system)
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
     sds.over_refine_factor = over_refine_factor
@@ -1615,13 +1618,12 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
-
 def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                            elem_data=None, length_unit=None, bbox=None,
                            sim_time=0.0, mass_unit=None, time_unit=None,
                            velocity_unit=None, magnetic_unit=None,
                            periodicity=(False, False, False),
-                           geometry = "cartesian"):
+                           geometry = "cartesian", unit_system="cgs"):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1804,7 +1806,8 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamUnstructuredMeshDataset(handler, geometry = geometry)
+    sds = StreamUnstructuredMeshDataset(handler, geometry=geometry,
+                                        unit_system=unit_system)
 
     fluid_types = ()
     for i in range(1, num_meshes + 1):
