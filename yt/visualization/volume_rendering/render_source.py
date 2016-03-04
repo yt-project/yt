@@ -945,10 +945,10 @@ class GridSource(LineSource):
 
     def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
-        data_source = data_source_or_all(data_source)
+        self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in data_source.blocks:
+        for block, mask in self.data_source.blocks:
             block_corners = np.array([
                 [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
                 [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -975,7 +975,7 @@ class GridSource(LineSource):
 
         colors = apply_colormap(
             levels*1.0,
-            color_bounds=[0, data_source.ds.index.max_level],
+            color_bounds=[0, self.data_source.ds.index.max_level],
             cmap_name=cmap)[0, :, :]*alpha/255.
         colors[:, 3] = alpha
 
