@@ -162,7 +162,8 @@ class VolumeSource(RenderSource):
             raise RuntimeError("transfer_function not of correct type")
         if isinstance(transfer_function, ProjectionTransferFunction):
             self.sampler_type = 'projection'
-            self.volume.set_fields([self.field], [False], True, True)
+            self.volume.set_fields([self.field], log_fields=[False], 
+                                   no_ghost=True, force=True)
 
         self.transfer_function = transfer_function
         return self
