@@ -319,7 +319,8 @@ class StereoPerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        angle_disparity = - np.arctan2(disparity, camera.width[2])
+        angle_disparity = - np.arctan2(disparity.in_units(camera.width.units),
+                                       camera.width[2])
         R = get_rotation_matrix(angle_disparity, north_vec)
 
         east_vec_rot = np.dot(R, east_vec)
