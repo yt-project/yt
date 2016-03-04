@@ -13,7 +13,6 @@ Volume rendering
 
 
 from .scene import Scene
-from .camera import Camera
 from .render_source import VolumeSource, \
     MeshSource
 from .utils import data_source_or_all

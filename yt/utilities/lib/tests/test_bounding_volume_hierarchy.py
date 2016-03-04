@@ -2,7 +2,7 @@ import yt
 import numpy as np
 from yt.utilities.lib.bounding_volume_hierarchy import BVH, \
     test_ray_trace
-from yt.visualization.volume_rendering.api import Camera
+from yt.visualization.volume_rendering.api import Camera, Scene
 from yt.testing import requires_file
 
 
@@ -36,7 +36,7 @@ def test_bounding_volume_hierarchy():
 
     bvh = BVH(vertices, indices, field_data)
 
-    cam = Camera()
+    cam = Camera(Scene())
     cam.set_position(np.array([8.0, 8.0, 8.0]))
     cam.focus = np.array([0.0, 0.0, 0.0])
     origins, direction = get_rays(cam)

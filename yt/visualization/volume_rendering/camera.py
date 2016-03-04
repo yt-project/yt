@@ -11,12 +11,11 @@ Volume Rendering Camera Class
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from yt.funcs import iterable, mylog, ensure_numpy_array
+from yt.funcs import iterable, ensure_numpy_array
 from yt.utilities.orientation import Orientation
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.units.unit_registry import UnitParseError
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.extern.six import string_types
 from .utils import data_source_or_all
@@ -75,15 +74,17 @@ class Camera(Orientation):
     to be reasonable for the argument Dataset.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> from yt.visualization.volume_rendering.api import Scene
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> cam = Camera(ds)
+    >>> sc = Scene()
+    >>> cam = sc.add_camera(ds)
 
     Here, we set the camera properties manually:
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
-    >>> cam = Camera()
+    >>> from yt.visualization.volume_rendering.api import Scene
+    >>> sc = Scene()
+    >>> cam = sc.add_camera()
     >>> cam.position = np.array([0.5, 0.5, -1.0])
     >>> cam.focus = np.array([0.5, 0.5, 0.0])
     >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
@@ -91,9 +92,10 @@ class Camera(Orientation):
     Finally, we create a camera with a non-default lens:
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> from yt.visualization.volume_rendering.api import Scene
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> cam = Camera(ds, lens_type='perspective')
+    >>> sc = Scene()
+    >>> cam = sc.add_camera(ds, lens_type='perspective')
 
     """
 
@@ -113,7 +115,7 @@ class Camera(Orientation):
         self.data_source = data_source_or_all(data_source)
         self._resolution = (512, 512)
         if self.data_source is not None:
-            self.scene.set_new_unit_registry(data_source.ds.unit_registry)
+            self.scene.set_new_unit_registry(self.data_source.ds.unit_registry)
             self._focus = self.data_source.ds.domain_center
             self._position = self.data_source.ds.domain_right_edge
             self._width = 1.5*self.data_source.ds.domain_width
@@ -381,8 +383,9 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
         >>> # rotate the camera by pi / 4 radians:
         >>> cam.rotate(np.pi/4.0)  
         >>> # rotate the camera about the y-axis instead of cam.north_vector:
@@ -434,10 +437,11 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> sc.add_camera()
         >>> # pitch the camera by pi / 4 radians:
-        >>> cam.pitch(np.pi/4.0)  
+        >>> cam.pitch(np.pi/4.0)
         >>> # pitch the camera about the origin instead of its own position:
         >>> cam.pitch(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
@@ -461,10 +465,11 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
         >>> # yaw the camera by pi / 4 radians:
-        >>> cam.yaw(np.pi/4.0)  
+        >>> cam.yaw(np.pi/4.0)
         >>> # yaw the camera about the origin instead of its own position:
         >>> cam.yaw(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
@@ -488,8 +493,9 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera(ds)
         >>> # roll the camera by pi / 4 radians:
         >>> cam.roll(np.pi/4.0)  
         >>> # roll the camera about the origin instead of its own position:
@@ -599,9 +605,10 @@ class Camera(Orientation):
         --------
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> from yt.visualization.volume_rendering.api import Scene
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> cam = Camera(ds)
+        >>> sc = Scene()
+        >>> cam = sc.add_camera(ds)
         >>> cam.zoom(1.1)
 
         """
@@ -626,7 +633,6 @@ class Camera(Orientation):
         --------
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Camera
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera

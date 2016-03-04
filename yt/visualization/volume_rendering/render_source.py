@@ -114,8 +114,7 @@ class VolumeSource(RenderSource):
     >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
     >>> sc.add_source(source)
-    >>> cam = Camera(ds)
-    >>> sc.camera = cam
+    >>> sc.add_camera()
     >>> im = sc.render()
 
     """
