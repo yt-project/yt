@@ -282,6 +282,8 @@ class StereoPerspectiveLens(Lens):
 
     def _get_sampler_params(self, camera, render_source):
         # Enforce width[1] / width[0] = 2 * resolution[1] / resolution[0]
+        # For stereo-type lens, images for left and right eye are pasted together,
+        # so the resolution of single-eye image will be 50% of the whole one.
         camera.width[1] = camera.width[0] \
             * (2. * camera.resolution[1] / camera.resolution[0])
 
