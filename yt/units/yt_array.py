@@ -1412,6 +1412,31 @@ def uunion1d(arr1, arr2):
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
+def unorm(data):
+    """Matrix or vector norm that preserves units
+
+    This is a wrapper around np.linalg.norm that preserves units.
+    """
+    return YTArray(np.linalg.norm(data), data.units)
+
+def uvstack(arrs):
+    """Stack arrays in sequence vertically (row wise) while preserving units
+
+    This is a wrapper around np.vstack that preserves units.
+    """
+    v = np.vstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uhstack(arrs):
+    """Stack arrays in sequence horizontally (column wise) while preserving units
+
+    This is a wrapper around np.hstack that preserves units.
+    """
+    v = np.vstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
