@@ -426,7 +426,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
             # will not be necessary at all, as the final conversion will occur
             # at the display layer.
             if not dl.units.is_dimensionless:
-                dl.convert_to_units("cm")
+                dl.convert_to_units(self.ds.unit_system["length"])
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             d = chunk[field] * dl

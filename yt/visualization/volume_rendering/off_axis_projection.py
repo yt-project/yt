@@ -202,7 +202,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if method == "integrate":
         if weight is None:
-            dl = width[2].in_units("cm")
+            dl = width[2].in_units(data_source.ds.unit_system["length"])
             image *= dl
         else:
             mask = image[:,:,1] == 0

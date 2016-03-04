@@ -36,6 +36,7 @@ from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -45,7 +46,8 @@ from yt.utilities.exceptions import \
     YTFieldNotParseable, \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented
+    YTDataSelectorNotImplemented, \
+    YTDimensionalityError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -186,11 +188,11 @@ class YTDataContainer(object):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.in_cgs())
+            self.center = self.ds.arr(center.copy())
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.in_cgs() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center])
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length')
@@ -935,7 +937,7 @@ class YTDataContainer(object):
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_cgs())
+                s += ", %s=%s" % (i, getattr(self, i).in_base(unit_system=self.ds.unit_system))
             except AttributeError:
                 s += ", %s=%s" % (i, getattr(self, i))
         return s
@@ -1207,13 +1209,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = str(getattr(fd, 'units', ''))
+                        units = getattr(fd, 'units', '')
+                        if units == '':
+                            dimensions = ytdims.dimensionless
+                        else:
+                            dimensions = units.dimensions
+                            units = str(units.get_base_equivalent(self.ds.unit_system.name))
+                        if fi.dimensions != dimensions:
+                            raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
                         mylog.warn(msg % (fi.name, units))
-                        continue
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:

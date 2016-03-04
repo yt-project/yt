@@ -75,7 +75,8 @@ class SDFDataset(Dataset):
                  midx_header = None,
                  midx_level = None,
                  field_map = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -101,7 +102,8 @@ class SDFDataset(Dataset):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type,
-                                         units_override=units_override)
+                                         units_override=units_override,
+                                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):

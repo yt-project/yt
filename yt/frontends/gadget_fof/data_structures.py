@@ -138,7 +138,7 @@ class GadgetFOFDataset(Dataset):
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
                  n_ref=16, over_refine_factor=1,
-                 unit_base=None, units_override=None):
+                 unit_base=None, units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
@@ -150,7 +150,8 @@ class GadgetFOFDataset(Dataset):
             raise RuntimeError("units_override is not supported for GadgetFOFDataset. "+
                                "Use unit_base instead.")
         super(GadgetFOFDataset, self).__init__(filename, dataset_type,
-                                               units_override=units_override)
+                                               units_override=units_override,
+                                               unit_system=unit_system)
 
     def add_field(self, *args, **kwargs):
         super(GadgetFOFDataset, self).add_field(*args, **kwargs)

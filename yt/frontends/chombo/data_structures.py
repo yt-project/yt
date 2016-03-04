@@ -246,7 +246,7 @@ class ChomboDataset(Dataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
@@ -255,7 +255,8 @@ class ChomboDataset(Dataset):
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(self, filename, self.dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -446,11 +447,12 @@ class PlutoDataset(ChomboDataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                                storage_filename, ini_filename,
-                               units_override=units_override)
+                               units_override=units_override,
+                               unit_system=unit_system)
 
     def _parse_parameter_file(self):
         """

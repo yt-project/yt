@@ -85,7 +85,7 @@ class FieldInfoContainer(dict):
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
                 u = Unit(units, registry = self.ds.unit_registry)
-                output_units = str(u.get_cgs_equivalent())
+                output_units = str(self.ds.unit_system[u.dimensions])
             else:
                 output_units = units
             if (ptype, f) not in self.field_list:
@@ -285,7 +285,7 @@ class FieldInfoContainer(dict):
             # as well.
             u = Unit(self[original_name].units,
                       registry = self.ds.unit_registry)
-            units = str(u.get_cgs_equivalent())
+            units = str(self.ds.unit_system[u.dimensions])
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
