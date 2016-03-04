@@ -226,6 +226,13 @@ class VolumeSource(RenderSource):
         The type of sampler is determined based on the ``sampler_type`` attribute
         of the VolumeSource. Currently the ``volume_render`` and ``projection``
         sampler types are supported.
+
+        The 'interpolated' argument is only meaningful for projections. If True,
+        the data is first interpolated to the cell vertices, and then tri-linearly
+        interpolated to the ray sampling positions. If False, then the cell-centered
+        data is simply accumulated along the ray. Interpolation is always performed
+        for volume renderings.
+
         """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
