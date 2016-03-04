@@ -192,7 +192,12 @@ class FLASHDataset(Dataset):
         self.particle_filename = particle_filename
 
         if self.particle_filename is None:
-            self._particle_handle = self._handle
+            try:
+                self._particle_handle = HDF5FileHandler(filename.replace('plt_cnt', 'part'))
+                self.particle_filename = filename.replace('plt_cnt', 'part')
+                mylog.info('Particle File Found: %s' % self.particle_filename.split('/')[-1])
+            except:
+                self._particle_handle = self._handle
         else:
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
