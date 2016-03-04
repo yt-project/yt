@@ -327,14 +327,17 @@ class Scene(object):
 
     def add_camera(self, data_source=None, lens_type='plane-parallel',
                    auto=False):
-        r"""Add a camera to the Scene.
+        r"""Add a new camera to the Scene.
 
-        It is defined by a position (the location of the camera
+        The camera is defined by a position (the location of the camera
         in the simulation domain,), a focus (the point at which the
         camera is pointed), a width (the width of the snapshot that will
         be taken, a resolution (the number of pixels in the image), and
         a north_vector (the "up" direction in the resulting image). A
         camera can use a variety of different Lens objects.
+
+        If the scene already has a camera associated with it, this function
+        will create a new camera and discard the old one.
 
         Parameters
         ----------
