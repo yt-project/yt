@@ -12,13 +12,13 @@ def get_rays(camera):
     W = np.array([8.0, 8.0])
     N = np.array([800, 800])
     dx = W / N
-    
+
     x_points = np.linspace((-N[0]/2 + 0.5)*dx[0], (N[0]/2 - 0.5)*dx[0], N[0])
     y_points = np.linspace((-N[1]/2 + 0.5)*dx[1], (N[1]/2 - 0.5)*dx[0], N[1])
-    
+
     X, Y = np.meshgrid(x_points, y_points)
-    result = np.dot(camera.unit_vectors[0:2].T, [X.ravel(), Y.ravel()]) 
-    vec_origins = result.T + camera.position
+    result = np.dot(camera.unit_vectors[0:2].T, [X.ravel(), Y.ravel()])
+    vec_origins = camera.scene.arr(result.T, 'unitary') + camera.position
     return np.array(vec_origins), np.array(normal_vector)
 
 
