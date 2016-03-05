@@ -22,6 +22,7 @@ from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
+import matplotlib.pyplot as plt
 
 class Scene(object):
 
@@ -56,12 +57,12 @@ class Scene(object):
     >>> sc.camera = cam
     >>> im = sc.render()
 
-    Alternatively, you can use the create_scene function to set up defaults 
+    Alternatively, you can use the create_scene function to set up defaults
     and then modify the Scene later:
 
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> 
+    >>>
     >>> sc = yt.create_scene(ds)
     >>> # Modify camera, sources, etc...
     >>> im = sc.render()
@@ -167,7 +168,7 @@ class Scene(object):
     def save(self, fname=None, sigma_clip=None):
         r"""Saves the most recently rendered image of the Scene to disk.
 
-        Once you have created a scene and rendered that scene to an image 
+        Once you have created a scene and rendered that scene to an image
         array, this saves that image array to disk with an optional filename.
         If an image has not yet been rendered for the current scene object,
         it forces one and writes it out.
@@ -180,8 +181,8 @@ class Scene(object):
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
-            plus the mean of the image will be clipped before saving. Useful 
-            for enhancing images as it gets rid of rare high pixel values. 
+            plus the mean of the image will be clipped before saving. Useful
+            for enhancing images as it gets rid of rare high pixel values.
             Default: None
 
             floor(vals > std_dev*sigma_clip + mean)
@@ -227,7 +228,7 @@ class Scene(object):
                 fname = "%s_Render_%s.png" % (basename, field)
             # if no volume source present, use a default filename
             else:
-                fname = "Render_opaque.png"   
+                fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == '':
             suffix = '.png'
@@ -238,7 +239,129 @@ class Scene(object):
 
         mylog.info("Saving render %s", fname)
         self.last_render.write_png(fname, sigma_clip=sigma_clip)
- 
+
+
+    def save_annotated(self, fname=None, label_fmt=None,
+                       text_annotate=None, dpi=100, sigma_clip=None):
+        r"""Saves the most recently rendered image of the Scene to disk,
+        including an image of the transfer function.
+
+        Once you have created a scene and rendered that scene to an image
+        array, this saves that image array to disk with an optional filename.
+        If an image has not yet been rendered for the current scene object,
+        it forces one and writes it out.
+
+        Parameters
+        ----------
+        fname: string, optional
+            If specified, save the rendering as a bitmap to the file "fname".
+            If unspecified, it creates a default based on the dataset filename.
+            Default: None
+        sigma_clip: float, optional
+            Image values greater than this number times the standard deviation
+            plus the mean of the image will be clipped before saving. Useful
+            for enhancing images as it gets rid of rare high pixel values.
+            Default: None
+
+            floor(vals > std_dev*sigma_clip + mean)
+
+        Returns
+        -------
+            Nothing
+
+        """
+        sources = list(itervalues(self.sources))
+        rensources = [s for s in sources if isinstance(s, RenderSource)]
+
+        if fname is None:
+            # if a volume source present, use its affiliated ds for fname
+            if len(rensources) > 0:
+                rs = rensources[0]
+                basename = rs.data_source.ds.basename
+                if isinstance(rs.field, string_types):
+                    field = rs.field
+                else:
+                    field = rs.field[-1]
+                fname = "%s_Render_%s.png" % (basename, field)
+            # if no volume source present, use a default filename
+            else:
+                fname = "Render_opaque.png"
+        suffix = get_image_suffix(fname)
+        if suffix == '':
+            suffix = '.png'
+            fname = '%s%s' % (fname, suffix)
+
+        if self.last_render is None:
+            self.render()
+
+        # which transfer function?
+        rs = rensources[0]
+        tf = rs.transfer_function
+        label = rs.data_source.ds._get_field_info(rs.field).get_label()
+
+        ax = self._show_mpl(self.last_render.swapaxes(0,1),
+                            sigma_clip=sigma_clip, dpi=dpi)
+        self._annotate(ax.axes, tf, label=label, label_fmt=label_fmt)
+        plt.tight_layout()
+
+        # any text?
+        if not text_annotate is None:
+            f = plt.gcf()
+            need_keys = ["x", "y", "string"]
+            for t in text_annotate:
+                valid = True
+                for n in need_keys:
+                    if not n in t.keys():
+                        print("warning: missing key '{}' for text annotation".format(n))
+                        valid = False
+                if not valid: continue
+
+                try: align = t["horizontalalignment"]
+                except: align = "center"
+
+                try: fontsize = t["fontsize"]
+                except: fontsize = "medium"
+
+                try: color = t["color"]
+                except: color="w"
+
+                plt.text(t["x"], t["y"], t["string"], 
+                         fontsize=fontsize, color=color,
+                         horizontalalignment=align,
+                         transform=f.transFigure)
+
+        plt.savefig(fname, facecolor='black', pad_inches=0)
+
+    def _show_mpl(self, im, sigma_clip=None, dpi=100):
+        s = im.shape
+        self._render_figure = plt.figure(1, figsize=(s[1]/dpi, s[0]/dpi))
+        ax = plt.gca()
+        ax.set_position([0, 0, 1, 1])
+
+        if not sigma_clip is None:
+            print("here: sigma_clip = {}".format(sigma_clip))
+            nz = im[im > 0.0]
+            nim = im / (nz.mean() + sigma_clip * np.std(nz))
+            nim[nim > 1.0] = 1.0
+            nim[nim < 0.0] = 0.0
+            del nz
+        else:
+            nim = im
+        axim = plt.imshow(nim[:,:,:3]/nim[:,:,:3].max(), interpolation="nearest")
+
+        return axim
+
+    def _annotate(self, ax, tf, label="", label_fmt=None):
+        ax.get_xaxis().set_visible(False)
+        ax.get_xaxis().set_ticks([])
+        ax.get_yaxis().set_visible(False)
+        ax.get_yaxis().set_ticks([])
+        cb = plt.colorbar(ax.images[0], pad=0.0, fraction=0.05,
+                          drawedges=True, shrink=0.75)
+        #if self.log_fields[0]:
+        #    label = r'$\rm{log}\ $' + label
+        tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
+
     def _validate(self):
         r"""Validate the current state of the scene."""
 
@@ -366,7 +489,7 @@ class Scene(object):
         r"""
 
         Modifies this scene by drawing the edges of the AMR grids.
-        This adds a new BoxSource to the scene for each AMR grid 
+        This adds a new BoxSource to the scene for each AMR grid
         and returns the resulting Scene object.
 
         Parameters
@@ -451,11 +574,11 @@ class Scene(object):
 
 
     def show(self, sigma_clip=None):
-        r"""This will send the most recently rendered image to the IPython 
+        r"""This will send the most recently rendered image to the IPython
         notebook.
 
         If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send the current image of this Scene 
+        determine this, this function will send the current image of this Scene
         to the notebook for display. If there is no current image, it will
         run the render() method on this Scene before sending the result to the
         notebook.
