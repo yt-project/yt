@@ -337,16 +337,17 @@ class AbsorptionSpectrum(object):
 
             # only locations in the wavelength range of the spectrum
             # are valid for processing
-            filter_lines = (lambda_obs > self.lambda_min) & \
-                           (lambda_obs < self.lambda_max)
-            valid_lines = np.where(filter_lines)[0]
+            #filter_lines = (lambda_obs > self.lambda_min) & \
+            #               (lambda_obs < self.lambda_max)
+            #valid_lines = np.where(filter_lines)[0]
+            valid_lines = np.arange(len(thermal_width))
 
             # a note to the user about which lines components are unresolved
-            if (thermal_width[filter_lines] < self.bin_width).any():
+            if (thermal_width < self.bin_width).any():
                 mylog.info(("%d out of %d line components will be " + \
                             "deposited as unresolved lines.") %
-                           ((thermal_width[filter_lines] < self.bin_width).sum(), 
-                            thermal_width[filter_lines].size))
+                           ((thermal_width < self.bin_width).sum(), 
+                            thermal_width.size))
 
             # provide a progress bar with information about lines processsed
             if len(valid_lines) == 0:
@@ -373,16 +374,16 @@ class AbsorptionSpectrum(object):
 
                 while True:
                     left_index = (center_index[lixel] - \
-                            window_width_in_bins/2).clip(0, self.n_lambda-1)
+                            window_width_in_bins/2)
                     right_index = (center_index[lixel] + \
-                            window_width_in_bins/2).clip(0, self.n_lambda-1)
+                            window_width_in_bins/2)
                     n_vbins = (right_index - left_index) * \
                               n_vbins_per_bin[lixel]
                     
                     # the array of virtual bins in lambda space
                     vbins = \
-                        np.linspace(self.lambda_field[left_index].d,
-                                    self.lambda_field[right_index].d,
+                        np.linspace(self.lambda_min + self.bin_width.d * left_index, 
+                                    self.lambda_min + self.bin_width.d * right_index, 
                                     n_vbins, endpoint=False)
 
                     # the virtual bins and their corresponding opacities
@@ -394,11 +395,8 @@ class AbsorptionSpectrum(object):
 
                     # If tau has not dropped below min tau threshold by the
                     # edges (ie the wings), then widen the wavelength
-                    # window and repeat process. Alternatively, it is OK
-                    # for the wings to not be low if you're bumping up against
-                    # the edge of the spectrum
-                    if ((vtau[0] < min_tau or left_index == 0) and \
-                        (vtau[-1] < min_tau or right_index == self.n_lambda-1)):
+                    # window and repeat process. 
+                    if ((vtau[0] < min_tau) and (vtau[-1] < min_tau)):
                         break
                     window_width_in_bins *= 2
 
@@ -407,11 +405,34 @@ class AbsorptionSpectrum(object):
                 # widths and deposit into each spectral bin
                 vEW = vtau * vbin_width[lixel]
                 EW = np.zeros(right_index - left_index)
-                for k in np.arange(right_index - left_index):
+                EW_indices = np.arange(left_index, right_index)
+                for k, val in enumerate(EW_indices):
                     EW[k] = vEW[n_vbins_per_bin[lixel] * k: \
                                 n_vbins_per_bin[lixel] * (k + 1)].sum()
                 EW = EW/self.bin_width.d
-                self.tau_field[left_index:right_index] += EW
+
+                # only deposit EW bins that actually intersect the original
+                # spectral wavelength range (i.e. lambda_field)
+
+                # if EW bins are fully in the original spectral range,
+                # just deposit into tau_field
+                if ((left_index < self.n_lambda) and (right_index >= 0)):
+                    self.tau_field[left_index:right_index] += EW
+
+                # if EW bins only catch the right edge of the original
+                # spectral range
+                elif (left_index < self.n_lambda):
+                    self.tau_field[left_index:self.n_lambda-1] += \
+                        EW[self.n_lambda-1-left_index:]
+
+                # if EW bins only catch the left edge of the original
+                # spectral range
+                elif (right_index >= 0):
+                    self.tau_field[:right_index] += EW[:right_index]
+
+                # if EW bins don't intersect the original spectral range at all
+                else:
+                    continue
 
                 # write out absorbers to file if the column density of
                 # an absorber is greater than the specified "label_threshold" 
