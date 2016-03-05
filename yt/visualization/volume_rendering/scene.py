@@ -244,7 +244,8 @@ class Scene(object):
     def save_annotated(self, fname=None, label_fmt=None,
                        text_annotate=None, dpi=100, sigma_clip=None):
         r"""Saves the most recently rendered image of the Scene to disk,
-        including an image of the transfer function.
+        including an image of the transfer function and and user-defined
+        text.
 
         Once you have created a scene and rendered that scene to an image
         array, this saves that image array to disk with an optional filename.
@@ -264,6 +265,21 @@ class Scene(object):
             Default: None
 
             floor(vals > std_dev*sigma_clip + mean)
+        dpi: integer, optional
+            By default, the resulting image will be the same size as the camera
+            parameters.  If you supply a dpi, then the image will be scaled
+            accordingly (from the default 100 dpi)
+        label_fmt : str, optional
+           A format specifier (e.g., label_fmt="%.2g") to use in formatting 
+           the data values that label the transfer function colorbar. 
+        text_annotate : list of dictionaries
+           Any text that you wish to display on the image.  This should be a 
+           list of dictionaries, with the dictionary keys "x", "y", giving
+           the normalized figure coordinates to display the text, "string"
+           giving the text to display, and optional keys "horizontalalignment"
+           specifying the centering ("left", "right", or "center"), and
+           "fontsize" giving the size of the text.  Each list item is a 
+           separate string to write.
 
         Returns
         -------
