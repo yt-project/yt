@@ -272,18 +272,31 @@ class Scene(object):
         label_fmt : str, optional
            A format specifier (e.g., label_fmt="%.2g") to use in formatting 
            the data values that label the transfer function colorbar. 
-        text_annotate : list of dictionaries
-           Any text that you wish to display on the image.  This should be a 
-           list of dictionaries, with the dictionary keys "x", "y", giving
-           the normalized figure coordinates to display the text, "string"
-           giving the text to display, and optional keys "horizontalalignment"
-           specifying the centering ("left", "right", or "center"), and
-           "fontsize" giving the size of the text.  Each list item is a 
-           separate string to write.
+        text_annotate : list of iterables
+           Any text that you wish to display on the image.  This should be an 
+           list of a tuple of coordinates (in normalized figure coordinates),
+           the text to display, and, optionally, a dictionary of keyword/value
+           pairs to pass through to the matplotlib text() function. 
+
+           Each item in the main list is a separate string to write.
+
 
         Returns
         -------
             Nothing
+
+
+        Examples
+        --------
+
+        >>> sc.save_annotated("fig.png", 
+        >>>                   text_annotate=[[(0.05, 0.05), 
+        >>>                                   "t = {}".format(ds.current_time.d),
+        >>>                                   dict(horizontalalignment="left")],
+        >>>                                  [(0.5,0.95), 
+        >>>                                   "simulation title",
+        >>>                                   dict(color="y", fontsize="24",
+        >>>                                        horizontalalignment="center")]])
 
         """
         sources = list(itervalues(self.sources))
@@ -323,28 +336,20 @@ class Scene(object):
         # any text?
         if text_annotate is not None:
             f = plt.gcf()
-            need_keys = ["x", "y", "string"]
             for t in text_annotate:
-                valid = True
-                for n in need_keys:
-                    if n not in t.keys():
-                        print("warning: missing key '{}' for text annotation".format(n))
-                        valid = False
-                if not valid: continue
+                xy = t[0]
+                string = t[1]
+                if len(t) == 3:
+                    opt = t[2]
+                else:
+                    opt = dict()
 
-                try: align = t["horizontalalignment"]
-                except: align = "center"
+                # sane default
+                if "color" not in opt:
+                    opt["color"] = "w"
 
-                try: fontsize = t["fontsize"]
-                except: fontsize = "medium"
-
-                try: color = t["color"]
-                except: color="w"
-
-                plt.text(t["x"], t["y"], t["string"], 
-                         fontsize=fontsize, color=color,
-                         horizontalalignment=align,
-                         transform=f.transFigure)
+                plt.text(xy[0], xy[1], string,
+                         transform=f.transFigure, **opt)
 
         plt.savefig(fname, facecolor='black', pad_inches=0)
 
