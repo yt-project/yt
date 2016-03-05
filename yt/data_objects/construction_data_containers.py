@@ -860,6 +860,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
+    _min_level = None
     @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
         ds = kwargs['ds']
@@ -886,12 +887,46 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
+    def _compute_minimum_level(self):
+        # This attempts to determine the minimum level that we should be
+        # starting on for this box.  It does this by identifying the minimum
+        # level that could contribute to the minimum bounding box at that
+        # level; that means that all cells from coarser levels will be replaced.
+        if self._min_level is not None:
+            return self._min_level
+        ils = LevelState()
+        min_level = 0
+        for l in range(self.level, 0, -1):
+            dx = self._base_dx / self.ds.relative_refinement(0, l)
+            start_index, end_index, dims = self._minimal_box(dx)
+            ils.left_edge = start_index * dx + self.ds.domain_left_edge
+            ils.right_edge = ils.left_edge + dx * dims
+            ils.current_dx = dx
+            ils.current_level = l
+            self._setup_data_source(ils)
+            # Reset the max_level
+            ils.data_source.min_level = 0
+            ils.data_source.max_level = self.level
+            ils.data_source.loose_selection = True
+            min_level = self.level
+            for chunk in ils.data_source.chunks([], "io"):
+                # With our odd selection methods, we can sometimes get no-sized ires.
+                if chunk.ires.size == 0: continue
+                min_level = min(chunk.ires.min(), min_level)
+            if min_level >= l:
+                break
+        self._min_level = min_level
+        return min_level
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
+        min_level = self._compute_minimum_level()
         for level in range(self.level + 1):
+            if level < min_level:
+                self._update_level_state(ls)
+                continue
             domain_dims = self.ds.domain_dimensions.astype("int64") \
                         * self.ds.relative_refinement(0, ls.current_level)
             tot = ls.current_dims.prod()
