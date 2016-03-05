@@ -906,13 +906,14 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             self._setup_data_source(ils)
             # Reset the max_level
             ils.data_source.min_level = 0
-            ils.data_source.max_level = self.level
-            ils.data_source.loose_selection = True
+            ils.data_source.max_level = l
+            ils.data_source.loose_selection = False
             min_level = self.level
             for chunk in ils.data_source.chunks([], "io"):
                 # With our odd selection methods, we can sometimes get no-sized ires.
-                if chunk.ires.size == 0: continue
-                min_level = min(chunk.ires.min(), min_level)
+                ir = chunk.ires
+                if ir.size == 0: continue
+                min_level = min(ir.min(), min_level)
             if min_level >= l:
                 break
         self._min_level = min_level
