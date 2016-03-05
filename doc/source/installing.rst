@@ -230,8 +230,8 @@ to update frequently:
 
   conda update -c http://use.yt/with_conda/ yt
 
-Location of our channel can be added to `.condarc` to avoid retyping it during
-each `conda` invocation. Please refer to `Conda Manual
+Location of our channel can be added to ``.condarc`` to avoid retyping it during
+each *conda* invocation. Please refer to `Conda Manual
 <http://conda.pydata.org/docs/config.html#channel-locations-channels>`_ for
 detailed instructions.
 
@@ -272,7 +272,7 @@ clone the conda-recipes repository
 
   git clone https://github.com/conda/conda-recipes
 
-Then navigate to the repository root and invoke `conda build`:
+Then navigate to the repository root and invoke ``conda build``:
 
 .. code-block:: bash
 
