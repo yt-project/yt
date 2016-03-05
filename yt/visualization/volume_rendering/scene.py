@@ -321,13 +321,13 @@ class Scene(object):
         plt.tight_layout()
 
         # any text?
-        if not text_annotate is None:
+        if text_annotate is not None:
             f = plt.gcf()
             need_keys = ["x", "y", "string"]
             for t in text_annotate:
                 valid = True
                 for n in need_keys:
-                    if not n in t.keys():
+                    if n not in t.keys():
                         print("warning: missing key '{}' for text annotation".format(n))
                         valid = False
                 if not valid: continue
@@ -354,7 +354,7 @@ class Scene(object):
         ax = plt.gca()
         ax.set_position([0, 0, 1, 1])
 
-        if not sigma_clip is None:
+        if sigma_clip is not None:
             print("here: sigma_clip = {}".format(sigma_clip))
             nz = im[im > 0.0]
             nim = im / (nz.mean() + sigma_clip * np.std(nz))
