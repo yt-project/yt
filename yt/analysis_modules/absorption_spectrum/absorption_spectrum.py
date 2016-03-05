@@ -284,8 +284,21 @@ class AbsorptionSpectrum(object):
             # lambda_obs is central wavelength of line after redshift
             lambda_obs = line['wavelength'] + delta_lambda
 
-            # bin index in lambda_field of central wavelength of line after z
-            center_index = np.digitize(lambda_obs, self.lambda_field)
+            # we want to know the bin index in the lambda_field array
+            # where each line has its central wavelength after being
+            # redshifted.  however, because we don't know a priori how wide
+            # a line will be (ie DLAs), we have to include bin indices 
+            # *outside* the spectral range of the AbsorptionSpectrum 
+            # object.  Thus, we find the "equivalent" bin index, which
+            # may be <0 or >the size of the array.  In the end, we deposit
+            # the bins that actually overlap with the AbsorptionSpectrum's
+            # range in lambda.
+            
+            # this equation gives us the "equivalent" bin index for each line
+            # if it were placed into the self.lambda_field array
+            center_index = (lambda_obs.in_units('Angstrom').d - self.lambda_min) \
+                            / self.bin_width.d
+            center_index = np.ceil(center_index).astype('int')
 
             # thermal broadening b parameter
             thermal_b =  np.sqrt((2 * boltzmann_constant_cgs *
