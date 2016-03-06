@@ -838,13 +838,16 @@ cdef class RegionSelector(SelectorObject):
         for i in range(3):
 
             if p[i]:
+                # First, we check if any criteria requires a period check,
+                # without any adjustments.  This is for short-circuiting the
+                # short-circuit of the loop down below in mask filling.
+                if LE[i] < DLE[i] or LE[i] > DRE[i] or RE[i] > DRE[i]:
+                    self.check_period = True
                 # shift so left_edge guaranteed in domain
                 if LE[i] < DLE[i]:
-                    self.check_period = True
                     LE[i] += DW[i]
                     RE[i] += DW[i]
                 elif LE[i] > DRE[i]:
-                    self.check_period = True
                     LE[i] -= DW[i]
                     RE[i] -= DW[i]
             else:
