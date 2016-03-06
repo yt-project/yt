@@ -18,7 +18,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin
+from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
@@ -806,6 +806,7 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
     cdef bint loose_selection
+    cdef bint check_period
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -823,6 +824,7 @@ cdef class RegionSelector(SelectorObject):
         # This is for if we want to include zones that overlap and whose
         # centers are not strictly included.
         self.loose_selection = getattr(dobj, "loose_selection", False)
+        self.check_period = False
 
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
@@ -838,9 +840,11 @@ cdef class RegionSelector(SelectorObject):
             if p[i]:
                 # shift so left_edge guaranteed in domain
                 if LE[i] < DLE[i]:
+                    self.check_period = True
                     LE[i] += DW[i]
                     RE[i] += DW[i]
                 elif LE[i] > DRE[i]:
+                    self.check_period = True
                     LE[i] -= DW[i]
                     RE[i] -= DW[i]
             else:
@@ -901,6 +905,52 @@ cdef class RegionSelector(SelectorObject):
                pos[i] >= self.right_edge[i]:
                 return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3],
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level):
+        cdef int i, j, k
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        if level < self.min_level or level > self.max_level:
+            return 0
+        if level == self.max_level:
+            this_level = 1
+        cdef int si[3], ei[3]
+        #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
+        #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
+        #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
+        if not self.check_period:
+            for i in range(3):
+                si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
+                ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
+                si[i] = iclip(si[i] - 1, 0, dim[i])
+                ei[i] = iclip(ei[i] + 1, 0, dim[i])
+        else:
+            for i in range(3):
+                si[i] = 0
+                ei[i] = dim[i]
+        with nogil:
+            pos[0] = left_edge[0] + (si[0] + 0.5) * dds[0]
+            for i in range(si[0], ei[0]):
+                pos[1] = left_edge[1] + (si[1] + 0.5) * dds[1]
+                for j in range(si[1], ei[1]):
+                    pos[2] = left_edge[2] + (si[2] + 0.5) * dds[2]
+                    for k in range(si[2], ei[2]):
+                        if child_mask[i, j, k] == 1 or this_level == 1:
+                            mask[i, j, k] = self.select_cell(pos, dds)
+                            total += mask[i, j, k]
+                        pos[2] += dds[2]
+                    pos[1] += dds[1]
+                pos[0] += dds[0]
+        return total
+
 
     def _hash_vals(self):
         return (("left_edge[0]", self.left_edge[0]),
