@@ -803,15 +803,13 @@ class PhasePlotAttributeTest(AnswerTestingTest):
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
-    def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None,
-                 close=None):
+    def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
         super(GenericArrayTest, self).__init__(ds_fn)
         self.array_func = array_func
         self.array_func_name = array_func.__name__
         self.args = args
         self.kwargs = kwargs
         self.decimals = decimals
-        self.close = close
     def run(self):
         if self.args is None:
             args = []
