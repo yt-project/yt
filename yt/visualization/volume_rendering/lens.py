@@ -229,8 +229,7 @@ class PerspectiveLens(Lens):
             res = camera.resolution
 
         # Enforce width[1] / width[0] = resolution[1] / resolution[0]
-        camera.width[1] = camera.width[0] \
-            * (camera.resolution[1] / camera.resolution[0])
+        camera.width[1] = camera.width[0] * (res[1] /res[0])
 
         sight_vector = pos - camera.position.d
         pos1 = sight_vector
