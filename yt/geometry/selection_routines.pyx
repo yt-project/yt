@@ -814,11 +814,11 @@ cdef class RegionSelector(SelectorObject):
         cdef int i
         # We are modifying dobj.left_edge and dobj.right_edge , so here we will
         # do an in-place conversion of those arrays.
-        cdef np.ndarray[np.float64_t, ndim=1] RE = _ensure_code(dobj.right_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] LE = _ensure_code(dobj.left_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] DW = _ensure_code(dobj.ds.domain_width)
-        cdef np.ndarray[np.float64_t, ndim=1] DLE = _ensure_code(dobj.ds.domain_left_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] DRE = _ensure_code(dobj.ds.domain_right_edge)
+        cdef np.float64_t[:] RE = _ensure_code(dobj.right_edge)
+        cdef np.float64_t[:] LE = _ensure_code(dobj.left_edge)
+        cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
+        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         cdef np.float64_t region_width[3]
         cdef bint p[3]
         # This is for if we want to include zones that overlap and whose
