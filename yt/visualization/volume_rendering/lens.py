@@ -96,8 +96,9 @@ class PlaneParallelLens(Lens):
             image = self.new_image(camera)
 
         sampler_params =\
-            dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F'),
-                                        self.back_center.ravel()]),
+            dict(vp_pos=np.concatenate(
+                [camera.inv_mat.ravel('F'),
+                 self.back_center.ravel().in_units('code_length')]),
                  vp_dir=self.box_vectors[2],  # All the same
                  center=self.back_center,
                  bounds=(-camera.width[0] / 2.0, camera.width[0] / 2.0,
@@ -744,7 +745,7 @@ class StereoSphericalLens(Lens):
         sampler_params = dict(
             vp_pos=positions_comb,
             vp_dir=vectors_comb,
-            center=self.back_center.d,
+            center=self.back_center,
             bounds=camera.scene.arr((0.0, 1.0, 0.0, 1.0), 'unitary'),
             x_vec=dummy,
             y_vec=dummy,
