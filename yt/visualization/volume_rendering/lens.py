@@ -90,10 +90,6 @@ class PlaneParallelLens(Lens):
         super(PlaneParallelLens, self).__init__()
 
     def _get_sampler_params(self, camera, render_source):
-        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
-        camera.width[1] = camera.width[0] \
-            * (camera.resolution[1] / camera.resolution[0])
-
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
         else:
@@ -127,6 +123,7 @@ class PlaneParallelLens(Lens):
         dy = np.dot(pos - self.origin.d, camera.unit_vectors[0])
         dz = np.dot(pos - self.front_center.d, -camera.unit_vectors[2])
         # Transpose into image coords.
+        print int(res[1] * res[1]/res[0])
         py = (res[0]*(dx/camera.width[0].d)).astype('int')
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
         return px, py, dz
@@ -230,6 +227,11 @@ class PerspectiveLens(Lens):
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
             res = camera.resolution
+
+        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
+        camera.width[1] = camera.width[0] \
+            * (camera.resolution[1] / camera.resolution[0])
+
         sight_vector = pos - camera.position.d
         pos1 = sight_vector
         for i in range(0, sight_vector.shape[0]):
@@ -385,6 +387,11 @@ class StereoPerspectiveLens(Lens):
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
             res = camera.resolution
+
+        # Enforce width[1] / width[0] = 2 * resolution[1] / resolution[0]
+        # For stereo-type lens, images for left and right eye are pasted together,
+        # so the resolution of single-eye image will be 50% of the whole one.
+        camera.width[1] = camera.width[0] * (2. * res[1] / res[0])
 
         if self.disparity is None:
             self.disparity = camera.width[0] / 2.e3
