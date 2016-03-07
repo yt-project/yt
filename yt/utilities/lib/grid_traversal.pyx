@@ -281,13 +281,15 @@ cdef void calculate_extent_perspective(ImageContainer *image,
         for i in range(3):
             sight_vector_norm += sight_vector[i]**2
         sight_vector_norm = sqrt(sight_vector_norm)
-        
-        for i in range(3):
-            sight_vector[i] /= sight_vector_norm
+       
+        if sight_vector_norm != 0:
+            for i in range(3):
+                sight_vector[i] /= sight_vector_norm
 
         sight_angle_cos = 0.0
         for i in range(3):
             sight_angle_cos += sight_vector[i] * cam_unit_vec[i][2]
+        sight_angle_cos = fclip(sight_angle_cos, -1.0, 1.0)
 
         if acos(sight_angle_cos) < 0.5 * M_PI and sight_angle_cos != 0.0:
             sight_length = cam_width[2] / sight_angle_cos
