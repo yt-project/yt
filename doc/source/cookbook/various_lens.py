@@ -63,7 +63,6 @@ cam.switch_orientation(normal_vector=normal_vector,
 cam.set_width(ds.domain_width*0.5)
 # Set the distance between left-eye and right-eye.
 cam.lens.disparity = ds.domain_width[0] * 1.e-3
-sc.camera = cam
 sc.add_source(vol)
 sc.render()
 sc.save('lens_stereo-perspective.png', sigma_clip=6.0)
@@ -78,7 +77,6 @@ cam.switch_orientation(normal_vector=normal_vector,
                        north_vector=north_vector)
 cam.set_width(ds.domain_width)
 cam.lens.fov = 360.0
-sc.camera = cam
 sc.add_source(vol)
 sc.render()
 sc.save('lens_fisheye.png', sigma_clip=6.0)
@@ -95,7 +93,6 @@ cam.switch_orientation(normal_vector=normal_vector,
                        north_vector=north_vector)
 # In (stereo)spherical camera, camera width is not used since the entire volume
 # will be rendered
-sc.camera = cam
 sc.add_source(vol)
 sc.render()
 sc.save('lens_spherical.png', sigma_clip=6.0)
@@ -112,7 +109,6 @@ cam.switch_orientation(normal_vector=normal_vector,
 # will be rendered
 # Set the distance between left-eye and right-eye.
 cam.lens.disparity = ds.domain_width[0] * 1.e-3
-sc.camera = cam
 sc.add_source(vol)
 sc.render()
 sc.save('lens_stereo-spherical.png', sigma_clip=6.0)
