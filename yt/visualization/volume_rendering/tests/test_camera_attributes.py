@@ -52,6 +52,7 @@ def test_scene_and_camera_attributes():
         (((1, 'cm'), (2, 'cm'), (3, 'cm')),
          ds.arr([0.5, 1, 1.5], 'code_length'), ),
         (2*u.cm, ds.arr([1, 1, 1], 'code_length'), ),
+        (ds.arr(2, 'cm'), ds.arr([1, 1, 1], 'code_length'), ),
         ([2*u.cm], ds.arr([1, 1, 1], 'code_length'), ),
         ([1, 2, 3]*u.cm, ds.arr([0.5, 1, 1.5], 'code_length'), ),
         ([1, 2]*u.cm, RuntimeError, ),
