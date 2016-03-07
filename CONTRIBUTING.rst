@@ -843,7 +843,7 @@ API Style Guide
    be avoided, they must be explained, even if they are only to be passed on to
    a nested function.
 
-.. _docstrings
+.. _docstrings:
 
 Docstrings
 ----------
