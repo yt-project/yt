@@ -334,7 +334,7 @@ with two meshes on it:
     sc = Scene()
 
     # set up our Camera
-    sc.add_camera(ds)
+    cam = sc.add_camera(ds)
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
                      ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
