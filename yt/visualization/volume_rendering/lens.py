@@ -427,7 +427,9 @@ class StereoPerspectiveLens(Lens):
         normal_vec_rot = np.dot(R, normal_vec)
 
         camera_position_shift = camera.position + east_vec * disparity
-        sight_vector = pos - camera_position_shift.d
+        camera_position_shift = camera_position_shift.in_units('code_length').d
+        width = camera.width.in_units('code_length').d
+        sight_vector = pos - camera_position_shift
         pos1 = sight_vector
 
         for i in range(0, sight_vector.shape[0]):
@@ -437,21 +439,24 @@ class StereoPerspectiveLens(Lens):
 
         for i in range(0, sight_vector.shape[0]):
             sight_angle_cos = np.dot(sight_vector[i], normal_vec_rot)
+            # clip sight_angle_cos since floating point noise might
+            # cause it go outside the domain of arccos
+            sight_angle_cos = np.clip(sight_angle_cos, -1.0, 1.0)
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
-                sight_length = camera.width[2] / sight_angle_cos
+                sight_length = width[2] / sight_angle_cos
             else:
                 # If the corner is on the backwards, then we put it outside of
                 # the image It can not be simply removed because it may connect
                 # to other corner within the image, which produces visible
                 # domain boundary line
-                sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2)
+                sight_length = np.sqrt(width[0]**2 + width[1]**2)
                 sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera_position_shift + sight_length * sight_vector[i]
 
-        dx = np.dot(pos1 - sight_center.d, east_vec_rot)
-        dy = np.dot(pos1 - sight_center.d, north_vec)
-        dz = np.dot(pos - camera_position_shift.d, normal_vec_rot)
-        
+        dx = np.dot(pos1 - sight_center, east_vec_rot)
+        dy = np.dot(pos1 - sight_center, north_vec)
+        dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+
         # Transpose into image coords.
         if disparity > 0:
             px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
