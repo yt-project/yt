@@ -366,9 +366,8 @@ class Camera(Orientation):
 
         """
         self.position = position
-        if north_vector is not None:
-            self.switch_orientation(normal_vector=self.focus - self.position,
-                                    north_vector=north_vector)
+        self.switch_orientation(normal_vector=self.focus - self.position,
+                                north_vector=north_vector)
 
     def get_position(self):
         """Return the current camera position"""
