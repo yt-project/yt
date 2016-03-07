@@ -59,7 +59,17 @@ def test_scene_and_camera_attributes():
         ([u.cm*w for w in [1, 2, 3]], ds.arr([0.5, 1, 1.5], 'code_length'), ),
     ]
 
-    for attribute in ['focus', 'width', 'position']:
+    # define default values to avoid accidentally setting focus = position
+    default_values = {
+        'focus': [0, 0, 0],
+        'position': [4, 4, 4],
+        'width': [1, 1, 1],
+    }
+    attribute_list = list(default_values.keys())
+
+    for attribute in attribute_list:
+        for other_attribute in [a for a in attribute_list if a != attribute]:
+            setattr(cam, other_attribute, default_values[other_attribute])
         for attribute_value, expected_result in attribute_values:
             try:
                 # test properties
