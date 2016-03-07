@@ -49,6 +49,8 @@ def new_volume_render_sampler(camera, render_source):
         params['num_samples'],
     )
     kwargs = {'lens_type': params['lens_type']}
+    if "camera_data" in params:
+        kwargs['camera_data'] = params['camera_data']
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
         args[4][:] = np.reshape(render_source.zbuffer.rgba[:], \

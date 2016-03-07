@@ -196,6 +196,8 @@ class Camera(Orientation):
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
         lens_params.update(width=self.width)
+        lens_params.update(camera_data=np.vstack(
+            (self.position.d, self.width.d, self.unit_vectors.d)))
         return lens_params
 
     def set_lens(self, lens_type):
