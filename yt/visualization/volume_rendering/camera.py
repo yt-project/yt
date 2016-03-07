@@ -23,20 +23,37 @@ from .lens import \
     lenses, \
     Lens
 import numpy as np
-
+from numbers import Number as numeric_type
 
 def _sanitize_camera_property_units(value, scene):
     if iterable(value):
-        if isinstance(value, YTArray):
-            san_value = scene.arr(value.in_units('unitary'))
+        if len(value) == 1:
+            return _sanitize_camera_property_units(value[0], scene)
+        elif isinstance(value, YTArray) and len(value) == 3:
+            return scene.arr(value).in_units('unitary')
+        elif isinstance(value[0], numeric_type) and isinstance(value[1], string_types):
+            return scene.arr([scene.arr(value[0], value[1]).in_units('unitary')]*3)
+        if len(value) == 3:
+            if all([iterable(v) for v in value]):
+                if all([isinstance(v[0], numeric_type) and
+                        isinstance(v[1], string_types) for v in value]):
+                    return scene.arr(
+                        [scene.arr(v[0], v[1]) for v in value])
+                else:
+                    raise RuntimeError(
+                        "Cannot set camera width to invalid value '%s'" % (value, ))
+            return scene.arr(value, 'unitary')
         else:
-            san_value = scene.arr(value, 'unitary')
+            raise RuntimeError(
+                "Cannot set camera width to invalid value '%s'" % (value, ))
     else:
         if isinstance(value, YTQuantity):
             san_value = scene.arr([value.d]*3, value.units)
             san_value.convert_to_units('unitary')
-        else:
+        elif isinstance(value, numeric_type):
             san_value = scene.arr([value]*3, 'unitary')
+        else:
+            raise RuntimeError("Temp error message2")
     return san_value
 
 
@@ -135,12 +152,17 @@ class Camera(Orientation):
         self.set_lens(lens_type)
 
     def position():
-        doc = '''The position is the location of the camera in
-               the coordinate system of the simulation. This needs
-               to be either a YTArray or a numpy array. If it is a 
-               numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units 
-               automatically. '''
+        doc = '''
+        The location of the camera. 
+
+        Parameters
+        ----------
+
+        position : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the position is the same in all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._position
@@ -156,10 +178,17 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = '''The width of the region that will be seen in the image. 
-               This needs to be either a YTArray or a numpy array. If it 
-               is a numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units automatically. '''
+        doc = '''The width of the region that will be seen in the image.
+
+        Parameters
+        ----------
+
+        width : number, YTQuantity, iterable, or 3 element YTArray
+            The width of the volume rendering in the horizontal, vertical, and
+            depth directions. If a scalar, assumes that the width is the same in
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._width
@@ -176,11 +205,18 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = '''The focus defines the point the Camera is pointed at. This needs
-               to be either a YTArray or a numpy array. If it is a 
-               numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units 
-               automatically. '''
+        doc = '''
+        The focus defines the point the Camera is pointed at.
+
+        Parameters
+        ----------
+
+        focus : number, YTQuantity, iterable, or 3 element YTArray
+            The width of the volume rendering in the horizontal, vertical, and
+            depth directions. If a scalar, assumes that the width is the same in
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._focus
@@ -197,14 +233,15 @@ class Camera(Orientation):
 
     def resolution():
         doc = '''The resolution is the number of pixels in the image that
-               will be produced. '''
+               will be produced. Must be a 2-tuple of integers or an integer.'''
 
         def fget(self):
             return self._resolution
 
         def fset(self, value):
             if iterable(value):
-                assert (len(value) == 2)
+                if len(value) != 2:
+                    raise RuntimeError
             else:
                 value = (value, value)
             self._resolution = value
@@ -214,6 +251,19 @@ class Camera(Orientation):
             self._resolution = None
         return locals()
     resolution = property(**resolution())
+
+    def set_resolution(self, resolution):
+        """
+        The resolution is the number of pixels in the image that
+        will be produced. Must be a 2-tuple of integers or an integer.
+        """
+        self.resolution = resolution
+
+    def get_resolution(self):
+        """
+        Returns the resolution of the volume rendering
+        """
+        return self.resolution
 
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
@@ -290,13 +340,18 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : YTQuantity or 3 element YTArray
+        width : number, YTQuantity, iterable, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
-            all three directions.
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
         """
         self.width = width
         self.switch_orientation()
+
+    def get_width(self):
+        """Return the current camera width"""
+        return self.width
 
     def set_position(self, position, north_vector=None):
         r"""Set the position of the camera.
@@ -304,17 +359,42 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        position : array_like
-            The new position
+        width : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the position is the same in all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
 
         """
-
         self.position = position
-        self.switch_orientation(normal_vector=self.focus - self.position,
-                                north_vector=north_vector)
+        if north_vector is not None:
+            self.switch_orientation(normal_vector=self.focus - self.position,
+                                    north_vector=north_vector)
+
+    def get_position(self):
+        """Return the current camera position"""
+        return self.position
+
+    def set_focus(self, new_focus):
+        """Sets the point the Camera is pointed at.
+
+        Parameters
+        ----------
+
+        focus : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the focus is the same is all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+
+        """
+        self.focus = new_focus
+
+    def get_focus(self):
+        """Returns the current camera focus"""
+        return self.focus
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""Change the view direction based on any of the orientation parameters.
